@@ -60,13 +60,13 @@ We do not want to sync secrets into a `ConfigMap`.
 * Kubernetes External Secrets `KES`: A Application that runs a control loop which syncs secrets
 * KES `instance`: A single entity that runs a control loop.
 * ExternalSecret `ES`: A CustomResource that declares which secrets should be synced
-* Store: Is a **source** for secrets. The Store is external to KES. It can be a hosted service like Alibabacloud SecretsManager, AWS SystemsManager, Azure KeyVault...
+* Provider: Is a **source** for secrets. The Provider is external to KES. It can be a hosted service like Alibabacloud SecretsManager, AWS SystemsManager, Azure KeyVault...
 * Frontend: A **sink** for the synced secrets. Usually a `Secret`
 * Secret: credentials that act as a key to sensitive information
 
 ## Use-Cases
-* one global KES instance that manages ES in **all namespaces**, which gives access to **all stores**, with ACL
-* multiple global KES instances, each manages access to a single or multiple stores (e.g.: shard by stage or team...)
+* one global KES instance that manages ES in **all namespaces**, which gives access to **all providers**, with ACL
+* multiple global KES instances, each manages access to a single or multiple providers (e.g.: shard by stage or team...)
 * one KES per namespace (a user manages his/her own KES instance)
 
 ### User definitions
@@ -78,13 +78,13 @@ From that we can derive the following requirements or user-stories:
 1. AS a KES operator i want to run multiple KES instances per cluster (e.g. one KES instance per DEV/PROD)
 2. AS a KES operator or user i want to integrate **multiple stores** from a **single KES instance** (e.g. dev namespace has access only to dev secrets)
 3. AS a KES user i want to control the sink for the secrets (aka frontend: store secret as `kind=Secret`)
-4. AS a KES user i want to fetch **from multiple** stores and store the secrets **in a single** Frontend
+4. AS a KES user i want to fetch **from multiple** providers and store the secrets **in a single** Frontend
 5. AS a KES operator i want to limit the access to certain stores or subresources (e.g. having one central KES instance that handles all ES - similar to `iam.amazonaws.com/permitted` annotation per namespace)
 4. AS a KES user i want to provide an application with a configuration that contains a secret
 
-### Stores
+### Providers
 
-These stores are relevant:
+These providers are relevant for the project:
 * AWS Secure Systems Manager Parameter Store
 * AWS Secrets Manager
 * Hashicorp Vault
@@ -97,7 +97,7 @@ These stores are relevant:
 ### Frontends
 
 * Kind=Secret
-* *potentially* we could sync store to store
+* *potentially* we could sync provider to provider
 
 ## Proposal
 
@@ -106,7 +106,7 @@ These stores are relevant:
 ### External Secret
 
 The `ExternalSecret` CustomResourceDefinition is **namespaced**. It defines the following:
-1. source for the secret (store)
+1. source for the secret (provider)
 2. sink for the secret (fronted)
 3. and a mapping to translate the keys
 
@@ -117,7 +117,7 @@ metadata: {...}
 
 spec:
 
-  # the amount of time before the values will be read again from the store
+  # the amount of time before the values will be read again from the provider
   # may be set to zero to fetch and create it once
   refreshInterval: "1h"
 
