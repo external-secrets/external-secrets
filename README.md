@@ -1,29 +1,25 @@
 # External Secrets
 
-This operator reads information from a third party service
-like [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)  and automatically injects the values as [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) (other secret targets are also planned).
+The External Secrets Kubernetes operator reads information from a third party service
+like [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)  and automatically injects the values as [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/).
 
-This is a new joint effort to consolidate a single central solution that delivers on most of the requirements gathered from multiple other external secrets projects out there. If you are curious about the origins of this project, check out this issue [kubernetes-external-secrets/issues/47](https://github.com/external-secrets/kubernetes-external-secrets/issues/47) and this [PR](https://github.com/external-secrets/kubernetes-external-secrets/pull/477) and the discussion that triggered this.
+Multiple people and organizations are joining efforts to create a single External Secrets solution based on existing projects. If you are curious about the origins of this project, check out this issue [kubernetes-external-secrets/issues/47](https://github.com/external-secrets/kubernetes-external-secrets/issues/47) and this [PR](https://github.com/external-secrets/kubernetes-external-secrets/pull/477) and the discussion that triggered this.
 
 
 <a name="features"></a>
 
 # Planned Features
 
-- Multiple provider stores supported simultaneously in your cluster.
-- Multiple External Secrets instances, each for a different context/environment in your cluster (dev/prod).
-- Secrets being refreshed from time to time allowing you to rotate secrets in your Providers and still keep everything up to date inside your k8s cluster.
-- Changing the refresh interval of the secrets to match your needs. You can even make it 10s if you need to debug something (beware of API rate limits).
-- Using speciffic versions of the secrets or just gettting latest versions of them.
-- Changing something in your ExternalSecret CR will trigger a reconcile it (Even if your refresh interval is big).
-- AWS Secret Manager, Google Secret Manager, Gitlab, Vault, Azure and many other backends planned!
-
+- Support to multiple Provider stores (AWS Secret Manager, GCP Secret Manger, Vault and more) simultaneously.
+- Multiple External Secrets operator instances for different contexts/environments.
+- A custom refresh interval to sync the data from the Providers, syncing your Kubernetes Secrets up to date.
+- Select specific versions of the Provider data.
 
 <a name="partners"></a>
 
 <!-- Not sure how to word this properly. -->
 
-# Partner Companies Maintaining this repository/org
+# Kicked off by
 
 ![](assets/CS_logo_1.png)
 
