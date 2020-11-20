@@ -29,7 +29,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 <a name="original-projects"></a>
 
-# While this project is being maintained
+# Please bear in mind
 
 While this project is not stable and we don't have feature parity with the original projects, maybe you would like to consider having a look over these:
 
