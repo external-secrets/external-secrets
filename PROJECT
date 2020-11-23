@@ -1,0 +1,10 @@
+domain: x-k8s.io
+repo: github.com/external-secrets/external-secrets
+resources:
+- group: external-secrets
+  kind: SecretStore
+  version: v1alpha1
+- group: external-secrets
+  kind: ExternalSecret
+  version: v1alpha1
+version: "2"
