@@ -21,8 +21,13 @@ import (
 
 // SecretStoreRef defines which SecretStore to fetch the ExternalSecret data
 type SecretStoreRef struct {
-	// Name of the ExternalSecret resource
+	// Name of the SecretStore resource
 	Name string `json:"name"`
+
+	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+	// Defaults to `SecretStore`
+	// +optional
+	Kind string `json:"kind,omitempty"`
 }
 
 // ExternalSecretCreationPolicy defines rules on how to create the resulting Secret
