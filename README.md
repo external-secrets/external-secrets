@@ -16,7 +16,7 @@ While this project is not ready, you might consider using the following:
 - [External Secrets Operator](https://github.com/ContainerSolutions/externalsecret-operator/)
 
 ## Installation
-Close this repository:
+Clone this repository:
 ```shell
 git clone https://github.com/external-secrets/external-secrets.git
 ```
