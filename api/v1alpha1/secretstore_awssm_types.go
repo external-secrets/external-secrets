@@ -30,7 +30,7 @@ type AWSSMAuthSecretRef struct {
 
 // Configures a store to sync secrets using the AWS Secret Manager provider
 type AWSSMProvider struct {
-	// Auth defines the information necessary to authenticate agains AWS
+	// Auth defines the information necessary to authenticate against AWS
 	Auth AWSSMAuth `json:"auth"`
 
 	// Role is a Role ARN which the SecretManager provider will assume

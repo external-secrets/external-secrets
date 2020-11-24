@@ -106,7 +106,7 @@ type ExternalSecretSpec struct {
 	// +optional
 	RefreshInterval string `json:"refreshInterval,omitempty"`
 
-	// Data defines the connection betwen the Kubernetes Secret keys and the Provider data
+	// Data defines the connection between the Kubernetes Secret keys and the Provider data
 	// +optional
 	Data []ExternalSecretData `json:"data,omitempty"`
 
