@@ -1,0 +1,48 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - external-secrets.x-k8s.io
+  resources:
+  - externalsecrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - external-secrets.x-k8s.io
+  resources:
+  - externalsecrets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - external-secrets.x-k8s.io
+  resources:
+  - secretstores
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - external-secrets.x-k8s.io
+  resources:
+  - secretstores/status
+  verbs:
+  - get
+  - patch
+  - update
