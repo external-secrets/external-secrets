@@ -1,13 +1,14 @@
 ```yaml
 ---
-title: Standardize ExternalSecret CRD
+title: External Secrets Kubernetes Operator CRD
+version: v1alpha1
 authors: all of us
 creation-date: 2020-09-01
 status: draft
 ---
 ```
 
-# Standardize ExternalSecret CRD
+# External Secrets Kubernetes Operator CRD
 
 ## Table of Contents
 
@@ -25,13 +26,13 @@ status: draft
 
 ## Summary
 
-This is a proposal to standardize the `ExternalSecret` CRD in an combined effort through all projects that deal with syncing external secrets. This proposal aims to do find the _common denominator_ for all users of `ExternalSecrets`.
+This is a proposal to standardize the External Secret Kubernetes operator CRDs in an combined effort through all projects that deal with syncing external secrets. This proposal aims to do find the _common denominator_ for all users of an External Secrets project.
 
 ## Motivation
 
 There are a lot of different projects in the wild that essentially do the same thing: sync secrets with Kubernetes. The idea is to unify efforts into a single project that serves the needs of all users in this problem space.
 
-As a starting point i would like to define a **common denominator** for a CustomResourceDefinition that serves all known use-cases. This CRD should follow the standard alpha -> beta -> GA feature process.
+As a starting point I (@moolen) would like to define a **common denominator** for a Custom Resource Definition that serves all known use-cases. This CRD should follow the standard alpha -> beta -> GA feature process.
 
 Once the CRD API is defined we can move on with more delicate discussions about technology, organization and processes.
 
@@ -46,7 +47,7 @@ List of Projects known so far or related:
 
 ### Goals
 
-- Define a alpha CRD
+- Define an alpha CRD
 - Fully document the Spec and use-cases
 
 ### Non-Goals
@@ -58,29 +59,30 @@ We do not want to sync secrets into a `ConfigMap`.
 ## Terminology
 
 * Kubernetes External Secrets `KES`: A Application that runs a control loop which syncs secrets
-* KES `instance`: A single entity that runs a control loop.
-* ExternalSecret `ES`: A CustomResource that declares which secrets should be synced
-* Provider: Is a **source** for secrets. The Provider is external to KES. It can be a hosted service like Alibabacloud SecretsManager, AWS SystemsManager, Azure KeyVault...
-* Frontend: A **sink** for the synced secrets. Usually a `Secret`
-* Secret: credentials that act as a key to sensitive information
+* KES `instance`: A single entity that runs a control loop
+* Provider: Is a **source** for secrets. The Provider is external to KES. It can be a hosted service like Alibaba Cloud SecretsManager, AWS SystemsManager, Azure KeyVault etc
+* SecretStore `ST`: A Custom Resource to authenticate and configure the connection between the KES instance and the Provider
+* ExternalSecret `ES`: A Custom Resource that declares which secrets should be synced
+* Frontend: A **sink** for the synced secrets, usually a `Secret` resource
+* Secret: Credentials that act as a key to sensitive information
 
 ## Use-Cases
-* one global KES instance that manages ES in **all namespaces**, which gives access to **all providers**, with ACL
-* multiple global KES instances, each manages access to a single or multiple providers (e.g.: shard by stage or team...)
-* one KES per namespace (a user manages his/her own KES instance)
+* One global KES instance that manages ES in **all namespaces**, which gives access to **all providers**, with ACL
+* Multiple global KES instances, each manages access to a single or multiple providers (e.g.: shard by stage or team...)
+* One KES per namespace (a user manages their own KES instance)
 
-### User definitions
-* `operator :=` i manage one or multiple `KES` instances
-* `user :=` i only create `ES`, KES is managed by someone else
+### User Definitions
+* `operator :=` I manage one or multiple `KES` instances
+* `user :=` I only create `ES`, KES is managed by someone else
 
 ### User Stories
-From that we can derive the following requirements or user-stories:
-1. AS a KES operator i want to run multiple KES instances per cluster (e.g. one KES instance per DEV/PROD)
-2. AS a KES operator or user i want to integrate **multiple stores** from a **single KES instance** (e.g. dev namespace has access only to dev secrets)
-3. AS a KES user i want to control the sink for the secrets (aka frontend: store secret as `kind=Secret`)
-4. AS a KES user i want to fetch **from multiple** providers and store the secrets **in a single** Frontend
-5. AS a KES operator i want to limit the access to certain stores or subresources (e.g. having one central KES instance that handles all ES - similar to `iam.amazonaws.com/permitted` annotation per namespace)
-4. AS a KES user i want to provide an application with a configuration that contains a secret
+From that we can derive the following requirements or user stories:
+1. As a KES operator I want to run multiple KES instances per cluster (e.g. one KES instance per DEV/PROD)
+1. As a KES operator or user I want to integrate **multiple SecretStores** with a **single KES instance** (e.g. dev namespace has access only to dev secrets)
+1. As a KES user I want to control the Frontend for the secrets, usually a `Secret` resource
+1. As a KES user I want to fetch **from multiple** Providers and store the secrets **in a single** Frontend
+1. As a KES operator I want to limit the access to certain stores or sub resources (e.g. having one central KES instance that handles all ES - similar to `iam.amazonaws.com/permitted` annotation per namespace)
+1. As a KES user I want to provide an application with a configuration that contains a secret
 
 ### Providers
 
@@ -91,13 +93,13 @@ These providers are relevant for the project:
 * Azure Key Vault
 * Alibaba Cloud KMS Secret Manager
 * Google Cloud Platform Secret Manager
-* Kubernetes (see #422)
-* noop (see #476)
+* Kubernetes (see [#422](https://github.com/external-secrets/kubernetes-external-secrets/issues/422))
+* noop (see [#476](https://github.com/external-secrets/kubernetes-external-secrets/issues/476))
 
 ### Frontends
 
-* Kind=Secret
-* *potentially* we could sync provider to provider
+* A Secret Kubernetes resource
+* *potentially* we could sync Provider to Provider
 
 ## Proposal
 
@@ -105,26 +107,33 @@ These providers are relevant for the project:
 
 ### External Secret
 
-The `ExternalSecret` CustomResourceDefinition is **namespaced**. It defines the following:
-1. source for the secret (provider)
-2. sink for the secret (fronted)
-3. and a mapping to translate the keys
+The `ExternalSecret` Custom Resource Definition is **namespaced**. It defines the following:
+1. Source for the secret (`SecretStore`)
+2. Sink for the secret (Fronted)
+3. A mapping to translate the keys
 
 ```yaml
-apiVersion: external-secrets.k8s.io/v1alpha1
+apiVersion: external-secrets.x-k8s.io/v1alpha1
 kind: ExternalSecret
 metadata: {...}
 
 spec:
+  # SecretStoreRef defines which SecretStore to fetch the ExternalSecret data
+  secretStoreRef:
+    name: secret-store-name
+    kind: SecretStore  # or ClusterSecretStore
 
-  # the amount of time before the values will be read again from the provider
-  # may be set to zero to fetch and create it once
+	# RefreshInterval is the amount of time before the values reading again from the SecretStore provider
+	# Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h" (from time.ParseDuration)
+	# May be set to zero to fetch and create it once
   refreshInterval: "1h"
 
-  # there can only be one target per ES
+  # There can only be one target per ES
   target:
+
     # The secret name of the resource
-    # defaults to .metadata.name of the ExternalSecret. immutable.
+    # Defaults to .metadata.name of the ExternalSecret
+    # It is immutable
     name: my-secret
 
     # Enum with values: 'Owner', 'Merge', or 'None'
@@ -134,7 +143,7 @@ spec:
     # None does not create a secret (future use with injector)
     creationPolicy: 'Merge'
 
-    # specify a blueprint for the resulting Kind=Secret
+    # Specify a blueprint for the resulting Kind=Secret
     template:
       type: kubernetes.io/dockerconfigjson # or TLS...
 
@@ -142,14 +151,14 @@ spec:
         annotations: {}
         labels: {}
 
-      # use inline templates to construct your desired config file that contains your secret
+      # Use inline templates to construct your desired config file that contains your secret
       data:
         config.yml: |
           endpoints:
           - https://{{ .data.user }}:{{ .data.password }}@api.exmaple.com
 
       # Uses an existing template from configmap
-      # secret is fetched, merged and templated within the referenced configMap data
+      # Secret is fetched, merged and templated within the referenced configMap data
       # It does not update the configmap, it creates a secret with: data["alertmanager.yml"] = ...result...
       templateFrom:
       - configMap:
@@ -157,27 +166,24 @@ spec:
           items:
           - key: alertmanager.yaml
 
-  # data contains key/value pairs which correspond to the keys in the resulting secret
+  # Data defines the connection between the Kubernetes Secret keys and the Provider data
   data:
+    - secretKey: secret-key-to-be-managed
+      remoteRef:
+        key: provider-key
+        version: provider-key-version
+        property: provider-key-property
 
-    # EXAMPLE 1: simple mapping
-    # one key from a store may hold multiple values
-    # we need a way to map the values to the frontend
-    # it is the responsibility of the store implementation to know how to extract a value
-    tls.crt:
-      key: /corp.org/dev/certs/ingress
-      property: pubcert
-    tls.key:
-      key: /corp.org/dev/certs/ingress
-      property: privkey
-
-  # used to fetch all properties from a secret.
-  # if multiple dataFrom are specified, secrets are merged in the specified order
+  # Used to fetch all properties from the Provider key
+  # If multiple dataFrom are specified, secrets are merged in the specified order
   dataFrom:
-  - key: /user/all-creds
+  - remoteRef:
+      key: provider-key
+      version: provider-key-version
+      property: provider-key-property
 
 status:
-  # represents the current phase of secret sync:
+  # Represents the current phase of the secret sync:
   # * Pending | ES created, controller did not yet sync the ES or other dependencies are missing (e.g. secret store or configmap template)
   # * Syncing | ES is being actively synced according to spec
   # * Failing | Secret can not be synced, this might require user intervention
@@ -198,31 +204,43 @@ status:
 
 The ExternalSecret control loop **ensures** that the target resource exists and stays up to date with the upstream provider. Because most upstream APIs are limited in throughput the control loop must implement some sort of jitter and retry/backoff mechanic.
 
-### External Secret Store
+### Secret Store
 
 The store configuration in an `ExternalSecret` may contain a lot of redundancy, this can be factored out into its own CRD.
-These stores are defined in a particular namespace using `SecretStore` **or** globally with `GlobalSecretStore`.
+These stores are defined in a particular namespace using `SecretStore` **or** globally with `ClusterSecretStore`.
 
 ```yaml
-apiVerson: external-secrets.k8s.io/v1alpha1
+apiVerson: external-secrets.x-k8s.io/v1alpha1
 kind: SecretStore # or ClusterSecretStore
 metadata:
   name: vault
   namespace: example-ns
 spec:
 
-  # optional.
-  # used to select the correct KES controller (think: ingress.ingressClassName)
-  # The KES controller is instantiated with a specific controller name
-  # and filters ES based on this property
-  controller: "dev"
+  # Used to select the correct KES controller (think: ingress.ingressClassName)
+  # The KES controller is instantiated with a specific controller name and filters ES based on this property
+  # Optional
+  controller: dev
 
-  store:
-    type: vault
-    parameters: # provider specific k/v pairs
-      server: "https://vault.example.com"
-      path: path/on/vault/store
-    auth: {} # provider specific k/v pairs
+  # AWSSM configures this store to sync secrets using AWS Secret Manager provider
+  awssm:
+    # Auth defines the information necessary to authenticate against AWS by 
+    # getting the accessKeyID and secretAccessKey from an already created Kubernetes Secret
+    auth:
+      secretRef:
+        accessKeyID:
+          name: awssm-secret
+          key: access-key
+
+        secretAccessKey:
+          name: awssm-secret
+          key: secret-access-key
+
+    # Role is a Role ARN which the SecretManager provider will assume
+    role: iam-role
+
+    # AWS Region to be used for the provider
+    region: eu-central-1
 
 status:
   # * Pending: e.g. referenced secret containing credentials is missing
@@ -236,34 +254,11 @@ status:
     lastTransitionTime: "2019-08-12T12:33:02Z"
 ```
 
-Example Secret that uses the reference to a store
-```yaml
-apiVersion: external-secrets.k8s.io/v1alpha1
-kind: ExternalSecret
-metadata:
-  name: foo
-spec:
-  storeRef:
-    kind: SecretStore # ClusterSecretStore
-    name: my-store
-  target:
-    name: my-secret
-    template:
-      type: kubernetes.io/TLS
-  data:
-    tls.crt:
-      key: /corp.org/dev/certs/ingress
-      property: pubcert
-    tls.key:
-      key: /corp.org/dev/certs/ingress
-      property: privkey
-```
+## Workflow in a KES instance
 
-Workflow in a KES instance:
-1. A user creates a Store with a certain `spec.controller`
+1. A user creates a `SecretStore` with a certain `spec.controller`
 2. A controller picks up the `ExternalSecret` if it matches the `controller` field
-3. The controller fetches the secret from the provider and stores it as kind=Secret in the same namespace as ES
-
+3. The controller fetches the secret from the Provider and stores it as Secret Kubernetes resource in the same namespace as ES
 
 ## Backlog
 
