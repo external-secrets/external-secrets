@@ -34,6 +34,14 @@ type SecretStoreSpec struct {
 	// +optional
 	Controller string `json:"controller"`
 
+	// Used to configure the provider. Only one provider may be set
+	Provider *SecretStoreProvider `json:"provider"`
+}
+
+// SecretStoreProvider contains the provider-specific configration
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
+type SecretStoreProvider struct {
 	// AWSSM configures this store to sync secrets using AWS Secret Manager provider
 	// +optional
 	AWSSM *AWSSMProvider `json:"awssm,omitempty"`
