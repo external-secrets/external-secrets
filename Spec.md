@@ -113,7 +113,7 @@ The `ExternalSecret` Custom Resource Definition is **namespaced**. It defines th
 3. A mapping to translate the keys
 
 ```yaml
-apiVersion: external-secrets.x-k8s.io/v1alpha1
+apiVersion: external-secrets.io/v1alpha1
 kind: ExternalSecret
 metadata: {...}
 
