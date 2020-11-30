@@ -2,8 +2,8 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/external-secrets.x-k8s.io_secretstores.yaml
-- bases/external-secrets.x-k8s.io_externalsecrets.yaml
+- bases/external-secrets.io_secretstores.yaml
+- bases/external-secrets.io_externalsecrets.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

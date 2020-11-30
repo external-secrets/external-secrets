@@ -7,7 +7,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - external-secrets.x-k8s.io
+  - external-secrets.io
   resources:
   - externalsecrets
   verbs:
@@ -19,7 +19,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - external-secrets.x-k8s.io
+  - external-secrets.io
   resources:
   - externalsecrets/status
   verbs:
@@ -27,7 +27,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - external-secrets.x-k8s.io
+  - external-secrets.io
   resources:
   - secretstores
   verbs:
@@ -39,7 +39,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - external-secrets.x-k8s.io
+  - external-secrets.io
   resources:
   - secretstores/status
   verbs:
