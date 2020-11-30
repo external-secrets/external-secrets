@@ -1,6 +1,6 @@
 ```yaml
 ---
-title: External Secrets Kubernetes Operator CRD
+title: External Secrets Operator CRD
 version: v1alpha1
 authors: all of us
 creation-date: 2020-09-01
@@ -8,7 +8,7 @@ status: draft
 ---
 ```
 
-# External Secrets Kubernetes Operator CRD
+# External Secrets Operator CRD
 
 ## Table of Contents
 
@@ -26,7 +26,7 @@ status: draft
 
 ## Summary
 
-This is a proposal to standardize the External Secret Kubernetes operator CRDs in an combined effort through all projects that deal with syncing external secrets. This proposal aims to do find the _common denominator_ for all users of an External Secrets project.
+This is a proposal to standardize the External Secrets operator CRDs in an combined effort through all projects that deal with syncing external secrets. This proposal aims to do find the _common denominator_ for all users of an External Secrets project.
 
 ## Motivation
 
@@ -58,31 +58,31 @@ We do not want to sync secrets into a `ConfigMap`.
 
 ## Terminology
 
-* Kubernetes External Secrets `KES`: A Application that runs a control loop which syncs secrets
-* KES `instance`: A single entity that runs a control loop
-* Provider: Is a **source** for secrets. The Provider is external to KES. It can be a hosted service like Alibaba Cloud SecretsManager, AWS SystemsManager, Azure KeyVault etc
-* SecretStore `ST`: A Custom Resource to authenticate and configure the connection between the KES instance and the Provider
+* External Secrets Operator `ESO`: A Application that runs a control loop which syncs secrets
+* ESO `instance`: A single entity that runs a control loop
+* Provider: Is a **source** for secrets. The Provider is external to ESO. It can be a hosted service like Alibaba Cloud SecretsManager, AWS SystemsManager, Azure KeyVault etc
+* SecretStore `ST`: A Custom Resource to authenticate and configure the connection between the ESO instance and the Provider
 * ExternalSecret `ES`: A Custom Resource that declares which secrets should be synced
 * Frontend: A **sink** for the synced secrets, usually a `Secret` resource
 * Secret: Credentials that act as a key to sensitive information
 
 ## Use-Cases
-* One global KES instance that manages ES in **all namespaces**, which gives access to **all providers**, with ACL
-* Multiple global KES instances, each manages access to a single or multiple providers (e.g.: shard by stage or team...)
-* One KES per namespace (a user manages their own KES instance)
+* One global ESO instance that manages ES in **all namespaces**, which gives access to **all providers**, with ACL
+* Multiple global ESO instances, each manages access to a single or multiple providers (e.g.: shard by stage or team...)
+* One ESO per namespace (a user manages their own ESO instance)
 
 ### User Definitions
-* `operator :=` I manage one or multiple `KES` instances
-* `user :=` I only create `ES`, KES is managed by someone else
+* `operator :=` I manage one or multiple `ESO` instances
+* `user :=` I only create `ES`, ESO is managed by someone else
 
 ### User Stories
 From that we can derive the following requirements or user stories:
-1. As a KES operator I want to run multiple KES instances per cluster (e.g. one KES instance per DEV/PROD)
-1. As a KES operator or user I want to integrate **multiple SecretStores** with a **single KES instance** (e.g. dev namespace has access only to dev secrets)
-1. As a KES user I want to control the Frontend for the secrets, usually a `Secret` resource
-1. As a KES user I want to fetch **from multiple** Providers and store the secrets **in a single** Frontend
-1. As a KES operator I want to limit the access to certain stores or sub resources (e.g. having one central KES instance that handles all ES - similar to `iam.amazonaws.com/permitted` annotation per namespace)
-1. As a KES user I want to provide an application with a configuration that contains a secret
+1. As a ESO operator I want to run multiple ESO instances per cluster (e.g. one ESO instance per DEV/PROD)
+1. As a ESO operator or user I want to integrate **multiple SecretStores** with a **single ESO instance** (e.g. dev namespace has access only to dev secrets)
+1. As a ESO user I want to control the Frontend for the secrets, usually a `Secret` resource
+1. As a ESO user I want to fetch **from multiple** Providers and store the secrets **in a single** Frontend
+1. As a ESO operator I want to limit the access to certain stores or sub resources (e.g. having one central ESO instance that handles all ES - similar to `iam.amazonaws.com/permitted` annotation per namespace)
+1. As a ESO user I want to provide an application with a configuration that contains a secret
 
 ### Providers
 
@@ -123,9 +123,9 @@ spec:
     name: secret-store-name
     kind: SecretStore  # or ClusterSecretStore
 
-	# RefreshInterval is the amount of time before the values reading again from the SecretStore provider
-	# Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h" (from time.ParseDuration)
-	# May be set to zero to fetch and create it once
+  # RefreshInterval is the amount of time before the values reading again from the SecretStore provider
+  # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h" (from time.ParseDuration)
+  # May be set to zero to fetch and create it once
   refreshInterval: "1h"
 
   # There can only be one target per ES
@@ -210,15 +210,15 @@ The store configuration in an `ExternalSecret` may contain a lot of redundancy, 
 These stores are defined in a particular namespace using `SecretStore` **or** globally with `ClusterSecretStore`.
 
 ```yaml
-apiVerson: external-secrets.x-k8s.io/v1alpha1
+apiVerson: external-secrets.io/v1alpha1
 kind: SecretStore # or ClusterSecretStore
 metadata:
   name: vault
   namespace: example-ns
 spec:
 
-  # Used to select the correct KES controller (think: ingress.ingressClassName)
-  # The KES controller is instantiated with a specific controller name and filters ES based on this property
+  # Used to select the correct ESO controller (think: ingress.ingressClassName)
+  # The ESO controller is instantiated with a specific controller name and filters ES based on this property
   # Optional
   controller: dev
 
@@ -254,7 +254,7 @@ status:
     lastTransitionTime: "2019-08-12T12:33:02Z"
 ```
 
-## Workflow in a KES instance
+## Workflow in a ESO instance
 
 1. A user creates a `SecretStore` with a certain `spec.controller`
 2. A controller picks up the `ExternalSecret` if it matches the `controller` field
