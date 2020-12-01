@@ -1,4 +1,4 @@
-domain: x-k8s.io
+domain: io
 repo: github.com/external-secrets/external-secrets
 resources:
 - group: external-secrets
