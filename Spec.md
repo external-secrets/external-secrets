@@ -222,25 +222,28 @@ spec:
   # Optional
   controller: dev
 
-  # AWSSM configures this store to sync secrets using AWS Secret Manager provider
-  awssm:
-    # Auth defines the information necessary to authenticate against AWS by 
-    # getting the accessKeyID and secretAccessKey from an already created Kubernetes Secret
-    auth:
-      secretRef:
-        accessKeyID:
-          name: awssm-secret
-          key: access-key
+  # provider field contains the configuration to access the provider which contains the secret
+  # exactly one provider must be configured. 
+  provider:
+    # AWSSM configures this store to sync secrets using AWS Secret Manager provider
+    awssm:
+      # Auth defines the information necessary to authenticate against AWS by 
+      # getting the accessKeyID and secretAccessKey from an already created Kubernetes Secret
+      auth:
+        secretRef:
+          accessKeyID:
+            name: awssm-secret
+            key: access-key
 
-        secretAccessKey:
-          name: awssm-secret
-          key: secret-access-key
+          secretAccessKey:
+            name: awssm-secret
+            key: secret-access-key
 
-    # Role is a Role ARN which the SecretManager provider will assume
-    role: iam-role
+      # Role is a Role ARN which the SecretManager provider will assume
+      role: iam-role
 
-    # AWS Region to be used for the provider
-    region: eu-central-1
+      # AWS Region to be used for the provider
+      region: eu-central-1
 
 status:
   # * Pending: e.g. referenced secret containing credentials is missing
