@@ -11,3 +11,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+package register
+
+// packages imported here are registered to the controller schema
+import (
+	// register awssm provider
+	_ "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
+)
