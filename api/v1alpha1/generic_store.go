@@ -41,11 +41,6 @@ func (c *SecretStore) GetProvider() *SecretStoreProvider {
 	return c.Spec.Provider
 }
 
-// SetProvider sets the underlying provider
-func (c *SecretStore) SetProvider(provider SecretStoreProvider) {
-	c.Spec.Provider = &provider
-}
-
 // Copy returns a DeepCopy of the Store
 func (c *SecretStore) Copy() GenericStore {
 	return c.DeepCopy()
