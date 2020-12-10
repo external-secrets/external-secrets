@@ -36,6 +36,26 @@ jobs:
     - name: Vet and Build
       run: make manager
 
+  test:
+    name: Test
+    container: 
+      image: golang:1.15
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+        
+    - name: Add kubebuilder
+      run:  |
+        curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
+
     - name: Test
       run: make test
 
@@ -51,7 +71,7 @@ jobs:
   docker:
     name: Docker
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, test]
     steps:
     - name: Prepare
       id: prep
@@ -103,9 +123,9 @@ jobs:
       id: docker-login
       uses: docker/login-action@v1
       with:
-        registry: docker.pkg.github.com
-        username: external-secrets
-        password: ${{ secrets.GITHUB_TOKEN }}
+        registry: ghcr.io
+        username: ${{ secrets.GHCR_USERNAME }}
+        password: ${{ secrets.GHCR_TOKEN }}
       if: ${{ steps.prep.outputs.push_image == 'true' }}
 
     - name: Build and push
