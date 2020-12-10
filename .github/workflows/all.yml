@@ -1,4 +1,4 @@
-name: CI
+name: all-ci
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
       - '*/*'       # matches every branch containing a single '/'
       - '**'        # matches every branch
       - '!main'     # excludes main
+  pull_request:
+    branches: [ '!main' ]
 
 env: 
   KUBEBUILDER_VERSION: 2.3.1

@@ -1,12 +1,12 @@
-name: CI
+name: main-ci
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
     tags:
       - '*'
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 env: 
   KUBEBUILDER_VERSION: 2.3.1
