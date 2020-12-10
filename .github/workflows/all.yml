@@ -45,8 +45,8 @@ jobs:
         # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
         file: ./cover.out
         # flags: unittests # optional
-        name: externalsecret-operator
-        fail_ci_if_error: true 
+        name: external-secrets
+        fail_ci_if_error: false
 
   docker:
     name: Docker

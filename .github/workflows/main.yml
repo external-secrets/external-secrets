@@ -76,7 +76,7 @@ jobs:
         REPO_FULL_NAME="${{ github.event.pull_request.head.repo.full_name }}"
         # If this is both a pull request and a fork, then don't push the image
         if [[ ${{ github.event_name }} == pull_request ]]; then
-          if [[ $REPO_FULL_NAME != external-secrets/xternal-secrets ]]; then
+          if [[ $REPO_FULL_NAME != external-secrets/external-secrets ]]; then
             PUSH_IMAGE=false
           fi
         fi
