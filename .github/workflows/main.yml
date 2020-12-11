@@ -65,7 +65,7 @@ jobs:
         # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
         file: ./cover.out
         # flags: unittests # optional
-        name: externalsecret-operator
+        name: external-secrets
         fail_ci_if_error: true 
 
   docker:
@@ -101,10 +101,13 @@ jobs:
           fi
         fi
 
+        REPO_URL=https://github.com/${{github.repository}}
+
         echo ::set-output name=version::${VERSION}
         echo ::set-output name=tags::${TAGS}
         echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
         echo ::set-output name=push_image::$PUSH_IMAGE
+        echo ::set-output name=repo_url::$REPO_URL
 
     - name: Check out the repo
       uses: actions/checkout@v2
@@ -113,7 +116,7 @@ jobs:
       id: qemu
       uses: docker/setup-qemu-action@v1
       with:
-        platforms: all
+        platforms: linux/amd64
 
     - name: Set up Docker Buildx
       id: buildx
@@ -139,7 +142,7 @@ jobs:
         tags: ${{ steps.prep.outputs.tags }}
         push: ${{ steps.prep.outputs.push_image }}
         labels: |
-          org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+          org.opencontainers.image.source=${{ steps.prep.outputs.repo_url }}
           org.opencontainers.image.created=${{ steps.prep.outputs.created }}
           org.opencontainers.image.revision=${{ github.sha }}
           
