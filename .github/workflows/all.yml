@@ -1,0 +1,74 @@
+name: all-ci
+
+on:
+  push:
+    branches:    
+      - '*'         # matches every branch that doesn't contain a '/'
+      - '*/*'       # matches every branch containing a single '/'
+      - '**'        # matches every branch
+      - '!main'     # excludes main
+  pull_request:
+    branches: [ '!main' ]
+
+env: 
+  KUBEBUILDER_VERSION: 2.3.1
+
+jobs:
+
+  build:
+    name: Build
+    container: 
+      image: golang:1.15
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+        
+    - name: Add kubebuilder
+      run:  |
+        curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
+
+    - name: Vet and Build
+      run: make manager
+
+  test:
+    name: Test
+    container: 
+      image: golang:1.15
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+        
+    - name: Add kubebuilder
+      run:  |
+        curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Test
+      run: make test
+
+    - name: Coverage
+      uses: codecov/codecov-action@v1
+      with:
+        # token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+        file: ./cover.out
+        # flags: unittests # optional
+        name: external-secrets
+        fail_ci_if_error: false
