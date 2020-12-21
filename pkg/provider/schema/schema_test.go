@@ -17,25 +17,26 @@ import (
 	"context"
 	"testing"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/provider"
 )
 
 type PP struct{}
 
-// New constructs a SecretsManager Provider
+// New constructs a SecretsManager Provider.
 func (p *PP) New(ctx context.Context, store esv1alpha1.SecretStoreProvider, kube client.Client, namespace string) (provider.Provider, error) {
 	return p, nil
 }
 
-// GetSecret returns a single secret from the provider
+// GetSecret returns a single secret from the provider.
 func (p *PP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return []byte("NOOP"), nil
 }
 
-// GetSecretMap returns multiple k/v pairs from the provider
+// GetSecretMap returns multiple k/v pairs from the provider.
 func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return map[string][]byte{}, nil
 }

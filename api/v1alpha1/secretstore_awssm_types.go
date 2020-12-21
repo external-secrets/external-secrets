@@ -28,7 +28,7 @@ type AWSSMAuthSecretRef struct {
 	SecretAccessKey SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
 }
 
-// Configures a store to sync secrets using the AWS Secret Manager provider
+// Configures a store to sync secrets using the AWS Secret Manager provider.
 type AWSSMProvider struct {
 	// Auth defines the information necessary to authenticate against AWS
 	Auth AWSSMAuth `json:"auth"`

@@ -27,7 +27,7 @@ const (
 	Vault StoreProvider = "VAULT"
 )
 
-// SecretStoreSpec defines the desired state of SecretStore
+// SecretStoreSpec defines the desired state of SecretStore.
 type SecretStoreSpec struct {
 	// Used to select the correct KES controller (think: ingress.ingressClassName)
 	// The KES controller is instantiated with a specific controller name and filters ES based on this property
@@ -38,7 +38,7 @@ type SecretStoreSpec struct {
 	Provider *SecretStoreProvider `json:"provider"`
 }
 
-// SecretStoreProvider contains the provider-specific configration
+// SecretStoreProvider contains the provider-specific configration.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type SecretStoreProvider struct {
@@ -50,10 +50,10 @@ type SecretStoreProvider struct {
 type SecretStoreStatusPhase string
 
 const (
-	// E.g. referenced Secret containing credentials is missing
+	// E.g. referenced Secret containing credentials is missing.
 	SecretStorePending SecretStoreStatusPhase = "Pending"
 
-	// All dependencies are met, sync
+	// All dependencies are met, sync.
 	SecretStoreRunning SecretStoreStatusPhase = "Running"
 )
 
@@ -77,7 +77,7 @@ type SecretStoreStatusCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
-// SecretStoreStatus defines the observed state of the SecretStore
+// SecretStoreStatus defines the observed state of the SecretStore.
 type SecretStoreStatus struct {
 	// +optional
 	Phase SecretStoreStatusPhase `json:"phase"`
@@ -88,7 +88,7 @@ type SecretStoreStatus struct {
 
 // +kubebuilder:object:root=true
 
-// SecretStore is the Schema for the secretstores API
+// SecretStore is the Schema for the secretstores API.
 type SecretStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -99,7 +99,7 @@ type SecretStore struct {
 
 // +kubebuilder:object:root=true
 
-// SecretStoreList contains a list of SecretStore
+// SecretStoreList contains a list of SecretStore.
 type SecretStoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

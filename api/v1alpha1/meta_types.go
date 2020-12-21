@@ -14,7 +14,7 @@ limitations under the License.
 
 package v1alpha1
 
-// Refers to a Secret in Kubernetes
+// Refers to a Secret in Kubernetes.
 type SecretKeySelector struct {
 	Name string `json:"name"`
 	Key  string `json:"key"`

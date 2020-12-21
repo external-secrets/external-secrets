@@ -17,16 +17,16 @@ package fake
 import (
 	"context"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ provider.Provider = &Client{}
 
-// Client is a fake client for testing
+// Client is a fake client for testing.
 type Client struct {
 	NewFn func(context.Context, esv1alpha1.SecretStoreProvider, client.Client,
 		string) (provider.Provider, error)
@@ -34,7 +34,7 @@ type Client struct {
 	GetSecretMapFn func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 }
 
-// New returns a fake client
+// New returns a fake client.
 func New() *Client {
 	v := &Client{
 		GetSecretFn: func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -52,17 +52,17 @@ func New() *Client {
 	return v
 }
 
-// RegisterAs registers the fake client in the schema
+// RegisterAs registers the fake client in the schema.
 func (v *Client) RegisterAs(provider *esv1alpha1.SecretStoreProvider) {
 	schema.ForceRegister(v, provider)
 }
 
-// GetSecret implements the provider.Provider interface
+// GetSecret implements the provider.Provider interface.
 func (v *Client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return v.GetSecretFn(ctx, ref)
 }
 
-// WithGetSecret wraps secret data returned by this provider
+// WithGetSecret wraps secret data returned by this provider.
 func (v *Client) WithGetSecret(secData []byte, err error) *Client {
 	v.GetSecretFn = func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 		return secData, err
@@ -70,12 +70,12 @@ func (v *Client) WithGetSecret(secData []byte, err error) *Client {
 	return v
 }
 
-// GetSecretMap imeplements the provider.Provider interface
+// GetSecretMap imeplements the provider.Provider interface.
 func (v *Client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return v.GetSecretMapFn(ctx, ref)
 }
 
-// WithGetSecretMap wraps the secret data map returned by this fake provider
+// WithGetSecretMap wraps the secret data map returned by this fake provider.
 func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client {
 	v.GetSecretMapFn = func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 		return secData, err
@@ -83,14 +83,14 @@ func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client 
 	return v
 }
 
-// WithNew wraps the fake provider factory function
+// WithNew wraps the fake provider factory function.
 func (v *Client) WithNew(f func(context.Context, esv1alpha1.SecretStoreProvider, client.Client,
 	string) (provider.Provider, error)) *Client {
 	v.NewFn = f
 	return v
 }
 
-// New returns a new fake provider
+// New returns a new fake provider.
 func (v *Client) New(ctx context.Context, store esv1alpha1.SecretStoreProvider, kube client.Client, namespace string) (provider.Provider, error) {
 	client, err := v.NewFn(ctx, store, kube, namespace)
 	if err != nil {

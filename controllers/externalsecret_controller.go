@@ -25,7 +25,7 @@ import (
 	externalsecretsv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
 )
 
-// ExternalSecretReconciler reconciles a ExternalSecret object
+// ExternalSecretReconciler reconciles a ExternalSecret object.
 type ExternalSecretReconciler struct {
 	client.Client
 	Log    logr.Logger

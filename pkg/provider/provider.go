@@ -17,12 +17,12 @@ package provider
 import (
 	"context"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
 )
 
-// Provider is a common interface for interacting with secret backends
+// Provider is a common interface for interacting with secret backends.
 type Provider interface {
 	// New constructs a SecretsManager Provider
 	New(ctx context.Context, store esv1alpha1.SecretStoreProvider, kube client.Client, namespace string) (Provider, error)

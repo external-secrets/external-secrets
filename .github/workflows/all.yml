@@ -2,7 +2,7 @@ name: all-ci
 
 on:
   push:
-    branches:    
+    branches:
       - '*'         # matches every branch that doesn't contain a '/'
       - '*/*'       # matches every branch containing a single '/'
       - '**'        # matches every branch
@@ -10,14 +10,14 @@ on:
   pull_request:
     branches: [ '!main' ]
 
-env: 
+env:
   KUBEBUILDER_VERSION: 2.3.1
 
 jobs:
 
   build:
     name: Build
-    container: 
+    container:
       image: golang:1.15
     runs-on: ubuntu-latest
 
@@ -25,22 +25,28 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '~1.15'
+
     - name: Add kubebuilder
       run:  |
         curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
         tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
         mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
 
-    - name: Vet and Build
-      run: make manager
+    - name: Lint
+      run: |
+        make lint-install
+        make lint
+
+    - name: Build
+      run: make build
 
   test:
     name: Test
-    container: 
+    container:
       image: golang:1.15
     runs-on: ubuntu-latest
 
@@ -48,10 +54,11 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '~1.15'
+
     - name: Add kubebuilder
       run:  |
         curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz

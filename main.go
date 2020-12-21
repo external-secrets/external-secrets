@@ -24,9 +24,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	// +kubebuilder:scaffold:imports
 	externalsecretsv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
 	"github.com/external-secrets/external-secrets/controllers"
-	// +kubebuilder:scaffold:imports
 )
 
 var (
