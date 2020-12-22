@@ -7,6 +7,8 @@ SHELL         := /bin/bash
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
+HELM_DIR    ?= deploy/charts/external-secrets
+CRD_DIR     ?= config/crd/bases
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -76,6 +78,16 @@ docker-build: test ## Build the docker image
 
 docker-push: ## Push the docker image
 	docker push ${IMG}
+
+helm-docs: ## Generate helm docs
+	cd $(HELM_DIR); \
+	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) jnorwood/helm-docs:latest
+
+crds-to-chart: # Copy crds to helm chart directory
+	cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/; \
+	for i in $(HELM_DIR)/templates/crds/*.yaml; do \
+		sed -i '1s/.*/{{- if .Values.installCRDs }}/;$$a{{- end }}' $$i; \
+	done
 
 # find or download controller-gen
 # download controller-gen if necessary

@@ -24,3 +24,5 @@ bin
 
 # Code test output
 cover.out
+
+deploy/charts/external-secrets/templates/crds/*.yaml
