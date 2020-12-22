@@ -1,3 +1,7 @@
+MAKEFLAGS     += --warn-undefined-variables
+SHELL         := /bin/bash
+.SHELLFLAGS   := -euo pipefail -c
+.DEFAULT_GOAL := all
 
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
@@ -11,18 +15,18 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-all: manager
+all: build
 
-# Run tests
-test: generate fmt vet manifests
+.PHONY: test
+test: generate manifests ## Run tests
 	go test ./... -coverprofile cover.out
 
-# Build manager binary
-manager: generate fmt vet
+.PHONY: build
+build: generate fmt ## Build binary
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
+run: generate fmt manifests
 	go run ./main.go
 
 # Install CRDs into a cluster
@@ -33,33 +37,44 @@ install: manifests
 uninstall: manifests
 	kustomize build config/crd | kubectl delete -f -
 
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
+.PHONY: deploy
+deploy: manifests ## Deploy controller in the Kubernetes cluster of current context
 	cd config/manager && kustomize edit set image controller=${IMG}
 	kustomize build config/default | kubectl apply -f -
 
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
+manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-# Run go fmt against code
-fmt:
+lint/check: # Check install of golanci-lint
+	@if ! golangci-lint --version > /dev/null 2>&1; then \
+		echo -e "\033[0;33mgolangci-lint is not installed: run \`\033[0;32mmake lint-install\033[0m\033[0;33m\` or install it from https://golangci-lint.run\033[0m"; \
+		exit 1; \
+	fi
+
+lint-install: # installs golangci-lint to the go bin dir
+	@if ! golangci-lint --version > /dev/null 2>&1; then \
+		echo "Installing golangci-lint"; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOBIN) v1.33.0; \
+	fi
+
+lint: lint/check ## run golangci-lint
+	@if ! golangci-lint run; then \
+		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
+		exit 1; \
+	fi
+
+fmt: lint/check ## ensure consistent code style
+	go mod tidy
 	go fmt ./...
+	golangci-lint run --fix > /dev/null 2>&1 || true
 
-# Run go vet against code
-vet:
-	go vet ./...
-
-# Generate code
-generate: controller-gen
+generate: controller-gen ## Generate code
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-# Build the docker image
-docker-build: test
+docker-build: test ## Build the docker image
 	docker build . -t ${IMG}
 
-# Push the docker image
-docker-push:
+docker-push: ## Push the docker image
 	docker push ${IMG}
 
 # find or download controller-gen
@@ -78,3 +93,8 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+help: ## displays this help message
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_\/-]+:.*?## / {printf "\033[34m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST) | \
+		sort | \
+		grep -v '#'

@@ -31,7 +31,7 @@ func init() {
 }
 
 // Register a store backend type. Register panics if a
-// backend with the same store is already registered
+// backend with the same store is already registered.
 func Register(s provider.Provider, storeSpec *esv1alpha1.SecretStoreProvider) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
@@ -49,7 +49,7 @@ func Register(s provider.Provider, storeSpec *esv1alpha1.SecretStoreProvider) {
 }
 
 // ForceRegister adds to store schema, overwriting a store if
-// already registered. Should only be used for testing
+// already registered. Should only be used for testing.
 func ForceRegister(s provider.Provider, storeSpec *esv1alpha1.SecretStoreProvider) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
@@ -61,7 +61,7 @@ func ForceRegister(s provider.Provider, storeSpec *esv1alpha1.SecretStoreProvide
 	buildlock.Unlock()
 }
 
-// GetProviderByName returns the provider implementation by name
+// GetProviderByName returns the provider implementation by name.
 func GetProviderByName(name string) (provider.Provider, bool) {
 	buildlock.RLock()
 	f, ok := builder[name]
@@ -69,7 +69,7 @@ func GetProviderByName(name string) (provider.Provider, bool) {
 	return f, ok
 }
 
-// GetProvider returns the provider from the generic store
+// GetProvider returns the provider from the generic store.
 func GetProvider(s esv1alpha1.GenericStore) (provider.Provider, error) {
 	provider := s.GetProvider()
 	storeName, err := getProviderName(provider)
@@ -89,7 +89,7 @@ func GetProvider(s esv1alpha1.GenericStore) (provider.Provider, error) {
 }
 
 // getProviderName returns the name of the configured provider
-// or an error if the provider is not configured
+// or an error if the provider is not configured.
 func getProviderName(storeSpec *esv1alpha1.SecretStoreProvider) (string, error) {
 	storeBytes, err := json.Marshal(storeSpec)
 	if err != nil {

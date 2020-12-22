@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// SecretStoreRef defines which SecretStore to fetch the ExternalSecret data
+// SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
 type SecretStoreRef struct {
 	// Name of the SecretStore resource
 	Name string `json:"name"`
@@ -30,21 +30,21 @@ type SecretStoreRef struct {
 	Kind string `json:"kind,omitempty"`
 }
 
-// ExternalSecretCreationPolicy defines rules on how to create the resulting Secret
+// ExternalSecretCreationPolicy defines rules on how to create the resulting Secret.
 type ExternalSecretCreationPolicy string
 
 const (
-	// Owner creates the Secret and sets .metadata.ownerReferences to the ExternalSecret resource
+	// Owner creates the Secret and sets .metadata.ownerReferences to the ExternalSecret resource.
 	Owner ExternalSecretCreationPolicy = "Owner"
 
-	// Merge does not create the Secret, but merges the data fields to the Secret
+	// Merge does not create the Secret, but merges the data fields to the Secret.
 	Merge ExternalSecretCreationPolicy = "Merge"
 
-	// None does not create a Secret (future use with injector)
+	// None does not create a Secret (future use with injector).
 	None ExternalSecretCreationPolicy = "None"
 )
 
-// ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint
+// ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
 type ExternalSecretTemplateMetadata struct {
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -53,7 +53,7 @@ type ExternalSecretTemplateMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-// ExternalSecretTemplate defines a blueprint for the created Secret resource
+// ExternalSecretTemplate defines a blueprint for the created Secret resource.
 type ExternalSecretTemplate struct {
 	// +optional
 	Type corev1.SecretType `json:"type,omitempty"`
@@ -63,7 +63,7 @@ type ExternalSecretTemplate struct {
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created
-// There can be only one target per ExternalSecret
+// There can be only one target per ExternalSecret.
 type ExternalSecretTarget struct {
 	// Name defines the name of the Secret resource to be managed
 	// This field is immutable
@@ -77,14 +77,14 @@ type ExternalSecretTarget struct {
 	CreationPolicy ExternalSecretCreationPolicy `json:"creationPolicy,omitempty"`
 }
 
-// ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data
+// ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.
 type ExternalSecretData struct {
 	SecretKey string `json:"secretKey"`
 
 	RemoteRef ExternalSecretDataRemoteRef `json:"remoteRef"`
 }
 
-// ExternalSecretDataRemoteRef defines Provider data location
+// ExternalSecretDataRemoteRef defines Provider data location.
 type ExternalSecretDataRemoteRef struct {
 	// Key is the key used in the Provider, mandatory
 	Key string `json:"key"`
@@ -98,7 +98,7 @@ type ExternalSecretDataRemoteRef struct {
 	Property string `json:"property,omitempty"`
 }
 
-// ExternalSecretSpec defines the desired state of ExternalSecret
+// ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	SecretStoreRef SecretStoreRef `json:"secretStoreRef"`
 
@@ -121,23 +121,23 @@ type ExternalSecretSpec struct {
 	DataFrom []ExternalSecretDataRemoteRef `json:"dataFrom,omitempty"`
 }
 
-// ExternalSecretStatusPhase represents the current phase of the Secret sync
+// ExternalSecretStatusPhase represents the current phase of the Secret sync.
 type ExternalSecretStatusPhase string
 
 const (
-	// ExternalSecret created, controller did not yet sync the ExternalSecret or other dependencies are missing (e.g. secret store or configmap template)
+	// ExternalSecret created, controller did not yet sync the ExternalSecret or other dependencies are missing (e.g. secret store or configmap template).
 	ExternalSecretPending ExternalSecretStatusPhase = "Pending"
 
-	// ExternalSecret is being actively synced according to spec
+	// ExternalSecret is being actively synced according to spec.
 	ExternalSecretSyncing ExternalSecretStatusPhase = "Syncing"
 
-	// ExternalSecret can not be synced, this might require user intervention
+	// ExternalSecret can not be synced, this might require user intervention.
 	ExternalSecretFailing ExternalSecretStatusPhase = "Failing"
 
-	// ExternalSecret can not be synced right now and will not able to
+	// ExternalSecret can not be synced right now and will not able to.
 	ExternalSecretFailed ExternalSecretStatusPhase = "Failed"
 
-	// ExternalSecret was synced successfully (one-time use only)
+	// ExternalSecret was synced successfully (one-time use only).
 	ExternalSecretCompleted ExternalSecretStatusPhase = "Completed"
 )
 
@@ -174,7 +174,7 @@ type ExternalSecretStatus struct {
 
 // +kubebuilder:object:root=true
 
-// ExternalSecret is the Schema for the externalsecrets API
+// ExternalSecret is the Schema for the externalsecrets API.
 type ExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -185,7 +185,7 @@ type ExternalSecret struct {
 
 // +kubebuilder:object:root=true
 
-// ExternalSecretList contains a list of ExternalSecret
+// ExternalSecretList contains a list of ExternalSecret.
 type ExternalSecretList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

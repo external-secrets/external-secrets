@@ -25,7 +25,7 @@ import (
 // +k8s:deepcopy-gen=nil
 
 // GenericStore is a common interface for interacting with ClusterSecretStore
-// or a namespaced SecretStore
+// or a namespaced SecretStore.
 type GenericStore interface {
 	runtime.Object
 	metav1.Object
@@ -36,12 +36,12 @@ type GenericStore interface {
 // +kubebuilder:object:generate:false
 var _ GenericStore = &SecretStore{}
 
-// GetProvider returns the underlying provider
+// GetProvider returns the underlying provider.
 func (c *SecretStore) GetProvider() *SecretStoreProvider {
 	return c.Spec.Provider
 }
 
-// Copy returns a DeepCopy of the Store
+// Copy returns a DeepCopy of the Store.
 func (c *SecretStore) Copy() GenericStore {
 	return c.DeepCopy()
 }

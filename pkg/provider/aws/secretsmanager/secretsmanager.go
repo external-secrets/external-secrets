@@ -16,26 +16,27 @@ package secretsmanager
 import (
 	"context"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// SecretsManager is a provider for AWS SecretsManager
+// SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct{}
 
-// New constructs a SecretsManager Provider
+// New constructs a SecretsManager Provider.
 func (sm *SecretsManager) New(ctx context.Context, store esv1alpha1.SecretStoreProvider, kube client.Client, namespace string) (provider.Provider, error) {
 	return sm, nil // stub
 }
 
-// GetSecret returns a single secret from the provider
+// GetSecret returns a single secret from the provider.
 func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return []byte("NOOP"), nil
 }
 
-// GetSecretMap returns multiple k/v pairs from the provider
+// GetSecretMap returns multiple k/v pairs from the provider.
 func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return map[string][]byte{
 		"noop": []byte("NOOP"),

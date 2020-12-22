@@ -14,8 +14,9 @@ limitations under the License.
 
 package register
 
-// packages imported here are registered to the controller schema
+// packages imported here are registered to the controller schema.
 import (
-	// register awssm provider
+
+	// register awssm provider.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
 )
