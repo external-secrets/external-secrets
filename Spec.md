@@ -183,20 +183,21 @@ spec:
       property: provider-key-property
 
 status:
-  # Represents the current phase of the secret sync:
-  # * Pending | ES created, controller did not yet sync the ES or other dependencies are missing (e.g. secret store or configmap template)
-  # * Syncing | ES is being actively synced according to spec
-  # * Failing | Secret can not be synced, this might require user intervention
-  # * Failed  | ES can not be synced right now and will not able to
-  # * Completed | ES was synced successfully (one-time use only)
-  phase: Syncing
+  # refreshTime is the time and date the external secret was fetched and
+  # the target secret updated
+  refreshTime: "2019-08-12T12:33:02Z"
+  # Standard condition schema
   conditions:
-  - type: InSync
-    status: "True" # False if last sync was not successful
+  # ExternalSecret ready condition indicates the secret is ready for use.
+  # This is defined as:
+  # - The target secret exists
+  # - The target secret has been refreshed within the last refreshInterval
+  # - The target secret content is up-to-date based on any target templates
+  - type: Ready
+    status: "True" # False if last refresh was not successful
     reason: "SecretSynced"
     message: "Secret was synced"
     lastTransitionTime: "2019-08-12T12:33:02Z"
-    lastSyncTime: "2020-09-23T16:27:53Z"
 
 ```
 
@@ -223,11 +224,11 @@ spec:
   controller: dev
 
   # provider field contains the configuration to access the provider which contains the secret
-  # exactly one provider must be configured. 
+  # exactly one provider must be configured.
   provider:
     # AWSSM configures this store to sync secrets using AWS Secret Manager provider
     awssm:
-      # Auth defines the information necessary to authenticate against AWS by 
+      # Auth defines the information necessary to authenticate against AWS by
       # getting the accessKeyID and secretAccessKey from an already created Kubernetes Secret
       auth:
         secretRef:
@@ -246,14 +247,16 @@ spec:
       region: eu-central-1
 
 status:
-  # * Pending: e.g. referenced secret containing credentials is missing
-  # * Running: all dependencies are met, sync
-  phase: Running
+  # Standard condition schema
   conditions:
+  # SecretStore ready condition indicates the given store is in ready
+  # state and able to referenced by ExternalSecrets
+  # If the `status` of this condition is `False`, ExternalSecret controllers
+  # should prevent attempts to fetch secrets
   - type: Ready
     status: "False"
-    reason: "ErrorConfig"
-    message: "Unable to assume role arn:xxxx"
+    reason: "ConfigError"
+    message: "SecretStore validation failed"
     lastTransitionTime: "2019-08-12T12:33:02Z"
 ```
 
