@@ -7,8 +7,12 @@ on:
       - '*/*'       # matches every branch containing a single '/'
       - '**'        # matches every branch
       - '!main'     # excludes main
+    paths-ignore:
+      - 'deploy/**'
   pull_request:
     branches: [ '!main' ]
+    paths-ignore:
+      - 'deploy/**'
 
 env:
   KUBEBUILDER_VERSION: 2.3.1

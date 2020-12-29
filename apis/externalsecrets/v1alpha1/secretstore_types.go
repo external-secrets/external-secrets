@@ -102,7 +102,7 @@ type SecretStore struct {
 
 // +kubebuilder:object:root=true
 
-// SecretStoreList contains a list of SecretStore.
+// SecretStoreList contains a list of SecretStore resources.
 type SecretStoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -124,9 +124,9 @@ type ClusterSecretStore struct {
 
 // +kubebuilder:object:root=true
 
-// ClusterSecretStoreList contains a list of ClusterSecretStore.
+// ClusterSecretStoreList contains a list of ClusterSecretStore resources.
 type ClusterSecretStoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ExternalSecret `json:"items"`
+	Items           []ClusterSecretStore `json:"items"`
 }

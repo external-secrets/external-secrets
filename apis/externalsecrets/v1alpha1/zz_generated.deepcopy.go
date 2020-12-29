@@ -104,7 +104,7 @@ func (in *ClusterSecretStoreList) DeepCopyInto(out *ClusterSecretStoreList) {
 	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]ExternalSecret, len(*in))
+		*out = make([]ClusterSecretStore, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

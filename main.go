@@ -25,8 +25,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	// +kubebuilder:scaffold:imports
-	externalsecretsv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	"github.com/external-secrets/external-secrets/controllers"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
 
 var (
@@ -37,7 +38,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = externalsecretsv1alpha1.AddToScheme(scheme)
+	_ = esv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -57,14 +58,14 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "1fc40399.io",
+		LeaderElectionID:   "external-secrets-controller",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.SecretStoreReconciler{
+	if err = (&secretstore.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("SecretStore"),
 		Scheme: mgr.GetScheme(),
@@ -72,7 +73,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "SecretStore")
 		os.Exit(1)
 	}
-	if err = (&controllers.ExternalSecretReconciler{
+	if err = (&externalsecret.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
 		Scheme: mgr.GetScheme(),
