@@ -105,7 +105,3 @@ type SecretStoreList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []SecretStore `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&SecretStore{}, &SecretStoreList{})
-}

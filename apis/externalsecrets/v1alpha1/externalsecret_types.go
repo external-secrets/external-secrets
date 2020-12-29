@@ -191,7 +191,3 @@ type ExternalSecretList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ExternalSecret `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
-}

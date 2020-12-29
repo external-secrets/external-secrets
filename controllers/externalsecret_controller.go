@@ -22,7 +22,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	externalsecretsv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
+	externalsecretsv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 // ExternalSecretReconciler reconciles a ExternalSecret object.
