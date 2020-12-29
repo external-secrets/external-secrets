@@ -88,7 +88,10 @@ type SecretStoreStatus struct {
 
 // +kubebuilder:object:root=true
 
-// SecretStore is the Schema for the secretstores API.
+// SecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced,categories={externalsecrets},shortName=ss
 type SecretStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -104,4 +107,26 @@ type SecretStoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []SecretStore `json:"items"`
+}
+
+// +kubebuilder:object:root=true
+
+// ClusterSecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster,categories={externalsecrets},shortName=css
+type ClusterSecretStore struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec SecretStoreSpec `json:"spec,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// ClusterSecretStoreList contains a list of ClusterSecretStore.
+type ClusterSecretStoreList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ExternalSecret `json:"items"`
 }
