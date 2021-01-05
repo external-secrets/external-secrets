@@ -45,7 +45,13 @@ deploy: manifests ## Deploy controller in the Kubernetes cluster of current cont
 	kustomize build config/default | kubectl apply -f -
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_DIR)
+# Remove extra header lines in generated CRDs
+	@for i in $(CRD_DIR)/*.yaml; do \
+  		tail -n +3 <"$$i" >"$$i.bkp" && \
+  		cp "$$i.bkp" "$$i" && \
+  		rm "$$i.bkp"; \
+  	done
 
 lint/check: # Check install of golanci-lint
 	@if ! golangci-lint --version > /dev/null 2>&1; then \
@@ -84,10 +90,16 @@ helm-docs: ## Generate helm docs
 	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) jnorwood/helm-docs:latest
 
 crds-to-chart: # Copy crds to helm chart directory
-	cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/; \
-	for i in $(HELM_DIR)/templates/crds/*.yaml; do \
-		sed -i '1s/.*/{{- if .Values.installCRDs }}/;$$a{{- end }}' $$i; \
+	cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/
+# Add helm chart if statement for installing CRDs
+	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
+		cp "$$i" "$$i.bkp" && \
+		echo "{{- if .Values.installCRDs }}" > "$$i" && \
+		cat "$$i.bkp" >> "$$i" && \
+		echo "{{- end }}" >> "$$i" && \
+		rm "$$i.bkp"; \
 	done
+
 
 # find or download controller-gen
 # download controller-gen if necessary
