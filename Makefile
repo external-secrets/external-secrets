@@ -7,6 +7,8 @@ SHELL         := /bin/bash
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
+HELM_DIR    ?= deploy/charts/external-secrets
+CRD_DIR     ?= config/crd/bases
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -43,7 +45,13 @@ deploy: manifests ## Deploy controller in the Kubernetes cluster of current cont
 	kustomize build config/default | kubectl apply -f -
 
 manifests: controller-gen ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_DIR)
+# Remove extra header lines in generated CRDs
+	@for i in $(CRD_DIR)/*.yaml; do \
+  		tail -n +3 <"$$i" >"$$i.bkp" && \
+  		cp "$$i.bkp" "$$i" && \
+  		rm "$$i.bkp"; \
+  	done
 
 lint/check: # Check install of golanci-lint
 	@if ! golangci-lint --version > /dev/null 2>&1; then \
@@ -76,6 +84,22 @@ docker-build: test ## Build the docker image
 
 docker-push: ## Push the docker image
 	docker push ${IMG}
+
+helm-docs: ## Generate helm docs
+	cd $(HELM_DIR); \
+	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) jnorwood/helm-docs:latest
+
+crds-to-chart: # Copy crds to helm chart directory
+	cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/
+# Add helm chart if statement for installing CRDs
+	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
+		cp "$$i" "$$i.bkp" && \
+		echo "{{- if .Values.installCRDs }}" > "$$i" && \
+		cat "$$i.bkp" >> "$$i" && \
+		echo "{{- end }}" >> "$$i" && \
+		rm "$$i.bkp"; \
+	done
+
 
 # find or download controller-gen
 # download controller-gen if necessary

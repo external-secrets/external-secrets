@@ -1,0 +1,68 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/external-secrets/external-secrets
+  pullPolicy: IfNotPresent
+  # -- The image tag to use. The default is the chart appVersion.
+  tag: ""
+
+# -- If set, install and upgrade CRDs through helm chart.
+installCRDs: true
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# -- If true, external-secrets will perform leader election between instances to ensure no more
+# than one instance of external-secrets operates at a time.
+leaderElect: false
+
+serviceAccount:
+  # -- Specifies whether a service account should be created.
+  create: true
+  # -- Annotations to add to the service account.
+  annotations: {}
+  # -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template.
+  name: ""
+
+rbac:
+  # -- Specifies whether role and rolebinding resources should be created.
+  create: true
+
+## -- Extra environment variables to add to container.
+extraEnv: []
+
+## -- Map of extra arguments to pass to container.
+extraArgs: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources: {}
+  # requests:
+  #   cpu: 10m
+  #   memory: 32Mi
+
+prometheus:
+  # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+  enabled: false
+  service:
+    port: 8080
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
