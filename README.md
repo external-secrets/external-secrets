@@ -34,7 +34,7 @@ make run
 Apply the sample resources:
 ```shell
 kubectl apply -f config/samples/external-secrets_v1alpha1_secretstore.yaml
-kubectl applt -f config/samples/external-secrets_v1alpha1_externalsecret.yaml
+kubectl apply -f config/samples/external-secrets_v1alpha1_externalsecret.yaml
 ```
 
 We will add more documentation once we have the implementation for the different providers.
