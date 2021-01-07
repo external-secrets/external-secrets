@@ -79,9 +79,7 @@ func (r *ExternalSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 			return fmt.Errorf("could not get store provider: %w", err)
 		}
 
-		// TODO: Does the * work?
-		// If not, should I change the Provider interface?
-		providerClient, err := storeProvider.New(ctx, *store.GetProvider(), r.Client, req.Namespace)
+		providerClient, err := storeProvider.New(ctx, store, r.Client, req.Namespace)
 		if err != nil {
 			return fmt.Errorf("could not get provider client: %w", err)
 		}
