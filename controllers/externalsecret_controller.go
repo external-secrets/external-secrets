@@ -157,5 +157,6 @@ func (r *ExternalSecretReconciler) getProviderSecretData(ctx context.Context, pr
 func (r *ExternalSecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&esv1alpha1.ExternalSecret{}).
+		Owns(&corev1.Secret{}).
 		Complete(r)
 }
