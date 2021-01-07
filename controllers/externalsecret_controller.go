@@ -50,7 +50,7 @@ type ExternalSecretReconciler struct {
 
 func (r *ExternalSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("external-secrets", req.NamespacedName)
+	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
 	var externalSecret esv1alpha1.ExternalSecret
 
@@ -67,23 +67,27 @@ func (r *ExternalSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		},
 	}
 
+	store, err := r.getStore(ctx, &externalSecret)
+	if err != nil {
+		log.Error(err, "could not get store reference")
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
+	log = log.WithValues("SecretStore", store.GetNamespacedName())
+
+	storeProvider, err := schema.GetProvider(store)
+	if err != nil {
+		log.Error(err, "could not get store provider")
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
+	providerClient, err := storeProvider.New(ctx, store, r.Client, req.Namespace)
+	if err != nil {
+		log.Error(err, "could not get provider client")
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
 	_, err = ctrl.CreateOrUpdate(ctx, r.Client, secret, func() error {
-		store, err := r.getStore(ctx, &externalSecret)
-		if err != nil {
-			return fmt.Errorf("could not get store reference from ExternalSecret %q: %w", externalSecret.Name, err)
-		}
-
-		storeProvider, err := schema.GetProvider(store)
-		if err != nil {
-			// TODO: add SecretStore name to the log message
-			return fmt.Errorf("could not get store provider: %w", err)
-		}
-
-		providerClient, err := storeProvider.New(ctx, store, r.Client, req.Namespace)
-		if err != nil {
-			return fmt.Errorf("could not get provider client: %w", err)
-		}
-
 		err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
 		if err != nil {
 			return fmt.Errorf("could not set ExternalSecret controller reference: %w", err)
@@ -92,7 +96,6 @@ func (r *ExternalSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 		secret.Labels = externalSecret.Labels
 		secret.Annotations = externalSecret.Annotations
 
-		// TODO: Pass reference to the client (not a copy)?
 		secret.Data, err = r.getProviderSecretData(ctx, providerClient, &externalSecret)
 		if err != nil {
 			return fmt.Errorf("could not get secret data from provider: %w", err)
@@ -103,8 +106,6 @@ func (r *ExternalSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 
 	if err != nil {
 		log.Error(err, "could not reconcile ExternalSecret")
-
-		// TODO: Set ExternalSecret.Status.Conditions
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
