@@ -30,6 +30,8 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
+
+	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
