@@ -14,6 +14,10 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+)
+
 type AWSSMAuth struct {
 	SecretRef AWSSMAuthSecretRef `json:"secretRef"`
 }
@@ -21,11 +25,11 @@ type AWSSMAuth struct {
 type AWSSMAuthSecretRef struct {
 	// The AccessKeyID is used for authentication
 	// +optional
-	AccessKeyID SecretKeySelector `json:"accessKeyIDSecretRef,omitempty"`
+	AccessKeyID esmeta.SecretKeySelector `json:"accessKeyIDSecretRef,omitempty"`
 
 	// The SecretAccessKey is used for authentication
 	// +optional
-	SecretAccessKey SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
+	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
 }
 
 // Configures a store to sync secrets using the AWS Secret Manager provider.

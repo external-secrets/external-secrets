@@ -1,4 +1,5 @@
 domain: io
+multigroup: true
 repo: github.com/external-secrets/external-secrets
 resources:
 - group: external-secrets

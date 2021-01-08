@@ -174,7 +174,7 @@ type ExternalSecretStatus struct {
 
 // +kubebuilder:object:root=true
 
-// ExternalSecret is the Schema for the externalsecrets API.
+// ExternalSecret is the Schema for the external-secrets API.
 type ExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -185,13 +185,9 @@ type ExternalSecret struct {
 
 // +kubebuilder:object:root=true
 
-// ExternalSecretList contains a list of ExternalSecret.
+// ExternalSecretList contains a list of ExternalSecret resources.
 type ExternalSecretList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ExternalSecret `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
 }
