@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"sync"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 )
 
@@ -71,8 +71,8 @@ func GetProviderByName(name string) (provider.Provider, bool) {
 
 // GetProvider returns the provider from the generic store.
 func GetProvider(s esv1alpha1.GenericStore) (provider.Provider, error) {
-	provider := s.GetProvider()
-	storeName, err := getProviderName(provider)
+	spec := s.GetSpec()
+	storeName, err := getProviderName(spec.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("store error for %s: %w", s.GetName(), err)
 	}

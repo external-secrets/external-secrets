@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package secretstore
 
 import (
 	"context"
@@ -22,11 +22,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	externalsecretsv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
-// SecretStoreReconciler reconciles a SecretStore object.
-type SecretStoreReconciler struct {
+// Reconciler reconciles a SecretStore object.
+type Reconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
@@ -35,7 +35,7 @@ type SecretStoreReconciler struct {
 // +kubebuilder:rbac:groups=external-secrets.io,resources=secretstores,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=external-secrets.io,resources=secretstores/status,verbs=get;update;patch
 
-func (r *SecretStoreReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("secretstore", req.NamespacedName)
 
@@ -44,8 +44,8 @@ func (r *SecretStoreReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	return ctrl.Result{}, nil
 }
 
-func (r *SecretStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&externalsecretsv1alpha1.SecretStore{}).
+		For(&esv1alpha1.SecretStore{}).
 		Complete(r)
 }

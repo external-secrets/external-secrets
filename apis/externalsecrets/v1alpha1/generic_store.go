@@ -31,7 +31,9 @@ import (
 type GenericStore interface {
 	runtime.Object
 	metav1.Object
-	GetProvider() *SecretStoreProvider
+
+	GetObjectMeta() *metav1.ObjectMeta
+	GetSpec() *SecretStoreSpec
 	GetNamespacedName() string
 }
 
@@ -39,16 +41,38 @@ type GenericStore interface {
 // +kubebuilder:object:generate:false
 var _ GenericStore = &SecretStore{}
 
-// GetProvider returns the underlying provider.
-func (c *SecretStore) GetProvider() *SecretStoreProvider {
-	return c.Spec.Provider
+func (c *SecretStore) GetObjectMeta() *metav1.ObjectMeta {
+	return &c.ObjectMeta
+}
+
+func (c *SecretStore) GetSpec() *SecretStoreSpec {
+	return &c.Spec
 }
 
 func (c *SecretStore) GetNamespacedName() string {
 	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
 }
 
-// Copy returns a DeepCopy of the Store.
 func (c *SecretStore) Copy() GenericStore {
 	return c.DeepCopy()
+}
+
+// +kubebuilder:object:root:false
+// +kubebuilder:object:generate:false
+var _ GenericStore = &ClusterSecretStore{}
+
+func (c *ClusterSecretStore) GetObjectMeta() *metav1.ObjectMeta {
+	return &c.ObjectMeta
+}
+
+func (c *ClusterSecretStore) GetSpec() *SecretStoreSpec {
+	return &c.Spec
+}
+
+func (c *ClusterSecretStore) Copy() GenericStore {
+	return c.DeepCopy()
+}
+
+func (c *ClusterSecretStore) GetNamespacedName() string {
+	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
 }

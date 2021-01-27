@@ -12,13 +12,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
-
-// Refers to a Secret in Kubernetes.
-type SecretKeySelector struct {
-	Name string `json:"name"`
-	Key  string `json:"key"`
-
-	// +optional
-	Namespace *string `json:"namespace,omitempty"`
-}
+// Package meta contains meta types for external-secrets APIs
+// +kubebuilder:object:generate=true
+package v1

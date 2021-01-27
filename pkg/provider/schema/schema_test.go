@@ -20,14 +20,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 )
 
 type PP struct{}
 
 // New constructs a SecretsManager Provider.
-func (p *PP) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.Provider, error) {
+func (p *PP) New(ctx context.Context, store esv1alpha1.SecretStoreProvider, kube client.Client, namespace string) (provider.Provider, error) {
 	return p, nil
 }
 
@@ -44,11 +44,23 @@ func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretData
 func TestRegister(t *testing.T) {
 	p, ok := GetProviderByName("awssm")
 	assert.Nil(t, p)
-	assert.False(t, ok)
-	ForceRegister(&PP{}, &esv1alpha1.SecretStoreProvider{
-		AWSSM: &esv1alpha1.AWSSMProvider{},
-	})
-	p, ok = GetProviderByName("awssm")
-	assert.NotNil(t, p)
-	assert.True(t, ok)
+	assert.False(t, ok, "provider should not be registered")
+
+	testProvider := &PP{}
+	secretStore := &esv1alpha1.SecretStore{
+		Spec: esv1alpha1.SecretStoreSpec{
+			Provider: &esv1alpha1.SecretStoreProvider{
+				AWSSM: &esv1alpha1.AWSSMProvider{},
+			},
+		},
+	}
+
+	ForceRegister(testProvider, secretStore.Spec.Provider)
+	p1, ok := GetProviderByName("awssm")
+	assert.True(t, ok, "provider should be registered")
+	assert.Equal(t, testProvider, p1)
+
+	p2, err := GetProvider(secretStore)
+	assert.Nil(t, err)
+	assert.Equal(t, testProvider, p2)
 }

@@ -12,11 +12,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+// +groupName=external-secrets.io
 
-func Merge(src, dst map[string][]byte) map[string][]byte {
-	for k, v := range dst {
-		src[k] = v
-	}
-	return src
-}
+package externalsecrets

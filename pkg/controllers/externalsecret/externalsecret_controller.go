@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package externalsecret
 
 import (
 	"context"
@@ -28,8 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/api/v1alpha1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
+	utils "github.com/external-secrets/external-secrets/pkg/utils"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
@@ -140,7 +141,7 @@ func (r *ExternalSecretReconciler) getProviderSecretData(ctx context.Context, pr
 			return nil, fmt.Errorf("key %q from ExternalSecret %q: %w", remoteRef.Key, externalSecret.Name, err)
 		}
 
-		providerData = Merge(providerData, secretMap)
+		providerData = utils.Merge(providerData, secretMap)
 	}
 
 	for _, secretRef := range externalSecret.Spec.Data {
