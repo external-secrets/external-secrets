@@ -73,7 +73,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "SecretStore")
 		os.Exit(1)
 	}
-	if err = (&externalsecret.ExternalSecretReconciler{
+	if err = (&externalsecret.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
 		Scheme: mgr.GetScheme(),

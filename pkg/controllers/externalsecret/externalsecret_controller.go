@@ -30,11 +30,11 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	schema "github.com/external-secrets/external-secrets/pkg/provider/schema"
+	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -42,7 +42,7 @@ const (
 )
 
 // ExternalSecretReconciler reconciles a ExternalSecret object.
-type ExternalSecretReconciler struct {
+type Reconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
@@ -51,7 +51,7 @@ type ExternalSecretReconciler struct {
 // +kubebuilder:rbac:groups=external-secrets.io,resources=externalsecrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=external-secrets.io,resources=externalsecrets/status,verbs=get;update;patch
 
-func (r *ExternalSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
@@ -115,7 +115,7 @@ func (r *ExternalSecretReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	return ctrl.Result{}, nil
 }
 
-func (r *ExternalSecretReconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
+func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
 	// TODO: Implement getting ClusterSecretStore
 	var secretStore esv1alpha1.SecretStore
 
@@ -132,7 +132,7 @@ func (r *ExternalSecretReconciler) getStore(ctx context.Context, externalSecret 
 	return &secretStore, nil
 }
 
-func (r *ExternalSecretReconciler) getProviderSecretData(ctx context.Context, providerClient provider.Provider, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
+func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.Provider, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
 
 	for _, remoteRef := range externalSecret.Spec.DataFrom {
@@ -156,7 +156,7 @@ func (r *ExternalSecretReconciler) getProviderSecretData(ctx context.Context, pr
 	return providerData, nil
 }
 
-func (r *ExternalSecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&esv1alpha1.ExternalSecret{}).
 		Owns(&corev1.Secret{}).
