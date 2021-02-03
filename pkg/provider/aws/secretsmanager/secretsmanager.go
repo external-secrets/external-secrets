@@ -27,7 +27,7 @@ import (
 type SecretsManager struct{}
 
 // New constructs a SecretsManager Provider.
-func (sm *SecretsManager) New(ctx context.Context, store esv1alpha1.SecretStoreProvider, kube client.Client, namespace string) (provider.Provider, error) {
+func (sm *SecretsManager) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.Provider, error) {
 	return sm, nil // stub
 }
 

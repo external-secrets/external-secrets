@@ -25,7 +25,7 @@ import (
 // Provider is a common interface for interacting with secret backends.
 type Provider interface {
 	// New constructs a SecretsManager Provider
-	New(ctx context.Context, store esv1alpha1.SecretStoreProvider, kube client.Client, namespace string) (Provider, error)
+	New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (Provider, error)
 
 	// GetSecret returns a single secret from the provider
 	GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error)

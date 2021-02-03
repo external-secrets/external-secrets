@@ -15,6 +15,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -32,6 +34,7 @@ type GenericStore interface {
 
 	GetObjectMeta() *metav1.ObjectMeta
 	GetSpec() *SecretStoreSpec
+	GetNamespacedName() string
 }
 
 // +kubebuilder:object:root:false
@@ -44,6 +47,10 @@ func (c *SecretStore) GetObjectMeta() *metav1.ObjectMeta {
 
 func (c *SecretStore) GetSpec() *SecretStoreSpec {
 	return &c.Spec
+}
+
+func (c *SecretStore) GetNamespacedName() string {
+	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
 }
 
 func (c *SecretStore) Copy() GenericStore {
@@ -64,4 +71,8 @@ func (c *ClusterSecretStore) GetSpec() *SecretStoreSpec {
 
 func (c *ClusterSecretStore) Copy() GenericStore {
 	return c.DeepCopy()
+}
+
+func (c *ClusterSecretStore) GetNamespacedName() string {
+	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
 }
