@@ -47,20 +47,10 @@ type SecretStoreProvider struct {
 	AWSSM *AWSSMProvider `json:"awssm,omitempty"`
 }
 
-type SecretStoreStatusPhase string
-
-const (
-	// E.g. referenced Secret containing credentials is missing.
-	SecretStorePending SecretStoreStatusPhase = "Pending"
-
-	// All dependencies are met, sync.
-	SecretStoreRunning SecretStoreStatusPhase = "Running"
-)
-
 type SecretStoreConditionType string
 
 const (
-	Ready SecretStoreConditionType = "Ready"
+	SecretStoreReady SecretStoreConditionType = "Ready"
 )
 
 type SecretStoreStatusCondition struct {
@@ -79,9 +69,6 @@ type SecretStoreStatusCondition struct {
 
 // SecretStoreStatus defines the observed state of the SecretStore.
 type SecretStoreStatus struct {
-	// +optional
-	Phase SecretStoreStatusPhase `json:"phase"`
-
 	// +optional
 	Conditions []SecretStoreStatusCondition `json:"conditions"`
 }
