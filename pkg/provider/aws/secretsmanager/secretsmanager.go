@@ -20,6 +20,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/tidwall/gjson"
 	v1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -133,18 +134,26 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.External
 		return nil, err
 	}
 	if ref.Property == "" {
-		return []byte(*secretOut.SecretString), nil
+		if secretOut.SecretString != nil {
+			return []byte(*secretOut.SecretString), nil
+		}
+		if secretOut.SecretBinary != nil {
+			return secretOut.SecretBinary, nil
+		}
+		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
-	kv := make(map[string]string)
-	err = json.Unmarshal([]byte(*secretOut.SecretString), &kv)
-	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
+	var payload string
+	if secretOut.SecretString != nil {
+		payload = *secretOut.SecretString
 	}
-	val, ok := kv[ref.Property]
-	if !ok {
-		return nil, fmt.Errorf("secret %s has no property %s", ref.Key, ref.Property)
+	if secretOut.SecretBinary != nil {
+		payload = string(secretOut.SecretBinary)
 	}
-	return []byte(val), nil
+	val := gjson.Get(payload, ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	}
+	return []byte(val.String()), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
