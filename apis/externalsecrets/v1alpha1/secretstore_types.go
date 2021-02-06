@@ -45,7 +45,11 @@ type SecretStoreProvider struct {
 	// AWSSM configures this store to sync secrets using AWS Secret Manager provider
 	// +optional
 	AWSSM *AWSSMProvider `json:"awssm,omitempty"`
+	NOOP  *NOOPProvider  `json:"noop,omitempty"`
 }
+
+// NOOPProvider is a noop implementation that yields static secrets.
+type NOOPProvider struct{}
 
 type SecretStoreConditionType string
 

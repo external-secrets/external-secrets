@@ -19,4 +19,5 @@ import (
 
 	// register awssm provider.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/noop"
 )
