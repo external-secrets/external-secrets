@@ -121,35 +121,15 @@ type ExternalSecretSpec struct {
 	DataFrom []ExternalSecretDataRemoteRef `json:"dataFrom,omitempty"`
 }
 
-// ExternalSecretStatusPhase represents the current phase of the Secret sync.
-type ExternalSecretStatusPhase string
-
-const (
-	// ExternalSecret created, controller did not yet sync the ExternalSecret or other dependencies are missing (e.g. secret store or configmap template).
-	ExternalSecretPending ExternalSecretStatusPhase = "Pending"
-
-	// ExternalSecret is being actively synced according to spec.
-	ExternalSecretSyncing ExternalSecretStatusPhase = "Syncing"
-
-	// ExternalSecret can not be synced, this might require user intervention.
-	ExternalSecretFailing ExternalSecretStatusPhase = "Failing"
-
-	// ExternalSecret can not be synced right now and will not able to.
-	ExternalSecretFailed ExternalSecretStatusPhase = "Failed"
-
-	// ExternalSecret was synced successfully (one-time use only).
-	ExternalSecretCompleted ExternalSecretStatusPhase = "Completed"
-)
-
 type ExternalSecretConditionType string
 
 const (
-	InSync ExternalSecretConditionType = "InSync"
+	ExternalSecretReady ExternalSecretConditionType = "Ready"
 )
 
 type ExternalSecretStatusCondition struct {
-	Type   SecretStoreConditionType `json:"type"`
-	Status corev1.ConditionStatus   `json:"status"`
+	Type   ExternalSecretConditionType `json:"type"`
+	Status corev1.ConditionStatus      `json:"status"`
 
 	// +optional
 	Reason string `json:"reason,omitempty"`
@@ -159,14 +139,13 @@ type ExternalSecretStatusCondition struct {
 
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-
-	// +optional
-	LastSyncTime metav1.Time `json:"lastSyncTime,omitempty"`
 }
 
 type ExternalSecretStatus struct {
 	// +optional
-	Phase ExternalSecretStatusPhase `json:"phase"`
+	// refreshTime is the time and date the external secret was fetched and
+	// the target secret updated
+	RefreshTime metav1.Time `json:"refreshTime"`
 
 	// +optional
 	Conditions []ExternalSecretStatusCondition `json:"conditions"`
