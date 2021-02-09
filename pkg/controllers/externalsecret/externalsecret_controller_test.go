@@ -24,7 +24,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/provider/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
+
+var fakeAWSProvider *fake.Client
 
 var _ = Describe("ExternalSecret controller", func() {
 	const (
@@ -42,7 +46,6 @@ var _ = Describe("ExternalSecret controller", func() {
 				Name: ExternalSecretNamespace,
 			},
 		})).To(Succeed())
-
 		Expect(k8sClient.Create(context.Background(), &esv1alpha1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      ExternalSecretStore,
@@ -50,7 +53,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 			Spec: esv1alpha1.SecretStoreSpec{
 				Provider: &esv1alpha1.SecretStoreProvider{
-					NOOP: &esv1alpha1.NOOPProvider{},
+					AWSSM: &esv1alpha1.AWSSMProvider{},
 				},
 			},
 		})).To(Succeed())
@@ -91,15 +94,11 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
 			esLookupKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
 			createdES := &esv1alpha1.ExternalSecret{}
-
-			// We'll need to retry getting this newly created CronJob, given that creation may not immediately happen.
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, esLookupKey, createdES)
 				if err != nil {
 					return false
 				}
-
-				// check status
 				cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
 				if cond == nil || cond.Status != v1.ConditionTrue {
 					return false
@@ -109,4 +108,62 @@ var _ = Describe("ExternalSecret controller", func() {
 
 		})
 	})
+
+	Context("When syncing ExternalSecret value", func() {
+		It("should set the secret value", func() {
+			By("creating an ExternalSecret")
+			ctx := context.Background()
+			const targetProp = "targetProperty"
+			const secretVal = "someValue"
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: ExternalSecretStore,
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+					},
+					Data: []esv1alpha1.ExternalSecretData{
+						{
+							SecretKey: targetProp,
+							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+								Key:      "barz",
+								Property: "bang",
+							},
+						},
+					},
+				},
+			}
+
+			fakeAWSProvider.WithGetSecret([]byte(secretVal), nil)
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace}
+			syncedSecret := &v1.Secret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, secretLookupKey, syncedSecret)
+				if err != nil {
+					return false
+				}
+				v := syncedSecret.Data[targetProp]
+				if string(v) != secretVal {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+
+		})
+	})
 })
+
+func init() {
+	fakeAWSProvider = fake.New()
+	schema.ForceRegister(fakeAWSProvider, &esv1alpha1.SecretStoreProvider{
+		AWSSM: &esv1alpha1.AWSSMProvider{},
+	})
+}
