@@ -64,7 +64,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      externalSecret.Name,
+			Name:      externalSecret.Spec.Target.Name,
 			Namespace: externalSecret.Namespace,
 		},
 	}

@@ -15,6 +15,7 @@ package externalsecret
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -22,30 +23,31 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
-var fakeAWSProvider *fake.Client
+var fakeProvider *fake.Client
 
 var _ = Describe("ExternalSecret controller", func() {
 	const (
 		ExternalSecretName             = "test-es"
-		ExternalSecretNamespace        = "test-ns"
 		ExternalSecretStore            = "test-store"
 		ExternalSecretTargetSecretName = "test-secret"
 		timeout                        = time.Second * 5
 		interval                       = time.Millisecond * 250
 	)
 
+	var ExternalSecretNamespace string
+
 	BeforeEach(func() {
-		Expect(k8sClient.Create(context.Background(), &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ExternalSecretNamespace,
-			},
-		})).To(Succeed())
+		var err error
+		ExternalSecretNamespace, err = CreateNamespace("test-ns", k8sClient)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(k8sClient.Create(context.Background(), &esv1alpha1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      ExternalSecretStore,
@@ -64,13 +66,13 @@ var _ = Describe("ExternalSecret controller", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: ExternalSecretNamespace,
 			},
-		})).To(Succeed())
+		}, client.PropagationPolicy(metav1.DeletePropagationBackground)), client.GracePeriodSeconds(0)).To(Succeed())
 		Expect(k8sClient.Delete(context.Background(), &esv1alpha1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      ExternalSecretStore,
 				Namespace: ExternalSecretNamespace,
 			},
-		})).To(Succeed())
+		}, client.PropagationPolicy(metav1.DeletePropagationBackground)), client.GracePeriodSeconds(0)).To(Succeed())
 	})
 
 	Context("When updating ExternalSecret Status", func() {
@@ -139,7 +141,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				},
 			}
 
-			fakeAWSProvider.WithGetSecret([]byte(secretVal), nil)
+			fakeProvider.WithGetSecret([]byte(secretVal), nil)
 			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
 			secretLookupKey := types.NamespacedName{
 				Name:      ExternalSecretTargetSecretName,
@@ -151,19 +153,39 @@ var _ = Describe("ExternalSecret controller", func() {
 					return false
 				}
 				v := syncedSecret.Data[targetProp]
-				if string(v) != secretVal {
-					return false
-				}
-				return true
+				return string(v) == secretVal
 			}, timeout, interval).Should(BeTrue())
 
 		})
 	})
 })
 
+// CreateNamespace creates a new namespace in the cluster.
+func CreateNamespace(baseName string, c client.Client) (string, error) {
+	ts := time.Now().UnixNano()
+	genName := fmt.Sprintf("ctrl-test-%v-%v-", baseName, ts)
+	ns := &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: genName,
+		},
+	}
+	var err error
+	err = wait.Poll(time.Second, 10*time.Second, func() (bool, error) {
+		err = c.Create(context.Background(), ns)
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return ns.Name, nil
+}
+
 func init() {
-	fakeAWSProvider = fake.New()
-	schema.ForceRegister(fakeAWSProvider, &esv1alpha1.SecretStoreProvider{
+	fakeProvider = fake.New()
+	schema.ForceRegister(fakeProvider, &esv1alpha1.SecretStoreProvider{
 		AWSSM: &esv1alpha1.AWSSMProvider{},
 	})
 }
