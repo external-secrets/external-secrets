@@ -1,5 +1,9 @@
 # External Secrets
 
+![](assets/round_eso_logo.png)
+
+----
+
 The External Secrets Kubernetes operator reads information from a third party service
 like [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) and automatically injects the values as [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/).
 
