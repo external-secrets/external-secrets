@@ -1,6 +1,6 @@
 # External Secrets
 
-![](assets/round_eso_logo.png)
+<img src="assets/round_eso_logo.png" width="100">
 
 ----
 
