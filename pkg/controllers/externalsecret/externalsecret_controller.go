@@ -44,8 +44,9 @@ const (
 // ExternalSecretReconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	ControllerClass string
 }
 
 // +kubebuilder:rbac:groups=external-secrets.io,resources=externalsecrets,verbs=get;list;watch;create;update;patch;delete
@@ -76,6 +77,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log = log.WithValues("SecretStore", store.GetNamespacedName())
+
+	// check if store should be handled by this controller instance
+	if !r.shouldProcessStore(store) {
+		log.Info("skippig unmanaged store")
+		return ctrl.Result{}, nil
+	}
 
 	storeProvider, err := schema.GetProvider(store)
 	if err != nil {
@@ -125,6 +132,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, "unable to update status")
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) shouldProcessStore(store esv1alpha1.GenericStore) bool {
+	if store.GetSpec().Controller == "" || store.GetSpec().Controller != r.ControllerClass {
+		return true
+	}
+	return false
 }
 
 func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
