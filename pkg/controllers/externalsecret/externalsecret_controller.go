@@ -41,7 +41,7 @@ const (
 	requeueAfter = time.Second * 30
 )
 
-// ExternalSecretReconciler reconciles a ExternalSecret object.
+// Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
 	Log             logr.Logger

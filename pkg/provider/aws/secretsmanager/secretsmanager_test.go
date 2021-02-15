@@ -15,11 +15,19 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 var _ = Describe("SSM", func() {
+
+	var k8sClient client.Client
+
+	BeforeEach(func() {
+		k8sClient = clientfake.NewClientBuilder().Build()
+	})
 
 	It("Should create an Client using environment variables", func() {
 		sm := &SecretsManager{}

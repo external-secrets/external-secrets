@@ -89,18 +89,6 @@ var _ = BeforeSuite(func(done Done) {
 		Expect(k8sManager.Start(ctrl.SetupSignalHandler())).ToNot(HaveOccurred())
 	}()
 
-	err = (&Reconciler{
-		Client: k8sClient,
-		Scheme: k8sManager.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
-
-	go func() {
-		defer GinkgoRecover()
-		Expect(k8sManager.Start(ctrl.SetupSignalHandler())).ToNot(HaveOccurred())
-	}()
-
 	close(done)
 }, 60)
 
