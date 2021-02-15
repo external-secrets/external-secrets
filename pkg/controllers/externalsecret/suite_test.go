@@ -75,6 +75,7 @@ var _ = BeforeSuite(func(done Done) {
 	// see https://github.com/kubernetes-sigs/controller-runtime/issues/343#issuecomment-469435686
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(k8sClient).ToNot(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	err = (&Reconciler{
 		Client: k8sClient,

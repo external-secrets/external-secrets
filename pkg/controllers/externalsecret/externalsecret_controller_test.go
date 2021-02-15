@@ -162,8 +162,7 @@ var _ = Describe("ExternalSecret controller", func() {
 
 // CreateNamespace creates a new namespace in the cluster.
 func CreateNamespace(baseName string, c client.Client) (string, error) {
-	ts := time.Now().UnixNano()
-	genName := fmt.Sprintf("ctrl-test-%v-%v-", baseName, ts)
+	genName := fmt.Sprintf("ctrl-test-%v", baseName)
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: genName,
