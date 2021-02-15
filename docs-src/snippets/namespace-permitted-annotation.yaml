@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: x-team
+  annotations:
+    # annotation that defines which keys can be read
+    external-secrets.io/permitted-key-name: "db/dev/*"

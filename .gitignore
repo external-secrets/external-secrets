@@ -11,3 +11,5 @@ cover.out
 **/charts/**/requirements.lock
 
 deploy/charts/external-secrets/templates/crds/*.yaml
+
+.*.timestamp

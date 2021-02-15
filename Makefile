@@ -181,6 +181,19 @@ helm.generate:
 	done
 	@$(OK) Finished generating helm chart files
 
+
+# ====================================================================================
+# Documentation
+.PHONY: docs
+docs: generate
+	./hack/api-docs/generate.sh docs-src/spec.md
+	docker build --tag github.com/external-secrets-mkdocs:latest -f mkdocs.dockerfile .
+	$(MAKE) -f docs.mk
+
+.PHONY: serve-docs
+serve-docs:
+	$(MAKE) -f docs.mk serve
+
 # ====================================================================================
 # Build Artifacts
 
