@@ -64,7 +64,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      externalSecret.Name,
+			Name:      externalSecret.Spec.Target.Name,
 			Namespace: externalSecret.Namespace,
 		},
 	}
@@ -108,9 +108,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err != nil {
 		log.Error(err, "could not reconcile ExternalSecret")
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSynced, err.Error())
+		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+		err = r.Status().Update(ctx, &externalSecret)
+		if err != nil {
+			log.Error(err, "unable to update status")
+		}
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
+	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
+	SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
+	err = r.Status().Update(ctx, &externalSecret)
+	if err != nil {
+		log.Error(err, "unable to update status")
+	}
 	return ctrl.Result{}, nil
 }
 

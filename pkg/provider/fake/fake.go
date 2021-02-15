@@ -46,7 +46,7 @@ func New() *Client {
 	}
 
 	v.NewFn = func(context.Context, esv1alpha1.GenericStore, client.Client, string) (provider.Provider, error) {
-		return nil, nil
+		return v, nil
 	}
 
 	return v

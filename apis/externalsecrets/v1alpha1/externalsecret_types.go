@@ -141,19 +141,28 @@ type ExternalSecretStatusCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
+const (
+	// ConditionReasonSecretSynced indicates that the secrets was synced.
+	ConditionReasonSecretSynced = "SecretSynced"
+	// ConditionReasonSecretSyncedError indicates that there was an error syncing the secret.
+	ConditionReasonSecretSyncedError = "SecretSyncedError"
+)
+
 type ExternalSecretStatus struct {
-	// +optional
+	// +nullable
 	// refreshTime is the time and date the external secret was fetched and
 	// the target secret updated
-	RefreshTime metav1.Time `json:"refreshTime"`
+	RefreshTime metav1.Time `json:"refreshTime,omitempty"`
 
 	// +optional
-	Conditions []ExternalSecretStatusCondition `json:"conditions"`
+	Conditions []ExternalSecretStatusCondition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
 // ExternalSecret is the Schema for the external-secrets API.
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced,categories={externalsecrets},shortName=es
 type ExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
