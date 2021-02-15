@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,14 +18,22 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
+func TestAPIs(t *testing.T) {
+	RegisterFailHandler(Fail)
+
+	RunSpecsWithDefaultAndCustomReporters(t,
+		"Controller Suite",
+		[]Reporter{printer.NewlineReporter{}})
+}
+
 var _ = Describe("SSM", func() {
 
 	var k8sClient client.Client
-
 	BeforeEach(func() {
 		k8sClient = clientfake.NewClientBuilder().Build()
 	})
