@@ -226,7 +226,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	})
 
 	// TODO:
-	// * do not find store
+	// * missing store
 	// * missing store provider
 	// * provider client constructor error
 	// * getproviderSecretData error
