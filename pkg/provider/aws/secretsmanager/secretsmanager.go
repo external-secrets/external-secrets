@@ -47,24 +47,34 @@ var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager
 
 // New constructs a SecretsManager Provider that is specific to a store.
 func (sm *SecretsManager) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.Provider, error) {
-	spc := store.GetSpec().Provider.AWSSM
+	if store == nil {
+		return nil, fmt.Errorf("found nil store")
+	}
+	spc := store.GetSpec()
 	if spc == nil {
+		return nil, fmt.Errorf("store is missing spec")
+	}
+	if spc.Provider == nil {
+		return nil, fmt.Errorf("storeSpec is missing provider")
+	}
+	smProvider := spc.Provider.AWSSM
+	if smProvider == nil {
 		return nil, fmt.Errorf("invalid provider spec. Missing AWSSM field in store %s", store.GetObjectMeta().String())
 	}
 	var sak, aks string
 	// use provided credentials via secret reference
-	if spc.Auth != nil {
+	if smProvider.Auth != nil {
 		log.V(1).Info("fetching secrets for authentication")
 		ke := client.ObjectKey{
-			Name:      spc.Auth.SecretRef.AccessKeyID.Key,
+			Name:      smProvider.Auth.SecretRef.AccessKeyID.Name,
 			Namespace: namespace, // default to ExternalSecret namespace
 		}
-		// ClusterStore must set namespace
+		// only ClusterStore is allowed to set namespace (and then it's required)
 		if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
-			if spc.Auth.SecretRef.AccessKeyID.Namespace == nil {
+			if smProvider.Auth.SecretRef.AccessKeyID.Namespace == nil {
 				return nil, fmt.Errorf("invalid ClusterSecretStore: missing AWSSM AccessKeyID Namespace")
 			}
-			ke.Namespace = *spc.Auth.SecretRef.AccessKeyID.Namespace
+			ke.Namespace = *smProvider.Auth.SecretRef.AccessKeyID.Namespace
 		}
 		akSecret := v1.Secret{}
 		err := kube.Get(ctx, ke, &akSecret)
@@ -72,23 +82,23 @@ func (sm *SecretsManager) New(ctx context.Context, store esv1alpha1.GenericStore
 			return nil, fmt.Errorf("could not fetch accessKeyID secret: %w", err)
 		}
 		ke = client.ObjectKey{
-			Name:      spc.Auth.SecretRef.SecretAccessKey.Key,
+			Name:      smProvider.Auth.SecretRef.SecretAccessKey.Name,
 			Namespace: namespace, // default to ExternalSecret namespace
 		}
-		// ClusterStore must set namespace
+		// only ClusterStore is allowed to set namespace (and then it's required)
 		if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
-			if spc.Auth.SecretRef.SecretAccessKey.Namespace == nil {
+			if smProvider.Auth.SecretRef.SecretAccessKey.Namespace == nil {
 				return nil, fmt.Errorf("invalid ClusterSecretStore: missing AWSSM SecretAccessKey Namespace")
 			}
-			ke.Namespace = *spc.Auth.SecretRef.SecretAccessKey.Namespace
+			ke.Namespace = *smProvider.Auth.SecretRef.SecretAccessKey.Namespace
 		}
 		sakSecret := v1.Secret{}
 		err = kube.Get(ctx, ke, &sakSecret)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch SecretAccessKey secret: %w", err)
 		}
-		sak = string(sakSecret.Data[spc.Auth.SecretRef.SecretAccessKey.Key])
-		aks = string(akSecret.Data[spc.Auth.SecretRef.AccessKeyID.Key])
+		sak = string(sakSecret.Data[smProvider.Auth.SecretRef.SecretAccessKey.Key])
+		aks = string(akSecret.Data[smProvider.Auth.SecretRef.AccessKeyID.Key])
 		if sak == "" {
 			return nil, fmt.Errorf("missing SecretAccessKey")
 		}
@@ -99,7 +109,7 @@ func (sm *SecretsManager) New(ctx context.Context, store esv1alpha1.GenericStore
 	if sm.stsProvider == nil {
 		sm.stsProvider = aws.DefaultSTSProvider
 	}
-	sess, err := aws.NewSession(sak, aks, spc.Region, spc.Role, sm.stsProvider)
+	sess, err := aws.NewSession(sak, aks, smProvider.Region, smProvider.Role, sm.stsProvider)
 	if err != nil {
 		return nil, err
 	}

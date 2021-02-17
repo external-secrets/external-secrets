@@ -107,8 +107,8 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				return true
 			}, timeout, interval).Should(BeTrue())
-
 		})
+
 	})
 
 	Context("When syncing ExternalSecret value", func() {
@@ -158,6 +158,83 @@ var _ = Describe("ExternalSecret controller", func() {
 
 		})
 	})
+
+	FIt("should not process stores with mismatching controller field", func() {
+		By("creating an ExternalSecret")
+		ctx := context.Background()
+		storeName := "example-ts-foo"
+		Expect(k8sClient.Create(context.Background(), &esv1alpha1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      storeName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: esv1alpha1.SecretStoreSpec{
+				Controller: "some-other-controller",
+				Provider: &esv1alpha1.SecretStoreProvider{
+					AWSSM: &esv1alpha1.AWSSMProvider{},
+				},
+			},
+		})).To(Succeed())
+		defer func() {
+			Expect(k8sClient.Delete(context.Background(), &esv1alpha1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      storeName,
+					Namespace: ExternalSecretNamespace,
+				},
+			})).To(Succeed())
+		}()
+		es := &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ExternalSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: storeName,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: ExternalSecretTargetSecretName,
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: "doesnothing",
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key:      "barz",
+							Property: "bang",
+						},
+					},
+				},
+			},
+		}
+
+		Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+		secretLookupKey := types.NamespacedName{
+			Name:      ExternalSecretName,
+			Namespace: ExternalSecretNamespace,
+		}
+
+		// COND
+		createdES := &esv1alpha1.ExternalSecret{}
+		Consistently(func() bool {
+			err := k8sClient.Get(ctx, secretLookupKey, createdES)
+			if err != nil {
+				return false
+			}
+			cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
+			if cond == nil {
+				return true
+			}
+			return false
+		}, timeout, interval).Should(BeTrue())
+	})
+
+	// TODO:
+	// * do not find store
+	// * missing store provider
+	// * provider client constructor error
+	// * getproviderSecretData error
+	// * check sync failed condition
+
 })
 
 // CreateNamespace creates a new namespace in the cluster.

@@ -79,7 +79,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log = log.WithValues("SecretStore", store.GetNamespacedName())
 
 	// check if store should be handled by this controller instance
-	if !r.shouldProcessStore(store) {
+	if !shouldProcessStore(store, r.ControllerClass) {
 		log.Info("skippig unmanaged store")
 		return ctrl.Result{}, nil
 	}
@@ -134,8 +134,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) shouldProcessStore(store esv1alpha1.GenericStore) bool {
-	if store.GetSpec().Controller == "" || store.GetSpec().Controller != r.ControllerClass {
+func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {
+	if store.GetSpec().Controller == "" || store.GetSpec().Controller == class {
 		return true
 	}
 	return false
