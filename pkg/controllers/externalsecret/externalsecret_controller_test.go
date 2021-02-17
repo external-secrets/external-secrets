@@ -159,7 +159,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		})
 	})
 
-	FIt("should not process stores with mismatching controller field", func() {
+	It("should not process stores with mismatching controller field", func() {
 		By("creating an ExternalSecret")
 		ctx := context.Background()
 		storeName := "example-ts-foo"
@@ -221,10 +221,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				return false
 			}
 			cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
-			if cond == nil {
-				return true
-			}
-			return false
+			return cond == nil
 		}, timeout, interval).Should(BeTrue())
 	})
 
