@@ -19,4 +19,7 @@ import (
 
 	// register awssm provider.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
+
+	// register gcpsm provider.
+	_ "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 )

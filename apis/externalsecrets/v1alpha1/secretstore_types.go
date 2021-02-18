@@ -45,6 +45,9 @@ type SecretStoreProvider struct {
 	// AWSSM configures this store to sync secrets using AWS Secret Manager provider
 	// +optional
 	AWSSM *AWSSMProvider `json:"awssm,omitempty"`
+	// GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
+	// +optional
+	GCPSM *GCPSMProvider `json:"gcpsm,omitempty"`
 }
 
 type SecretStoreConditionType string
