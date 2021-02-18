@@ -2,14 +2,15 @@ name: Helm
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
+      - release-*
     paths:
       - 'deploy/charts/**'
   pull_request:
-    branches: main
     paths:
       - 'deploy/charts/**'
+  workflow_dispatch: {}
 
 jobs:
   lint-and-test:
@@ -22,7 +23,7 @@ jobs:
 
       - name: Generate chart
         run: |
-          make crds-to-chart
+          make helm.generate
 
       - name: Set up Helm
         uses: azure/setup-helm@v1
