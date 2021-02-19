@@ -73,6 +73,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	store, err := r.getStore(ctx, &externalSecret)
 	if err != nil {
 		log.Error(err, "could not get store reference")
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+		err = r.Status().Update(ctx, &externalSecret)
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -93,6 +96,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	providerClient, err := storeProvider.New(ctx, store, r.Client, req.Namespace)
 	if err != nil {
 		log.Error(err, "could not get provider client")
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+		err = r.Status().Update(ctx, &externalSecret)
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -115,7 +121,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err != nil {
 		log.Error(err, "could not reconcile ExternalSecret")
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSynced, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
 		err = r.Status().Update(ctx, &externalSecret)
 		if err != nil {

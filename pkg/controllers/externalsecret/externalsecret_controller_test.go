@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
@@ -112,7 +113,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	})
 
 	Context("When syncing ExternalSecret value", func() {
-		It("should set the secret value", func() {
+		It("should set the secret value and sync labels/annotations", func() {
 			By("creating an ExternalSecret")
 			ctx := context.Background()
 			const targetProp = "targetProperty"
@@ -121,6 +122,14 @@ var _ = Describe("ExternalSecret controller", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ExternalSecretName,
 					Namespace: ExternalSecretNamespace,
+					Labels: map[string]string{
+						"fooobar": "bazz",
+						"bazzing": "booze",
+					},
+					Annotations: map[string]string{
+						"hihihih":   "hehehe",
+						"harharhra": "yallayalla",
+					},
 				},
 				Spec: esv1alpha1.ExternalSecretSpec{
 					SecretStoreRef: esv1alpha1.SecretStoreRef{
@@ -155,83 +164,268 @@ var _ = Describe("ExternalSecret controller", func() {
 				v := syncedSecret.Data[targetProp]
 				return string(v) == secretVal
 			}, timeout, interval).Should(BeTrue())
-
+			Expect(syncedSecret.ObjectMeta.Labels).To(BeEquivalentTo(es.ObjectMeta.Labels))
+			Expect(syncedSecret.ObjectMeta.Annotations).To(BeEquivalentTo(es.ObjectMeta.Annotations))
 		})
-	})
 
-	It("should not process stores with mismatching controller field", func() {
-		By("creating an ExternalSecret")
-		ctx := context.Background()
-		storeName := "example-ts-foo"
-		Expect(k8sClient.Create(context.Background(), &esv1alpha1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      storeName,
-				Namespace: ExternalSecretNamespace,
-			},
-			Spec: esv1alpha1.SecretStoreSpec{
-				Controller: "some-other-controller",
-				Provider: &esv1alpha1.SecretStoreProvider{
-					AWSSM: &esv1alpha1.AWSSMProvider{},
+		It("should fetch secrets using dataFrom", func() {
+			By("creating an ExternalSecret")
+			ctx := context.Background()
+			const secretVal = "someValue"
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
 				},
-			},
-		})).To(Succeed())
-		defer func() {
-			Expect(k8sClient.Delete(context.Background(), &esv1alpha1.SecretStore{
+				Spec: esv1alpha1.ExternalSecretSpec{
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: ExternalSecretStore,
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+					},
+					DataFrom: []esv1alpha1.ExternalSecretDataRemoteRef{
+						{
+							Key: "barz",
+						},
+					},
+				},
+			}
+
+			fakeProvider.WithGetSecretMap(map[string][]byte{
+				"foo": []byte("bar"),
+				"baz": []byte("bang"),
+			}, nil)
+			fakeProvider.WithGetSecret([]byte(secretVal), nil)
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace}
+			syncedSecret := &v1.Secret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, secretLookupKey, syncedSecret)
+				if err != nil {
+					return false
+				}
+				x := syncedSecret.Data["foo"]
+				y := syncedSecret.Data["baz"]
+				return string(x) == "bar" && string(y) == "bang"
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("should set an error condition when provider errors", func() {
+			By("creating an ExternalSecret")
+			ctx := context.Background()
+			const targetProp = "targetProperty"
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: ExternalSecretStore,
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+					},
+					Data: []esv1alpha1.ExternalSecretData{
+						{
+							SecretKey: targetProp,
+							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+								Key:      "barz",
+								Property: "bang",
+							},
+						},
+					},
+				},
+			}
+
+			fakeProvider.WithGetSecret(nil, fmt.Errorf("artificial testing error"))
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+			esLookupKey := types.NamespacedName{
+				Name:      ExternalSecretName,
+				Namespace: ExternalSecretNamespace}
+			createdES := &esv1alpha1.ExternalSecret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, esLookupKey, createdES)
+				if err != nil {
+					return false
+				}
+				// condition must be false
+				cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
+				if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1alpha1.ConditionReasonSecretSyncedError {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("should set an error condition when store does not exist", func() {
+			By("creating an ExternalSecret")
+			ctx := context.Background()
+			const targetProp = "targetProperty"
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: "storeshouldnotexist",
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+					},
+					Data: []esv1alpha1.ExternalSecretData{
+						{
+							SecretKey: targetProp,
+							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+								Key:      "barz",
+								Property: "bang",
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+			esLookupKey := types.NamespacedName{
+				Name:      ExternalSecretName,
+				Namespace: ExternalSecretNamespace}
+			createdES := &esv1alpha1.ExternalSecret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, esLookupKey, createdES)
+				if err != nil {
+					return false
+				}
+				// condition must be false
+				cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
+				if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1alpha1.ConditionReasonSecretSyncedError {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("should set an error condition when store provider constructor fails", func() {
+			By("creating an ExternalSecret")
+			ctx := context.Background()
+			const targetProp = "targetProperty"
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: ExternalSecretStore,
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+					},
+					Data: []esv1alpha1.ExternalSecretData{
+						{
+							SecretKey: targetProp,
+							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+								Key:      "barz",
+								Property: "bang",
+							},
+						},
+					},
+				},
+			}
+
+			fakeProvider.WithNew(func(context.Context, esv1alpha1.GenericStore, client.Client,
+				string) (provider.Provider, error) {
+				return nil, fmt.Errorf("artificial constructor error")
+			})
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+			esLookupKey := types.NamespacedName{
+				Name:      ExternalSecretName,
+				Namespace: ExternalSecretNamespace}
+			createdES := &esv1alpha1.ExternalSecret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, esLookupKey, createdES)
+				if err != nil {
+					return false
+				}
+				// condition must be false
+				cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
+				if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1alpha1.ConditionReasonSecretSyncedError {
+					return false
+				}
+				return true
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("should not process stores with mismatching controller field", func() {
+			By("creating an ExternalSecret")
+			ctx := context.Background()
+			storeName := "example-ts-foo"
+			Expect(k8sClient.Create(context.Background(), &esv1alpha1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      storeName,
 					Namespace: ExternalSecretNamespace,
 				},
+				Spec: esv1alpha1.SecretStoreSpec{
+					Controller: "some-other-controller",
+					Provider: &esv1alpha1.SecretStoreProvider{
+						AWSSM: &esv1alpha1.AWSSMProvider{},
+					},
+				},
 			})).To(Succeed())
-		}()
-		es := &esv1alpha1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
-			Spec: esv1alpha1.ExternalSecretSpec{
-				SecretStoreRef: esv1alpha1.SecretStoreRef{
-					Name: storeName,
+			defer func() {
+				Expect(k8sClient.Delete(context.Background(), &esv1alpha1.SecretStore{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      storeName,
+						Namespace: ExternalSecretNamespace,
+					},
+				})).To(Succeed())
+			}()
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
 				},
-				Target: esv1alpha1.ExternalSecretTarget{
-					Name: ExternalSecretTargetSecretName,
-				},
-				Data: []esv1alpha1.ExternalSecretData{
-					{
-						SecretKey: "doesnothing",
-						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-							Key:      "barz",
-							Property: "bang",
+				Spec: esv1alpha1.ExternalSecretSpec{
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: storeName,
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+					},
+					Data: []esv1alpha1.ExternalSecretData{
+						{
+							SecretKey: "doesnothing",
+							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+								Key:      "barz",
+								Property: "bang",
+							},
 						},
 					},
 				},
-			},
-		}
-
-		Expect(k8sClient.Create(ctx, es)).Should(Succeed())
-		secretLookupKey := types.NamespacedName{
-			Name:      ExternalSecretName,
-			Namespace: ExternalSecretNamespace,
-		}
-
-		// COND
-		createdES := &esv1alpha1.ExternalSecret{}
-		Consistently(func() bool {
-			err := k8sClient.Get(ctx, secretLookupKey, createdES)
-			if err != nil {
-				return false
 			}
-			cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
-			return cond == nil
-		}, timeout, interval).Should(BeTrue())
+
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+
+			// COND
+			createdES := &esv1alpha1.ExternalSecret{}
+			Consistently(func() bool {
+				err := k8sClient.Get(ctx, secretLookupKey, createdES)
+				if err != nil {
+					return false
+				}
+				cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
+				return cond == nil
+			}, timeout, interval).Should(BeTrue())
+		})
+
 	})
-
-	// TODO:
-	// * missing store
-	// * missing store provider
-	// * provider client constructor error
-	// * getproviderSecretData error
-	// * check sync failed condition
-
 })
 
 // CreateNamespace creates a new namespace in the cluster.
