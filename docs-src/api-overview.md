@@ -9,7 +9,7 @@ The controller fetches secrets from an external API and creates Kubernetes [secr
 
 ## Resource model
 
-To understand the mechanics of the operator let's start with the data model. The SecretStore references an Bucket of k/v pairs. But because every external API is slightly different this bucket may be e.g. an instance of an Azure KeyVault or a AWS Secrets Manager in a certain AWS Account and region. Please take a look at the provider documentation to see what the Bucket actually maps to.
+To understand the mechanics of the operator let's start with the data model. The SecretStore references an bucket of key/value pairs. But because every external API is slightly different this bucket may be e.g. an instance of an Azure KeyVault or a AWS Secrets Manager in a certain AWS Account and region. Please take a look at the provider documentation to see what the Bucket actually maps to.
 
 ![Resource Mapping](./pictures/diagrams-resource-mapping.png)
 

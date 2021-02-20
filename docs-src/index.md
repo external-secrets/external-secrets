@@ -20,6 +20,6 @@ This project is driven by it's users and contributors and we welcome everybody t
 
 How to get involved:
 
-- [TODO: Monthly Meeting schedule](http://example.com)
+- Monthly Meeting: we announceme our meetings on slack
 - [Kubernetes Slack #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
 - [Contributing Process](contributing-process.md)

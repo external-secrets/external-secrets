@@ -77,7 +77,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#multi-tenancy-options" tabindex="1" class="md-skip">
+      <a href="#shared-clustersecretstore" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -378,36 +378,23 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#multi-tenancy-options" class="md-nav__link">
-    Multi Tenancy options
-  </a>
-  
-    <nav class="md-nav">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#shared-managed-clustersecretstore" class="md-nav__link">
-    Shared Managed ClusterSecretStore
+  <a href="#shared-clustersecretstore" class="md-nav__link">
+    Shared ClusterSecretStore
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#managed-secretstore-per-namespace" class="md-nav__link">
-    Managed SecretStore per namespace
+    Managed SecretStore per Namespace
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#secretstore-self-service" class="md-nav__link">
-    SecretStore self-service
+      
+        <li class="md-nav__item">
+  <a href="#eso-as-a-service" class="md-nav__link">
+    ESO as a Service
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -686,36 +673,23 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#multi-tenancy-options" class="md-nav__link">
-    Multi Tenancy options
-  </a>
-  
-    <nav class="md-nav">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#shared-managed-clustersecretstore" class="md-nav__link">
-    Shared Managed ClusterSecretStore
+  <a href="#shared-clustersecretstore" class="md-nav__link">
+    Shared ClusterSecretStore
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#managed-secretstore-per-namespace" class="md-nav__link">
-    Managed SecretStore per namespace
+    Managed SecretStore per Namespace
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#secretstore-self-service" class="md-nav__link">
-    SecretStore self-service
+      
+        <li class="md-nav__item">
+  <a href="#eso-as-a-service" class="md-nav__link">
+    ESO as a Service
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -740,23 +714,36 @@
                 
                   <h1>Multi Tenancy</h1>
                 
-                <div class="admonition note">
-<p class="admonition-title">Coming soon</p>
-<p>This is in the works.</p>
-</div>
-<h2 id="multi-tenancy-options">Multi Tenancy options</h2>
-<p>External Secrets Operator provides different modes of operation to fulfill ogranizational needs. This Guide outlines the flexibility of ESO and should give you a first impression of how you could employ this operator in your organization.</p>
-<p>For a multi-tenant deployment you should first examine</p>
+                <p>External Secrets Operator provides different modes of operation to fulfill ogranizational needs. This guide outlines the flexibility of ESO and should give you a first impression of how you can employ this operator in your organization.</p>
+<p>For a multi-tenant deployment you should first examine your organizational structure:</p>
 <ol>
 <li>what roles (i.e. <em>Application Developers</em>, <em>Cluster Admins</em>, ...) do you have in your organization,</li>
 <li>what responsibilities do they have and</li>
 <li>how does that map to Kubernetes RBAC roles.</li>
 </ol>
-<p>Further, you should examine how your external API provider manages access-control for your secrets. Can you limit access by secret names (e.g. <code>db/dev/*</code>)? Or only on a bucket (a bunch of secrets) level?</p>
-<p><strong>Note:</strong> Please keep in mind that not all external APIs provide fine-grained access management for secrets.</p>
-<h3 id="shared-managed-clustersecretstore">Shared Managed ClusterSecretStore</h3>
-<h3 id="managed-secretstore-per-namespace">Managed SecretStore per namespace</h3>
-<h3 id="secretstore-self-service">SecretStore self-service</h3>
+<p>Further, you should examine how your external API provider manages access control for your secrets. Can you limit access by secret names (e.g. <code>db/dev/*</code>)? Or only on a bucket level? Please keep in mind that not all external APIs provide fine-grained access management for secrets.</p>
+<p><strong>Note:</strong> The following examples should <strong>not</strong> be considered as best practice but rather as a example to show how to combine different mechanics and techniques for tenant isolation.</p>
+<h3 id="shared-clustersecretstore">Shared ClusterSecretStore</h3>
+<p><img alt="Shared CSS" src="../pictures/diagrams-multi-tenancy-shared.png" /></p>
+<p>A Cluster Administrator deploys a <code>ClusterSecretStore</code> (CSS) and manages access to the external API. The CSS is shared by all tenants within the cluster. Application Developers do reference it in a <code>ExternalSecret</code> but can not create a ClusterSecretStores or SecretStores on their own. Now all application developers have access to all the secrets. You probably want to limit access to certain keys or prefixes that should be used.  ESO provides a very simple mechanic to limit access to certain keys on a namespace basis by using annotations on the <code>Kind=Namespace</code> resource. More advanced validation should be done with an Admission Webhook, e.g. with <a href="https://kyverno.io/">Kyverno</a> or <a href="https://www.openpolicyagent.org/">Open Policy Agent</a>).</p>
+<div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Namespace</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-a</span>
+  <span class="nt">annotations</span><span class="p">:</span>
+    <span class="c1"># annotation that defines which keys can be read</span>
+    <span class="c1"># the annotation value is a regular expression</span>
+    <span class="nt">external-secrets.io/permitted-key-name</span><span class="p">:</span> <span class="s">&quot;a/development/*&quot;</span>
+</pre></div>
+
+<p>This setup suites well if you have one central bucket that contains all of your secrets and your Cluster Administrators should manage access to it. This setup is very simple but does not scale very well.</p>
+<h3 id="managed-secretstore-per-namespace">Managed SecretStore per Namespace</h3>
+<p><img alt="Shared CSS" src="../pictures/diagrams-multi-tenancy-managed-store.png" /></p>
+<p>Cluster Administrators manage one or multipe <code>SecretStores</code> per Namespace. Each SecretStore uses it's own <em>role</em> that limits access to a small set of keys. The peculiarity of this is approach is, that <strong>access is actually managed by the external API</strong> which provides the roles. The Cluster Administrator does just the wiring. This approach may be desirable if you have an external entity - let's call it <strong>Secret Administrator</strong> - that manages access and lifecycle of the secrets.</p>
+<h3 id="eso-as-a-service">ESO as a Service</h3>
+<p><img alt="Shared CSS" src="../pictures/diagrams-multi-tenancy-self-service.png" /></p>
+<p>Every namespace is self-contained. Application developers manage <code>SecretStore</code>, <code>ExternalSecret</code> and secret infrastructure on their own. Cluster Administrators <em>just</em> provide the External Secrets Operator as a service.</p>
+<p>This makes sense if application developers should be completely autonomous while a central team provides common services.</p>
                 
                   
                 
