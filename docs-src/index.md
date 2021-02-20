@@ -22,4 +22,4 @@ How to get involved:
 
 - [TODO: Monthly Meeting schedule](http://example.com)
 - [Kubernetes Slack #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
-- [File an Issue](contributing-issue.md)
+- [Contributing Process](contributing-process.md)

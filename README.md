@@ -13,7 +13,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 # ⚠️ Please bear in mind
 
-While this project is not ready, you might consider using the following: 
+While this project is not ready, you might consider using the following:
 
 - [Kubernetes External Secrets](https://github.com/external-secrets/kubernetes-external-secrets)
 - [Secrets Manager](https://github.com/itscontained/secret-manager)
