@@ -7,12 +7,17 @@ be installed into any Kubernetes (>= 1.16) cluster.
 
 To install the CRDs, please execute:
 
-``` console
+``` bash
 kubectl kustomize "github.com/external-secrets/external-secrets/config/crd" \
 | kubectl apply -f -
 ```
 
 ## Install the controller
+
+``` bash
+kubectl kustomize "github.com/external-secrets/external-secrets/config/default" \
+| kubectl apply -f -
+```
 
 ### Create your first SecretStore
 
@@ -26,13 +31,22 @@ kubectl kustomize "github.com/external-secrets/external-secrets/config/crd" \
 {% include 'basic-external-secret.yaml' %}
 ```
 
-``` console
+``` bash
 kubectl describe externalsecret example
-
-# TODO
+# [...]
+Name:  example
+Status:
+  Conditions:
+    Last Transition Time:  2021-02-24T16:45:23Z
+    Message:               Secret was synced
+    Reason:                SecretSynced
+    Status:                True
+    Type:                  Ready
+  Refresh Time:            2021-02-24T16:45:24Z
+Events:                    <none>
 ```
 
-For more advanced examples, please read the other [guides](guides-getting-started.md).
+For more advanced examples, please read the other [guides](guides-introduction.md).
 
 ## Uninstalling the CRDs
 

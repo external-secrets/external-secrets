@@ -31,7 +31,7 @@ An ExternalSecret declares what data to fetch. It has a reference to a `SecretSt
 
 ### ClusterSecretStore
 
-The `ClusterSecretStore` is just a global, cluster-wide SecretStore that can be referenced from multiple namespaces.
+The `ClusterSecretStore` is just a global, cluster-wide SecretStore that can be referenced from all namespaces.
 
 ## Behavior
 

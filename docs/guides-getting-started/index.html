@@ -763,11 +763,15 @@
 <p>This project provides a collection of Custom Resource Definitions (CRDs) that can
 be installed into any Kubernetes (&gt;= 1.16) cluster.</p>
 <p>To install the CRDs, please execute:</p>
-<div class="highlight"><pre><span></span><span class="go">kubectl kustomize &quot;github.com/external-secrets/external-secrets/config/crd&quot; \</span>
-<span class="go">| kubectl apply -f -</span>
+<div class="highlight"><pre><span></span>kubectl kustomize <span class="s2">&quot;github.com/external-secrets/external-secrets/config/crd&quot;</span> <span class="se">\</span>
+<span class="p">|</span> kubectl apply -f -
 </pre></div>
 
 <h2 id="install-the-controller">Install the controller</h2>
+<div class="highlight"><pre><span></span>kubectl kustomize <span class="s2">&quot;github.com/external-secrets/external-secrets/config/default&quot;</span> <span class="se">\</span>
+<span class="p">|</span> kubectl apply -f -
+</pre></div>
+
 <h3 id="create-your-first-secretstore">Create your first SecretStore</h3>
 <div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -813,12 +817,21 @@ be installed into any Kubernetes (&gt;= 1.16) cluster.</p>
     <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">remote-key-in-the-provider</span>
 </pre></div>
 
-<div class="highlight"><pre><span></span><span class="go">kubectl describe externalsecret example</span>
-
-<span class="gp">#</span> TODO
+<div class="highlight"><pre><span></span>kubectl describe externalsecret example
+<span class="c1"># [...]</span>
+Name:  example
+Status:
+  Conditions:
+    Last Transition Time:  <span class="m">2021</span>-02-24T16:45:23Z
+    Message:               Secret was synced
+    Reason:                SecretSynced
+    Status:                True
+    Type:                  Ready
+  Refresh Time:            <span class="m">2021</span>-02-24T16:45:24Z
+Events:                    &lt;none&gt;
 </pre></div>
 
-<p>For more advanced examples, please read the other <a href="./">guides</a>.</p>
+<p>For more advanced examples, please read the other <a href="../guides-introduction/">guides</a>.</p>
 <h2 id="uninstalling-the-crds">Uninstalling the CRDs</h2>
 <p>To uninstall the CRDs and all resources created with them, run the following
 command. Note that this will remove all ExternalSecrets and SecretStore resources in

@@ -688,7 +688,7 @@
                 
                 <p>The <code>ExternalSecret</code> describes what data should be fetched, how the data should be transformed and saved as a <code>Kind=Secret</code>:</p>
 <ul>
-<li>tell the operator what secrets should be synced by using <code>spec.data</code> to explicitly sync individual keys or use <code>spec.dataFrom</code> to get all values from the external API.</li>
+<li>tells the operator what secrets should be synced by using <code>spec.data</code> to explicitly sync individual keys or use <code>spec.dataFrom</code> to get <strong>all values</strong> from the external API.</li>
 <li>you can specify how the secret should look like by specifying a <code>spec.target.template</code></li>
 </ul>
 <h2 id="example">Example</h2>
