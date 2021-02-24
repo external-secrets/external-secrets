@@ -524,13 +524,13 @@ func TestGetSecret(t *testing.T) {
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key:      "/baz",
-				Property: "DOES NOT EXIST",
+				Property: "INVALPROP",
 			},
 			apiOutput: &awssm.GetSecretValueOutput{
 				SecretString: aws.String(`{"/shmoo": "bang"}`),
 			},
 			apiErr:         nil,
-			expectError:    "has no property",
+			expectError:    "key INVALPROP does not exist in secret",
 			expectedSecret: "",
 		},
 		{
@@ -541,14 +541,66 @@ func TestGetSecret(t *testing.T) {
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key:      "/baz",
-				Property: "/shmoo",
+				Property: "INVALPROP",
 			},
 			apiOutput: &awssm.GetSecretValueOutput{
 				SecretString: aws.String(`------`),
 			},
 			apiErr:         nil,
-			expectError:    "unable to unmarshal secret",
+			expectError:    "key INVALPROP does not exist in secret",
 			expectedSecret: "",
+		},
+		{
+			// case: ssm.SecretString may be nil but binary is set
+			apiInput: &awssm.GetSecretValueInput{
+				SecretId:     aws.String("/baz"),
+				VersionStage: aws.String("AWSCURRENT"),
+			},
+			rr: esv1alpha1.ExternalSecretDataRemoteRef{
+				Key: "/baz",
+			},
+			apiOutput: &awssm.GetSecretValueOutput{
+				SecretString: nil,
+				SecretBinary: []byte("yesplease"),
+			},
+			apiErr:         nil,
+			expectError:    "",
+			expectedSecret: "yesplease",
+		},
+		{
+			// case: both .SecretString and .SecretBinary is nil
+			apiInput: &awssm.GetSecretValueInput{
+				SecretId:     aws.String("/baz"),
+				VersionStage: aws.String("AWSCURRENT"),
+			},
+			rr: esv1alpha1.ExternalSecretDataRemoteRef{
+				Key: "/baz",
+			},
+			apiOutput: &awssm.GetSecretValueOutput{
+				SecretString: nil,
+				SecretBinary: nil,
+			},
+			apiErr:         nil,
+			expectError:    "no secret string nor binary for key",
+			expectedSecret: "",
+		},
+		{
+			// case: secretOut.SecretBinary JSON parsing
+			apiInput: &awssm.GetSecretValueInput{
+				SecretId:     aws.String("/baz"),
+				VersionStage: aws.String("AWSCURRENT"),
+			},
+			rr: esv1alpha1.ExternalSecretDataRemoteRef{
+				Key:      "/baz",
+				Property: "foobar.baz",
+			},
+			apiOutput: &awssm.GetSecretValueOutput{
+				SecretString: nil,
+				SecretBinary: []byte(`{"foobar":{"baz":"nestedval"}}`),
+			},
+			apiErr:         nil,
+			expectError:    "",
+			expectedSecret: "nestedval",
 		},
 		{
 			// should pass version
