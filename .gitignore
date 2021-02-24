@@ -26,3 +26,8 @@ bin
 cover.out
 
 deploy/charts/external-secrets/templates/crds/*.yaml
+.credentials
+terraform.tfstate
+terraform.tfstate.backup
+.terraform.lock.hcl
+.terraform

@@ -1,0 +1,41 @@
+apiVersion: external-secrets.io/v1alpha1
+kind: SecretStore
+metadata:
+  name: aws-example
+spec:
+  provider:
+    awssm:
+      region: eu-central-1
+---
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: aws-simple-string
+spec:
+  secretStoreRef:
+    name: aws-example
+    kind: SecretStore
+  target:
+    name: aws-simple-string
+  refreshInterval: 1h
+  data:
+  - secretKey: simple-string-value
+    remoteRef:
+      key: simple-string
+  - secretKey: simple-binary-value
+    remoteRef:
+      key: simple-binary
+  - secretKey: json-string-value
+    remoteRef:
+      key: json-string
+  - secretKey: json-string-value-mykey
+    remoteRef:
+      key: json-string
+      property: mykey
+  - secretKey: json-binary-value
+    remoteRef:
+      key: json-binary
+  - secretKey: json-binary-value-mykey
+    remoteRef:
+      key: json-binary
+      property: mykey

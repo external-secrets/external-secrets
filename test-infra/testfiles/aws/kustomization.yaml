@@ -1,0 +1,17 @@
+bases:
+- ../../../config/default
+
+resources:
+- ./test.yaml
+
+secretGenerator:
+- name: aws-credentials
+  namespace: external-secrets-system
+  envs:
+  - .credentials
+
+generatorOptions:
+ disableNameSuffixHash: true
+
+patchesStrategicMerge:
+- deploy-credentials.yaml
