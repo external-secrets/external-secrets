@@ -41,11 +41,12 @@ const (
 	requeueAfter = time.Second * 30
 )
 
-// ExternalSecretReconciler reconciles a ExternalSecret object.
+// Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	ControllerClass string
 }
 
 // +kubebuilder:rbac:groups=external-secrets.io,resources=externalsecrets,verbs=get;list;watch;create;update;patch;delete
@@ -72,10 +73,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	store, err := r.getStore(ctx, &externalSecret)
 	if err != nil {
 		log.Error(err, "could not get store reference")
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+		err = r.Status().Update(ctx, &externalSecret)
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
 	log = log.WithValues("SecretStore", store.GetNamespacedName())
+
+	// check if store should be handled by this controller instance
+	if !shouldProcessStore(store, r.ControllerClass) {
+		log.Info("skippig unmanaged store")
+		return ctrl.Result{}, nil
+	}
 
 	storeProvider, err := schema.GetProvider(store)
 	if err != nil {
@@ -86,6 +96,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	providerClient, err := storeProvider.New(ctx, store, r.Client, req.Namespace)
 	if err != nil {
 		log.Error(err, "could not get provider client")
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+		err = r.Status().Update(ctx, &externalSecret)
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -108,7 +121,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err != nil {
 		log.Error(err, "could not reconcile ExternalSecret")
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSynced, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
 		err = r.Status().Update(ctx, &externalSecret)
 		if err != nil {
@@ -125,6 +138,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, "unable to update status")
 	}
 	return ctrl.Result{}, nil
+}
+
+func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {
+	if store.GetSpec().Controller == "" || store.GetSpec().Controller == class {
+		return true
+	}
+	return false
 }
 
 func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {

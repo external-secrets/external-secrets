@@ -44,8 +44,10 @@ func init() {
 
 func main() {
 	var metricsAddr string
+	var controllerClass string
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&controllerClass, "controller-class", "default", "the controller is instantiated with a specific controller name and filters ES based on this property")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -66,17 +68,19 @@ func main() {
 	}
 
 	if err = (&secretstore.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("SecretStore"),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
+		Scheme:          mgr.GetScheme(),
+		ControllerClass: controllerClass,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SecretStore")
 		os.Exit(1)
 	}
 	if err = (&externalsecret.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
+		Scheme:          mgr.GetScheme(),
+		ControllerClass: controllerClass,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ExternalSecret")
 		os.Exit(1)
