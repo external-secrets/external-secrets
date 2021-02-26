@@ -13,15 +13,25 @@ status: draft
 ## Table of Contents
 
 <!-- toc -->
-- [Summary](#summary)
-- [Motivation](#motivation)
-  - [Goals](#goals)
-  - [Non-Goals](#non-goals)
-- [Terminology](#terminology)
-- [Use-Cases](#use-cases)
-- [Proposal](#proposal)
-  - [API](#api)
-- [Alternatives](#alternatives)
+- [External Secrets Operator CRD](#external-secrets-operator-crd)
+  - [Table of Contents](#table-of-contents)
+  - [Summary](#summary)
+  - [Motivation](#motivation)
+    - [Goals](#goals)
+    - [Non-Goals](#non-goals)
+  - [Terminology](#terminology)
+  - [Use-Cases](#use-cases)
+    - [User Definitions](#user-definitions)
+    - [User Stories](#user-stories)
+    - [Providers](#providers)
+    - [Frontends](#frontends)
+  - [Proposal](#proposal)
+    - [API](#api)
+    - [External Secret](#external-secret)
+      - [Behavior](#behavior)
+    - [Secret Store](#secret-store)
+  - [Workflow in a ESO instance](#workflow-in-a-eso-instance)
+  - [Backlog](#backlog)
 <!-- /toc -->
 
 ## Summary
@@ -245,6 +255,26 @@ spec:
 
       # AWS Region to be used for the provider
       region: eu-central-1
+
+    # AzureKV configures this store to sync secrets using Azure Key-Vault provider
+    azurekv:
+      # Auth defines the information necessary to authenticate against Azure
+      auth:
+        # The Azure Tenant to send requests to.
+        tenantId: 4be10619-c5d4-4032-bd6a-a697cb365a4a
+
+        # The Service-Princpal's clientID and clientSecret from an already created Kubernetes Secret
+        servicePrincipalSecretRef:
+          clientId:
+            name: azurekv-sp-secret
+            key: client-id
+
+          clientSecret:
+            name: azurekv-sp-secret
+            key: client-secret
+
+      # The URI to that KeyVault instance, as found in the Azure Portal & the az CLI output
+      vaultUri: https://my-vault09.vault.azure.net/
 
 status:
   # Standard condition schema
