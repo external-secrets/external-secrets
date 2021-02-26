@@ -39,6 +39,7 @@ type AWSSMProvider struct {
 	// if not set aws sdk will infer credentials from your environment
 	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
 	// +nullable
+	// +optional
 	Auth *AWSSMAuth `json:"auth"`
 
 	// Role is a Role ARN which the SecretManager provider will assume
