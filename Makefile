@@ -186,13 +186,11 @@ helm.generate:
 # Documentation
 .PHONY: docs
 docs: generate
-	./hack/api-docs/generate.sh docs-src/spec.md
-	docker build --tag github.com/external-secrets-mkdocs:latest -f mkdocs.dockerfile .
-	$(MAKE) -f docs.mk
+	$(MAKE) -C ./hack/api-docs build
 
 .PHONY: serve-docs
 serve-docs:
-	$(MAKE) -f docs.mk serve
+	$(MAKE) -C ./hack/api-docs serve
 
 # ====================================================================================
 # Build Artifacts

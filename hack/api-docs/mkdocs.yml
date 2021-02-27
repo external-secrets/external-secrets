@@ -1,0 +1,44 @@
+site_name: External Secrets Opereator
+repo_url: https://github.com/external-secrets/external-secrets
+repo_name: External Secrets Operator
+site_dir: site
+docs_dir: docs
+theme:
+  name: material
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.snippets:
+      base_path: docs
+plugins:
+  - search:
+      lang: en
+  - macros:
+      include_dir: docs/snippets
+nav:
+  - Introduction: index.md
+  - Overview: api-overview.md
+  - API Types:
+      ExternalSecret: api-externalsecret.md
+      SecretStore: api-secretstore.md
+      ClusterSecretStore: api-clustersecretstore.md
+  - Guides:
+    - Introduction: guides-introduction.md
+    - Getting started: guides-getting-started.md
+    - Advanced Templating: guides-templating.md
+    - Multi Tenancy: guides-multi-tenancy.md
+  - Provider:
+    - AWS:
+      - Secrets Manager: provider-aws-secrets-manager.md
+      - Parameter Store: provider-aws-parameter-store.md
+    - Azure:
+      - Key Vault: provider-azure-key-vault.md
+    - Google:
+      - Secrets Manager: provider-google-secrets-manager.md
+    - HashiCorp Vault: provider-hashicorp-vault.md
+  - References:
+    - API specification: spec.md
+  - Contributing:
+    - Developer guide: contributing-devguide.md
+    - Contributing Process: contributing-process.md
