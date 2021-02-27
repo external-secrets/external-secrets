@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-  pull_request: {} # for reviewing initial PR only
 jobs:
   deploy:
     runs-on: ubuntu-18.04
