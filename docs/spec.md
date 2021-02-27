@@ -17,6 +17,7 @@ Resource Types:
 <a href="#external-secrets.io/v1alpha1.AWSSMProvider">AWSSMProvider</a>)
 </p>
 <p>
+<p>AWSSMAuth contains a secretRef for credentials.</p>
 </p>
 <table>
 <thead>
@@ -47,6 +48,8 @@ AWSSMAuthSecretRef
 <a href="#external-secrets.io/v1alpha1.AWSSMAuth">AWSSMAuth</a>)
 </p>
 <p>
+<p>AWSSMAuthSecretRef holds secret references for aws credentials
+both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.</p>
 </p>
 <table>
 <thead>
@@ -64,7 +67,6 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<em>(Optional)</em>
 <p>The AccessKeyID is used for authentication</p>
 </td>
 </tr>
@@ -76,7 +78,6 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<em>(Optional)</em>
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
@@ -89,7 +90,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>Configures a store to sync secrets using the AWS Secret Manager provider.</p>
+<p>AWSSMProvider configures a store to sync secrets using the AWS Secret Manager provider.</p>
 </p>
 <table>
 <thead>
@@ -109,7 +110,10 @@ AWSSMAuth
 </em>
 </td>
 <td>
-<p>Auth defines the information necessary to authenticate against AWS</p>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against AWS
+if not set aws sdk will infer credentials from your environment
+see: <a href="https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials">https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials</a></p>
 </td>
 </tr>
 <tr>
@@ -588,7 +592,6 @@ Kubernetes meta/v1.Time
 </em>
 </td>
 <td>
-<em>(Optional)</em>
 <p>refreshTime is the time and date the external secret was fetched and
 the target secret updated</p>
 </td>
