@@ -43,6 +43,7 @@ image:
 
 .PHONY: build
 build: image generate $(SOURCES)
+	mkdir -p $(GENROOT)
 	$(DOCKER) run \
 		--mount type=bind,source=$(SRCDIR),target=/docs \
 		--mount type=bind,source=$(CFGFILE),target=/mkdocs.yml \
