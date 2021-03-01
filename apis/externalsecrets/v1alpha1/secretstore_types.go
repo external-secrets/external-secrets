@@ -37,6 +37,10 @@ type SecretStoreProvider struct {
 	// AWS configures this store to sync secrets using AWS Secret Manager provider
 	// +optional
 	AWS *AWSProvider `json:"aws,omitempty"`
+
+	// Vault configures this store to sync secrets using Hashi provider
+	// +optional
+	Vault *VaultProvider `json:"vault,omitempty"`
 }
 
 type SecretStoreConditionType string

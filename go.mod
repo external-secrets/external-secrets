@@ -3,6 +3,8 @@ module github.com/external-secrets/external-secrets
 go 1.13
 
 replace (
+	google.golang.org/grpc => google.golang.org/grpc v1.27.0
+
 	k8s.io/api => k8s.io/api v0.20.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.2
@@ -31,15 +33,28 @@ replace (
 
 require (
 	github.com/aws/aws-sdk-go v1.38.3
+	github.com/crossplane/crossplane-runtime v0.13.0
+	github.com/fatih/color v1.9.0 // indirect
+	github.com/frankban/quicktest v1.10.0 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.5.4
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.4 // indirect
+	github.com/hashicorp/go-hclog v0.14.1 // indirect
+	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
+	github.com/hashicorp/hcl v1.0.1-vault // indirect
+	github.com/hashicorp/vault/api v1.0.5-0.20210224012239-b540be4b7ec4
 	github.com/imdario/mergo v0.3.11 // indirect
+	github.com/kr/pretty v0.2.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
+	github.com/mattn/go-colorable v0.1.6 // indirect
+	github.com/mitchellh/mapstructure v1.3.3 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.11.0
+	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/prometheus/procfs v0.4.0 // indirect
 	github.com/stretchr/testify v1.6.1
@@ -52,6 +67,7 @@ require (
 	golang.org/x/text v0.3.5 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/api v0.20.5
 	k8s.io/apiextensions-apiserver v0.20.2 // indirect

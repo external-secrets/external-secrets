@@ -1,0 +1,2 @@
+ignore:
+- pkg/provider/**/fake

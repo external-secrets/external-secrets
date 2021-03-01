@@ -15,8 +15,8 @@ limitations under the License.
 package register
 
 // packages imported here are registered to the controller schema.
+// nolint:golint
 import (
-
-	// register awssm provider.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 )
