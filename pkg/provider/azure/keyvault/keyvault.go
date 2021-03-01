@@ -27,6 +27,7 @@ type Azure struct {
 	kube       client.Client
 	store      esv1alpha1.GenericStore
 	baseClient *keyvault.BaseClient
+	vaultUrl   string
 	namespace  string
 	iAzure     IAzure
 }
@@ -48,13 +49,14 @@ func (a *Azure) New(ctx context.Context, store esv1alpha1.GenericStore, kube cli
 		namespace: namespace,
 	}
 	anAzure.iAzure = anAzure
-	azClient, err := anAzure.newAzureClient(ctx)
+	azClient, vaultUrl, err := anAzure.newAzureClient(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
 	anAzure.baseClient = azClient
+	anAzure.vaultUrl = vaultUrl
 	return anAzure, nil
 }
 
@@ -67,7 +69,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	if ref.Version != "" {
 		version = ref.Version
 	}
-	secretName := ref.Property
+	secretName := ref.Key
 	nameSplitted := strings.Split(secretName, "_")
 	getTags := false
 
@@ -76,19 +78,19 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		getTags = true
 	}
 
-	secretMap, err := a.iAzure.getKeyVaultSecrets(ctx, ref.Key, version, secretName, getTags)
+	secretMap, err := a.iAzure.getKeyVaultSecrets(ctx, a.vaultUrl, version, secretName, getTags)
 	if err != nil {
 		return nil, err
 	}
 
-	secretBundle = secretMap[ref.Property]
+	secretBundle = secretMap[ref.Key]
 	return secretBundle, nil
 }
 
 // implement store.Client.GetSecretMap Interface.
 // retrieve ALL secrets in a specific keyvault with the name ref.Name.
 func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	secretMap, err := a.iAzure.getKeyVaultSecrets(ctx, ref.Key, ref.Version, "", true)
+	secretMap, err := a.iAzure.getKeyVaultSecrets(ctx, a.vaultUrl, ref.Version, "", true)
 	return secretMap, err
 }
 
@@ -131,7 +133,7 @@ func getCertBundleForPKCS(certificateRawVal string, certBundleOnly, certKeyOnly 
 
 // consolidated method to retrieve secret value or secrets list based on whether or not a secret name is passed.
 // if the secret is of type PKCS then this is a cerificate that needs some decoding.
-func (a *Azure) getKeyVaultSecrets(ctx context.Context, vaultName, version, secretName string, withTags bool) (map[string][]byte, error) {
+func (a *Azure) getKeyVaultSecrets(ctx context.Context, vaultUrl, version, secretName string, withTags bool) (map[string][]byte, error) {
 	basicClient := a.baseClient
 	secretsMap := make(map[string][]byte)
 	certBundleOnly := false
@@ -149,7 +151,7 @@ func (a *Azure) getKeyVaultSecrets(ctx context.Context, vaultName, version, secr
 			certKeyOnly = true
 		}
 
-		secretResp, err := basicClient.GetSecret(context.Background(), "https://"+vaultName+".vault.azure.net", secretNameinBE, version)
+		secretResp, err := basicClient.GetSecret(context.Background(), vaultUrl, secretNameinBE, version)
 		if err != nil {
 			return nil, err
 		}
@@ -167,7 +169,7 @@ func (a *Azure) getKeyVaultSecrets(ctx context.Context, vaultName, version, secr
 			appendTagsToSecretMap(secretName, secretsMap, secretResp.Tags)
 		}
 	} else {
-		secretList, err := basicClient.GetSecrets(context.Background(), "https://"+vaultName+".vault.azure.net", nil)
+		secretList, err := basicClient.GetSecrets(context.Background(), vaultUrl, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +177,7 @@ func (a *Azure) getKeyVaultSecrets(ctx context.Context, vaultName, version, secr
 			if !*secret.Attributes.Enabled {
 				continue
 			}
-			secretResp, err := basicClient.GetSecret(context.Background(), "https://"+vaultName+".vault.azure.net", path.Base(*secret.ID), "")
+			secretResp, err := basicClient.GetSecret(context.Background(), vaultUrl, path.Base(*secret.ID), "")
 			secretValue := *secretResp.Value
 			// Azure currently supports only PKCS#12 or PEM, PEM will be taken as it is, PKCS needs processing
 			if secretResp.ContentType != nil && *secretResp.ContentType == "application/x-pkcs12" {
@@ -198,27 +200,28 @@ func appendTagsToSecretMap(secretName string, secretsMap map[string][]byte, tags
 		secretsMap[secretName+"_"+tagKey+"_TAG"] = []byte(*tagValue)
 	}
 }
-func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, error) {
+func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, string, error) {
 	spec := *a.store.GetSpec().Provider.AzureKV
 	tenantID := *spec.TenantID
+	vaultUrl := *spec.VaultUrl
 
 	if spec.AuthSecretRef == nil {
-		return nil, fmt.Errorf("missing clientID/clientSecret in store config")
+		return nil, "", fmt.Errorf("missing clientID/clientSecret in store config")
 	}
 	scoped := true
 	if a.store.GetObjectMeta().String() == "ClusterSecretStore" {
 		scoped = false
 	}
 	if spec.AuthSecretRef.ClientID == nil || spec.AuthSecretRef.ClientSecret == nil {
-		return nil, fmt.Errorf("missing accessKeyID/secretAccessKey in store config")
+		return nil, "", fmt.Errorf("missing accessKeyID/secretAccessKey in store config")
 	}
 	cid, err := a.secretKeyRef(ctx, a.store.GetNamespacedName(), *spec.AuthSecretRef.ClientID, scoped)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	csec, err := a.secretKeyRef(ctx, a.store.GetNamespacedName(), *spec.AuthSecretRef.ClientSecret, scoped)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	os.Setenv("AZURE_TENANT_ID", tenantID)
 	os.Setenv("AZURE_CLIENT_ID", cid)
@@ -226,7 +229,7 @@ func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, error
 
 	authorizer, err := kvauth.NewAuthorizerFromEnvironment()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	os.Unsetenv("AZURE_TENANT_ID")
 	os.Unsetenv("AZURE_CLIENT_ID")
@@ -235,7 +238,7 @@ func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, error
 	basicClient := keyvault.New()
 	basicClient.Authorizer = authorizer
 
-	return &basicClient, nil
+	return &basicClient, vaultUrl, nil
 }
 func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef smmeta.SecretKeySelector, scoped bool) (string, error) {
 	var secret corev1.Secret
