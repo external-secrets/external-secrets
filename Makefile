@@ -181,6 +181,17 @@ helm.generate:
 	done
 	@$(OK) Finished generating helm chart files
 
+
+# ====================================================================================
+# Documentation
+.PHONY: docs
+docs: generate
+	$(MAKE) -C ./hack/api-docs build
+
+.PHONY: serve-docs
+serve-docs:
+	$(MAKE) -C ./hack/api-docs serve
+
 # ====================================================================================
 # Build Artifacts
 
