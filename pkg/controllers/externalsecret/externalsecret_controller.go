@@ -131,6 +131,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
+	dur, err := time.ParseDuration(externalSecret.Spec.RefreshInterval)
+	if err != nil {
+		// this should be catched by validation
+		log.Error(err, "unable to parse RefreshInterval duration")
+	}
+
 	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
 	SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
@@ -138,7 +144,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		log.Error(err, "unable to update status")
 	}
-	return ctrl.Result{}, nil
+
+	return ctrl.Result{
+		RequeueAfter: dur,
+	}, nil
 }
 
 func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {

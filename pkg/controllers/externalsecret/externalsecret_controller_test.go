@@ -168,6 +168,62 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(syncedSecret.ObjectMeta.Annotations).To(BeEquivalentTo(es.ObjectMeta.Annotations))
 		})
 
+		It("should refresh secret value", func() {
+			By("creating an ExternalSecret")
+			ctx := context.Background()
+			const targetProp = "targetProperty"
+			const secretVal = "someValue"
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					RefreshInterval: "1s",
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: ExternalSecretStore,
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+					},
+					Data: []esv1alpha1.ExternalSecretData{
+						{
+							SecretKey: targetProp,
+							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+								Key: "barz",
+							},
+						},
+					},
+				},
+			}
+
+			fakeProvider.WithGetSecret([]byte(secretVal), nil)
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace}
+			syncedSecret := &v1.Secret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, secretLookupKey, syncedSecret)
+				if err != nil {
+					return false
+				}
+				v := syncedSecret.Data[targetProp]
+				return string(v) == secretVal
+			}, timeout, interval).Should(BeTrue())
+
+			newValue := "NEW VALUE"
+			fakeProvider.WithGetSecret([]byte(newValue), nil)
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, secretLookupKey, syncedSecret)
+				if err != nil {
+					return false
+				}
+				v := syncedSecret.Data[targetProp]
+				return string(v) == newValue
+			}, timeout, interval).Should(BeTrue())
+		})
+
 		It("should fetch secrets using dataFrom", func() {
 			By("creating an ExternalSecret")
 			ctx := context.Background()
