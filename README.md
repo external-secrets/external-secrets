@@ -52,6 +52,13 @@ We will add more documentation once we have the implementation for the different
 - A custom refresh interval to sync the data from the Providers, syncing your Kubernetes Secrets up to date.
 - Select specific versions of the Provider data.
 
+
+<a name="contributing"></a>
+
+## Contributing
+
+We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/contributing-devguide/) and [Contribution process](https://www.external-secrets.io/contributing-process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/contributing-coc/) and adhere to its guidelines.
+
 <a name="partners"></a>
 
 ## Kicked off by
