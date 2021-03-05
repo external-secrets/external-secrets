@@ -179,7 +179,7 @@ var _ = Describe("ExternalSecret controller", func() {
 					Namespace: ExternalSecretNamespace,
 				},
 				Spec: esv1alpha1.ExternalSecretSpec{
-					RefreshInterval: "1s",
+					RefreshInterval: &metav1.Duration{Duration: time.Second},
 					SecretStoreRef: esv1alpha1.SecretStoreRef{
 						Name: ExternalSecretStore,
 					},

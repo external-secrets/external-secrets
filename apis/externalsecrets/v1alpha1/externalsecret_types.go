@@ -104,12 +104,11 @@ type ExternalSecretSpec struct {
 
 	Target ExternalSecretTarget `json:"target"`
 
-	// RefreshInterval is the amount of time before the values reading again from the SecretStore provider
-	// We support a subset of time.ParseDuration: Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+	// RefreshInterval is the amount of time before the values are read again from the SecretStore provider
+	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
 	// May be set to zero to fetch and create it once. Defaults to 1h.
-	// +kubebuilder:validation:Pattern=`(^0$)|([0-9]+(µs|us|ns|ms|s|m|h))`
 	// +kubebuilder:default="1h"
-	RefreshInterval string `json:"refreshInterval,omitempty"`
+	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
 
 	// Data defines the connection between the Kubernetes Secret keys and the Provider data
 	// +optional

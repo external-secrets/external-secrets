@@ -131,10 +131,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
-	dur, err := time.ParseDuration(externalSecret.Spec.RefreshInterval)
-	if err != nil {
-		// this should be catched by validation
-		log.Error(err, "unable to parse RefreshInterval duration")
+	dur := time.Hour
+	if externalSecret.Spec.RefreshInterval != nil {
+		dur = externalSecret.Spec.RefreshInterval.Duration
 	}
 
 	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
