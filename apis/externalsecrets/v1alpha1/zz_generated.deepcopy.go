@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -228,6 +229,11 @@ func (in *ExternalSecretSpec) DeepCopyInto(out *ExternalSecretSpec) {
 	*out = *in
 	out.SecretStoreRef = in.SecretStoreRef
 	out.Target = in.Target
+	if in.RefreshInterval != nil {
+		in, out := &in.RefreshInterval, &out.RefreshInterval
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	if in.Data != nil {
 		in, out := &in.Data, &out.Data
 		*out = make([]ExternalSecretData, len(*in))
