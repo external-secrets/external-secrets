@@ -35,23 +35,23 @@ type AWSAuthSecretRef struct {
 	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
 }
 
-// AWSServiceType is a enum that defines the service/API that is used to fetch the secrets
+// AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.
 // +kubebuilder:validation:Enum=SecretsManager;ParameterStore
 type AWSServiceType string
 
 const (
-	// AWSServiceSecretsManager is the AWS SecretsManager
+	// AWSServiceSecretsManager is the AWS SecretsManager.
 	// see: https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html
 	AWSServiceSecretsManager AWSServiceType = "SecretsManager"
-	// AWSServiceParameterStore is the AWS SystemsManager ParameterStore
+	// AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
 	// see: https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html
 	AWSServiceParameterStore AWSServiceType = "ParameterStore"
 )
 
-// ensure that aws provider implements the identity interface
+// ensure that aws provider implements the identity interface.
 var _ ProviderIdentity = (*AWSProvider)(nil)
 
-// AWSProvider configures a store to sync secrets with AWS
+// AWSProvider configures a store to sync secrets with AWS.
 type AWSProvider struct {
 	// Service defines which service should be used to fetch the secrets
 	Service AWSServiceType `json:"service"`
@@ -71,7 +71,7 @@ type AWSProvider struct {
 	Region string `json:"region"`
 }
 
-// Identity returns the unique name for this provider
+// Identity returns the unique name for this provider.
 func (p *AWSProvider) Identity() string {
 	return fmt.Sprintf("aws/%s", p.Service)
 }

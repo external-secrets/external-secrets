@@ -31,7 +31,7 @@ type SecretStoreSpec struct {
 }
 
 // ProviderIdentity returns the name of a secret store provider
-// this interface must be implemented by every provider
+// this interface must be implemented by every provider.
 // +k8s:deepcopy-gen=false
 type ProviderIdentity interface {
 	Identity() string
