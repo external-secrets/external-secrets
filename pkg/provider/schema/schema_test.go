@@ -45,19 +45,24 @@ func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretData
 // (1) panics if it tries to register something invalid
 // (2) stores the correct provider.
 func TestRegister(t *testing.T) {
-	for _, row := range []struct {
-		name     string
-		expPanic bool
-		provider *esv1alpha1.SecretStoreProvider
+	tbl := []struct {
+		test      string
+		name      string
+		expPanic  bool
+		expExists bool
+		provider  *esv1alpha1.SecretStoreProvider
 	}{
-		{ // should panic
-			name:     "aws/SecretsManager",
-			expPanic: true,
-			provider: &esv1alpha1.SecretStoreProvider{},
+		{
+			test:      "should panic when given an invalid provider",
+			name:      "aws/SecretsManager",
+			expPanic:  true,
+			expExists: false,
+			provider:  &esv1alpha1.SecretStoreProvider{},
 		},
 		{
-			// should register
-			name: "aws/SecretsManager",
+			test:      "should register an correct provider",
+			name:      "aws/SecretsManager",
+			expExists: false,
 			provider: &esv1alpha1.SecretStoreProvider{
 				AWS: &esv1alpha1.AWSProvider{
 					Service: esv1alpha1.AWSServiceSecretsManager,
@@ -65,9 +70,10 @@ func TestRegister(t *testing.T) {
 			},
 		},
 		{
-			// should panic: already exists
-			name:     "aws/SecretsManager",
-			expPanic: true,
+			test:      "should panic if already exists",
+			name:      "aws/SecretsManager",
+			expPanic:  true,
+			expExists: true,
 			provider: &esv1alpha1.SecretStoreProvider{
 				AWS: &esv1alpha1.AWSProvider{
 					Service: esv1alpha1.AWSServiceSecretsManager,
@@ -75,41 +81,73 @@ func TestRegister(t *testing.T) {
 			},
 		},
 		{
-			// should register pm service
-			name:     "aws/ParameterStore",
-			expPanic: true,
+			test:      "should register new service",
+			name:      "aws/ParameterStore",
+			expExists: false,
 			provider: &esv1alpha1.SecretStoreProvider{
 				AWS: &esv1alpha1.AWSProvider{
 					Service: esv1alpha1.AWSServiceParameterStore,
 				},
 			},
 		},
-	} {
-		p, ok := GetProviderByName(row.name)
-		assert.Nil(t, p)
-		assert.False(t, ok, "provider should not be registered")
-
-		testProvider := &PP{}
-		secretStore := &esv1alpha1.SecretStore{
-			Spec: esv1alpha1.SecretStoreSpec{
-				Provider: row.provider,
-			},
-		}
-
-		if row.expPanic {
-			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("Register should panic")
-				}
-			}()
-		}
-		Register(testProvider, secretStore.Spec.Provider)
-		p1, ok := GetProviderByName(row.name)
-		assert.True(t, ok, "provider should be registered")
-		assert.Equal(t, testProvider, p1)
-
-		p2, err := GetProvider(secretStore)
-		assert.Nil(t, err)
-		assert.Equal(t, testProvider, p2)
 	}
+	for i := range tbl {
+		row := tbl[i]
+		t.Run(row.test, func(t *testing.T) {
+			runTest(t,
+				row.name,
+				row.provider,
+				row.expPanic,
+			)
+		})
+	}
+}
+
+func runTest(t *testing.T, name string, provider *esv1alpha1.SecretStoreProvider, expPanic bool) {
+	testProvider := &PP{}
+	secretStore := &esv1alpha1.SecretStore{
+		Spec: esv1alpha1.SecretStoreSpec{
+			Provider: provider,
+		},
+	}
+	if expPanic {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("Register should panic")
+			}
+		}()
+	}
+	Register(testProvider, secretStore.Spec.Provider)
+	p1, ok := GetProviderByName(name)
+	assert.True(t, ok, "provider should be registered")
+	assert.Equal(t, testProvider, p1)
+	p2, err := GetProvider(secretStore)
+	assert.Nil(t, err)
+	assert.Equal(t, testProvider, p2)
+}
+
+// ForceRegister is used by other tests, we should ensure it works as expected.
+func TestForceRegister(t *testing.T) {
+	testProvider := &PP{}
+	provider := &esv1alpha1.SecretStoreProvider{
+		AWS: &esv1alpha1.AWSProvider{
+			Service: esv1alpha1.AWSServiceParameterStore,
+		},
+	}
+	secretStore := &esv1alpha1.SecretStore{
+		Spec: esv1alpha1.SecretStoreSpec{
+			Provider: provider,
+		},
+	}
+	ForceRegister(testProvider, &esv1alpha1.SecretStoreProvider{
+		AWS: &esv1alpha1.AWSProvider{
+			Service: esv1alpha1.AWSServiceParameterStore,
+		},
+	})
+	p1, ok := GetProviderByName("aws/ParameterStore")
+	assert.True(t, ok, "provider should be registered")
+	assert.Equal(t, testProvider, p1)
+	p2, err := GetProvider(secretStore)
+	assert.Nil(t, err)
+	assert.Equal(t, testProvider, p2)
 }
