@@ -9,7 +9,7 @@
 
 A `SecretStore` points to AWS Secrets Manager in a certain account within a
 defined region. You should define Roles that allow fine-grained access to
-individual secrets and pass them to ESO using `spec.provider.awssm.role`. This
+individual secrets and pass them to ESO using `spec.provider.aws.role`. This
 way users of the `SecretStore` can only access the secrets necessary.
 
 ``` yaml
