@@ -1,57 +1,41 @@
 package aws
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/provider"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
+	awssess "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
+	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
-// Config contains configuration to create a new AWS provider.
-type Config struct {
-	AssumeRole string
-	Region     string
-	APIRetries int
+// Provider satisfies the provider interface.
+type Provider struct{}
+
+// New constructs a new secrets client based on the provided store.
+func (p *Provider) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+	if store == nil {
+		return nil, fmt.Errorf("store is nil")
+	}
+	spec := store.GetSpec()
+	if spec == nil {
+		return nil, fmt.Errorf("store is missing spec")
+	}
+	if spec.Provider == nil {
+		return nil, fmt.Errorf("storeSpec is missing provider")
+	}
+	if spec.Provider.AWSSM != nil {
+		return secretsmanager.New(ctx, store, kube, namespace, awssess.DefaultSTSProvider)
+	}
+	return nil, fmt.Errorf("AWS Provider spec missing")
 }
 
-var log = ctrl.Log.WithName("provider").WithName("aws")
-
-// NewSession creates a new aws session based on the supported input methods.
-// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
-func NewSession(sak, aks, region, role string, stsprovider STSProvider) (*session.Session, error) {
-	config := aws.NewConfig()
-	sessionOpts := session.Options{
-		Config: *config,
-	}
-	if sak != "" && aks != "" {
-		sessionOpts.Config.Credentials = credentials.NewStaticCredentials(aks, sak, "")
-		sessionOpts.SharedConfigState = session.SharedConfigDisable
-	}
-	sess, err := session.NewSessionWithOptions(sessionOpts)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create aws session: %w", err)
-	}
-	if region != "" {
-		log.V(1).Info("using region", "region", region)
-		sess.Config.WithRegion(region)
-	}
-
-	if role != "" {
-		log.V(1).Info("assuming role", "role", role)
-		stsclient := stsprovider(sess)
-		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, role))
-	}
-	sess.Handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	return sess, nil
-}
-
-type STSProvider func(*session.Session) stscreds.AssumeRoler
-
-func DefaultSTSProvider(sess *session.Session) stscreds.AssumeRoler {
-	return sts.New(sess)
+func init() {
+	schema.Register(&Provider{}, &esv1alpha1.SecretStoreProvider{
+		AWSSM: &esv1alpha1.AWSSMProvider{},
+	})
 }

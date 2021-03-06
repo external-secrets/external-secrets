@@ -393,7 +393,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			}
 
 			fakeProvider.WithNew(func(context.Context, esv1alpha1.GenericStore, client.Client,
-				string) (provider.Provider, error) {
+				string) (provider.SecretsClient, error) {
 				return nil, fmt.Errorf("artificial constructor error")
 			})
 			Expect(k8sClient.Create(ctx, es)).Should(Succeed())

@@ -29,7 +29,7 @@ var _ provider.Provider = &Client{}
 // Client is a fake client for testing.
 type Client struct {
 	NewFn func(context.Context, esv1alpha1.GenericStore, client.Client,
-		string) (provider.Provider, error)
+		string) (provider.SecretsClient, error)
 	GetSecretFn    func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error)
 	GetSecretMapFn func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 }
@@ -45,7 +45,7 @@ func New() *Client {
 		},
 	}
 
-	v.NewFn = func(context.Context, esv1alpha1.GenericStore, client.Client, string) (provider.Provider, error) {
+	v.NewFn = func(context.Context, esv1alpha1.GenericStore, client.Client, string) (provider.SecretsClient, error) {
 		return v, nil
 	}
 
@@ -85,16 +85,16 @@ func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client 
 
 // WithNew wraps the fake provider factory function.
 func (v *Client) WithNew(f func(context.Context, esv1alpha1.GenericStore, client.Client,
-	string) (provider.Provider, error)) *Client {
+	string) (provider.SecretsClient, error)) *Client {
 	v.NewFn = f
 	return v
 }
 
 // New returns a new fake provider.
-func (v *Client) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.Provider, error) {
-	client, err := v.NewFn(ctx, store, kube, namespace)
+func (v *Client) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+	c, err := v.NewFn(ctx, store, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
-	return client, nil
+	return c, nil
 }

@@ -27,14 +27,13 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	awssess "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
 )
 
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
 	session     *session.Session
-	stsProvider aws.STSProvider
+	stsProvider awssess.STSProvider
 	client      SMInterface
 }
 
@@ -47,7 +46,10 @@ type SMInterface interface {
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New constructs a SecretsManager Provider that is specific to a store.
-func (sm *SecretsManager) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.Provider, error) {
+func New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string, stsProvider awssess.STSProvider) (provider.SecretsClient, error) {
+	sm := &SecretsManager{
+		stsProvider: stsProvider,
+	}
 	if store == nil {
 		return nil, fmt.Errorf("found nil store")
 	}
@@ -107,10 +109,7 @@ func (sm *SecretsManager) New(ctx context.Context, store esv1alpha1.GenericStore
 			return nil, fmt.Errorf("missing AccessKeyID")
 		}
 	}
-	if sm.stsProvider == nil {
-		sm.stsProvider = aws.DefaultSTSProvider
-	}
-	sess, err := aws.NewSession(sak, aks, smProvider.Region, smProvider.Role, sm.stsProvider)
+	sess, err := awssess.New(sak, aks, smProvider.Region, smProvider.Role, sm.stsProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -173,10 +172,4 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 		secretData[k] = []byte(v)
 	}
 	return secretData, nil
-}
-
-func init() {
-	schema.Register(&SecretsManager{}, &esv1alpha1.SecretStoreProvider{
-		AWSSM: &esv1alpha1.AWSSMProvider{},
-	})
 }
