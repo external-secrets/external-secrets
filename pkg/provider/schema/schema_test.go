@@ -43,9 +43,8 @@ func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretData
 
 // TestRegister tests if the Register function
 // (1) panics if it tries to register something invalid
-// (2) stores the correct provider
+// (2) stores the correct provider.
 func TestRegister(t *testing.T) {
-
 	for _, row := range []struct {
 		name     string
 		expPanic bool
