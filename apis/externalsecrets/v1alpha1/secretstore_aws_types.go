@@ -51,7 +51,7 @@ const (
 // ensure that aws provider implements the identity interface
 var _ ProviderIdentity = (*AWSProvider)(nil)
 
-// AWSProvider configures a store to sync secrets using the AWS Secret Manager provider.
+// AWSProvider configures a store to sync secrets with AWS
 type AWSProvider struct {
 	// Service defines which service should be used to fetch the secrets
 	Service AWSServiceType `json:"service"`
