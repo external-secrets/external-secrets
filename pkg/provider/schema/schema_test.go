@@ -41,26 +41,76 @@ func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	return map[string][]byte{}, nil
 }
 
+// TestRegister tests if the Register function
+// (1) panics if it tries to register something invalid
+// (2) stores the correct provider
 func TestRegister(t *testing.T) {
-	p, ok := GetProviderByName("awssm")
-	assert.Nil(t, p)
-	assert.False(t, ok, "provider should not be registered")
 
-	testProvider := &PP{}
-	secretStore := &esv1alpha1.SecretStore{
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				AWSSM: &esv1alpha1.AWSSMProvider{},
+	for _, row := range []struct {
+		name     string
+		expPanic bool
+		provider *esv1alpha1.SecretStoreProvider
+	}{
+		{ // should panic
+			name:     "aws/SecretsManager",
+			expPanic: true,
+			provider: &esv1alpha1.SecretStoreProvider{},
+		},
+		{
+			// should register
+			name: "aws/SecretsManager",
+			provider: &esv1alpha1.SecretStoreProvider{
+				AWS: &esv1alpha1.AWSProvider{
+					Service: esv1alpha1.AWSServiceSecretsManager,
+				},
 			},
 		},
+		{
+			// should panic: already exists
+			name:     "aws/SecretsManager",
+			expPanic: true,
+			provider: &esv1alpha1.SecretStoreProvider{
+				AWS: &esv1alpha1.AWSProvider{
+					Service: esv1alpha1.AWSServiceSecretsManager,
+				},
+			},
+		},
+		{
+			// should register pm service
+			name:     "aws/ParameterStore",
+			expPanic: true,
+			provider: &esv1alpha1.SecretStoreProvider{
+				AWS: &esv1alpha1.AWSProvider{
+					Service: esv1alpha1.AWSServiceParameterStore,
+				},
+			},
+		},
+	} {
+		p, ok := GetProviderByName(row.name)
+		assert.Nil(t, p)
+		assert.False(t, ok, "provider should not be registered")
+
+		testProvider := &PP{}
+		secretStore := &esv1alpha1.SecretStore{
+			Spec: esv1alpha1.SecretStoreSpec{
+				Provider: row.provider,
+			},
+		}
+
+		if row.expPanic {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("Register should panic")
+				}
+			}()
+		}
+		Register(testProvider, secretStore.Spec.Provider)
+		p1, ok := GetProviderByName(row.name)
+		assert.True(t, ok, "provider should be registered")
+		assert.Equal(t, testProvider, p1)
+
+		p2, err := GetProvider(secretStore)
+		assert.Nil(t, err)
+		assert.Equal(t, testProvider, p2)
 	}
-
-	ForceRegister(testProvider, secretStore.Spec.Provider)
-	p1, ok := GetProviderByName("awssm")
-	assert.True(t, ok, "provider should be registered")
-	assert.Equal(t, testProvider, p1)
-
-	p2, err := GetProvider(secretStore)
-	assert.Nil(t, err)
-	assert.Equal(t, testProvider, p2)
 }

@@ -56,7 +56,9 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 			Spec: esv1alpha1.SecretStoreSpec{
 				Provider: &esv1alpha1.SecretStoreProvider{
-					AWSSM: &esv1alpha1.AWSSMProvider{},
+					AWS: &esv1alpha1.AWSProvider{
+						Service: esv1alpha1.AWSServiceSecretsManager,
+					},
 				},
 			},
 		})).To(Succeed())
@@ -427,7 +429,9 @@ var _ = Describe("ExternalSecret controller", func() {
 				Spec: esv1alpha1.SecretStoreSpec{
 					Controller: "some-other-controller",
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{},
+						AWS: &esv1alpha1.AWSProvider{
+							Service: esv1alpha1.AWSServiceSecretsManager,
+						},
 					},
 				},
 			})).To(Succeed())
@@ -509,6 +513,8 @@ func CreateNamespace(baseName string, c client.Client) (string, error) {
 func init() {
 	fakeProvider = fake.New()
 	schema.ForceRegister(fakeProvider, &esv1alpha1.SecretStoreProvider{
-		AWSSM: &esv1alpha1.AWSSMProvider{},
+		AWS: &esv1alpha1.AWSProvider{
+			Service: esv1alpha1.AWSServiceSecretsManager,
+		},
 	})
 }

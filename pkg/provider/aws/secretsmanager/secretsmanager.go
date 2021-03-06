@@ -60,7 +60,7 @@ func New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client,
 	if spc.Provider == nil {
 		return nil, fmt.Errorf("storeSpec is missing provider")
 	}
-	smProvider := spc.Provider.AWSSM
+	smProvider := spc.Provider.AWS
 	if smProvider == nil {
 		return nil, fmt.Errorf("invalid provider spec. Missing AWSSM field in store %s", store.GetObjectMeta().String())
 	}
