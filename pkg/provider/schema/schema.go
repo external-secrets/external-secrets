@@ -15,8 +15,8 @@ limitations under the License.
 package schema
 
 import (
-	"encoding/json"
 	"fmt"
+	"reflect"
 	"sync"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -91,24 +91,20 @@ func GetProvider(s esv1alpha1.GenericStore) (provider.Provider, error) {
 // getProviderName returns the name of the configured provider
 // or an error if the provider is not configured.
 func getProviderName(storeSpec *esv1alpha1.SecretStoreProvider) (string, error) {
-	storeBytes, err := json.Marshal(storeSpec)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal store spec: %w", err)
+	// A SecretStoreProvider can implement multiple APIs like
+	// AWS Parameter Store or AWS Secrets Manager
+	// It is necessary that the provider implements the ProviderIdentity interface
+	// so we can distinguish between multiple APIs that are hosted within a provider.
+	v := reflect.Indirect(reflect.ValueOf(storeSpec))
+	for i := 0; i < v.NumField(); i++ {
+		if !v.Field(i).IsNil() {
+			t := v.Field(i).Interface()
+			id, ok := t.(esv1alpha1.ProviderIdentity)
+			if !ok {
+				return "", fmt.Errorf("provider %v does not implement ProviderIdentity", t)
+			}
+			return id.Identity(), nil
+		}
 	}
-
-	storeMap := make(map[string]interface{})
-	err = json.Unmarshal(storeBytes, &storeMap)
-	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal store spec: %w", err)
-	}
-
-	if len(storeMap) != 1 {
-		return "", fmt.Errorf("secret stores must only have exactly one backend specified, found %d", len(storeMap))
-	}
-
-	for k := range storeMap {
-		return k, nil
-	}
-
-	return "", fmt.Errorf("failed to find registered store backend")
+	return "", fmt.Errorf("failed to find registered store backend for %v", storeSpec)
 }

@@ -280,15 +280,15 @@ ExternalSecretTarget
 <td>
 <code>refreshInterval</code></br>
 <em>
-string
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+Kubernetes meta/v1.Duration
+</a>
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>RefreshInterval is the amount of time before the values reading again from the SecretStore provider
-Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo; (from time.ParseDuration)
-May be set to zero to fetch and create it once
-TODO: Default to some value?</p>
+<p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider
+Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
+May be set to zero to fetch and create it once. Defaults to 1h.</p>
 </td>
 </tr>
 <tr>
@@ -524,15 +524,15 @@ ExternalSecretTarget
 <td>
 <code>refreshInterval</code></br>
 <em>
-string
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+Kubernetes meta/v1.Duration
+</a>
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>RefreshInterval is the amount of time before the values reading again from the SecretStore provider
-Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo; (from time.ParseDuration)
-May be set to zero to fetch and create it once
-TODO: Default to some value?</p>
+<p>RefreshInterval is the amount of time before the values are read again from the SecretStore provider
+Valid time units are &ldquo;ns&rdquo;, &ldquo;us&rdquo; (or &ldquo;µs&rdquo;), &ldquo;ms&rdquo;, &ldquo;s&rdquo;, &ldquo;m&rdquo;, &ldquo;h&rdquo;
+May be set to zero to fetch and create it once. Defaults to 1h.</p>
 </td>
 </tr>
 <tr>
