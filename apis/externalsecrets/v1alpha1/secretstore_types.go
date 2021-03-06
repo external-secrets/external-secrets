@@ -30,13 +30,6 @@ type SecretStoreSpec struct {
 	Provider *SecretStoreProvider `json:"provider"`
 }
 
-// ProviderIdentity returns the name of a secret store provider
-// this interface must be implemented by every provider.
-// +k8s:deepcopy-gen=false
-type ProviderIdentity interface {
-	Identity() string
-}
-
 // SecretStoreProvider contains the provider-specific configration.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
