@@ -47,7 +47,9 @@ func TestProvider(t *testing.T) {
 			store: &esv1alpha1.SecretStore{
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{},
+						AWS: &esv1alpha1.AWSProvider{
+							Service: esv1alpha1.AWSServiceParameterStore,
+						},
 					},
 				},
 			},

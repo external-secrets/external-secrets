@@ -15,8 +15,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -48,9 +46,6 @@ const (
 	AWSServiceParameterStore AWSServiceType = "ParameterStore"
 )
 
-// ensure that aws provider implements the identity interface.
-var _ ProviderIdentity = (*AWSProvider)(nil)
-
 // AWSProvider configures a store to sync secrets with AWS.
 type AWSProvider struct {
 	// Service defines which service should be used to fetch the secrets
@@ -69,9 +64,4 @@ type AWSProvider struct {
 
 	// AWS Region to be used for the provider
 	Region string `json:"region"`
-}
-
-// Identity returns the unique name for this provider.
-func (p *AWSProvider) Identity() string {
-	return fmt.Sprintf("aws/%s", p.Service)
 }

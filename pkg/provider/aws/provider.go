@@ -8,6 +8,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
 	awssess "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -28,14 +29,20 @@ func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore,
 	if spec.Provider == nil {
 		return nil, fmt.Errorf("storeSpec is missing provider")
 	}
-	if spec.Provider.AWSSM != nil {
-		return secretsmanager.New(ctx, store, kube, namespace, awssess.DefaultSTSProvider)
+	if spec.Provider.AWS == nil {
+		return nil, fmt.Errorf("storeSpec is missing aws spec")
 	}
-	return nil, fmt.Errorf("AWS Provider spec missing")
+	switch spec.Provider.AWS.Service {
+	case esv1alpha1.AWSServiceSecretsManager:
+		return secretsmanager.New(ctx, store, kube, namespace, awssess.DefaultSTSProvider)
+	case esv1alpha1.AWSServiceParameterStore:
+		return parameterstore.New(ctx, store, kube, namespace, awssess.DefaultSTSProvider)
+	}
+	return nil, fmt.Errorf("unknown AWS Provider Service: %s", spec.Provider.AWS.Service)
 }
 
 func init() {
 	schema.Register(&Provider{}, &esv1alpha1.SecretStoreProvider{
-		AWSSM: &esv1alpha1.AWSSMProvider{},
+		AWS: &esv1alpha1.AWSProvider{},
 	})
 }

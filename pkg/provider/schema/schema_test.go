@@ -54,14 +54,14 @@ func TestRegister(t *testing.T) {
 	}{
 		{
 			test:      "should panic when given an invalid provider",
-			name:      "aws/SecretsManager",
+			name:      "aws",
 			expPanic:  true,
 			expExists: false,
 			provider:  &esv1alpha1.SecretStoreProvider{},
 		},
 		{
 			test:      "should register an correct provider",
-			name:      "aws/SecretsManager",
+			name:      "aws",
 			expExists: false,
 			provider: &esv1alpha1.SecretStoreProvider{
 				AWS: &esv1alpha1.AWSProvider{
@@ -71,22 +71,12 @@ func TestRegister(t *testing.T) {
 		},
 		{
 			test:      "should panic if already exists",
-			name:      "aws/SecretsManager",
+			name:      "aws",
 			expPanic:  true,
 			expExists: true,
 			provider: &esv1alpha1.SecretStoreProvider{
 				AWS: &esv1alpha1.AWSProvider{
 					Service: esv1alpha1.AWSServiceSecretsManager,
-				},
-			},
-		},
-		{
-			test:      "should register new service",
-			name:      "aws/ParameterStore",
-			expExists: false,
-			provider: &esv1alpha1.SecretStoreProvider{
-				AWS: &esv1alpha1.AWSProvider{
-					Service: esv1alpha1.AWSServiceParameterStore,
 				},
 			},
 		},
@@ -144,7 +134,7 @@ func TestForceRegister(t *testing.T) {
 			Service: esv1alpha1.AWSServiceParameterStore,
 		},
 	})
-	p1, ok := GetProviderByName("aws/ParameterStore")
+	p1, ok := GetProviderByName("aws")
 	assert.True(t, ok, "provider should be registered")
 	assert.Equal(t, testProvider, p1)
 	p2, err := GetProvider(secretStore)
