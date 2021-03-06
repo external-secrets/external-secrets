@@ -5,7 +5,8 @@ metadata:
 spec:
   controller: dev
   provider:
-    awssm:
+    aws:
+      service: SecretsManager
       # define a specific role to limit access
       # to certain secrets
       role: iam-role
