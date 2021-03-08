@@ -94,7 +94,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
-	providerClient, err := storeProvider.New(ctx, store, r.Client, req.Namespace)
+	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
 	if err != nil {
 		log.Error(err, "could not get provider client")
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
@@ -112,7 +112,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		secret.Labels = externalSecret.Labels
 		secret.Annotations = externalSecret.Annotations
 
-		secret.Data, err = r.getProviderSecretData(ctx, providerClient, &externalSecret)
+		secret.Data, err = r.getProviderSecretData(ctx, secretClient, &externalSecret)
 		if err != nil {
 			return fmt.Errorf("could not get secret data from provider: %w", err)
 		}
@@ -173,7 +173,7 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.Ex
 	return &secretStore, nil
 }
 
-func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.Provider, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
+func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.SecretsClient, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
 
 	for _, remoteRef := range externalSecret.Spec.DataFrom {

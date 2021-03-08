@@ -21,7 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// Client implements the provider interface.
+// Client implements the aws secretsmanager interface.
 type Client struct {
 	valFn func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 }

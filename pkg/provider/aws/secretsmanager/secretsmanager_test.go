@@ -34,8 +34,8 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	awsprovider "github.com/external-secrets/external-secrets/pkg/provider/aws"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
+	awssess "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
 )
 
 func TestConstructor(t *testing.T) {
@@ -348,7 +348,7 @@ type ConstructorRow struct {
 	store             esv1alpha1.GenericStore
 	secrets           []v1.Secret
 	namespace         string
-	stsProvider       awsprovider.STSProvider
+	stsProvider       awssess.STSProvider
 	expectProvider    bool
 	expectErr         string
 	expectedKeyID     string
@@ -370,10 +370,7 @@ func testRow(t *testing.T, row ConstructorRow) {
 			os.Unsetenv(k)
 		}
 	}()
-	sm := SecretsManager{
-		stsProvider: row.stsProvider,
-	}
-	newsm, err := sm.New(context.Background(), row.store, kc, row.namespace)
+	newsm, err := New(context.Background(), row.store, kc, row.namespace, row.stsProvider)
 	if !ErrorContains(err, row.expectErr) {
 		t.Errorf("expected error %s but found %s", row.expectErr, err.Error())
 	}
@@ -392,22 +389,22 @@ func testRow(t *testing.T, row ConstructorRow) {
 
 func TestSMEnvCredentials(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
-	sm := &SecretsManager{}
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
 	os.Setenv("AWS_ACCESS_KEY_ID", "2222")
 	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
-	smi, err := sm.New(context.Background(), &esv1alpha1.SecretStore{
+	smi, err := New(context.Background(), &esv1alpha1.SecretStore{
 		Spec: esv1alpha1.SecretStoreSpec{
 			Provider: &esv1alpha1.SecretStoreProvider{
 				// defaults
 				AWSSM: &esv1alpha1.AWSSMProvider{},
 			},
 		},
-	}, k8sClient, "example-ns")
+	}, k8sClient, "example-ns", awssess.DefaultSTSProvider)
 	assert.Nil(t, err)
 	assert.NotNil(t, smi)
-
+	sm, ok := smi.(*SecretsManager)
+	assert.True(t, ok)
 	creds, err := sm.session.Config.Credentials.Get()
 	assert.Nil(t, err)
 	assert.Equal(t, creds.AccessKeyID, "2222")
@@ -434,21 +431,11 @@ func TestSMAssumeRole(t *testing.T) {
 			}, nil
 		},
 	}
-	sm := &SecretsManager{
-		stsProvider: func(se *session.Session) stscreds.AssumeRoler {
-			// check if the correct temporary credentials were used
-			creds, err := se.Config.Credentials.Get()
-			assert.Nil(t, err)
-			assert.Equal(t, creds.AccessKeyID, "2222")
-			assert.Equal(t, creds.SecretAccessKey, "1111")
-			return sts
-		},
-	}
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
 	os.Setenv("AWS_ACCESS_KEY_ID", "2222")
 	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
-	smi, err := sm.New(context.Background(), &esv1alpha1.SecretStore{
+	smi, err := New(context.Background(), &esv1alpha1.SecretStore{
 		Spec: esv1alpha1.SecretStoreSpec{
 			Provider: &esv1alpha1.SecretStoreProvider{
 				// do assume role!
@@ -457,10 +444,19 @@ func TestSMAssumeRole(t *testing.T) {
 				},
 			},
 		},
-	}, k8sClient, "example-ns")
+	}, k8sClient, "example-ns", func(se *session.Session) stscreds.AssumeRoler {
+		// check if the correct temporary credentials were used
+		creds, err := se.Config.Credentials.Get()
+		assert.Nil(t, err)
+		assert.Equal(t, creds.AccessKeyID, "2222")
+		assert.Equal(t, creds.SecretAccessKey, "1111")
+		return sts
+	})
 	assert.Nil(t, err)
 	assert.NotNil(t, smi)
 
+	sm, ok := smi.(*SecretsManager)
+	assert.True(t, ok)
 	creds, err := sm.session.Config.Credentials.Get()
 	assert.Nil(t, err)
 	assert.Equal(t, creds.AccessKeyID, "3333")
