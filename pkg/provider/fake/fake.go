@@ -34,7 +34,7 @@ type Client struct {
 	GetSecretMapFn func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 }
 
-// New returns a fake client.
+// New returns a fake provider/client.
 func New() *Client {
 	v := &Client{
 		GetSecretFn: func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -90,8 +90,8 @@ func (v *Client) WithNew(f func(context.Context, esv1alpha1.GenericStore, client
 	return v
 }
 
-// New returns a new fake provider.
-func (v *Client) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+// NewClient returns a new fake provider.
+func (v *Client) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	c, err := v.NewFn(ctx, store, kube, namespace)
 	if err != nil {
 		return nil, err

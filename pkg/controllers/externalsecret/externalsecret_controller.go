@@ -94,7 +94,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
-	secretClient, err := storeProvider.New(ctx, store, r.Client, req.Namespace)
+	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
 	if err != nil {
 		log.Error(err, "could not get provider client")
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())

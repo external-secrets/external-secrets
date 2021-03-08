@@ -56,7 +56,7 @@ func TestProvider(t *testing.T) {
 	for i := range tbl {
 		row := tbl[i]
 		t.Run(row.test, func(t *testing.T) {
-			sc, err := p.New(context.TODO(), row.store, cl, "foo")
+			sc, err := p.NewClient(context.TODO(), row.store, cl, "foo")
 			if row.expErr {
 				assert.Error(t, err)
 				assert.Nil(t, sc)

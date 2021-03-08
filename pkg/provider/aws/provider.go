@@ -16,8 +16,8 @@ import (
 // Provider satisfies the provider interface.
 type Provider struct{}
 
-// New constructs a new secrets client based on the provided store.
-func (p *Provider) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+// NewClient constructs a new secrets client based on the provided store.
+func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	if store == nil {
 		return nil, fmt.Errorf("store is nil")
 	}

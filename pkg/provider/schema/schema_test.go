@@ -27,7 +27,7 @@ import (
 type PP struct{}
 
 // New constructs a SecretsManager Provider.
-func (p *PP) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (p *PP) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	return p, nil
 }
 
