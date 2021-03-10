@@ -18,14 +18,14 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// AWSSMAuth contains a secretRef for credentials.
-type AWSSMAuth struct {
-	SecretRef AWSSMAuthSecretRef `json:"secretRef"`
+// AWSAuth contains a secretRef for credentials.
+type AWSAuth struct {
+	SecretRef AWSAuthSecretRef `json:"secretRef"`
 }
 
-// AWSSMAuthSecretRef holds secret references for aws credentials
+// AWSAuthSecretRef holds secret references for aws credentials
 // both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
-type AWSSMAuthSecretRef struct {
+type AWSAuthSecretRef struct {
 	// The AccessKeyID is used for authentication
 	AccessKeyID esmeta.SecretKeySelector `json:"accessKeyIDSecretRef,omitempty"`
 
@@ -33,14 +33,30 @@ type AWSSMAuthSecretRef struct {
 	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
 }
 
-// AWSSMProvider configures a store to sync secrets using the AWS Secret Manager provider.
-type AWSSMProvider struct {
+// AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.
+// +kubebuilder:validation:Enum=SecretsManager;ParameterStore
+type AWSServiceType string
+
+const (
+	// AWSServiceSecretsManager is the AWS SecretsManager.
+	// see: https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html
+	AWSServiceSecretsManager AWSServiceType = "SecretsManager"
+	// AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
+	// see: https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html
+	AWSServiceParameterStore AWSServiceType = "ParameterStore"
+)
+
+// AWSProvider configures a store to sync secrets with AWS.
+type AWSProvider struct {
+	// Service defines which service should be used to fetch the secrets
+	Service AWSServiceType `json:"service"`
+
 	// Auth defines the information necessary to authenticate against AWS
 	// if not set aws sdk will infer credentials from your environment
 	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
 	// +nullable
 	// +optional
-	Auth *AWSSMAuth `json:"auth"`
+	Auth *AWSAuth `json:"auth"`
 
 	// Role is a Role ARN which the SecretManager provider will assume
 	// +optional

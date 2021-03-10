@@ -71,7 +71,7 @@ func TestConstructor(t *testing.T) {
 			store: &esv1alpha1.SecretStore{
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{},
+						AWS: &esv1alpha1.AWSProvider{},
 					},
 				},
 			},
@@ -107,7 +107,7 @@ func TestConstructor(t *testing.T) {
 			store: &esv1alpha1.SecretStore{
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{
+						AWS: &esv1alpha1.AWSProvider{
 							Role: "foo-bar-baz",
 						},
 					},
@@ -127,9 +127,9 @@ func TestConstructor(t *testing.T) {
 			store: &esv1alpha1.SecretStore{
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{
-							Auth: &esv1alpha1.AWSSMAuth{
-								SecretRef: esv1alpha1.AWSSMAuthSecretRef{
+						AWS: &esv1alpha1.AWSProvider{
+							Auth: &esv1alpha1.AWSAuth{
+								SecretRef: esv1alpha1.AWSAuthSecretRef{
 									AccessKeyID: esmeta.SecretKeySelector{
 										Name: "othersecret",
 										Key:  "one",
@@ -152,9 +152,9 @@ func TestConstructor(t *testing.T) {
 			store: &esv1alpha1.SecretStore{
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{
-							Auth: &esv1alpha1.AWSSMAuth{
-								SecretRef: esv1alpha1.AWSSMAuthSecretRef{
+						AWS: &esv1alpha1.AWSProvider{
+							Auth: &esv1alpha1.AWSAuth{
+								SecretRef: esv1alpha1.AWSAuthSecretRef{
 									AccessKeyID: esmeta.SecretKeySelector{
 										Name: "onesecret",
 										// Namespace is not set
@@ -193,9 +193,9 @@ func TestConstructor(t *testing.T) {
 			store: &esv1alpha1.SecretStore{
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{
-							Auth: &esv1alpha1.AWSSMAuth{
-								SecretRef: esv1alpha1.AWSSMAuthSecretRef{
+						AWS: &esv1alpha1.AWSProvider{
+							Auth: &esv1alpha1.AWSAuth{
+								SecretRef: esv1alpha1.AWSAuthSecretRef{
 									AccessKeyID: esmeta.SecretKeySelector{
 										Name: "brokensecret",
 										Key:  "one",
@@ -227,9 +227,9 @@ func TestConstructor(t *testing.T) {
 			store: &esv1alpha1.SecretStore{
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{
-							Auth: &esv1alpha1.AWSSMAuth{
-								SecretRef: esv1alpha1.AWSSMAuthSecretRef{
+						AWS: &esv1alpha1.AWSProvider{
+							Auth: &esv1alpha1.AWSAuth{
+								SecretRef: esv1alpha1.AWSAuthSecretRef{
 									AccessKeyID: esmeta.SecretKeySelector{
 										Name:      "onesecret",
 										Namespace: aws.String("evil"), // this should not be possible!
@@ -270,9 +270,9 @@ func TestConstructor(t *testing.T) {
 				},
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{
-							Auth: &esv1alpha1.AWSSMAuth{
-								SecretRef: esv1alpha1.AWSSMAuthSecretRef{
+						AWS: &esv1alpha1.AWSProvider{
+							Auth: &esv1alpha1.AWSAuth{
+								SecretRef: esv1alpha1.AWSAuthSecretRef{
 									AccessKeyID: esmeta.SecretKeySelector{
 										Name:      "onesecret",
 										Namespace: aws.String("platform-team-ns"),
@@ -315,9 +315,9 @@ func TestConstructor(t *testing.T) {
 				},
 				Spec: esv1alpha1.SecretStoreSpec{
 					Provider: &esv1alpha1.SecretStoreProvider{
-						AWSSM: &esv1alpha1.AWSSMProvider{
-							Auth: &esv1alpha1.AWSSMAuth{
-								SecretRef: esv1alpha1.AWSSMAuthSecretRef{
+						AWS: &esv1alpha1.AWSProvider{
+							Auth: &esv1alpha1.AWSAuth{
+								SecretRef: esv1alpha1.AWSAuthSecretRef{
 									AccessKeyID: esmeta.SecretKeySelector{
 										Name: "onesecret",
 										Key:  "one",
@@ -397,7 +397,7 @@ func TestSMEnvCredentials(t *testing.T) {
 		Spec: esv1alpha1.SecretStoreSpec{
 			Provider: &esv1alpha1.SecretStoreProvider{
 				// defaults
-				AWSSM: &esv1alpha1.AWSSMProvider{},
+				AWS: &esv1alpha1.AWSProvider{},
 			},
 		},
 	}, k8sClient, "example-ns", awssess.DefaultSTSProvider)
@@ -439,7 +439,7 @@ func TestSMAssumeRole(t *testing.T) {
 		Spec: esv1alpha1.SecretStoreSpec{
 			Provider: &esv1alpha1.SecretStoreProvider{
 				// do assume role!
-				AWSSM: &esv1alpha1.AWSSMProvider{
+				AWS: &esv1alpha1.AWSProvider{
 					Role: "my-awesome-role",
 				},
 			},

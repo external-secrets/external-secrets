@@ -19,14 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type StoreProvider string
-
-const (
-	AWSSM StoreProvider = "AWSSM"
-	GCPSM StoreProvider = "GCPSM"
-	Vault StoreProvider = "VAULT"
-)
-
 // SecretStoreSpec defines the desired state of SecretStore.
 type SecretStoreSpec struct {
 	// Used to select the correct KES controller (think: ingress.ingressClassName)
@@ -42,9 +34,9 @@ type SecretStoreSpec struct {
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type SecretStoreProvider struct {
-	// AWSSM configures this store to sync secrets using AWS Secret Manager provider
+	// AWS configures this store to sync secrets using AWS Secret Manager provider
 	// +optional
-	AWSSM *AWSSMProvider `json:"awssm,omitempty"`
+	AWS *AWSProvider `json:"aws,omitempty"`
 }
 
 type SecretStoreConditionType string
