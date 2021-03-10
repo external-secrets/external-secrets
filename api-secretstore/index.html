@@ -644,7 +644,7 @@ The SecretStore maps to exactly one instance of an external API.</p>
 <div class="highlight"><pre><span></span><span class="nt">apiVerson</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
   <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-ns</span>
 <span class="nt">spec</span><span class="p">:</span>
 
@@ -658,8 +658,9 @@ The SecretStore maps to exactly one instance of an external API.</p>
   <span class="nt">provider</span><span class="p">:</span>
 
     <span class="c1"># (1): AWS Secrets Manager</span>
-    <span class="c1"># AWSSM configures this store to sync secrets using AWS Secret Manager provider</span>
-    <span class="nt">awssm</span><span class="p">:</span>
+    <span class="c1"># aws configures this store to sync secrets using AWS Secret Manager provider</span>
+    <span class="nt">aws</span><span class="p">:</span>
+      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
       <span class="c1"># Role is a Role ARN which the SecretManager provider will assume</span>
       <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-role</span>
       <span class="c1"># AWS Region to be used for the provider</span>

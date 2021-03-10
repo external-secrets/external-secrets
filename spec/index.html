@@ -654,14 +654,14 @@
 
 <p>Resource Types:
 <ul></ul>
-<h3 id="external-secrets.io/v1alpha1.AWSSMAuth">AWSSMAuth
+<h3 id="external-secrets.io/v1alpha1.AWSAuth">AWSAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.AWSSMProvider">AWSSMProvider</a>)
+<a href="#external-secrets.io/v1alpha1.AWSProvider">AWSProvider</a>)
 </p>
 <p>
-<p>AWSSMAuth contains a secretRef for credentials.</p>
+<p>AWSAuth contains a secretRef for credentials.</p>
 </p>
 <table>
 <thead>
@@ -675,8 +675,8 @@
 <td>
 <code>secretRef</code></br>
 <em>
-<a href="#external-secrets.io/v1alpha1.AWSSMAuthSecretRef">
-AWSSMAuthSecretRef
+<a href="#external-secrets.io/v1alpha1.AWSAuthSecretRef">
+AWSAuthSecretRef
 </a>
 </em>
 </td>
@@ -685,14 +685,14 @@ AWSSMAuthSecretRef
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1alpha1.AWSSMAuthSecretRef">AWSSMAuthSecretRef
+<h3 id="external-secrets.io/v1alpha1.AWSAuthSecretRef">AWSAuthSecretRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.AWSSMAuth">AWSSMAuth</a>)
+<a href="#external-secrets.io/v1alpha1.AWSAuth">AWSAuth</a>)
 </p>
 <p>
-<p>AWSSMAuthSecretRef holds secret references for aws credentials
+<p>AWSAuthSecretRef holds secret references for aws credentials
 both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.</p>
 </p>
 <table>
@@ -727,14 +727,14 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1alpha1.AWSSMProvider">AWSSMProvider
+<h3 id="external-secrets.io/v1alpha1.AWSProvider">AWSProvider
 </h3>
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>AWSSMProvider configures a store to sync secrets using the AWS Secret Manager provider.</p>
+<p>AWSProvider configures a store to sync secrets with AWS.</p>
 </p>
 <table>
 <thead>
@@ -746,10 +746,23 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
+<code>service</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AWSServiceType">
+AWSServiceType
+</a>
+</em>
+</td>
+<td>
+<p>Service defines which service should be used to fetch the secrets</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1alpha1.AWSSMAuth">
-AWSSMAuth
+<a href="#external-secrets.io/v1alpha1.AWSAuth">
+AWSAuth
 </a>
 </em>
 </td>
@@ -784,6 +797,32 @@ string
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AWSServiceType">AWSServiceType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AWSProvider">AWSProvider</a>)
+</p>
+<p>
+<p>AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
+<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
+see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
+</td>
+</tr><tr><td><p>&#34;SecretsManager&#34;</p></td>
+<td><p>AWSServiceSecretsManager is the AWS SecretsManager.
+see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html">https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html</a></p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.ClusterSecretStore">ClusterSecretStore
 </h3>
@@ -1590,16 +1629,16 @@ SecretStoreStatus
 <tbody>
 <tr>
 <td>
-<code>awssm</code></br>
+<code>aws</code></br>
 <em>
-<a href="#external-secrets.io/v1alpha1.AWSSMProvider">
-AWSSMProvider
+<a href="#external-secrets.io/v1alpha1.AWSProvider">
+AWSProvider
 </a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>AWSSM configures this store to sync secrets using AWS Secret Manager provider</p>
+<p>AWS configures this store to sync secrets using AWS Secret Manager provider</p>
 </td>
 </tr>
 </tbody>
@@ -1801,25 +1840,6 @@ Kubernetes meta/v1.Time
 </td>
 </tr>
 </tbody>
-</table>
-<h3 id="external-secrets.io/v1alpha1.StoreProvider">StoreProvider
-(<code>string</code> alias)</p></h3>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr><td><p>&#34;AWSSM&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;GCPSM&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;VAULT&#34;</p></td>
-<td></td>
-</tr></tbody>
 </table>
 <hr/>
 <p><em>

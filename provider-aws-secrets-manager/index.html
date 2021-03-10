@@ -739,7 +739,7 @@
 <h2 id="secrets-manager">Secrets Manager</h2>
 <p>A <code>SecretStore</code> points to AWS Secrets Manager in a certain account within a
 defined region. You should define Roles that allow fine-grained access to
-individual secrets and pass them to ESO using <code>spec.provider.awssm.role</code>. This
+individual secrets and pass them to ESO using <code>spec.provider.aws.role</code>. This
 way users of the <code>SecretStore</code> can only access the secrets necessary.</p>
 <div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -748,7 +748,8 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
 <span class="nt">spec</span><span class="p">:</span>
   <span class="nt">controller</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev</span>
   <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">awssm</span><span class="p">:</span>
+    <span class="nt">aws</span><span class="p">:</span>
+      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
       <span class="c1"># define a specific role to limit access</span>
       <span class="c1"># to certain secrets</span>
       <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-role</span>
