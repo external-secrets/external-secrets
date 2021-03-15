@@ -37,7 +37,7 @@ func TestConstructor(t *testing.T) {
 	assert.NotNil(t, c.client)
 }
 
-// test the sm<->aws interface
+// test the ssm<->aws interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestGetSecret(t *testing.T) {
 	f := &fake.Client{}
