@@ -1,14 +1,10 @@
 
 ![aws sm](./pictures/eso-az-kv-aws-sm.png)
 
-
---8<-- "snippets/provider-aws-access.md"
-
-
 ## Secrets Manager
 
 A `SecretStore` points to AWS Secrets Manager in a certain account within a
-defined region. You should define Roles that allow fine-grained access to
+defined region. You should define Roles that define fine-grained access to
 individual secrets and pass them to ESO using `spec.provider.aws.role`. This
 way users of the `SecretStore` can only access the secrets necessary.
 
@@ -16,6 +12,7 @@ way users of the `SecretStore` can only access the secrets necessary.
 {% include 'aws-sm-store.yaml' %}
 ```
 
+### IAM Policy
 
 Create a IAM Policy to pin down access to secrets matching `dev-*`.
 
@@ -38,3 +35,40 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`.
   ]
 }
 ```
+### JSON Secret Values
+
+SecretsManager supports *simple* key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):
+
+Consider the following JSON object that is stored in the SecretsManager key `my-json-secret`:
+``` json
+{
+  "name": {"first": "Tom", "last": "Anderson"},
+  "friends": [
+    {"first": "Dale", "last": "Murphy"},
+    {"first": "Roger", "last": "Craig"},
+    {"first": "Jane", "last": "Murphy"}
+  ]
+}
+```
+
+This is an example on how you would look up nested keys in the above json object:
+``` yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  # [omitted for brevity]
+  data:
+  - secretKey: firstname
+    remoteRef:
+      key: my-json-secret
+      property: name.first # Tom
+  - secretKey: first_friend
+    remoteRef:
+      key: my-json-secret
+      property: friends.1.first # Roger
+
+```
+
+--8<-- "snippets/provider-aws-access.md"
