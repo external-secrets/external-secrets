@@ -35,26 +35,6 @@ jobs:
           do_not_skip: '["workflow_dispatch", "schedule", "push"]'
           concurrent_skipping: false
 
-  scan-container:
-    runs-on: ubuntu-18.04
-    needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Build Artifacts
-        run: make docker.build IMAGE_REGISTRY=test VERSION=test
-
-      - name: Trivy Scan - High and Critical Severity
-        uses: aquasecurity/trivy-action@0.0.7
-        with:
-          image-ref: test:test
-          exit-code: 1
-          ignore-unfixed: true
-          severity: HIGH,CRITICAL
-
   lint:
     runs-on: ubuntu-18.04
     needs: detect-noop
