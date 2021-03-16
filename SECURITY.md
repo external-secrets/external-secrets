@@ -20,4 +20,3 @@ We learn about critical software updates and security threats from these sources
 
 1. GitHub Security Alerts
 2. [Dependabot](https://dependabot.com/) Dependency Updates
-3. [Trivy](https://github.com/aquasecurity/trivy) Container Scans
