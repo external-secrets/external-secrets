@@ -64,13 +64,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      externalSecret.Spec.Target.Name,
-			Namespace: externalSecret.Namespace,
-		},
-	}
-
 	store, err := r.getStore(ctx, &externalSecret)
 	if err != nil {
 		log.Error(err, "could not get store reference")
@@ -106,21 +99,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
-
+	secret := defaultSecret(externalSecret)
 	_, err = ctrl.CreateOrUpdate(ctx, r.Client, secret, func() error {
 		err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
 		if err != nil {
 			return fmt.Errorf("could not set ExternalSecret controller reference: %w", err)
 		}
-
-		secret.Labels = externalSecret.Labels
-		secret.Annotations = externalSecret.Annotations
-
-		secret.Data, err = r.getProviderSecretData(ctx, secretClient, &externalSecret)
+		data, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
 		if err != nil {
 			return fmt.Errorf("could not get secret data from provider: %w", err)
 		}
-
+		// overwrite data
+		for k, v := range data {
+			secret.Data[k] = v
+		}
 		return nil
 	})
 
@@ -161,6 +153,25 @@ func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {
 		return true
 	}
 	return false
+}
+
+func defaultSecret(es esv1alpha1.ExternalSecret) *corev1.Secret {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        es.Spec.Target.Name,
+			Namespace:   es.Namespace,
+			Labels:      es.Labels,
+			Annotations: es.Annotations,
+		},
+		Data: make(map[string][]byte),
+	}
+	if es.Spec.Target.Template != nil {
+		secret.Type = es.Spec.Target.Template.Type
+		secret.Data = es.Spec.Target.Template.Data
+		secret.ObjectMeta.Labels = es.Spec.Target.Template.Metadata.Labels
+		secret.ObjectMeta.Annotations = es.Spec.Target.Template.Metadata.Annotations
+	}
+	return secret
 }
 
 func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
