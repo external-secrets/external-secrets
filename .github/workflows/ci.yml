@@ -15,10 +15,10 @@ env:
   KUBEBUILDER_VERSION: '2.3.1'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
-  # Common users. We can't run a step 'if secrets.GHCR_USER != ""' but we can run
-  # a step 'if env.GHCR_USER' != ""', so we copy these to succinctly test whether
+  # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
+  # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
   # credentials have been provided before trying to run steps that need them.
-  GHCR_USER: ${{ secrets.GHCR_USERNAME }}
+  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
 
 jobs:
   detect-noop:
