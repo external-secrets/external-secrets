@@ -31,6 +31,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
+	"github.com/external-secrets/external-secrets/pkg/template"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
@@ -113,6 +114,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		for k, v := range data {
 			secret.Data[k] = v
 		}
+		err = template.Execute(secret, data)
+		if err != nil {
+			return fmt.Errorf("could not execute template: %w", err)
+		}
 		return nil
 	})
 
@@ -165,12 +170,14 @@ func defaultSecret(es esv1alpha1.ExternalSecret) *corev1.Secret {
 		},
 		Data: make(map[string][]byte),
 	}
+
 	if es.Spec.Target.Template != nil {
 		secret.Type = es.Spec.Target.Template.Type
 		secret.Data = es.Spec.Target.Template.Data
 		secret.ObjectMeta.Labels = es.Spec.Target.Template.Metadata.Labels
 		secret.ObjectMeta.Annotations = es.Spec.Target.Template.Metadata.Annotations
 	}
+
 	return secret
 }
 

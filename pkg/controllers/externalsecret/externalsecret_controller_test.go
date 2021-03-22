@@ -237,7 +237,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			const targetProp = "targetProperty"
 			const secretVal = "someValue"
 			const templateSecretKey = "tplkey"
-			const templateSecretVal = "valfromtpl"
+			const templateSecretVal = "{{ .targetProperty | toString | upper }}"
 			es := &esv1alpha1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ExternalSecretName,
@@ -294,7 +294,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				v1 := syncedSecret.Data[targetProp]
 				v2 := syncedSecret.Data[templateSecretKey]
-				return string(v1) == secretVal && string(v2) == templateSecretVal
+				return string(v1) == secretVal && string(v2) == "SOMEVALUE" // templated
 			}, timeout, interval).Should(BeTrue())
 			Expect(syncedSecret.ObjectMeta.Labels).To(BeEquivalentTo(
 				es.Spec.Target.Template.Metadata.Labels))

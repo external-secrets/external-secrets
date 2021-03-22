@@ -34,7 +34,7 @@ ifeq ($(shell git tag),)
 VERSION := $(shell echo "v0.0.0-$$(git rev-list HEAD --count)-g$$(git describe --dirty --always)" | sed 's/-/./2' | sed 's/-/./2')
 else
 # use tags
-VERSION := $(shell git describe --dirty --always --tags | sed 's/-/./2' | sed 's/-/./2' )
+VERSION := $(shell git describe --dirty --always --tags | sed 's/-/./2' | sed 's/-/./2')
 endif
 
 # ====================================================================================
@@ -78,7 +78,7 @@ check-diff: reviewable
 .PHONY: test
 test: generate ## Run tests
 	@$(INFO) go test unit-tests
-	go test ./... -coverprofile cover.out
+	go test -v ./... -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: build
