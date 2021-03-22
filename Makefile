@@ -199,7 +199,7 @@ build.all: docker.build helm.build
 
 docker.build: build ## Build the docker image
 	@$(INFO) docker build
-	@docker build . -t $(IMAGE_REGISTRY):$(VERSION)
+	@docker build . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
 	@$(OK) docker build
 
 docker.push:
