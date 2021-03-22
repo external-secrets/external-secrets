@@ -39,7 +39,7 @@ require (
 	github.com/googleapis/gnostic v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/onsi/ginkgo v1.15.2
-	github.com/onsi/gomega v1.10.2
+	github.com/onsi/gomega v1.11.0
 	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/prometheus/procfs v0.4.0 // indirect
 	github.com/stretchr/testify v1.6.1
@@ -52,7 +52,6 @@ require (
 	golang.org/x/text v0.3.5 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/api v0.20.2
 	k8s.io/apiextensions-apiserver v0.20.2 // indirect
