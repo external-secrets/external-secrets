@@ -77,7 +77,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#aws-authentication" tabindex="1" class="md-skip">
+      <a href="#secrets-manager" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -435,15 +435,35 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#aws-authentication" class="md-nav__link">
-    AWS Authentication
+  <a href="#secrets-manager" class="md-nav__link">
+    Secrets Manager
   </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-policy" class="md-nav__link">
+    IAM Policy
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json-secret-values" class="md-nav__link">
+    JSON Secret Values
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#secrets-manager" class="md-nav__link">
-    Secrets Manager
+  <a href="#aws-authentication" class="md-nav__link">
+    AWS Authentication
   </a>
   
 </li>
@@ -680,15 +700,35 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#aws-authentication" class="md-nav__link">
-    AWS Authentication
+  <a href="#secrets-manager" class="md-nav__link">
+    Secrets Manager
   </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-policy" class="md-nav__link">
+    IAM Policy
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json-secret-values" class="md-nav__link">
+    JSON Secret Values
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#secrets-manager" class="md-nav__link">
-    Secrets Manager
+  <a href="#aws-authentication" class="md-nav__link">
+    AWS Authentication
   </a>
   
 </li>
@@ -715,30 +755,9 @@
                   <h1>Secrets Manager</h1>
                 
                 <p><img alt="aws sm" src="../pictures/eso-az-kv-aws-sm.png" /></p>
-<h2 id="aws-authentication">AWS Authentication</h2>
-<p>Access to AWS providers can be granted in various ways:</p>
-<ul>
-<li><a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a>: IAM roles for service accounts.</li>
-<li>Per pod IAM authentication: <a href="https://github.com/uswitch/kiam">kiam</a> or <a href="https://github.com/jtblin/kube2iam">kube2iam</a>.</li>
-<li>Directly provide AWS credentials to the External Secrets Operator pod by using environment variables.</li>
-</ul>
-<p>Additionally, before fetching a secret from a store, ESO is able to assume role (as a proxy so to speak). It is advisable to use multiple roles in a multi-tenant environment.</p>
-<p>You can limit the range of roles which can be assumed by this particular namespace by using annotations on the namespace resource. The annotation value is evaluated as a regular expression.</p>
-<div class="admonition bug">
-<p class="admonition-title">Not implemented</p>
-<p>This is currently <strong>not</strong> implemented. Feel free to contribute.</p>
-</div>
-<div class="highlight"><pre><span></span><span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Namespace</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-example</span>
-  <span class="nt">annotations</span><span class="p">:</span>
-    <span class="c1"># annotation key is configurable</span>
-    <span class="nt">iam.amazonaws.com/permitted</span><span class="p">:</span> <span class="s">&quot;arn:aws:iam::123456789012:role/foo.*&quot;</span>
-</pre></div>
-
 <h2 id="secrets-manager">Secrets Manager</h2>
 <p>A <code>SecretStore</code> points to AWS Secrets Manager in a certain account within a
-defined region. You should define Roles that allow fine-grained access to
+defined region. You should define Roles that define fine-grained access to
 individual secrets and pass them to ESO using <code>spec.provider.aws.role</code>. This
 way users of the <code>SecretStore</code> can only access the secrets necessary.</p>
 <div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
@@ -764,6 +783,7 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
 </pre></div>
 
+<h3 id="iam-policy">IAM Policy</h3>
 <p>Create a IAM Policy to pin down access to secrets matching <code>dev-*</code>.</p>
 <div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="nt">&quot;Version&quot;</span><span class="p">:</span> <span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
@@ -782,6 +802,56 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
     <span class="p">}</span>
   <span class="p">]</span>
 <span class="p">}</span>
+</pre></div>
+
+<h3 id="json-secret-values">JSON Secret Values</h3>
+<p>SecretsManager supports <em>simple</em> key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
+<p>Consider the following JSON object that is stored in the SecretsManager key <code>my-json-secret</code>:
+<div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span> <span class="s2">&quot;Tom&quot;</span><span class="p">,</span> <span class="nt">&quot;last&quot;</span><span class="p">:</span> <span class="s2">&quot;Anderson&quot;</span><span class="p">},</span>
+  <span class="nt">&quot;friends&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span> <span class="s2">&quot;Dale&quot;</span><span class="p">,</span> <span class="nt">&quot;last&quot;</span><span class="p">:</span> <span class="s2">&quot;Murphy&quot;</span><span class="p">},</span>
+    <span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span> <span class="s2">&quot;Roger&quot;</span><span class="p">,</span> <span class="nt">&quot;last&quot;</span><span class="p">:</span> <span class="s2">&quot;Craig&quot;</span><span class="p">},</span>
+    <span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span> <span class="s2">&quot;Jane&quot;</span><span class="p">,</span> <span class="nt">&quot;last&quot;</span><span class="p">:</span> <span class="s2">&quot;Murphy&quot;</span><span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div></p>
+<p>This is an example on how you would look up nested keys in the above json object:
+<div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="c1"># [omitted for brevity]</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">firstname</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-json-secret</span>
+      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name.first</span> <span class="c1"># Tom</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">first_friend</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-json-secret</span>
+      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">friends.1.first</span> <span class="c1"># Roger</span>
+</pre></div></p>
+<h2 id="aws-authentication">AWS Authentication</h2>
+<p>Access to AWS providers can be granted in various ways:</p>
+<ul>
+<li><a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a>: IAM roles for service accounts.</li>
+<li>Per pod IAM authentication: <a href="https://github.com/uswitch/kiam">kiam</a> or <a href="https://github.com/jtblin/kube2iam">kube2iam</a>.</li>
+<li>Directly provide AWS credentials to the External Secrets Operator pod by using environment variables.</li>
+</ul>
+<p>Additionally, before fetching a secret from a store, ESO is able to assume role (as a proxy so to speak). It is advisable to use multiple roles in a multi-tenant environment.</p>
+<p>You can limit the range of roles which can be assumed by this particular namespace by using annotations on the namespace resource. The annotation value is evaluated as a regular expression.</p>
+<div class="admonition bug">
+<p class="admonition-title">Not implemented</p>
+<p>This is currently <strong>not</strong> implemented. Feel free to contribute.</p>
+</div>
+<div class="highlight"><pre><span></span><span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Namespace</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-example</span>
+  <span class="nt">annotations</span><span class="p">:</span>
+    <span class="c1"># annotation key is configurable</span>
+    <span class="nt">iam.amazonaws.com/permitted</span><span class="p">:</span> <span class="s">&quot;arn:aws:iam::123456789012:role/foo.*&quot;</span>
 </pre></div>
                 
                   

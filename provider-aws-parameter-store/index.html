@@ -77,7 +77,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#aws-authentication" tabindex="1" class="md-skip">
+      <a href="#parameter-store" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -447,6 +447,33 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#parameter-store" class="md-nav__link">
+    Parameter Store
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-policy" class="md-nav__link">
+    IAM Policy
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json-secret-values" class="md-nav__link">
+    JSON Secret Values
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#aws-authentication" class="md-nav__link">
     AWS Authentication
   </a>
@@ -673,6 +700,33 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#parameter-store" class="md-nav__link">
+    Parameter Store
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-policy" class="md-nav__link">
+    IAM Policy
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#json-secret-values" class="md-nav__link">
+    JSON Secret Values
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#aws-authentication" class="md-nav__link">
     AWS Authentication
   </a>
@@ -700,12 +754,86 @@
                 
                   <h1>Parameter Store</h1>
                 
-                <div class="admonition bug">
-<p class="admonition-title">Not implemented</p>
-<p>This is currently <strong>not yet</strong> implemented. Feel free to contribute. Please see
-<a href="https://github.com/external-secrets/external-secrets/issues/27">issue#27</a>
-for futher information.</p>
+                <p><img alt="aws sm" src="../pictures/diagrams-provider-aws-ssm-parameter-store.png" /></p>
+<h2 id="parameter-store">Parameter Store</h2>
+<p>A <code>ParameterStore</code> points to AWS SSM Parameter Store in a certain account within a
+defined region. You should define Roles that define fine-grained access to
+individual secrets and pass them to ESO using <code>spec.provider.aws.role</code>. This
+way users of the <code>SecretStore</code> can only access the secrets necessary.</p>
+<div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">controller</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">aws</span><span class="p">:</span>
+      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ParameterStore</span>
+      <span class="c1"># define a specific role to limit access</span>
+      <span class="c1"># to certain secrets</span>
+      <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-role</span>
+      <span class="nt">region</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="nt">secretRef</span><span class="p">:</span>
+          <span class="nt">accessKeyIDSecretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">access-key</span>
+          <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
+</pre></div>
+
+<div class="admonition warning">
+<p class="admonition-title">API Pricing &amp; Throttling</p>
+<p>The SSM Parameter Store API is charged by throughput and
+is available in different tiers, <a href="https://aws.amazon.com/systems-manager/pricing/#Parameter_Store">see pricing</a>.
+Please estimate your costs before using ESO. Cost depends on the RefreshInterval of your ExternalSecrets.</p>
 </div>
+<h3 id="iam-policy">IAM Policy</h3>
+<p>Create a IAM Policy to pin down access to secrets matching <code>dev-*</code>, for futher information see <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html">AWS Documentation</a>:</p>
+<div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;Version&quot;</span><span class="p">:</span> <span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;Statement&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="nt">&quot;Effect&quot;</span><span class="p">:</span> <span class="s2">&quot;Deny&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;Action&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;ssm:GetParameter*&quot;</span>
+      <span class="p">],</span>
+      <span class="nt">&quot;Resource&quot;</span><span class="p">:</span> <span class="s2">&quot;arn:aws:ssm:us-east-2:123456789012:parameter/dev-*&quot;</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="json-secret-values">JSON Secret Values</h3>
+<p>You can store JSON objects in a parameter. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
+<p>Consider the following JSON object that is stored in the Parameter Store key <code>my-json-secret</code>:
+<div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span> <span class="s2">&quot;Tom&quot;</span><span class="p">,</span> <span class="nt">&quot;last&quot;</span><span class="p">:</span> <span class="s2">&quot;Anderson&quot;</span><span class="p">},</span>
+  <span class="nt">&quot;friends&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span> <span class="s2">&quot;Dale&quot;</span><span class="p">,</span> <span class="nt">&quot;last&quot;</span><span class="p">:</span> <span class="s2">&quot;Murphy&quot;</span><span class="p">},</span>
+    <span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span> <span class="s2">&quot;Roger&quot;</span><span class="p">,</span> <span class="nt">&quot;last&quot;</span><span class="p">:</span> <span class="s2">&quot;Craig&quot;</span><span class="p">},</span>
+    <span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span> <span class="s2">&quot;Jane&quot;</span><span class="p">,</span> <span class="nt">&quot;last&quot;</span><span class="p">:</span> <span class="s2">&quot;Murphy&quot;</span><span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div></p>
+<p>This is an example on how you would look up nested keys in the above json object:
+<div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="c1"># [omitted for brevity]</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">firstname</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-json-secret</span>
+      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name.first</span> <span class="c1"># Tom</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">first_friend</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-json-secret</span>
+      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">friends.1.first</span> <span class="c1"># Roger</span>
+</pre></div></p>
 <h2 id="aws-authentication">AWS Authentication</h2>
 <p>Access to AWS providers can be granted in various ways:</p>
 <ul>
