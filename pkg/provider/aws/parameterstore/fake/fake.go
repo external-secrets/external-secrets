@@ -16,21 +16,21 @@ package fake
 import (
 	"fmt"
 
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
 )
 
-// Client implements the aws secretsmanager interface.
+// Client implements the aws parameterstore interface.
 type Client struct {
-	valFn func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	valFn func(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
 }
 
-func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
+func (sm *Client) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 	return sm.valFn(in)
 }
 
-func (sm *Client) WithValue(in *awssm.GetSecretValueInput, val *awssm.GetSecretValueOutput, err error) {
-	sm.valFn = func(paramIn *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
+func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutput, err error) {
+	sm.valFn = func(paramIn *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 		if !cmp.Equal(paramIn, in) {
 			return nil, fmt.Errorf("unexpected test argument")
 		}

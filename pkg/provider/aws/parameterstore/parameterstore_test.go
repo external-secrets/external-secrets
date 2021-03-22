@@ -11,7 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package secretsmanager
+package parameterstore
 
 import (
 	"context"
@@ -20,12 +20,12 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
+	fake "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
 	sess "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
 )
 
@@ -37,33 +37,34 @@ func TestConstructor(t *testing.T) {
 	assert.NotNil(t, c.client)
 }
 
-// test the sm<->aws interface
+// test the ssm<->aws interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestGetSecret(t *testing.T) {
-	fake := &fakesm.Client{}
-	p := &SecretsManager{
-		client: fake,
+	f := &fake.Client{}
+	p := &ParameterStore{
+		client: f,
 	}
 	for i, row := range []struct {
-		apiInput       *awssm.GetSecretValueInput
-		apiOutput      *awssm.GetSecretValueOutput
+		apiInput       *ssm.GetParameterInput
+		apiOutput      *ssm.GetParameterOutput
 		rr             esv1alpha1.ExternalSecretDataRemoteRef
 		apiErr         error
 		expectError    string
 		expectedSecret string
 	}{
 		{
-			// good case: default version is set
-			// key is passed in, output is sent back
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
+			// good case: key is passed in, output is sent back
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/baz"),
+				WithDecryption: aws.Bool(true),
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key: "/baz",
 			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: aws.String("RRRRR"),
+			apiOutput: &ssm.GetParameterOutput{
+				Parameter: &ssm.Parameter{
+					Value: aws.String("RRRRR"),
+				},
 			},
 			apiErr:         nil,
 			expectError:    "",
@@ -71,16 +72,18 @@ func TestGetSecret(t *testing.T) {
 		},
 		{
 			// good case: extract property
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/baz"),
+				WithDecryption: aws.Bool(true),
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key:      "/baz",
 				Property: "/shmoo",
 			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: aws.String(`{"/shmoo": "bang"}`),
+			apiOutput: &ssm.GetParameterOutput{
+				Parameter: &ssm.Parameter{
+					Value: aws.String(`{"/shmoo": "bang"}`),
+				},
 			},
 			apiErr:         nil,
 			expectError:    "",
@@ -88,16 +91,18 @@ func TestGetSecret(t *testing.T) {
 		},
 		{
 			// bad case: missing property
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/baz"),
+				WithDecryption: aws.Bool(true),
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key:      "/baz",
 				Property: "INVALPROP",
 			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: aws.String(`{"/shmoo": "bang"}`),
+			apiOutput: &ssm.GetParameterOutput{
+				Parameter: &ssm.Parameter{
+					Value: aws.String(`{"/shmoo": "bang"}`),
+				},
 			},
 			apiErr:         nil,
 			expectError:    "key INVALPROP does not exist in secret",
@@ -105,105 +110,56 @@ func TestGetSecret(t *testing.T) {
 		},
 		{
 			// bad case: extract property failure due to invalid json
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/baz"),
+				WithDecryption: aws.Bool(true),
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key:      "/baz",
 				Property: "INVALPROP",
 			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: aws.String(`------`),
+			apiOutput: &ssm.GetParameterOutput{
+				Parameter: &ssm.Parameter{
+					Value: aws.String(`------`),
+				},
 			},
 			apiErr:         nil,
 			expectError:    "key INVALPROP does not exist in secret",
 			expectedSecret: "",
 		},
 		{
-			// case: ssm.SecretString may be nil but binary is set
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
+			// case: parameter.Value may be nil but binary is set
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/baz"),
+				WithDecryption: aws.Bool(true),
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key: "/baz",
 			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: nil,
-				SecretBinary: []byte("yesplease"),
+			apiOutput: &ssm.GetParameterOutput{
+				Parameter: &ssm.Parameter{
+					Value: nil,
+				},
 			},
 			apiErr:         nil,
-			expectError:    "",
-			expectedSecret: "yesplease",
-		},
-		{
-			// case: both .SecretString and .SecretBinary is nil
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key: "/baz",
-			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: nil,
-				SecretBinary: nil,
-			},
-			apiErr:         nil,
-			expectError:    "no secret string nor binary for key",
+			expectError:    "parameter value is nil for key",
 			expectedSecret: "",
 		},
 		{
-			// case: secretOut.SecretBinary JSON parsing
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key:      "/baz",
-				Property: "foobar.baz",
-			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: nil,
-				SecretBinary: []byte(`{"foobar":{"baz":"nestedval"}}`),
-			},
-			apiErr:         nil,
-			expectError:    "",
-			expectedSecret: "nestedval",
-		},
-		{
-			// should pass version
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/foo/bar"),
-				VersionStage: aws.String("1234"),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key:     "/foo/bar",
-				Version: "1234",
-			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: aws.String("FOOBA!"),
-			},
-			apiErr:         nil,
-			expectError:    "",
-			expectedSecret: "FOOBA!",
-		},
-		{
 			// should return err
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/foo/bar"),
-				VersionStage: aws.String("AWSCURRENT"),
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/foo/bar"),
+				WithDecryption: aws.Bool(true),
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key: "/foo/bar",
 			},
-			apiOutput:   &awssm.GetSecretValueOutput{},
+			apiOutput:   &ssm.GetParameterOutput{},
 			apiErr:      fmt.Errorf("oh no"),
 			expectError: "oh no",
 		},
 	} {
-		fake.WithValue(row.apiInput, row.apiOutput, row.apiErr)
+		f.WithValue(row.apiInput, row.apiOutput, row.apiErr)
 		out, err := p.GetSecret(context.Background(), row.rr)
 		if !ErrorContains(err, row.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", i, err.Error(), row.expectError)
@@ -215,13 +171,13 @@ func TestGetSecret(t *testing.T) {
 }
 
 func TestGetSecretMap(t *testing.T) {
-	fake := &fakesm.Client{}
-	p := &SecretsManager{
-		client: fake,
+	f := &fake.Client{}
+	p := &ParameterStore{
+		client: f,
 	}
 	for i, row := range []struct {
-		apiInput     *awssm.GetSecretValueInput
-		apiOutput    *awssm.GetSecretValueOutput
+		apiInput     *ssm.GetParameterInput
+		apiOutput    *ssm.GetParameterOutput
 		rr           esv1alpha1.ExternalSecretDataRemoteRef
 		expectedData map[string]string
 		apiErr       error
@@ -229,12 +185,14 @@ func TestGetSecretMap(t *testing.T) {
 	}{
 		{
 			// good case: default version & deserialization
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/baz"),
+				WithDecryption: aws.Bool(true),
 			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: aws.String(`{"foo":"bar"}`),
+			apiOutput: &ssm.GetParameterOutput{
+				Parameter: &ssm.Parameter{
+					Value: aws.String(`{"foo":"bar"}`),
+				},
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key: "/baz",
@@ -247,12 +205,12 @@ func TestGetSecretMap(t *testing.T) {
 		},
 		{
 			// bad case: api error returned
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/baz"),
+				WithDecryption: aws.Bool(true),
 			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: aws.String(`{"foo":"bar"}`),
+			apiOutput: &ssm.GetParameterOutput{
+				Parameter: &ssm.Parameter{},
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key: "/baz",
@@ -265,12 +223,14 @@ func TestGetSecretMap(t *testing.T) {
 		},
 		{
 			// bad case: invalid json
-			apiInput: &awssm.GetSecretValueInput{
-				SecretId:     aws.String("/baz"),
-				VersionStage: aws.String("AWSCURRENT"),
+			apiInput: &ssm.GetParameterInput{
+				Name:           aws.String("/baz"),
+				WithDecryption: aws.Bool(true),
 			},
-			apiOutput: &awssm.GetSecretValueOutput{
-				SecretString: aws.String(`-----------------`),
+			apiOutput: &ssm.GetParameterOutput{
+				Parameter: &ssm.Parameter{
+					Value: aws.String(`-----------------`),
+				},
 			},
 			rr: esv1alpha1.ExternalSecretDataRemoteRef{
 				Key: "/baz",
@@ -280,7 +240,7 @@ func TestGetSecretMap(t *testing.T) {
 			expectError:  "unable to unmarshal secret",
 		},
 	} {
-		fake.WithValue(row.apiInput, row.apiOutput, row.apiErr)
+		f.WithValue(row.apiInput, row.apiOutput, row.apiErr)
 		out, err := p.GetSecretMap(context.Background(), row.rr)
 		if !ErrorContains(err, row.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", i, err.Error(), row.expectError)

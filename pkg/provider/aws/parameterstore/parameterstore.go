@@ -15,21 +15,21 @@ package parameterstore
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/tidwall/gjson"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	awssess "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
 )
 
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
-	stsProvider awssess.STSProvider
-	// session     *session.Session
-	// client      PMInterface
+	client PMInterface
 }
 
 // PMInterface is a subset of the parameterstore api.
@@ -41,20 +41,50 @@ type PMInterface interface {
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("parameterstore")
 
 // New constructs a ParameterStore Provider that is specific to a store.
-func New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string, stsProvider awssess.STSProvider) (provider.SecretsClient, error) {
-	pm := &ParameterStore{
-		stsProvider: stsProvider,
-	}
-	return pm, nil
+func New(sess client.ConfigProvider) (*ParameterStore, error) {
+	return &ParameterStore{
+		client: ssm.New(sess),
+	}, nil
 }
 
 // GetSecret returns a single secret from the provider.
 func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	log.Info("fetching secret value", "key", ref.Key)
-	return []byte("NOOP"), nil
+	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
+		Name:           &ref.Key,
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to get parameter: %w", err)
+	}
+	if ref.Property == "" {
+		if out.Parameter.Value != nil {
+			return []byte(*out.Parameter.Value), nil
+		}
+		return nil, fmt.Errorf("invalid secret received. parameter value is nil for key: %s", ref.Key)
+	}
+	val := gjson.Get(*out.Parameter.Value, ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	}
+	return []byte(val.String()), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return map[string][]byte{"NOOP": []byte("NOOP")}, nil
+	log.Info("fetching secret map", "key", ref.Key)
+	data, err := pm.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	kv := make(map[string]string)
+	err = json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
+	}
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		secretData[k] = []byte(v)
+	}
+	return secretData, nil
 }
