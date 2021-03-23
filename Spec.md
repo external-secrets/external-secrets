@@ -236,8 +236,10 @@ spec:
   # provider field contains the configuration to access the provider which contains the secret
   # exactly one provider must be configured.
   provider:
-    # AWSSM configures this store to sync secrets using AWS Secret Manager provider
-    awssm:
+    # AWS configures this store to sync secrets using AWS
+    aws:
+      # service defines what API should be used to fetch secrets
+      service: SecretsManager # or ParameterStore
       # Auth defines the information necessary to authenticate against AWS by
       # getting the accessKeyID and secretAccessKey from an already created Kubernetes Secret
       auth:
