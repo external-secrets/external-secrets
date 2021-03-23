@@ -40,7 +40,7 @@ pull_requests:
     Greetings!
     Thank you for contributing to this project!
     If this is your first time contributing, please make
-    sure to read the (Developer)[https://www.external-secrets.io/contributing-devguide/] and [Contributing Process](https://www.external-secrets.io/contributing-process/) guides.
+    sure to read the [Developer](https://www.external-secrets.io/contributing-devguide/) and [Contributing Process](https://www.external-secrets.io/contributing-process/) guides.
     Please also mind and follow our [Code of Conduct](https://www.external-secrets.io/contributing-coc/).
   # Enables the /cat command
   cats_enabled: true
