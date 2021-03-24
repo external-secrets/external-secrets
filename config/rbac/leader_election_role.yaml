@@ -37,3 +37,4 @@ rules:
   verbs:
   - get
   - create
+  - update
