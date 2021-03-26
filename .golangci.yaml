@@ -30,6 +30,8 @@ linters-settings:
         sizeThreshold: 512
   gocyclo:
     min-complexity: 16
+  goheader:
+    template-path: ./hack/boilerplate.go.txt
   golint:
     min-confidence: 0
   govet:
@@ -55,6 +57,7 @@ linters:
     - exhaustive
     - exportloopref
     - gci
+    - goheader
     - goconst
     - gocritic
     - godot
@@ -87,3 +90,43 @@ linters:
 
 service:
   golangci-lint-version: 1.33.x
+
+
+issues:
+  # Excluding configuration per-path and per-linter
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test(ing)?\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - scopelint
+        - unparam
+
+    # Ease some gocritic warnings on test files.
+    - path: _test\.go
+      text: "(unnamedResult|exitAfterDefer)"
+      linters:
+        - gocritic
+
+    # This is a "potential hardcoded credentials" warning. It's triggered by
+    # any variable with 'secret' in the same, and thus hits a lot of false
+    # positives in Kubernetes land where a Secret is an object type.
+    - text: "G101:"
+      linters:
+      - gosec
+
+    # The header check doesn't correctly parse the header as a code comment and is
+    # triggered by the perceived diff. The header check still correctly detects missing
+    # license headers and is useful for some cases.
+    - text: "Actual:"
+      linters:
+        - goheader
+
+  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
+  max-per-linter: 0
+
+  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
+  max-same-issues: 0
