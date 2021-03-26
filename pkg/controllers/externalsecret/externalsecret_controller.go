@@ -31,11 +31,11 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/template"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	schema "github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/template"
 	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 

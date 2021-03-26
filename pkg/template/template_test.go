@@ -1,3 +1,16 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package template
 
 import (
@@ -85,6 +98,67 @@ func TestExecute(t *testing.T) {
 			},
 			outSecret: map[string][]byte{
 				"foo": []byte("1234"),
+			},
+		},
+		{
+			name: "fromJSON func",
+			secret: map[string][]byte{
+				"foo": []byte("{{ $var := .secret | fromJSON }}{{ $var.foo }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte(`{"foo": "bar"}`),
+			},
+			outSecret: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name: "from & toJSON func",
+			secret: map[string][]byte{
+				"foo": []byte("{{ $var := .secret | fromJSON }}{{ $var.foo | toJSON }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte(`{"foo": {"baz":"bang"}}`),
+			},
+			outSecret: map[string][]byte{
+				"foo": []byte(`{"baz":"bang"}`),
+			},
+		},
+		{
+			name: "multiline template",
+			secret: map[string][]byte{
+				"cfg": []byte(`
+datasources:
+- name: Graphite
+	type: graphite
+	access: proxy
+	url: http://localhost:8080
+	password: "{{ .password | toString }}"
+	user: "{{ .user | toString }}"`),
+			},
+			data: map[string][]byte{
+				"user":     []byte(`foobert`),
+				"password": []byte("harharhar"),
+			},
+			outSecret: map[string][]byte{
+				"cfg": []byte(`
+datasources:
+- name: Graphite
+	type: graphite
+	access: proxy
+	url: http://localhost:8080
+	password: "harharhar"
+	user: "foobert"`),
+			},
+		},
+		{
+			name: "base64 pipeline",
+			secret: map[string][]byte{
+				"foo": []byte(`{{ "123412341234" | toBytes | base64encode | base64decode | toString }}`),
+			},
+			data: map[string][]byte{},
+			outSecret: map[string][]byte{
+				"foo": []byte("123412341234"),
 			},
 		},
 		{

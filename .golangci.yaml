@@ -104,6 +104,7 @@ issues:
         - gosec
         - scopelint
         - unparam
+        - lll
 
     # Ease some gocritic warnings on test files.
     - path: _test\.go
