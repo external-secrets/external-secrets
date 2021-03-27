@@ -15,7 +15,7 @@ IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
-CRD_DIR     ?= config/crd/bases
+CRD_DIR     ?= deploy/crds
 
 HELM_DIR    ?= deploy/charts/external-secrets
 
@@ -113,32 +113,16 @@ fmt: lint.check ## ensure consistent code style
 	@golangci-lint run --fix > /dev/null 2>&1 || true
 	@$(OK) Ensured consistent code style
 
-generate: controller-gen ## Generate code, crds, manifests, etc
-	@$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	@$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_DIR)
+generate: ## Generate code and crds
+	@go run sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	@go run sigs.k8s.io/controller-tools/cmd/controller-gen $(CRD_OPTIONS) paths="./..." output:crd:artifacts:config=$(CRD_DIR)
 # Remove extra header lines in generated CRDs
 	@for i in $(CRD_DIR)/*.yaml; do \
   		tail -n +3 <"$$i" >"$$i.bkp" && \
   		cp "$$i.bkp" "$$i" && \
   		rm "$$i.bkp"; \
   	done
-	@$(OK) Finished generating deepcopy and manifests
-
-# Find or download controller-gen
-controller-gen:
-ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
-CONTROLLER_GEN=$(GOBIN)/controller-gen
-else
-CONTROLLER_GEN=$(shell which controller-gen)
-endif
+	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
 # Local Utility
@@ -147,6 +131,11 @@ endif
 # For more control, try running the binary directly with different arguments.
 run: generate
 	go run ./main.go
+
+# Generate manifests from helm chart
+manifests: helm.generate
+	mkdir -p $(OUTPUT_DIR)/deploy/manifests
+	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 # Install CRDs into a cluster. This is for convenience.
 crds.install: generate
@@ -163,9 +152,12 @@ helm.docs: ## Generate helm docs
 	cd $(HELM_DIR); \
 	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) jnorwood/helm-docs:latest
 
+HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep 'version:' | sed 's/version: //g')
+
 helm.build: helm.generate ## Build helm chart
 	@$(INFO) helm package
 	@helm package $(HELM_DIR) --dependency-update --destination $(OUTPUT_DIR)/chart
+	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
 # Copy crds to helm chart directory
@@ -180,7 +172,6 @@ helm.generate:
 		rm "$$i.bkp"; \
 	done
 	@$(OK) Finished generating helm chart files
-
 
 # ====================================================================================
 # Documentation
@@ -212,14 +203,12 @@ docker.push:
 RELEASE_TAG ?= main
 SOURCE_TAG ?= $(VERSION)
 
-
 docker.promote:
 	@$(INFO) docker pull $(SOURCE_TAG)
 	@docker pull $(IMAGE_REGISTRY):$(SOURCE_TAG)
 	@docker tag $(IMAGE_REGISTRY):$(SOURCE_TAG) $(IMAGE_REGISTRY):$(RELEASE_TAG)
 	@docker push $(IMAGE_REGISTRY):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG)
-
 
 # ====================================================================================
 # Help
