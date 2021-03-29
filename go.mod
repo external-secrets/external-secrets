@@ -32,7 +32,7 @@ replace (
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.38.6
+	github.com/aws/aws-sdk-go v1.38.7
 	github.com/crossplane/crossplane-runtime v0.13.0
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/frankban/quicktest v1.10.0 // indirect
