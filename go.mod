@@ -58,7 +58,7 @@ require (
 	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/prometheus/procfs v0.4.0 // indirect
 	github.com/stretchr/testify v1.6.1
-	github.com/tidwall/gjson v1.7.3
+	github.com/tidwall/gjson v1.7.4
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
 	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c // indirect
