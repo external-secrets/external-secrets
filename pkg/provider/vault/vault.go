@@ -57,6 +57,9 @@ const (
 	errVaultResponse  = "cannot parse Vault response: %w"
 	errServiceAccount = "cannot read Kubernetes service account token from file system: %w"
 
+	errGetKubeSA        = "cannot get Kubernetes service account %q: %w"
+	errGetKubeSASecrets = "cannot find secrets bound to service account: %q"
+
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
 )
@@ -257,6 +260,32 @@ func (v *client) setAuth(ctx context.Context, client Client) error {
 	return errors.New(errAuthFormat)
 }
 
+func (v *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
+	serviceAccount := &corev1.ServiceAccount{}
+	ref := types.NamespacedName{
+		Namespace: v.namespace,
+		Name:      serviceAccountRef.Name,
+	}
+	if (v.storeKind == esv1alpha1.ClusterSecretStoreKind) &&
+		(serviceAccountRef.Namespace != nil) {
+		ref.Namespace = *serviceAccountRef.Namespace
+	}
+	err := v.kube.Get(ctx, ref, serviceAccount)
+	if err != nil {
+		return "", fmt.Errorf(errGetKubeSA, ref.Name, err)
+	}
+	if len(serviceAccount.Secrets) == 0 {
+		return "", fmt.Errorf(errGetKubeSASecrets, ref.Name)
+	}
+	tokenRef := serviceAccount.Secrets[0]
+
+	return v.secretKeyRef(ctx, &esmeta.SecretKeySelector{
+		Name:      tokenRef.Name,
+		Namespace: &ref.Namespace,
+		Key:       "token",
+	})
+}
+
 func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
 	secret := &corev1.Secret{}
 	ref := types.NamespacedName{
@@ -339,7 +368,13 @@ func kubeParameters(role, jwt string) map[string]string {
 
 func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
 	jwtString := ""
-	if kubernetesAuth.SecretRef != nil {
+	if kubernetesAuth.ServiceAccountRef != nil {
+		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		if err != nil {
+			return "", err
+		}
+		jwtString = jwt
+	} else if kubernetesAuth.SecretRef != nil {
 		tokenRef := kubernetesAuth.SecretRef
 		if tokenRef.Key == "" {
 			tokenRef = kubernetesAuth.SecretRef.DeepCopy()

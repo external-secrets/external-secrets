@@ -52,9 +52,8 @@ func makeValidSecretStore() *esv1alpha1.SecretStore {
 						Kubernetes: &esv1alpha1.VaultKubernetesAuth{
 							Path: "kubernetes",
 							Role: "kubernetes-auth-role",
-							SecretRef: &esmeta.SecretKeySelector{
-								Name: "vault-secret",
-								Key:  "key",
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: "example-sa",
 							},
 						},
 					},
@@ -144,7 +143,7 @@ func TestNewVault(t *testing.T) {
 				err: errors.New(errAuthFormat),
 			},
 		},
-		"GetKubeSecretError": {
+		"GetKubeServiceAccountError": {
 			reason: "Should return error if fetching kubernetes secret fails.",
 			args: args{
 				store: makeSecretStore(),
@@ -153,7 +152,25 @@ func TestNewVault(t *testing.T) {
 				},
 			},
 			want: want{
-				err: fmt.Errorf(errGetKubeSecret, makeSecretStore().Spec.Provider.Vault.Auth.Kubernetes.SecretRef.Name, errBoom),
+				err: fmt.Errorf(errGetKubeSA, "example-sa", errBoom),
+			},
+		},
+		"GetKubeSecretError": {
+			reason: "Should return error if fetching kubernetes secret fails.",
+			args: args{
+				store: makeSecretStore(func(s *esv1alpha1.SecretStore) {
+					s.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = nil
+					s.Spec.Provider.Vault.Auth.Kubernetes.SecretRef = &esmeta.SecretKeySelector{
+						Name: "vault-secret",
+						Key:  "key",
+					}
+				}),
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(errBoom),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errGetKubeSecret, "vault-secret", errBoom),
 			},
 		},
 		"SuccessfulVaultStore": {
@@ -162,10 +179,19 @@ func TestNewVault(t *testing.T) {
 				store: makeSecretStore(),
 				kube: &test.MockClient{
 					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
+						if o, ok := obj.(*corev1.ServiceAccount); ok {
+							o.Secrets = []corev1.ObjectReference{
+								{
+									Name: "example-secret-token",
+								},
+							}
+							return nil
+						}
 						if o, ok := obj.(*corev1.Secret); ok {
 							o.Data = map[string][]byte{
-								"key": secretData,
+								"token": secretData,
 							}
+							return nil
 						}
 						return nil
 					}),
