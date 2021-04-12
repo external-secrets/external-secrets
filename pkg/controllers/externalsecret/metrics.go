@@ -26,13 +26,13 @@ const (
 )
 
 var (
-	sync_calls_total = prometheus.NewCounterVec(prometheus.CounterOpts{
+	syncCallsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Subsystem: ExternalSecretSubsystem,
 		Name:      SyncCallsKey,
 		Help:      "Total number of the External Secret sync calls",
 	}, []string{"name", "namespace"})
 
-	sync_calls_error = prometheus.NewCounterVec(prometheus.CounterOpts{
+	syncCallsError = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Subsystem: ExternalSecretSubsystem,
 		Name:      SyncCallsErrorKey,
 		Help:      "Total number of the External Secret sync errors",
@@ -40,5 +40,5 @@ var (
 )
 
 func init() {
-	metrics.Registry.MustRegister(sync_calls_total, sync_calls_error)
+	metrics.Registry.MustRegister(syncCallsTotal, syncCallsError)
 }

@@ -69,8 +69,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		})).To(Succeed())
 
 		metric.Reset()
-		sync_calls_total.Reset()
-		sync_calls_error.Reset()
+		syncCallsTotal.Reset()
+		syncCallsError.Reset()
 	})
 
 	AfterEach(func() {
@@ -120,7 +120,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			}, timeout, interval).Should(BeTrue())
 		})
 
-		It("should increment the sync_calls_total metric", func() {
+		It("should increment the syncCallsTotal metric", func() {
 			ctx := context.Background()
 			es := &esv1alpha1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -144,14 +144,14 @@ var _ = Describe("ExternalSecret controller", func() {
 			expectedValue := 2.0
 
 			Eventually(func() float64 {
-				Expect(sync_calls_total.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				return metric.GetCounter().GetValue()
 			}, timeout, interval).Should(Equal(expectedValue))
 		})
 	})
 
 	Context("When updating an ExternalSecret", func() {
-		It("should increment the sync_calls_total metric", func() {
+		It("should increment the syncCallsTotal metric", func() {
 			ctx := context.Background()
 			es := &esv1alpha1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -171,7 +171,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
 
 			Eventually(func() float64 {
-				Expect(sync_calls_total.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				return metric.GetCounter().GetValue()
 			}, timeout, interval).Should(Equal(2.0))
 
@@ -199,7 +199,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			expectedValue := 3.0
 
 			Eventually(func() float64 {
-				Expect(sync_calls_total.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				return metric.GetCounter().GetValue()
 			}, timeout, interval).Should(Equal(expectedValue))
 		})
@@ -406,7 +406,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			Eventually(func() float64 {
-				Expect(sync_calls_error.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				return metric.GetCounter().GetValue()
 			}, timeout, interval).Should(Equal(1.0))
 		})
@@ -457,7 +457,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			Eventually(func() float64 {
-				Expect(sync_calls_error.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				return metric.GetCounter().GetValue()
 			}, timeout, interval).Should(Equal(1.0))
 		})
@@ -512,7 +512,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			}, timeout, interval).Should(BeTrue())
 
 			Eventually(func() float64 {
-				Expect(sync_calls_error.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				return metric.GetCounter().GetValue()
 			}, timeout, interval).Should(Equal(1.0))
 		})

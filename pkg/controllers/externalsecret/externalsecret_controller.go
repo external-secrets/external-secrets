@@ -65,7 +65,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
 	if err != nil {
 		log.Error(err, "could not get ExternalSecret")
-		sync_calls_error.With(syncCallsMetricLabels).Inc()
+		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -82,7 +82,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
 		err = r.Status().Update(ctx, &externalSecret)
-		sync_calls_error.With(syncCallsMetricLabels).Inc()
+		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -97,7 +97,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	storeProvider, err := schema.GetProvider(store)
 	if err != nil {
 		log.Error(err, "could not get store provider")
-		sync_calls_error.With(syncCallsMetricLabels).Inc()
+		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -107,7 +107,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
 		err = r.Status().Update(ctx, &externalSecret)
-		sync_calls_error.With(syncCallsMetricLabels).Inc()
+		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -136,7 +136,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			log.Error(err, "unable to update status")
 		}
-		sync_calls_error.With(syncCallsMetricLabels).Inc()
+		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -153,7 +153,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, "unable to update status")
 	}
 
-	sync_calls_total.With(syncCallsMetricLabels).Inc()
+	syncCallsTotal.With(syncCallsMetricLabels).Inc()
 
 	return ctrl.Result{
 		RequeueAfter: dur,
