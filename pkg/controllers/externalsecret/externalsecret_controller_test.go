@@ -20,6 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,8 +31,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-
-	dto "github.com/prometheus/client_model/go"
 )
 
 var (
