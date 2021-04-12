@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
@@ -56,11 +58,14 @@ type Reconciler struct {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
+	syncCallsMetricLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
+
 	var externalSecret esv1alpha1.ExternalSecret
 
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
 	if err != nil {
 		log.Error(err, "could not get ExternalSecret")
+		sync_calls_error.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -77,6 +82,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
 		err = r.Status().Update(ctx, &externalSecret)
+		sync_calls_error.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -91,6 +97,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	storeProvider, err := schema.GetProvider(store)
 	if err != nil {
 		log.Error(err, "could not get store provider")
+		sync_calls_error.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -100,6 +107,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
 		err = r.Status().Update(ctx, &externalSecret)
+		sync_calls_error.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -128,6 +136,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			log.Error(err, "unable to update status")
 		}
+		sync_calls_error.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -143,6 +152,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		log.Error(err, "unable to update status")
 	}
+
+	sync_calls_total.With(syncCallsMetricLabels).Inc()
 
 	return ctrl.Result{
 		RequeueAfter: dur,
@@ -198,8 +209,13 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Skip running Reconcile() when there are NO changes to the .spec field
+	// Useful to not trigger Reconcile() when only updating the object's status/metadata
+	p := predicate.GenerationChangedPredicate{}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&esv1alpha1.ExternalSecret{}).
 		Owns(&corev1.Secret{}).
+		WithEventFilter(p).
 		Complete(r)
 }

@@ -28,6 +28,7 @@ nav:
     - Getting started: guides-getting-started.md
     - Advanced Templating: guides-templating.md
     - Multi Tenancy: guides-multi-tenancy.md
+    - Metrics: guides-metrics.md
   - Provider:
     - AWS:
       - Secrets Manager: provider-aws-secrets-manager.md
