@@ -34,7 +34,6 @@ replace (
 require (
 	github.com/aws/aws-sdk-go v1.38.6
 	github.com/crossplane/crossplane-runtime v0.13.0
-	github.com/fatih/color v1.9.0 // indirect
 	github.com/frankban/quicktest v1.10.0 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -49,7 +48,6 @@ require (
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/onsi/ginkgo v1.16.1
@@ -70,11 +68,10 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/api v0.21.0
-	k8s.io/apiextensions-apiserver v0.20.2 // indirect
 	k8s.io/apimachinery v0.21.0
 	k8s.io/client-go v0.21.0
 	k8s.io/klog/v2 v2.5.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210113233702-8566a335510f // indirect
 	sigs.k8s.io/controller-runtime v0.8.1
-	sigs.k8s.io/controller-tools v0.4.1
+	sigs.k8s.io/controller-tools v0.5.0
 )
