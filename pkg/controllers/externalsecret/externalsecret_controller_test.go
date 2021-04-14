@@ -151,11 +151,6 @@ var _ = Describe("ExternalSecret controller", func() {
 
 			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
 
-			Eventually(func() float64 {
-				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue()
-			}, timeout, interval).Should(Equal(2.0))
-
 			createdES := &esv1alpha1.ExternalSecret{}
 
 			Eventually(func() error {
