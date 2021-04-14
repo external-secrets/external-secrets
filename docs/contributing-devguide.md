@@ -41,8 +41,8 @@ make install
 
 Apply the sample resources:
 ```shell
-kubectl apply -f config/samples/external-secrets_v1alpha1_secretstore.yaml
-kubectl apply -f config/samples/external-secrets_v1alpha1_externalsecret.yaml
+kubectl apply -f docs/snippets/basic-secret-store.yaml
+kubectl apply -f docs/snippets/basic-external-secret.yaml
 ```
 
 You can run the controller on your host system for development purposes:

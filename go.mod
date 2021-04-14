@@ -76,4 +76,5 @@ require (
 	k8s.io/klog/v2 v2.5.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210113233702-8566a335510f // indirect
 	sigs.k8s.io/controller-runtime v0.8.1
+	sigs.k8s.io/controller-tools v0.4.1
 )
