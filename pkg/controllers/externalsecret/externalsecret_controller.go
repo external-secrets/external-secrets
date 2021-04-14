@@ -28,7 +28,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
@@ -80,7 +79,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		log.Error(err, "could not get store reference")
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
-		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+		SetExternalSecretCondition(&externalSecret, *conditionSynced)
+
 		err = r.Status().Update(ctx, &externalSecret)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
@@ -105,7 +105,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		log.Error(err, "could not get provider client")
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
-		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		err = r.Status().Update(ctx, &externalSecret)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
@@ -131,7 +131,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		log.Error(err, "could not reconcile ExternalSecret")
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
-		SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		err = r.Status().Update(ctx, &externalSecret)
 		if err != nil {
 			log.Error(err, "unable to update status")
@@ -146,7 +146,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
-	SetExternalSecretCondition(&externalSecret.Status, *conditionSynced)
+	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
 	err = r.Status().Update(ctx, &externalSecret)
 	if err != nil {
@@ -209,13 +209,8 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Skip running Reconcile() when there are NO changes to the .spec field
-	// Useful to not trigger Reconcile() when only updating the object's status/metadata
-	p := predicate.GenerationChangedPredicate{}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&esv1alpha1.ExternalSecret{}).
 		Owns(&corev1.Secret{}).
-		WithEventFilter(p).
 		Complete(r)
 }

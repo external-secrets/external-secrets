@@ -15,14 +15,17 @@ limitations under the License.
 package externalsecret
 
 import (
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 const (
-	ExternalSecretSubsystem = "external_secret"
-	SyncCallsKey            = "sync_calls_total"
-	SyncCallsErrorKey       = "sync_calls_error"
+	ExternalSecretSubsystem          = "externalsecret"
+	SyncCallsKey                     = "sync_calls_total"
+	SyncCallsErrorKey                = "sync_calls_error"
+	externalSecretStatusConditionKey = "status_condition"
 )
 
 var (
@@ -37,8 +40,23 @@ var (
 		Name:      SyncCallsErrorKey,
 		Help:      "Total number of the External Secret sync errors",
 	}, []string{"name", "namespace"})
+
+	externalSecretCondition = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: ExternalSecretSubsystem,
+		Name:      externalSecretStatusConditionKey,
+		Help:      "The status condition of a specific External Secret",
+	}, []string{"name", "namespace", "condition", "status"})
 )
 
+func updateExternalSecretCondition(es *esv1alpha1.ExternalSecret, condition *esv1alpha1.ExternalSecretStatusCondition, value float64) {
+	externalSecretCondition.With(prometheus.Labels{
+		"name":      es.Name,
+		"namespace": es.Namespace,
+		"condition": string(condition.Type),
+		"status":    string(condition.Status),
+	}).Set(value)
+}
+
 func init() {
-	metrics.Registry.MustRegister(syncCallsTotal, syncCallsError)
+	metrics.Registry.MustRegister(syncCallsTotal, syncCallsError, externalSecretCondition)
 }
