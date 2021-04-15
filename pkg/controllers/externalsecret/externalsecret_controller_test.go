@@ -122,8 +122,6 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 
-			// When creating a new ExternalSecret, the Reconcile loop executes twice
-			// due the call to `controllerutil.SetControllerReference`
 			Eventually(func() float64 {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				return metric.GetCounter().GetValue()
