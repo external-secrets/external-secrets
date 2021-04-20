@@ -105,6 +105,13 @@ type VaultKubernetesAuth struct {
 	// +kubebuilder:default=kubernetes
 	Path string `json:"mountPath"`
 
+	// Optional service account field containing the name of a kubernetes ServiceAccount.
+	// If the service account is specified, the service account secret token JWT will be used
+	// for authenticating with Vault. If the service account selector is not supplied,
+	// the secretRef will be used instead.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
 	// Optional secret field containing a Kubernetes ServiceAccount JWT used
 	// for authenticating with Vault. If a name is specified without a key,
 	// `token` is the default. If one is not specified, the one bound to

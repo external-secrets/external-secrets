@@ -28,3 +28,13 @@ type SecretKeySelector struct {
 	// +optional
 	Key string `json:"key,omitempty"`
 }
+
+// A reference to a ServiceAccount resource.
+type ServiceAccountSelector struct {
+	// The name of the ServiceAccount resource being referred to.
+	Name string `json:"name"`
+	// Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+	// to the namespace of the referent.
+	// +optional
+	Namespace *string `json:"namespace,omitempty"`
+}
