@@ -153,20 +153,28 @@ func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {
 }
 
 func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
-	// TODO: Implement getting ClusterSecretStore
-	var secretStore esv1alpha1.SecretStore
-
 	ref := types.NamespacedName{
-		Name:      externalSecret.Spec.SecretStoreRef.Name,
-		Namespace: externalSecret.Namespace,
+		Name: externalSecret.Spec.SecretStoreRef.Name,
 	}
 
-	err := r.Get(ctx, ref, &secretStore)
+	if externalSecret.Spec.SecretStoreRef.Kind == esv1alpha1.ClusterSecretStoreKind {
+		var store esv1alpha1.ClusterSecretStore
+		err := r.Get(ctx, ref, &store)
+		if err != nil {
+			return nil, fmt.Errorf("could not get ClusterSecretStore %q, %w", ref.Name, err)
+		}
+
+		return &store, nil
+	}
+
+	ref.Namespace = externalSecret.Namespace
+
+	var store esv1alpha1.SecretStore
+	err := r.Get(ctx, ref, &store)
 	if err != nil {
 		return nil, fmt.Errorf("could not get SecretStore %q, %w", ref.Name, err)
 	}
-
-	return &secretStore, nil
+	return &store, nil
 }
 
 func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.SecretsClient, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
