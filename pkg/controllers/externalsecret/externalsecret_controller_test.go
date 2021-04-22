@@ -20,6 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,15 +33,18 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
-var fakeProvider *fake.Client
+var (
+	fakeProvider *fake.Client
+	metric       dto.Metric
+	timeout      = time.Second * 5
+	interval     = time.Millisecond * 250
+)
 
 var _ = Describe("ExternalSecret controller", func() {
 	const (
 		ExternalSecretName             = "test-es"
 		ExternalSecretStore            = "test-store"
 		ExternalSecretTargetSecretName = "test-secret"
-		timeout                        = time.Second * 5
-		interval                       = time.Millisecond * 250
 	)
 
 	var ExternalSecretNamespace string
@@ -63,7 +67,12 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		})).To(Succeed())
 
+		metric.Reset()
+		syncCallsTotal.Reset()
+		syncCallsError.Reset()
+		externalSecretCondition.Reset()
 	})
+
 	AfterEach(func() {
 		Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -78,9 +87,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}, client.PropagationPolicy(metav1.DeletePropagationBackground)), client.GracePeriodSeconds(0)).To(Succeed())
 	})
 
-	Context("When updating ExternalSecret Status", func() {
+	Context("When creating an ExternalSecret", func() {
 		It("should set the condition eventually", func() {
-			By("creating an ExternalSecret")
 			ctx := context.Background()
 			es := &esv1alpha1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -110,13 +118,66 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				return true
 			}, timeout, interval).Should(BeTrue())
-		})
 
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
+
+			Eventually(func() float64 {
+				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				return metric.GetCounter().GetValue()
+			}, timeout, interval).Should(Equal(2.0))
+		})
+	})
+
+	Context("When updating an ExternalSecret", func() {
+		It("should increment the syncCallsTotal metric", func() {
+			ctx := context.Background()
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: ExternalSecretStore,
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+
+			createdES := &esv1alpha1.ExternalSecret{}
+
+			Eventually(func() error {
+				esLookupKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
+
+				err := k8sClient.Get(ctx, esLookupKey, createdES)
+				if err != nil {
+					return err
+				}
+
+				createdES.Spec.RefreshInterval = &metav1.Duration{Duration: 10 * time.Second}
+
+				err = k8sClient.Update(ctx, createdES)
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func() float64 {
+				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				return metric.GetCounter().GetValue()
+			}, timeout, interval).Should(Equal(3.0))
+		})
 	})
 
 	Context("When syncing ExternalSecret value", func() {
 		It("should set the secret value and sync labels/annotations", func() {
-			By("creating an ExternalSecret")
 			ctx := context.Background()
 			const targetProp = "targetProperty"
 			const secretVal = "someValue"
@@ -171,7 +232,6 @@ var _ = Describe("ExternalSecret controller", func() {
 		})
 
 		It("should refresh secret value", func() {
-			By("creating an ExternalSecret")
 			ctx := context.Background()
 			const targetProp = "targetProperty"
 			const secretVal = "someValue"
@@ -227,7 +287,6 @@ var _ = Describe("ExternalSecret controller", func() {
 		})
 
 		It("should fetch secrets using dataFrom", func() {
-			By("creating an ExternalSecret")
 			ctx := context.Background()
 			const secretVal = "someValue"
 			es := &esv1alpha1.ExternalSecret{
@@ -272,7 +331,6 @@ var _ = Describe("ExternalSecret controller", func() {
 		})
 
 		It("should set an error condition when provider errors", func() {
-			By("creating an ExternalSecret")
 			ctx := context.Background()
 			const targetProp = "targetProperty"
 			es := &esv1alpha1.ExternalSecret{
@@ -317,10 +375,17 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				return true
 			}, timeout, interval).Should(BeTrue())
+
+			Eventually(func() float64 {
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				return metric.GetCounter().GetValue()
+			}, timeout, interval).Should(Equal(2.0))
+
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
 		})
 
 		It("should set an error condition when store does not exist", func() {
-			By("creating an ExternalSecret")
 			ctx := context.Background()
 			const targetProp = "targetProperty"
 			es := &esv1alpha1.ExternalSecret{
@@ -364,10 +429,17 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				return true
 			}, timeout, interval).Should(BeTrue())
+
+			Eventually(func() float64 {
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				return metric.GetCounter().GetValue()
+			}, timeout, interval).Should(Equal(2.0))
+
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
 		})
 
 		It("should set an error condition when store provider constructor fails", func() {
-			By("creating an ExternalSecret")
 			ctx := context.Background()
 			const targetProp = "targetProperty"
 			es := &esv1alpha1.ExternalSecret{
@@ -415,10 +487,17 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				return true
 			}, timeout, interval).Should(BeTrue())
+
+			Eventually(func() float64 {
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				return metric.GetCounter().GetValue()
+			}, timeout, interval).Should(Equal(2.0))
+
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
 		})
 
 		It("should not process stores with mismatching controller field", func() {
-			By("creating an ExternalSecret")
 			ctx := context.Background()
 			storeName := "example-ts-foo"
 			Expect(k8sClient.Create(context.Background(), &esv1alpha1.SecretStore{
@@ -483,8 +562,21 @@ var _ = Describe("ExternalSecret controller", func() {
 				cond := GetExternalSecretCondition(createdES.Status, esv1alpha1.ExternalSecretReady)
 				return cond == nil
 			}, timeout, interval).Should(BeTrue())
-		})
 
+			// Condition True and False should be 0, since the Condition was not created
+			Eventually(func() float64 {
+				Expect(externalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1alpha1.ExternalSecretReady), string(v1.ConditionTrue)).Write(&metric)).To(Succeed())
+				return metric.GetGauge().GetValue()
+			}, timeout, interval).Should(Equal(0.0))
+
+			Eventually(func() float64 {
+				Expect(externalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1alpha1.ExternalSecretReady), string(v1.ConditionFalse)).Write(&metric)).To(Succeed())
+				return metric.GetGauge().GetValue()
+			}, timeout, interval).Should(Equal(0.0))
+
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
+		})
 	})
 })
 
@@ -508,6 +600,13 @@ func CreateNamespace(baseName string, c client.Client) (string, error) {
 		return "", err
 	}
 	return ns.Name, nil
+}
+
+func externalSecretConditionShouldBe(name, ns string, ct esv1alpha1.ExternalSecretConditionType, cs v1.ConditionStatus, v float64) bool {
+	return Eventually(func() float64 {
+		Expect(externalSecretCondition.WithLabelValues(name, ns, string(ct), string(cs)).Write(&metric)).To(Succeed())
+		return metric.GetGauge().GetValue()
+	}, timeout, interval).Should(Equal(v))
 }
 
 func init() {

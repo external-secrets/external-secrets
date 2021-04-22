@@ -43,16 +43,26 @@ func GetExternalSecretCondition(status esv1alpha1.ExternalSecretStatus, condType
 
 // SetExternalSecretCondition updates the external secret to include the provided
 // condition.
-func SetExternalSecretCondition(status *esv1alpha1.ExternalSecretStatus, condition esv1alpha1.ExternalSecretStatusCondition) {
-	currentCond := GetExternalSecretCondition(*status, condition.Type)
+func SetExternalSecretCondition(es *esv1alpha1.ExternalSecret, condition esv1alpha1.ExternalSecretStatusCondition) {
+	currentCond := GetExternalSecretCondition(es.Status, condition.Type)
+
 	if currentCond != nil && currentCond.Status == condition.Status && currentCond.Reason == condition.Reason {
+		updateExternalSecretCondition(es, &condition, 1.0)
 		return
 	}
+
 	// Do not update lastTransitionTime if the status of the condition doesn't change.
 	if currentCond != nil && currentCond.Status == condition.Status {
 		condition.LastTransitionTime = currentCond.LastTransitionTime
 	}
-	status.Conditions = append(filterOutCondition(status.Conditions, condition.Type), condition)
+
+	es.Status.Conditions = append(filterOutCondition(es.Status.Conditions, condition.Type), condition)
+
+	if currentCond != nil {
+		updateExternalSecretCondition(es, currentCond, 0.0)
+	}
+
+	updateExternalSecretCondition(es, &condition, 1.0)
 }
 
 func filterOutCondition(conditions []esv1alpha1.ExternalSecretStatusCondition, condType esv1alpha1.ExternalSecretConditionType) []esv1alpha1.ExternalSecretStatusCondition {
