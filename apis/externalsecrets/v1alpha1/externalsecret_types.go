@@ -54,12 +54,16 @@ type ExternalSecretTemplateMetadata struct {
 }
 
 // ExternalSecretTemplate defines a blueprint for the created Secret resource.
+// we can not use native corev1.Secret, it will have empty ObjectMeta values: https://github.com/kubernetes-sigs/controller-tools/issues/448
 type ExternalSecretTemplate struct {
 	// +optional
 	Type corev1.SecretType `json:"type,omitempty"`
 
 	// +optional
 	Metadata ExternalSecretTemplateMetadata `json:"metadata,omitempty"`
+
+	// +optional
+	Data map[string][]byte `json:"data,omitempty"`
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created
@@ -75,6 +79,10 @@ type ExternalSecretTarget struct {
 	// Defaults to 'Owner'
 	// +optional
 	CreationPolicy ExternalSecretCreationPolicy `json:"creationPolicy,omitempty"`
+
+	// Template defines a blueprint for the created Secret resource.
+	// +optional
+	Template *ExternalSecretTemplate `json:"template,omitempty"`
 }
 
 // ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.

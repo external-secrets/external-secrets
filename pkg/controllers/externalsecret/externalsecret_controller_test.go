@@ -231,6 +231,77 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(syncedSecret.ObjectMeta.Annotations).To(BeEquivalentTo(es.ObjectMeta.Annotations))
 		})
 
+		It("should set the secret value and use the provided secret template", func() {
+			By("creating an ExternalSecret")
+			ctx := context.Background()
+			const targetProp = "targetProperty"
+			const secretVal = "someValue"
+			const templateSecretKey = "tplkey"
+			const templateSecretVal = "{{ .targetProperty | toString | upper }}"
+			es := &esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: ExternalSecretNamespace,
+					Labels: map[string]string{
+						"fooobar": "bazz",
+					},
+					Annotations: map[string]string{
+						"hihihih": "hehehe",
+					},
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					SecretStoreRef: esv1alpha1.SecretStoreRef{
+						Name: ExternalSecretStore,
+					},
+					Target: esv1alpha1.ExternalSecretTarget{
+						Name: ExternalSecretTargetSecretName,
+						Template: &esv1alpha1.ExternalSecretTemplate{
+							Metadata: esv1alpha1.ExternalSecretTemplateMetadata{
+								Labels: map[string]string{
+									"foos": "ball",
+								},
+								Annotations: map[string]string{
+									"hihi": "ga",
+								},
+							},
+							Data: map[string][]byte{
+								templateSecretKey: []byte(templateSecretVal),
+							},
+						},
+					},
+					Data: []esv1alpha1.ExternalSecretData{
+						{
+							SecretKey: targetProp,
+							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+								Key:      "barz",
+								Property: "bang",
+							},
+						},
+					},
+				},
+			}
+
+			fakeProvider.WithGetSecret([]byte(secretVal), nil)
+			Expect(k8sClient.Create(ctx, es)).Should(Succeed())
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace}
+			syncedSecret := &v1.Secret{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, secretLookupKey, syncedSecret)
+				if err != nil {
+					return false
+				}
+				v1 := syncedSecret.Data[targetProp]
+				v2 := syncedSecret.Data[templateSecretKey]
+				return string(v1) == secretVal && string(v2) == "SOMEVALUE" // templated
+			}, timeout, interval).Should(BeTrue())
+			Expect(syncedSecret.ObjectMeta.Labels).To(BeEquivalentTo(
+				es.Spec.Target.Template.Metadata.Labels))
+			Expect(syncedSecret.ObjectMeta.Annotations).To(BeEquivalentTo(
+				es.Spec.Target.Template.Metadata.Annotations))
+		})
+
 		It("should refresh secret value", func() {
 			ctx := context.Background()
 			const targetProp = "targetProperty"

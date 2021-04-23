@@ -34,6 +34,7 @@ replace (
 require (
 	github.com/aws/aws-sdk-go v1.38.6
 	github.com/crossplane/crossplane-runtime v0.13.0
+	github.com/fatih/color v1.10.0 // indirect
 	github.com/frankban/quicktest v1.10.0 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -57,7 +58,8 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/stretchr/testify v1.6.1
 	github.com/tidwall/gjson v1.7.4
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
+	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777 // indirect
 	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c // indirect
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
