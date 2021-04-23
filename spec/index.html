@@ -1430,12 +1430,31 @@ ExternalSecretCreationPolicy
 Defaults to &lsquo;Owner&rsquo;</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>template</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretTemplate">
+ExternalSecretTemplate
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Template defines a blueprint for the created Secret resource.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.ExternalSecretTemplate">ExternalSecretTemplate
 </h3>
 <p>
-<p>ExternalSecretTemplate defines a blueprint for the created Secret resource.</p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretTarget">ExternalSecretTarget</a>)
+</p>
+<p>
+<p>ExternalSecretTemplate defines a blueprint for the created Secret resource.
+we can not use native corev1.Secret, it will have empty ObjectMeta values: <a href="https://github.com/kubernetes-sigs/controller-tools/issues/448">https://github.com/kubernetes-sigs/controller-tools/issues/448</a></p>
 </p>
 <table>
 <thead>
@@ -1465,6 +1484,17 @@ Kubernetes core/v1.SecretType
 <a href="#external-secrets.io/v1alpha1.ExternalSecretTemplateMetadata">
 ExternalSecretTemplateMetadata
 </a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+map[string][]byte
 </em>
 </td>
 <td>
