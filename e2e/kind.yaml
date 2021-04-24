@@ -1,0 +1,16 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+- |
+  apiVersion: kubelet.config.k8s.io/v1beta1
+  kind: KubeletConfiguration
+  metadata:
+    name: config
+  # this is only relevant for btrfs uses
+  # https://github.com/kubernetes/kubernetes/issues/80633#issuecomment-550994513
+  featureGates:
+    LocalStorageCapacityIsolation: false
+nodes:
+- role: control-plane
+- role: worker
+- role: worker

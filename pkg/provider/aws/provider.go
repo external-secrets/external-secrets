@@ -161,7 +161,7 @@ func getAWSProvider(store esv1alpha1.GenericStore) (*esv1alpha1.AWSProvider, err
 }
 
 // ResolveEndpoint returns a ResolverFunc with
-// customizable endpoints
+// customizable endpoints.
 func ResolveEndpoint() endpoints.ResolverFunc {
 	customEndpoints := make(map[string]string)
 	if v := os.Getenv(SecretsManagerEndpointEnv); v != "" {
