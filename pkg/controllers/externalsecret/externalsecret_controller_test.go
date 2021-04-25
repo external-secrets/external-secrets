@@ -36,7 +36,7 @@ import (
 var (
 	fakeProvider *fake.Client
 	metric       dto.Metric
-	timeout      = time.Second * 5
+	timeout      = time.Second * 30
 	interval     = time.Millisecond * 250
 )
 
@@ -122,10 +122,10 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 
-			Eventually(func() float64 {
+			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue()
-			}, timeout, interval).Should(Equal(2.0))
+				return metric.GetCounter().GetValue() >= 2.0
+			}, timeout, interval).Should(BeTrue())
 		})
 	})
 
@@ -169,10 +169,10 @@ var _ = Describe("ExternalSecret controller", func() {
 				return nil
 			}, timeout, interval).Should(Succeed())
 
-			Eventually(func() float64 {
+			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue()
-			}, timeout, interval).Should(Equal(3.0))
+				return metric.GetCounter().GetValue() >= 3.0
+			}, timeout, interval).Should(BeTrue())
 		})
 	})
 
@@ -447,10 +447,10 @@ var _ = Describe("ExternalSecret controller", func() {
 				return true
 			}, timeout, interval).Should(BeTrue())
 
-			Eventually(func() float64 {
+			Eventually(func() bool {
 				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue()
-			}, timeout, interval).Should(Equal(2.0))
+				return metric.GetCounter().GetValue() >= 2.0
+			}, timeout, interval).Should(BeTrue())
 
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
@@ -501,10 +501,10 @@ var _ = Describe("ExternalSecret controller", func() {
 				return true
 			}, timeout, interval).Should(BeTrue())
 
-			Eventually(func() float64 {
+			Eventually(func() bool {
 				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue()
-			}, timeout, interval).Should(Equal(2.0))
+				return metric.GetCounter().GetValue() >= 2.0
+			}, timeout, interval).Should(BeTrue())
 
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
@@ -559,10 +559,10 @@ var _ = Describe("ExternalSecret controller", func() {
 				return true
 			}, timeout, interval).Should(BeTrue())
 
-			Eventually(func() float64 {
+			Eventually(func() bool {
 				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue()
-			}, timeout, interval).Should(Equal(2.0))
+				return metric.GetCounter().GetValue() >= 2.0
+			}, timeout, interval).Should(BeTrue())
 
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
