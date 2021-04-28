@@ -13,3 +13,5 @@ cover.out
 deploy/charts/external-secrets/templates/crds/*.yaml
 
 site/
+e2e/k8s/deploy
+e2e/e2e.test

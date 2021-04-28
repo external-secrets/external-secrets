@@ -1,0 +1,10 @@
+service:
+  type: ClusterIP
+  edgeService:
+    targetPort: 80
+debug: true
+extraEnvVars:
+  - name: EDGE_PORT
+    value: "80"
+  - name: SERVICES
+    value: "secretsmanager,ssm,sts"

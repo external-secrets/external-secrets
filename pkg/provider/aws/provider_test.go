@@ -570,6 +570,43 @@ func TestSMAssumeRole(t *testing.T) {
 	assert.Equal(t, creds.SecretAccessKey, "4444")
 }
 
+func TestResolver(t *testing.T) {
+	tbl := []struct {
+		env     string
+		service string
+		url     string
+	}{
+		{
+			env:     SecretsManagerEndpointEnv,
+			service: "secretsmanager",
+			url:     "http://sm.foo",
+		},
+		{
+			env:     SSMEndpointEnv,
+			service: "ssm",
+			url:     "http://ssm.foo",
+		},
+		{
+			env:     STSEndpointEnv,
+			service: "sts",
+			url:     "http://sts.foo",
+		},
+	}
+
+	for _, item := range tbl {
+		os.Setenv(item.env, item.url)
+		defer os.Unsetenv(item.env)
+	}
+
+	f := ResolveEndpoint()
+
+	for _, item := range tbl {
+		ep, err := f.EndpointFor(item.service, "")
+		assert.Nil(t, err)
+		assert.Equal(t, item.url, ep.URL)
+	}
+}
+
 func ErrorContains(out error, want string) bool {
 	if out == nil {
 		return want == ""
