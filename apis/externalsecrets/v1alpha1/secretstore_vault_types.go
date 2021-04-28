@@ -42,6 +42,7 @@ type VaultProvider struct {
 
 	// Version is the Vault KV secret engine version. This can be either "v1" or
 	// "v2". Version defaults to "v2".
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum="v1";"v2"
 	// +kubebuilder:default:="v2"
 	Version VaultKVStoreVersion `json:"version"`
