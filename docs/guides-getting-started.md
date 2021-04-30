@@ -15,7 +15,6 @@ Uncomment the relevant line in the next steps to enable this.
 
 ### Option 1: Install from chart repository
 
-**Note:** No chart repository is yet available. See [Issue #105](https://github.com/external-secrets/external-secrets/issues/105) for details.
 ``` bash
 helm repo add external-secrets https://charts.external-secrets.io
 

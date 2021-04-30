@@ -1,8 +1,10 @@
-name: github pages
+name: Deploy Docs
+
 on:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     runs-on: ubuntu-18.04
@@ -11,12 +13,37 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Find the Go Cache
+        id: go
+        run: |
+          echo "::set-output name=build-cache::$(go env GOCACHE)"
+          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
+
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v2.1.5
+        with:
+          path: ${{ steps.go.outputs.build-cache }}
+          key: ${{ runner.os }}-build-check-diff-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-check-diff-
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@v2.1.5
+        with:
+          path: ${{ steps.go.outputs.mod-cache }}
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
+
+      - name: Build Docs
         run: make docs
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3.8.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          cname: external-secrets.io
+      # we can not use peaceiris/actions-gh-pages as it would override helm index
+      - name: Deploy Docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CNAME: external-secrets.io
+        run: .github/actions/docs/push.sh
