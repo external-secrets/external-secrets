@@ -18,13 +18,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"strings"
 	tpl "text/template"
 
 	"github.com/youmark/pkcs8"
 	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var tplFuncs = tpl.FuncMap{
@@ -46,88 +46,91 @@ var tplFuncs = tpl.FuncMap{
 	"lower":    strings.ToLower,
 }
 
-var log = ctrl.Log.WithName("template")
+const (
+	errParse                = "unable to parse template at key %s: %s"
+	errExecute              = "unable to execute template at key %s: %s"
+	errDecodePKCS12WithPass = "unable to decode pkcs12 with password: %s"
+	errConvertPrivKey       = "unable to convert pkcs12 private key: %s"
+	errDecodeCertWithPass   = "unable to decode pkcs12 certificate with password: %s"
+	errEncodePEMKey         = "unable to encode pem private key: %s"
+	errEncodePEMCert        = "unable to encode pem certificate: %s"
+	errDecodeBase64         = "unable to decode base64: %s"
+	errUnmarshalJSON        = "unable to unmarshal json: %s"
+	errMarshalJSON          = "unable to marshal json: %s"
+)
 
-// Execute uses an best-effort approach to render the secret data as template.
+// Execute renders the secret data as template. If an error occurs processing is stopped immediately.
 func Execute(secret *corev1.Secret, data map[string][]byte) error {
 	for k, v := range secret.Data {
 		t, err := tpl.New(k).
 			Funcs(tplFuncs).
 			Parse(string(v))
 		if err != nil {
-			log.Error(err, "unable to parse template at key", "key", k)
-			continue
+			return fmt.Errorf(errParse, k, err)
 		}
 		buf := bytes.NewBuffer(nil)
 		err = t.Execute(buf, data)
 		if err != nil {
-			log.Error(err, "unable to execute template at key", "key", k)
-			continue
+			return fmt.Errorf(errExecute, k, err)
 		}
 		secret.Data[k] = buf.Bytes()
 	}
 	return nil
 }
 
-func pkcs12keyPass(pass string, input []byte) []byte {
+func pkcs12keyPass(pass string, input []byte) ([]byte, error) {
 	key, _, err := pkcs12.Decode(input, pass)
 	if err != nil {
-		log.Error(err, "unable to decode pkcs12 with password")
-		return nil
+		return nil, fmt.Errorf(errDecodePKCS12WithPass, err)
 	}
 	kb, err := pkcs8.ConvertPrivateKeyToPKCS8(key)
 	if err != nil {
-		log.Error(err, "unable to convert pkcs12 private key")
-		return nil
+		return nil, fmt.Errorf(errConvertPrivKey, err)
 	}
-	return kb
+	return kb, nil
 }
 
-func pkcs12key(input []byte) []byte {
+func pkcs12key(input []byte) ([]byte, error) {
 	return pkcs12keyPass("", input)
 }
 
-func pkcs12certPass(pass string, input []byte) []byte {
+func pkcs12certPass(pass string, input []byte) ([]byte, error) {
 	_, cert, err := pkcs12.Decode(input, pass)
 	if err != nil {
-		log.Error(err, "unable to decode pkcs12 certificate with password")
-		return nil
+		return nil, fmt.Errorf(errDecodeCertWithPass, err)
 	}
-	return cert.Raw
+	return cert.Raw, nil
 }
 
-func pkcs12cert(input []byte) []byte {
+func pkcs12cert(input []byte) ([]byte, error) {
 	return pkcs12certPass("", input)
 }
 
-func pemPrivateKey(key []byte) string {
+func pemPrivateKey(key []byte) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	err := pem.Encode(buf, &pem.Block{Type: "PRIVATE KEY", Bytes: key})
 	if err != nil {
-		log.Error(err, "unable to encode pem private key")
-		return ""
+		return "", fmt.Errorf(errEncodePEMKey, err)
 	}
-	return buf.String()
+	return buf.String(), err
 }
 
-func pemCertificate(cert []byte) string {
+func pemCertificate(cert []byte) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	err := pem.Encode(buf, &pem.Block{Type: "CERTIFICATE", Bytes: cert})
 	if err != nil {
-		log.Error(err, "unable to encode pem certificate")
-		return ""
+		return "", fmt.Errorf(errEncodePEMCert, err)
 	}
-	return buf.String()
+	return buf.String(), nil
 }
 
-func base64decode(in []byte) []byte {
+func base64decode(in []byte) ([]byte, error) {
 	out := make([]byte, len(in))
 	l, err := base64.StdEncoding.Decode(out, in)
 	if err != nil {
-		log.Error(err, "unable to encode base64")
-		return []byte("")
+		return nil, fmt.Errorf(errDecodeBase64, err)
 	}
-	return out[:l]
+	return out[:l], nil
 }
 
 func base64encode(in []byte) []byte {
@@ -136,21 +139,21 @@ func base64encode(in []byte) []byte {
 	return out
 }
 
-func fromJSON(in []byte) interface{} {
+func fromJSON(in []byte) (interface{}, error) {
 	var out interface{}
 	err := json.Unmarshal(in, &out)
 	if err != nil {
-		log.Error(err, "unable to unmarshal json")
+		return nil, fmt.Errorf(errUnmarshalJSON, err)
 	}
-	return out
+	return out, nil
 }
 
-func toJSON(in interface{}) string {
+func toJSON(in interface{}) (string, error) {
 	output, err := json.Marshal(in)
 	if err != nil {
-		log.Error(err, "unable to marshal json")
+		return "", fmt.Errorf(errMarshalJSON, err)
 	}
-	return string(output)
+	return string(output), nil
 }
 
 func toString(in []byte) string {
