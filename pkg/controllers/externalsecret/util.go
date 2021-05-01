@@ -46,7 +46,8 @@ func GetExternalSecretCondition(status esv1alpha1.ExternalSecretStatus, condType
 func SetExternalSecretCondition(es *esv1alpha1.ExternalSecret, condition esv1alpha1.ExternalSecretStatusCondition) {
 	currentCond := GetExternalSecretCondition(es.Status, condition.Type)
 
-	if currentCond != nil && currentCond.Status == condition.Status && currentCond.Reason == condition.Reason {
+	if currentCond != nil && currentCond.Status == condition.Status &&
+		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
 		updateExternalSecretCondition(es, &condition, 1.0)
 		return
 	}
