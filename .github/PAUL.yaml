@@ -49,3 +49,4 @@ pull_requests:
   # Allows any maintainer in the list to run /approve
   # Paul will approve the PR (Does not merge it)
   allow_approval: true
+  giphy_enabled: true
