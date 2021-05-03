@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
 // SecretsManager is a provider for AWS SecretsManager.
@@ -58,7 +59,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.External
 		VersionStage: &ver,
 	})
 	if err != nil {
-		return nil, err
+		return nil, util.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if secretOut.SecretString != nil {

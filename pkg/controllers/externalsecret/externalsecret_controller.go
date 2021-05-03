@@ -28,7 +28,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
@@ -232,12 +231,8 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// prevent reconcile on status updates
-	// https://github.com/kubernetes-sigs/kubebuilder/issues/618#issuecomment-698018831
-	pred := predicate.GenerationChangedPredicate{}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&esv1alpha1.ExternalSecret{}).
-		WithEventFilter(pred).
 		Owns(&corev1.Secret{}).
 		Complete(r)
 }
