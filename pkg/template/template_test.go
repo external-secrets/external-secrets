@@ -128,13 +128,13 @@ func TestExecute(t *testing.T) {
 			name: "multiline template",
 			secret: map[string][]byte{
 				"cfg": []byte(`
-datasources:
-- name: Graphite
-	type: graphite
-	access: proxy
-	url: http://localhost:8080
-	password: "{{ .password | toString }}"
-	user: "{{ .user | toString }}"`),
+		datasources:
+		- name: Graphite
+			type: graphite
+			access: proxy
+			url: http://localhost:8080
+			password: "{{ .password | toString }}"
+			user: "{{ .user | toString }}"`),
 			},
 			data: map[string][]byte{
 				"user":     []byte(`foobert`),
@@ -142,13 +142,13 @@ datasources:
 			},
 			outSecret: map[string][]byte{
 				"cfg": []byte(`
-datasources:
-- name: Graphite
-	type: graphite
-	access: proxy
-	url: http://localhost:8080
-	password: "harharhar"
-	user: "foobert"`),
+		datasources:
+		- name: Graphite
+			type: graphite
+			access: proxy
+			url: http://localhost:8080
+			password: "harharhar"
+			user: "foobert"`),
 			},
 		},
 		{
@@ -189,6 +189,52 @@ datasources:
 				"cert": []byte(pkcs12Cert),
 			},
 		},
+		{
+			name: "base64 decode error",
+			secret: map[string][]byte{
+				"key": []byte(`{{ .example | base64decode }}`),
+			},
+			data: map[string][]byte{
+				"example": []byte("iam_no_base64"),
+			},
+			expErr: "unable to decode base64",
+		},
+		{
+			name: "pkcs12 key wrong password",
+			secret: map[string][]byte{
+				"key": []byte(`{{ .secret | base64decode | pkcs12keyPass "wrong" | pemPrivateKey }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12ContentWithPass),
+			},
+			expErr: "unable to decode pkcs12",
+		},
+		{
+			name: "pkcs12 cert wrong password",
+			secret: map[string][]byte{
+				"cert": []byte(`{{ .secret | base64decode | pkcs12certPass "wrong" | pemCertificate }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12ContentWithPass),
+			},
+			expErr: "unable to decode pkcs12",
+		},
+		{
+			name: "fromJSON error",
+			secret: map[string][]byte{
+				"key": []byte(`{{ "{ # no json # }" | toBytes | fromJSON }}`),
+			},
+			data:   map[string][]byte{},
+			expErr: "unable to unmarshal json",
+		},
+		{
+			name: "template syntax error",
+			secret: map[string][]byte{
+				"key": []byte(`{{ #xx }}`),
+			},
+			data:   map[string][]byte{},
+			expErr: "unable to parse template",
+		},
 	}
 
 	for i := range tbl {
@@ -198,7 +244,7 @@ datasources:
 				Data: row.secret,
 			}, row.data)
 			if !ErrorContains(err, row.expErr) {
-				t.Errorf("unexpected error: %s", err)
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
 			if row.outSecret == nil {
 				return
