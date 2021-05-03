@@ -44,3 +44,8 @@ How to get involved:
 - [Kubernetes Slack
   #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
 - [Contributing Process](contributing-process.md)
+
+### Kicked off by
+
+![cs-logo](./pictures/cs_logo.png)
+![godaddy-logo](./pictures/godaddy_logo.png)
