@@ -14,9 +14,11 @@ leave a comment.
 
 ## Submitting a Pull Request
 
-This project uses the well-known pull request process from GitHub. Merging a
-pull request requires the following steps to be completed before the pull
-request will be merged:
+This project uses the well-known pull request process from GitHub. To submit a
+pull request, fork the repository and push any changes to a branch on the copy,
+from there a pull request can be made in the main repo. Merging a pull request
+requires the following steps to be completed before the pull request will
+be merged:
 
 * ideally, there is an issue that documents the problem or feature in depth.
 * code must have a reasonable amount of test coverage
