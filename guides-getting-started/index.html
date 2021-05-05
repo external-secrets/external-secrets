@@ -834,7 +834,6 @@ to a supported version before installing external-secrets.</p>
 <p>To automatically install and manage the CRDs as part of your Helm release, you must add the --set installCRDs=true flag to your Helm installation command.</p>
 <p>Uncomment the relevant line in the next steps to enable this.</p>
 <h3 id="option-1-install-from-chart-repository">Option 1: Install from chart repository</h3>
-<p><strong>Note:</strong> No chart repository is yet available. See <a href="https://github.com/external-secrets/external-secrets/issues/105">Issue #105</a> for details.
 <div class="highlight"><pre><span></span>helm repo add external-secrets https://charts.external-secrets.io
 
 helm install external-secrets <span class="se">\</span>
@@ -842,7 +841,8 @@ helm install external-secrets <span class="se">\</span>
     -n external-secrets <span class="se">\</span>
     --create-namespace <span class="se">\</span>
   <span class="c1"># --set installCRDs=true</span>
-</pre></div></p>
+</pre></div>
+
 <h3 id="option-2-install-chart-from-local-build">Option 2: Install chart from local build</h3>
 <p>Build and install the Helm chart locally after cloning the repository.</p>
 <div class="highlight"><pre><span></span>make helm.build
