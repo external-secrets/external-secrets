@@ -1,8 +1,10 @@
-name: github pages
+name: Deploy Docs
+
 on:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     runs-on: ubuntu-18.04
@@ -11,7 +13,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build Docs
         run: make docs
 
       - name: Deploy
@@ -20,3 +27,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./site
           cname: external-secrets.io
+          keep_files: true
