@@ -25,6 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
 // ParameterStore is a provider for AWS ParameterStore.
@@ -55,7 +56,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1alpha1.External
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to get parameter: %w", err)
+		return nil, util.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if out.Parameter.Value != nil {
