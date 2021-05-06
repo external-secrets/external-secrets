@@ -41,16 +41,24 @@ kubectl apply -f config/samples/external-secrets_v1alpha1_secretstore.yaml
 kubectl apply -f config/samples/external-secrets_v1alpha1_externalsecret.yaml
 ```
 
-We will add more documentation once we have the implementation for the different providers.
+If you want to use helm:
+
+```shell
+helm repo add external-secrets https://charts.external-secrets.io
+helm install RELEASE_NAME external-secrets/external-secrets
+```
+
+We will add more documentation once we have the implementation for the different providers. You can find some here: https://external-secrets.io
 
 <a name="features"></a>
 
-## Planned Features
+## Features
 
 - Support to multiple Provider stores (AWS Secret Manager, GCP Secret Manger, Vault and more) simultaneously.
 - Multiple External Secrets operator instances for different contexts/environments.
 - A custom refresh interval to sync the data from the Providers, syncing your Kubernetes Secrets up to date.
 - Select specific versions of the Provider data.
+- Advanced [templating](https://external-secrets.io/guides-templating/)
 
 
 <a name="contributing"></a>
