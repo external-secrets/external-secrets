@@ -1,11 +1,14 @@
 package keyvault
 
 import (
+	"bytes"
 	"context"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"math/big"
 	"os"
 	"path"
 	"strings"
@@ -29,11 +32,6 @@ type Azure struct {
 	baseClient *keyvault.BaseClient
 	vaultUrl   string
 	namespace  string
-	iAzure     IAzure
-}
-
-type IAzure interface {
-	getKeyVaultSecrets(ctx context.Context, vaultName string, version string, secretName string, withTags bool) (map[string][]byte, error)
 }
 
 func init() {
@@ -48,7 +46,6 @@ func (a *Azure) New(ctx context.Context, store esv1alpha1.GenericStore, kube cli
 		store:     store,
 		namespace: namespace,
 	}
-	anAzure.iAzure = anAzure
 	azClient, vaultUrl, err := anAzure.newAzureClient(ctx)
 
 	if err != nil {
@@ -60,42 +57,98 @@ func (a *Azure) New(ctx context.Context, store esv1alpha1.GenericStore, kube cli
 	return anAzure, nil
 }
 
-// implement store.Client.GetSecret Interface.
-// retrieve a secret with the secret name defined in ref.Property in a specific keyvault with the name ref.Name.
+//Implements store.Client.GetSecret Interface.
+//Retrieves a secret/Key/Certificate with the secret name defined in ref.Name
+//The Object Type is defined as a prefix in the ref.Name , if no prefix is defined , we assume a secret is required
 func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	version := ""
-	var secretBundle []byte
+	objectType := "secret"
+	basicClient := a.baseClient
+	secretValue := ""
 
 	if ref.Version != "" {
 		version = ref.Version
 	}
-	secretName := ref.Key
-	nameSplitted := strings.Split(secretName, "_")
-	getTags := false
 
-	if nameSplitted[len(nameSplitted)-1] == "TAG" {
-		secretName = nameSplitted[0]
-		getTags = true
+	secretName := ref.Key
+	nameSplitted := strings.Split(secretName, "/")
+
+	if len(nameSplitted) > 1 {
+		objectType = nameSplitted[0]
+		secretName = nameSplitted[1]
+		// Shall we neglect any later tokens or raise an error ??
 	}
 
-	secretMap, err := a.iAzure.getKeyVaultSecrets(ctx, a.vaultUrl, version, secretName, getTags)
+	switch objectType {
+
+	case "secret":
+		secretResp, err := basicClient.GetSecret(context.Background(), a.vaultUrl, secretName, version)
+		if err != nil {
+			return nil, err
+		}
+		secretValue = *secretResp.Value
+
+	case "cert":
+		secretResp, err := basicClient.GetSecret(context.Background(), a.vaultUrl, secretName, version)
+		if err != nil {
+			return nil, err
+		}
+
+		if secretResp.ContentType != nil && *secretResp.ContentType == "application/x-pkcs12" {
+			secretValue, err = getCertBundleForPKCS(*secretResp.Value)
+			// Do we really need to decode PKCS raw value to PEM ? or will that be achieved by the templating features ?
+		} else {
+			secretValue = *secretResp.Value
+		}
+
+	case "key":
+		keyResp, err := basicClient.GetKey(context.Background(), a.vaultUrl, secretName, version)
+		if err != nil {
+			return nil, err
+		}
+		jwk := *keyResp.Key
+		// Do we really need to decode JWK raw value to PEM ? or will that be achieved by the templating features ?
+		secretValue, err = getPublicKeyFromJwk(jwk)
+
+	default:
+		return nil, fmt.Errorf("Unknown Azure Keyvault object Type for %s", secretName)
+	}
+
+	return []byte(secretValue), nil
+}
+
+//Implements store.Client.GetSecretMap Interface.
+//etrieve ALL secrets in a specific keyvault
+func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	basicClient := a.baseClient
+	secretsMap := make(map[string][]byte)
+
+	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), a.vaultUrl, nil)
 	if err != nil {
 		return nil, err
 	}
+	for secretListIter.NotDone() {
+		secretList := secretListIter.Response().Value
+		for _, secret := range *secretList {
+			if *secret.Attributes.Enabled {
+				secretName := path.Base(*secret.ID)
+				secretResp, err := basicClient.GetSecret(context.Background(), a.vaultUrl, secretName, "")
+				secretValue := *secretResp.Value
 
-	secretBundle = secretMap[ref.Key]
-	return secretBundle, nil
-}
+				if err != nil {
+					return nil, err
+				}
+				secretsMap[secretName] = []byte(secretValue)
 
-// implement store.Client.GetSecretMap Interface.
-// retrieve ALL secrets in a specific keyvault with the name ref.Name.
-func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	secretMap, err := a.iAzure.getKeyVaultSecrets(ctx, a.vaultUrl, ref.Version, "", true)
-	return secretMap, err
+			}
+		}
+		secretListIter.Next()
+	}
+	return secretsMap, err
 }
 
 // getCertBundle returns the certificate bundle.
-func getCertBundleForPKCS(certificateRawVal string, certBundleOnly, certKeyOnly bool) (bundle string, err error) {
+func getCertBundleForPKCS(certificateRawVal string) (bundle string, err error) {
 	pfx, err := base64.StdEncoding.DecodeString(certificateRawVal)
 
 	if err != nil {
@@ -104,10 +157,6 @@ func getCertBundleForPKCS(certificateRawVal string, certBundleOnly, certKeyOnly 
 	blocks, _ := pkcs12.ToPEM(pfx, "")
 
 	for _, block := range blocks {
-		// skip the private key if looking for the cert only
-		if block.Type == "PRIVATE KEY" && certBundleOnly {
-			continue
-		}
 		// no headers
 		if block.Type == "PRIVATE KEY" {
 			pkey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -119,87 +168,53 @@ func getCertBundleForPKCS(certificateRawVal string, certBundleOnly, certKeyOnly 
 				Type:  "RSA PRIVATE KEY",
 				Bytes: derStream,
 			}
-			if certKeyOnly {
-				bundle = string(pem.EncodeToMemory(block))
-				break
-			}
 		}
-
 		block.Headers = nil
 		bundle += string(pem.EncodeToMemory(block))
 	}
 	return bundle, nil
 }
 
-// consolidated method to retrieve secret value or secrets list based on whether or not a secret name is passed.
-// if the secret is of type PKCS then this is a cerificate that needs some decoding.
-func (a *Azure) getKeyVaultSecrets(ctx context.Context, vaultUrl, version, secretName string, withTags bool) (map[string][]byte, error) {
-	basicClient := a.baseClient
-	secretsMap := make(map[string][]byte)
-	certBundleOnly := false
-	certKeyOnly := false
-	secretNameinBE := secretName
-
-	if secretName != "" {
-		nameSplitted := strings.Split(secretName, "_")
-		if nameSplitted[len(nameSplitted)-1] == "CRT" {
-			secretNameinBE = nameSplitted[0]
-			certBundleOnly = true
-		}
-		if nameSplitted[len(nameSplitted)-1] == "KEY" {
-			secretNameinBE = nameSplitted[0]
-			certKeyOnly = true
-		}
-
-		secretResp, err := basicClient.GetSecret(context.Background(), vaultUrl, secretNameinBE, version)
-		if err != nil {
-			return nil, err
-		}
-		secretValue := *secretResp.Value
-
-		// Azure currently supports only PKCS#12 or PEM, PEM will be taken as it is, PKCS needs processing
-		if secretResp.ContentType != nil && *secretResp.ContentType == "application/x-pkcs12" {
-			secretValue, err = getCertBundleForPKCS(*secretResp.Value, certBundleOnly, certKeyOnly)
-			if err != nil {
-				return nil, err
-			}
-		}
-		secretsMap[secretName] = []byte(secretValue)
-		if withTags {
-			appendTagsToSecretMap(secretName, secretsMap, secretResp.Tags)
-		}
+func getPublicKeyFromJwk(jwk keyvault.JSONWebKey) (bundle string, err error) {
+	if jwk.Kty != "RSA" {
+		return "", fmt.Errorf("invalid key type: %s", jwk.Kty)
+	}
+	// decode the base64 bytes for n
+	nb, err := base64.RawURLEncoding.DecodeString(*jwk.N)
+	if err != nil {
+		return "", err
+	}
+	e := 0
+	// The default exponent is usually 65537, so just compare the
+	// base64 for [1,0,1] or [0,1,0,1]
+	if *jwk.E == "AQAB" || *jwk.E == "AAEAAQ" {
+		e = 65537
 	} else {
-		secretList, err := basicClient.GetSecrets(context.Background(), vaultUrl, nil)
-		if err != nil {
-			return nil, err
-		}
-		for _, secret := range secretList.Values() {
-			if !*secret.Attributes.Enabled {
-				continue
-			}
-			secretResp, err := basicClient.GetSecret(context.Background(), vaultUrl, path.Base(*secret.ID), "")
-			secretValue := *secretResp.Value
-			// Azure currently supports only PKCS#12 or PEM, PEM will be taken as it is, PKCS needs processing
-			if secretResp.ContentType != nil && *secretResp.ContentType == "application/x-pkcs12" {
-				secretValue, err = getCertBundleForPKCS(*secretResp.Value, certBundleOnly, certKeyOnly)
-			}
-			if err != nil {
-				return nil, err
-			}
-			secretsMap[path.Base(*secret.ID)] = []byte(secretValue)
-			if withTags {
-				appendTagsToSecretMap(path.Base(*secret.ID), secretsMap, secretResp.Tags)
-			}
-		}
+		// need to decode "e" as a big-endian int
+		return "", fmt.Errorf("need to deocde e: %s", *jwk.E)
 	}
-	return secretsMap, nil
+
+	pk := &rsa.PublicKey{
+		N: new(big.Int).SetBytes(nb),
+		E: e,
+	}
+
+	der, err := x509.MarshalPKIXPublicKey(pk)
+	if err != nil {
+		return "", err
+	}
+	block := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: der,
+	}
+	var out bytes.Buffer
+	pem.Encode(&out, block)
+	if err != nil {
+		return "", err
+	}
+	return out.String(), nil
 }
 
-func appendTagsToSecretMap(secretName string, secretsMap map[string][]byte, tags map[string]*string) {
-	for tagKey, tagValue := range tags {
-		secretsMap[secretName+"_"+tagKey+"_TAG"] = []byte(*tagValue)
-	}
-}
 func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, string, error) {
 	spec := *a.store.GetSpec().Provider.AzureKV
 	tenantID := *spec.TenantID

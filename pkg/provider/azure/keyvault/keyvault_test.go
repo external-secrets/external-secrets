@@ -15,31 +15,10 @@ type azureMock struct {
 	mock.Mock
 }
 
-func (_m *azureMock) getKeyVaultSecrets(ctx context.Context, vaultName, version, secretName string, withTags bool) (map[string][]byte, error) {
-	ret := _m.Called(ctx, vaultName, version, secretName, withTags)
-
-	var r0 map[string][]byte
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, bool) map[string][]byte); ok {
-		r0 = rf(ctx, vaultName, version, secretName, withTags)
-	} else if ret.Get(0) != nil {
-		r0 = ret.Get(0).(map[string][]byte)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, bool) error); ok {
-		r1 = rf(ctx, vaultName, version, secretName, withTags)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 func TestGetSecret(t *testing.T) {
 	testAzure := new(Azure)
 	anAzureMock := new(azureMock)
 	ctx := context.Background()
-	testAzure.iAzure = anAzureMock
 	property := "testProperty"
 	version := "v1"
 
@@ -60,7 +39,6 @@ func TestGetSecretMap(t *testing.T) {
 	testAzure := new(Azure)
 	anAzureMock := new(azureMock)
 	ctx := context.Background()
-	testAzure.iAzure = anAzureMock
 	property := "testProperty"
 	version := "v1"
 	rf := esv1alpha1.ExternalSecretDataRemoteRef{
@@ -87,17 +65,8 @@ func TestGetCertBundleForPKCS(t *testing.T) {
 		"0xYVc1NjdORStQYzN5S0RWWlVHdU82UXZ0cExCZkpPS3pZSAowc3F3OElmYjRlN" +
 		"0R6TkJuTmRoVDhzbGdUYkh5K3RzZUtPb0xHNi9rUktmRmRvSmRoeHAzeGNnbm56" +
 		"ZkY0anUvCi9UZTRYaWsxNC9FMAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t"
-	c, ok := getCertBundleForPKCS(rawCertExample, true, true)
+	c, ok := getCertBundleForPKCS(rawCertExample)
 	bundle := ""
 	tassert.Nil(t, ok)
 	tassert.Equal(t, c, bundle)
-}
-
-func TestAppendTagsToSecretMap(t *testing.T) {
-	var secretsMap map[string][]byte
-	var secretsMapOrigin map[string][]byte
-	secret := "testsecret"
-	var tags map[string]*string
-	appendTagsToSecretMap(secret, secretsMap, tags)
-	tassert.Equal(t, secretsMap, secretsMapOrigin)
 }
