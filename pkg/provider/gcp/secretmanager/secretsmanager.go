@@ -42,14 +42,14 @@ type GoogleSecretManagerClient interface {
 	Close() error
 }
 
-// GCP is a provider for GCP Secret Manager.
-type GCP struct {
+// ProviderGCP is a provider for GCP Secret Manager.
+type ProviderGCP struct {
 	projectID           string
 	SecretManagerClient GoogleSecretManagerClient
 }
 
-// New constructs a GCP Provider.
-func (sm *GCP) New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.Provider, error) {
+// NewClient constructs a GCP Provider.
+func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	// Fetch credential Secret
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := store.GetSpec().Provider.GCPSM.Auth.SecretRef.SecretAccessKey.Name
@@ -86,7 +86,7 @@ func (sm *GCP) New(ctx context.Context, store esv1alpha1.GenericStore, kube clie
 }
 
 // GetSecret returns a single secret from the provider.
-func (sm *GCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if sm.SecretManagerClient == nil || sm.projectID == "" {
 		return nil, fmt.Errorf("provider GCP is not initialized")
 	}
@@ -114,7 +114,7 @@ func (sm *GCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataR
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *GCP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if sm.SecretManagerClient == nil || sm.projectID == "" {
 		return nil, fmt.Errorf("provider GCP is not initialized")
 	}
@@ -124,7 +124,7 @@ func (sm *GCP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDa
 }
 
 func init() {
-	schema.Register(&GCP{}, &esv1alpha1.SecretStoreProvider{
+	schema.Register(&ProviderGCP{}, &esv1alpha1.SecretStoreProvider{
 		GCPSM: &esv1alpha1.GCPSMProvider{},
 	})
 }
