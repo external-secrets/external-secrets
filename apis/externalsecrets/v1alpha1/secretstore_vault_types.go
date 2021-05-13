@@ -77,6 +77,11 @@ type VaultAuth struct {
 	// token stored in the named Secret resource to the Vault server.
 	// +optional
 	Kubernetes *VaultKubernetesAuth `json:"kubernetes,omitempty"`
+
+	// Ldap authenticates with Vault by passing username/password pair using
+	// the LDAP authentication method
+	// +optional
+	Ldap *VaultLdapAuth `json:"ldap,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -123,4 +128,17 @@ type VaultKubernetesAuth struct {
 	// A required field containing the Vault Role to assume. A Role binds a
 	// Kubernetes ServiceAccount with a set of Vault policies.
 	Role string `json:"role"`
+}
+
+// VaultLdapAuth authenticates with Vault using the LDAP authentication method,
+// with the username and password stored in a Kubernetes Secret resource.
+type VaultLdapAuth struct {
+	// Username is a LDAP user name used to authenticate using the LDAP Vault
+	// authentication method
+	Username string `json:"username"`
+
+	// SecretRef to a key in a Secret resource containing password for the LDAP
+	// user used to authenticate with Vault using the LDAP authentication
+	// method
+	SecretRef *esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
 }
