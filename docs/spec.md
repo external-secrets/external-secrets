@@ -90,7 +90,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>AWSProvider configures a store to sync secrets using the AWS Secret Manager provider.</p>
+<p>AWSProvider configures a store to sync secrets with AWS.</p>
 </p>
 <table>
 <thead>
@@ -161,7 +161,7 @@ string
 <a href="#external-secrets.io/v1alpha1.AWSProvider">AWSProvider</a>)
 </p>
 <p>
-<p>AWSServiceType is a enum that defines the service/API that is used to fetch the secrets</p>
+<p>AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.</p>
 </p>
 <table>
 <thead>
@@ -171,11 +171,11 @@ string
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
-<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore
+<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
 see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
 </td>
 </tr><tr><td><p>&#34;SecretsManager&#34;</p></td>
-<td><p>AWSServiceSecretsManager is the AWS SecretsManager
+<td><p>AWSServiceSecretsManager is the AWS SecretsManager.
 see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html">https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html</a></p>
 </td>
 </tr></tbody>
@@ -774,12 +774,31 @@ ExternalSecretCreationPolicy
 Defaults to &lsquo;Owner&rsquo;</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>template</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretTemplate">
+ExternalSecretTemplate
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Template defines a blueprint for the created Secret resource.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.ExternalSecretTemplate">ExternalSecretTemplate
 </h3>
 <p>
-<p>ExternalSecretTemplate defines a blueprint for the created Secret resource.</p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretTarget">ExternalSecretTarget</a>)
+</p>
+<p>
+<p>ExternalSecretTemplate defines a blueprint for the created Secret resource.
+we can not use native corev1.Secret, it will have empty ObjectMeta values: <a href="https://github.com/kubernetes-sigs/controller-tools/issues/448">https://github.com/kubernetes-sigs/controller-tools/issues/448</a></p>
 </p>
 <table>
 <thead>
@@ -809,6 +828,17 @@ Kubernetes core/v1.SecretType
 <a href="#external-secrets.io/v1alpha1.ExternalSecretTemplateMetadata">
 ExternalSecretTemplateMetadata
 </a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+map[string][]byte
 </em>
 </td>
 <td>
@@ -863,12 +893,6 @@ map[string]string
 <p>
 <p>GenericStore is a common interface for interacting with ClusterSecretStore
 or a namespaced SecretStore.</p>
-</p>
-<h3 id="external-secrets.io/v1alpha1.ProviderIdentity">ProviderIdentity
-</h3>
-<p>
-<p>ProviderIdentity returns the name of a secret store provider
-this interface must be implemented by every provider</p>
 </p>
 <h3 id="external-secrets.io/v1alpha1.SecretStore">SecretStore
 </h3>
@@ -1001,6 +1025,20 @@ AWSProvider
 <td>
 <em>(Optional)</em>
 <p>AWS configures this store to sync secrets using AWS Secret Manager provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vault</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultProvider">
+VaultProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Vault configures this store to sync secrets using Hashi provider</p>
 </td>
 </tr>
 </tbody>
@@ -1199,6 +1237,322 @@ Kubernetes meta/v1.Time
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultAppRole">VaultAppRole
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultAppRole authenticates with Vault using the App Role auth mechanism,
+with the role and secret stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the App Role authentication backend is mounted
+in Vault, e.g: &ldquo;approle&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RoleID configured in the App Role authentication backend when setting
+up the authentication backend in Vault.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>Reference to a key in a Secret that contains the App Role secret used
+to authenticate with Vault.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultAuth">VaultAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+<p>Configuration used to authenticate with a Vault server.
+Only one of <code>tokenSecretRef</code>, <code>appRole</code> or <code>kubernetes</code> may be specified.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TokenSecretRef authenticates with Vault by presenting a token.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appRole</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultAppRole">
+VaultAppRole
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppRole authenticates with Vault using the App Role auth mechanism,
+with the role and secret stored in a Kubernetes Secret resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetes</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultKubernetesAuth">
+VaultKubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubernetes authenticates with Vault by passing the ServiceAccount
+token stored in the named Secret resource to the Vault server.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultKVStoreVersion">VaultKVStoreVersion
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;v1&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;v2&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultKubernetesAuth">VaultKubernetesAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>Authenticate against Vault using a Kubernetes ServiceAccount token stored in
+a Secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mountPath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the Kubernetes authentication backend is mounted in Vault, e.g:
+&ldquo;kubernetes&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional service account field containing the name of a kubernetes ServiceAccount.
+If the service account is specified, the service account secret token JWT will be used
+for authenticating with Vault. If the service account selector is not supplied,
+the secretRef will be used instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional secret field containing a Kubernetes ServiceAccount JWT used
+for authenticating with Vault. If a name is specified without a key,
+<code>token</code> is the default. If one is not specified, the one bound to
+the controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>A required field containing the Vault Role to assume. A Role binds a
+Kubernetes ServiceAccount with a set of Vault policies.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultProvider">VaultProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures an store to sync secrets using a HashiCorp Vault
+KV backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultAuth">
+VaultAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the Vault server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Server is the connection address for the Vault server, e.g: &ldquo;<a href="https://vault.example.com:8200&quot;">https://vault.example.com:8200&rdquo;</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path is the mount path of the Vault KV backend endpoint, e.g:
+&ldquo;secret&rdquo;. The v2 KV secret engine version specific &ldquo;/data&rdquo; path suffix
+for fetching secrets from Vault is optional and will be appended
+if not present in specified path.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultKVStoreVersion">
+VaultKVStoreVersion
+</a>
+</em>
+</td>
+<td>
+<p>Version is the Vault KV secret engine version. This can be either &ldquo;v1&rdquo; or
+&ldquo;v2&rdquo;. Version defaults to &ldquo;v2&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the vault namespace. Namespaces is a set of features within Vault Enterprise that allows
+Vault environments to support Secure Multi-tenancy. e.g: &ldquo;ns1&rdquo;.
+More about namespaces can be found here <a href="https://www.vaultproject.io/docs/enterprise/namespaces">https://www.vaultproject.io/docs/enterprise/namespaces</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM encoded CA bundle used to validate Vault server certificate. Only used
+if the Server URL is using HTTPS protocol. This parameter is ignored for
+plain HTTP protocol connection. If not set the system root certificates
+are used to validate the TLS connection.</p>
 </td>
 </tr>
 </tbody>
