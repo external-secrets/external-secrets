@@ -82,6 +82,11 @@ type VaultAuth struct {
 	// the LDAP authentication method
 	// +optional
 	Ldap *VaultLdapAuth `json:"ldap,omitempty"`
+
+	// Jwt authenticates with Vault by passing role and JWT token using the
+	// JWT/OIDC authentication method
+	// +optional
+	Jwt *VaultJwtAuth `json:"jwt,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -140,5 +145,17 @@ type VaultLdapAuth struct {
 	// SecretRef to a key in a Secret resource containing password for the LDAP
 	// user used to authenticate with Vault using the LDAP authentication
 	// method
-	SecretRef *esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+	SecretRef esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+}
+
+// VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
+// method, with the role name and token stored in a Kubernetes Secret resource.
+type VaultJwtAuth struct {
+	// Role is a JWT role to authenticate using the JWT/OIDC Vault
+	// authentication method
+	Role string `json:"role"`
+
+	// SecretRef to a key in a Secret resource containing JWT token to
+	// authenticate with Vault using the JWT/OIDC authentication method
+	SecretRef esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
 }
