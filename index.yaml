@@ -17,6 +17,6 @@ entries:
     name: external-secrets
     type: application
     urls:
-    - https://github.com/external-secrets/external-secrets/releases/download/helm-chart-0.1.1/external-secrets-0.1.1.tgz
+    - https://github.com/external-secrets/external-secrets/releases/download/helm-chart-0.1.2/external-secrets-0.1.2.tgz
     version: 0.1.1
 generated: "2021-05-05T19:04:19.101482259Z"
