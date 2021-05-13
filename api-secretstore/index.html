@@ -661,12 +661,13 @@ The SecretStore maps to exactly one instance of an external API.</p>
 <span class="nt">spec</span><span class="p">:</span>
 
   <span class="c1"># Used to select the correct ESO controller (think: ingress.ingressClassName)</span>
-  <span class="c1"># The ESO controller is instantiated with a specific controller name and filters ES based on this property</span>
+  <span class="c1"># The ESO controller is instantiated with a specific controller name</span>
+  <span class="c1"># and filters ES based on this property</span>
   <span class="c1"># Optional</span>
   <span class="nt">controller</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev</span>
 
-  <span class="c1"># provider field contains the configuration to access the provider which contains the secret</span>
-  <span class="c1"># exactly one provider must be configured.</span>
+  <span class="c1"># provider field contains the configuration to access the provider</span>
+  <span class="c1"># which contains the secret exactly one provider must be configured.</span>
   <span class="nt">provider</span><span class="p">:</span>
 
     <span class="c1"># (1): AWS Secrets Manager</span>
@@ -687,6 +688,47 @@ The SecretStore maps to exactly one instance of an external API.</p>
           <span class="nt">secretAccessKey</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
+
+    <span class="nt">vault</span><span class="p">:</span>
+      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
+      <span class="c1"># Path is the mount path of the Vault KV backend endpoint</span>
+      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
+      <span class="c1"># Version is the Vault KV secret engine version.</span>
+      <span class="c1"># This can be either &quot;v1&quot; or &quot;v2&quot;, defaults to &quot;v2&quot;</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
+      <span class="c1"># vault enterprise namespace: https://www.vaultproject.io/docs/enterprise/namespaces</span>
+      <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;a-team&quot;</span>
+      <span class="nt">caBundle</span><span class="p">:</span> <span class="s">&quot;...&quot;</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="c1"># static token: https://www.vaultproject.io/docs/auth/token</span>
+        <span class="nt">tokenSecretRef</span><span class="p">:</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
+          <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+
+        <span class="c1"># AppRole auth: https://www.vaultproject.io/docs/auth/approle</span>
+        <span class="nt">appRole</span><span class="p">:</span>
+          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;approle&quot;</span>
+          <span class="nt">roleId</span><span class="p">:</span> <span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span>
+          <span class="nt">secretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+
+        <span class="c1"># Kubernetes auth: https://www.vaultproject.io/docs/auth/kubernetes</span>
+        <span class="nt">kubernetes</span><span class="p">:</span>
+          <span class="nt">mountPath</span><span class="p">:</span> <span class="s">&quot;kubernetes&quot;</span>
+          <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;demo&quot;</span>
+          <span class="c1"># Optional service account reference</span>
+          <span class="nt">serviceAccountRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-sa&quot;</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+          <span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span>
+          <span class="c1"># used for authenticating with Vault</span>
+          <span class="nt">secretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault&quot;</span>
 
     <span class="c1"># (TODO): add more provider examples here</span>
 

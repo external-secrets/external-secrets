@@ -77,6 +77,10 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
+      <a href="#hashicorp-vault" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
     
       <header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid">
@@ -525,9 +529,76 @@
     <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
     
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        HashiCorp Vault
+      </label>
+    
     <a href="./" title="HashiCorp Vault" class="md-nav__link md-nav__link--active">
       HashiCorp Vault
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hashicorp-vault" class="md-nav__link">
+    Hashicorp Vault
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#token-based-authentication" class="md-nav__link">
+    Token-based authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approle-authentication-example" class="md-nav__link">
+    AppRole authentication example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubernetes-authentication" class="md-nav__link">
+    Kubernetes authentication
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -640,6 +711,75 @@
               </div>
             
             
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hashicorp-vault" class="md-nav__link">
+    Hashicorp Vault
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#token-based-authentication" class="md-nav__link">
+    Token-based authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approle-authentication-example" class="md-nav__link">
+    AppRole authentication example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kubernetes-authentication" class="md-nav__link">
+    Kubernetes authentication
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
@@ -650,12 +790,109 @@
                 
                   <h1>HashiCorp Vault</h1>
                 
-                <div class="admonition bug">
-<p class="admonition-title">Not implemented</p>
-<p>This is currently <strong>not yet</strong> implemented. Feel free
-to contribute. Please see <a href="https://github.com/external-secrets/external-secrets/issues/21">issue#21</a>
-for futher information.</p>
-</div>
+                <p><img alt="HCP Vault" src="../pictures/diagrams-provider-vault.png" /></p>
+<h2 id="hashicorp-vault">Hashicorp Vault</h2>
+<p>External Secrets Operator integrates with <a href="https://www.vaultproject.io/">HashiCorp Vault</a> for secret
+management. Vault itself implements lots of different secret engines, as of now we only support the
+<a href="https://www.vaultproject.io/docs/secrets/kv">KV Secrets Engine</a>.</p>
+<h3 id="authentication">Authentication</h3>
+<p>We support three different modes for authentication:
+<a href="https://www.vaultproject.io/docs/auth/token">token-based</a>,
+<a href="https://www.vaultproject.io/docs/auth/approle">appRole</a> and
+<a href="https://www.vaultproject.io/docs/auth/kubernetes">kubernetes-native</a>, each one comes with it's own
+trade-offs. Depending on the authentication method you need to adapt your environment.</p>
+<h4 id="token-based-authentication">Token-based authentication</h4>
+<p>A static token is stored in a <code>Kind=Secret</code> and is used to authenticate with vault.</p>
+<div class="highlight"><pre><span></span><span class="nt">apiVerson</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">vault</span><span class="p">:</span>
+      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
+      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="c1"># points to a secret that contains a vault token</span>
+        <span class="c1"># https://www.vaultproject.io/docs/auth/token</span>
+        <span class="nt">tokenSecretRef</span><span class="p">:</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
+          <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+</pre></div>
+
+<h4 id="approle-authentication-example">AppRole authentication example</h4>
+<p><a href="https://www.vaultproject.io/docs/auth/approle">AppRole authentication</a> reads the secret id from a
+<code>Kind=Secret</code> and uses the specified <code>roleId</code> to aquire a temporary token to fetch secrets.</p>
+<div class="highlight"><pre><span></span><span class="nt">apiVerson</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">vault</span><span class="p">:</span>
+      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
+      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="c1"># VaultAppRole authenticates with Vault using the</span>
+        <span class="c1"># App Role auth mechanism</span>
+        <span class="c1"># https://www.vaultproject.io/docs/auth/approle</span>
+        <span class="nt">appRole</span><span class="p">:</span>
+          <span class="c1"># Path where the App Role authentication backend is mounted</span>
+          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;approle&quot;</span>
+          <span class="c1"># RoleID configured in the App Role authentication backend</span>
+          <span class="nt">roleId</span><span class="p">:</span> <span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span>
+          <span class="nt">secretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+</pre></div>
+
+<h4 id="kubernetes-authentication">Kubernetes authentication</h4>
+<p><a href="https://www.vaultproject.io/docs/auth/kubernetes">Kubernetes-native authentication</a> has three
+options of optaining credentials for vault:</p>
+<ol>
+<li>by using a service account jwt referenced in <code>serviceAccountRef</code></li>
+<li>by using the jwt from a <code>Kind=Secret</code> referenced by the <code>secretRef</code></li>
+<li>by using transient credentials from the mounted service account token within the
+    external-secrets operator</li>
+</ol>
+<div class="highlight"><pre><span></span><span class="nt">apiVerson</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">vault</span><span class="p">:</span>
+      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
+      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="c1"># Authenticate against Vault using a Kubernetes ServiceAccount</span>
+        <span class="c1"># token stored in a Secret.</span>
+        <span class="c1"># https://www.vaultproject.io/docs/auth/kubernetes</span>
+        <span class="nt">kubernetes</span><span class="p">:</span>
+          <span class="c1"># Path where the Kubernetes authentication backend is mounted in Vault</span>
+          <span class="nt">mountPath</span><span class="p">:</span> <span class="s">&quot;kubernetes&quot;</span>
+          <span class="c1"># A required field containing the Vault Role to assume.</span>
+          <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;demo&quot;</span>
+          <span class="c1"># Optional service account field containing the name</span>
+          <span class="c1"># of a kubernetes ServiceAccount</span>
+          <span class="nt">serviceAccountRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-sa&quot;</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+          <span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span>
+          <span class="c1">#  used for authenticating with Vault</span>
+          <span class="nt">secretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault&quot;</span>
+</pre></div>
                 
                   
                 
