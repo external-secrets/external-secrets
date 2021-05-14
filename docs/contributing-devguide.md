@@ -83,7 +83,7 @@ python -m http.server 8000 --directory site
 
 # Python 2
 cd site
-python -m httpSimpleServer 8000
+python -m SimpleHTTPServer 8000
 ```
 
 Open `http://localhost:8000` in your browser.
