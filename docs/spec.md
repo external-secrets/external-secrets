@@ -1417,6 +1417,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Role is a JWT role to authenticate using the JWT/OIDC Vault
 authentication method</p>
 </td>

@@ -267,6 +267,16 @@ func (v *client) setAuth(ctx context.Context, client Client) error {
 		return nil
 	}
 
+	jwtAuth := v.store.Auth.Jwt
+	if jwtAuth != nil {
+		token, err := v.requestTokenWithJwtAuth(ctx, client, jwtAuth)
+		if err != nil {
+			return err
+		}
+		client.SetToken(token)
+		return nil
+	}
+
 	return errors.New(errAuthFormat)
 }
 

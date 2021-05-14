@@ -153,6 +153,7 @@ type VaultLdapAuth struct {
 type VaultJwtAuth struct {
 	// Role is a JWT role to authenticate using the JWT/OIDC Vault
 	// authentication method
+	// +optional
 	Role string `json:"role"`
 
 	// SecretRef to a key in a Secret resource containing JWT token to
