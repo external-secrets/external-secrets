@@ -61,8 +61,9 @@ type VaultProvider struct {
 	CABundle []byte `json:"caBundle,omitempty"`
 }
 
-// Configuration used to authenticate with a Vault server.
-// Only one of `tokenSecretRef`, `appRole` or `kubernetes` may be specified.
+// VaultAuth is the configuration used to authenticate with a Vault server.
+// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap` or `jwt`
+// can be specified.
 type VaultAuth struct {
 	// TokenSecretRef authenticates with Vault by presenting a token.
 	// +optional
@@ -145,7 +146,7 @@ type VaultLdapAuth struct {
 	// SecretRef to a key in a Secret resource containing password for the LDAP
 	// user used to authenticate with Vault using the LDAP authentication
 	// method
-	SecretRef esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
 // VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
@@ -158,5 +159,5 @@ type VaultJwtAuth struct {
 
 	// SecretRef to a key in a Secret resource containing JWT token to
 	// authenticate with Vault using the JWT/OIDC authentication method
-	SecretRef esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }

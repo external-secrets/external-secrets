@@ -1306,8 +1306,9 @@ resource is used as the app role secret.</p>
 <a href="#external-secrets.io/v1alpha1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
-<p>Configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code> or <code>kubernetes</code> may be specified.</p>
+<p>VaultAuth is the configuration used to authenticate with a Vault server.
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code> or <code>jwt</code>
+can be specified.</p>
 </p>
 <table>
 <thead>
@@ -1424,7 +1425,7 @@ authentication method</p>
 </tr>
 <tr>
 <td>
-<code>tokenSecretRef</code></br>
+<code>secretRef</code></br>
 <em>
 github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
@@ -1563,7 +1564,7 @@ authentication method</p>
 </tr>
 <tr>
 <td>
-<code>tokenSecretRef</code></br>
+<code>secretRef</code></br>
 <em>
 github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
