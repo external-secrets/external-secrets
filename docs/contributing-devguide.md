@@ -17,7 +17,7 @@ Building the operator binary and docker image:
 
 ```shell
 make build
-make docker-build IMG=external-secrets:latest
+make docker.build IMG=external-secrets:latest
 ```
 
 Run tests and lint the code:
@@ -36,7 +36,7 @@ make docs
 To install the External Secret Operator's CRDs into a Kubernetes Cluster run:
 
 ```shell
-make install
+make crds.install
 ```
 
 Apply the sample resources:
@@ -54,7 +54,7 @@ make run
 To remove the CRDs run:
 
 ```shell
-make uninstall
+make crds.uninstall
 ```
 
 !!! note "Contributing Flow"
@@ -77,6 +77,13 @@ Run the following command to run a complete build. The rendered assets are avail
 ```shell
 make docs
 
+# Python 3
 # inspect the build with this one-liner
 python -m http.server 8000 --directory site
+
+# Python 2
+cd site
+python -m httpSimpleServer 8000
 ```
+
+Open `http://localhost:8000` in your browser.
