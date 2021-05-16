@@ -38,6 +38,7 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if or (.Values.leaderElect) (.Values.extraArgs) }}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
@@ -48,6 +49,7 @@ spec:
             {{- else }}
           - --{{ $key }}
             {{- end }}
+          {{- end }}
           {{- end }}
           ports:
             - containerPort: {{ .Values.prometheus.service.port }}
