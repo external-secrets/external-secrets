@@ -764,7 +764,7 @@ then clone the repo:</p>
 static code analysis.</p>
 <p>Building the operator binary and docker image:</p>
 <div class="highlight"><pre><span></span>make build
-make docker-build <span class="nv">IMG</span><span class="o">=</span>external-secrets:latest
+make docker.build <span class="nv">IMG</span><span class="o">=</span>external-secrets:latest
 </pre></div>
 
 <p>Run tests and lint the code:
@@ -776,7 +776,7 @@ make lint
 </pre></div></p>
 <h2 id="installing">Installing</h2>
 <p>To install the External Secret Operator's CRDs into a Kubernetes Cluster run:</p>
-<div class="highlight"><pre><span></span>make install
+<div class="highlight"><pre><span></span>make crds.install
 </pre></div>
 
 <p>Apply the sample resources:
@@ -788,7 +788,7 @@ kubectl apply -f docs/snippets/basic-external-secret.yaml
 </pre></div>
 
 <p>To remove the CRDs run:</p>
-<div class="highlight"><pre><span></span>make uninstall
+<div class="highlight"><pre><span></span>make crds.uninstall
 </pre></div>
 
 <div class="admonition note">
@@ -804,10 +804,10 @@ documentation. See <code>/docs</code> for the source code and <code>/hack/api-do
 
 <p>Run the following command to run a complete build. The rendered assets are available under <code>/site</code>.</p>
 <div class="highlight"><pre><span></span>make docs
-
-<span class="c1"># inspect the build with this one-liner</span>
-python -m http.server <span class="m">8000</span> --directory site
+make serve-docs
 </pre></div>
+
+<p>Open <code>http://localhost:8000</code> in your browser.</p>
                 
                   
                 
