@@ -30,7 +30,7 @@ jobs:
 
       - name: Build Changelog
         id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v1.8.0
+        uses: mikepenz/release-changelog-builder-action@v1.8.1
         with:
           configuration: "changelog.json"
           toTag: ${{ github.event.inputs.version }}
