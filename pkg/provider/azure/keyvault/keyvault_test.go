@@ -1,57 +1,130 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package keyvault
 
 import (
 	context "context"
 	"testing"
 
-	tassert "github.com/stretchr/testify/assert"
-	mock "github.com/stretchr/testify/mock"
-	"gotest.tools/assert"
-
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	tassert "github.com/stretchr/testify/assert"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-type azureMock struct {
-	mock.Mock
+func newAzure() (Azure, *fake.AzureMock) {
+	azureMock := &fake.AzureMock{}
+	testAzure := Azure{
+		baseClient: azureMock,
+		vaultURL:   "https://local.vault/",
+	}
+	return testAzure, azureMock
 }
 
-func TestGetSecret(t *testing.T) {
-	testAzure := new(Azure)
-	anAzureMock := new(azureMock)
+func TestNewClientNoCreds(t *testing.T) {
+	namespace := "internal"
+	vaultURL := "https://local.vault.url"
+	tenantID := "1234"
+	store := esv1alpha1.SecretStore{
+		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
+			VaultURL: &vaultURL,
+			TenantID: &tenantID,
+		}}},
+	}
+	provider, err := schema.GetProvider(&store)
+	tassert.Nil(t, err, "the return err should be nil")
+	k8sClient := clientfake.NewClientBuilder().Build()
+	secretClient, err := provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "missing clientID/clientSecret in store config")
+	tassert.Nil(t, secretClient)
+
+	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1alpha1.AzureKVAuth{}
+	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
+	tassert.Nil(t, secretClient)
+
+	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID = &v1.SecretKeySelector{Name: "user"}
+	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
+	tassert.Nil(t, secretClient)
+
+	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret = &v1.SecretKeySelector{Name: "password"}
+	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "secrets \"user\" not found")
+	tassert.Nil(t, secretClient)
+}
+
+func TestGetSecretWithVersion(t *testing.T) {
+	testAzure, azureMock := newAzure()
 	ctx := context.Background()
-	property := "testProperty"
 	version := "v1"
 
 	rf := esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:      "testName",
-		Property: property,
-		Version:  version,
+		Key:     "testName",
+		Version: version,
 	}
-	returnValue := make(map[string][]byte)
-	returnValue["key"] = []byte{'A'}
-	anAzureMock.On("getKeyVaultSecrets", ctx, "testName", "v1", "testProperty", false).Return(returnValue, nil)
-	_, err := testAzure.GetSecret(ctx, rf)
-	assert.NilError(t, err, "the return err should be nil")
-	anAzureMock.AssertExpectations(t)
+	azureMock.AddSecretWithVersion(testAzure.vaultURL, "testName", version, "My Secret", true)
+	azureMock.ExpectsGetSecret(ctx, testAzure.vaultURL, "testName", version)
+
+	secret, err := testAzure.GetSecret(ctx, rf)
+	azureMock.AssertExpectations(t)
+	tassert.Nil(t, err, "the return err should be nil")
+	tassert.Equal(t, []byte("My Secret"), secret)
+}
+
+func TestGetSecretWithoutVersion(t *testing.T) {
+	testAzure, azureMock := newAzure()
+	ctx := context.Background()
+
+	rf := esv1alpha1.ExternalSecretDataRemoteRef{
+		Key: "testName",
+	}
+	azureMock.AddSecret(testAzure.vaultURL, "testName", "My Secret", true)
+	azureMock.ExpectsGetSecret(ctx, testAzure.vaultURL, "testName", "")
+
+	secret, err := testAzure.GetSecret(ctx, rf)
+	azureMock.AssertExpectations(t)
+	tassert.Nil(t, err, "the return err should be nil")
+	tassert.Equal(t, []byte("My Secret"), secret)
 }
 
 func TestGetSecretMap(t *testing.T) {
-	testAzure := new(Azure)
-	anAzureMock := new(azureMock)
+	testAzure, azureMock := newAzure()
 	ctx := context.Background()
-	property := "testProperty"
-	version := "v1"
-	rf := esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:      "testName",
-		Property: property,
-		Version:  version,
-	}
-	returnValue := make(map[string][]byte)
-	returnValue["key"] = []byte{'a'}
-	anAzureMock.On("getKeyVaultSecrets", ctx, "testName", "v1", "", true).Return(returnValue, nil)
-	_, err := testAzure.GetSecretMap(ctx, rf)
-	assert.NilError(t, err, "the return err should be nil")
-	anAzureMock.AssertExpectations(t)
+	rf := esv1alpha1.ExternalSecretDataRemoteRef{}
+	azureMock.AddSecret(testAzure.vaultURL, "testName", "My Secret", true)
+	azureMock.ExpectsGetSecretsComplete(ctx, testAzure.vaultURL, nil)
+	azureMock.ExpectsGetSecret(ctx, testAzure.vaultURL, "testName", "")
+	secretMap, err := testAzure.GetSecretMap(ctx, rf)
+	azureMock.AssertExpectations(t)
+	tassert.Nil(t, err, "the return err should be nil")
+	tassert.Equal(t, secretMap, map[string][]byte{"testName": []byte("My Secret")})
+}
+
+func TestGetSecretMapNotEnabled(t *testing.T) {
+	testAzure, azureMock := newAzure()
+	ctx := context.Background()
+	rf := esv1alpha1.ExternalSecretDataRemoteRef{}
+	azureMock.AddSecret(testAzure.vaultURL, "testName", "My Secret", false)
+	azureMock.ExpectsGetSecretsComplete(ctx, testAzure.vaultURL, nil)
+	secretMap, err := testAzure.GetSecretMap(ctx, rf)
+	azureMock.AssertExpectations(t)
+	tassert.Nil(t, err, "the return err should be nil")
+	tassert.Empty(t, secretMap)
 }
 
 func TestGetCertBundleForPKCS(t *testing.T) {
