@@ -76,14 +76,7 @@ Run the following command to run a complete build. The rendered assets are avail
 
 ```shell
 make docs
-
-# Python 3
-# inspect the build with this one-liner
-python -m http.server 8000 --directory site
-
-# Python 2
-cd site
-python -m SimpleHTTPServer 8000
+make serve-docs
 ```
 
 Open `http://localhost:8000` in your browser.
