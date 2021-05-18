@@ -69,7 +69,7 @@ reviewable: generate helm.generate
 # Ensure branch is clean.
 check-diff: reviewable
 	@$(INFO) checking that branch is clean
-	@test -z "$$(git status --porcelain)" || $(FAIL)
+	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
 	@$(OK) branch is clean
 
 # ====================================================================================
