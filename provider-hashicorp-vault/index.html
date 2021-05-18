@@ -582,6 +582,20 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#ldap-authentication" class="md-nav__link">
+    LDAP authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jwtoidc-authentication" class="md-nav__link">
+    JWT/OIDC authentication
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -759,6 +773,20 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#ldap-authentication" class="md-nav__link">
+    LDAP authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jwtoidc-authentication" class="md-nav__link">
+    JWT/OIDC authentication
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -892,6 +920,62 @@ options of optaining credentials for vault:</p>
             <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
             <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
             <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault&quot;</span>
+</pre></div>
+
+<h4 id="ldap-authentication">LDAP authentication</h4>
+<p><a href="https://www.vaultproject.io/docs/auth/ldap">LDAP authentication</a> uses
+username/password pair to get an access token. Username is stored directly in
+a <code>Kind=SecretStore</code> or <code>Kind=ClusterSecretStore</code> resource, password is stored
+in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
+<div class="highlight"><pre><span></span><span class="nt">apiVerson</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">vault</span><span class="p">:</span>
+      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
+      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="c1"># VaultLdap authenticates with Vault using the LDAP auth mechanism</span>
+        <span class="c1"># https://www.vaultproject.io/docs/auth/ldap</span>
+        <span class="nt">ldap</span><span class="p">:</span>
+          <span class="c1"># LDAP username</span>
+          <span class="nt">username</span><span class="p">:</span> <span class="s">&quot;username&quot;</span>
+          <span class="nt">secretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;ldap-password&quot;</span>
+</pre></div>
+
+<h4 id="jwtoidc-authentication">JWT/OIDC authentication</h4>
+<p><a href="https://www.vaultproject.io/docs/auth/jwt">JWT/OIDC</a> uses a
+<a href="https://jwt.io/">JWT</a> token stored in a <code>Kind=Secret</code> and referenced by the
+<code>secretRef</code>. Optionally a <code>role</code> field can be defined in a <code>Kind=SecretStore</code>
+or <code>Kind=ClusterSecretStore</code> resource.</p>
+<div class="highlight"><pre><span></span><span class="nt">apiVerson</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">vault</span><span class="p">:</span>
+      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
+      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="c1"># VaultJwt authenticates with Vault using the JWT/OIDC auth mechanism</span>
+        <span class="c1"># https://www.vaultproject.io/docs/auth/jwt</span>
+        <span class="nt">jwt</span><span class="p">:</span>
+          <span class="c1"># JWT role configured in a Vault server, optional.</span>
+          <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;vault-jwt-role&quot;</span>
+          <span class="nt">secretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;jwt-token&quot;</span>
 </pre></div>
                 
                   

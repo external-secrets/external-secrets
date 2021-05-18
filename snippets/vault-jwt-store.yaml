@@ -1,0 +1,21 @@
+apiVerson: external-secrets.io/v1alpha1
+kind: SecretStore
+metadata:
+  name: vault-backend
+  namespace: example
+spec:
+  provider:
+    vault:
+      server: "https://vault.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        # VaultJwt authenticates with Vault using the JWT/OIDC auth mechanism
+        # https://www.vaultproject.io/docs/auth/jwt
+        jwt:
+          # JWT role configured in a Vault server, optional.
+          role: "vault-jwt-role"
+          secretRef:
+            name: "my-secret"
+            namespace: "secret-admin"
+            key: "jwt-token"

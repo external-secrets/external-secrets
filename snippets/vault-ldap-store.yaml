@@ -1,0 +1,21 @@
+apiVerson: external-secrets.io/v1alpha1
+kind: SecretStore
+metadata:
+  name: vault-backend
+  namespace: example
+spec:
+  provider:
+    vault:
+      server: "https://vault.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        # VaultLdap authenticates with Vault using the LDAP auth mechanism
+        # https://www.vaultproject.io/docs/auth/ldap
+        ldap:
+          # LDAP username
+          username: "username"
+          secretRef:
+            name: "my-secret"
+            namespace: "secret-admin"
+            key: "ldap-password"
