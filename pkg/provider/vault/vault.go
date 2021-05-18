@@ -257,6 +257,26 @@ func (v *client) setAuth(ctx context.Context, client Client) error {
 		return nil
 	}
 
+	ldapAuth := v.store.Auth.Ldap
+	if ldapAuth != nil {
+		token, err := v.requestTokenWithLdapAuth(ctx, client, ldapAuth)
+		if err != nil {
+			return err
+		}
+		client.SetToken(token)
+		return nil
+	}
+
+	jwtAuth := v.store.Auth.Jwt
+	if jwtAuth != nil {
+		token, err := v.requestTokenWithJwtAuth(ctx, client, jwtAuth)
+		if err != nil {
+			return err
+		}
+		client.SetToken(token)
+		return nil
+	}
+
 	return errors.New(errAuthFormat)
 }
 
@@ -417,6 +437,85 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Clie
 	vaultResult := vault.Secret{}
 	err = resp.DecodeJSON(&vaultResult)
 	if err != nil {
+		return "", fmt.Errorf(errVaultResponse, err)
+	}
+
+	token, err := vaultResult.TokenID()
+	if err != nil {
+		return "", fmt.Errorf(errVaultToken, err)
+	}
+
+	return token, nil
+}
+
+func (v *client) requestTokenWithLdapAuth(ctx context.Context, client Client, ldapAuth *esv1alpha1.VaultLdapAuth) (string, error) {
+	username := strings.TrimSpace(ldapAuth.Username)
+
+	password, err := v.secretKeyRef(ctx, &ldapAuth.SecretRef)
+	if err != nil {
+		return "", err
+	}
+
+	parameters := map[string]string{
+		"password": password,
+	}
+	url := strings.Join([]string{"/v1", "auth", "ldap", "login", username}, "/")
+	request := client.NewRequest("POST", url)
+
+	err = request.SetJSONBody(parameters)
+	if err != nil {
+		return "", fmt.Errorf(errVaultReqParams, err)
+	}
+
+	resp, err := client.RawRequestWithContext(ctx, request)
+	if err != nil {
+		return "", fmt.Errorf(errVaultRequest, err)
+	}
+
+	defer resp.Body.Close()
+
+	vaultResult := vault.Secret{}
+	if err = resp.DecodeJSON(&vaultResult); err != nil {
+		return "", fmt.Errorf(errVaultResponse, err)
+	}
+
+	token, err := vaultResult.TokenID()
+	if err != nil {
+		return "", fmt.Errorf(errVaultToken, err)
+	}
+
+	return token, nil
+}
+
+func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwtAuth *esv1alpha1.VaultJwtAuth) (string, error) {
+	role := strings.TrimSpace(jwtAuth.Role)
+
+	jwt, err := v.secretKeyRef(ctx, &jwtAuth.SecretRef)
+	if err != nil {
+		return "", err
+	}
+
+	parameters := map[string]string{
+		"role": role,
+		"jwt":  jwt,
+	}
+	url := strings.Join([]string{"/v1", "auth", "jwt", "login"}, "/")
+	request := client.NewRequest("POST", url)
+
+	err = request.SetJSONBody(parameters)
+	if err != nil {
+		return "", fmt.Errorf(errVaultReqParams, err)
+	}
+
+	resp, err := client.RawRequestWithContext(ctx, request)
+	if err != nil {
+		return "", fmt.Errorf(errVaultRequest, err)
+	}
+
+	defer resp.Body.Close()
+
+	vaultResult := vault.Secret{}
+	if err = resp.DecodeJSON(&vaultResult); err != nil {
 		return "", fmt.Errorf(errVaultResponse, err)
 	}
 

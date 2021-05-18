@@ -44,3 +44,25 @@ options of optaining credentials for vault:
 ```yaml
 {% include 'vault-kubernetes-store.yaml' %}
 ```
+
+#### LDAP authentication
+
+[LDAP authentication](https://www.vaultproject.io/docs/auth/ldap) uses
+username/password pair to get an access token. Username is stored directly in
+a `Kind=SecretStore` or `Kind=ClusterSecretStore` resource, password is stored
+in a `Kind=Secret` referenced by the `secretRef`.
+
+```yaml
+{% include 'vault-ldap-store.yaml' %}
+```
+
+#### JWT/OIDC authentication
+
+[JWT/OIDC](https://www.vaultproject.io/docs/auth/jwt) uses a
+[JWT](https://jwt.io/) token stored in a `Kind=Secret` and referenced by the
+`secretRef`. Optionally a `role` field can be defined in a `Kind=SecretStore`
+or `Kind=ClusterSecretStore` resource.
+
+```yaml
+{% include 'vault-jwt-store.yaml' %}
+```

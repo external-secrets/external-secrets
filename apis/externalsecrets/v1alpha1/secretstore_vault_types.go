@@ -61,8 +61,9 @@ type VaultProvider struct {
 	CABundle []byte `json:"caBundle,omitempty"`
 }
 
-// Configuration used to authenticate with a Vault server.
-// Only one of `tokenSecretRef`, `appRole` or `kubernetes` may be specified.
+// VaultAuth is the configuration used to authenticate with a Vault server.
+// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap` or `jwt`
+// can be specified.
 type VaultAuth struct {
 	// TokenSecretRef authenticates with Vault by presenting a token.
 	// +optional
@@ -77,6 +78,16 @@ type VaultAuth struct {
 	// token stored in the named Secret resource to the Vault server.
 	// +optional
 	Kubernetes *VaultKubernetesAuth `json:"kubernetes,omitempty"`
+
+	// Ldap authenticates with Vault by passing username/password pair using
+	// the LDAP authentication method
+	// +optional
+	Ldap *VaultLdapAuth `json:"ldap,omitempty"`
+
+	// Jwt authenticates with Vault by passing role and JWT token using the
+	// JWT/OIDC authentication method
+	// +optional
+	Jwt *VaultJwtAuth `json:"jwt,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -123,4 +134,30 @@ type VaultKubernetesAuth struct {
 	// A required field containing the Vault Role to assume. A Role binds a
 	// Kubernetes ServiceAccount with a set of Vault policies.
 	Role string `json:"role"`
+}
+
+// VaultLdapAuth authenticates with Vault using the LDAP authentication method,
+// with the username and password stored in a Kubernetes Secret resource.
+type VaultLdapAuth struct {
+	// Username is a LDAP user name used to authenticate using the LDAP Vault
+	// authentication method
+	Username string `json:"username"`
+
+	// SecretRef to a key in a Secret resource containing password for the LDAP
+	// user used to authenticate with Vault using the LDAP authentication
+	// method
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
+// method, with the role name and token stored in a Kubernetes Secret resource.
+type VaultJwtAuth struct {
+	// Role is a JWT role to authenticate using the JWT/OIDC Vault
+	// authentication method
+	// +optional
+	Role string `json:"role"`
+
+	// SecretRef to a key in a Secret resource containing JWT token to
+	// authenticate with Vault using the JWT/OIDC authentication method
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }

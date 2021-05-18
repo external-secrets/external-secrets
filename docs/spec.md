@@ -1306,8 +1306,9 @@ resource is used as the app role secret.</p>
 <a href="#external-secrets.io/v1alpha1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
-<p>Configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code> or <code>kubernetes</code> may be specified.</p>
+<p>VaultAuth is the configuration used to authenticate with a Vault server.
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code> or <code>jwt</code>
+can be specified.</p>
 </p>
 <table>
 <thead>
@@ -1357,6 +1358,81 @@ VaultKubernetesAuth
 <em>(Optional)</em>
 <p>Kubernetes authenticates with Vault by passing the ServiceAccount
 token stored in the named Secret resource to the Vault server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ldap</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultLdapAuth">
+VaultLdapAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ldap authenticates with Vault by passing username/password pair using
+the LDAP authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultJwtAuth">
+VaultJwtAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Jwt authenticates with Vault by passing role and JWT token using the
+JWT/OIDC authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultJwtAuth">VaultJwtAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
+method, with the role name and token stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is a JWT role to authenticate using the JWT/OIDC Vault
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>SecretRef to a key in a Secret resource containing JWT token to
+authenticate with Vault using the JWT/OIDC authentication method</p>
 </td>
 </tr>
 </tbody>
@@ -1452,6 +1528,51 @@ string
 <td>
 <p>A required field containing the Vault Role to assume. A Role binds a
 Kubernetes ServiceAccount with a set of Vault policies.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultLdapAuth">VaultLdapAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultLdapAuth authenticates with Vault using the LDAP authentication method,
+with the username and password stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is a LDAP user name used to authenticate using the LDAP Vault
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>SecretRef to a key in a Secret resource containing password for the LDAP
+user used to authenticate with Vault using the LDAP authentication
+method</p>
 </td>
 </tr>
 </tbody>
