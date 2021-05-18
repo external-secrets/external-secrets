@@ -18,12 +18,13 @@ import (
 	context "context"
 	"testing"
 
+	tassert "github.com/stretchr/testify/assert"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-	tassert "github.com/stretchr/testify/assert"
-	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func newAzure() (Azure, *fake.AzureMock) {
