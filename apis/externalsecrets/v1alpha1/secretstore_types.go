@@ -49,6 +49,10 @@ type SecretStoreProvider struct {
 	// GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
 	// +optional
 	GCPSM *GCPSMProvider `json:"gcpsm,omitempty"`
+
+	// IBM configures this store to sync secrets using IBM Cloud provider
+	// +optional
+	IBM *IBMProvider `json:"ibm,omitempty"`
 }
 
 type SecretStoreConditionType string

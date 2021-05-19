@@ -37,6 +37,8 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.7
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
+	github.com/IBM/go-sdk-core/v5 v5.4.5
+	github.com/IBM/secrets-manager-go-sdk v0.1.21
 	github.com/aws/aws-sdk-go v1.38.6
 	github.com/crossplane/crossplane-runtime v0.13.0
 	github.com/fatih/color v1.10.0 // indirect
@@ -53,7 +55,6 @@ require (
 	github.com/hashicorp/vault/api v1.0.5-0.20210224012239-b540be4b7ec4
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/lestrrat-go/jwx v1.2.1
-	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
