@@ -2,8 +2,8 @@ apiVersion: v2
 name: external-secrets
 description: External secret management for Kubernetes
 type: application
-version: "0.1.3"
-appVersion: "v0.1.3"
+version: "0.1.4"
+appVersion: "helm-chart-0.1.4"
 kubeVersion: ">= 1.11.0-0"
 keywords:
   - kubernetes-external-secrets
