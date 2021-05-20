@@ -19,6 +19,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 const (
@@ -77,70 +79,70 @@ BixHvI/EJ8YK3ta5WdJWKC6hnA==
 
 func TestExecute(t *testing.T) {
 	tbl := []struct {
-		name      string
-		secret    map[string][]byte
-		data      map[string][]byte
-		outSecret map[string][]byte
-		expErr    string
+		name        string
+		tpl         *esv1alpha1.ExternalSecretTemplate
+		data        map[string][]byte
+		expetedData map[string][]byte
+		expErr      string
 	}{
 		{
-			name:   "test empty",
-			secret: nil,
-			data:   nil,
+			name: "test empty",
+			tpl:  nil,
+			data: nil,
 		},
 		{
 			name: "base64decode func",
-			secret: map[string][]byte{
-				"foo": []byte("{{ .secret | base64decode | toString }}"),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"foo": "{{ .secret | base64decode | toString }}",
+			}},
 			data: map[string][]byte{
 				"secret": []byte("MTIzNA=="),
 			},
-			outSecret: map[string][]byte{
+			expetedData: map[string][]byte{
 				"foo": []byte("1234"),
 			},
 		},
 		{
 			name: "fromJSON func",
-			secret: map[string][]byte{
-				"foo": []byte("{{ $var := .secret | fromJSON }}{{ $var.foo }}"),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"foo": "{{ $var := .secret | fromJSON }}{{ $var.foo }}",
+			}},
 			data: map[string][]byte{
 				"secret": []byte(`{"foo": "bar"}`),
 			},
-			outSecret: map[string][]byte{
+			expetedData: map[string][]byte{
 				"foo": []byte("bar"),
 			},
 		},
 		{
 			name: "from & toJSON func",
-			secret: map[string][]byte{
-				"foo": []byte("{{ $var := .secret | fromJSON }}{{ $var.foo | toJSON }}"),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"foo": "{{ $var := .secret | fromJSON }}{{ $var.foo | toJSON }}",
+			}},
 			data: map[string][]byte{
 				"secret": []byte(`{"foo": {"baz":"bang"}}`),
 			},
-			outSecret: map[string][]byte{
+			expetedData: map[string][]byte{
 				"foo": []byte(`{"baz":"bang"}`),
 			},
 		},
 		{
 			name: "multiline template",
-			secret: map[string][]byte{
-				"cfg": []byte(`
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"cfg": `
 		datasources:
 		- name: Graphite
 			type: graphite
 			access: proxy
 			url: http://localhost:8080
 			password: "{{ .password | toString }}"
-			user: "{{ .user | toString }}"`),
-			},
+			user: "{{ .user | toString }}"`,
+			}},
 			data: map[string][]byte{
 				"user":     []byte(`foobert`),
 				"password": []byte("harharhar"),
 			},
-			outSecret: map[string][]byte{
+			expetedData: map[string][]byte{
 				"cfg": []byte(`
 		datasources:
 		- name: Graphite
@@ -153,47 +155,47 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "base64 pipeline",
-			secret: map[string][]byte{
-				"foo": []byte(`{{ "123412341234" | toBytes | base64encode | base64decode | toString }}`),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"foo": `{{ "123412341234" | toBytes | base64encode | base64decode | toString }}`,
+			}},
 			data: map[string][]byte{},
-			outSecret: map[string][]byte{
+			expetedData: map[string][]byte{
 				"foo": []byte("123412341234"),
 			},
 		},
 		{
 			name: "base64 pkcs12 extract",
-			secret: map[string][]byte{
-				"key":  []byte(`{{ .secret | base64decode | pkcs12key | pemPrivateKey }}`),
-				"cert": []byte(`{{ .secret | base64decode | pkcs12cert | pemCertificate }}`),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"key":  `{{ .secret | base64decode | pkcs12key | pemPrivateKey }}`,
+				"cert": `{{ .secret | base64decode | pkcs12cert | pemCertificate }}`,
+			}},
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentNoPass),
 			},
-			outSecret: map[string][]byte{
+			expetedData: map[string][]byte{
 				"key":  []byte(pkcs12Key),
 				"cert": []byte(pkcs12Cert),
 			},
 		},
 		{
 			name: "base64 pkcs12 extract with password",
-			secret: map[string][]byte{
-				"key":  []byte(`{{ .secret | base64decode | pkcs12keyPass "123456" | pemPrivateKey }}`),
-				"cert": []byte(`{{ .secret | base64decode | pkcs12certPass "123456" | pemCertificate }}`),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"key":  `{{ .secret | base64decode | pkcs12keyPass "123456" | pemPrivateKey }}`,
+				"cert": `{{ .secret | base64decode | pkcs12certPass "123456" | pemCertificate }}`,
+			}},
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentWithPass),
 			},
-			outSecret: map[string][]byte{
+			expetedData: map[string][]byte{
 				"key":  []byte(pkcs12Key),
 				"cert": []byte(pkcs12Cert),
 			},
 		},
 		{
 			name: "base64 decode error",
-			secret: map[string][]byte{
-				"key": []byte(`{{ .example | base64decode }}`),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"key": `{{ .example | base64decode }}`,
+			}},
 			data: map[string][]byte{
 				"example": []byte("iam_no_base64"),
 			},
@@ -201,9 +203,9 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "pkcs12 key wrong password",
-			secret: map[string][]byte{
-				"key": []byte(`{{ .secret | base64decode | pkcs12keyPass "wrong" | pemPrivateKey }}`),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"key": `{{ .secret | base64decode | pkcs12keyPass "wrong" | pemPrivateKey }}`,
+			}},
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentWithPass),
 			},
@@ -211,9 +213,9 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "pkcs12 cert wrong password",
-			secret: map[string][]byte{
-				"cert": []byte(`{{ .secret | base64decode | pkcs12certPass "wrong" | pemCertificate }}`),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"cert": `{{ .secret | base64decode | pkcs12certPass "wrong" | pemCertificate }}`,
+			}},
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentWithPass),
 			},
@@ -221,17 +223,17 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			name: "fromJSON error",
-			secret: map[string][]byte{
-				"key": []byte(`{{ "{ # no json # }" | toBytes | fromJSON }}`),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"key": `{{ "{ # no json # }" | toBytes | fromJSON }}`,
+			}},
 			data:   map[string][]byte{},
 			expErr: "unable to unmarshal json",
 		},
 		{
 			name: "template syntax error",
-			secret: map[string][]byte{
-				"key": []byte(`{{ #xx }}`),
-			},
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"key": `{{ #xx }}`,
+			}},
 			data:   map[string][]byte{},
 			expErr: "unable to parse template",
 		},
@@ -240,16 +242,17 @@ func TestExecute(t *testing.T) {
 	for i := range tbl {
 		row := tbl[i]
 		t.Run(row.name, func(t *testing.T) {
-			err := Execute(&corev1.Secret{
-				Data: row.secret,
-			}, row.data)
+			sec := &corev1.Secret{
+				Data: make(map[string][]byte),
+			}
+			err := Execute(row.tpl, sec, row.data)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
-			if row.outSecret == nil {
+			if row.expetedData == nil {
 				return
 			}
-			assert.EqualValues(t, row.outSecret, row.secret)
+			assert.EqualValues(t, row.expetedData, sec.Data)
 		})
 	}
 }

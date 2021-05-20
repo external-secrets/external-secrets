@@ -25,6 +25,8 @@ import (
 	"github.com/youmark/pkcs8"
 	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 var tplFuncs = tpl.FuncMap{
@@ -60,22 +62,33 @@ const (
 )
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(secret *corev1.Secret, data map[string][]byte) error {
-	for k, v := range secret.Data {
-		t, err := tpl.New(k).
-			Funcs(tplFuncs).
-			Parse(string(v))
-		if err != nil {
-			return fmt.Errorf(errParse, k, err)
-		}
-		buf := bytes.NewBuffer(nil)
-		err = t.Execute(buf, data)
+func Execute(template *esv1alpha1.ExternalSecretTemplate, secret *corev1.Secret, data map[string][]byte) error {
+	if template == nil {
+		return nil
+	}
+	for k, v := range template.Data {
+		val, err := execute(k, v, data)
 		if err != nil {
 			return fmt.Errorf(errExecute, k, err)
 		}
-		secret.Data[k] = buf.Bytes()
+		secret.Data[k] = val
 	}
 	return nil
+}
+
+func execute(k, val string, data map[string][]byte) ([]byte, error) {
+	t, err := tpl.New(k).
+		Funcs(tplFuncs).
+		Parse(val)
+	if err != nil {
+		return nil, fmt.Errorf(errParse, k, err)
+	}
+	buf := bytes.NewBuffer(nil)
+	err = t.Execute(buf, data)
+	if err != nil {
+		return nil, fmt.Errorf(errExecute, k, err)
+	}
+	return buf.Bytes(), nil
 }
 
 func pkcs12keyPass(pass string, input []byte) ([]byte, error) {

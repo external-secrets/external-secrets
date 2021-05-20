@@ -64,7 +64,7 @@ clean:
 # serve runs mkdocs as a local webserver for interactive development.
 # This will serve the live copy of the docs on 127.0.0.1:8000.
 .PHONY: serve
-serve:
+serve: build
 	$(DOCKER) run \
 		-it \
 		--sig-proxy=true \

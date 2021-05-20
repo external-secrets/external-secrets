@@ -63,7 +63,7 @@ type ExternalSecretTemplate struct {
 	Metadata ExternalSecretTemplateMetadata `json:"metadata,omitempty"`
 
 	// +optional
-	Data map[string][]byte `json:"data,omitempty"`
+	Data map[string]string `json:"data,omitempty"`
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created
