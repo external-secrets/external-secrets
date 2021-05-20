@@ -112,6 +112,10 @@ func (m *AzureMock) GetSecret(ctx context.Context, vaultBaseURL, secretName, sec
 	args := m.Called(ctx, vaultBaseURL, secretName, secretVersion)
 	return args.Get(0).(keyvault.SecretBundle), args.Error(1)
 }
+func (m *AzureMock) GetCertificate(ctx context.Context, vaultBaseURL, certificateName, certificateVersion string) (result keyvault.CertificateBundle, err error) {
+	args := m.Called(ctx, vaultBaseURL, certificateName, certificateVersion)
+	return args.Get(0).(keyvault.CertificateBundle), args.Error(1)
+}
 
 func (m *AzureMock) GetSecretsComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error) {
 	args := m.Called(ctx, vaultBaseURL, maxresults)

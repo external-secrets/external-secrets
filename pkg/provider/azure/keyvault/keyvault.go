@@ -23,12 +23,11 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
-	"os"
 	"path"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
-	kvauth "github.com/Azure/azure-sdk-for-go/services/keyvault/auth"
+	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,6 +47,7 @@ type SecretClient interface {
 	GetKey(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string) (result keyvault.KeyBundle, err error)
 	GetSecret(ctx context.Context, vaultBaseURL string, secretName string, secretVersion string) (result keyvault.SecretBundle, err error)
 	GetSecretsComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error)
+	GetCertificate(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
 }
 
 // Azure satisfies the provider.SecretsClient interface.
@@ -94,7 +94,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	version := ""
 	objectType := "secret"
 	basicClient := a.baseClient
-	secretValue := ""
+	var secretValue []byte // The value of the secret that will be set to the k8s secret object
 
 	if ref.Version != "" {
 		version = ref.Version
@@ -106,7 +106,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	if len(nameSplitted) > 1 {
 		objectType = nameSplitted[0]
 		secretName = nameSplitted[1]
-		// Shall we neglect any later tokens or raise an error ??
+		// TODO: later tokens can be used to read the secret tags
 	}
 
 	switch objectType {
@@ -115,23 +115,14 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		if err != nil {
 			return nil, err
 		}
-		secretValue = *secretResp.Value
+		secretValue = []byte(*secretResp.Value)
 
 	case "cert":
-		secretResp, err := basicClient.GetSecret(context.Background(), a.vaultURL, secretName, version)
+		secretResp, err := basicClient.GetCertificate(context.Background(), a.vaultURL, secretName, version)
 		if err != nil {
 			return nil, err
 		}
-
-		if secretResp.ContentType != nil && *secretResp.ContentType == "application/x-pkcs12" {
-			secretValue, err = getCertBundleForPKCS(*secretResp.Value)
-			// Do we really need to decode PKCS raw value to PEM ? or will that be achieved by the templating features ?
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			secretValue = *secretResp.Value
-		}
+		secretValue = *secretResp.Cer
 
 	case "key":
 		keyResp, err := basicClient.GetKey(context.Background(), a.vaultURL, secretName, version)
@@ -139,7 +130,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 			return nil, err
 		}
 		jwk := *keyResp.Key
-		// Do we really need to decode JWK raw value to PEM ? or will that be achieved by the templating features ?
+
 		secretValue, err = getPublicKeyFromJwk(jwk)
 		if err != nil {
 			return nil, err
@@ -149,7 +140,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
 	}
 
-	return []byte(secretValue), nil
+	return secretValue, nil
 }
 
 // Implements store.Client.GetSecretMap Interface.
@@ -214,14 +205,14 @@ func getCertBundleForPKCS(certificateRawVal string) (bundle string, err error) {
 	return bundle, nil
 }
 
-func getPublicKeyFromJwk(jwk keyvault.JSONWebKey) (bundle string, err error) {
+func getPublicKeyFromJwk(jwk keyvault.JSONWebKey) (bundle []byte, err error) {
 	if jwk.Kty != "RSA" {
-		return "", fmt.Errorf("invalid key type: %s", jwk.Kty)
+		return nil, fmt.Errorf("invalid key type: %s", jwk.Kty)
 	}
 	// decode the base64 bytes for n
 	nb, err := base64.RawURLEncoding.DecodeString(*jwk.N)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	e := 0
 	// The default exponent is usually 65537, so just compare the
@@ -230,7 +221,7 @@ func getPublicKeyFromJwk(jwk keyvault.JSONWebKey) (bundle string, err error) {
 		e = 65537
 	} else {
 		// need to decode "e" as a big-endian int
-		return "", fmt.Errorf("need to deocde e: %s", *jwk.E)
+		return nil, fmt.Errorf("need to deocde e: %s", *jwk.E)
 	}
 
 	pk := &rsa.PublicKey{
@@ -240,7 +231,7 @@ func getPublicKeyFromJwk(jwk keyvault.JSONWebKey) (bundle string, err error) {
 
 	der, err := x509.MarshalPKIXPublicKey(pk)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	block := &pem.Block{
 		Type:  "RSA PUBLIC KEY",
@@ -249,9 +240,9 @@ func getPublicKeyFromJwk(jwk keyvault.JSONWebKey) (bundle string, err error) {
 	var out bytes.Buffer
 	err = pem.Encode(&out, block)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return out.String(), nil
+	return out.Bytes(), nil
 }
 
 func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, string, error) {
@@ -277,17 +268,14 @@ func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, strin
 	if err != nil {
 		return nil, "", err
 	}
-	os.Setenv("AZURE_TENANT_ID", tenantID)
-	os.Setenv("AZURE_CLIENT_ID", cid)
-	os.Setenv("AZURE_CLIENT_SECRET", csec)
 
-	authorizer, err := kvauth.NewAuthorizerFromEnvironment()
+	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, tenantID)
+	// the default resource api is the management URL and not the vault URL which we need for keyvault operations
+	clientCredentialsConfig.Resource = "https://vault.azure.net"
+	authorizer, err := clientCredentialsConfig.Authorizer()
 	if err != nil {
 		return nil, "", err
 	}
-	os.Unsetenv("AZURE_TENANT_ID")
-	os.Unsetenv("AZURE_CLIENT_ID")
-	os.Unsetenv("AZURE_CLIENT_SECRET")
 
 	basicClient := keyvault.New()
 	basicClient.Authorizer = authorizer
