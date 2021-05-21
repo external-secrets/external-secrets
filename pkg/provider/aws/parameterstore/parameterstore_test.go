@@ -45,6 +45,7 @@ type parameterstoreTestCase struct {
 	apiErr         error
 	expectError    string
 	expectedSecret string
+	expectedData   map[string]string
 }
 
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
@@ -56,6 +57,7 @@ func makeValidParameterStoreTestCase() *parameterstoreTestCase {
 		apiErr:         nil,
 		expectError:    "",
 		expectedSecret: "",
+		expectedData:   make(map[string]string),
 	}
 }
 
@@ -78,6 +80,15 @@ func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
 		Key: "/baz",
 	}
+}
+
+func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTestCase)) *parameterstoreTestCase {
+	pstc := makeValidParameterStoreTestCase()
+	for _, fn := range tweaks {
+		fn(pstc)
+	}
+	pstc.fakeClient.WithValue(pstc.apiInput, pstc.apiOutput, pstc.apiErr)
+	return pstc
 }
 
 // test the ssm<->aws interface
@@ -214,82 +225,43 @@ func TestGetSecret(t *testing.T) {
 }
 
 func TestGetSecretMap(t *testing.T) {
-	f := &fake.Client{}
-	p := &ParameterStore{
-		client: f,
-	}
-	for i, row := range []struct {
-		apiInput     *ssm.GetParameterInput
-		apiOutput    *ssm.GetParameterOutput
-		rr           esv1alpha1.ExternalSecretDataRemoteRef
-		expectedData map[string]string
-		apiErr       error
-		expectError  string
-	}{
-		{
-			// good case: default version & deserialization
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/baz"),
-				WithDecryption: aws.Bool(true),
-			},
-			apiOutput: &ssm.GetParameterOutput{
-				Parameter: &ssm.Parameter{
-					Value: aws.String(`{"foo":"bar"}`),
-				},
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key: "/baz",
-			},
-			expectedData: map[string]string{
-				"foo": "bar",
-			},
-			apiErr:      nil,
-			expectError: "",
-		},
-		{
-			// bad case: api error returned
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/baz"),
-				WithDecryption: aws.Bool(true),
-			},
-			apiOutput: &ssm.GetParameterOutput{
-				Parameter: &ssm.Parameter{},
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key: "/baz",
-			},
-			expectedData: map[string]string{
-				"foo": "bar",
-			},
-			apiErr:      fmt.Errorf("some api err"),
-			expectError: "some api err",
-		},
-		{
-			// bad case: invalid json
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/baz"),
-				WithDecryption: aws.Bool(true),
-			},
-			apiOutput: &ssm.GetParameterOutput{
-				Parameter: &ssm.Parameter{
-					Value: aws.String(`-----------------`),
-				},
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key: "/baz",
-			},
-			expectedData: map[string]string{},
-			apiErr:       nil,
-			expectError:  "unable to unmarshal secret",
-		},
-	} {
-		f.WithValue(row.apiInput, row.apiOutput, row.apiErr)
-		out, err := p.GetSecretMap(context.Background(), row.rr)
-		if !ErrorContains(err, row.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", i, err.Error(), row.expectError)
+	// good case: default version & deserialization
+	setDeserialization := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter = &ssm.Parameter{
+			Value: aws.String(`{"foo":"bar"}`),
 		}
-		if cmp.Equal(out, row.expectedData) {
-			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", i, row.expectedData, out)
+		pstc.expectedData["foo"] = "bar"
+	}
+
+	// bad case: api error returned
+	setAPIError := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter = &ssm.Parameter{}
+		pstc.expectError = "some api err"
+		pstc.apiErr = fmt.Errorf("some api err")
+	}
+	// bad case: invalid json
+	setInvalidJSON := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter = &ssm.Parameter{
+			Value: aws.String(`-----------------`),
+		}
+		pstc.expectError = "unable to unmarshal secret"
+	}
+
+	successCases := []*parameterstoreTestCase{
+		makeValidParameterStoreTestCaseCustom(setDeserialization),
+		makeValidParameterStoreTestCaseCustom(setAPIError),
+		makeValidParameterStoreTestCaseCustom(setInvalidJSON),
+	}
+
+	ps := ParameterStore{}
+	for k, v := range successCases {
+		ps.client = v.fakeClient
+		out, err := ps.GetSecretMap(context.Background(), *v.remoteRef)
+		if !ErrorContains(err, v.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if cmp.Equal(out, v.expectedData) {
+			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
 	}
 }
