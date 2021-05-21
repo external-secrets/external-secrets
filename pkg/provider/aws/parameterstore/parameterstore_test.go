@@ -126,12 +126,20 @@ func TestGetSecret(t *testing.T) {
 		pstc.expectError = "parameter value is nil for key"
 	}
 
+	// base case: api output return error
+	setAPIError := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput = &ssm.GetParameterOutput{}
+		pstc.apiErr = fmt.Errorf("oh no")
+		pstc.expectError = "oh no"
+	}
+
 	successCases := []*parameterstoreTestCase{
 		makeValidParameterStoreTestCaseCustom(setSecretString),
 		makeValidParameterStoreTestCaseCustom(setExtractProperty),
 		makeValidParameterStoreTestCaseCustom(setMissingProperty),
 		makeValidParameterStoreTestCaseCustom(setPropertyFail),
 		makeValidParameterStoreTestCaseCustom(setParameterValueNil),
+		makeValidParameterStoreTestCaseCustom(setAPIError),
 	}
 
 	ps := ParameterStore{}
