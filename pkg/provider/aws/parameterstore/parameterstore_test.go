@@ -37,6 +37,49 @@ func TestConstructor(t *testing.T) {
 	assert.NotNil(t, c.client)
 }
 
+type parameterstoreTestCase struct {
+	fakeClient     *fake.Client
+	apiInput       *ssm.GetParameterInput
+	apiOutput      *ssm.GetParameterOutput
+	remoteRef      *esv1alpha1.ExternalSecretDataRemoteRef
+	apiErr         error
+	expectError    string
+	expectedSecret string
+}
+
+func makeValidParameterStoreTestCase() *parameterstoreTestCase {
+	return &parameterstoreTestCase{
+		fakeClient:     &fake.Client{},
+		apiInput:       makeValidAPIInput(),
+		apiOutput:      makeValidAPIOutput(),
+		remoteRef:      makeValidRemoteRef(),
+		apiErr:         nil,
+		expectError:    "",
+		expectedSecret: "",
+	}
+}
+
+func makeValidAPIInput() *ssm.GetParameterInput {
+	return &ssm.GetParameterInput{
+		Name:           aws.String("/baz"),
+		WithDecryption: aws.Bool(true),
+	}
+}
+
+func makeValidAPIOutput() *ssm.GetParameterOutput {
+	return &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Value: aws.String("RRRRR"),
+		},
+	}
+}
+
+func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
+	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key: "/baz",
+	}
+}
+
 // test the ssm<->aws interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestGetSecret(t *testing.T) {
