@@ -94,132 +94,55 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 // test the ssm<->aws interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestGetSecret(t *testing.T) {
-	f := &fake.Client{}
-	p := &ParameterStore{
-		client: f,
+	// good case: key is passed in, output is sent back
+	setSecretString := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter.Value = aws.String("RRRRR")
+		pstc.expectedSecret = "RRRRR"
 	}
-	for i, row := range []struct {
-		apiInput       *ssm.GetParameterInput
-		apiOutput      *ssm.GetParameterOutput
-		rr             esv1alpha1.ExternalSecretDataRemoteRef
-		apiErr         error
-		expectError    string
-		expectedSecret string
-	}{
-		{
-			// good case: key is passed in, output is sent back
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/baz"),
-				WithDecryption: aws.Bool(true),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key: "/baz",
-			},
-			apiOutput: &ssm.GetParameterOutput{
-				Parameter: &ssm.Parameter{
-					Value: aws.String("RRRRR"),
-				},
-			},
-			apiErr:         nil,
-			expectError:    "",
-			expectedSecret: "RRRRR",
-		},
-		{
-			// good case: extract property
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/baz"),
-				WithDecryption: aws.Bool(true),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key:      "/baz",
-				Property: "/shmoo",
-			},
-			apiOutput: &ssm.GetParameterOutput{
-				Parameter: &ssm.Parameter{
-					Value: aws.String(`{"/shmoo": "bang"}`),
-				},
-			},
-			apiErr:         nil,
-			expectError:    "",
-			expectedSecret: "bang",
-		},
-		{
-			// bad case: missing property
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/baz"),
-				WithDecryption: aws.Bool(true),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key:      "/baz",
-				Property: "INVALPROP",
-			},
-			apiOutput: &ssm.GetParameterOutput{
-				Parameter: &ssm.Parameter{
-					Value: aws.String(`{"/shmoo": "bang"}`),
-				},
-			},
-			apiErr:         nil,
-			expectError:    "key INVALPROP does not exist in secret",
-			expectedSecret: "",
-		},
-		{
-			// bad case: extract property failure due to invalid json
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/baz"),
-				WithDecryption: aws.Bool(true),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key:      "/baz",
-				Property: "INVALPROP",
-			},
-			apiOutput: &ssm.GetParameterOutput{
-				Parameter: &ssm.Parameter{
-					Value: aws.String(`------`),
-				},
-			},
-			apiErr:         nil,
-			expectError:    "key INVALPROP does not exist in secret",
-			expectedSecret: "",
-		},
-		{
-			// case: parameter.Value may be nil but binary is set
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/baz"),
-				WithDecryption: aws.Bool(true),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key: "/baz",
-			},
-			apiOutput: &ssm.GetParameterOutput{
-				Parameter: &ssm.Parameter{
-					Value: nil,
-				},
-			},
-			apiErr:         nil,
-			expectError:    "parameter value is nil for key",
-			expectedSecret: "",
-		},
-		{
-			// should return err
-			apiInput: &ssm.GetParameterInput{
-				Name:           aws.String("/foo/bar"),
-				WithDecryption: aws.Bool(true),
-			},
-			rr: esv1alpha1.ExternalSecretDataRemoteRef{
-				Key: "/foo/bar",
-			},
-			apiOutput:   &ssm.GetParameterOutput{},
-			apiErr:      fmt.Errorf("oh no"),
-			expectError: "oh no",
-		},
-	} {
-		f.WithValue(row.apiInput, row.apiOutput, row.apiErr)
-		out, err := p.GetSecret(context.Background(), row.rr)
-		if !ErrorContains(err, row.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", i, err.Error(), row.expectError)
+
+	// good case: extract property
+	setExtractProperty := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
+		pstc.expectedSecret = "bang"
+	}
+
+	// bad case: missing property
+	setMissingProperty := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
+		pstc.remoteRef.Property = "INVALPROP"
+		pstc.expectError = "key INVALPROP does not exist in secret"
+	}
+
+	// bad case: extract property failure due to invalid json
+	setPropertyFail := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter.Value = aws.String(`------`)
+		pstc.remoteRef.Property = "INVALPROP"
+		pstc.expectError = "key INVALPROP does not exist in secret"
+	}
+
+	// bad case: parameter.Value may be nil but binary is set
+	setParameterValueNil := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter.Value = nil
+		pstc.expectError = "parameter value is nil for key"
+	}
+
+	successCases := []*parameterstoreTestCase{
+		makeValidParameterStoreTestCaseCustom(setSecretString),
+		makeValidParameterStoreTestCaseCustom(setExtractProperty),
+		makeValidParameterStoreTestCaseCustom(setMissingProperty),
+		makeValidParameterStoreTestCaseCustom(setPropertyFail),
+		makeValidParameterStoreTestCaseCustom(setParameterValueNil),
+	}
+
+	ps := ParameterStore{}
+	for k, v := range successCases {
+		ps.client = v.fakeClient
+		out, err := ps.GetSecret(context.Background(), *v.remoteRef)
+		if !ErrorContains(err, v.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
-		if string(out) != row.expectedSecret {
-			t.Errorf("[%d] unexpected secret: expected %s, got %s", i, row.expectedSecret, string(out))
+		if cmp.Equal(out, v.expectedData) {
+			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
 	}
 }
@@ -227,9 +150,7 @@ func TestGetSecret(t *testing.T) {
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(pstc *parameterstoreTestCase) {
-		pstc.apiOutput.Parameter = &ssm.Parameter{
-			Value: aws.String(`{"foo":"bar"}`),
-		}
+		pstc.apiOutput.Parameter.Value = aws.String(`{"foo":"bar"}`)
 		pstc.expectedData["foo"] = "bar"
 	}
 
@@ -241,9 +162,7 @@ func TestGetSecretMap(t *testing.T) {
 	}
 	// bad case: invalid json
 	setInvalidJSON := func(pstc *parameterstoreTestCase) {
-		pstc.apiOutput.Parameter = &ssm.Parameter{
-			Value: aws.String(`-----------------`),
-		}
+		pstc.apiOutput.Parameter.Value = aws.String(`-----------------`)
 		pstc.expectError = "unable to unmarshal secret"
 	}
 
