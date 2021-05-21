@@ -264,8 +264,8 @@ var _ = Describe("ExternalSecret controller", func() {
 									"hihi": "ga",
 								},
 							},
-							Data: map[string][]byte{
-								templateSecretKey: []byte(templateSecretVal),
+							Data: map[string]string{
+								templateSecretKey: templateSecretVal,
 							},
 						},
 					},

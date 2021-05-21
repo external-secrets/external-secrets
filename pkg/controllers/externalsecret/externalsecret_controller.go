@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -59,10 +60,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	var externalSecret esv1alpha1.ExternalSecret
 
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
-	if err != nil {
+	if apierrors.IsNotFound(err) {
+		syncCallsTotal.With(syncCallsMetricLabels).Inc()
+		return ctrl.Result{}, nil
+	} else if err != nil {
 		log.Error(err, "could not get ExternalSecret")
 		syncCallsError.With(syncCallsMetricLabels).Inc()
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		return ctrl.Result{}, nil
 	}
 
 	store, err := r.getStore(ctx, &externalSecret)
@@ -100,12 +104,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
-	secret := defaultSecret(externalSecret)
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      externalSecret.Spec.Target.Name,
+			Namespace: externalSecret.Namespace,
+		},
+		Data: make(map[string][]byte),
+	}
 	_, err = ctrl.CreateOrUpdate(ctx, r.Client, secret, func() error {
 		err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
 		if err != nil {
 			return fmt.Errorf("could not set ExternalSecret controller reference: %w", err)
 		}
+		mergeTemplate(secret, externalSecret)
 		data, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
 		if err != nil {
 			return fmt.Errorf("could not get secret data from provider: %w", err)
@@ -114,7 +125,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		for k, v := range data {
 			secret.Data[k] = v
 		}
-		err = template.Execute(secret, data)
+		err = template.Execute(externalSecret.Spec.Target.Template, secret, data)
 		if err != nil {
 			return fmt.Errorf("could not execute template: %w", err)
 		}
@@ -160,25 +171,30 @@ func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {
 	return false
 }
 
-func defaultSecret(es esv1alpha1.ExternalSecret) *corev1.Secret {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        es.Spec.Target.Name,
-			Namespace:   es.Namespace,
-			Labels:      es.Labels,
-			Annotations: es.Annotations,
-		},
-		Data: make(map[string][]byte),
+// we do not want to force-override the label/annotations
+// and only copy the necessary key/value pairs.
+func mergeTemplate(secret *corev1.Secret, externalSecret esv1alpha1.ExternalSecret) {
+	if secret.ObjectMeta.Labels == nil {
+		secret.ObjectMeta.Labels = make(map[string]string)
 	}
-
-	if es.Spec.Target.Template != nil {
-		secret.Type = es.Spec.Target.Template.Type
-		secret.Data = es.Spec.Target.Template.Data
-		secret.ObjectMeta.Labels = es.Spec.Target.Template.Metadata.Labels
-		secret.ObjectMeta.Annotations = es.Spec.Target.Template.Metadata.Annotations
+	if secret.ObjectMeta.Annotations == nil {
+		secret.ObjectMeta.Annotations = make(map[string]string)
 	}
+	if externalSecret.Spec.Target.Template == nil {
+		mergeMap(secret.ObjectMeta.Labels, externalSecret.ObjectMeta.Labels)
+		mergeMap(secret.ObjectMeta.Annotations, externalSecret.ObjectMeta.Annotations)
+		return
+	}
+	// if template is defined: use those labels/annotations
+	secret.Type = externalSecret.Spec.Target.Template.Type
+	mergeMap(secret.ObjectMeta.Labels, externalSecret.Spec.Target.Template.Metadata.Labels)
+	mergeMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
+}
 
-	return secret
+func mergeMap(dest, src map[string]string) {
+	for k, v := range src {
+		dest[k] = v
+	}
 }
 
 func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
