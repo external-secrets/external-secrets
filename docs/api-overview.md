@@ -89,16 +89,9 @@ privileges. It will create/read/update secrets in all namespaces and has access
 to secrets stored in some external API. Ensure that the credentials you provide
 give ESO the least privilege necessary.
 
-Design your `SecretStore`/`ClusterSecretStore` carefully! Use annotations on
-namespaces to restrict access of application developers to read only certain
+Design your `SecretStore`/`ClusterSecretStore` carefully! Be sure to restrict
+access of application developers to read only certain
 keys in a shared environment.
-
-``` yaml
-{% include 'namespace-permitted-annotation.yaml' %}
-```
-
-!!! bug "Not implemented"
-    This is currently **not yet** implemented. Feel free to contribute.
 
 You should also consider using Kubernetes' admission control system (e.g.
 [OPA](https://www.openpolicyagent.org/) or [Kyverno](https://kyverno.io/)) for

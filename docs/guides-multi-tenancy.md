@@ -28,15 +28,10 @@ to the external API. The CSS is shared by all tenants within the cluster.
 Application Developers do reference it in a `ExternalSecret` but can not create
 a ClusterSecretStores or SecretStores on their own. Now all application
 developers have access to all the secrets. You probably want to limit access to
-certain keys or prefixes that should be used. ESO provides a very simple
-mechanic to limit access to certain keys on a namespace basis by using
-annotations on the `Kind=Namespace` resource. More advanced validation should be
+certain keys or prefixes that should be used. ESO does not provide a mechanic
+to limit access to certain keys per namespace. More advanced validation should be
 done with an Admission Webhook, e.g. with [Kyverno](https://kyverno.io/) or
 [Open Policy Agent](https://www.openpolicyagent.org/)).
-
-``` yaml
-{% include 'namespace-permitted-annotation.yaml' %}
-```
 
 This setup suites well if you have one central bucket that contains all of your
 secrets and your Cluster Administrators should manage access to it. This setup
