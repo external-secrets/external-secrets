@@ -838,7 +838,7 @@ ExternalSecretTemplateMetadata
 <td>
 <code>data</code></br>
 <em>
-map[string][]byte
+map[string]string
 </em>
 </td>
 <td>
