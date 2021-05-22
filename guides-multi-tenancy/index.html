@@ -763,21 +763,10 @@ to the external API. The CSS is shared by all tenants within the cluster.
 Application Developers do reference it in a <code>ExternalSecret</code> but can not create
 a ClusterSecretStores or SecretStores on their own. Now all application
 developers have access to all the secrets. You probably want to limit access to
-certain keys or prefixes that should be used. ESO provides a very simple
-mechanic to limit access to certain keys on a namespace basis by using
-annotations on the <code>Kind=Namespace</code> resource. More advanced validation should be
+certain keys or prefixes that should be used. ESO does not provide a mechanic
+to limit access to certain keys per namespace. More advanced validation should be
 done with an Admission Webhook, e.g. with <a href="https://kyverno.io/">Kyverno</a> or
 <a href="https://www.openpolicyagent.org/">Open Policy Agent</a>).</p>
-<div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Namespace</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-a</span>
-  <span class="nt">annotations</span><span class="p">:</span>
-    <span class="c1"># annotation that defines which keys can be read</span>
-    <span class="c1"># the annotation value is a regular expression</span>
-    <span class="nt">external-secrets.io/permitted-key-name</span><span class="p">:</span> <span class="s">&quot;a/development/*&quot;</span>
-</pre></div>
-
 <p>This setup suites well if you have one central bucket that contains all of your
 secrets and your Cluster Administrators should manage access to it. This setup
 is very simple but does not scale very well.</p>

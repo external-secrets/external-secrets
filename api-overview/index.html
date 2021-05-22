@@ -945,23 +945,9 @@ ESO.</p>
 privileges. It will create/read/update secrets in all namespaces and has access
 to secrets stored in some external API. Ensure that the credentials you provide
 give ESO the least privilege necessary.</p>
-<p>Design your <code>SecretStore</code>/<code>ClusterSecretStore</code> carefully! Use annotations on
-namespaces to restrict access of application developers to read only certain
+<p>Design your <code>SecretStore</code>/<code>ClusterSecretStore</code> carefully! Be sure to restrict
+access of application developers to read only certain
 keys in a shared environment.</p>
-<div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Namespace</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-a</span>
-  <span class="nt">annotations</span><span class="p">:</span>
-    <span class="c1"># annotation that defines which keys can be read</span>
-    <span class="c1"># the annotation value is a regular expression</span>
-    <span class="nt">external-secrets.io/permitted-key-name</span><span class="p">:</span> <span class="s">&quot;a/development/*&quot;</span>
-</pre></div>
-
-<div class="admonition bug">
-<p class="admonition-title">Not implemented</p>
-<p>This is currently <strong>not yet</strong> implemented. Feel free to contribute.</p>
-</div>
 <p>You should also consider using Kubernetes' admission control system (e.g.
 <a href="https://www.openpolicyagent.org/">OPA</a> or <a href="https://kyverno.io/">Kyverno</a>) for
 fine-grained access control.</p>

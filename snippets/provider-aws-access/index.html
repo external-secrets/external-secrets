@@ -682,18 +682,6 @@
 <li>Directly provide AWS credentials to the External Secrets Operator pod by using environment variables.</li>
 </ul>
 <p>Additionally, before fetching a secret from a store, ESO is able to assume role (as a proxy so to speak). It is advisable to use multiple roles in a multi-tenant environment.</p>
-<p>You can limit the range of roles which can be assumed by this particular namespace by using annotations on the namespace resource. The annotation value is evaluated as a regular expression.</p>
-<div class="admonition bug">
-<p class="admonition-title">Not implemented</p>
-<p>This is currently <strong>not</strong> implemented. Feel free to contribute.</p>
-</div>
-<div class="highlight"><pre><span></span><span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Namespace</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-example</span>
-  <span class="nt">annotations</span><span class="p">:</span>
-    <span class="c1"># annotation key is configurable</span>
-    <span class="nt">iam.amazonaws.com/permitted</span><span class="p">:</span> <span class="s">&quot;arn:aws:iam::123456789012:role/foo.*&quot;</span>
-</pre></div>
                 
                   
                 
