@@ -41,7 +41,7 @@ type secretsManagerTestCase struct {
 	fakeClient     *fakesm.Client
 	apiInput       *awssm.GetSecretValueInput
 	apiOutput      *awssm.GetSecretValueOutput
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	remoteRef      *esv1alpha1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -53,7 +53,7 @@ func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 	smtc := secretsManagerTestCase{
 		fakeClient:     &fakesm.Client{},
 		apiInput:       makeValidAPIInput(),
-		ref:            makeValidRef(),
+		remoteRef:      makeValidRemoteRef(),
 		apiOutput:      makeValidAPIOutput(),
 		apiErr:         nil,
 		expectError:    "",
@@ -64,7 +64,7 @@ func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 	return &smtc
 }
 
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
+func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
 		Key:     "/baz",
 		Version: "AWSCURRENT",
@@ -112,21 +112,21 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 
 	// good case: extract property
 	// Testing that the property exists in the SecretString
-	setRefPropertyExistsInKey := func(smtc *secretsManagerTestCase) {
-		smtc.ref.Property = "/shmoo"
+	setRemoteRefPropertyExistsInKey := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.Property = "/shmoo"
 		smtc.apiOutput.SecretString = aws.String(`{"/shmoo": "bang"}`)
 		smtc.expectedSecret = "bang"
 	}
 
 	// bad case: missing property
-	setRefMissingProperty := func(smtc *secretsManagerTestCase) {
-		smtc.ref.Property = "INVALPROP"
+	setRemoteRefMissingProperty := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.Property = "INVALPROP"
 		smtc.expectError = "key INVALPROP does not exist in secret"
 	}
 
 	// bad case: extract property failure due to invalid json
-	setRefMissingPropertyInvalidJSON := func(smtc *secretsManagerTestCase) {
-		smtc.ref.Property = "INVALPROP"
+	setRemoteRefMissingPropertyInvalidJSON := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.Property = "INVALPROP"
 		smtc.apiOutput.SecretString = aws.String(`------`)
 		smtc.expectError = "key INVALPROP does not exist in secret"
 	}
@@ -149,14 +149,14 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	setNestedSecretValueJSONParsing := func(smtc *secretsManagerTestCase) {
 		smtc.apiOutput.SecretString = nil
 		smtc.apiOutput.SecretBinary = []byte(`{"foobar":{"baz":"nestedval"}}`)
-		smtc.ref.Property = "foobar.baz"
+		smtc.remoteRef.Property = "foobar.baz"
 		smtc.expectedSecret = "nestedval"
 	}
 
 	// good case: custom version set
 	setCustomVersion := func(smtc *secretsManagerTestCase) {
 		smtc.apiInput.VersionStage = aws.String("1234")
-		smtc.ref.Version = "1234"
+		smtc.remoteRef.Version = "1234"
 		smtc.apiOutput.SecretString = aws.String("FOOBA!")
 		smtc.expectedSecret = "FOOBA!"
 	}
@@ -164,9 +164,9 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	successCases := []*secretsManagerTestCase{
 		makeValidSecretsManagerTestCase(),
 		makeValidSecretsManagerTestCaseCustom(setSecretString),
-		makeValidSecretsManagerTestCaseCustom(setRefPropertyExistsInKey),
-		makeValidSecretsManagerTestCaseCustom(setRefMissingProperty),
-		makeValidSecretsManagerTestCaseCustom(setRefMissingPropertyInvalidJSON),
+		makeValidSecretsManagerTestCaseCustom(setRemoteRefPropertyExistsInKey),
+		makeValidSecretsManagerTestCaseCustom(setRemoteRefMissingProperty),
+		makeValidSecretsManagerTestCaseCustom(setRemoteRefMissingPropertyInvalidJSON),
 		makeValidSecretsManagerTestCaseCustom(setSecretBinaryNotSecretString),
 		makeValidSecretsManagerTestCaseCustom(setSecretBinaryAndSecretStringToNil),
 		makeValidSecretsManagerTestCaseCustom(setNestedSecretValueJSONParsing),
@@ -177,7 +177,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	sm := SecretsManager{}
 	for k, v := range successCases {
 		sm.client = v.fakeClient
-		out, err := sm.GetSecret(context.Background(), *v.ref)
+		out, err := sm.GetSecret(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
@@ -209,7 +209,7 @@ func TestGetSecretMap(t *testing.T) {
 	sm := SecretsManager{}
 	for k, v := range successCases {
 		sm.client = v.fakeClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, err := sm.GetSecretMap(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
