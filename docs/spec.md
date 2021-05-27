@@ -888,6 +888,109 @@ map[string]string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.GCPSMAuth">GCPSMAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.GCPSMProvider">GCPSMProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GCPSMAuthSecretRef">
+GCPSMAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.GCPSMAuthSecretRef">GCPSMAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.GCPSMAuth">GCPSMAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretAccessKeySecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The SecretAccessKey is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.GCPSMProvider">GCPSMProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>GCPSMProvider Configures a store to sync secrets using the GCP Secret Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GCPSMAuth">
+GCPSMAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against GCP</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID project where secret is located</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.GenericStore">GenericStore
 </h3>
 <p>
@@ -1039,6 +1142,20 @@ VaultProvider
 <td>
 <em>(Optional)</em>
 <p>Vault configures this store to sync secrets using Hashi provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gcpsm</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GCPSMProvider">
+GCPSMProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider</p>
 </td>
 </tr>
 </tbody>
