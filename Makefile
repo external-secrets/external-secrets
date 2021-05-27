@@ -155,8 +155,8 @@ crds.uninstall:
 # Helm Chart
 
 helm.docs: ## Generate helm docs
-	cd $(HELM_DIR); \
-	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) jnorwood/helm-docs:latest
+	@cd $(HELM_DIR); \
+	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) jnorwood/helm-docs:v1.5.0
 
 HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep 'version:' | sed 's/version: //g')
 
@@ -167,7 +167,7 @@ helm.build: helm.generate ## Build helm chart
 	@$(OK) helm package
 
 # Copy crds to helm chart directory
-helm.generate:
+helm.generate: helm.docs
 	@cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/
 # Add helm if statement for controlling the install of CRDs
 	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
