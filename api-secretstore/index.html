@@ -730,6 +730,16 @@ The SecretStore maps to exactly one instance of an external API.</p>
             <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
             <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault&quot;</span>
 
+    <span class="c1"># (2): GCP Secret Manager</span>
+    <span class="nt">gcpsm</span><span class="p">:</span>
+      <span class="c1"># Auth defines the information necessary to authenticate against GCP by getting</span>
+      <span class="c1"># the credentials from an already created Kubernetes Secret.</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="nt">secretRef</span><span class="p">:</span>
+          <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span>
+      <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">myproject</span>
     <span class="c1"># (TODO): add more provider examples here</span>
 
 <span class="nt">status</span><span class="p">:</span>
