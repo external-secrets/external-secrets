@@ -104,6 +104,7 @@ func TestGetSecret(t *testing.T) {
 	setExtractProperty := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
 		pstc.expectedSecret = "bang"
+		pstc.remoteRef.Property = "/shmoo"
 	}
 
 	// bad case: missing property
@@ -149,8 +150,8 @@ func TestGetSecret(t *testing.T) {
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
-		if cmp.Equal(out, v.expectedData) {
-			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
+		if cmp.Equal(out, v.expectedSecret) {
+			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedSecret, out)
 		}
 	}
 }
