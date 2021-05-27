@@ -141,3 +141,27 @@ func TestForceRegister(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, testProvider, p2)
 }
+
+func TestRegisterGCP(t *testing.T) {
+	p, ok := GetProviderByName("gcpsm")
+	assert.Nil(t, p)
+	assert.False(t, ok, "provider should not be registered")
+
+	testProvider := &PP{}
+	secretStore := &esv1alpha1.SecretStore{
+		Spec: esv1alpha1.SecretStoreSpec{
+			Provider: &esv1alpha1.SecretStoreProvider{
+				GCPSM: &esv1alpha1.GCPSMProvider{},
+			},
+		},
+	}
+
+	ForceRegister(testProvider, secretStore.Spec.Provider)
+	p1, ok := GetProviderByName("gcpsm")
+	assert.True(t, ok, "provider should be registered")
+	assert.Equal(t, testProvider, p1)
+
+	p2, err := GetProvider(secretStore)
+	assert.Nil(t, err)
+	assert.Equal(t, testProvider, p2)
+}
