@@ -42,7 +42,7 @@ import (
 )
 
 const (
-	requeueAfter = time.Second * 300
+	requeueAfter = time.Second * 30
 )
 
 // Reconciler reconciles a ExternalSecret object.
