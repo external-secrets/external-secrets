@@ -221,7 +221,7 @@ The store configuration in an `ExternalSecret` may contain a lot of redundancy, 
 These stores are defined in a particular namespace using `SecretStore` **or** globally with `ClusterSecretStore`.
 
 ```yaml
-apiVerson: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1alpha1
 kind: SecretStore # or ClusterSecretStore
 metadata:
   name: vault
