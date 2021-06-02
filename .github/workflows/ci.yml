@@ -51,14 +51,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-lint-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-lint-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -96,14 +96,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-check-diff-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-check-diff-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -136,14 +136,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-unit-tests-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -156,7 +156,7 @@ jobs:
           sudo mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
 
       - name: Cache kubebuilder
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: /usr/local/kubebuilder
           key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_VERSION}}
@@ -195,14 +195,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-unit-tests-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -215,7 +215,7 @@ jobs:
           sudo mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
 
       - name: Cache kubebuilder
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: /usr/local/kubebuilder
           key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_VERSION}}
@@ -269,14 +269,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-publish-artifacts-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-publish-artifacts-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
