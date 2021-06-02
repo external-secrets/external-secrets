@@ -1,4 +1,4 @@
-apiVerson: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1alpha1
 kind: SecretStore
 metadata:
   name: vault-backend

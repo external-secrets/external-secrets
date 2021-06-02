@@ -187,10 +187,9 @@ spec:
   # Used to fetch all properties from the Provider key
   # If multiple dataFrom are specified, secrets are merged in the specified order
   dataFrom:
-  - remoteRef:
-      key: provider-key
-      version: provider-key-version
-      property: provider-key-property
+  - key: provider-key
+    version: provider-key-version
+    property: provider-key-property
 
 status:
   # refreshTime is the time and date the external secret was fetched and
@@ -221,7 +220,7 @@ The store configuration in an `ExternalSecret` may contain a lot of redundancy, 
 These stores are defined in a particular namespace using `SecretStore` **or** globally with `ClusterSecretStore`.
 
 ```yaml
-apiVerson: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1alpha1
 kind: SecretStore # or ClusterSecretStore
 metadata:
   name: vault
