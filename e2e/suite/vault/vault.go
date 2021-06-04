@@ -78,6 +78,7 @@ var _ = Describe("[vault] ", func() {
 		secretProp := "example"
 		secretValue := "bar"
 		targetSecret := "target-secret"
+		targetSecret2 := "target-secret2"
 
 		By("creating a vault secret")
 		vc, err := vault.NewClient(&vault.Config{
@@ -123,6 +124,38 @@ var _ = Describe("[vault] ", func() {
 		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
 			secretKey: []byte(secretValue),
 		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "simple-sync2",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: secretStore.Name,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret2,
+					Template: &esv1alpha1.ExternalSecretTemplate{
+						Immutable: true,
+					},
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: secretKey,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key:      secretKey,
+							Property: secretProp,
+						},
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		_, err = f.WaitForSecretValueMutable(f.Namespace.Name, targetSecret2, map[string][]byte{
+			secretKey: []byte(secretValue),
+		}, true)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

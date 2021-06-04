@@ -131,6 +131,45 @@ var _ = Describe("[aws] ", func() {
 			secretKey2: []byte(secretValue),
 		})
 		Expect(err).ToNot(HaveOccurred())
+
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "simple-sync2",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: f.Namespace.Name,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret2,
+					Template: &esv1alpha1.ExternalSecretTemplate{
+						Immutable: false,
+					},
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: secretKey1,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key: secretKey1,
+						},
+					},
+					{
+						SecretKey: secretKey2,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key: secretKey2,
+						},
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = f.WaitForSecretValueMutable(f.Namespace.Name, targetSecret2, map[string][]byte{
+			secretKey1: []byte(secretValue),
+			secretKey2: []byte(secretValue),
+		}, false)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("should sync secrets with dataFrom", func() {
@@ -183,11 +222,11 @@ var _ = Describe("[aws] ", func() {
 		secretValue := fmt.Sprintf(
 			`{
 				"name": {"first": "%s", "last": "Anderson"},
-				"friends": 
-				[ 
-					{"first": "Dale", "last": "Murphy"}, 
-					{"first": "%s", "last": "Craig"}, 
-					{"first": "Jane", "last": "Murphy"} 
+				"friends":
+				[
+					{"first": "Dale", "last": "Murphy"},
+					{"first": "%s", "last": "Craig"},
+					{"first": "Jane", "last": "Murphy"}
 				]
 			}`, targetSecretValue1, targetSecretValue2)
 		err := CreateAWSSecretsManagerSecret(
