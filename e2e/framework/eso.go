@@ -25,6 +25,32 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+// WaitForSecretValue waits until a secret comes into existence and compares the secret.Data and secret.Immutable
+// with the provided values.
+func (f *Framework) WaitForSecretValueMutable(namespace, name string, values map[string][]byte, immutable bool) (*v1.Secret, error) {
+	secret := &v1.Secret{}
+	err := wait.PollImmediate(time.Second*2, time.Minute*2, func() (bool, error) {
+		err := f.CRClient.Get(context.Background(), types.NamespacedName{
+			Namespace: namespace,
+			Name:      name,
+		}, secret)
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		if secret.Immutable != nil && *secret.Immutable != immutable {
+			return false, nil
+		}
+
+		for k, exp := range values {
+			if actual, ok := secret.Data[k]; ok && !bytes.Equal(actual, exp) {
+				return false, nil
+			}
+		}
+		return true, nil
+	})
+	return secret, err
+}
+
 // WaitForSecretValue waits until a secret comes into existence and compares the secret.Data
 // with the provided values.
 func (f *Framework) WaitForSecretValue(namespace, name string, expected *v1.Secret) (*v1.Secret, error) {

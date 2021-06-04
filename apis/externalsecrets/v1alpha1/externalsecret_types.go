@@ -82,7 +82,8 @@ type TemplateRef struct {
 }
 
 type TemplateRefItem struct {
-	Key string `json:"key"`
+	Key       string `json:"key"`
+	Immutable bool   `json:"immutable,omitempty"`
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created

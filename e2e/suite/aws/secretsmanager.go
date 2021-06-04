@@ -85,15 +85,107 @@ var _ = Describe("[aws] ", func() {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "other")
 		secretValue := "bar"
-		tc.Secrets = map[string]string{
-			secretKey1: secretValue,
-			secretKey2: secretValue,
-		}
-		tc.ExpectedSecret = &v1.Secret{
-			Type: v1.SecretTypeOpaque,
-			Data: map[string][]byte{
-				secretKey1: []byte(secretValue),
-				secretKey2: []byte(secretValue),
+		err := CreateAWSSecretsManagerSecret(
+			localstackURL,
+			secretKey1, secretValue)
+		Expect(err).ToNot(HaveOccurred())
+		err = CreateAWSSecretsManagerSecret(
+			localstackURL,
+			secretKey2, secretValue)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "simple-sync",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: f.Namespace.Name,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret,
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: secretKey1,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key: secretKey1,
+						},
+					},
+					{
+						SecretKey: secretKey2,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key: secretKey2,
+						},
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
+			secretKey1: []byte(secretValue),
+			secretKey2: []byte(secretValue),
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "simple-sync2",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: f.Namespace.Name,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret2,
+					Template: &esv1alpha1.ExternalSecretTemplate{
+						Immutable: false,
+					},
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: secretKey1,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key: secretKey1,
+						},
+					},
+					{
+						SecretKey: secretKey2,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key: secretKey2,
+						},
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = f.WaitForSecretValueMutable(f.Namespace.Name, targetSecret2, map[string][]byte{
+			secretKey1: []byte(secretValue),
+			secretKey2: []byte(secretValue),
+		}, false)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should sync secrets with dataFrom", func() {
+		By("creating a AWS SM Secret")
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		targetSecretKey1 := "name"
+		targetSecretValue1 := "great-name"
+		targetSecretKey2 := "surname"
+		targetSecretValue2 := "great-surname"
+		secretValue := fmt.Sprintf("{ \"%s\": \"%s\", \"%s\": \"%s\" }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
+		err := CreateAWSSecretsManagerSecret(
+			localstackURL,
+			secretKey1, secretValue)
+		Expect(err).ToNot(HaveOccurred())
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "datafrom-sync",
+				Namespace: f.Namespace.Name,
 			},
 		}
 		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
@@ -103,10 +195,64 @@ var _ = Describe("[aws] ", func() {
 					Key: secretKey1,
 				},
 			},
-			{
-				SecretKey: secretKey2,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-					Key: secretKey2,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
+			targetSecretKey1: []byte(targetSecretValue1),
+			targetSecretKey2: []byte(targetSecretValue2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should sync secrets and get inner keys", func() {
+		By("creating a AWS SM Secret")
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		targetSecretKey1 := "firstname"
+		targetSecretValue1 := "Tom"
+		targetSecretKey2 := "first_friend"
+		targetSecretValue2 := "Roger"
+		secretValue := fmt.Sprintf(
+			`{
+				"name": {"first": "%s", "last": "Anderson"},
+				"friends":
+				[
+					{"first": "Dale", "last": "Murphy"},
+					{"first": "%s", "last": "Craig"},
+					{"first": "Jane", "last": "Murphy"}
+				]
+			}`, targetSecretValue1, targetSecretValue2)
+		err := CreateAWSSecretsManagerSecret(
+			localstackURL,
+			secretKey1, secretValue)
+		Expect(err).ToNot(HaveOccurred())
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "datafrom-sync",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: f.Namespace.Name,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret,
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: targetSecretKey1,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key:      secretKey1,
+							Property: "name.first",
+						},
+					},
+					{
+						SecretKey: targetSecretKey2,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key:      secretKey1,
+							Property: "friends.1.first",
+						},
+					},
 				},
 			},
 		}

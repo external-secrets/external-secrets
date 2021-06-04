@@ -76,6 +76,9 @@ func Execute(tpl, data map[string][]byte, secret *corev1.Secret) error {
 		}
 		secret.Data[k] = val
 	}
+	if template.Immutable {
+		secret.Immutable = &template.Immutable
+	}
 	return nil
 }
 
