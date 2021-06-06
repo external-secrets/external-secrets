@@ -87,5 +87,4 @@ require (
 	k8s.io/kube-openapi v0.0.0-20210113233702-8566a335510f // indirect
 	sigs.k8s.io/controller-runtime v0.8.1
 	sigs.k8s.io/controller-tools v0.5.0
-	sigs.k8s.io/kind v0.11.1 // indirect
 )
