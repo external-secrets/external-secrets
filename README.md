@@ -124,6 +124,30 @@ kubectl get secret secret-to-be-created   -o jsonpath='{.data.first_friend}' | b
 
 We will add more documentation once we have the implementation for the different providers. You can find some here: https://external-secrets.io
 
+## Stability and Support Level
+
+### Internally maintained:
+
+| Provider        | Stability     |                   Contact                      | 
+| --------------- |:-------------:|-----------------------------------------------:|
+| AWS SM          |     alpha     | [ESO Org](https://github.com/external-secrets) |
+| AWS PS          |     alpha     | [ESO Org](https://github.com/external-secrets) |
+| Hashicorp Vault |     alpha     | [ESO Org](https://github.com/external-secrets) |
+| GCP SM          |     alpha     | [ESO Org](https://github.com/external-secrets) |
+
+
+### Community maintained:
+
+| Provider        | Stability     |                   Contact                  | 
+| --------------- |:-------------:|:------------------------------------------:|
+| Azure KV        |     alpha     | @ahmedmus-1A @asnowfix @ncourbet-1A @1A-mj |
+
+## Support
+
+You can use GitHub's [issues](https://github.com/external-secrets/external-secrets/issues) to report bugs/suggest features or use GitHub's [discussions](https://github.com/external-secrets/external-secrets/discussions) to ask for help and figure out problems.
+
+Even though we have active maintainers and people assigned to this project, we kindly ask for patience when asking for support. We will try to get to priority issues as fast as possible, but there may be some delays.
+
 
 ## Contributing
 
