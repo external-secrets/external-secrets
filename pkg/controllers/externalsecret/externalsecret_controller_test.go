@@ -37,7 +37,7 @@ import (
 var (
 	fakeProvider *fake.Client
 	metric       dto.Metric
-	timeout      = time.Second * 30
+	timeout      = time.Second * 10
 	interval     = time.Millisecond * 250
 )
 
@@ -162,7 +162,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0
+				return metric.GetCounter().GetValue() == 1.0
 			}, timeout, interval).Should(BeTrue())
 
 			// check value
@@ -208,7 +208,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0
+				return metric.GetCounter().GetValue() == 1.0
 			}, timeout, interval).Should(BeTrue())
 
 			// check values
@@ -330,7 +330,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0
+				return metric.GetCounter().GetValue() == 1.0
 			}, timeout, interval).Should(BeTrue())
 
 			// check values
@@ -373,7 +373,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0
+				return metric.GetCounter().GetValue() == 1.0
 			}, timeout, interval).Should(BeTrue())
 
 			// check values
@@ -537,6 +537,182 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should set an error condition when store provider constructor fails", storeConstructErrCondition),
 		Entry("should not process store with mismatching controller field", ignoreMismatchController),
 	)
+})
+
+var _ = Describe("ExternalSecret refresh logic", func() {
+	Context("secret refresh", func() {
+		It("should refresh when resource version does not match", func() {
+			Expect(shouldRefresh(esv1alpha1.ExternalSecret{
+				Status: esv1alpha1.ExternalSecretStatus{
+					SyncedResourceVersion: "some resource version",
+				},
+			})).To(BeTrue())
+		})
+
+		It("should refresh when labels change", func() {
+			es := esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{},
+			}
+			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			// this should not refresh, rv matches object
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			// change labels without changing the syncedResourceVersion and expect refresh
+			es.ObjectMeta.Labels["new"] = "w00t"
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when annotations change", func() {
+			es := esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+					Annotations: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{},
+			}
+			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			// this should not refresh, rv matches object
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			// change annotations without changing the syncedResourceVersion and expect refresh
+			es.ObjectMeta.Annotations["new"] = "w00t"
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when generation has changed", func() {
+			es := esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Status: esv1alpha1.ExternalSecretStatus{},
+			}
+			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			// update gen -> refresh
+			es.ObjectMeta.Generation = 2
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should skip refresh when refreshInterval is nil", func() {
+			es := esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					RefreshInterval: nil,
+				},
+				Status: esv1alpha1.ExternalSecretStatus{},
+			}
+			// resource version matches
+			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			Expect(shouldRefresh(es)).To(BeFalse())
+		})
+
+		It("should refresh when refresh interval has passed", func() {
+			es := esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: time.Second},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{
+					RefreshTime: metav1.NewTime(metav1.Now().Add(-time.Second * 5)),
+				},
+			}
+			// resource version matches
+			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when no refresh time was set", func() {
+			es := esv1alpha1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: time.Second},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{},
+			}
+			// resource version matches
+			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+	})
+	Context("objectmeta hash", func() {
+		It("should produce different hashes for different k/v pairs", func() {
+			h1 := hashMeta(metav1.ObjectMeta{
+				Generation: 1,
+				Annotations: map[string]string{
+					"foo": "bar",
+				},
+			})
+			h2 := hashMeta(metav1.ObjectMeta{
+				Generation: 1,
+				Annotations: map[string]string{
+					"foo": "bing",
+				},
+			})
+			Expect(h1).ToNot(Equal(h2))
+		})
+
+		It("should produce different hashes for different generations but same label/annotations", func() {
+			h1 := hashMeta(metav1.ObjectMeta{
+				Generation: 1,
+				Annotations: map[string]string{
+					"foo": "bar",
+				},
+				Labels: map[string]string{
+					"foo": "bar",
+				},
+			})
+			h2 := hashMeta(metav1.ObjectMeta{
+				Generation: 2,
+				Annotations: map[string]string{
+					"foo": "bar",
+				},
+				Labels: map[string]string{
+					"foo": "bar",
+				},
+			})
+			Expect(h1).To(Equal(h2))
+		})
+
+		It("should produce the same hash for the same k/v pairs", func() {
+			h1 := hashMeta(metav1.ObjectMeta{
+				Generation: 1,
+			})
+			h2 := hashMeta(metav1.ObjectMeta{
+				Generation: 1,
+			})
+			Expect(h1).To(Equal(h2))
+
+			h1 = hashMeta(metav1.ObjectMeta{
+				Generation: 1,
+				Annotations: map[string]string{
+					"foo": "bar",
+				},
+			})
+			h2 = hashMeta(metav1.ObjectMeta{
+				Generation: 1,
+				Annotations: map[string]string{
+					"foo": "bar",
+				},
+			})
+			Expect(h1).To(Equal(h2))
+		})
+	})
 })
 
 // CreateNamespace creates a new namespace in the cluster.
