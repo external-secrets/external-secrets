@@ -18,6 +18,7 @@ package register
 // nolint:golint
 import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 )

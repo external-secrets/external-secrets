@@ -38,6 +38,10 @@ type SecretStoreProvider struct {
 	// +optional
 	AWS *AWSProvider `json:"aws,omitempty"`
 
+	// AzureKV configures this store to sync secrets using Azure Key Vault provider
+	// +optional
+	AzureKV *AzureKVProvider `json:"azurekv,omitempty"`
+
 	// Vault configures this store to sync secrets using Hashi provider
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
