@@ -15,7 +15,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 - [AWS Parameter Store](https://external-secrets.io/provider-aws-parameter-store/)
 - [Hashicorp Vault](https://www.vaultproject.io/)
 - [Google Cloud Secrets Manager](https://external-secrets.io/provider-google-secrets-manager/)
-- [Azure Key Vault](https://external-secrets.io/provider-azure-key-vault/) (being implemented)
+- [Azure Key Vault](https://external-secrets.io/provider-azure-key-vault/)
 
 ## ESO installation with an AWS example
 
