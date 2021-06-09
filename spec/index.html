@@ -836,6 +836,101 @@ see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.AzureKVAuth">AzureKVAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>Configuration used to authenticate with Azure.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The Azure clientId of the service principle used for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The Azure ClientSecret of the service principle used for authentication.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AzureKVProvider">AzureKVProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures an store to sync secrets using Azure KV.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>vaultUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault Url from which the secrets to be fetched from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TenantID configures the Azure Tenant to send requests to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authSecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AzureKVAuth">
+AzureKVAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the operator authenticates with Azure.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.ClusterSecretStore">ClusterSecretStore
 </h3>
 <p>
@@ -1784,6 +1879,20 @@ AWSProvider
 <td>
 <em>(Optional)</em>
 <p>AWS configures this store to sync secrets using AWS Secret Manager provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>azurekv</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AzureKVProvider">
+AzureKVProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AzureKV configures this store to sync secrets using Azure Key Vault provider</p>
 </td>
 </tr>
 <tr>
