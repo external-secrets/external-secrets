@@ -52,5 +52,6 @@ kubectl run --rm \
   --attach \
   --restart=Never \
   --env="FOCUS=${FOCUS}" \
+  --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
   e2e --image=local/external-secrets-e2e:test
