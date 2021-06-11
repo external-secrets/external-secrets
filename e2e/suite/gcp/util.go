@@ -16,12 +16,12 @@ import (
 	"context"
 	"fmt"
 
-	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
-
-	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+
+	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 )
 
 // CreateAWSSecretsManagerSecret creates a sm secret with the given value.
@@ -30,7 +30,7 @@ func CreateGCPSecretsManagerSecret(projectID, secretName, secretValue string, cr
 
 	config, err := google.JWTConfigFromJSON(credentials, gcpsm.CloudPlatformRole)
 	if err != nil {
-		return fmt.Errorf("Unable to procces JSON credentials: %w", err)
+		return fmt.Errorf("unable to procces JSON credentials: %w", err)
 	}
 	ts := config.TokenSource(ctx)
 
@@ -67,7 +67,7 @@ func CreateGCPSecretsManagerSecret(projectID, secretName, secretValue string, cr
 	// Call the API.
 	_, err = client.AddSecretVersion(ctx, addSecretVersionReq)
 	if err != nil {
-		return fmt.Errorf("failed to add secret version: %v", err)
+		return fmt.Errorf("failed to add secret version: %w", err)
 	}
 
 	return err

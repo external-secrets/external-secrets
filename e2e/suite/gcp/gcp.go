@@ -74,7 +74,7 @@ var _ = Describe("[gcp] ", func() {
 	})
 
 	It("should sync secrets", func() {
-		By("creating a AWS SM Secret")
+		By("creating a GCP SM Secret")
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		secretValue := "great-value-test"
 		targetSecret := "target-secret"
