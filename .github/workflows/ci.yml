@@ -171,68 +171,6 @@ jobs:
           flags: unittests
           file: ./cover.out
 
-  e2e-tests:
-    runs-on: ubuntu-18.04
-    needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Fetch History
-        run: git fetch --prune --unshallow
-
-      - name: Setup Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Find the Go Cache
-        id: go
-        run: |
-          echo "::set-output name=build-cache::$(go env GOCACHE)"
-          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-      - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.6
-        with:
-          path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-unit-tests-
-
-      - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.6
-        with:
-          path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
-
-      - name: Add kubebuilder
-        run:  |
-          curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
-          tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
-          sudo mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
-
-      - name: Cache kubebuilder
-        uses: actions/cache@v2.1.6
-        with:
-          path: /usr/local/kubebuilder
-          key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_VERSION}}
-          restore-keys: ${{ runner.os }}-kubebuilder-
-
-      - name: Setup kind
-        uses: engineerd/setup-kind@v0.5.0
-        with:
-          version: "v0.10.0"
-          node_image: kindest/node:v1.20.2
-          name: external-secrets
-
-      - name: Run e2e Tests
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          go get github.com/onsi/ginkgo/ginkgo
-          make test.e2e
 
   publish-artifacts:
     runs-on: ubuntu-18.04

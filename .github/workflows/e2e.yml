@@ -1,0 +1,188 @@
+# Run secret-dependent e2e tests only after /ok-to-test approval
+on:
+  pull_request:
+  repository_dispatch:
+    types: [ok-to-test-command]
+
+env:
+  # Common versions
+  GO_VERSION: '1.15'
+  GOLANGCI_VERSION: 'v1.33'
+  KUBEBUILDER_VERSION: '2.3.1'
+  DOCKER_BUILDX_VERSION: 'v0.4.2'
+
+  # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
+  # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
+  # credentials have been provided before trying to run steps that need them.
+  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+
+name: e2e tests
+
+jobs:
+  # Branch-based pull request
+  integration-trusted:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+
+    - name: Branch based PR checkout
+      uses: actions/checkout@v2
+
+    # <insert integration tests needing secrets>
+
+    - name: Fetch History
+      run: git fetch --prune --unshallow
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Find the Go Cache
+      id: go
+      run: |
+        echo "::set-output name=build-cache::$(go env GOCACHE)"
+        echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
+
+    - name: Cache the Go Build Cache
+      uses: actions/cache@v2.1.6
+      with:
+        path: ${{ steps.go.outputs.build-cache }}
+        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-build-unit-tests-
+
+    - name: Cache Go Dependencies
+      uses: actions/cache@v2.1.6
+      with:
+        path: ${{ steps.go.outputs.mod-cache }}
+        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-pkg-
+
+    - name: Add kubebuilder
+      run:  |
+        curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        sudo mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
+
+    - name: Cache kubebuilder
+      uses: actions/cache@v2.1.6
+      with:
+        path: /usr/local/kubebuilder
+        key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_VERSION}}
+        restore-keys: ${{ runner.os }}-kubebuilder-
+
+    - name: Setup kind
+      uses: engineerd/setup-kind@v0.5.0
+      with:
+        version: "v0.10.0"
+        node_image: kindest/node:v1.20.2
+        name: external-secrets
+
+    - name: Run e2e Tests
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        go get github.com/onsi/ginkgo/ginkgo
+        make test.e2e
+
+  # Repo owner has commented /ok-to-test on a (fork-based) pull request
+  integration-fork:
+    runs-on: ubuntu-latest
+    if: 
+      github.event_name == 'repository_dispatch' &&
+      github.event.client_payload.slash_command.sha != '' &&
+      contains(github.event.client_payload.pull_request.head.sha, github.event.client_payload.slash_command.sha)
+    steps:
+
+    # Check out merge commit
+    - name: Fork based /ok-to-test checkout
+      uses: actions/checkout@v2
+      with:
+        ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+
+    - name: Fetch History
+      run: git fetch --prune --unshallow
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Find the Go Cache
+      id: go
+      run: |
+        echo "::set-output name=build-cache::$(go env GOCACHE)"
+        echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
+
+    - name: Cache the Go Build Cache
+      uses: actions/cache@v2.1.6
+      with:
+        path: ${{ steps.go.outputs.build-cache }}
+        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-build-unit-tests-
+
+    - name: Cache Go Dependencies
+      uses: actions/cache@v2.1.6
+      with:
+        path: ${{ steps.go.outputs.mod-cache }}
+        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-pkg-
+
+    - name: Add kubebuilder
+      run:  |
+        curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
+        sudo mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
+
+    - name: Cache kubebuilder
+      uses: actions/cache@v2.1.6
+      with:
+        path: /usr/local/kubebuilder
+        key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_VERSION}}
+        restore-keys: ${{ runner.os }}-kubebuilder-
+
+    - name: Setup kind
+      uses: engineerd/setup-kind@v0.5.0
+      with:
+        version: "v0.10.0"
+        node_image: kindest/node:v1.20.2
+        name: external-secrets
+
+    - name: Run e2e Tests
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        go get github.com/onsi/ginkgo/ginkgo
+        make test.e2e
+
+    # Update check run called "integration-fork"
+    - uses: actions/github-script@v1
+      id: update-check-run
+      if: ${{ always() }}
+      env:
+        number: ${{ github.event.client_payload.pull_request.number }}
+        job: ${{ github.job }}
+        # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
+        conclusion: ${{ job.status }} 
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { data: pull } = await github.pulls.get({
+            ...context.repo,
+            pull_number: process.env.number
+          });
+          const ref = pull.head.sha;
+
+          const { data: checks } = await github.checks.listForRef({
+            ...context.repo,
+            ref
+          });
+
+          const check = checks.check_runs.filter(c => c.name === process.env.job);
+
+          const { data: result } = await github.checks.update({
+            ...context.repo,
+            check_run_id: check[0].id,
+            status: 'completed',
+            conclusion: process.env.conclusion
+          });
+
+          return result;
