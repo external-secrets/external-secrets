@@ -16,6 +16,10 @@ plugins:
       lang: en
   - macros:
       include_dir: docs/snippets
+extra:
+  analytics:
+    provider: google
+    property: G-QP38TD8K7V
 nav:
   - Introduction: index.md
   - Overview: api-overview.md
