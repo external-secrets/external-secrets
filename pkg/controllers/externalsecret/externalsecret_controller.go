@@ -52,6 +52,7 @@ type Reconciler struct {
 	ControllerClass string
 }
 
+// Reconcile returns a new ExternalSecret object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
@@ -164,6 +165,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, nil
 }
 
+// shouldProcessStore returns true if the store should be processed.
 func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {
 	if store.GetSpec().Controller == "" || store.GetSpec().Controller == class {
 		return true
@@ -191,12 +193,14 @@ func mergeTemplate(secret *corev1.Secret, externalSecret esv1alpha1.ExternalSecr
 	mergeMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
 }
 
+// mergeMap performs a deep clone from src to dest.
 func mergeMap(dest, src map[string]string) {
 	for k, v := range src {
 		dest[k] = v
 	}
 }
 
+// getStore returns the store with the provided ExternalSecret.
 func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
 	ref := types.NamespacedName{
 		Name: externalSecret.Spec.SecretStoreRef.Name,
@@ -222,6 +226,7 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.Ex
 	return &store, nil
 }
 
+// getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
 func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.SecretsClient, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
 
@@ -246,6 +251,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 	return providerData, nil
 }
 
+// SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&esv1alpha1.ExternalSecret{}).
