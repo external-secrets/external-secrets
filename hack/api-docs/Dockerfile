@@ -16,6 +16,9 @@ FROM alpine:3.11
 COPY requirements.txt /
 RUN apk add -U --no-cache \
     python3 \
+    python3-dev \
+    musl-dev \
     bash \
+    gcc \
     diffutils \
   && pip3 install -r /requirements.txt
