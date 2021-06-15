@@ -111,4 +111,46 @@ var _ = Describe("[gcp] ", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	It("should sync secrets wih dataFrom", func() {
+		By("creating a GCP SM Secret")
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		targetSecretKey1 := "name"
+		targetSecretValue1 := "great-name"
+		targetSecretKey2 := "surname"
+		targetSecretValue2 := "great-surname"
+		secretValue := fmt.Sprintf("{ \"%s\": \"%s\", \"%s\": \"%s\" }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
+		targetSecret := "target-secret"
+		err := CreateGCPSecretsManagerSecret(
+			projectID,
+			secretKey1, secretValue, []byte(credentials))
+		Expect(err).ToNot(HaveOccurred())
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "datafrom-sync",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: f.Namespace.Name,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret,
+				},
+				DataFrom: []esv1alpha1.ExternalSecretDataRemoteRef{
+					{
+						Key: secretKey1,
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
+			targetSecretKey1: []byte(targetSecretValue1),
+			targetSecretKey2: []byte(targetSecretValue2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 })
