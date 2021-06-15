@@ -78,7 +78,7 @@ var _ = Describe("[gcp] ", func() {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		secretValue := "great-value-test"
 		targetSecret := "target-secret"
-		err := CreateGCPSecretsManagerSecret(
+		secret, err := createGCPSecretsManagerSecret(
 			projectID,
 			secretKey1, secretValue, []byte(credentials))
 		Expect(err).ToNot(HaveOccurred())
@@ -110,10 +110,13 @@ var _ = Describe("[gcp] ", func() {
 			secretKey1: []byte(secretValue),
 		})
 		Expect(err).ToNot(HaveOccurred())
+
+		err = deleteGCPSecretsManagerSecret(secret.Name, []byte(credentials))
+		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should sync secrets wih dataFrom", func() {
-		By("creating a GCP SM Secret")
+	It("should sync secrets with dataFrom", func() {
+		By("creating a GCP SM Secret with JSON string")
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		targetSecretKey1 := "name"
 		targetSecretValue1 := "great-name"
@@ -121,7 +124,7 @@ var _ = Describe("[gcp] ", func() {
 		targetSecretValue2 := "great-surname"
 		secretValue := fmt.Sprintf("{ \"%s\": \"%s\", \"%s\": \"%s\" }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
 		targetSecret := "target-secret"
-		err := CreateGCPSecretsManagerSecret(
+		secret, err := createGCPSecretsManagerSecret(
 			projectID,
 			secretKey1, secretValue, []byte(credentials))
 		Expect(err).ToNot(HaveOccurred())
@@ -150,6 +153,9 @@ var _ = Describe("[gcp] ", func() {
 			targetSecretKey1: []byte(targetSecretValue1),
 			targetSecretKey2: []byte(targetSecretValue2),
 		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = deleteGCPSecretsManagerSecret(secret.Name, []byte(credentials))
 		Expect(err).ToNot(HaveOccurred())
 	})
 

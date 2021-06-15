@@ -130,7 +130,7 @@ var _ = Describe("[aws] ", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should sync secrets wih dataFrom", func() {
+	It("should sync secrets with dataFrom", func() {
 		By("creating a GCP SM Secret")
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		targetSecretKey1 := "name"

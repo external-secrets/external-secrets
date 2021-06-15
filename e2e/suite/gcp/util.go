@@ -25,18 +25,18 @@ import (
 )
 
 // CreateAWSSecretsManagerSecret creates a sm secret with the given value.
-func CreateGCPSecretsManagerSecret(projectID, secretName, secretValue string, credentials []byte) error {
+func createGCPSecretsManagerSecret(projectID, secretName, secretValue string, credentials []byte) (*secretmanagerpb.Secret, error) {
 	ctx := context.Background()
 
 	config, err := google.JWTConfigFromJSON(credentials, gcpsm.CloudPlatformRole)
 	if err != nil {
-		return fmt.Errorf("unable to procces JSON credentials: %w", err)
+		return nil, fmt.Errorf("unable to procces JSON credentials: %w", err)
 	}
 	ts := config.TokenSource(ctx)
 
 	client, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
 	if err != nil {
-		return fmt.Errorf("failed to setup client: %w", err)
+		return nil, fmt.Errorf("failed to setup client: %w", err)
 	}
 	defer client.Close()
 	// Create the request to create the secret.
@@ -53,7 +53,7 @@ func CreateGCPSecretsManagerSecret(projectID, secretName, secretValue string, cr
 	}
 	secret, err := client.CreateSecret(ctx, createSecretReq)
 	if err != nil {
-		return fmt.Errorf("failed to create secret: %w", err)
+		return nil, fmt.Errorf("failed to create secret: %w", err)
 	}
 	// Declare the payload to store.
 	payload := []byte(secretValue)
@@ -67,8 +67,35 @@ func CreateGCPSecretsManagerSecret(projectID, secretName, secretValue string, cr
 	// Call the API.
 	_, err = client.AddSecretVersion(ctx, addSecretVersionReq)
 	if err != nil {
-		return fmt.Errorf("failed to add secret version: %w", err)
+		return nil, fmt.Errorf("failed to add secret version: %w", err)
 	}
 
-	return err
+	return secret, err
+}
+
+// deleteSecret deletes the secret with the given name and all of its versions.
+func deleteGCPSecretsManagerSecret(secretName string, credentials []byte) error {
+	ctx := context.Background()
+	config, err := google.JWTConfigFromJSON(credentials, gcpsm.CloudPlatformRole)
+	if err != nil {
+		return fmt.Errorf("unable to procces JSON credentials: %w", err)
+	}
+	ts := config.TokenSource(ctx)
+
+	client, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
+	if err != nil {
+		return fmt.Errorf("failed to setup client: %w", err)
+	}
+	defer client.Close()
+
+	// Build the request.
+	req := &secretmanagerpb.DeleteSecretRequest{
+		Name: secretName,
+	}
+
+	// Call the API.
+	if err := client.DeleteSecret(ctx, req); err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+	return nil
 }
