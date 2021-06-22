@@ -82,7 +82,6 @@ jobs:
     - name: Run e2e Tests
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        export GCP_SM_SA_JSON=${{env.GCP_SM_SA_JSON}}
         go get github.com/onsi/ginkgo/ginkgo
         make test.e2e
 
@@ -152,7 +151,6 @@ jobs:
     - name: Run e2e Tests
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        export GCP_SM_SA_JSON=${{env.GCP_SM_SA_JSON}}
         go get github.com/onsi/ginkgo/ginkgo
         make test.e2e
 

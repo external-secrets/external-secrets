@@ -29,6 +29,10 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
+const (
+	targetSecret = "target-secret"
+)
+
 var _ = Describe("[aws] ", func() {
 	f := framework.New("eso-aws")
 	var secretStore *esv1alpha1.SecretStore
@@ -83,7 +87,6 @@ var _ = Describe("[aws] ", func() {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "other")
 		secretValue := "bar"
-		targetSecret := "target-secret"
 		err := CreateAWSSecretsManagerSecret(
 			localstackURL,
 			secretKey1, secretValue)
@@ -138,7 +141,6 @@ var _ = Describe("[aws] ", func() {
 		targetSecretKey2 := "surname"
 		targetSecretValue2 := "great-surname"
 		secretValue := fmt.Sprintf("{ \"%s\": \"%s\", \"%s\": \"%s\" }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
-		targetSecret := "target-secret"
 		err := CreateAWSSecretsManagerSecret(
 			localstackURL,
 			secretKey1, secretValue)
@@ -158,6 +160,66 @@ var _ = Describe("[aws] ", func() {
 				DataFrom: []esv1alpha1.ExternalSecretDataRemoteRef{
 					{
 						Key: secretKey1,
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
+			targetSecretKey1: []byte(targetSecretValue1),
+			targetSecretKey2: []byte(targetSecretValue2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should sync secrets and get inner keys", func() {
+		By("creating a GCP SM Secret")
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		targetSecretKey1 := "firstname"
+		targetSecretValue1 := "Tom"
+		targetSecretKey2 := "first_friend"
+		targetSecretValue2 := "Roger"
+		secretValue := fmt.Sprintf(
+			`{
+				"name": {"first": "%s", "last": "Anderson"},
+				"friends": 
+				[ 
+					{"first": "Dale", "last": "Murphy"}, 
+					{"first": "%s", "last": "Craig"}, 
+					{"first": "Jane", "last": "Murphy"} 
+				]
+			}`, targetSecretValue1, targetSecretValue2)
+		err := CreateAWSSecretsManagerSecret(
+			localstackURL,
+			secretKey1, secretValue)
+		Expect(err).ToNot(HaveOccurred())
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "datafrom-sync",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: f.Namespace.Name,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret,
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: targetSecretKey1,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key:      secretKey1,
+							Property: "name.first",
+						},
+					},
+					{
+						SecretKey: targetSecretKey2,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key:      secretKey1,
+							Property: "friends.1.first",
+						},
 					},
 				},
 			},
