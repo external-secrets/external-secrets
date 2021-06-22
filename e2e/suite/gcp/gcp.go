@@ -8,14 +8,14 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
 limitations under the License.
 */
-package aws
+package gcp
 
 import (
 	"context"
 	"fmt"
+	"os"
 
 	// nolint
 	. "github.com/onsi/ginkgo"
@@ -29,24 +29,24 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
-var _ = Describe("[aws] ", func() {
-	f := framework.New("eso-aws")
+var _ = Describe("[gcp] ", func() {
+	f := framework.New("eso-gcp")
 	var secretStore *esv1alpha1.SecretStore
-	localstackURL := "http://localstack.default"
+	projectID := "external-secrets-operator"
+	credentials := os.Getenv("GCP_SM_SA_JSON")
 
 	BeforeEach(func() {
-		By("creating an secret store for localstack")
-		awsCreds := &v1.Secret{
+		By("creating a secret in GCP SM")
+		gcpCred := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      f.Namespace.Name,
 				Namespace: f.Namespace.Name,
 			},
 			StringData: map[string]string{
-				"kid": "foobar",
-				"sak": "foobar",
+				"secret-access-credentials": credentials,
 			},
 		}
-		err := f.CRClient.Create(context.Background(), awsCreds)
+		err := f.CRClient.Create(context.Background(), gcpCred)
 		Expect(err).ToNot(HaveOccurred())
 		secretStore = &esv1alpha1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -55,18 +55,13 @@ var _ = Describe("[aws] ", func() {
 			},
 			Spec: esv1alpha1.SecretStoreSpec{
 				Provider: &esv1alpha1.SecretStoreProvider{
-					AWS: &esv1alpha1.AWSProvider{
-						Service: esv1alpha1.AWSServiceSecretsManager,
-						Region:  "us-east-1",
-						Auth: &esv1alpha1.AWSAuth{
-							SecretRef: esv1alpha1.AWSAuthSecretRef{
-								AccessKeyID: esmeta.SecretKeySelector{
-									Name: f.Namespace.Name,
-									Key:  "kid",
-								},
+					GCPSM: &esv1alpha1.GCPSMProvider{
+						ProjectID: projectID,
+						Auth: esv1alpha1.GCPSMAuth{
+							SecretRef: esv1alpha1.GCPSMAuthSecretRef{
 								SecretAccessKey: esmeta.SecretKeySelector{
 									Name: f.Namespace.Name,
-									Key:  "sak",
+									Key:  "secret-access-credentials",
 								},
 							},
 						},
@@ -78,21 +73,15 @@ var _ = Describe("[aws] ", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should sync multiple secrets", func() {
-		By("creating a AWS SM Secret")
+	It("should sync secrets", func() {
+		By("creating a GCP SM Secret")
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
-		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "other")
-		secretValue := "bar"
+		secretValue := "great-value-test"
 		targetSecret := "target-secret"
-		err := CreateAWSSecretsManagerSecret(
-			localstackURL,
-			secretKey1, secretValue)
+		secret, err := createGCPSecretsManagerSecret(
+			projectID,
+			secretKey1, secretValue, []byte(credentials))
 		Expect(err).ToNot(HaveOccurred())
-		err = CreateAWSSecretsManagerSecret(
-			localstackURL,
-			secretKey2, secretValue)
-		Expect(err).ToNot(HaveOccurred())
-
 		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "simple-sync",
@@ -112,12 +101,6 @@ var _ = Describe("[aws] ", func() {
 							Key: secretKey1,
 						},
 					},
-					{
-						SecretKey: secretKey2,
-						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-							Key: secretKey2,
-						},
-					},
 				},
 			},
 		})
@@ -125,13 +108,15 @@ var _ = Describe("[aws] ", func() {
 
 		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
 			secretKey1: []byte(secretValue),
-			secretKey2: []byte(secretValue),
 		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = deleteGCPSecretsManagerSecret(secret.Name, []byte(credentials))
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("should sync secrets with dataFrom", func() {
-		By("creating a GCP SM Secret")
+		By("creating a GCP SM Secret with JSON string")
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		targetSecretKey1 := "name"
 		targetSecretValue1 := "great-name"
@@ -139,9 +124,9 @@ var _ = Describe("[aws] ", func() {
 		targetSecretValue2 := "great-surname"
 		secretValue := fmt.Sprintf("{ \"%s\": \"%s\", \"%s\": \"%s\" }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
 		targetSecret := "target-secret"
-		err := CreateAWSSecretsManagerSecret(
-			localstackURL,
-			secretKey1, secretValue)
+		secret, err := createGCPSecretsManagerSecret(
+			projectID,
+			secretKey1, secretValue, []byte(credentials))
 		Expect(err).ToNot(HaveOccurred())
 		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -169,5 +154,9 @@ var _ = Describe("[aws] ", func() {
 			targetSecretKey2: []byte(targetSecretValue2),
 		})
 		Expect(err).ToNot(HaveOccurred())
+
+		err = deleteGCPSecretsManagerSecret(secret.Name, []byte(credentials))
+		Expect(err).ToNot(HaveOccurred())
 	})
+
 })

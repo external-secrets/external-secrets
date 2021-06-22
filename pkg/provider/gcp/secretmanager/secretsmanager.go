@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	cloudPlatformRole = "https://www.googleapis.com/auth/cloud-platform"
+	CloudPlatformRole = "https://www.googleapis.com/auth/cloud-platform"
 	defaultVersion    = "latest"
 
 	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
@@ -120,7 +120,7 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericSt
 
 	sm.projectID = cliStore.store.ProjectID
 
-	config, err := google.JWTConfigFromJSON(cliStore.credentials, cloudPlatformRole)
+	config, err := google.JWTConfigFromJSON(cliStore.credentials, CloudPlatformRole)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableProcessJSONCredentials, err)
 	}
