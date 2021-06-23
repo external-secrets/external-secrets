@@ -52,7 +52,9 @@ type Reconciler struct {
 	ControllerClass string
 }
 
-// Reconcile returns a new ExternalSecret object.
+// Reconcile implements the main reconciliation loop
+// for watched objects (ExternalSecret, ClusterSecretStore and SecretStore),
+// and updates/creates a Kubernetes secret based on them.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
