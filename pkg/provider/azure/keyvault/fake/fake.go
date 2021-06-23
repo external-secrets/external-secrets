@@ -21,15 +21,22 @@ import (
 	mock "github.com/stretchr/testify/mock"
 )
 
-type secretData = struct {
+type secretData struct {
 	item           keyvault.SecretItem
 	secretVersions map[string]keyvault.SecretBundle
 	lastVersion    string
 }
 
+type keyData struct {
+	item        keyvault.KeyItem
+	keyVersions map[string]keyvault.KeyBundle
+	lastVersion string
+}
+
 type AzureMock struct {
 	mock.Mock
 	knownSecrets map[string]map[string]*secretData
+	knownKeys    map[string]map[string]*keyData
 }
 
 func (m *AzureMock) AddSecret(vaultBaseURL, secretName, secretContent string, enabled bool) string {
@@ -103,6 +110,75 @@ func (m *AzureMock) ExpectsGetSecretsComplete(ctx context.Context, vaultBaseURL 
 	m.On("GetSecretsComplete", ctx, vaultBaseURL, maxresults).Return(returnValue, nil)
 }
 
+func (m *AzureMock) AddKey(vaultBaseURL, keyName string, key *keyvault.JSONWebKey, enabled bool) string {
+	uid := uuid.NewString()
+	m.AddKeyWithVersion(vaultBaseURL, keyName, uid, key, enabled)
+	return uid
+}
+
+func (m *AzureMock) AddKeyWithVersion(vaultBaseURL, keyName, keyVersion string, key *keyvault.JSONWebKey, enabled bool) {
+	if m.knownKeys == nil {
+		m.knownKeys = make(map[string]map[string]*keyData)
+	}
+	if m.knownKeys[vaultBaseURL] == nil {
+		m.knownKeys[vaultBaseURL] = make(map[string]*keyData)
+	}
+
+	keyItemID := vaultBaseURL + keyName
+
+	if m.knownKeys[vaultBaseURL][keyName] == nil {
+		m.knownKeys[vaultBaseURL][keyName] = &keyData{
+			item:        newValidKeyItem(keyItemID, enabled),
+			keyVersions: make(map[string]keyvault.KeyBundle),
+		}
+	} else {
+		m.knownKeys[vaultBaseURL][keyName].item.Attributes.Enabled = &enabled
+	}
+	m.knownKeys[vaultBaseURL][keyName].keyVersions[keyVersion] = newValidKeyBundle(key)
+	m.knownKeys[vaultBaseURL][keyName].lastVersion = keyVersion
+}
+
+func newValidKeyBundle(key *keyvault.JSONWebKey) keyvault.KeyBundle {
+	return keyvault.KeyBundle{
+		Key: key,
+	}
+}
+
+func newValidKeyItem(keyItemID string, enabled bool) keyvault.KeyItem {
+	return keyvault.KeyItem{
+		Kid:        &keyItemID,
+		Attributes: &keyvault.KeyAttributes{Enabled: &enabled},
+	}
+}
+
+func (m *AzureMock) ExpectsGetKey(ctx context.Context, vaultBaseURL, keyName, keyVersion string) {
+	data := m.knownKeys[vaultBaseURL][keyName]
+	version := keyVersion
+	if version == "" {
+		version = data.lastVersion
+	}
+	returnValue := data.keyVersions[version]
+	m.On("GetKey", ctx, vaultBaseURL, keyName, keyVersion).Return(returnValue, nil)
+}
+
+func (m *AzureMock) ExpectsGetKeysComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) {
+	keyMap := m.knownKeys[vaultBaseURL]
+	keyItems := make([]keyvault.KeyItem, len(keyMap))
+	i := 0
+	for _, value := range keyMap {
+		keyItems[i] = value.item
+		i++
+	}
+	firstPage := keyvault.KeyListResult{
+		Value:    &keyItems,
+		NextLink: nil,
+	}
+	returnValue := keyvault.NewKeyListResultIterator(keyvault.NewKeyListResultPage(firstPage, func(context.Context, keyvault.KeyListResult) (keyvault.KeyListResult, error) {
+		return keyvault.KeyListResult{}, nil
+	}))
+	m.On("GetKeysComplete", ctx, vaultBaseURL, maxresults).Return(returnValue, nil)
+}
+
 func (m *AzureMock) GetKey(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.KeyBundle, err error) {
 	args := m.Called(ctx, vaultBaseURL, keyName, keyVersion)
 	return args.Get(0).(keyvault.KeyBundle), args.Error(1)
@@ -120,4 +196,9 @@ func (m *AzureMock) GetCertificate(ctx context.Context, vaultBaseURL, certificat
 func (m *AzureMock) GetSecretsComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error) {
 	args := m.Called(ctx, vaultBaseURL, maxresults)
 	return args.Get(0).(keyvault.SecretListResultIterator), args.Error(1)
+}
+
+func (m *AzureMock) GetKeysComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.KeyListResultIterator, err error) {
+	args := m.Called(ctx, vaultBaseURL, maxresults)
+	return args.Get(0).(keyvault.KeyListResultIterator), args.Error(1)
 }

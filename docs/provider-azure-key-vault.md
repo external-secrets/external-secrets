@@ -3,7 +3,7 @@
 
 ## Azure Key vault
 
-External Secrets Operator integrates with [Azure Key vault](https://azure.microsoft.com/en-us/services/key-vault/) for secrets , certificates and Keys management.
+External Secrets Operator integrates with [Azure Key vault](https://azure.microsoft.com/en-us/services/key-vault/) for secrets, certificates and Keys management.
 
 ### Authentication
 
@@ -24,6 +24,17 @@ Be sure the `azkv` provider is listed in the `Kind=SecretStore`
 {% include 'azkv-secret-store.yaml' %}
 ```
 
+### Object Types
+
+Azure KeyVault manages different [object types](https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types), we support `keys`, `secrets` and `certificates`. Simply prefix the key with `key`, `secret` or `cert` to retrieve the desired type (defaults to secret).
+
+| Object Type   | Return Value                                                                                                                                                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `secret`      | the raw secret value.                                                                                                                                                                                                             |
+| `key`         | A JWK which contains the public key. Azure KeyVault does **not** export the private key. You may want to use [template functions](guides-templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
+| `certificate` | The raw CER contents of the x509 certificate. You may want to use [template functions](guides-templating.md) to transform this into your desired encoding                                                             |
+
+
 ### Creating external secret
 
 To create a kubernetes secret from the Azure Key vault secret a `Kind=ExternalSecret` is needed.
@@ -40,4 +51,3 @@ The operator will fetch the Azure Key vault secret and inject it as a `Kind=Secr
 ```
 kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
-

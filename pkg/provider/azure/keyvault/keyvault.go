@@ -15,20 +15,14 @@ limitations under the License.
 package keyvault
 
 import (
-	"bytes"
 	"context"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/base64"
-	"encoding/pem"
+	"encoding/json"
 	"fmt"
-	"math/big"
 	"path"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
-	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -94,7 +88,6 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	version := ""
 	objectType := "secret"
 	basicClient := a.baseClient
-	var secretValue []byte // The value of the secret that will be set to the k8s secret object
 
 	if ref.Version != "" {
 		version = ref.Version
@@ -111,36 +104,33 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 
 	switch objectType {
 	case "secret":
+		// returns a SecretBundle with the secret value
+		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
 		secretResp, err := basicClient.GetSecret(context.Background(), a.vaultURL, secretName, version)
 		if err != nil {
 			return nil, err
 		}
-		secretValue = []byte(*secretResp.Value)
-
+		return []byte(*secretResp.Value), nil
 	case "cert":
+		// returns a CertBundle. We return CER contents of x509 certificate
+		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle
 		secretResp, err := basicClient.GetCertificate(context.Background(), a.vaultURL, secretName, version)
 		if err != nil {
 			return nil, err
 		}
-		secretValue = *secretResp.Cer
-
+		return *secretResp.Cer, nil
 	case "key":
+		// returns a KeyBundla that contains a jwk
+		// azure kv returns only public keys
+		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
 		keyResp, err := basicClient.GetKey(context.Background(), a.vaultURL, secretName, version)
 		if err != nil {
 			return nil, err
 		}
-		jwk := *keyResp.Key
-
-		secretValue, err = getPublicKeyFromJwk(jwk)
-		if err != nil {
-			return nil, err
-		}
-
-	default:
-		return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
+		return json.Marshal(keyResp.Key)
 	}
 
-	return secretValue, nil
+	return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
 }
 
 // Implements store.Client.GetSecretMap Interface.
@@ -177,74 +167,6 @@ func (a *Azure) GetSecretMap(ctx context.Context, _ esv1alpha1.ExternalSecretDat
 	return secretsMap, nil
 }
 
-// getCertBundle returns the certificate bundle.
-func getCertBundleForPKCS(certificateRawVal string) (bundle string, err error) {
-	pfx, err := base64.StdEncoding.DecodeString(certificateRawVal)
-
-	if err != nil {
-		return bundle, err
-	}
-	blocks, _ := pkcs12.ToPEM(pfx, "")
-
-	for _, block := range blocks {
-		// no headers
-		if block.Type == "PRIVATE KEY" {
-			pkey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-			if err != nil {
-				panic(err)
-			}
-			derStream := x509.MarshalPKCS1PrivateKey(pkey)
-			block = &pem.Block{
-				Type:  "RSA PRIVATE KEY",
-				Bytes: derStream,
-			}
-		}
-		block.Headers = nil
-		bundle += string(pem.EncodeToMemory(block))
-	}
-	return bundle, nil
-}
-
-func getPublicKeyFromJwk(jwk keyvault.JSONWebKey) (bundle []byte, err error) {
-	if jwk.Kty != "RSA" {
-		return nil, fmt.Errorf("invalid key type: %s", jwk.Kty)
-	}
-	// decode the base64 bytes for n
-	nb, err := base64.RawURLEncoding.DecodeString(*jwk.N)
-	if err != nil {
-		return nil, err
-	}
-	e := 0
-	// The default exponent is usually 65537, so just compare the
-	// base64 for [1,0,1] or [0,1,0,1]
-	if *jwk.E == "AQAB" || *jwk.E == "AAEAAQ" {
-		e = 65537
-	} else {
-		// need to decode "e" as a big-endian int
-		return nil, fmt.Errorf("need to deocde e: %s", *jwk.E)
-	}
-
-	pk := &rsa.PublicKey{
-		N: new(big.Int).SetBytes(nb),
-		E: e,
-	}
-
-	der, err := x509.MarshalPKIXPublicKey(pk)
-	if err != nil {
-		return nil, err
-	}
-	block := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: der,
-	}
-	var out bytes.Buffer
-	err = pem.Encode(&out, block)
-	if err != nil {
-		return nil, err
-	}
-	return out.Bytes(), nil
-}
-
 func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, string, error) {
 	spec := *a.store.GetSpec().Provider.AzureKV
 	tenantID := *spec.TenantID
@@ -253,18 +175,18 @@ func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, strin
 	if spec.AuthSecretRef == nil {
 		return nil, "", fmt.Errorf("missing clientID/clientSecret in store config")
 	}
-	scoped := true
-	if a.store.GetObjectMeta().String() == "ClusterSecretStore" {
-		scoped = false
+	clusterScoped := false
+	if a.store.GetObjectMeta().String() == esv1alpha1.ClusterSecretStoreKind {
+		clusterScoped = true
 	}
 	if spec.AuthSecretRef.ClientID == nil || spec.AuthSecretRef.ClientSecret == nil {
 		return nil, "", fmt.Errorf("missing accessKeyID/secretAccessKey in store config")
 	}
-	cid, err := a.secretKeyRef(ctx, a.store.GetNamespacedName(), *spec.AuthSecretRef.ClientID, scoped)
+	cid, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *spec.AuthSecretRef.ClientID, clusterScoped)
 	if err != nil {
 		return nil, "", err
 	}
-	csec, err := a.secretKeyRef(ctx, a.store.GetNamespacedName(), *spec.AuthSecretRef.ClientSecret, scoped)
+	csec, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *spec.AuthSecretRef.ClientSecret, clusterScoped)
 	if err != nil {
 		return nil, "", err
 	}
@@ -283,18 +205,18 @@ func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, strin
 	return &basicClient, vaultURL, nil
 }
 
-func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef smmeta.SecretKeySelector, scoped bool) (string, error) {
+func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef smmeta.SecretKeySelector, clusterScoped bool) (string, error) {
 	var secret corev1.Secret
 	ref := types.NamespacedName{
 		Namespace: namespace,
 		Name:      secretRef.Name,
 	}
-	if !scoped && secretRef.Namespace != nil {
+	if clusterScoped && secretRef.Namespace != nil {
 		ref.Namespace = *secretRef.Namespace
 	}
 	err := a.kube.Get(ctx, ref, &secret)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not find secret %s/%s: %w", ref.Namespace, ref.Name, err)
 	}
 	keyBytes, ok := secret.Data[secretRef.Key]
 	if !ok {
