@@ -555,6 +555,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#object-types" class="md-nav__link">
+    Object Types
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#creating-external-secret" class="md-nav__link">
     Creating external secret
   </a>
@@ -804,6 +811,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#object-types" class="md-nav__link">
+    Object Types
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#creating-external-secret" class="md-nav__link">
     Creating external secret
   </a>
@@ -836,7 +850,7 @@
                 
                 <p><img alt="aws sm" src="../pictures/eso-az-kv-azure-kv.png" /></p>
 <h2 id="azure-key-vault">Azure Key vault</h2>
-<p>External Secrets Operator integrates with <a href="https://azure.microsoft.com/en-us/services/key-vault/">Azure Key vault</a> for secrets , certificates and Keys management.</p>
+<p>External Secrets Operator integrates with <a href="https://azure.microsoft.com/en-us/services/key-vault/">Azure Key vault</a> for secrets, certificates and Keys management.</p>
 <h3 id="authentication">Authentication</h3>
 <p>At the moment, we only support <a href="https://docs.microsoft.com/en-us/azure/key-vault/general/authentication">service principals</a> authentication.</p>
 <h4 id="service-principal-key-authentication">Service Principal key authentication</h4>
@@ -858,19 +872,47 @@
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
 <span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">azurekv</span><span class="p">:</span>      <span class="c1">#Provider type , azure keyvault</span>
-    <span class="nt">tenantid</span><span class="p">:</span> <span class="s">&quot;d3bc2180-xxxx-xxxx-xxxx-154105743342&quot;</span> <span class="c1">#azure tenant ID</span>
-    <span class="nt">vaultUrl</span><span class="p">:</span> <span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span> <span class="c1">#Keyvault URL</span>
+  <span class="c1"># provider type: azure keyvault</span>
+  <span class="nt">azurekv</span><span class="p">:</span>
+    <span class="c1"># azure tenant ID, see: https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-how-to-find-tenant</span>
+    <span class="nt">tenantId</span><span class="p">:</span> <span class="s">&quot;d3bc2180-xxxx-xxxx-xxxx-154105743342&quot;</span>
+    <span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span>
+    <span class="nt">vaultUrl</span><span class="p">:</span> <span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span>
     <span class="nt">authSecretRef</span><span class="p">:</span>
-      <span class="c1">#Secret created in the cluster holding the azure service principal with proper access rights</span>
-      <span class="nt">clientID</span><span class="p">:</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>  
+      <span class="c1"># points to the secret that contains</span>
+      <span class="c1"># the azure service principal credentials</span>
+      <span class="nt">clientId</span><span class="p">:</span>
+        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
         <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientID</span>
       <span class="nt">clientSecret</span><span class="p">:</span>
         <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
         <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientSecret</span>
 </code></pre></div>
 
+<h3 id="object-types">Object Types</h3>
+<p>Azure KeyVault manages different <a href="https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types">object types</a>, we support <code>keys</code>, <code>secrets</code> and <code>certificates</code>. Simply prefix the key with <code>key</code>, <code>secret</code> or <code>cert</code> to retrieve the desired type (defaults to secret).</p>
+<table>
+<thead>
+<tr>
+<th>Object Type</th>
+<th>Return Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>secret</code></td>
+<td>the raw secret value.</td>
+</tr>
+<tr>
+<td><code>key</code></td>
+<td>A JWK which contains the public key. Azure KeyVault does <strong>not</strong> export the private key. You may want to use <a href="../guides-templating/">template functions</a> to transform this JWK into PEM encoded PKIX ASN.1 DER format.</td>
+</tr>
+<tr>
+<td><code>certificate</code></td>
+<td>The raw CER contents of the x509 certificate. You may want to use <a href="../guides-templating/">template functions</a> to transform this into your desired encoding</td>
+</tr>
+</tbody>
+</table>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To create a kubernetes secret from the Azure Key vault secret a <code>Kind=ExternalSecret</code> is needed.</p>
 <p>You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name , the default type is a <code>secret</code>. other supported values are <code>cert</code> and <code>key</code></p>
@@ -880,36 +922,41 @@
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-external-secret</span>
 <span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>           <span class="c1"># rate SecretManager pulls Azure</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
   <span class="nt">secretStoreRef</span><span class="p">:</span>
     <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>               <span class="c1"># name of the SecretStore (or kind specified)</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
 
   <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>  <span class="c1"># name of the k8s Secret to be created</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
     <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
 
   <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>  <span class="c1"># name of the  key to be created in the secret object</span>
+  <span class="c1"># name of the SECRET in the Azure KV (no prefix is by default a SECRET)</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>
     <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span> <span class="c1">#name of the SECRET in the Azure KV (no prefix =&gt; SECRET)</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>
 
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-another-secret-test</span>  <span class="c1"># name of the  key to be created in the secret object</span>
+  <span class="c1"># explicit type and name of secret in the Azure KV</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-another-secret-test</span>
     <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret/dev-secret-test</span> <span class="c1">#type and name of secret in the Azure KV</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret/dev-secret-test</span>
 
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-cert-test</span>  <span class="c1"># name of the  key to be created in the secret object</span>
+  <span class="c1"># type/name of certificate in the Azure KV</span>
+  <span class="c1"># raw value will be returned, use templating features for data processing</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-cert-test</span>
     <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cert/dev-cert-test</span> <span class="c1">#type/name of certificate in the Azure KV </span>
-                              <span class="c1">#raw value will be returned , use templating features for data processing</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cert/dev-cert-test</span>
 
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-key-test</span>  <span class="c1"># name of the  key to be created in the secret object</span>
+  <span class="c1"># type/name of the public key in the Azure KV</span>
+  <span class="c1"># the key is returned PEM encoded</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-key-test</span>
     <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">key/dev-key-test</span> <span class="c1">#type/name of the public key in the Azure KV </span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">key/dev-key-test</span>
 
-  <span class="c1"># dataFrom , return ALL secrets saved in the referenced secretStore </span>
+  <span class="c1"># dataFrom , return ALL secrets saved in the referenced secretStore</span>
   <span class="c1"># each secret name in the KV will be used as the secret key in the SECRET k8s target object</span>
-  <span class="nt">dataFrom</span><span class="p">:</span> 
+  <span class="nt">dataFrom</span><span class="p">:</span>
   <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;*&quot;</span>
 </code></pre></div>
 

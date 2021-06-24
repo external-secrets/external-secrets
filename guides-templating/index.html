@@ -877,6 +877,18 @@
 <td><code>string</code></td>
 </tr>
 <tr>
+<td>jwkPublicKeyPem</td>
+<td>takes an json-serialized JWK as <code>[]byte</code> and returns an PEM block of type <code>PUBLIC KEY</code> that contains the public key (<a href="https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey">see here</a>) for details</td>
+<td><code>[]byte</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
+<td>jwkPrivateKeyPem</td>
+<td>takes an json-serialized JWK as <code>[]byte</code> and returns an PEM block of type <code>PRIVATE KEY</code> that contains the private key in PKCS #8 format (<a href="https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey">see here</a>) for details</td>
+<td><code>[]byte</code></td>
+<td><code>string</code></td>
+</tr>
+<tr>
 <td>base64decode</td>
 <td>decodes the provided bytes as base64</td>
 <td><code>[]byte</code></td>
