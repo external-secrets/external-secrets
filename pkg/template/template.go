@@ -15,6 +15,7 @@ package template
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
@@ -22,6 +23,7 @@ import (
 	"strings"
 	tpl "text/template"
 
+	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/youmark/pkcs8"
 	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
@@ -41,6 +43,9 @@ var tplFuncs = tpl.FuncMap{
 	"base64encode":   base64encode,
 	"fromJSON":       fromJSON,
 	"toJSON":         toJSON,
+
+	"jwkPublicKeyPem":  jwkPublicKeyPem,
+	"jwkPrivateKeyPem": jwkPrivateKeyPem,
 
 	"toString": toString,
 	"toBytes":  toBytes,
@@ -119,22 +124,61 @@ func pkcs12cert(input []byte) ([]byte, error) {
 	return pkcs12certPass("", input)
 }
 
-func pemPrivateKey(key []byte) (string, error) {
-	buf := bytes.NewBuffer(nil)
-	err := pem.Encode(buf, &pem.Block{Type: "PRIVATE KEY", Bytes: key})
+func jwkPublicKeyPem(jwkjson []byte) (string, error) {
+	k, err := jwk.ParseKey(jwkjson)
 	if err != nil {
-		return "", fmt.Errorf(errEncodePEMKey, err)
+		return "", err
 	}
+	var rawkey interface{}
+	err = k.Raw(&rawkey)
+	if err != nil {
+		return "", err
+	}
+	mpk, err := x509.MarshalPKIXPublicKey(rawkey)
+	if err != nil {
+		return "", err
+	}
+	return pemEncode(mpk, "PUBLIC KEY")
+}
+
+func jwkPrivateKeyPem(jwkjson []byte) (string, error) {
+	k, err := jwk.ParseKey(jwkjson)
+	if err != nil {
+		return "", err
+	}
+	var mpk []byte
+	var pk interface{}
+	err = k.Raw(&pk)
+	if err != nil {
+		return "", err
+	}
+	mpk, err = x509.MarshalPKCS8PrivateKey(pk)
+	if err != nil {
+		return "", err
+	}
+	return pemEncode(mpk, "PRIVATE KEY")
+}
+
+func pemEncode(thing []byte, kind string) (string, error) {
+	buf := bytes.NewBuffer(nil)
+	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: thing})
 	return buf.String(), err
 }
 
-func pemCertificate(cert []byte) (string, error) {
-	buf := bytes.NewBuffer(nil)
-	err := pem.Encode(buf, &pem.Block{Type: "CERTIFICATE", Bytes: cert})
+func pemPrivateKey(key []byte) (string, error) {
+	res, err := pemEncode(key, "PRIVATE KEY")
 	if err != nil {
-		return "", fmt.Errorf(errEncodePEMCert, err)
+		return res, fmt.Errorf(errEncodePEMKey, err)
 	}
-	return buf.String(), nil
+	return res, nil
+}
+
+func pemCertificate(cert []byte) (string, error) {
+	res, err := pemEncode(cert, "CERTIFICATE")
+	if err != nil {
+		return res, fmt.Errorf(errEncodePEMCert, err)
+	}
+	return res, nil
 }
 
 func base64decode(in []byte) ([]byte, error) {

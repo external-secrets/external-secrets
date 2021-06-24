@@ -75,6 +75,62 @@ Wt+1Rcb8OrDhDJbYz85bXBnPecKp4EN0b9SHO0/dsCqn2w30emc+9T/4m1ZDkpBd
 BixHvI/EJ8YK3ta5WdJWKC6hnA==
 -----END PRIVATE KEY-----
 `
+	jwkPubRSA     = `{"kid":"ex","kty":"RSA","key_ops":["sign","verify","wrapKey","unwrapKey","encrypt","decrypt"],"n":"p2VQo8qCfWAZmdWBVaYuYb-a-tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz-Ed8Cdlf8lkDg4Ex5tkB64jRdC1Uvn4CDpOH6cp-N2s8hTFLqy9_YaDmyQS7HiqthOi9oVjil1VMeWfaAbClGtFt6UnKD0Vb_DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlIIx7unibLehhDU6q3DCwNH_OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQP_WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9vyQ","e":"AQAB"}`
+	jwkPubRSAPKIX = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp2VQo8qCfWAZmdWBVaYu
+Yb+a+tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz+Ed8Cdlf8lkD
+g4Ex5tkB64jRdC1Uvn4CDpOH6cp+N2s8hTFLqy9/YaDmyQS7HiqthOi9oVjil1VM
+eWfaAbClGtFt6UnKD0Vb/DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlI
+Ix7unibLehhDU6q3DCwNH/OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQ
+P/WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9v
+yQIDAQAB
+-----END PUBLIC KEY-----
+`
+	jwkPrivRSA      = `{"kty" : "RSA","kid" : "cc34c0a0-bd5a-4a3c-a50d-a2a7db7643df","use" : "sig","n"   : "pjdss8ZaDfEH6K6U7GeW2nxDqR4IP049fk1fK0lndimbMMVBdPv_hSpm8T8EtBDxrUdi1OHZfMhUixGaut-3nQ4GG9nM249oxhCtxqqNvEXrmQRGqczyLxuh-fKn9Fg--hS9UpazHpfVAFnB5aCfXoNhPuI8oByyFKMKaOVgHNqP5NBEqabiLftZD3W_lsFCPGuzr4Vp0YS7zS2hDYScC2oOMu4rGU1LcMZf39p3153Cq7bS2Xh6Y-vw5pwzFYZdjQxDn8x8BG3fJ6j8TGLXQsbKH1218_HcUJRvMwdpbUQG5nvA2GXVqLqdwp054Lzk9_B_f1lVrmOKuHjTNHq48w","e"   : "AQAB","d"   : "ksDmucdMJXkFGZxiomNHnroOZxe8AmDLDGO1vhs-POa5PZM7mtUPonxwjVmthmpbZzla-kg55OFfO7YcXhg-Hm2OWTKwm73_rLh3JavaHjvBqsVKuorX3V3RYkSro6HyYIzFJ1Ek7sLxbjDRcDOj4ievSX0oN9l-JZhaDYlPlci5uJsoqro_YrE0PRRWVhtGynd-_aWgQv1YzkfZuMD-hJtDi1Im2humOWxA4eZrFs9eG-whXcOvaSwO4sSGbS99ecQZHM2TcdXeAs1PvjVgQ_dKnZlGN3lTWoWfQP55Z7Tgt8Nf1q4ZAKd-NlMe-7iqCFfsnFwXjSiaOa2CRGZn-Q","p"   : "4A5nU4ahEww7B65yuzmGeCUUi8ikWzv1C81pSyUKvKzu8CX41hp9J6oRaLGesKImYiuVQK47FhZ--wwfpRwHvSxtNU9qXb8ewo-BvadyO1eVrIk4tNV543QlSe7pQAoJGkxCia5rfznAE3InKF4JvIlchyqs0RQ8wx7lULqwnn0","q"   : "ven83GM6SfrmO-TBHbjTk6JhP_3CMsIvmSdo4KrbQNvp4vHO3w1_0zJ3URkmkYGhz2tgPlfd7v1l2I6QkIh4Bumdj6FyFZEBpxjE4MpfdNVcNINvVj87cLyTRmIcaGxmfylY7QErP8GFA-k4UoH_eQmGKGK44TRzYj5hZYGWIC8","dp"  : "lmmU_AG5SGxBhJqb8wxfNXDPJjf__i92BgJT2Vp4pskBbr5PGoyV0HbfUQVMnw977RONEurkR6O6gxZUeCclGt4kQlGZ-m0_XSWx13v9t9DIbheAtgVJ2mQyVDvK4m7aRYlEceFh0PsX8vYDS5o1txgPwb3oXkPTtrmbAGMUBpE","dq"  : "mxRTU3QDyR2EnCv0Nl0TCF90oliJGAHR9HJmBe__EjuCBbwHfcT8OG3hWOv8vpzokQPRl5cQt3NckzX3fs6xlJN4Ai2Hh2zduKFVQ2p-AF2p6Yfahscjtq-GY9cB85NxLy2IXCC0PF--Sq9LOrTE9QV988SJy_yUrAjcZ5MmECk","qi"  : "ldHXIrEmMZVaNwGzDF9WG8sHj2mOZmQpw9yrjLK9hAsmsNr5LTyqWAqJIYZSwPTYWhY4nu2O0EY9G9uYiqewXfCKw_UngrJt8Xwfq1Zruz0YY869zPN4GiE9-9rzdZB33RBw8kIOquY3MK74FMwCihYx_LiU2YTHkaoJ3ncvtvg"}`
+	jwkPrivRSAPKCS8 = `-----BEGIN PRIVATE KEY-----
+MIIEwAIBADANBgkqhkiG9w0BAQEFAASCBKowggSmAgEAAoIBAQCmN2yzxloN8Qfo
+rpTsZ5bafEOpHgg/Tj1+TV8rSWd2KZswxUF0+/+FKmbxPwS0EPGtR2LU4dl8yFSL
+EZq637edDgYb2czbj2jGEK3Gqo28ReuZBEapzPIvG6H58qf0WD76FL1SlrMel9UA
+WcHloJ9eg2E+4jygHLIUowpo5WAc2o/k0ESppuIt+1kPdb+WwUI8a7OvhWnRhLvN
+LaENhJwLag4y7isZTUtwxl/f2nfXncKrttLZeHpj6/DmnDMVhl2NDEOfzHwEbd8n
+qPxMYtdCxsofXbXz8dxQlG8zB2ltRAbme8DYZdWoup3CnTngvOT38H9/WVWuY4q4
+eNM0erjzAgMBAAECggEBAJLA5rnHTCV5BRmcYqJjR566DmcXvAJgywxjtb4bPjzm
+uT2TO5rVD6J8cI1ZrYZqW2c5WvpIOeThXzu2HF4YPh5tjlkysJu9/6y4dyWr2h47
+warFSrqK191d0WJEq6Oh8mCMxSdRJO7C8W4w0XAzo+Inr0l9KDfZfiWYWg2JT5XI
+ubibKKq6P2KxND0UVlYbRsp3fv2loEL9WM5H2bjA/oSbQ4tSJtobpjlsQOHmaxbP
+XhvsIV3Dr2ksDuLEhm0vfXnEGRzNk3HV3gLNT741YEP3Sp2ZRjd5U1qFn0D+eWe0
+4LfDX9auGQCnfjZTHvu4qghX7JxcF40omjmtgkRmZ/kCgYEA4A5nU4ahEww7B65y
+uzmGeCUUi8ikWzv1C81pSyUKvKzu8CX41hp9J6oRaLGesKImYiuVQK47FhZ++wwf
+pRwHvSxtNU9qXb8ewo+BvadyO1eVrIk4tNV543QlSe7pQAoJGkxCia5rfznAE3In
+KF4JvIlchyqs0RQ8wx7lULqwnn0CgYEAven83GM6SfrmO+TBHbjTk6JhP/3CMsIv
+mSdo4KrbQNvp4vHO3w1/0zJ3URkmkYGhz2tgPlfd7v1l2I6QkIh4Bumdj6FyFZEB
+pxjE4MpfdNVcNINvVj87cLyTRmIcaGxmfylY7QErP8GFA+k4UoH/eQmGKGK44TRz
+Yj5hZYGWIC8CgYEAlmmU/AG5SGxBhJqb8wxfNXDPJjf//i92BgJT2Vp4pskBbr5P
+GoyV0HbfUQVMnw977RONEurkR6O6gxZUeCclGt4kQlGZ+m0/XSWx13v9t9DIbheA
+tgVJ2mQyVDvK4m7aRYlEceFh0PsX8vYDS5o1txgPwb3oXkPTtrmbAGMUBpECgYEA
+mxRTU3QDyR2EnCv0Nl0TCF90oliJGAHR9HJmBe//EjuCBbwHfcT8OG3hWOv8vpzo
+kQPRl5cQt3NckzX3fs6xlJN4Ai2Hh2zduKFVQ2p+AF2p6Yfahscjtq+GY9cB85Nx
+Ly2IXCC0PF++Sq9LOrTE9QV988SJy/yUrAjcZ5MmECkCgYEAldHXIrEmMZVaNwGz
+DF9WG8sHj2mOZmQpw9yrjLK9hAsmsNr5LTyqWAqJIYZSwPTYWhY4nu2O0EY9G9uY
+iqewXfCKw/UngrJt8Xwfq1Zruz0YY869zPN4GiE9+9rzdZB33RBw8kIOquY3MK74
+FMwCihYx/LiU2YTHkaoJ3ncvtvg=
+-----END PRIVATE KEY-----
+`
+	jwkPubEC     = `{"kid":"https://kv-test-mj.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
+	jwkPubECPKIX = `-----BEGIN PUBLIC KEY-----
+MIGbMBAGByqGSM49AgEGBSuBBAAjA4GGAAQB504C1vsfs7PUL9w8oj9HgI395qLm
+e15jooVbTsU6hqqBB9UJKRAMrbZ8I6IxP/bxzwtlglGyIgXP8ghtBRbtteMA6dyE
+eeYGmEhZe9qeYwCZwIORoQPrJxbwawCX19DjcExVlOpxOQlifq8aeGfsw5uLOaQ1
+KaBlhPAb69mQiDTccew=
+-----END PUBLIC KEY-----
+`
+	jwkPrivEC      = `{"kty": "EC","kid": "rie3pHe8u8gjSa0IaJfqk7_iEfHeYfDYx-Bqi7vQc0s","crv": "P-256","x": "fDjg3Nq4jPf8IOZ0277aPVal_8iXySnzLUJAZghUzZM","y": "d863PeyBOK_Q4duiSmWwgIRzi1RPlFZTR-vACMlPg-Q","d": "jJs5xsoHUetdMabtt8H2KyX5T92nGul1chFeMT5hlr0"}`
+	jwkPrivECPKCS8 = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgjJs5xsoHUetdMabt
+t8H2KyX5T92nGul1chFeMT5hlr2hRANCAAR8OODc2riM9/wg5nTbvto9VqX/yJfJ
+KfMtQkBmCFTNk3fOtz3sgTiv0OHbokplsICEc4tUT5RWU0frwAjJT4Pk
+-----END PRIVATE KEY-----
+`
 )
 
 func TestExecute(t *testing.T) {
@@ -236,6 +292,54 @@ func TestExecute(t *testing.T) {
 			}},
 			data:   map[string][]byte{},
 			expErr: "unable to parse template",
+		},
+		{
+			name: "jwk rsa pub pem",
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"fn": `{{ .secret | jwkPublicKeyPem }}`,
+			}},
+			data: map[string][]byte{
+				"secret": []byte(jwkPubRSA),
+			},
+			expetedData: map[string][]byte{
+				"fn": []byte(jwkPubRSAPKIX),
+			},
+		},
+		{
+			name: "jwk rsa priv pem",
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"fn": `{{ .secret | jwkPrivateKeyPem }}`,
+			}},
+			data: map[string][]byte{
+				"secret": []byte(jwkPrivRSA),
+			},
+			expetedData: map[string][]byte{
+				"fn": []byte(jwkPrivRSAPKCS8),
+			},
+		},
+		{
+			name: "jwk ecdsa pub pem",
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"fn": `{{ .secret | jwkPublicKeyPem }}`,
+			}},
+			data: map[string][]byte{
+				"secret": []byte(jwkPubEC),
+			},
+			expetedData: map[string][]byte{
+				"fn": []byte(jwkPubECPKIX),
+			},
+		},
+		{
+			name: "jwk ecdsa priv pem",
+			tpl: &esv1alpha1.ExternalSecretTemplate{Data: map[string]string{
+				"fn": `{{ .secret | jwkPrivateKeyPem }}`,
+			}},
+			data: map[string][]byte{
+				"secret": []byte(jwkPrivEC),
+			},
+			expetedData: map[string][]byte{
+				"fn": []byte(jwkPrivECPKCS8),
+			},
 		},
 	}
 

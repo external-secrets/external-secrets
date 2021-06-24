@@ -16,9 +16,12 @@ package keyvault
 
 import (
 	context "context"
+	"encoding/json"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	tassert "github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -41,6 +44,9 @@ func TestNewClientNoCreds(t *testing.T) {
 	vaultURL := "https://local.vault.url"
 	tenantID := "1234"
 	store := esv1alpha1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
 		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
 			VaultURL: &vaultURL,
 			TenantID: &tenantID,
@@ -65,8 +71,53 @@ func TestNewClientNoCreds(t *testing.T) {
 
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret = &v1.SecretKeySelector{Name: "password"}
 	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "secrets \"user\" not found")
+	tassert.EqualError(t, err, "could not find secret internal/user: secrets \"user\" not found")
 	tassert.Nil(t, secretClient)
+}
+
+const (
+	jwkPubRSA = `{"kid":"ex","kty":"RSA","key_ops":["sign","verify","wrapKey","unwrapKey","encrypt","decrypt"],"n":"p2VQo8qCfWAZmdWBVaYuYb-a-tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz-Ed8Cdlf8lkDg4Ex5tkB64jRdC1Uvn4CDpOH6cp-N2s8hTFLqy9_YaDmyQS7HiqthOi9oVjil1VMeWfaAbClGtFt6UnKD0Vb_DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlIIx7unibLehhDU6q3DCwNH_OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQP_WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9vyQ","e":"AQAB"}`
+	jwkPubEC  = `{"kid":"https://example.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
+)
+
+func TestGetKey(t *testing.T) {
+	testAzure, azureMock := newAzure()
+	ctx := context.Background()
+
+	tbl := []struct {
+		name   string
+		kvName string
+		jwk    *keyvault.JSONWebKey
+		out    string
+	}{
+		{
+			name:   "test public rsa key",
+			kvName: "my-rsa",
+			jwk:    newKVJWK([]byte(jwkPubRSA)),
+			out:    jwkPubRSA,
+		},
+		{
+			name:   "test public ec key",
+			kvName: "my-ec",
+			jwk:    newKVJWK([]byte(jwkPubEC)),
+			out:    jwkPubEC,
+		},
+	}
+
+	for _, row := range tbl {
+		t.Run(row.name, func(t *testing.T) {
+			azureMock.AddKey(testAzure.vaultURL, row.kvName, row.jwk, true)
+			azureMock.ExpectsGetKey(ctx, testAzure.vaultURL, row.kvName, "")
+
+			rf := esv1alpha1.ExternalSecretDataRemoteRef{
+				Key: "key/" + row.kvName,
+			}
+			secret, err := testAzure.GetSecret(ctx, rf)
+			azureMock.AssertExpectations(t)
+			tassert.Nil(t, err, "the return err should be nil")
+			tassert.Equal(t, []byte(row.out), secret)
+		})
+	}
 }
 
 func TestGetSecretWithVersion(t *testing.T) {
@@ -128,19 +179,11 @@ func TestGetSecretMapNotEnabled(t *testing.T) {
 	tassert.Empty(t, secretMap)
 }
 
-func TestGetCertBundleForPKCS(t *testing.T) {
-	rawCertExample := "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURC" +
-		"VENDQWUyZ0F3SUJBZ0lFUnIxWTdEQU5CZ2txaGtpRzl3MEJBUVVGQURBeU1Rc3d" +
-		"DUVlEVlFRR0V3SkUKUlRFUU1BNEdBMVVFQ2hNSFFXMWhaR1YxY3pFUk1BOEdBMV" +
-		"VFQXhNSVUwRlFJRkp2YjNRd0hoY05NVE13TWpFMApNVE15TmpRNVdoY05NelV4T" +
-		"WpNeE1UTXlOalE1V2pBeU1Rc3dDUVlEVlFRR0V3SkVSVEVRTUE0R0ExVUVDaE1I" +
-		"CnFWUlE3NjNGODFwWnorNXgyejJ6NmZyd0JHNUF3YUZKL1RmTE9HQzZQWnl5bW1" +
-		"pSlllL2tjUDdVeUhMQnBUUVkKLzloNTF5dDB5NlRBS1JmRk1wMlhuVUZBaWdyL0" +
-		"0xYVc1NjdORStQYzN5S0RWWlVHdU82UXZ0cExCZkpPS3pZSAowc3F3OElmYjRlN" +
-		"0R6TkJuTmRoVDhzbGdUYkh5K3RzZUtPb0xHNi9rUktmRmRvSmRoeHAzeGNnbm56" +
-		"ZkY0anUvCi9UZTRYaWsxNC9FMAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t"
-	c, ok := getCertBundleForPKCS(rawCertExample)
-	bundle := ""
-	tassert.Nil(t, ok)
-	tassert.Equal(t, c, bundle)
+func newKVJWK(b []byte) *keyvault.JSONWebKey {
+	var key keyvault.JSONWebKey
+	err := json.Unmarshal(b, &key)
+	if err != nil {
+		panic(err)
+	}
+	return &key
 }
