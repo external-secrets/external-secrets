@@ -20,6 +20,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
+// NewExternalSecretCondition a set of default options for creating an External Secret Condition.
 func NewExternalSecretCondition(condType esv1alpha1.ExternalSecretConditionType, status v1.ConditionStatus, reason, message string) *esv1alpha1.ExternalSecretStatusCondition {
 	return &esv1alpha1.ExternalSecretStatusCondition{
 		Type:               condType,
@@ -66,6 +67,7 @@ func SetExternalSecretCondition(es *esv1alpha1.ExternalSecret, condition esv1alp
 	updateExternalSecretCondition(es, &condition, 1.0)
 }
 
+// filterOutCondition returns an empty set of conditions with the provided type.
 func filterOutCondition(conditions []esv1alpha1.ExternalSecretStatusCondition, condType esv1alpha1.ExternalSecretConditionType) []esv1alpha1.ExternalSecretStatusCondition {
 	newConditions := make([]esv1alpha1.ExternalSecretStatusCondition, 0, len(conditions))
 	for _, c := range conditions {

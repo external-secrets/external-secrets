@@ -48,6 +48,7 @@ var (
 	}, []string{"name", "namespace", "condition", "status"})
 )
 
+// updateExternalSecretCondition updates the ExternalSecret conditions.
 func updateExternalSecretCondition(es *esv1alpha1.ExternalSecret, condition *esv1alpha1.ExternalSecretStatusCondition, value float64) {
 	externalSecretCondition.With(prometheus.Labels{
 		"name":      es.Name,
