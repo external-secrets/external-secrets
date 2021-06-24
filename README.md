@@ -144,7 +144,7 @@ We will add more documentation once we have the implementation for the different
 
 ## Support
 
-You can use GitHub's [issues](https://github.com/external-secrets/external-secrets/issues) to report bugs/suggest features or use GitHub's [discussions](https://github.com/external-secrets/external-secrets/discussions) to ask for help and figure out problems.
+You can use GitHub's [issues](https://github.com/external-secrets/external-secrets/issues) to report bugs/suggest features or use GitHub's [discussions](https://github.com/external-secrets/external-secrets/discussions) to ask for help and figure out problems. You can also reach us at our KES and ESO shared [channel in Kubernetes slack](https://kubernetes.slack.com/messages/external-secrets).
 
 Even though we have active maintainers and people assigned to this project, we kindly ask for patience when asking for support. We will try to get to priority issues as fast as possible, but there may be some delays.
 
