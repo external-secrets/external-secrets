@@ -41,7 +41,8 @@ const (
 	errInvalidClusterStoreMissingSAKNamespace = "invalid ClusterSecretStore: missing GCP SecretAccessKey Namespace"
 	errFetchSAKSecret                         = "could not fetch SecretAccessKey secret: %w"
 	errMissingSAK                             = "missing SecretAccessKey"
-	errUnableProcessJSONCredentials           = "failed to process the provided JSON credentials: %w"
+	errUnableProcessJSONCredentials           = "failed to process the provided JSON credentials: %v"
+	errUnableProcessDefaultCredentials        = "failed to process the default credentials: %w"
 	errUnableCreateGCPSMClient                = "failed to create GCP secretmanager client: %w"
 	errUninitalizedGCPProvider                = "provider GCP is not initialized"
 	errClientGetSecretAccess                  = "unable to access Secret from SecretManager Client: %w"
@@ -71,9 +72,13 @@ type gClient struct {
 func (c *gClient) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := c.store.Auth.SecretRef.SecretAccessKey.Name
-	if credentialsSecretName == "" {
-		return fmt.Errorf(errGCPSMCredSecretName)
-	}
+	/*if credentialsSecretName == "" {
+		creds, err := google.FindDefaultCredentials(ctx, CloudPlatformRole)
+		if err != nil {
+			return fmt.Errorf(errUnableProcessDefaultCredentials, err)
+		}
+		c.credentials = creds.JSON
+	}*/
 	objectKey := types.NamespacedName{
 		Name:      credentialsSecretName,
 		Namespace: c.namespace,
@@ -85,6 +90,10 @@ func (c *gClient) setAuth(ctx context.Context) error {
 			return fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		}
 		objectKey.Namespace = *c.store.Auth.SecretRef.SecretAccessKey.Namespace
+	}
+	if credentialsSecretName == "" {
+		c.credentials = nil
+		return nil
 	}
 
 	err := c.kube.Get(ctx, objectKey, credentialsSecret)
@@ -114,24 +123,36 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericSt
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
 
+	sm.projectID = cliStore.store.ProjectID
+
 	if err := cliStore.setAuth(ctx); err != nil {
 		return nil, err
 	}
 
-	sm.projectID = cliStore.store.ProjectID
-
-	config, err := google.JWTConfigFromJSON(cliStore.credentials, CloudPlatformRole)
-	if err != nil {
-		return nil, fmt.Errorf(errUnableProcessJSONCredentials, err)
+	if cliStore.credentials != nil {
+		config, err := google.JWTConfigFromJSON(cliStore.credentials, CloudPlatformRole)
+		if err != nil {
+			return nil, fmt.Errorf(errUnableProcessJSONCredentials, cliStore.credentials)
+		}
+		ts := config.TokenSource(ctx)
+		clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
+		if err != nil {
+			return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+		}
+		sm.SecretManagerClient = clientGCPSM
+		return sm, nil
+	} else {
+		ts, err := google.DefaultTokenSource(ctx, CloudPlatformRole)
+		if err != nil {
+			return nil, fmt.Errorf(errUnableProcessDefaultCredentials, err)
+		}
+		clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
+		if err != nil {
+			return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+		}
+		sm.SecretManagerClient = clientGCPSM
+		return sm, nil
 	}
-	ts := config.TokenSource(ctx)
-
-	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
-	if err != nil {
-		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
-	}
-	sm.SecretManagerClient = clientGCPSM
-	return sm, nil
 }
 
 // GetSecret returns a single secret from the provider.
