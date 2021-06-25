@@ -41,6 +41,10 @@ func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	return map[string][]byte{}, nil
 }
 
+func (p *PP) Close() error {
+	return nil
+}
+
 // TestRegister tests if the Register function
 // (1) panics if it tries to register something invalid
 // (2) stores the correct provider.

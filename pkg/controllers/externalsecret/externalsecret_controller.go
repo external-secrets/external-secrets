@@ -294,6 +294,11 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 		providerData[secretRef.SecretKey] = secretData
 	}
 
+	err := providerClient.Close()
+	if err != nil {
+		return nil, fmt.Errorf("error closing the connection: %w", err)
+	}
+
 	return providerData, nil
 }
 

@@ -149,6 +149,10 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 	return v.readSecret(ctx, ref.Key, ref.Version)
 }
 
+func (v *client) Close() error {
+	return nil
+}
+
 func (v *client) readSecret(ctx context.Context, path, version string) (map[string][]byte, error) {
 	kvPath := v.store.Path
 

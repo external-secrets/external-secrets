@@ -103,6 +103,26 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = "testtesttest"
 	}
 
+	// good case: ref with
+	setCustomRef := func(smtc *secretManagerTestCase) {
+		smtc.ref = &esv1alpha1.ExternalSecretDataRemoteRef{
+			Key:      "/baz",
+			Version:  "default",
+			Property: "name.first",
+		}
+		smtc.apiInput.Name = "projects/default/secrets//baz/versions/default"
+		smtc.apiOutput.Payload.Data = []byte(
+			`{
+			"name": {"first": "Tom", "last": "Anderson"},
+			"friends": [
+				{"first": "Dale", "last": "Murphy"},
+				{"first": "Roger", "last": "Craig"},
+				{"first": "Jane", "last": "Murphy"}
+			]
+        }`)
+		smtc.expectedSecret = "Tom"
+	}
+
 	// good case: custom version set
 	setCustomVersion := func(smtc *secretManagerTestCase) {
 		smtc.ref.Version = "1234"
@@ -116,6 +136,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretString),
 		makeValidSecretManagerTestCaseCustom(setCustomVersion),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
+		makeValidSecretManagerTestCaseCustom(setCustomRef),
 	}
 
 	sm := ProviderGCP{}

@@ -225,3 +225,7 @@ func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef sm
 	value := strings.TrimSpace(string(keyBytes))
 	return value, nil
 }
+
+func (a *Azure) Close() error {
+	return nil
+}

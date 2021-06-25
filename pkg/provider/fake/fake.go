@@ -74,6 +74,9 @@ func (v *Client) WithGetSecret(secData []byte, err error) *Client {
 func (v *Client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return v.GetSecretMapFn(ctx, ref)
 }
+func (v *Client) Close() error {
+	return nil
+}
 
 // WithGetSecretMap wraps the secret data map returned by this fake provider.
 func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client {

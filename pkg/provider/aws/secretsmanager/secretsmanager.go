@@ -102,3 +102,7 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 	}
 	return secretData, nil
 }
+
+func (sm *SecretsManager) Close() error {
+	return nil
+}
