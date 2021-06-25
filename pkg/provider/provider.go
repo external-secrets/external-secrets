@@ -35,4 +35,5 @@ type SecretsClient interface {
 
 	// GetSecretMap returns multiple k/v pairs from the provider
 	GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
+	Close() error
 }

@@ -39,6 +39,7 @@ const (
 
 	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
 	errGCPSMCredSecretName                    = "invalid GCPSM SecretStore resource: missing GCP Secret Access Key"
+	errClientClose                            = "unable to close SecretManager client: %w"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid ClusterSecretStore: missing GCP SecretAccessKey Namespace"
 	errFetchSAKSecret                         = "could not fetch SecretAccessKey secret: %w"
 	errMissingSAK                             = "missing SecretAccessKey"
@@ -193,6 +194,14 @@ func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.External
 	}
 
 	return secretData, nil
+}
+
+func (sm *ProviderGCP) Close() error {
+	err := sm.SecretManagerClient.Close()
+	if err != nil {
+		return fmt.Errorf(errClientClose, err)
+	}
+	return nil
 }
 
 func init() {
