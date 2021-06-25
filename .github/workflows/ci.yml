@@ -10,9 +10,11 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.15'
+  GO_VERSION: '1.16'
   GOLANGCI_VERSION: 'v1.33'
-  KUBEBUILDER_VERSION: '2.3.1'
+  # list of available versions: https://storage.googleapis.com/kubebuilder-tools
+  # TODO: 1.21.2 does not shut down properly with controller-runtime 0.9.2
+  KUBEBUILDER_TOOLS_VERSION: '1.20.2'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
@@ -44,6 +46,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
       - name: Find the Go Cache
         id: go
         run: |
@@ -74,6 +81,7 @@ jobs:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-pkg-cache: true
           skip-build-cache: true
+          skip-go-installation: true
 
   check-diff:
     runs-on: ubuntu-18.04
@@ -149,21 +157,23 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-
 
-      - name: Add kubebuilder
+      - name: Add envtest binaries
         run:  |
-          curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
-          tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
-          sudo mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
+          curl -sSLo envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${{env.KUBEBUILDER_TOOLS_VERSION}}-linux-amd64.tar.gz"
+          sudo mkdir -p /usr/local/kubebuilder
+          sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz
 
-      - name: Cache kubebuilder
+      - name: Cache envtest binaries
         uses: actions/cache@v2.1.6
         with:
           path: /usr/local/kubebuilder
-          key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_VERSION}}
+          key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_TOOLS_VERSION}}
           restore-keys: ${{ runner.os }}-kubebuilder-
 
       - name: Run Unit Tests
-        run: make test
+        run: |
+          export KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=true
+          make test
 
       - name: Publish Unit Test Coverage
         uses: codecov/codecov-action@v1

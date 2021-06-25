@@ -732,6 +732,17 @@ the target secret updated</p>
 </tr>
 <tr>
 <td>
+<code>syncedResourceVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>SyncedResourceVersion keeps track of the last synced version</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conditions</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.ExternalSecretStatusCondition">
@@ -934,6 +945,19 @@ ExternalSecretTemplateMetadata
 <code>data</code></br>
 <em>
 map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>templateFrom</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.TemplateFrom">
+[]TemplateFrom
+</a>
 </em>
 </td>
 <td>
@@ -1463,6 +1487,116 @@ Kubernetes meta/v1.Time
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.TemplateFrom">TemplateFrom
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretTemplate">ExternalSecretTemplate</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>configMap</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.TemplateRef">
+TemplateRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secret</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.TemplateRef">
+TemplateRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.TemplateRef">TemplateRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.TemplateFrom">TemplateFrom</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>items</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.TemplateRefItem">
+[]TemplateRefItem
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.TemplateRefItem">TemplateRefItem
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.TemplateRef">TemplateRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>

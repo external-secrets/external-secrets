@@ -6,9 +6,8 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.15'
+  GO_VERSION: '1.16'
   GOLANGCI_VERSION: 'v1.33'
-  KUBEBUILDER_VERSION: '2.3.1'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
@@ -59,19 +58,6 @@ jobs:
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-pkg-
 
-    - name: Add kubebuilder
-      run:  |
-        curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
-        tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
-        sudo mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
-
-    - name: Cache kubebuilder
-      uses: actions/cache@v2.1.6
-      with:
-        path: /usr/local/kubebuilder
-        key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_VERSION}}
-        restore-keys: ${{ runner.os }}-kubebuilder-
-
     - name: Setup kind
       uses: engineerd/setup-kind@v0.5.0
       with:
@@ -88,7 +74,7 @@ jobs:
   # Repo owner has commented /ok-to-test on a (fork-based) pull request
   integration-fork:
     runs-on: ubuntu-latest
-    if: 
+    if:
       github.event_name == 'repository_dispatch' &&
       github.event.client_payload.slash_command.sha != '' &&
       contains(github.event.client_payload.pull_request.head.sha, github.event.client_payload.slash_command.sha)
@@ -128,19 +114,6 @@ jobs:
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-pkg-
 
-    - name: Add kubebuilder
-      run:  |
-        curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${{env.KUBEBUILDER_VERSION}}/kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz > kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
-        tar -xvf kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64.tar.gz
-        sudo mv kubebuilder_${{env.KUBEBUILDER_VERSION}}_linux_amd64 /usr/local/kubebuilder
-
-    - name: Cache kubebuilder
-      uses: actions/cache@v2.1.6
-      with:
-        path: /usr/local/kubebuilder
-        key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_VERSION}}
-        restore-keys: ${{ runner.os }}-kubebuilder-
-
     - name: Setup kind
       uses: engineerd/setup-kind@v0.5.0
       with:
@@ -162,7 +135,7 @@ jobs:
         number: ${{ github.event.client_payload.pull_request.number }}
         job: ${{ github.job }}
         # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
-        conclusion: ${{ job.status }} 
+        conclusion: ${{ job.status }}
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
