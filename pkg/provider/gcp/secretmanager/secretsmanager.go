@@ -20,6 +20,7 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go"
+	"github.com/tidwall/gjson"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
@@ -45,7 +46,6 @@ const (
 	errUnableCreateGCPSMClient                = "failed to create GCP secretmanager client: %w"
 	errUninitalizedGCPProvider                = "provider GCP is not initialized"
 	errClientGetSecretAccess                  = "unable to access Secret from SecretManager Client: %w"
-	errClientClose                            = "unable to close SecretManager client: %w"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
 
@@ -153,12 +153,21 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSec
 		return nil, fmt.Errorf(errClientGetSecretAccess, err)
 	}
 
-	err = sm.SecretManagerClient.Close()
-	if err != nil {
-		return nil, fmt.Errorf(errClientClose, err)
+	if ref.Property == "" {
+		if result.Payload.Data != nil {
+			return result.Payload.Data, nil
+		}
+		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
-	return result.Payload.Data, nil
+	var payload string
+	if result.Payload.Data != nil {
+		payload = string(result.Payload.Data)
+	}
+
+	val := gjson.Get(payload, ref.Property)
+
+	return []byte(val.String()), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.

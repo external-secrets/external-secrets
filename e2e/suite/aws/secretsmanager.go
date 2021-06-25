@@ -134,7 +134,7 @@ var _ = Describe("[aws] ", func() {
 	})
 
 	It("should sync secrets with dataFrom", func() {
-		By("creating a GCP SM Secret")
+		By("creating a AWS SM Secret")
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		targetSecretKey1 := "name"
 		targetSecretValue1 := "great-name"
@@ -174,7 +174,7 @@ var _ = Describe("[aws] ", func() {
 	})
 
 	It("should sync secrets and get inner keys", func() {
-		By("creating a GCP SM Secret")
+		By("creating a AWS SM Secret")
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		targetSecretKey1 := "firstname"
 		targetSecretValue1 := "Tom"

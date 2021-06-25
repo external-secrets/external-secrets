@@ -31,5 +31,5 @@ To create a kubernetes secret from the GCP Secret Manager secret a `Kind=Externa
 
 The operator will fetch the GCP Secret Manager secret and inject it as a `Kind=Secret`
 ```
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.example-externalsecret-key}' | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
