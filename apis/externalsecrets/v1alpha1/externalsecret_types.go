@@ -161,6 +161,9 @@ type ExternalSecretStatus struct {
 	// the target secret updated
 	RefreshTime metav1.Time `json:"refreshTime,omitempty"`
 
+	// SyncedResourceVersion keeps track of the last synced version
+	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
+
 	// +optional
 	Conditions []ExternalSecretStatusCondition `json:"conditions,omitempty"`
 }

@@ -16,6 +16,9 @@ package externalsecret
 
 import (
 	"context"
+
+	// nolint
+	"crypto/md5"
 	"fmt"
 	"time"
 
@@ -72,13 +75,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
+	// patch status when done processing
+	p := client.MergeFrom(externalSecret.DeepCopy())
+	defer func() {
+		err = r.Status().Patch(ctx, &externalSecret, p)
+		if err != nil {
+			log.Error(err, "unable to patch status")
+		}
+	}()
+
 	store, err := r.getStore(ctx, &externalSecret)
 	if err != nil {
 		log.Error(err, "could not get store reference")
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-
-		err = r.Status().Update(ctx, &externalSecret)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
@@ -103,10 +113,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, "could not get provider client")
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		err = r.Status().Update(ctx, &externalSecret)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
+
+	refreshInt := time.Hour
+	if externalSecret.Spec.RefreshInterval != nil {
+		refreshInt = externalSecret.Spec.RefreshInterval.Duration
+	}
+
+	// refresh should be skipped if
+	// 1. resource generation hasn't changed
+	// 2. refresh interval is 0
+	// 3. if we're still within refresh-interval
+	if !shouldRefresh(externalSecret) {
+		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
+		return ctrl.Result{RequeueAfter: refreshInt}, nil
+	}
+
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      externalSecret.Spec.Target.Name,
@@ -139,31 +163,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, "could not reconcile ExternalSecret")
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		err = r.Status().Update(ctx, &externalSecret)
-		if err != nil {
-			log.Error(err, "unable to update status")
-		}
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
-	}
-
-	dur := time.Hour
-	if externalSecret.Spec.RefreshInterval != nil {
-		dur = externalSecret.Spec.RefreshInterval.Duration
 	}
 
 	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
-	err = r.Status().Update(ctx, &externalSecret)
-	if err != nil {
-		log.Error(err, "unable to update status")
-	}
-
+	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
 	syncCallsTotal.With(syncCallsMetricLabels).Inc()
+	log.V(1).Info("reconciled secret")
 
 	return ctrl.Result{
-		RequeueAfter: dur,
+		RequeueAfter: refreshInt,
 	}, nil
 }
 
@@ -173,6 +185,38 @@ func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {
 		return true
 	}
 	return false
+}
+
+func getResourceVersion(es esv1alpha1.ExternalSecret) string {
+	return fmt.Sprintf("%d-%s", es.ObjectMeta.GetGeneration(), hashMeta(es.ObjectMeta))
+}
+
+func hashMeta(m metav1.ObjectMeta) string {
+	type meta struct {
+		annotations map[string]string
+		labels      map[string]string
+	}
+	h := md5.New() //nolint
+	_, _ = h.Write([]byte(fmt.Sprintf("%v", meta{
+		annotations: m.Annotations,
+		labels:      m.Labels,
+	})))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
+	// refresh if resource version changed
+	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
+		return true
+	}
+	// skip refresh if refresh interval is 0
+	if es.Spec.RefreshInterval == nil && es.Status.SyncedResourceVersion != "" {
+		return false
+	}
+	if es.Status.RefreshTime.IsZero() {
+		return true
+	}
+	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
 }
 
 // we do not want to force-override the label/annotations
