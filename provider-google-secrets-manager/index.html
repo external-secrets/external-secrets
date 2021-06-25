@@ -901,7 +901,7 @@
 </code></pre></div>
 
 <p>The operator will fetch the GCP Secret Manager secret and inject it as a <code>Kind=Secret</code>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.example-externalsecret-key}&#39; | base64 -d
+<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
 </code></pre></div></p>
                 
               
