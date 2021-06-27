@@ -344,6 +344,18 @@ SecretStoreProvider
 </table>
 </td>
 </tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreStatus">
+SecretStoreStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.ExternalSecret">ExternalSecret
@@ -728,6 +740,17 @@ Kubernetes meta/v1.Time
 <td>
 <p>refreshTime is the time and date the external secret was fetched and
 the target secret updated</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>syncedResourceVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>SyncedResourceVersion keeps track of the last synced version</p>
 </td>
 </tr>
 <tr>
@@ -1362,6 +1385,7 @@ SecretStoreProvider
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ClusterSecretStore">ClusterSecretStore</a>, 
 <a href="#external-secrets.io/v1alpha1.SecretStore">SecretStore</a>)
 </p>
 <p>
