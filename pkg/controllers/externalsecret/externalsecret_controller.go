@@ -167,6 +167,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
+	dur := time.Hour
+	// Skip immutabe secrets
+	if externalSecret.Spec.Target.Template.Immutable {
+		log.Info("Set duration for immutable secret to nil")
+		externalSecret.Spec.RefreshInterval = nil
+	}
+	if externalSecret.Spec.RefreshInterval != nil {
+		dur = externalSecret.Spec.RefreshInterval.Duration
+	}
+
 	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
