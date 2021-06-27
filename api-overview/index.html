@@ -897,7 +897,7 @@ take a look at the provider documentation to see what the Bucket actually maps
 to.</p>
 <p><img alt="Resource Mapping" src="../pictures/diagrams-resource-mapping.png" /></p>
 <h3 id="secretstore">SecretStore</h3>
-<p>The idea behind the <code>SecretStore</code> resource is to separate concerns of
+<p>The idea behind the <a href="../api-secretstore/">SecretStore</a> resource is to separate concerns of
 authentication/access and the actual Secret and configuration needed for
 workloads. The ExternalSecret specifies what to fetch, the SecretStore specifies
 how to access. This resource is namespaced.</p>
@@ -924,7 +924,7 @@ how to access. This resource is namespaced.</p>
 The <code>SecretStore</code> contains references to secrets which hold credentials to
 access the external API.</p>
 <h3 id="externalsecret">ExternalSecret</h3>
-<p>An ExternalSecret declares what data to fetch. It has a reference to a
+<p>An <a href="../api-externalsecret/">ExternalSecret</a> declares what data to fetch. It has a reference to a
 <code>SecretStore</code> which knows how to access that data. The controller uses that
 <code>ExternalSecret</code> as a blueprint to create secrets.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
@@ -950,8 +950,8 @@ access the external API.</p>
 </code></pre></div>
 
 <h3 id="clustersecretstore">ClusterSecretStore</h3>
-<p>The <code>ClusterSecretStore</code> is just a global, cluster-wide SecretStore that can be
-referenced from all namespaces.</p>
+<p>The <a href="../api-clustersecretstore/">ClusterSecretStore</a> is a global, cluster-wide SecretStore that can be
+referenced from all namespaces. You can use it to provide a central gateway to your secret provider.</p>
 <h2 id="behavior">Behavior</h2>
 <p>The External Secret Operator (ESO for brevity) reconciles <code>ExternalSecrets</code> in
 the following manner:</p>

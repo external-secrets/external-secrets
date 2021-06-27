@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#example" class="md-skip">
+        <a href="#template" class="md-skip">
           Skip to content
         </a>
       
@@ -288,6 +288,20 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#template" class="md-nav__link">
+    Template
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#update-behavior" class="md-nav__link">
+    Update Behavior
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
@@ -727,6 +741,20 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#template" class="md-nav__link">
+    Template
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#update-behavior" class="md-nav__link">
+    Update Behavior
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     Example
   </a>
@@ -761,6 +789,19 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <li>you can specify how the secret should look like by specifying a
   <code>spec.target.template</code></li>
 </ul>
+<h2 id="template">Template</h2>
+<p>When the controller reconciles the <code>ExternalSecret</code> it will use the <code>spec.template</code> as a blueprint to construct a new <code>Kind=Secret</code>. You can use golang templates to define the blueprint and use template functions to transform secret values. See <a href="../guides-templating/">advanced templating</a> for details.</p>
+<h2 id="update-behavior">Update Behavior</h2>
+<p>The <code>Kind=Secret</code> is updated when:</p>
+<ul>
+<li>the <code>spec.refreshInterval</code> has passed and is not <code>0</code></li>
+<li>the <code>ExternalSecret</code>'s <code>labels</code> or <code>annotations</code> are changed</li>
+<li>the <code>ExternalSecret</code>'s <code>spec</code> has been changed</li>
+</ul>
+<p>You can trigger a secret refresh by using kubectl or any other kubernetes api client:</p>
+<div class="highlight"><pre><span></span><code>kubectl annotate es my-es force-sync=$(date +%s) --overwrite
+</code></pre></div>
+
 <h2 id="example">Example</h2>
 <p>Take a look at an annotated example to understand the design behind the
 <code>ExternalSecret</code>.</p>
