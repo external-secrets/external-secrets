@@ -52,23 +52,9 @@ Consider the following JSON object that is stored in the SecretsManager key `my-
 ```
 
 This is an example on how you would look up nested keys in the above json object:
-``` yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: ExternalSecret
-metadata:
-  name: example
-spec:
-  # [omitted for brevity]
-  data:
-  - secretKey: firstname
-    remoteRef:
-      key: my-json-secret
-      property: name.first # Tom
-  - secretKey: first_friend
-    remoteRef:
-      key: my-json-secret
-      property: friends.1.first # Roger
 
+``` yaml
+{% include 'aws-sm-external-secret.yaml' %}
 ```
 
 --8<-- "snippets/provider-aws-access.md"
