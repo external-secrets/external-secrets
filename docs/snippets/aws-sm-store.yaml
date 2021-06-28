@@ -8,7 +8,9 @@ spec:
     aws:
       service: SecretsManager
       # define a specific role to limit access
-      # to certain secrets
+      # to certain secrets.
+      # role is a optional field that 
+      # can be omitted for test purposes
       role: iam-role
       region: eu-central-1
       auth:
