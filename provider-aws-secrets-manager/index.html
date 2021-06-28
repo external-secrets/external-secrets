@@ -824,7 +824,9 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
     <span class="nt">aws</span><span class="p">:</span>
       <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
       <span class="c1"># define a specific role to limit access</span>
-      <span class="c1"># to certain secrets</span>
+      <span class="c1"># to certain secrets.</span>
+      <span class="c1"># role is a optional field that </span>
+      <span class="c1"># can be omitted for test purposes</span>
       <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-role</span>
       <span class="nt">region</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
       <span class="nt">auth</span><span class="p">:</span>
@@ -870,13 +872,19 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
   <span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div></p>
-<p>This is an example on how you would look up nested keys in the above json object:
+<p>This is an example on how you would look up nested keys in the above json object:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
 <span class="nt">spec</span><span class="p">:</span>
-  <span class="c1"># [omitted for brevity]</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1m</span>
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+    <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
   <span class="nt">data</span><span class="p">:</span>
   <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">firstname</span>
     <span class="nt">remoteRef</span><span class="p">:</span>
@@ -886,7 +894,8 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
     <span class="nt">remoteRef</span><span class="p">:</span>
       <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-json-secret</span>
       <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">friends.1.first</span> <span class="c1"># Roger</span>
-</code></pre></div></p>
+</code></pre></div>
+
 <h2 id="aws-authentication">AWS Authentication</h2>
 <p>Access to AWS providers can be granted in various ways:</p>
 <ul>
