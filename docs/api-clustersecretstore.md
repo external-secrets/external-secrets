@@ -4,5 +4,5 @@ The `ClusterSecretStore` is a cluster scoped SecretStore that can be referenced 
 `ExternalSecrets` from all namespaces. Use it to offer a central gateway to your secret backend.
 
 ``` yaml
-{% include 'full-secret-store.yaml' %}
+{% include 'full-cluster-secret-store.yaml' %}
 ```
