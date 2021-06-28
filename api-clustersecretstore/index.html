@@ -693,10 +693,9 @@
 <p>The <code>ClusterSecretStore</code> is a cluster scoped SecretStore that can be referenced by all
 <code>ExternalSecrets</code> from all namespaces. Use it to offer a central gateway to your secret backend.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-ns</span>
 <span class="nt">spec</span><span class="p">:</span>
 
   <span class="c1"># Used to select the correct ESO controller (think: ingress.ingressClassName)</span>
@@ -778,6 +777,7 @@
           <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span>
+            <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
       <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">myproject</span>
     <span class="c1"># (TODO): add more provider examples here</span>
 
