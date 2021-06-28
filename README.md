@@ -36,7 +36,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 ## Documentation
 
-External Secrets Operator guides and reference documentation is available at [external-secrets.io](external-secrets.io).
+External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io).
 
 ## Support
 
@@ -50,7 +50,7 @@ We welcome and encourage contributions to this project! Please read the [Develop
 
 ## Security
 
-Please report vulnerabilities by email to [external-secrets contact](contact@external-secrets.io), also see our [security policy](SECURITY.md) for details.
+Please report vulnerabilities by email to contact@external-secrets.io, also see our [security policy](SECURITY.md) for details.
 
 ## Kicked off by
 
