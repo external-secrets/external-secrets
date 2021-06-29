@@ -9,6 +9,7 @@ maintainers:
 - silasbw
 - Flydiverny
 - gabibeyer
+- ricardoptcosta
 # Allows for the /label and /remove-label commands
 # usage: /label enhancement
 # usage: /remove-label enhancement
