@@ -64,6 +64,9 @@ type ExternalSecretTemplate struct {
 
 	// +optional
 	Data map[string]string `json:"data,omitempty"`
+
+	// +optional
+	Immutable bool `json:"immutable,omitempty"`
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created

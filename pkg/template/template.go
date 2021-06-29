@@ -78,6 +78,9 @@ func Execute(template *esv1alpha1.ExternalSecretTemplate, secret *corev1.Secret,
 		}
 		secret.Data[k] = val
 	}
+	if template.Immutable {
+		secret.Immutable = &template.Immutable
+	}
 	return nil
 }
 
