@@ -53,5 +53,9 @@ kubectl run --rm \
   --restart=Never \
   --env="FOCUS=${FOCUS}" \
   --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON}" \
+  --env="AZURE_CLIENT_ID=${AZURE_CLIENT_ID}" \
+  --env="AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}" \
+  --env="TENANT_ID=${TENANT_ID}" \
+  --env="VAULT_URL=${VAULT_URL}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
   e2e --image=local/external-secrets-e2e:test
