@@ -75,8 +75,5 @@ func deleteAzureKVSecret(secretName, clientID, clientSecret, tenantID, vaultURL 
 		return fmt.Errorf("could not delete secret: %w", err)
 	}
 
-	if err != nil {
-		return fmt.Errorf("could not purge secret: %w", err)
-	}
 	return err
 }
