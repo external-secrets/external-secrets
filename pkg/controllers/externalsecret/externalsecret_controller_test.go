@@ -223,7 +223,7 @@ var _ = Describe("ExternalSecret controller", func() {
 
 	// secret should be synced with correct value precedence:
 	// * template
-	// * templateFrom (not implemented)
+	// * templateFrom
 	// * data
 	// * dataFrom
 	syncWithTemplatePrecedence := func(tc *testCase) {
@@ -231,9 +231,33 @@ var _ = Describe("ExternalSecret controller", func() {
 		const expectedSecretVal = "SOMEVALUE was templated"
 		const tplStaticKey = "tplstatickey"
 		const tplStaticVal = "tplstaticvalue"
+		const tplFromCMName = "template-cm"
+		const tplFromKey = "tpl-from-key"
+		const tplFromVal = "tpl-from-value"
+		Expect(k8sClient.Create(context.Background(), &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "template-cm",
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string]string{
+				tplFromKey: tplFromVal,
+			},
+		})).To(Succeed())
 		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Metadata: esv1alpha1.ExternalSecretTemplateMetadata{},
 			Type:     v1.SecretTypeOpaque,
+			TemplateFrom: []esv1alpha1.TemplateFrom{
+				{
+					ConfigMap: &esv1alpha1.TemplateRef{
+						Name: tplFromCMName,
+						Items: []esv1alpha1.TemplateRefItem{
+							{
+								Key: tplFromKey,
+							},
+						},
+					},
+				},
+			},
 			Data: map[string]string{
 				// this should be the data value, not dataFrom
 				targetProp: "{{ .targetProperty | toString | upper }} was templated",
@@ -258,6 +282,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(expectedSecretVal))
 			Expect(string(secret.Data[tplStaticKey])).To(Equal(tplStaticVal))
 			Expect(string(secret.Data["bar"])).To(Equal("value from map: map-bar-value"))
+			Expect(string(secret.Data[tplFromKey])).To(Equal(tplFromVal))
 		}
 	}
 
@@ -288,7 +313,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Labels))
 			Expect(secret.ObjectMeta.Annotations).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Annotations))
 
-			cleanEs := tc.externalSecret.DeepCopyObject()
+			cleanEs := tc.externalSecret.DeepCopy()
 
 			// now update ExternalSecret
 			tc.externalSecret.Spec.Target.Template.Metadata.Annotations["fuzz"] = "buzz"

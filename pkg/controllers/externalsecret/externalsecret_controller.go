@@ -24,7 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,7 +87,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	store, err := r.getStore(ctx, &externalSecret)
 	if err != nil {
 		log.Error(err, "could not get store reference")
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
@@ -111,7 +111,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
 	if err != nil {
 		log.Error(err, "could not get provider client")
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
@@ -131,7 +131,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 
-	secret := &corev1.Secret{
+	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      externalSecret.Spec.Target.Name,
 			Namespace: externalSecret.Namespace,
@@ -144,11 +144,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return fmt.Errorf("could not set ExternalSecret controller reference: %w", err)
 		}
 		mergeTemplate(secret, externalSecret)
+		// prepare templateFrom data
+		templateData, err := r.getTemplateData(ctx, &externalSecret)
+		if err != nil {
+			return fmt.Errorf("error fetching templateFrom data: %w", err)
+		}
+		log.Info("found template data", "tpl_data", templateData)
+		for k, v := range templateData {
+			secret.Data[k] = v
+		}
+		// overwrite provider data
 		data, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
 		if err != nil {
 			return fmt.Errorf("could not get secret data from provider: %w", err)
 		}
-		// overwrite data
 		for k, v := range data {
 			secret.Data[k] = v
 		}
@@ -161,13 +170,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err != nil {
 		log.Error(err, "could not reconcile ExternalSecret")
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
-	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, corev1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
+	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
 	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
@@ -221,7 +230,7 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 
 // we do not want to force-override the label/annotations
 // and only copy the necessary key/value pairs.
-func mergeTemplate(secret *corev1.Secret, externalSecret esv1alpha1.ExternalSecret) {
+func mergeTemplate(secret *v1.Secret, externalSecret esv1alpha1.ExternalSecret) {
 	if secret.ObjectMeta.Labels == nil {
 		secret.ObjectMeta.Labels = make(map[string]string)
 	}
@@ -229,21 +238,14 @@ func mergeTemplate(secret *corev1.Secret, externalSecret esv1alpha1.ExternalSecr
 		secret.ObjectMeta.Annotations = make(map[string]string)
 	}
 	if externalSecret.Spec.Target.Template == nil {
-		mergeMap(secret.ObjectMeta.Labels, externalSecret.ObjectMeta.Labels)
-		mergeMap(secret.ObjectMeta.Annotations, externalSecret.ObjectMeta.Annotations)
+		utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.ObjectMeta.Labels)
+		utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.ObjectMeta.Annotations)
 		return
 	}
 	// if template is defined: use those labels/annotations
 	secret.Type = externalSecret.Spec.Target.Template.Type
-	mergeMap(secret.ObjectMeta.Labels, externalSecret.Spec.Target.Template.Metadata.Labels)
-	mergeMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
-}
-
-// mergeMap performs a deep clone from src to dest.
-func mergeMap(dest, src map[string]string) {
-	for k, v := range src {
-		dest[k] = v
-	}
+	utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.Spec.Target.Template.Metadata.Labels)
+	utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
 }
 
 // getStore returns the store with the provided ExternalSecret.
@@ -282,7 +284,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 			return nil, fmt.Errorf("key %q from ExternalSecret %q: %w", remoteRef.Key, externalSecret.Name, err)
 		}
 
-		providerData = utils.Merge(providerData, secretMap)
+		providerData = utils.MergeByteMap(providerData, secretMap)
 	}
 
 	for _, secretRef := range externalSecret.Spec.Data {
@@ -302,10 +304,54 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 	return providerData, nil
 }
 
+func (r *Reconciler) getTemplateData(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	if externalSecret.Spec.Target.Template == nil {
+		return out, nil
+	}
+	for _, tpl := range externalSecret.Spec.Target.Template.TemplateFrom {
+		if tpl.ConfigMap != nil {
+			var cm v1.ConfigMap
+			err := r.Client.Get(ctx, types.NamespacedName{
+				Name:      tpl.ConfigMap.Name,
+				Namespace: externalSecret.Namespace,
+			}, &cm)
+			if err != nil {
+				return nil, err
+			}
+			for _, k := range tpl.ConfigMap.Items {
+				val, ok := cm.Data[k.Key]
+				if !ok {
+					return nil, fmt.Errorf("error in configmap %s: missing key %s", tpl.ConfigMap.Name, k.Key)
+				}
+				out[k.Key] = []byte(val)
+			}
+		}
+		if tpl.Secret != nil {
+			var sec v1.Secret
+			err := r.Client.Get(ctx, types.NamespacedName{
+				Name:      tpl.Secret.Name,
+				Namespace: externalSecret.Namespace,
+			}, &sec)
+			if err != nil {
+				return nil, err
+			}
+			for _, k := range tpl.Secret.Items {
+				val, ok := sec.Data[k.Key]
+				if !ok {
+					return nil, fmt.Errorf("error in secret %s: missing key %s", tpl.Secret.Name, k.Key)
+				}
+				out[k.Key] = val
+			}
+		}
+	}
+	return out, nil
+}
+
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&esv1alpha1.ExternalSecret{}).
-		Owns(&corev1.Secret{}).
+		Owns(&v1.Secret{}).
 		Complete(r)
 }

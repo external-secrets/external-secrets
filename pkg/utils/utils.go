@@ -14,10 +14,17 @@ limitations under the License.
 
 package utils
 
-// Merge maps.
-func Merge(src, dst map[string][]byte) map[string][]byte {
+// MergeByteMap merges map of byte slices.
+func MergeByteMap(src, dst map[string][]byte) map[string][]byte {
 	for k, v := range dst {
 		src[k] = v
 	}
 	return src
+}
+
+// MergeStringMap performs a deep clone from src to dest.
+func MergeStringMap(dest, src map[string]string) {
+	for k, v := range src {
+		dest[k] = v
+	}
 }

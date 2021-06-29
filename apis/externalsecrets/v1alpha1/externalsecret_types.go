@@ -64,6 +64,25 @@ type ExternalSecretTemplate struct {
 
 	// +optional
 	Data map[string]string `json:"data,omitempty"`
+
+	// +optional
+	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
+}
+
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
+type TemplateFrom struct {
+	ConfigMap *TemplateRef `json:"configMap,omitempty"`
+	Secret    *TemplateRef `json:"secret,omitempty"`
+}
+
+type TemplateRef struct {
+	Name  string            `json:"name"`
+	Items []TemplateRefItem `json:"items"`
+}
+
+type TemplateRefItem struct {
+	Key string `json:"key"`
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created
