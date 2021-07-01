@@ -16,6 +16,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 - [Hashicorp Vault](https://www.vaultproject.io/)
 - [Google Cloud Secrets Manager](https://external-secrets.io/provider-google-secrets-manager/)
 - [Azure Key Vault](https://external-secrets.io/provider-azure-key-vault/)
+- [IBM Cloud Secrets Manager](https://external-secrets.io/provider-ibm-secrets-manager/)
 
 ## Stability and Support Level
 
@@ -30,9 +31,10 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 ### Community maintained:
 
-| Provider                                                          | Stability |                  Contact                   |
-| ----------------------------------------------------------------- | :-------: | :----------------------------------------: |
-| [Azure KV](https://external-secrets.io/provider-azure-key-vault/) |   alpha   | @ahmedmus-1A @asnowfix @ncourbet-1A @1A-mj |
+| Provider                                                            | Stability |                  Contact                   |
+| ------------------------------------------------------------------- | :-------: | :----------------------------------------: |
+| [Azure KV](https://external-secrets.io/provider-azure-key-vault/)   |   alpha   | @ahmedmus-1A @asnowfix @ncourbet-1A @1A-mj |
+| [IBM SM](https://external-secrets.io/provider-ibm-secrets-manager/) |   alpha   |   @knelasevero @sebagomez @ricardoptcosta  |
 
 ## Documentation
 
