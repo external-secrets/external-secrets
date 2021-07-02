@@ -46,7 +46,7 @@ type secretsManagerTestCase struct {
 	expectError    string
 	expectedSecret string
 	// for testing secretmap
-	expectedData map[string]string
+	expectedData map[string][]byte
 }
 
 func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
@@ -58,7 +58,7 @@ func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 		apiErr:         nil,
 		expectError:    "",
 		expectedSecret: "",
-		expectedData:   map[string]string{},
+		expectedData:   map[string][]byte{},
 	}
 	smtc.fakeClient.WithValue(smtc.apiInput, smtc.apiOutput, smtc.apiErr)
 	return &smtc
@@ -191,7 +191,7 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *secretsManagerTestCase) {
 		smtc.apiOutput.SecretString = aws.String(`{"foo":"bar"}`)
-		smtc.expectedData["foo"] = "bar"
+		smtc.expectedData["foo"] = []byte("bar")
 	}
 
 	// bad case: invalid json
@@ -213,7 +213,7 @@ func TestGetSecretMap(t *testing.T) {
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
-		if cmp.Equal(out, v.expectedData) {
+		if err == nil && !cmp.Equal(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
 	}
