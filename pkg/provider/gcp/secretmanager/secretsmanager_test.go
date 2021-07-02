@@ -16,10 +16,10 @@ package secretmanager
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -36,7 +36,7 @@ type secretManagerTestCase struct {
 	expectError    string
 	expectedSecret string
 	// for testing secretmap
-	expectedData map[string]string
+	expectedData map[string][]byte
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
@@ -49,7 +49,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		apiErr:         nil,
 		expectError:    "",
 		expectedSecret: "",
-		expectedData:   map[string]string{},
+		expectedData:   map[string][]byte{},
 	}
 	smtc.mockClient.NilClose()
 	smtc.mockClient.WithValue(context.Background(), smtc.apiInput, smtc.apiOutput, smtc.apiErr)
@@ -157,7 +157,7 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *secretManagerTestCase) {
 		smtc.apiOutput.Payload.Data = []byte(`{"foo":"bar"}`)
-		smtc.expectedData["foo"] = "bar"
+		smtc.expectedData["foo"] = []byte("bar")
 	}
 
 	// bad case: invalid json
@@ -180,7 +180,7 @@ func TestGetSecretMap(t *testing.T) {
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
-		if cmp.Equal(out, v.expectedData) {
+		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
 	}
