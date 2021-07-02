@@ -31,8 +31,7 @@ You have created a key. Press the eyeball to show the key. Copy or save it becau
 Create a secret containing your apiKey:
 
 ```shell
-echo -n 'API_KEY_VALUE' > ./apiKey
-kubectl create secret generic ibm-secret --from-file=./apiKey 
+kubectl create secret generic ibm-secret --from-literal=apiKey='API_KEY_VALUE' 
 ```
 
 ### Update secret store
