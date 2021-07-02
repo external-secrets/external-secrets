@@ -27,6 +27,7 @@ cd $DIR
 
 echo "Kubernetes cluster:"
 kubectl get nodes -o wide
+kubectl describe node external-secrets-control-plane
 
 echo -e "Granting permissions to e2e service account..."
 kubectl create serviceaccount external-secrets-e2e || true
