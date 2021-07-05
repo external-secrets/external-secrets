@@ -32,10 +32,10 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	session "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
+	fakesess "github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
-	session "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
-	fakesess "github.com/external-secrets/external-secrets/pkg/provider/aws/session/fake"
 )
 
 func TestProvider(t *testing.T) {
@@ -481,7 +481,7 @@ func testRow(t *testing.T, row TestSessionRow) {
 			os.Unsetenv(k)
 		}
 	}()
-	s, err := newSession(context.Background(), row.store, kc, row.namespace, row.stsProvider)
+	s, err := session.New(context.Background(), row.store, kc, row.namespace, row.stsProvider)
 	if !ErrorContains(err, row.expectErr) {
 		t.Errorf("expected error %s but found %s", row.expectErr, err.Error())
 	}
@@ -504,7 +504,7 @@ func TestSMEnvCredentials(t *testing.T) {
 	os.Setenv("AWS_ACCESS_KEY_ID", "2222")
 	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
-	s, err := newSession(context.Background(), &esv1alpha1.SecretStore{
+	s, err := session.New(context.Background(), &esv1alpha1.SecretStore{
 		Spec: esv1alpha1.SecretStoreSpec{
 			Provider: &esv1alpha1.SecretStoreProvider{
 				// defaults
@@ -544,7 +544,7 @@ func TestSMAssumeRole(t *testing.T) {
 	os.Setenv("AWS_ACCESS_KEY_ID", "2222")
 	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
-	s, err := newSession(context.Background(), &esv1alpha1.SecretStore{
+	s, err := session.New(context.Background(), &esv1alpha1.SecretStore{
 		Spec: esv1alpha1.SecretStoreSpec{
 			Provider: &esv1alpha1.SecretStoreProvider{
 				// do assume role!
@@ -577,17 +577,17 @@ func TestResolver(t *testing.T) {
 		url     string
 	}{
 		{
-			env:     SecretsManagerEndpointEnv,
+			env:     session.SecretsManagerEndpointEnv,
 			service: "secretsmanager",
 			url:     "http://sm.foo",
 		},
 		{
-			env:     SSMEndpointEnv,
+			env:     session.SSMEndpointEnv,
 			service: "ssm",
 			url:     "http://ssm.foo",
 		},
 		{
-			env:     STSEndpointEnv,
+			env:     session.STSEndpointEnv,
 			service: "sts",
 			url:     "http://sts.foo",
 		},
@@ -598,7 +598,7 @@ func TestResolver(t *testing.T) {
 		defer os.Unsetenv(item.env)
 	}
 
-	f := ResolveEndpoint()
+	f := session.ResolveEndpoint()
 
 	for _, item := range tbl {
 		ep, err := f.EndpointFor(item.service, "")

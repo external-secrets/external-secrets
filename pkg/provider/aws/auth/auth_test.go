@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package session
+package auth
 
 import (
 	"testing"
@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/stretchr/testify/assert"
 
-	fakesess "github.com/external-secrets/external-secrets/pkg/provider/aws/session/fake"
+	fake "github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake"
 )
 
 func TestSession(t *testing.T) {
@@ -55,7 +55,7 @@ func TestSession(t *testing.T) {
 			region: "xxxxx",
 			role:   "zzzzz",
 			sts: func(*session.Session) stscreds.AssumeRoler {
-				return &fakesess.AssumeRoler{
+				return &fake.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.RoleArn, "zzzzz")
 						return &sts.AssumeRoleOutput{
@@ -80,7 +80,7 @@ func TestSession(t *testing.T) {
 	for i := range tbl {
 		row := tbl[i]
 		t.Run(row.test, func(t *testing.T) {
-			sess, err := New(row.sak, row.aks, row.region, row.role, row.sts)
+			sess, err := NewSession(row.sak, row.aks, row.region, row.role, row.sts)
 			assert.Nil(t, err)
 			creds, err := sess.Config.Credentials.Get()
 			assert.Nil(t, err)

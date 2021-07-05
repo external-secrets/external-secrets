@@ -25,12 +25,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
-	sess "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
 )
 
 func TestConstructor(t *testing.T) {
-	s, err := sess.New("1111", "2222", "foo", "", nil)
+	s, err := auth.NewSession("1111", "2222", "foo", "", nil)
 	assert.Nil(t, err)
 	c, err := New(s)
 	assert.Nil(t, err)
