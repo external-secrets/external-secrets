@@ -46,6 +46,15 @@ To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" 
 
 ![iam-create-success](./pictures/screenshot_service_url.png)
 
+### Creating the secret inside the provider
+
+For now we only support secrets of type arbitrary. So you need to go to your Secrets Manager UI and, click 'Add Secret', and then choose 'Other Secret Type'. You can now enter your value as text or as a file. This will be the value synchronized with the secret directly.
+
+### Other types of secret
+
+!!! note "Not implemented" 
+    This is currently not yet implemented. See [#242](https://github.com/external-secrets/external-secrets/issues/242) for details. Feel free to contribute.
+
 ### Creating external secret
 
 To create a kubernetes secret from the IBM Secrets Manager, a `Kind=ExternalSecret` is needed.
