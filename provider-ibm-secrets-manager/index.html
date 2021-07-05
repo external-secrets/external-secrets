@@ -14,7 +14,7 @@
     
     
       
-        <title>Key Vault - External Secrets Operator</title>
+        <title>Secrets Manager - External Secrets Operator</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#azure-key-vault" class="md-skip">
+        <a href="#ibm-cloud-secret-manager" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Key Vault
+              Secrets Manager
             
           </span>
         </div>
@@ -466,14 +466,12 @@
             
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_2" type="checkbox" id="__nav_5_2" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_2" type="checkbox" id="__nav_5_2" >
       
       <label class="md-nav__link" for="__nav_5_2">
         Azure
@@ -489,94 +487,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Key Vault
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../provider-azure-key-vault/" class="md-nav__link">
         Key Vault
       </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#azure-key-vault" class="md-nav__link">
-    Azure Key vault
-  </a>
-  
-    <nav class="md-nav" aria-label="Azure Key vault">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#service-principal-key-authentication" class="md-nav__link">
-    Service Principal key authentication
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    Update secret store
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#object-types" class="md-nav__link">
-    Object Types
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#creating-external-secret" class="md-nav__link">
-    Creating external secret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -629,12 +544,14 @@
             
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_4" type="checkbox" id="__nav_5_4" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_4" type="checkbox" id="__nav_5_4" checked>
       
       <label class="md-nav__link" for="__nav_5_4">
         IBM
@@ -650,11 +567,108 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../provider-ibm-secrets-manager/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Secrets Manager
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Secrets Manager
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ibm-cloud-secret-manager" class="md-nav__link">
+    IBM Cloud Secret Manager
+  </a>
+  
+    <nav class="md-nav" aria-label="IBM Cloud Secret Manager">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#api-key-secret" class="md-nav__link">
+    API key secret
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-secret-store" class="md-nav__link">
+    Update secret store
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-the-secret-inside-the-provider" class="md-nav__link">
+    Creating the secret inside the provider
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-types-of-secret" class="md-nav__link">
+    Other types of secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-external-secret" class="md-nav__link">
+    Creating external secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-kubernetes-secret" class="md-nav__link">
+    Getting the Kubernetes secret
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -830,11 +844,11 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#azure-key-vault" class="md-nav__link">
-    Azure Key vault
+  <a href="#ibm-cloud-secret-manager" class="md-nav__link">
+    IBM Cloud Secret Manager
   </a>
   
-    <nav class="md-nav" aria-label="Azure Key vault">
+    <nav class="md-nav" aria-label="IBM Cloud Secret Manager">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -846,8 +860,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#service-principal-key-authentication" class="md-nav__link">
-    Service Principal key authentication
+  <a href="#api-key-secret" class="md-nav__link">
+    API key secret
   </a>
   
 </li>
@@ -865,8 +879,15 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#object-types" class="md-nav__link">
-    Object Types
+  <a href="#creating-the-secret-inside-the-provider" class="md-nav__link">
+    Creating the secret inside the provider
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-types-of-secret" class="md-nav__link">
+    Other types of secret
   </a>
   
 </li>
@@ -874,6 +895,13 @@
           <li class="md-nav__item">
   <a href="#creating-external-secret" class="md-nav__link">
     Creating external secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-kubernetes-secret" class="md-nav__link">
+    Getting the Kubernetes secret
   </a>
   
 </li>
@@ -895,127 +923,81 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-azure-key-vault.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-ibm-secrets-manager.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                  <h1>Key Vault</h1>
+                  <h1>Secrets Manager</h1>
                 
-                <p><img alt="aws sm" src="../pictures/eso-az-kv-azure-kv.png" /></p>
-<h2 id="azure-key-vault">Azure Key vault</h2>
-<p>External Secrets Operator integrates with <a href="https://azure.microsoft.com/en-us/services/key-vault/">Azure Key vault</a> for secrets, certificates and Keys management.</p>
+                <h2 id="ibm-cloud-secret-manager">IBM Cloud Secret Manager</h2>
+<p>External Secrets Operator integrates with <a href="https://www.ibm.com/cloud/secrets-manager">IBM Secret Manager</a> for secret management.</p>
 <h3 id="authentication">Authentication</h3>
-<p>At the moment, we only support <a href="https://docs.microsoft.com/en-us/azure/key-vault/general/authentication">service principals</a> authentication.</p>
-<h4 id="service-principal-key-authentication">Service Principal key authentication</h4>
-<p>A service Principal client and Secret is created and the JSON keyfile is stored in a <code>Kind=Secret</code>. The <code>ClientID</code> and <code>ClientSecret</code> should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
-<span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Opaque</span>
-<span class="nt">data</span><span class="p">:</span>
-  <span class="nt">ClientID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">bXktc2VydmljZS1wcmluY2lwbGUtY2xpZW50LWlkCg==</span>  <span class="c1">#service-principal-ID</span>
-  <span class="nt">ClientSecret</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">bXktc2VydmljZS1wcmluY2lwbGUtY2xpZW50LXNlY3JldAo=</span> <span class="c1">#service-principal-secret</span>
+<p>At the moment, we only support API key authentication for this provider. To generate your key (for test purposes we are going to generate from your user), first got to your (Access IAM) page:</p>
+<p><img alt="iam" src="../pictures/screenshot_api_keys_iam.png" /></p>
+<p>On the left, click "IBM Cloud API Keys":</p>
+<p><img alt="iam-left" src="../pictures/screenshot_api_keys_iam_left.png" /></p>
+<p>Press "Create an IBM Cloud API Key":</p>
+<p><img alt="iam-create-button" src="../pictures/screenshot_api_keys_create_button.png" /></p>
+<p>Pick a name and description for your key:</p>
+<p><img alt="iam-create-key" src="../pictures/screenshot_api_keys_create.png" /></p>
+<p>You have created a key. Press the eyeball to show the key. Copy or save it because keys can't be displayed or downloaded twice.</p>
+<p><img alt="iam-create-success" src="../pictures/screenshot_api_keys_create_successful.png" /></p>
+<h4 id="api-key-secret">API key secret</h4>
+<p>Create a secret containing your apiKey:</p>
+<div class="highlight"><pre><span></span><code>kubectl create secret generic ibm-secret --from-literal<span class="o">=</span><span class="nv">apiKey</span><span class="o">=</span><span class="s1">&#39;API_KEY_VALUE&#39;</span> 
 </code></pre></div>
 
 <h3 id="update-secret-store">Update secret store</h3>
-<p>Be sure the <code>azkv</code> provider is listed in the <code>Kind=SecretStore</code></p>
+<p>Be sure the <code>ibm</code> provider is listed in the <code>Kind=SecretStore</code></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
 <span class="nt">spec</span><span class="p">:</span>
-  <span class="c1"># provider type: azure keyvault</span>
-  <span class="nt">azurekv</span><span class="p">:</span>
-    <span class="c1"># azure tenant ID, see: https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-how-to-find-tenant</span>
-    <span class="nt">tenantId</span><span class="p">:</span> <span class="s">&quot;d3bc2180-xxxx-xxxx-xxxx-154105743342&quot;</span>
-    <span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span>
-    <span class="nt">vaultUrl</span><span class="p">:</span> <span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span>
-    <span class="nt">authSecretRef</span><span class="p">:</span>
-      <span class="c1"># points to the secret that contains</span>
-      <span class="c1"># the azure service principal credentials</span>
-      <span class="nt">clientId</span><span class="p">:</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientID</span>
-      <span class="nt">clientSecret</span><span class="p">:</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientSecret</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">ibm</span><span class="p">:</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="nt">secretRef</span><span class="p">:</span>
+          <span class="nt">secretApiKeySecretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ibm-secret</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">apiKey</span>
+      <span class="nt">serviceUrl</span><span class="p">:</span> <span class="s">&quot;https://SECRETS_MANAGER_ID.REGION.secrets-manager.appdomain.cloud&quot;</span>
 </code></pre></div>
 
-<h3 id="object-types">Object Types</h3>
-<p>Azure KeyVault manages different <a href="https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types">object types</a>, we support <code>keys</code>, <code>secrets</code> and <code>certificates</code>. Simply prefix the key with <code>key</code>, <code>secret</code> or <code>cert</code> to retrieve the desired type (defaults to secret).</p>
-<table>
-<thead>
-<tr>
-<th>Object Type</th>
-<th>Return Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>secret</code></td>
-<td>the raw secret value.</td>
-</tr>
-<tr>
-<td><code>key</code></td>
-<td>A JWK which contains the public key. Azure KeyVault does <strong>not</strong> export the private key. You may want to use <a href="../guides-templating/">template functions</a> to transform this JWK into PEM encoded PKIX ASN.1 DER format.</td>
-</tr>
-<tr>
-<td><code>certificate</code></td>
-<td>The raw CER contents of the x509 certificate. You may want to use <a href="../guides-templating/">template functions</a> to transform this into your desired encoding</td>
-</tr>
-</tbody>
-</table>
+<p>To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" on the left:</p>
+<p><img alt="iam-create-success" src="../pictures/screenshot_service_url.png" /></p>
+<h3 id="creating-the-secret-inside-the-provider">Creating the secret inside the provider</h3>
+<p>For now we only support secrets of type arbitrary. So you need to go to your Secrets Manager UI and, click 'Add Secret', and then choose 'Other Secret Type'. You can now enter your value as text or as a file. This will be the value synchronized with the secret directly.</p>
+<h3 id="other-types-of-secret">Other types of secret</h3>
+<div class="admonition note">
+<p class="admonition-title">Not implemented</p>
+<p>This is currently not yet implemented. See <a href="https://github.com/external-secrets/external-secrets/issues/242">#242</a> for details. Feel free to contribute.</p>
+</div>
 <h3 id="creating-external-secret">Creating external secret</h3>
-<p>To create a kubernetes secret from the Azure Key vault secret a <code>Kind=ExternalSecret</code> is needed.</p>
-<p>You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name , the default type is a <code>secret</code>. other supported values are <code>cert</code> and <code>key</code></p>
-<p>to select all secrets inside the key vault , you can use the <code>dataFrom</code> directive</p>
+<p>To create a kubernetes secret from the IBM Secrets Manager, a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-external-secret</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secret-sample</span>
 <span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1m</span>
   <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
     <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
-
   <span class="nt">target</span><span class="p">:</span>
     <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
     <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
-
   <span class="nt">data</span><span class="p">:</span>
-  <span class="c1"># name of the SECRET in the Azure KV (no prefix is by default a SECRET)</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">test</span>
     <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>
-
-  <span class="c1"># explicit type and name of secret in the Azure KV</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-another-secret-test</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret/dev-secret-test</span>
-
-  <span class="c1"># type/name of certificate in the Azure KV</span>
-  <span class="c1"># raw value will be returned, use templating features for data processing</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-cert-test</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cert/dev-cert-test</span>
-
-  <span class="c1"># type/name of the public key in the Azure KV</span>
-  <span class="c1"># the key is returned PEM encoded</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-key-test</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">key/dev-key-test</span>
-
-  <span class="c1"># dataFrom , return ALL secrets saved in the referenced secretStore</span>
-  <span class="c1"># each secret name in the KV will be used as the secret key in the SECRET k8s target object</span>
-  <span class="nt">dataFrom</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;*&quot;</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</span>
 </code></pre></div>
 
-<p>The operator will fetch the Azure Key vault secret and inject it as a <code>Kind=Secret</code>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
+<p>Currently we can only get the secret by its id and not its name, so something like <code>565287ce-578f-8d96-a746-9409d531fe2a</code>.</p>
+<h3 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h3>
+<p>The operator will fetch the IBM Secret Manager secret and inject it as a <code>Kind=Secret</code>
+<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.test}&#39; | base64 -d
 </code></pre></div></p>
                 
               
@@ -1036,7 +1018,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../provider-aws-parameter-store/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Parameter Store" rel="prev">
+        <a href="../provider-google-secrets-manager/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Secrets Manager" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1045,20 +1027,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Parameter Store
+              Secrets Manager
             </div>
           </div>
         </a>
       
       
         
-        <a href="../provider-google-secrets-manager/" class="md-footer__link md-footer__link--next" aria-label="Next: Secrets Manager" rel="next">
+        <a href="../provider-hashicorp-vault/" class="md-footer__link md-footer__link--next" aria-label="Next: HashiCorp Vault" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Secrets Manager
+              HashiCorp Vault
             </div>
           </div>
           <div class="md-footer__button md-icon">

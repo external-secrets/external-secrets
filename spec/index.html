@@ -538,6 +538,45 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_4" type="checkbox" id="__nav_5_4" >
+      
+      <label class="md-nav__link" for="__nav_5_4">
+        IBM
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="IBM" data-md-level="2">
+        <label class="md-nav__title" for="__nav_5_4">
+          <span class="md-nav__icon md-icon"></span>
+          IBM
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provider-ibm-secrets-manager/" class="md-nav__link">
+        Secrets Manager
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+          
+            
+  
+  
+  
     <li class="md-nav__item">
       <a href="../provider-hashicorp-vault/" class="md-nav__link">
         HashiCorp Vault
@@ -1838,6 +1877,110 @@ string
 <p>GenericStore is a common interface for interacting with ClusterSecretStore
 or a namespaced SecretStore.</p>
 </p>
+<h3 id="external-secrets.io/v1alpha1.IBMAuth">IBMAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.IBMProvider">IBMProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.IBMAuthSecretRef">
+IBMAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.IBMAuthSecretRef">IBMAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.IBMAuth">IBMAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretApiKeySecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The SecretAccessKey is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.IBMProvider">IBMProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures an store to sync secrets using a IBM Cloud Secrets Manager
+backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.IBMAuth">
+IBMAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the IBM secrets manager.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServiceURL is the Endpoint URL that is specific to the Secrets Manager service instance</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.SecretStore">SecretStore
 </h3>
 <p>
@@ -2011,6 +2154,20 @@ GCPSMProvider
 <td>
 <em>(Optional)</em>
 <p>GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ibm</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.IBMProvider">
+IBMProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IBM configures this store to sync secrets using IBM Cloud provider</p>
 </td>
 </tr>
 </tbody>
