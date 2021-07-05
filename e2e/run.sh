@@ -52,6 +52,7 @@ export FOCUS
 kubectl run --rm \
   --attach \
   --restart=Never \
+  --pod-running-timeout=10m \
   --env="FOCUS=${FOCUS}" \
   --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON}" \
   --env="AZURE_CLIENT_ID=${AZURE_CLIENT_ID}" \

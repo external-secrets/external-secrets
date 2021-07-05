@@ -14,6 +14,8 @@ limitations under the License.
 
 package utils
 
+import "reflect"
+
 // MergeByteMap merges map of byte slices.
 func MergeByteMap(src, dst map[string][]byte) map[string][]byte {
 	for k, v := range dst {
@@ -27,4 +29,9 @@ func MergeStringMap(dest, src map[string]string) {
 	for k, v := range src {
 		dest[k] = v
 	}
+}
+
+// IsNil checks if an Interface is nil.
+func IsNil(i interface{}) bool {
+	return i == nil || reflect.ValueOf(i).IsNil()
 }
