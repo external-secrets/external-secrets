@@ -16,17 +16,14 @@ package util
 
 import (
 	"errors"
-	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"regexp"
 )
 
-// SanitizeErr removes sanitizes the error string
+var regexReqID = regexp.MustCompile(`request id: (\S+)`)
+
+// SanitizeErr sanitizes the error string
 // because the requestID must not be included in the error.
+// otherwise the secrets keeps syncing.
 func SanitizeErr(err error) error {
-	var bErr awserr.BatchedErrors
-	if errors.As(bErr, &bErr) {
-		return fmt.Errorf("%s: %s", bErr.Code(), bErr.Message())
-	}
-	return err
+	return errors.New(string(regexReqID.ReplaceAll([]byte(err.Error()), nil)))
 }
