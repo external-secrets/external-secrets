@@ -26,7 +26,7 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`, for futher i
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Effect": "Deny",
+      "Effect": "Allow",
       "Action": [
         "ssm:GetParameter*"
       ],
