@@ -47,7 +47,7 @@ func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.C
 	if err != nil {
 		return nil, err
 	}
-	sess, err := awsauth.New(ctx, store, kube, namespace, assumeRoler)
+	sess, err := awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateSession, err)
 	}

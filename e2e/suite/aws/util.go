@@ -18,7 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
-	prov "github.com/external-secrets/external-secrets/pkg/provider/aws"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 )
 
 // CreateAWSSecretsManagerSecret creates a sm secret with the given value.
@@ -26,7 +26,7 @@ func CreateAWSSecretsManagerSecret(endpoint, secretName, secretValue string) err
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			Credentials: credentials.NewStaticCredentials("foobar", "foobar", "secret-manager"),
-			EndpointResolver: prov.ResolveEndpointWithServiceMap(map[string]string{
+			EndpointResolver: auth.ResolveEndpointWithServiceMap(map[string]string{
 				"secretsmanager": endpoint,
 			}),
 			Region: aws.String("eu-east-1"),

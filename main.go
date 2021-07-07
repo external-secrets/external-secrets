@@ -15,9 +15,10 @@ limitations under the License.
 package main
 
 import (
-	"flag"
 	"os"
 
+	"github.com/namsral/flag"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -43,14 +44,23 @@ func main() {
 	var metricsAddr string
 	var controllerClass string
 	var enableLeaderElection bool
+	var loglevel string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&controllerClass, "controller-class", "default", "the controller is instantiated with a specific controller name and filters ES based on this property")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&loglevel, "loglevel", "info", "loglevel to use")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	var lvl zapcore.Level
+	err := lvl.UnmarshalText([]byte(loglevel))
+	if err != nil {
+		setupLog.Error(err, "error unmarshaling loglevel")
+		os.Exit(1)
+	}
+	logger := zap.New(zap.Level(lvl))
+	ctrl.SetLogger(logger)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,

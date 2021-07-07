@@ -20,7 +20,8 @@ import (
 
 // AWSAuth contains a secretRef for credentials.
 type AWSAuth struct {
-	SecretRef AWSAuthSecretRef `json:"secretRef"`
+	SecretRef *AWSAuthSecretRef `json:"secretRef,omitempty"`
+	JWTAuth   *AWSJWTAuth       `json:"jwt,omitempty"`
 }
 
 // AWSAuthSecretRef holds secret references for aws credentials
@@ -31,6 +32,10 @@ type AWSAuthSecretRef struct {
 
 	// The SecretAccessKey is used for authentication
 	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
+}
+
+type AWSJWTAuth struct {
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 // AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.
@@ -54,9 +59,8 @@ type AWSProvider struct {
 	// Auth defines the information necessary to authenticate against AWS
 	// if not set aws sdk will infer credentials from your environment
 	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
-	// +nullable
 	// +optional
-	Auth *AWSAuth `json:"auth"`
+	Auth AWSAuth `json:"auth"`
 
 	// Role is a Role ARN which the SecretManager provider will assume
 	// +optional

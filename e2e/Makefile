@@ -4,7 +4,7 @@ SHELL       := /bin/bash
 
 IMG_TAG     = test
 IMG         = local/external-secrets-e2e:$(IMG_TAG)
-K8S_VERSION = "1.19.1"
+K8S_VERSION = "1.20.7"
 
 start-kind: ## Start kind cluster
 	kind create cluster \

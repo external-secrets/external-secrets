@@ -67,7 +67,7 @@ jobs:
       with:
         version: "v0.11.1"
         wait: 10m
-        node_image: kindest/node:v1.20.2
+        node_image: kindest/node:v1.20.7
         name: external-secrets
 
     - name: Run e2e Tests
@@ -124,7 +124,7 @@ jobs:
       with:
         version: "v0.11.1"
         wait: 10m
-        node_image: kindest/node:v1.20.2
+        node_image: kindest/node:v1.20.7
         name: external-secrets
 
     - name: Run e2e Tests
