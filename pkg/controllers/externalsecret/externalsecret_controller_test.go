@@ -233,7 +233,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		const tplStaticVal = "tplstaticvalue"
 		const tplFromCMName = "template-cm"
 		const tplFromKey = "tpl-from-key"
-		const tplFromVal = "tpl-from-value"
+		const tplFromVal = "tpl-from-value: {{ .targetProperty | toString }} // {{ .bar | toString }}"
 		Expect(k8sClient.Create(context.Background(), &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "template-cm",
@@ -282,7 +282,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(expectedSecretVal))
 			Expect(string(secret.Data[tplStaticKey])).To(Equal(tplStaticVal))
 			Expect(string(secret.Data["bar"])).To(Equal("value from map: map-bar-value"))
-			Expect(string(secret.Data[tplFromKey])).To(Equal(tplFromVal))
+			Expect(string(secret.Data[tplFromKey])).To(Equal("tpl-from-value: someValue // map-bar-value"))
 		}
 	}
 

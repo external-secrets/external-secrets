@@ -143,25 +143,36 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			return fmt.Errorf("could not set ExternalSecret controller reference: %w", err)
 		}
-		mergeTemplate(secret, externalSecret)
-		// prepare templateFrom data
-		templateData, err := r.getTemplateData(ctx, &externalSecret)
-		if err != nil {
-			return fmt.Errorf("error fetching templateFrom data: %w", err)
-		}
-		log.Info("found template data", "tpl_data", templateData)
-		for k, v := range templateData {
-			secret.Data[k] = v
-		}
-		// overwrite provider data
-		data, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
+		mergeMetadata(secret, externalSecret)
+		var tplMap map[string][]byte
+		var dataMap map[string][]byte
+
+		// get data
+		dataMap, err = r.getProviderSecretData(ctx, secretClient, &externalSecret)
 		if err != nil {
 			return fmt.Errorf("could not get secret data from provider: %w", err)
 		}
-		for k, v := range data {
-			secret.Data[k] = v
+
+		// no template: copy data and return
+		if externalSecret.Spec.Target.Template == nil {
+			for k, v := range dataMap {
+				secret.Data[k] = v
+			}
+			return nil
 		}
-		err = template.Execute(externalSecret.Spec.Target.Template, secret, data)
+
+		// template: fetch & execute templates
+		tplMap, err = r.getTemplateData(ctx, &externalSecret)
+		if err != nil {
+			return fmt.Errorf("error fetching templateFrom data: %w", err)
+		}
+		// override templateFrom data with template data
+		for k, v := range externalSecret.Spec.Target.Template.Data {
+			tplMap[k] = []byte(v)
+		}
+
+		log.V(1).Info("found template data", "tpl_data", tplMap)
+		err = template.Execute(tplMap, dataMap, secret)
 		if err != nil {
 			return fmt.Errorf("could not execute template: %w", err)
 		}
@@ -230,7 +241,7 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 
 // we do not want to force-override the label/annotations
 // and only copy the necessary key/value pairs.
-func mergeTemplate(secret *v1.Secret, externalSecret esv1alpha1.ExternalSecret) {
+func mergeMetadata(secret *v1.Secret, externalSecret esv1alpha1.ExternalSecret) {
 	if secret.ObjectMeta.Labels == nil {
 		secret.ObjectMeta.Labels = make(map[string]string)
 	}
