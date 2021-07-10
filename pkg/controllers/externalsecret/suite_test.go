@@ -20,6 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -44,7 +45,8 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	log := zap.New(zap.WriteTo(GinkgoWriter))
+	log := zap.New(zap.WriteTo(GinkgoWriter), zap.Level(zapcore.DebugLevel))
+
 	logf.SetLogger(log)
 
 	By("bootstrapping test environment")
