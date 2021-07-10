@@ -22,20 +22,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/assert"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
-	sess "github.com/external-secrets/external-secrets/pkg/provider/aws/session"
 )
-
-func TestConstructor(t *testing.T) {
-	s, err := sess.New("1111", "2222", "foo", "", nil)
-	assert.Nil(t, err)
-	c, err := New(s)
-	assert.Nil(t, err)
-	assert.NotNil(t, c.client)
-}
 
 type parameterstoreTestCase struct {
 	fakeClient     *fake.Client

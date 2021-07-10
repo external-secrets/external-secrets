@@ -5,3 +5,7 @@ image:
 extraEnv:
   - name: AWS_SECRETSMANAGER_ENDPOINT
     value: "http://localstack.default"
+  - name: AWS_STS_ENDPOINT
+    value: "http://localstack.default"
+  - name: AWS_SSM_ENDPOINT
+    value: "http://localstack.default"

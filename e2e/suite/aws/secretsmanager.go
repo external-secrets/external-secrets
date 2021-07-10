@@ -62,8 +62,8 @@ var _ = Describe("[aws] ", func() {
 					AWS: &esv1alpha1.AWSProvider{
 						Service: esv1alpha1.AWSServiceSecretsManager,
 						Region:  "us-east-1",
-						Auth: &esv1alpha1.AWSAuth{
-							SecretRef: esv1alpha1.AWSAuthSecretRef{
+						Auth: esv1alpha1.AWSAuth{
+							SecretRef: &esv1alpha1.AWSAuthSecretRef{
 								AccessKeyID: esmeta.SecretKeySelector{
 									Name: f.Namespace.Name,
 									Key:  "kid",
@@ -183,11 +183,11 @@ var _ = Describe("[aws] ", func() {
 		secretValue := fmt.Sprintf(
 			`{
 				"name": {"first": "%s", "last": "Anderson"},
-				"friends": 
-				[ 
-					{"first": "Dale", "last": "Murphy"}, 
-					{"first": "%s", "last": "Craig"}, 
-					{"first": "Jane", "last": "Murphy"} 
+				"friends":
+				[
+					{"first": "Dale", "last": "Murphy"},
+					{"first": "%s", "last": "Craig"},
+					{"first": "Jane", "last": "Murphy"}
 				]
 			}`, targetSecretValue1, targetSecretValue2)
 		err := CreateAWSSecretsManagerSecret(
@@ -229,6 +229,159 @@ var _ = Describe("[aws] ", func() {
 		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
 			targetSecretKey1: []byte(targetSecretValue1),
 			targetSecretKey2: []byte(targetSecretValue2),
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should sync secrets with cluster secret store", func() {
+		By("creating a AWS SM Secret")
+		clusterStoreName := fmt.Sprintf("cluster-%s", f.Namespace.Name)
+		targetSecretKey := "FOOB"
+		secretKey := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		secretValue := "MYVAL"
+		err := CreateAWSSecretsManagerSecret(
+			localstackURL,
+			secretKey, secretValue)
+		Expect(err).ToNot(HaveOccurred())
+
+		css := &esv1alpha1.ClusterSecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterStoreName,
+			},
+			Spec: esv1alpha1.SecretStoreSpec{
+				Provider: &esv1alpha1.SecretStoreProvider{
+					AWS: &esv1alpha1.AWSProvider{
+						Service: esv1alpha1.AWSServiceSecretsManager,
+						Region:  "us-east-1",
+						Auth: esv1alpha1.AWSAuth{
+							SecretRef: &esv1alpha1.AWSAuthSecretRef{
+								AccessKeyID: esmeta.SecretKeySelector{
+									Name:      f.Namespace.Name,
+									Namespace: &f.Namespace.Name,
+									Key:       "kid",
+								},
+								SecretAccessKey: esmeta.SecretKeySelector{
+									Name:      f.Namespace.Name,
+									Namespace: &f.Namespace.Name,
+									Key:       "sak",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		err = f.CRClient.Create(context.Background(), css)
+		Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			err = f.CRClient.Delete(context.Background(), css)
+			Expect(err).ToNot(HaveOccurred())
+		}()
+
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "datafrom-sync",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: clusterStoreName,
+					Kind: esv1alpha1.ClusterSecretStoreKind,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret,
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: targetSecretKey,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key: secretKey,
+						},
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
+			targetSecretKey: []byte(secretValue),
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should use jwt auth tokens", func() {
+		By("creating a AWS SM Secret")
+		clusterStoreName := fmt.Sprintf("cluster-jwt-%s", f.Namespace.Name)
+		targetSecretKey := "FOOB"
+		saName := "my-sa"
+		secretKey := fmt.Sprintf("%s-%s", f.Namespace.Name, "jwt-token")
+		secretValue := "MYVAL"
+		err := CreateAWSSecretsManagerSecret(
+			localstackURL,
+			secretKey, secretValue)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = f.CRClient.Create(context.Background(), &v1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      saName,
+				Namespace: f.Namespace.Name,
+				Annotations: map[string]string{
+					"eks.amazonaws.com/role-arn": "arn:aws:iam::account:role/my-example-role",
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ClusterSecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterStoreName,
+			},
+			Spec: esv1alpha1.SecretStoreSpec{
+				Provider: &esv1alpha1.SecretStoreProvider{
+					AWS: &esv1alpha1.AWSProvider{
+						Service: esv1alpha1.AWSServiceSecretsManager,
+						Region:  "us-east-1",
+						Auth: esv1alpha1.AWSAuth{
+							JWTAuth: &esv1alpha1.AWSJWTAuth{
+								ServiceAccountRef: &esmeta.ServiceAccountSelector{
+									Name:      saName,
+									Namespace: &f.Namespace.Name,
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = f.CRClient.Create(context.Background(), &esv1alpha1.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "jwt-sync",
+				Namespace: f.Namespace.Name,
+			},
+			Spec: esv1alpha1.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha1.SecretStoreRef{
+					Name: clusterStoreName,
+					Kind: esv1alpha1.ClusterSecretStoreKind,
+				},
+				Target: esv1alpha1.ExternalSecretTarget{
+					Name: targetSecret,
+				},
+				Data: []esv1alpha1.ExternalSecretData{
+					{
+						SecretKey: targetSecretKey,
+						RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+							Key: secretKey,
+						},
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = f.WaitForSecretValue(f.Namespace.Name, targetSecret, map[string][]byte{
+			targetSecretKey: []byte(secretValue),
 		})
 		Expect(err).ToNot(HaveOccurred())
 	})

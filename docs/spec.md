@@ -17,7 +17,9 @@ Resource Types:
 <a href="#external-secrets.io/v1alpha1.AWSProvider">AWSProvider</a>)
 </p>
 <p>
-<p>AWSAuth contains a secretRef for credentials.</p>
+<p>AWSAuth tells the controller how to do authentication with aws.
+Only one of secretRef or jwt can be specified.
+if none is specified the controller will load credentials using the aws sdk defaults</p>
 </p>
 <table>
 <thead>
@@ -37,6 +39,20 @@ AWSAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AWSJWTAuth">
+AWSJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -48,7 +64,7 @@ AWSAuthSecretRef
 <a href="#external-secrets.io/v1alpha1.AWSAuth">AWSAuth</a>)
 </p>
 <p>
-<p>AWSAuthSecretRef holds secret references for aws credentials
+<p>AWSAuthSecretRef holds secret references for AWS credentials
 both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.</p>
 </p>
 <table>
@@ -79,6 +95,35 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </td>
 <td>
 <p>The SecretAccessKey is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AWSJWTAuth">AWSJWTAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AWSAuth">AWSAuth</a>)
+</p>
+<p>
+<p>Authenticate against AWS using service account tokens</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>

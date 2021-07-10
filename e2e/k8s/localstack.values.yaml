@@ -1,3 +1,5 @@
+image:
+  tag: "0.12.14"
 service:
   type: ClusterIP
   edgeService:
