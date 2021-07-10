@@ -844,7 +844,7 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
   <code>spec.target.template</code></li>
 </ul>
 <h2 id="template">Template</h2>
-<p>When the controller reconciles the <code>ExternalSecret</code> it will use the <code>spec.template</code> as a blueprint to construct a new <code>Kind=Secret</code>. You can use golang templates to define the blueprint and use template functions to transform secret values. See <a href="../guides-templating/">advanced templating</a> for details.</p>
+<p>When the controller reconciles the <code>ExternalSecret</code> it will use the <code>spec.template</code> as a blueprint to construct a new <code>Kind=Secret</code>. You can use golang templates to define the blueprint and use template functions to transform secret values. You can also pull in <code>ConfigMaps</code> that contain golang-template data using <code>templateFrom</code>. See <a href="../guides-templating/">advanced templating</a> for details.</p>
 <h2 id="update-behavior">Update Behavior</h2>
 <p>The <code>Kind=Secret</code> is updated when:</p>
 <ul>

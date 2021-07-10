@@ -384,6 +384,19 @@
     Examples
   </a>
   
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#templatefrom" class="md-nav__link">
+    TemplateFrom
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -792,6 +805,19 @@
     Examples
   </a>
   
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#templatefrom" class="md-nav__link">
+    TemplateFrom
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -882,6 +908,48 @@
     <span class="nt">remoteRef</span><span class="p">:</span>
       <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
 </code></pre></div></p>
+<h3 id="templatefrom">TemplateFrom</h3>
+<p>You do not have to define your templates inline in an ExternalSecret but you can pull <code>ConfigMaps</code> or other Secrets that contain a template. Consider the following example:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># define your tempalte in a config map</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">grafana-config-tpl</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">config.yaml</span><span class="p">:</span> <span class="p p-Indicator">|</span>
+    <span class="no">datasources:</span>
+      <span class="no">- name: Graphite</span>
+        <span class="no">type: graphite</span>
+        <span class="no">access: proxy</span>
+        <span class="no">url: http://localhost:8080</span>
+        <span class="no">password: &quot;{{ .password | toString }}&quot; # &lt;-- convert []byte to string</span>
+        <span class="no">user: &quot;{{ .user | toString }}&quot;         # &lt;-- convert []byte to string</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-template-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="c1"># ...</span>
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+    <span class="nt">template</span><span class="p">:</span>
+      <span class="nt">templateFrom</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="nt">configMap</span><span class="p">:</span>
+          <span class="c1"># name of the configmap to pull in</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">grafana-config-tpl</span>
+          <span class="c1"># here you define the keys that should be used as template</span>
+          <span class="nt">items</span><span class="p">:</span>
+          <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">config.yaml</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">user</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/grafana/user</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/grafana/password</span>
+</code></pre></div>
+
 <h2 id="helper-functions">Helper functions</h2>
 <p>We provide a bunch of convenience functions that help you transform your secrets. A secret value is a <code>[]byte</code>.</p>
 <table>
