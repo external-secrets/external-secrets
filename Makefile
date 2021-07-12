@@ -78,7 +78,7 @@ check-diff: reviewable
 .PHONY: test
 test: generate ## Run tests
 	@$(INFO) go test unit-tests
-	go test -v $(shell go list ./... | grep -v e2e) -coverprofile cover.out
+	go test -race -v $(shell go list ./... | grep -v e2e) -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: test.e2e

@@ -23,6 +23,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -110,7 +111,14 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		if err != nil {
 			return nil, err
 		}
-		return []byte(*secretResp.Value), nil
+		if ref.Property == "" {
+			return []byte(*secretResp.Value), nil
+		}
+		res := gjson.Get(*secretResp.Value, ref.Property)
+		if !res.Exists() {
+			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+		}
+		return []byte(res.String()), err
 	case "cert":
 		// returns a CertBundle. We return CER contents of x509 certificate
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle

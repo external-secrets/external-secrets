@@ -167,7 +167,9 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSec
 	}
 
 	val := gjson.Get(payload, ref.Property)
-
+	if !val.Exists() {
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	}
 	return []byte(val.String()), nil
 }
 
