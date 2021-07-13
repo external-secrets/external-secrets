@@ -622,6 +622,26 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+    <nav class="md-nav" aria-label="Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    Limitations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     Authentication
   </a>
@@ -843,6 +863,26 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+    <nav class="md-nav" aria-label="Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    Limitations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     Authentication
   </a>
@@ -919,6 +959,66 @@
 <p>External Secrets Operator integrates with <a href="https://www.vaultproject.io/">HashiCorp Vault</a> for secret
 management. Vault itself implements lots of different secret engines, as of now we only support the
 <a href="https://www.vaultproject.io/docs/secrets/kv">KV Secrets Engine</a>.</p>
+<h3 id="example">Example</h3>
+<p>First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token <code>root</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">vault</span><span class="p">:</span>
+      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;http://my.vault.server:8200&quot;</span>
+      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="c1"># points to a secret that contains a vault token</span>
+        <span class="c1"># https://www.vaultproject.io/docs/auth/token</span>
+        <span class="nt">tokenSecretRef</span><span class="p">:</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+          <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;default&quot;</span>
+          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;token&quot;</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-token</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">token</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cm9vdA==</span> <span class="c1"># &quot;root&quot;</span>
+</code></pre></div>
+
+<p>Then create a simple k/v pair at path <code>secret/foo</code>:</p>
+<div class="highlight"><pre><span></span><code>vault kv put secret/foo my-value=s3cr3t
+</code></pre></div>
+
+<p>Now create a ExternalSecret that uses the above SecretStore:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="s">&quot;15s&quot;</span>
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-sync</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foobar</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret/foo</span>
+      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-value</span>
+<span class="nn">---</span>
+<span class="c1"># will create a secret with:</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-sync</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">foobar</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">czNjcjN0</span>
+</code></pre></div>
+
+<h4 id="limitations">Limitations</h4>
+<p>Vault supports only simple key/value pairs - nested objects are not supported. Hence specifying <code>gjson</code> properties like other providers support it is not supported.</p>
 <h3 id="authentication">Authentication</h3>
 <p>We support three different modes for authentication:
 <a href="https://www.vaultproject.io/docs/auth/token">token-based</a>,
