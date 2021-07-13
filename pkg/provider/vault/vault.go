@@ -17,6 +17,7 @@ package vault
 import (
 	"context"
 	"crypto/x509"
+	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -63,6 +64,9 @@ const (
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
+
+	errOsCreateFile    = "cannot create file to store certificate: %w"
+	errWriteCertToFile = "cannot write certificate to file: %w"
 )
 
 type Client interface {
@@ -545,18 +549,20 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 
 func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, certAuth *esv1alpha1.VaultCertAuth, cfg *vault.Config) (string, error) {
 
+	clientCertPath, err := getClientCertPath(certAuth.ClientCert, "client.crt")
+	// getClientCertsPaths(certAuth.ClientKey, "client.key")
+
 	tlscfg := vault.TLSConfig{
-		ClientCert: "/home/ric/Desktop/temp/certificates/client/client.crt",
+		ClientCert: clientCertPath,
 		ClientKey:  "/home/ric/Desktop/temp/certificates/client/client.key",
 		CACert:     "/home/ric/Desktop/temp/certificates/vault.ca",
 	}
-	
-	err := cfg.ConfigureTLS(&tlscfg)
-	
+
+	err = cfg.ConfigureTLS(&tlscfg)
+
 	if err != nil {
 		return "", fmt.Errorf(errVaultCert, err)
 	}
-
 
 	url := strings.Join([]string{"/v1", "auth", "cert", "login"}, "/")
 	request := client.NewRequest("POST", url)
@@ -579,4 +585,27 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, ce
 	}
 
 	return token, nil
+}
+
+func getClientCertPath(encodedCert, filename string) (string, error) {
+
+	basePath := "/home/ric/"
+
+	certPath := basePath + filename
+	f, err := os.Create(certPath)
+
+	if err != nil {
+		return "", fmt.Errorf(errOsCreateFile, err)
+	}
+
+	defer f.Close()
+
+	clientCertDecoded, _ := b64.StdEncoding.DecodeString(encodedCert)
+	_, err2 := f.WriteString(string(clientCertDecoded))
+
+	if err2 != nil {
+		return "", fmt.Errorf(errWriteCertToFile, err)
+	}
+
+	return certPath, nil
 }
