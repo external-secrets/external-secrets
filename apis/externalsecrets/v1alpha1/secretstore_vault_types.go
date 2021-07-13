@@ -62,7 +62,7 @@ type VaultProvider struct {
 }
 
 // VaultAuth is the configuration used to authenticate with a Vault server.
-// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap` or `jwt`
+// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `jwt` or `cert`
 // can be specified.
 type VaultAuth struct {
 	// TokenSecretRef authenticates with Vault by presenting a token.
@@ -88,6 +88,13 @@ type VaultAuth struct {
 	// JWT/OIDC authentication method
 	// +optional
 	Jwt *VaultJwtAuth `json:"jwt,omitempty"`
+
+        // Cert authenticates with TLS Certificates by passing client certificate, private key and ca certificate
+	// Cert authentication method
+	// +optional
+	Cert *VaultCertAuth `json:"cert,omitempty"`
+
+	
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -159,5 +166,23 @@ type VaultJwtAuth struct {
 
 	// SecretRef to a key in a Secret resource containing JWT token to
 	// authenticate with Vault using the JWT/OIDC authentication method
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
+// method, with the role name and token stored in a Kubernetes Secret resource.
+type VaultCertAuth struct {
+	// ClientCert is a certificate to authenticate using the Cert Vault
+	// authentication method
+	// +optional
+	ClientCert string `json:"clientCert"`
+
+	// ClientCert is a certificate to authenticate using the Cert Vault
+	// authentication method
+	// +optional
+	ClientKey string `json:"clientKey"`
+
+	// SecretRef to a key in a Secret resource containing client private key to
+	// authenticate with Vault using the Cert authentication method
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }

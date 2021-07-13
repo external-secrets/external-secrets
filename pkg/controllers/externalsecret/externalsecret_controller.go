@@ -79,9 +79,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	p := client.MergeFrom(externalSecret.DeepCopy())
 	defer func() {
 		err = r.Status().Patch(ctx, &externalSecret, p)
-		if err != nil {
-			log.Error(err, "unable to patch status")
-		}
 	}()
 
 	store, err := r.getStore(ctx, &externalSecret)
