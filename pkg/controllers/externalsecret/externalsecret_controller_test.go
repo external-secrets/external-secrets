@@ -171,6 +171,115 @@ var _ = Describe("ExternalSecret controller", func() {
 			// check labels & annotations
 			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.ObjectMeta.Labels))
 			Expect(secret.ObjectMeta.Annotations).To(BeEquivalentTo(es.ObjectMeta.Annotations))
+			// ownerRef must not not be set!
+			Expect(hasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeTrue())
+		}
+	}
+
+	// merge with existing secret using creationPolicy=Merge
+	// it should NOT have a ownerReference
+	// metadata.managedFields with the correct owner should be added to the secret
+	mergeWithSecret := func(tc *testCase) {
+		const secretVal = "someValue"
+		const existingKey = "pre-existing-key"
+		existingVal := "pre-existing-value"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1alpha1.Merge
+
+		// create secret beforehand
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-secret",
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner("fake.manager"))).To(Succeed())
+
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
+			Eventually(func() bool {
+				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				return metric.GetCounter().GetValue() == 1.0
+			}, timeout, interval).Should(BeTrue())
+
+			// check value
+			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+
+			// check labels & annotations
+			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.ObjectMeta.Labels))
+			Expect(secret.ObjectMeta.Annotations).To(BeEquivalentTo(es.ObjectMeta.Annotations))
+			Expect(hasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeFalse())
+			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
+			Expect(hasFieldOwnership(secret.ObjectMeta, "external-secrets", "{\"f:data\":{\"f:targetProperty\":{}}}")).To(BeTrue())
+			Expect(hasFieldOwnership(secret.ObjectMeta, "fake.manager", "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
+		}
+	}
+
+	// should not merge with secret if it doesn't exist
+	mergeWithSecretErr := func(tc *testCase) {
+		const secretVal = "someValue"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1alpha1.Merge
+
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkCondition = func(es *esv1alpha1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1alpha1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1alpha1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkExternalSecret = func(es *esv1alpha1.ExternalSecret) {
+			Eventually(func() bool {
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				return metric.GetCounter().GetValue() >= 2.0
+			}, timeout, interval).Should(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
+		}
+	}
+
+	// controller should not force override but
+	// return an error on conflict
+	mergeWithConflict := func(tc *testCase) {
+		const secretVal = "someValue"
+		// this should confict
+		const existingKey = targetProp
+		existingVal := "pre-existing-value"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1alpha1.Merge
+
+		// create secret beforehand
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-secret",
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner("fake.manager"))).To(Succeed())
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+
+		tc.checkCondition = func(es *esv1alpha1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1alpha1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1alpha1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			// check that value stays the same
+			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
+			Expect(string(secret.Data[targetProp])).ToNot(Equal(secretVal))
+
+			// check owner/managedFields
+			Expect(hasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeFalse())
+			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(1))
+			Expect(hasFieldOwnership(secret.ObjectMeta, "fake.manager", "{\"f:data\":{\".\":{},\"f:targetProperty\":{}},\"f:type\":{}}")).To(BeTrue())
 		}
 	}
 
@@ -332,7 +441,6 @@ var _ = Describe("ExternalSecret controller", func() {
 				if err != nil {
 					return false
 				}
-				fmt.Fprintf(GinkgoWriter, "data: %#v\n", sec.Data)
 				// ensure new data value exist
 				return string(sec.Data["new"]) == "value"
 			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
@@ -524,10 +632,12 @@ var _ = Describe("ExternalSecret controller", func() {
 				tweak(tc)
 			}
 			ctx := context.Background()
+			By("creating a secret store and external secret")
 			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
 			Expect(k8sClient.Create(ctx, tc.externalSecret)).Should(Succeed())
 			esKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
 			createdES := &esv1alpha1.ExternalSecret{}
+			By("checking the es condition")
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, esKey, createdES)
 				if err != nil {
@@ -552,6 +662,9 @@ var _ = Describe("ExternalSecret controller", func() {
 			}
 		},
 		Entry("should set the condition eventually", syncLabelsAnnotations),
+		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),
+		Entry("should error if sceret doesn't exist when using creationPolicy=Merge", mergeWithSecretErr),
+		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should refresh secret from template", refreshWithTemplate),
@@ -760,6 +873,24 @@ func CreateNamespace(baseName string, c client.Client) (string, error) {
 		return "", err
 	}
 	return ns.Name, nil
+}
+
+func hasOwnerRef(meta metav1.ObjectMeta, kind, name string) bool {
+	for _, ref := range meta.OwnerReferences {
+		if ref.Kind == kind && ref.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFieldOwnership(meta metav1.ObjectMeta, mgr, rawFields string) bool {
+	for _, ref := range meta.ManagedFields {
+		if ref.Manager == mgr && string(ref.FieldsV1.Raw) == rawFields {
+			return true
+		}
+	}
+	return false
 }
 
 func externalSecretConditionShouldBe(name, ns string, ct esv1alpha1.ExternalSecretConditionType, cs v1.ConditionStatus, v float64) bool {
