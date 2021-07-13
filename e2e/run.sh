@@ -46,18 +46,17 @@ done
 kubectl apply -f ${DIR}/k8s/deploy/crds
 
 echo -e "Starting the e2e test pod"
-FOCUS=${FOCUS:-.*}
-export FOCUS
 
 kubectl run --rm \
   --attach \
   --restart=Never \
   --pod-running-timeout=10m \
-  --env="FOCUS=${FOCUS}" \
-  --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON}" \
-  --env="AZURE_CLIENT_ID=${AZURE_CLIENT_ID}" \
-  --env="AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}" \
-  --env="TENANT_ID=${TENANT_ID}" \
-  --env="VAULT_URL=${VAULT_URL}" \
+  --env="FOCUS=${FOCUS:-.*}" \
+  --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON:-}" \
+  --env="GCP_PROJECT_ID=${GCP_PROJECT_ID:-}" \
+  --env="AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}" \
+  --env="AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}" \
+  --env="TENANT_ID=${TENANT_ID:-}" \
+  --env="VAULT_URL=${VAULT_URL:-}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
   e2e --image=local/external-secrets-e2e:test

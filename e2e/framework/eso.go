@@ -16,6 +16,7 @@ package framework
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -26,7 +27,7 @@ import (
 
 // WaitForSecretValue waits until a secret comes into existence and compares the secret.Data
 // with the provided values.
-func (f *Framework) WaitForSecretValue(namespace, name string, values map[string][]byte) (*v1.Secret, error) {
+func (f *Framework) WaitForSecretValue(namespace, name string, expected *v1.Secret) (*v1.Secret, error) {
 	secret := &v1.Secret{}
 	err := wait.PollImmediate(time.Second*2, time.Minute*2, func() (bool, error) {
 		err := f.CRClient.Get(context.Background(), types.NamespacedName{
@@ -36,13 +37,28 @@ func (f *Framework) WaitForSecretValue(namespace, name string, values map[string
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}
-
-		for k, exp := range values {
-			if actual, ok := secret.Data[k]; ok && !bytes.Equal(actual, exp) {
-				return false, nil
-			}
-		}
-		return true, nil
+		return equalSecrets(expected, secret), nil
 	})
 	return secret, err
+}
+
+func equalSecrets(exp, ts *v1.Secret) bool {
+	if exp.Type != ts.Type {
+		return false
+	}
+	expLabels, _ := json.Marshal(exp.ObjectMeta.Labels)
+	tsLabels, _ := json.Marshal(ts.ObjectMeta.Labels)
+	if !bytes.Equal(expLabels, tsLabels) {
+		return false
+	}
+
+	expAnnotations, _ := json.Marshal(exp.ObjectMeta.Annotations)
+	tsAnnotations, _ := json.Marshal(ts.ObjectMeta.Annotations)
+	if !bytes.Equal(expAnnotations, tsAnnotations) {
+		return false
+	}
+
+	expData, _ := json.Marshal(exp.Data)
+	tsData, _ := json.Marshal(ts.Data)
+	return bytes.Equal(expData, tsData)
 }
