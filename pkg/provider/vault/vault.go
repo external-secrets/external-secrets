@@ -45,6 +45,7 @@ var (
 
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	clientCertsBasePath = "/auth-certs/"
 
 	errVaultStore     = "received invalid Vault SecretStore resource: %w"
 	errVaultClient    = "cannot setup new vault client: %w"
@@ -65,8 +66,11 @@ const (
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
 
+	errGetCertPath     = "cannot get certificates path: %w"
 	errOsCreateFile    = "cannot create file to store certificate: %w"
+	errCertDecode      = "error decoding certificate: %w"
 	errWriteCertToFile = "cannot write certificate to file: %w"
+	errCertMkdir       = "cannot create path to store certificate: %w"
 )
 
 type Client interface {
@@ -347,6 +351,7 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	}
 
 	value := string(keyBytes)
+
 	valueStr := strings.TrimSpace(value)
 	return valueStr, nil
 }
@@ -549,13 +554,30 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 
 func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, certAuth *esv1alpha1.VaultCertAuth, cfg *vault.Config) (string, error) {
 
-	clientCertPath, err := getClientCertPath(certAuth.ClientCert, "client.crt")
-	// getClientCertsPaths(certAuth.ClientKey, "client.key")
+	clientKey, err := v.secretKeyRef(ctx, &certAuth.SecretRef)
+	if err != nil {
+		return "", err
+	}
+
+	clientKeyPath, err := getCertPath(clientKey, "client.key")
+	if err != nil {
+		return "", fmt.Errorf(errGetCertPath, err)
+	}
+
+	clientCertPath, err := getCertPath(certAuth.ClientCert, "client.crt")
+	if err != nil {
+		return "", fmt.Errorf(errGetCertPath, err)
+	}
+
+	caCertPath, err := getCertPath(certAuth.CACert, "ca.crt")
+	if err != nil {
+		return "", fmt.Errorf(errGetCertPath, err)
+	}
 
 	tlscfg := vault.TLSConfig{
 		ClientCert: clientCertPath,
-		ClientKey:  "/home/ric/Desktop/temp/certificates/client/client.key",
-		CACert:     "/home/ric/Desktop/temp/certificates/vault.ca",
+		ClientKey:  clientKeyPath,
+		CACert:     caCertPath,
 	}
 
 	err = cfg.ConfigureTLS(&tlscfg)
@@ -587,25 +609,43 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, ce
 	return token, nil
 }
 
-func getClientCertPath(encodedCert, filename string) (string, error) {
+func getCertPath(cert, filename string) (string, error) {
 
-	basePath := "/home/ric/"
+	certPath := clientCertsBasePath + filename
 
-	certPath := basePath + filename
+	if _, err := os.Stat(clientCertsBasePath); os.IsNotExist(err) {
+		_, err := MkdirToStoreCertificate(clientCertsBasePath)
+		return "", err
+	}
+
 	f, err := os.Create(certPath)
-
 	if err != nil {
 		return "", fmt.Errorf(errOsCreateFile, err)
 	}
 
 	defer f.Close()
 
-	clientCertDecoded, _ := b64.StdEncoding.DecodeString(encodedCert)
-	_, err2 := f.WriteString(string(clientCertDecoded))
+	if filename == "client.crt" || filename == "ca.crt" {
 
-	if err2 != nil {
+		decodedCert, err := b64.StdEncoding.DecodeString(cert)
+		if err != nil {
+			return "", fmt.Errorf(errCertDecode, err)
+		}
+		cert = string(decodedCert)
+	}
+	_, err = f.WriteString(cert)
+	if err != nil {
 		return "", fmt.Errorf(errWriteCertToFile, err)
 	}
 
 	return certPath, nil
+}
+
+func MkdirToStoreCertificate(clientCertsBasePath string) (string, error) {
+
+	if err := os.MkdirAll(clientCertsBasePath, 0700); err != nil {
+		return "", fmt.Errorf(errCertMkdir, err)
+	}
+
+	return "", nil
 }
