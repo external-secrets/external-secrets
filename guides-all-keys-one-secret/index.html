@@ -14,7 +14,7 @@
     
     
       
-        <title>Secrets Manager - External Secrets Operator</title>
+        <title>All keys, One secret - External Secrets Operator</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#google-cloud-secret-manager" class="md-skip">
+        <a href="#all-keys-one-secret" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Secrets Manager
+              All keys, One secret
             
           </span>
         </div>
@@ -302,12 +302,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
       
       <label class="md-nav__link" for="__nav_4">
         Guides
@@ -359,11 +361,51 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../guides-all-keys-one-secret/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          All keys, One secret
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         All keys, One secret
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#creating-datafrom-external-secret" class="md-nav__link">
+    Creating dataFrom external secret
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -404,14 +446,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
       
       <label class="md-nav__link" for="__nav_5">
         Provider
@@ -517,14 +557,12 @@
             
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_3" type="checkbox" id="__nav_5_3" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_3" type="checkbox" id="__nav_5_3" >
       
       <label class="md-nav__link" for="__nav_5_3">
         Google
@@ -540,87 +578,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Secrets Manager
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../provider-google-secrets-manager/" class="md-nav__link">
         Secrets Manager
       </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#google-cloud-secret-manager" class="md-nav__link">
-    Google Cloud Secret Manager
-  </a>
-  
-    <nav class="md-nav" aria-label="Google Cloud Secret Manager">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#service-account-key-authentication" class="md-nav__link">
-    Service account key authentication
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    Update secret store
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#creating-external-secret" class="md-nav__link">
-    Creating external secret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -827,6 +789,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -835,49 +799,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#google-cloud-secret-manager" class="md-nav__link">
-    Google Cloud Secret Manager
+  <a href="#creating-datafrom-external-secret" class="md-nav__link">
+    Creating dataFrom external secret
   </a>
-  
-    <nav class="md-nav" aria-label="Google Cloud Secret Manager">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#service-account-key-authentication" class="md-nav__link">
-    Service account key authentication
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    Update secret store
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#creating-external-secret" class="md-nav__link">
-    Creating external secret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -893,61 +817,19 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-google-secrets-manager.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-all-keys-one-secret.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                  <h1>Secrets Manager</h1>
-                
-                <h2 id="google-cloud-secret-manager">Google Cloud Secret Manager</h2>
-<p>External Secrets Operator integrates with <a href="https://cloud.google.com/secret-manager">GCP Secret Manager</a> for secret management.</p>
-<h3 id="authentication">Authentication</h3>
-<p>At the moment, we only support <a href="https://cloud.google.com/iam/docs/creating-managing-service-account-keys">service account key</a> authentication.</p>
-<h4 id="service-account-key-authentication">Service account key authentication</h4>
-<p>A service account key is created and the JSON keyfile is stored in a <code>Kind=Secret</code>. The <code>project_id</code> and <code>private_key</code> should be configured for the project.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>
-  <span class="nt">labels</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm</span>
-<span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Opaque</span>
-<span class="nt">stringData</span><span class="p">:</span>
-  <span class="nt">secret-access-credentials</span><span class="p">:</span> <span class="p p-Indicator">|-</span>
-    <span class="no">{</span>
-      <span class="no">&quot;type&quot;: &quot;service_account&quot;,</span>
-      <span class="no">&quot;project_id&quot;: &quot;external-secrets-operator&quot;,</span>
-      <span class="no">&quot;private_key_id&quot;: &quot;&quot;,</span>
-      <span class="no">&quot;private_key&quot;: &quot;-----BEGIN PRIVATE KEY-----\nA key\n-----END PRIVATE KEY-----\n&quot;,</span>
-      <span class="no">&quot;client_email&quot;: &quot;test-service-account@external-secrets-operator.iam.gserviceaccount.com&quot;,</span>
-      <span class="no">&quot;client_id&quot;: &quot;client ID&quot;,</span>
-      <span class="no">&quot;auth_uri&quot;: &quot;https://accounts.google.com/o/oauth2/auth&quot;,</span>
-      <span class="no">&quot;token_uri&quot;: &quot;https://oauth2.googleapis.com/token&quot;,</span>
-      <span class="no">&quot;auth_provider_x509_cert_url&quot;: &quot;https://www.googleapis.com/oauth2/v1/certs&quot;,</span>
-      <span class="no">&quot;client_x509_cert_url&quot;: &quot;https://www.googleapis.com/robot/v1/metadata/x509/test-service-account%40external-secrets-operator.iam.gserviceaccount.com&quot;</span>
-    <span class="no">}</span>
-</code></pre></div>
-
-<h3 id="update-secret-store">Update secret store</h3>
-<p>Be sure the <code>gcpsm</code> provider is listed in the <code>Kind=SecretStore</code></p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-      <span class="nt">gcpsm</span><span class="p">:</span>                                  <span class="c1"># gcpsm provider</span>
-        <span class="nt">auth</span><span class="p">:</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
-              <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>              <span class="c1"># secret name containing SA key</span>
-              <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span>  <span class="c1"># key name containing SA key</span>
-        <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">myproject</span>                  <span class="c1"># name of Google Cloud project</span>
-</code></pre></div>
-
-<h3 id="creating-external-secret">Creating external secret</h3>
-<p>To create a kubernetes secret from the GCP Secret Manager secret a <code>Kind=ExternalSecret</code> is needed.</p>
+                <h1 id="all-keys-one-secret">All Keys, One Secret</h1>
+<p>To get multiple key-values from an external secret, not having to worry about how many, or what these keys are, we have to use the dataFrom field of the ExternalSecret resource, instead of the data field. We will give an example here with the gcp provider (should work with other providers in the same way).</p>
+<p>Please follow the authentication and SecretStore steps of the <a href="../provider-google-secrets-manager/">Google Cloud Secrets Manager guide</a> to setup access to your google cloud account first.</p>
+<p>Then create a secret in Google Cloud Secret Manager that contains a JSON string with multiple key values like this:</p>
+<p><img alt="secret-value" src="../pictures/screenshot_json_string_gcp_secret_value.png" /></p>
+<p>Let's call this secret all-keys-example-secret on Google Cloud.</p>
+<h3 id="creating-datafrom-external-secret">Creating dataFrom external secret</h3>
+<p>Now, when creating our ExternalSecret resource, instead of using the data field, we use the dataFrom field:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -960,15 +842,14 @@
   <span class="nt">target</span><span class="p">:</span>
     <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>  <span class="c1"># name of the k8s Secret to be created</span>
     <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>  <span class="c1"># name of the GCPSM secret key</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>
+  <span class="nt">dataFrom</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">all-keys-example-secret</span>  <span class="c1"># name of the GCPSM secret</span>
 </code></pre></div>
 
-<p>The operator will fetch the GCP Secret Manager secret and inject it as a <code>Kind=Secret</code>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
-</code></pre></div></p>
+<p>To check both values we can run:</p>
+<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.username}&#39; | base64 -d
+kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.surname}&#39; | base64 -d
+</code></pre></div>
                 
               
               
@@ -988,7 +869,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../provider-azure-key-vault/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Key Vault" rel="prev">
+        <a href="../guides-templating/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Advanced Templating" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -997,20 +878,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Key Vault
+              Advanced Templating
             </div>
           </div>
         </a>
       
       
         
-        <a href="../provider-ibm-secrets-manager/" class="md-footer__link md-footer__link--next" aria-label="Next: Secrets Manager" rel="next">
+        <a href="../guides-multi-tenancy/" class="md-footer__link md-footer__link--next" aria-label="Next: Multi Tenancy" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Secrets Manager
+              Multi Tenancy
             </div>
           </div>
           <div class="md-footer__button md-icon">
