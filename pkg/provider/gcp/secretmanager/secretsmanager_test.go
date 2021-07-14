@@ -147,7 +147,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
-		if string(out) != v.expectedSecret {
+		if err == nil && string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
 		}
 	}
