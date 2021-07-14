@@ -177,10 +177,9 @@ type VaultCertAuth struct {
 	// +optional
 	ClientCert string `json:"clientCert"`
 
-	// ClientCert is a certificate to authenticate using the Cert Vault
-	// authentication method
+	// CACert is the Vault TLS Listener CA certificate
 	// +optional
-	ClientKey string `json:"clientKey"`
+	CACert string `json:"caCert"`
 
 	// SecretRef to a key in a Secret resource containing client private key to
 	// authenticate with Vault using the Cert authentication method
