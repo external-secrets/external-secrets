@@ -97,6 +97,7 @@ type ExternalSecretTarget struct {
 	// CreationPolicy defines rules on how to create the resulting Secret
 	// Defaults to 'Owner'
 	// +optional
+	// +kubebuilder:default="Owner"
 	CreationPolicy ExternalSecretCreationPolicy `json:"creationPolicy,omitempty"`
 
 	// Template defines a blueprint for the created Secret resource.

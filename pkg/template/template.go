@@ -27,8 +27,6 @@ import (
 	"github.com/youmark/pkcs8"
 	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
-
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 var tplFuncs = tpl.FuncMap{
@@ -67,12 +65,12 @@ const (
 )
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(template *esv1alpha1.ExternalSecretTemplate, secret *corev1.Secret, data map[string][]byte) error {
-	if template == nil {
+func Execute(tpl, data map[string][]byte, secret *corev1.Secret) error {
+	if tpl == nil {
 		return nil
 	}
-	for k, v := range template.Data {
-		val, err := execute(k, v, data)
+	for k, v := range tpl {
+		val, err := execute(k, string(v), data)
 		if err != nil {
 			return fmt.Errorf(errExecute, k, err)
 		}

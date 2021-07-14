@@ -15,6 +15,7 @@ env:
   # credentials have been provided before trying to run steps that need them.
   GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
   GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID}}
   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET}}
   TENANT_ID: ${{ secrets.TENANT_ID}}

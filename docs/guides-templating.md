@@ -12,6 +12,14 @@ You can also use pre-defined functions to extract data from your secrets. Here: 
 {% include 'pkcs12-template-external-secret.yaml' %}
 ```
 
+### TemplateFrom
+
+You do not have to define your templates inline in an ExternalSecret but you can pull `ConfigMaps` or other Secrets that contain a template. Consider the following example:
+
+``` yaml
+{% include 'template-from-secret.yaml' %}
+```
+
 ## Helper functions
 We provide a bunch of convenience functions that help you transform your secrets. A secret value is a `[]byte`.
 
