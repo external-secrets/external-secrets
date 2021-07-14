@@ -17,6 +17,7 @@ package vault
 import (
 	"context"
 	"crypto/x509"
+	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -44,9 +45,11 @@ var (
 
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	certsBasePath = "/auth-certs/"
 
 	errVaultStore     = "received invalid Vault SecretStore resource: %w"
 	errVaultClient    = "cannot setup new vault client: %w"
+	errVaultTLSClient = "cannot setup new TLS vault client: %w"
 	errVaultCert      = "cannot set Vault CA certificate: %w"
 	errReadSecret     = "cannot read secret data from Vault: %w"
 	errAuthFormat     = "cannot initialize Vault client: no valid auth method specified: %w"
@@ -62,6 +65,12 @@ const (
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
+
+	errGetCertPath     = "cannot get certificates path: %w"
+	errOsCreateFile    = "cannot create file to store certificate: %w"
+	errCertDecode      = "error decoding certificate: %w"
+	errWriteCertToFile = "cannot write certificate to file: %w"
+	errCertMkdir       = "cannot create path to store certificate: %w"
 )
 
 type Client interface {
@@ -111,7 +120,8 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
 
-	cfg, err := vStore.newConfig()
+	cfg, err := vStore.newConfig(ctx)
+
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +135,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
 
-	if err := vStore.setAuth(ctx, client); err != nil {
+	if err := vStore.setAuth(ctx, client, cfg); err != nil {
 		return nil, err
 	}
 
@@ -209,7 +219,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 	return byteMap, nil
 }
 
-func (v *client) newConfig() (*vault.Config, error) {
+func (v *client) newConfig(ctx context.Context) (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
 
@@ -230,7 +240,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 	return cfg, nil
 }
 
-func (v *client) setAuth(ctx context.Context, client Client) error {
+func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config) error {
 	tokenRef := v.store.Auth.TokenSecretRef
 	if tokenRef != nil {
 		token, err := v.secretKeyRef(ctx, tokenRef)
@@ -274,6 +284,16 @@ func (v *client) setAuth(ctx context.Context, client Client) error {
 	jwtAuth := v.store.Auth.Jwt
 	if jwtAuth != nil {
 		token, err := v.requestTokenWithJwtAuth(ctx, client, jwtAuth)
+		if err != nil {
+			return err
+		}
+		client.SetToken(token)
+		return nil
+	}
+
+	certAuth := v.store.Auth.Cert
+	if certAuth != nil {
+		token, err := v.requestTokenWithCertAuth(ctx, client, certAuth, cfg)
 		if err != nil {
 			return err
 		}
@@ -331,6 +351,7 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	}
 
 	value := string(keyBytes)
+
 	valueStr := strings.TrimSpace(value)
 	return valueStr, nil
 }
@@ -503,7 +524,7 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 		"role": role,
 		"jwt":  jwt,
 	}
-	url := strings.Join([]string{"/v1", "auth", "jwt", "login"}, "/")
+	url := strings.Join([]string{"/v1", "auth", "cert", "login"}, "/")
 	request := client.NewRequest("POST", url)
 
 	err = request.SetJSONBody(parameters)
@@ -529,4 +550,102 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 	}
 
 	return token, nil
+}
+
+func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, certAuth *esv1alpha1.VaultCertAuth, cfg *vault.Config) (string, error) {
+
+	clientKey, err := v.secretKeyRef(ctx, &certAuth.SecretRef)
+	if err != nil {
+		return "", err
+	}
+
+	clientKeyPath, err := getCertPath(clientKey, "client.key")
+	if err != nil {
+		return "", fmt.Errorf(errGetCertPath, err)
+	}
+
+	clientCertPath, err := getCertPath(certAuth.ClientCert, "client.crt")
+	if err != nil {
+		return "", fmt.Errorf(errGetCertPath, err)
+	}
+
+	caCertPath, err := getCertPath(certAuth.CACert, "ca.crt")
+	if err != nil {
+		return "", fmt.Errorf(errGetCertPath, err)
+	}
+
+	tlscfg := vault.TLSConfig{
+		ClientCert: clientCertPath,
+		ClientKey:  clientKeyPath,
+		CACert:     caCertPath,
+	}
+
+	err = cfg.ConfigureTLS(&tlscfg)
+
+	if err != nil {
+		return "", fmt.Errorf(errVaultCert, err)
+	}
+
+	url := strings.Join([]string{"/v1", "auth", "cert", "login"}, "/")
+	request := client.NewRequest("POST", url)
+
+	resp, err := client.RawRequestWithContext(ctx, request)
+	if err != nil {
+		return "", fmt.Errorf(errVaultRequest, err)
+	}
+
+	defer resp.Body.Close()
+
+	vaultResult := vault.Secret{}
+	if err = resp.DecodeJSON(&vaultResult); err != nil {
+		return "", fmt.Errorf(errVaultResponse, err)
+	}
+
+	token, err := vaultResult.TokenID()
+	if err != nil {
+		return "", fmt.Errorf(errVaultToken, err)
+	}
+
+	return token, nil
+}
+
+func getCertPath(cert, filename string) (string, error) {
+
+	certPath := certsBasePath + filename
+
+	if _, err := os.Stat(certsBasePath); os.IsNotExist(err) {
+		_, err := MkdirToStoreCertificate(certsBasePath)
+		return "", err
+	}
+
+	f, err := os.Create(certPath)
+	if err != nil {
+		return "", fmt.Errorf(errOsCreateFile, err)
+	}
+
+	defer f.Close()
+
+	if filename == "client.crt" || filename == "ca.crt" {
+
+		decodedCert, err := b64.StdEncoding.DecodeString(cert)
+		if err != nil {
+			return "", fmt.Errorf(errCertDecode, err)
+		}
+		cert = string(decodedCert)
+	}
+	_, err = f.WriteString(cert)
+	if err != nil {
+		return "", fmt.Errorf(errWriteCertToFile, err)
+	}
+
+	return certPath, nil
+}
+
+func MkdirToStoreCertificate(clientCertsBasePath string) (string, error) {
+
+	if err := os.MkdirAll(clientCertsBasePath, 0700); err != nil {
+		return "", fmt.Errorf(errCertMkdir, err)
+	}
+
+	return "", nil
 }
