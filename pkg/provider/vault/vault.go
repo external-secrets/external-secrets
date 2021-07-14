@@ -45,7 +45,7 @@ var (
 
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	clientCertsBasePath = "/auth-certs/"
+	certsBasePath = "/auth-certs/"
 
 	errVaultStore     = "received invalid Vault SecretStore resource: %w"
 	errVaultClient    = "cannot setup new vault client: %w"
@@ -611,10 +611,10 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, ce
 
 func getCertPath(cert, filename string) (string, error) {
 
-	certPath := clientCertsBasePath + filename
+	certPath := certsBasePath + filename
 
-	if _, err := os.Stat(clientCertsBasePath); os.IsNotExist(err) {
-		_, err := MkdirToStoreCertificate(clientCertsBasePath)
+	if _, err := os.Stat(certsBasePath); os.IsNotExist(err) {
+		_, err := MkdirToStoreCertificate(certsBasePath)
 		return "", err
 	}
 
