@@ -93,6 +93,11 @@ var setAPIErr = func(smtc *secretManagerTestCase) {
 	smtc.expectError = "oh no"
 }
 
+var setNilMockClient = func(smtc *secretManagerTestCase) {
+	smtc.mockClient = nil
+	smtc.expectError = errUninitalizedGCPProvider
+}
+
 // test the sm<->gcp interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestSecretManagerGetSecret(t *testing.T) {
@@ -137,6 +142,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setCustomVersion),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setCustomRef),
+		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 	}
 
 	sm := ProviderGCP{}
@@ -147,7 +153,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
-		if string(out) != v.expectedSecret {
+		if err == nil && string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
 		}
 	}
@@ -169,6 +175,7 @@ func TestGetSecretMap(t *testing.T) {
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(setDeserialization),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
+		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(setInvalidJSON),
 	}
 
