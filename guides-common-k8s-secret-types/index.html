@@ -14,7 +14,7 @@
     
     
       
-        <title>Getting started - External Secrets Operator</title>
+        <title>Common K8S Secret Types - External Secrets Operator</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started" class="md-skip">
+        <a href="#a-few-common-k8s-secret-types-examples" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting started
+              Common K8S Secret Types
             
           </span>
         </div>
@@ -337,112 +337,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Getting started
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../guides-getting-started/" class="md-nav__link">
         Getting started
       </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installing-with-helm" class="md-nav__link">
-    Installing with Helm
-  </a>
-  
-    <nav class="md-nav" aria-label="Installing with Helm">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-1-install-from-chart-repository" class="md-nav__link">
-    Option 1: Install from chart repository
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-2-install-chart-from-local-build" class="md-nav__link">
-    Option 2: Install chart from local build
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-a-secret-containing-your-aws-credentials" class="md-nav__link">
-    Create a secret containing your AWS credentials
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-your-first-secretstore" class="md-nav__link">
-    Create your first SecretStore
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-your-first-externalsecret" class="md-nav__link">
-    Create your first ExternalSecret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#uninstalling" class="md-nav__link">
-    Uninstalling
-  </a>
-  
-    <nav class="md-nav" aria-label="Uninstalling">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#uninstalling-with-helm" class="md-nav__link">
-    Uninstalling with Helm
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -474,11 +373,72 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../guides-common-k8s-secret-types/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Common K8S Secret Types
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Common K8S Secret Types
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#dockerconfigjson-example" class="md-nav__link">
+    Dockerconfigjson example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tls-cert-example" class="md-nav__link">
+    TLS Cert example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ssh-auth-example" class="md-nav__link">
+    SSH Auth example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-examples" class="md-nav__link">
+    More examples
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -872,70 +832,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installing-with-helm" class="md-nav__link">
-    Installing with Helm
+  <a href="#dockerconfigjson-example" class="md-nav__link">
+    Dockerconfigjson example
   </a>
-  
-    <nav class="md-nav" aria-label="Installing with Helm">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-1-install-from-chart-repository" class="md-nav__link">
-    Option 1: Install from chart repository
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-2-install-chart-from-local-build" class="md-nav__link">
-    Option 2: Install chart from local build
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-a-secret-containing-your-aws-credentials" class="md-nav__link">
-    Create a secret containing your AWS credentials
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-your-first-secretstore" class="md-nav__link">
-    Create your first SecretStore
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#create-your-first-externalsecret" class="md-nav__link">
-    Create your first ExternalSecret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#uninstalling" class="md-nav__link">
-    Uninstalling
-  </a>
-  
-    <nav class="md-nav" aria-label="Uninstalling">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#uninstalling-with-helm" class="md-nav__link">
-    Uninstalling with Helm
+  <a href="#tls-cert-example" class="md-nav__link">
+    TLS Cert example
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#ssh-auth-example" class="md-nav__link">
+    SSH Auth example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-examples" class="md-nav__link">
+    More examples
+  </a>
   
 </li>
       
@@ -951,121 +871,122 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-getting-started.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-common-k8s-secret-types.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                <h1 id="getting-started">Getting started</h1>
-<p>External-secrets runs within your Kubernetes cluster as a deployment resource.
-It utilizes CustomResourceDefinitions to configure access to secret providers through SecretStore resources
-and manages Kubernetes secret resources with ExternalSecret resources.</p>
-<blockquote>
-<p>Note: The minimum supported version of Kubernetes is <code>1.16.0</code>. Users still running Kubernetes v1.15 or below should upgrade
-to a supported version before installing external-secrets.</p>
-</blockquote>
-<h2 id="installing-with-helm">Installing with Helm</h2>
-<p>To automatically install and manage the CRDs as part of your Helm release, you must add the --set installCRDs=true flag to your Helm installation command.</p>
-<p>Uncomment the relevant line in the next steps to enable this.</p>
-<h3 id="option-1-install-from-chart-repository">Option 1: Install from chart repository</h3>
-<div class="highlight"><pre><span></span><code>helm repo add external-secrets https://charts.external-secrets.io
-
-helm install external-secrets <span class="se">\</span>
-   external-secrets/external-secrets <span class="se">\</span>
-    -n external-secrets <span class="se">\</span>
-    --create-namespace <span class="se">\</span>
-  <span class="c1"># --set installCRDs=true</span>
-</code></pre></div>
-
-<h3 id="option-2-install-chart-from-local-build">Option 2: Install chart from local build</h3>
-<p>Build and install the Helm chart locally after cloning the repository.</p>
-<div class="highlight"><pre><span></span><code>make helm.build
-
-helm install external-secrets <span class="se">\</span>
-    ./bin/chart/external-secrets.tgz <span class="se">\</span>
-    -n external-secrets <span class="se">\</span>
-    --create-namespace <span class="se">\</span>
-  <span class="c1"># --set installCRDs=true</span>
-</code></pre></div>
-
-<h3 id="create-a-secret-containing-your-aws-credentials">Create a secret containing your AWS credentials</h3>
-<div class="highlight"><pre><span></span><code><span class="nb">echo</span> -n <span class="s1">&#39;KEYID&#39;</span> &gt; ./access-key
-<span class="nb">echo</span> -n <span class="s1">&#39;SECRETKEY&#39;</span> &gt; ./secret-access-key
-kubectl create secret generic awssm-secret --from-file<span class="o">=</span>./access-key  --from-file<span class="o">=</span>./secret-access-key
-</code></pre></div>
-
-<h3 id="create-your-first-secretstore">Create your first SecretStore</h3>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">controller</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">aws</span><span class="p">:</span>
-      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
-      <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::123456789012:role/team-a-reader</span>
-      <span class="nt">region</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="nt">secretRef</span><span class="p">:</span>
-          <span class="nt">accessKeyIDSecretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">access-key</span>
-          <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
-</code></pre></div>
-
-<h3 id="create-your-first-externalsecret">Create your first ExternalSecret</h3>
+                <h1 id="a-few-common-k8s-secret-types-examples">A few common k8s secret types examples</h1>
+<p>Here we will give some examples of how to work with a few common k8s secret types. We will give this examples here with the gcp provider (should work with other providers in the same way). Please also check the guides on <a href="../guides-templating/">Advanced Templating</a> to understand the details.</p>
+<p>Please follow the authentication and SecretStore steps of the <a href="../provider-google-secrets-manager/">Google Cloud Secrets Manager guide</a> to setup access to your google cloud account first.</p>
+<h2 id="dockerconfigjson-example">Dockerconfigjson example</h2>
+<p>First create a secret in Google Cloud Secrets Manager containing your docker config:</p>
+<p><img alt="iam" src="../pictures/screenshot_docker_config_json_example.png" /></p>
+<p>Let's call this secret docker-config-example on Google Cloud.</p>
+<p>Then create a ExternalSecret resource taking advantage of templating to populate the generated secret:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dk-cfg-example</span>
 <span class="nt">spec</span><span class="p">:</span>
   <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
   <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
     <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
   <span class="nt">target</span><span class="p">:</span>
     <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+    <span class="nt">template</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span>
+      <span class="nt">data</span><span class="p">:</span>
+        <span class="nt">.dockerconfigjson</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">}}&quot;</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
     <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
   <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-key-to-be-managed</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysecret</span>
     <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">provider-key</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">provider-key-version</span>
-      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">provider-key-property</span>
-  <span class="nt">dataFrom</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">remote-key-in-the-provider</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">docker-config-example</span>
 </code></pre></div>
 
-<div class="highlight"><pre><span></span><code>kubectl describe externalsecret example
-<span class="c1"># [...]</span>
-Name:  example
-Status:
-  Conditions:
-    Last Transition Time:  <span class="m">2021</span>-02-24T16:45:23Z
-    Message:               Secret was synced
-    Reason:                SecretSynced
-    Status:                True
-    Type:                  Ready
-  Refresh Time:            <span class="m">2021</span>-02-24T16:45:24Z
-Events:                    &lt;none&gt;
+<p>This will generate a valid dockerconfigjson secret for you to use!</p>
+<p>You can get the final value with:</p>
+<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data\.dockerconfigjson}&quot;</span> <span class="p">|</span> base64 -d
 </code></pre></div>
 
-<p>For more advanced examples, please read the other
-<a href="../guides-introduction/">guides</a>.</p>
-<h2 id="uninstalling">Uninstalling</h2>
-<p>Before continuing, ensure that all external-secret resources that have been created by users have been deleted.
-You can check for any existing resources with the following command:</p>
-<div class="highlight"><pre><span></span><code>kubectl get SecretStores,ClusterSecretStores,ExternalSecrets --all-namespaces
+<h2 id="tls-cert-example">TLS Cert example</h2>
+<p>We are assuming here that you already have valid certificates, maybe generated with letsencrypt or any other CA. So to simplify you can use openssl to generate a single secret pkcs12 cert based on your cert.pem and privkey.pen files.</p>
+<div class="highlight"><pre><span></span><code>openssl pkcs12 -export -out certificate.p12 -inkey privkey.pem -in cert.pem
 </code></pre></div>
 
-<p>Once all these resources have been deleted you are ready to uninstall external-secrets.</p>
-<h3 id="uninstalling-with-helm">Uninstalling with Helm</h3>
-<p>Uninstall the helm release using the delete command.</p>
-<div class="highlight"><pre><span></span><code>helm delete external-secrets --namespace external-secrets
+<p>With a certificate.p12 you can upload it to Google Cloud Secrets Manager:</p>
+<p><img alt="p12" src="../pictures/screenshot_ssl_certificate_p12_example.png" /></p>
+<p>And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type tls with pem values.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">template-tls-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+    <span class="c1"># this is how the Kind=Secret will look like</span>
+    <span class="nt">template</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kubernetes.io/tls</span>
+      <span class="nt">data</span><span class="p">:</span>
+        <span class="nt">tls.crt</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12cert</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemCertificate</span><span class="nv"> </span><span class="s">}}&quot;</span>
+        <span class="nt">tls.key</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12key</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemPrivateKey</span><span class="nv"> </span><span class="s">}}&quot;</span>
+
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="c1"># this is a pkcs12 archive that contains</span>
+  <span class="c1"># a cert and a private key</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysecret</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">docker-config-example</span>
 </code></pre></div>
+
+<p>You can get their values with:</p>
+<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.tls\.crt}&quot;</span> <span class="p">|</span> base64 -d
+kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.tls\.key}&quot;</span> <span class="p">|</span> base64 -d
+</code></pre></div>
+
+<h2 id="ssh-auth-example">SSH Auth example</h2>
+<p>Add the ssh privkey to a new Google Cloud Secrets Manager secret:</p>
+<p><img alt="ssh" src="../pictures/screenshot_ssh_privkey_example.png" /></p>
+<p>And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type ssh-auth with the privatekey value.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dk-cfg-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+    <span class="nt">template</span><span class="p">:</span>
+      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kubernetes.io/ssh-auth</span>
+      <span class="nt">data</span><span class="p">:</span>
+        <span class="nt">ssh-privatekey</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">}}&quot;</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+    <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysecret</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ssh-priv-key-example</span>
+</code></pre></div>
+
+<p>You can get the privkey value with:</p>
+<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.ssh-privatekey}&quot;</span> <span class="p">|</span> base64 -d
+</code></pre></div>
+
+<h2 id="more-examples">More examples</h2>
+<div class="admonition note">
+<p class="admonition-title">We need more examples here</p>
+<p>Feel free to contribute with our docs and add more examples here!</p>
+</div>
                 
               
               
@@ -1085,7 +1006,7 @@ You can check for any existing resources with the following command:</p>
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../guides-introduction/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Introduction" rel="prev">
+        <a href="../guides-all-keys-one-secret/" class="md-footer__link md-footer__link--prev" aria-label="Previous: All keys, One secret" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1094,20 +1015,20 @@ You can check for any existing resources with the following command:</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              Introduction
+              All keys, One secret
             </div>
           </div>
         </a>
       
       
         
-        <a href="../guides-templating/" class="md-footer__link md-footer__link--next" aria-label="Next: Advanced Templating" rel="next">
+        <a href="../guides-multi-tenancy/" class="md-footer__link md-footer__link--next" aria-label="Next: Multi Tenancy" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Advanced Templating
+              Multi Tenancy
             </div>
           </div>
           <div class="md-footer__button md-icon">
