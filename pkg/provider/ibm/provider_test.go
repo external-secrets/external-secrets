@@ -78,7 +78,7 @@ func makeValidAPIOutput() *sm.GetSecret {
 	return &sm.GetSecret{
 		Resources: []sm.SecretResourceIntf{
 			&sm.SecretResource{
-				Type:       utilpointer.StringPtr("testytype"),
+				SecretType: utilpointer.StringPtr("testytype"),
 				Name:       utilpointer.StringPtr("testyname"),
 				SecretData: secretData,
 			},
@@ -118,7 +118,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	setSecretString := func(smtc *secretManagerTestCase) {
 		resources := []sm.SecretResourceIntf{
 			&sm.SecretResource{
-				Type:       utilpointer.StringPtr("testytype"),
+				SecretType: utilpointer.StringPtr("testytype"),
 				Name:       utilpointer.StringPtr("testyname"),
 				SecretData: secretData,
 			}}
@@ -131,7 +131,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	setCustomKey := func(smtc *secretManagerTestCase) {
 		resources := []sm.SecretResourceIntf{
 			&sm.SecretResource{
-				Type:       utilpointer.StringPtr("testytype"),
+				SecretType: utilpointer.StringPtr("testytype"),
 				Name:       utilpointer.StringPtr("testyname"),
 				SecretData: secretData,
 			}}
@@ -170,7 +170,7 @@ func TestGetSecretMap(t *testing.T) {
 		secretData["payload"] = secretValue
 		resources := []sm.SecretResourceIntf{
 			&sm.SecretResource{
-				Type:       utilpointer.StringPtr("testytype"),
+				SecretType: utilpointer.StringPtr("testytype"),
 				Name:       utilpointer.StringPtr("testyname"),
 				SecretData: secretData,
 			}}
@@ -186,7 +186,7 @@ func TestGetSecretMap(t *testing.T) {
 
 		resources := []sm.SecretResourceIntf{
 			&sm.SecretResource{
-				Type:       utilpointer.StringPtr("testytype"),
+				SecretType: utilpointer.StringPtr("testytype"),
 				Name:       utilpointer.StringPtr("testyname"),
 				SecretData: secretData,
 			}}
