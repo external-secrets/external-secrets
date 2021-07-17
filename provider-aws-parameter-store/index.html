@@ -536,6 +536,33 @@
     AWS Authentication
   </a>
   
+    <nav class="md-nav" aria-label="AWS Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controllers-pod-identity" class="md-nav__link">
+    Controller's Pod Identity
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-key-id-secret-access-key" class="md-nav__link">
+    Access Key ID &amp; Secret Access Key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eks-service-account-credentials" class="md-nav__link">
+    EKS Service Account credentials
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -865,6 +892,33 @@
     AWS Authentication
   </a>
   
+    <nav class="md-nav" aria-label="AWS Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controllers-pod-identity" class="md-nav__link">
+    Controller's Pod Identity
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-key-id-secret-access-key" class="md-nav__link">
+    Access Key ID &amp; Secret Access Key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eks-service-account-credentials" class="md-nav__link">
+    EKS Service Account credentials
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -967,13 +1021,74 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
       <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">friends.1.first</span> <span class="c1"># Roger</span>
 </code></pre></div></p>
 <h2 id="aws-authentication">AWS Authentication</h2>
-<p>Access to AWS providers can be granted in various ways:</p>
-<ul>
-<li><a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a>: IAM roles for service accounts.</li>
-<li>Per pod IAM authentication: <a href="https://github.com/uswitch/kiam">kiam</a> or <a href="https://github.com/jtblin/kube2iam">kube2iam</a>.</li>
-<li>Directly provide AWS credentials to the External Secrets Operator pod by using environment variables.</li>
-</ul>
-<p>Additionally, before fetching a secret from a store, ESO is able to assume role (as a proxy so to speak). It is advisable to use multiple roles in a multi-tenant environment.</p>
+<h3 id="controllers-pod-identity">Controller's Pod Identity</h3>
+<p><img alt="Pod Identity Authentication" src="../pictures/diagrams-provider-aws-auth-pod-identity.png" /></p>
+<p>This is basicially a zero-configuration authentication method that inherits the credentials from the runtime environment using the <a href="https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default">aws sdk default credential chain</a>.</p>
+<p>You can attach a role to the pod using <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a>, <a href="https://github.com/uswitch/kiam">kiam</a> or <a href="https://github.com/jtblin/kube2iam">kube2iam</a>. When no other authentication method is configured in the <code>Kind=Secretstore</code> this role is used to make all API calls against AWS Secrets Manager or SSM Parameter Store.</p>
+<p>Based on the Pod's identity you can do a <code>sts:assumeRole</code> before fetching the secrets to limit access to certain keys in your provider. This is optional.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-b-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">aws</span><span class="p">:</span>
+      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+      <span class="c1"># optional: do a sts:assumeRole before fetching secrets</span>
+      <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-b</span>
+</code></pre></div>
+
+<h3 id="access-key-id-secret-access-key">Access Key ID &amp; Secret Access Key</h3>
+<p><img alt="SecretRef" src="../pictures/diagrams-provider-aws-auth-secret-ref.png" /></p>
+<p>You can store Access Key ID &amp; Secret Access Key in a <code>Kind=Secret</code> and reference it from a SecretStore.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-b-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">aws</span><span class="p">:</span>
+      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+      <span class="c1"># optional: assume role before fetching secrets</span>
+      <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-b</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="nt">secretRef</span><span class="p">:</span>
+          <span class="nt">accessKeyIDSecretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">access-key</span>
+          <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
+</code></pre></div>
+
+<h3 id="eks-service-account-credentials">EKS Service Account credentials</h3>
+<p><img alt="Service Account" src="../pictures/diagrams-provider-aws-auth-service-account.png" /></p>
+<p>This feature lets you use short-lived service account tokens to authenticate with AWS.
+You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection">Service Account Volume Projection</a> enabled - it is by default on EKS. See <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts-technical-overview.html">EKS guide</a> on how to set up IAM roles for service accounts.</p>
+<p>The big advantage of this approach is that ESO runs without any credentials.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">annotations</span><span class="p">:</span>
+    <span class="nt">eks.amazonaws.com/role-arn</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::123456789012:role/team-a</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-serviceaccount</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">default</span>
+</code></pre></div>
+
+<p>Reference the service account from above in the Secret Store:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">aws</span><span class="p">:</span>
+      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="nt">jwt</span><span class="p">:</span>
+          <span class="nt">serviceAccountRef</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-serviceaccount</span>
+</code></pre></div></p>
                 
               
               
