@@ -89,12 +89,10 @@ type VaultAuth struct {
 	// +optional
 	Jwt *VaultJwtAuth `json:"jwt,omitempty"`
 
-        // Cert authenticates with TLS Certificates by passing client certificate, private key and ca certificate
+	// Cert authenticates with TLS Certificates by passing client certificate, private key and ca certificate
 	// Cert authentication method
 	// +optional
 	Cert *VaultCertAuth `json:"cert,omitempty"`
-
-	
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -176,10 +174,6 @@ type VaultCertAuth struct {
 	// authentication method
 	// +optional
 	ClientCert string `json:"clientCert"`
-
-	// CACert is the Vault TLS Listener CA certificate
-	// +optional
-	CACert string `json:"caCert"`
 
 	// SecretRef to a key in a Secret resource containing client private key to
 	// authenticate with Vault using the Cert authentication method

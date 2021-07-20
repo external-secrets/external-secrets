@@ -49,7 +49,6 @@ const (
 
 	errVaultStore     = "received invalid Vault SecretStore resource: %w"
 	errVaultClient    = "cannot setup new vault client: %w"
-	errVaultTLSClient = "cannot setup new TLS vault client: %w"
 	errVaultCert      = "cannot set Vault CA certificate: %w"
 	errReadSecret     = "cannot read secret data from Vault: %w"
 	errAuthFormat     = "cannot initialize Vault client: no valid auth method specified: %w"
@@ -569,15 +568,10 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, ce
 		return "", fmt.Errorf(errGetCertPath, err)
 	}
 
-	caCertPath, err := getCertPath(certAuth.CACert, "ca.crt")
-	if err != nil {
-		return "", fmt.Errorf(errGetCertPath, err)
-	}
 
 	tlscfg := vault.TLSConfig{
 		ClientCert: clientCertPath,
 		ClientKey:  clientKeyPath,
-		CACert:     caCertPath,
 	}
 
 	err = cfg.ConfigureTLS(&tlscfg)
