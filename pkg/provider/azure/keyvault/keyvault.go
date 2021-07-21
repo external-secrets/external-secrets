@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
@@ -142,37 +141,25 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 }
 
 // Implements store.Client.GetSecretMap Interface.
-// retrieve ALL secrets in a specific keyvault.
-// ExternalSecretDataRemoteRef Key is mandatory, but with current model we do not use its content.
-func (a *Azure) GetSecretMap(ctx context.Context, _ esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	basicClient := a.baseClient
-	secretsMap := make(map[string][]byte)
-
-	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), a.vaultURL, nil)
+// New version of GetSecretMap.
+func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	data, err := a.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-	for secretListIter.NotDone() {
-		secretList := secretListIter.Response().Value
-		for _, secret := range *secretList {
-			if !*secret.Attributes.Enabled {
-				continue
-			}
-			secretName := path.Base(*secret.ID)
-			secretResp, err := basicClient.GetSecret(context.Background(), a.vaultURL, secretName, "")
-			secretValue := *secretResp.Value
 
-			if err != nil {
-				return nil, err
-			}
-			secretsMap[secretName] = []byte(secretValue)
-		}
-		err = secretListIter.Next()
-		if err != nil {
-			return nil, err
-		}
+	kv := make(map[string]string)
+	err = json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf("Error unmarshalling json data: %w", err)
 	}
-	return secretsMap, nil
+
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		secretData[k] = []byte(v)
+	}
+
+	return secretData, nil
 }
 
 func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, string, error) {
