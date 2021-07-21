@@ -141,9 +141,8 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
 }
 
-// New version of GetSecretMap
+// New version of GetSecretMap.
 func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-
 	data, err := a.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err

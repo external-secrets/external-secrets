@@ -18,16 +18,13 @@ import (
 
 	// nolint
 	. "github.com/onsi/ginkgo"
-	v1 "k8s.io/api/core/v1"
-
-	// . "github.com/onsi/gomega"
 
 	// nolint
 	. "github.com/onsi/ginkgo/extensions/table"
-
-	"github.com/external-secrets/external-secrets/e2e/framework"
+	v1 "k8s.io/api/core/v1"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
 var _ = Describe("[gcp] ", func() {
