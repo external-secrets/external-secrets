@@ -173,7 +173,7 @@ type VaultCertAuth struct {
 	// ClientCert is a certificate to authenticate using the Cert Vault
 	// authentication method
 	// +optional
-	ClientCert string `json:"clientCert"`
+	ClientCert esmeta.SecretKeySelector `json:"clientCert,omitempty"`
 
 	// SecretRef to a key in a Secret resource containing client private key to
 	// authenticate with Vault using the Cert authentication method

@@ -16,8 +16,8 @@ package vault
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
-	b64 "encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -45,7 +45,6 @@ var (
 
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	certsBasePath = "/auth-certs/"
 
 	errVaultStore     = "received invalid Vault SecretStore resource: %w"
 	errVaultClient    = "cannot setup new vault client: %w"
@@ -350,7 +349,6 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	}
 
 	value := string(keyBytes)
-
 	valueStr := strings.TrimSpace(value)
 	return valueStr, nil
 }
@@ -523,7 +521,7 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 		"role": role,
 		"jwt":  jwt,
 	}
-	url := strings.Join([]string{"/v1", "auth", "cert", "login"}, "/")
+	url := strings.Join([]string{"/v1", "auth", "jwt", "login"}, "/")
 	request := client.NewRequest("POST", url)
 
 	err = request.SetJSONBody(parameters)
@@ -558,26 +556,14 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, ce
 		return "", err
 	}
 
-	clientKeyPath, err := getCertPath(clientKey, "client.key")
+	clientCert, err := v.secretKeyRef(ctx, &certAuth.ClientCert)
 	if err != nil {
-		return "", fmt.Errorf(errGetCertPath, err)
+		return "", err
 	}
 
-	clientCertPath, err := getCertPath(certAuth.ClientCert, "client.crt")
-	if err != nil {
-		return "", fmt.Errorf(errGetCertPath, err)
-	}
-
-
-	tlscfg := vault.TLSConfig{
-		ClientCert: clientCertPath,
-		ClientKey:  clientKeyPath,
-	}
-
-	err = cfg.ConfigureTLS(&tlscfg)
-
-	if err != nil {
-		return "", fmt.Errorf(errVaultCert, err)
+	cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
+	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
+		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
 	}
 
 	url := strings.Join([]string{"/v1", "auth", "cert", "login"}, "/")
@@ -601,45 +587,4 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, ce
 	}
 
 	return token, nil
-}
-
-func getCertPath(cert, filename string) (string, error) {
-
-	certPath := certsBasePath + filename
-
-	if _, err := os.Stat(certsBasePath); os.IsNotExist(err) {
-		_, err := MkdirToStoreCertificate(certsBasePath)
-		return "", err
-	}
-
-	f, err := os.Create(certPath)
-	if err != nil {
-		return "", fmt.Errorf(errOsCreateFile, err)
-	}
-
-	defer f.Close()
-
-	if filename == "client.crt" || filename == "ca.crt" {
-
-		decodedCert, err := b64.StdEncoding.DecodeString(cert)
-		if err != nil {
-			return "", fmt.Errorf(errCertDecode, err)
-		}
-		cert = string(decodedCert)
-	}
-	_, err = f.WriteString(cert)
-	if err != nil {
-		return "", fmt.Errorf(errWriteCertToFile, err)
-	}
-
-	return certPath, nil
-}
-
-func MkdirToStoreCertificate(clientCertsBasePath string) (string, error) {
-
-	if err := os.MkdirAll(clientCertsBasePath, 0700); err != nil {
-		return "", fmt.Errorf(errCertMkdir, err)
-	}
-
-	return "", nil
 }
