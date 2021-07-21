@@ -31,9 +31,9 @@ var _ = Describe("[aws] ", func() {
 		framework.TableFunc(f,
 			newSMProvider(f, "http://localstack.default")),
 		Entry(common.SimpleDataSync(f)),
-		Entry(common.NestedJSONWithGJSON(f)),
-		Entry(common.JSONDataFromSync(f)),
-		Entry(common.JSONDataWithProperty(f)),
-		Entry(common.JSONDataWithTemplate(f)),
+		// Entry(common.NestedJSONWithGJSON(f)),
+		// Entry(common.JSONDataFromSync(f)),
+		// Entry(common.JSONDataWithProperty(f)),
+		// Entry(common.JSONDataWithTemplate(f)),
 	)
 })

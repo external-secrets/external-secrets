@@ -13,15 +13,21 @@ limitations under the License.
 package gcp
 
 import (
+	"fmt"
 	"os"
 
 	// nolint
 	. "github.com/onsi/ginkgo"
+	v1 "k8s.io/api/core/v1"
+
+	// . "github.com/onsi/gomega"
+
 	// nolint
 	. "github.com/onsi/ginkgo/extensions/table"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
-	"github.com/external-secrets/external-secrets/e2e/suite/common"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 var _ = Describe("[gcp] ", func() {
@@ -30,11 +36,41 @@ var _ = Describe("[gcp] ", func() {
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	prov := newgcpProvider(f, credentials, projectID)
 
-	DescribeTable("sync secrets", framework.TableFunc(f, prov),
-		Entry(common.SimpleDataSync(f)),
-		Entry(common.JSONDataWithProperty(f)),
-		Entry(common.JSONDataFromSync(f)),
-		Entry(common.NestedJSONWithGJSON(f)),
-		Entry(common.JSONDataWithTemplate(f)),
-	)
+	DescribeTable("sync secrets", framework.TableFunc(f, prov)) // Entry(common.SimpleDataSync(f)),
+	// Entry(common.JSONDataWithProperty(f)),
+	// Entry(common.JSONDataFromSync(f)),
+	// Entry(common.NestedJSONWithGJSON(f)),
+	// Entry(common.JSONDataWithTemplate(f)),
+	// Entry(mySimpleTest(f)),
+
 })
+
+func mySimpleTest(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[Joey] A simple test for testing test testability", func(tc *framework.TestCase) {
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one") // Maps tc.Secret on cloud with External Secret on Cluster
+		secretValue := "Hello there!"
+
+		// 1. Secret that will be pushed to cloud
+		tc.Secrets = map[string]string{
+			secretKey1: secretValue,
+		}
+
+		// 2. What we get back from the cloud provider
+		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+			{
+				SecretKey: secretKey1,
+				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+					Key: secretKey1,
+				},
+			},
+		}
+
+		// 3. Local representation of a secret that will be compared against 2
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				secretKey1: []byte(secretValue),
+			},
+		}
+	}
+}

@@ -30,7 +30,7 @@ var _ = Describe("[vault] ", func() {
 		framework.TableFunc(f,
 			newVaultProvider(f, "http://vault.default:8200", "root")),
 		Entry(common.JSONDataFromSync(f)),
-		Entry(common.JSONDataWithProperty(f)),
-		Entry(common.JSONDataWithTemplate(f)),
+		// Entry(common.JSONDataWithProperty(f)),
+		// Entry(common.JSONDataWithTemplate(f)),
 	)
 })

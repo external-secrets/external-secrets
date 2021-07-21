@@ -141,10 +141,35 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
 }
 
+// New version of GetSecretMap
+func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	fmt.Println("Entering new azure secretmap function")
+
+	data, err := a.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	kv := make(map[string]string)
+	err = json.Unmarshal(data, &kv)
+	fmt.Printf("Unmarshalled secret data: %v", data)
+	if err != nil {
+		return nil, fmt.Errorf("Error unmarshalling json data", err)
+	}
+
+	fmt.Println("Populating secret map")
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		secretData[k] = []byte(v)
+	}
+
+	return secretData, nil
+}
+
 // Implements store.Client.GetSecretMap Interface.
 // retrieve ALL secrets in a specific keyvault.
 // ExternalSecretDataRemoteRef Key is mandatory, but with current model we do not use its content.
-func (a *Azure) GetSecretMap(ctx context.Context, _ esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Azure) GetSecretMapOld(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	basicClient := a.baseClient
 	secretsMap := make(map[string][]byte)
 
@@ -152,6 +177,7 @@ func (a *Azure) GetSecretMap(ctx context.Context, _ esv1alpha1.ExternalSecretDat
 	if err != nil {
 		return nil, err
 	}
+
 	for secretListIter.NotDone() {
 		secretList := secretListIter.Response().Value
 		for _, secret := range *secretList {
