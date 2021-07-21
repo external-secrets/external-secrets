@@ -143,7 +143,6 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 
 // New version of GetSecretMap
 func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	fmt.Println("Entering new azure secretmap function")
 
 	data, err := a.GetSecret(ctx, ref)
 	if err != nil {
@@ -152,12 +151,10 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
-	fmt.Printf("Unmarshalled secret data: %v", data)
 	if err != nil {
-		return nil, fmt.Errorf("Error unmarshalling json data", err)
+		return nil, fmt.Errorf("Error unmarshalling json data: %w", err)
 	}
 
-	fmt.Println("Populating secret map")
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
 		secretData[k] = []byte(v)
