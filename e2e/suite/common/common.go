@@ -258,18 +258,9 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 		}
 
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
-			Metadata: esv1alpha1.ExternalSecretTemplateMetadata{
-				Annotations: map[string]string{
-					"example": "annotation",
-				},
-				Labels: map[string]string{
-					"example": "label",
-				},
-			},
 			Data: map[string]string{
 				".dockerconfigjson": "{{ .mysecret | toString }}",
 			},
 		}
-
 	}
 }
