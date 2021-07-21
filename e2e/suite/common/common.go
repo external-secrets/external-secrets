@@ -233,7 +233,7 @@ func NestedJSONWithGJSON(f *framework.Framework) (string, func(*framework.TestCa
 // The values from the nested data are extracted using gjson.
 // not supported by: vault.
 func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[specific] should do something I guess but not sure what!", func(tc *framework.TestCase) {
+	return "[common] should sync docker configurated json secrets with template", func(tc *framework.TestCase) {
 		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
 		cloudSecretValue := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
 
