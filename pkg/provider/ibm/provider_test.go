@@ -111,8 +111,15 @@ var setNilMockClient = func(smtc *secretManagerTestCase) {
 // make sure correct values are passed and errors are handled accordingly.
 func TestIBMSecretManagerGetSecret(t *testing.T) {
 	secretData := make(map[string]interface{})
-	secretValue := "changedvalue"
-	secretData["payload"] = secretValue
+	secretString := "changedvalue"
+	secretPassword := "P@ssw0rd"
+	secretAPIKey := "01234567890"
+	secretCertificate := "certificate_value"
+
+	secretData["payload"] = secretString
+	secretData["password"] = secretPassword
+	secretData["certificate"] = secretCertificate
+
 	// good case: default version is set
 	// key is passed in, output is sent back
 	setSecretString := func(smtc *secretManagerTestCase) {
@@ -124,7 +131,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 			}}
 
 		smtc.apiOutput.Resources = resources
-		smtc.expectedSecret = secretValue
+		smtc.expectedSecret = secretString
 	}
 
 	// good case: custom version set
@@ -138,7 +145,86 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.ref.Key = "testyname"
 		smtc.apiInput.ID = utilpointer.StringPtr("testyname")
 		smtc.apiOutput.Resources = resources
-		smtc.expectedSecret = secretValue
+		smtc.expectedSecret = secretString
+	}
+
+	// bad case: username_password type without property
+	secretUserPass := "username_password/test-secret"
+	badSecretUserPass := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretUserPass
+		smtc.expectError = "remoteRef.property required for secret type username_password"
+	}
+
+	// good case: username_password type with property
+	setSecretUserPass := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretUserPass
+		smtc.ref.Property = "password"
+		smtc.expectedSecret = secretPassword
+	}
+
+	// good case: iam_credenatials type
+	setSecretIam := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				APIKey:     utilpointer.StringPtr(secretAPIKey),
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = "iam_credentials/test-secret"
+		smtc.expectedSecret = secretAPIKey
+	}
+
+	// good case: imported_cert type with property
+	secretCert := "imported_cert/test-secret"
+	setSecretCert := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretCert
+		smtc.ref.Property = "certificate"
+		smtc.expectedSecret = secretCertificate
+	}
+
+	// bad case: imported_cert type without property
+	badSecretCert := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretCert
+		smtc.expectError = "remoteRef.property required for secret type imported_cert"
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -147,6 +233,11 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setCustomKey),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
+		makeValidSecretManagerTestCaseCustom(badSecretUserPass),
+		makeValidSecretManagerTestCaseCustom(setSecretUserPass),
+		makeValidSecretManagerTestCaseCustom(setSecretIam),
+		makeValidSecretManagerTestCaseCustom(setSecretCert),
+		makeValidSecretManagerTestCaseCustom(badSecretCert),
 	}
 
 	sm := providerIBM{}
@@ -163,17 +254,25 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 }
 
 func TestGetSecretMap(t *testing.T) {
+	secretUsername := "user1"
+	secretPassword := "P@ssw0rd"
+	secretAPIKey := "01234567890"
+	secretCertificate := "certificate_value"
+	secretPrivateKey := "private_key_value"
+	secretIntermediate := "intermediate_value"
+
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *secretManagerTestCase) {
 		secretData := make(map[string]interface{})
-		secretValue := `{"foo":"bar"}`
-		secretData["payload"] = secretValue
+		secretData["payload"] = `{"foo":"bar"}`
+
 		resources := []sm.SecretResourceIntf{
 			&sm.SecretResource{
 				SecretType: utilpointer.StringPtr("testytype"),
 				Name:       utilpointer.StringPtr("testyname"),
 				SecretData: secretData,
 			}}
+
 		smtc.apiOutput.Resources = resources
 		smtc.expectedData["foo"] = []byte("bar")
 	}
@@ -181,7 +280,6 @@ func TestGetSecretMap(t *testing.T) {
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *secretManagerTestCase) {
 		secretData := make(map[string]interface{})
-
 		secretData["payload"] = `-----------------`
 
 		resources := []sm.SecretResourceIntf{
@@ -192,8 +290,63 @@ func TestGetSecretMap(t *testing.T) {
 			}}
 
 		smtc.apiOutput.Resources = resources
-
 		smtc.expectError = "unable to unmarshal secret: invalid character '-' in numeric literal"
+	}
+
+	// good case: username_password
+	setSecretUserPass := func(smtc *secretManagerTestCase) {
+		secretData := make(map[string]interface{})
+		secretData["username"] = secretUsername
+		secretData["password"] = secretPassword
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = "username_password/test-secret"
+		smtc.expectedData["username"] = []byte(secretUsername)
+		smtc.expectedData["password"] = []byte(secretPassword)
+	}
+
+	// good case: iam_credentials
+	setSecretIam := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				APIKey:     utilpointer.StringPtr(secretAPIKey),
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = "iam_credentials/test-secret"
+		smtc.expectedData["apikey"] = []byte(secretAPIKey)
+	}
+
+	// good case: imported_cert
+	setSecretCert := func(smtc *secretManagerTestCase) {
+		secretData := make(map[string]interface{})
+		secretData["certificate"] = secretCertificate
+		secretData["private_key"] = secretPrivateKey
+		secretData["intermediate"] = secretIntermediate
+
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = "imported_cert/test-secret"
+		smtc.expectedData["certificate"] = []byte(secretCertificate)
+		smtc.expectedData["private_key"] = []byte(secretPrivateKey)
+		smtc.expectedData["intermediate"] = []byte(secretIntermediate)
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -201,6 +354,9 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setInvalidJSON),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
+		makeValidSecretManagerTestCaseCustom(setSecretUserPass),
+		makeValidSecretManagerTestCaseCustom(setSecretIam),
+		makeValidSecretManagerTestCaseCustom(setSecretCert),
 	}
 
 	sm := providerIBM{}

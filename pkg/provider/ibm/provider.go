@@ -182,7 +182,6 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSe
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
-
 }
 
 func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
