@@ -37,8 +37,8 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.7
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
-	github.com/IBM/go-sdk-core/v5 v5.4.5
-	github.com/IBM/secrets-manager-go-sdk v0.1.21
+	github.com/IBM/go-sdk-core/v5 v5.5.0
+	github.com/IBM/secrets-manager-go-sdk v1.0.23
 	github.com/aws/aws-sdk-go v1.38.6
 	github.com/crossplane/crossplane-runtime v0.13.0
 	github.com/fatih/color v1.10.0 // indirect
