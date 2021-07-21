@@ -12,7 +12,7 @@ cover.out
 # helm chart dependencies
 **/charts/*.tgz
 **/charts/**/requirements.lock
-
+.tagmanifest
 deploy/charts/external-secrets/templates/crds/*.yaml
 
 site/

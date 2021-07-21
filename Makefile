@@ -5,10 +5,13 @@ SHELL         := /bin/bash
 MAKEFLAGS     += --warn-undefined-variables
 .SHELLFLAGS   := -euo pipefail -c
 
+ARCH = amd64 arm64
+BUILD_ARGS ?=
+
 # default target is build
 .DEFAULT_GOAL := all
 .PHONY: all
-all: build
+all: $(addprefix build-,$(ARCH))
 
 # Image registry for build/push image targets
 IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
@@ -34,7 +37,7 @@ ifeq ($(shell git tag),)
 VERSION := $(shell echo "v0.0.0-$$(git rev-list HEAD --count)-g$$(git describe --dirty --always)" | sed 's/-/./2' | sed 's/-/./2')
 else
 # use tags
-VERSION := $(shell git describe --dirty --always --tags | sed 's/-/./2' | sed 's/-/./2')
+VERSION := $(shell git describe --dirty --always --tags --exclude 'helm*' | sed 's/-/./2' | sed 's/-/./2')
 endif
 
 # ====================================================================================
@@ -88,10 +91,14 @@ test.e2e: generate ## Run e2e tests
 	@$(OK) go test unit-tests
 
 .PHONY: build
-build: generate ## Build binary
-	@$(INFO) go build
-	@CGO_ENABLED=0 go build -o $(OUTPUT_DIR)/external-secrets main.go
-	@$(OK) go build
+build: $(addprefix build-,$(ARCH))
+
+.PHONY: build-%
+build-%: generate ## Build binary for the specified arch
+	@$(INFO) go build $*
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
+		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
+	@$(OK) go build $*
 
 # Check install of golanci-lint
 lint.check:
@@ -194,7 +201,7 @@ serve-docs:
 
 build.all: docker.build helm.build
 
-docker.build: build ## Build the docker image
+docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
 	@docker build . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
 	@$(OK) docker build
@@ -210,11 +217,15 @@ RELEASE_TAG ?= main
 SOURCE_TAG ?= $(VERSION)
 
 docker.promote:
-	@$(INFO) docker pull $(SOURCE_TAG)
-	@docker pull $(IMAGE_REGISTRY):$(SOURCE_TAG)
-	@docker tag $(IMAGE_REGISTRY):$(SOURCE_TAG) $(IMAGE_REGISTRY):$(RELEASE_TAG)
-	@docker push $(IMAGE_REGISTRY):$(RELEASE_TAG)
-	@$(OK) docker push $(RELEASE_TAG)
+	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
+	docker manifest inspect $(IMAGE_REGISTRY):$(SOURCE_TAG) > .tagmanifest
+	for digest in $$(jq -r '.manifests[].digest' < .tagmanifest); do \
+		docker pull $(IMAGE_REGISTRY)@$$digest; \
+	done
+	docker manifest create $(IMAGE_REGISTRY):$(RELEASE_TAG) \
+		$$(jq -j '"--amend $(IMAGE_REGISTRY)@" + .manifests[].digest + " "' < .tagmanifest)
+	docker manifest push $(IMAGE_REGISTRY):$(RELEASE_TAG)
+	@$(OK) docker push $(RELEASE_TAG) \
 
 # ====================================================================================
 # Help
