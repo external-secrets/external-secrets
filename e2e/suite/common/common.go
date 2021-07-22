@@ -2,9 +2,7 @@
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,8 +26,7 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 	return "[common] should sync simple secrets from .Data[]", func(tc *framework.TestCase) {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "other")
-		//secretValue := "bar"
-		secretValue := "{\"foo1\":\"foo1-val\",\"bar1\":\"bar1-val\"}"
+		secretValue := "bar"
 		tc.Secrets = map[string]string{
 			secretKey1: secretValue,
 			secretKey2: secretValue,
@@ -37,10 +34,8 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				secretKey1: []byte("foo1-val"),
-				secretKey2: []byte("bar1-val"),
-				/*secretKey1: []byte(secretValue),
-				secretKey2: []byte(secretValue),*/
+				secretKey1: []byte(secretValue),
+				secretKey2: []byte(secretValue),
 			},
 		}
 		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
@@ -48,16 +43,12 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 				SecretKey: secretKey1,
 				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
 					Key: secretKey1,
-					//
-					Property: "foo1",
 				},
 			},
 			{
 				SecretKey: secretKey2,
 				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
 					Key: secretKey2,
-					//
-					Property: "bar1",
 				},
 			},
 		}
