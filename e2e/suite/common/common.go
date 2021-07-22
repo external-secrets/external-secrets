@@ -28,7 +28,8 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 	return "[common] should sync simple secrets from .Data[]", func(tc *framework.TestCase) {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "other")
-		secretValue := "bar"
+		//secretValue := "bar"
+		secretValue := "{\"foo1\":\"foo1-val\",\"bar1\":\"bar1-val\"}"
 		tc.Secrets = map[string]string{
 			secretKey1: secretValue,
 			secretKey2: secretValue,
@@ -36,8 +37,10 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				secretKey1: []byte(secretValue),
-				secretKey2: []byte(secretValue),
+				secretKey1: []byte("foo1-val"),
+				secretKey2: []byte("bar1-val"),
+				/*secretKey1: []byte(secretValue),
+				secretKey2: []byte(secretValue),*/
 			},
 		}
 		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
@@ -45,12 +48,16 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 				SecretKey: secretKey1,
 				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
 					Key: secretKey1,
+					//
+					Property: "foo1",
 				},
 			},
 			{
 				SecretKey: secretKey2,
 				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
 					Key: secretKey2,
+					//
+					Property: "bar1",
 				},
 			},
 		}
