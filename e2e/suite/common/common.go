@@ -264,3 +264,40 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 		}
 	}
 }
+
+// This case adds an ssh private key secret and sybcs it.
+// CHECK THIS not supported by: vault. Json parsing error.
+func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should sync docker configurated json secrets with template", func(tc *framework.TestCase) {
+		sshSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "ssh-priv-key-example")
+		sshSecretValue := `EY2NNWddRADTFdNvEojrCwo+DUxy6va2JltQAbxmhyvSZsL1eYsutunsKEwonGSru0Zd+m
+		z5DHJOOQdHEsH3AAAACmFub3RoZXJvbmU=
+		-----END OPENSSH PRIVATE KEY-----`
+
+		tc.Secrets = map[string]string{
+			sshSecretName: sshSecretValue,
+		}
+
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				"ssh-privatekey": []byte(sshSecretValue),
+			},
+		}
+
+		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+			{
+				SecretKey: "mysecret",
+				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+					Key: sshSecretName,
+				},
+			},
+		}
+
+		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+			Data: map[string]string{
+				"ssh-privatekey": "{{ .mysecret | toString }}",
+			},
+		}
+	}
+}
