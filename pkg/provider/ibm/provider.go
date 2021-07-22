@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/secretsmanagerv1"
@@ -95,51 +96,197 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSe
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
-	response, _, err := ibm.IBMClient.GetSecret(
-		&sm.GetSecretOptions{
-			SecretType: core.StringPtr(sm.GetSecretOptionsSecretTypeArbitraryConst),
-			ID:         &ref.Key,
-		})
 
-	if err != nil {
-		return nil, err
+	secretType := sm.GetSecretOptionsSecretTypeArbitraryConst
+	secretName := ref.Key
+	nameSplitted := strings.Split(secretName, "/")
+
+	if len(nameSplitted) > 1 {
+		secretType = nameSplitted[0]
+		secretName = nameSplitted[1]
 	}
 
-	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
-	arbitrarySecretPayload := secretData["payload"].(string)
-	return []byte(arbitrarySecretPayload), nil
+	switch secretType {
+	case sm.GetSecretOptionsSecretTypeArbitraryConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.GetSecretOptionsSecretTypeArbitraryConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+		arbitrarySecretPayload := secretData["payload"].(string)
+		return []byte(arbitrarySecretPayload), nil
+
+	case sm.CreateSecretOptionsSecretTypeUsernamePasswordConst:
+		if ref.Property == "" {
+			return nil, fmt.Errorf("remoteRef.property required for secret type username_password")
+		}
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+
+		if val, ok := secretData[ref.Property]; ok {
+			return []byte(val.(string)), nil
+		}
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+
+	case sm.CreateSecretOptionsSecretTypeIamCredentialsConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := *secret.APIKey
+
+		return []byte(secretData), nil
+
+	case sm.CreateSecretOptionsSecretTypeImportedCertConst:
+		if ref.Property == "" {
+			return nil, fmt.Errorf("remoteRef.property required for secret type imported_cert")
+		}
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+
+		if val, ok := secretData[ref.Property]; ok {
+			return []byte(val.(string)), nil
+		}
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+
+	default:
+		return nil, fmt.Errorf("unknown secret type %s", secretType)
+	}
 }
 
 func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
-	response, _, err := ibm.IBMClient.GetSecret(
-		&sm.GetSecretOptions{
-			SecretType: core.StringPtr(sm.GetSecretOptionsSecretTypeArbitraryConst),
-			ID:         &ref.Key,
-		})
-	if err != nil {
-		return nil, err
+
+	secretType := sm.GetSecretOptionsSecretTypeArbitraryConst
+	secretName := ref.Key
+	nameSplitted := strings.Split(secretName, "/")
+
+	if len(nameSplitted) > 1 {
+		secretType = nameSplitted[0]
+		secretName = nameSplitted[1]
 	}
 
-	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
-	arbitrarySecretPayload := secretData["payload"].(string)
+	switch secretType {
+	case sm.GetSecretOptionsSecretTypeArbitraryConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.GetSecretOptionsSecretTypeArbitraryConst),
+				ID:         &ref.Key,
+			})
+		if err != nil {
+			return nil, err
+		}
 
-	kv := make(map[string]string)
-	err = json.Unmarshal([]byte(arbitrarySecretPayload), &kv)
-	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+		arbitrarySecretPayload := secretData["payload"].(string)
+
+		kv := make(map[string]string)
+		err = json.Unmarshal([]byte(arbitrarySecretPayload), &kv)
+		if err != nil {
+			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		}
+
+		secretMap := make(map[string][]byte)
+		for k, v := range kv {
+			secretMap[k] = []byte(v)
+		}
+
+		return secretMap, nil
+
+	case sm.CreateSecretOptionsSecretTypeUsernamePasswordConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+
+		secretMap := make(map[string][]byte)
+		for k, v := range secretData {
+			secretMap[k] = []byte(v.(string))
+		}
+
+		return secretMap, nil
+
+	case sm.CreateSecretOptionsSecretTypeIamCredentialsConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := *secret.APIKey
+
+		secretMap := make(map[string][]byte)
+		secretMap["apikey"] = []byte(secretData)
+
+		return secretMap, nil
+
+	case sm.CreateSecretOptionsSecretTypeImportedCertConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+
+		secretMap := make(map[string][]byte)
+		for k, v := range secretData {
+			secretMap[k] = []byte(v.(string))
+		}
+
+		return secretMap, nil
+
+	default:
+		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
-
-	secretMap := make(map[string][]byte)
-	for k, v := range kv {
-		secretMap[k] = []byte(v)
-	}
-
-	return secretMap, nil
 }
 
 func (ibm *providerIBM) Close() error {
