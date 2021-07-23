@@ -17,6 +17,7 @@ package vault
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -182,15 +183,17 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 
 	secretData := vaultSecret.Data
 	if v.store.Version == esv1alpha1.VaultKVStoreV2 {
+
 		// Vault KV2 has data embedded within sub-field
 		// reference - https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
 		dataInt, ok := vaultSecret.Data["data"]
+
 		if !ok {
-			return nil, errors.New(errVaultData)
+			return nil, errors.New(fmt.Sprintf("failed to find data field: %v", vaultSecret.Data))
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
-			return nil, errors.New(errVaultData)
+			return nil, errors.New(fmt.Sprintf("failed to unmarshall JSON: %v", dataInt))
 		}
 	}
 
@@ -201,8 +204,15 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			byteMap[k] = []byte(t)
 		case []byte:
 			byteMap[k] = t
+		case map[string]interface{}:
+			jsonString, err := json.Marshal(t)
+			byteMap[k] = jsonString
+			if err != nil {
+				return nil, err
+			}
+
 		default:
-			return nil, errors.New(errVaultData)
+			return nil, errors.New(fmt.Sprintf("Secret data not in expected format: %v", secretData))
 		}
 	}
 
