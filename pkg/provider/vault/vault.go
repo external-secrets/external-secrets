@@ -63,12 +63,6 @@ const (
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
-
-	errGetCertPath     = "cannot get certificates path: %w"
-	errOsCreateFile    = "cannot create file to store certificate: %w"
-	errCertDecode      = "error decoding certificate: %w"
-	errWriteCertToFile = "cannot write certificate to file: %w"
-	errCertMkdir       = "cannot create path to store certificate: %w"
 )
 
 type Client interface {
@@ -118,7 +112,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
 
-	cfg, err := vStore.newConfig(ctx)
+	cfg, err := vStore.newConfig()
 
 	if err != nil {
 		return nil, err
@@ -217,7 +211,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 	return byteMap, nil
 }
 
-func (v *client) newConfig(ctx context.Context) (*vault.Config, error) {
+func (v *client) newConfig() (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
 
@@ -550,7 +544,6 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 }
 
 func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, certAuth *esv1alpha1.VaultCertAuth, cfg *vault.Config) (string, error) {
-
 	clientKey, err := v.secretKeyRef(ctx, &certAuth.SecretRef)
 	if err != nil {
 		return "", err
@@ -562,6 +555,10 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, ce
 	}
 
 	cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
+	if err != nil {
+		return "", err
+	}
+
 	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
 		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
 	}
