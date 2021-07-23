@@ -96,7 +96,7 @@ build: generate ## Build binary
 # Check install of golanci-lint
 lint.check:
 	@if ! golangci-lint --version > /dev/null 2>&1; then \
-		echo -e "\033[0;33mgolangci-lint is not installed: run \`\033[0;32mmake lint-install\033[0m\033[0;33m\` or install it from https://golangci-lint.run\033[0m"; \
+		echo -e "\033[0;33mgolangci-lint is not installed: run \`\033[0;32mmake lint.install\033[0m\033[0;33m\` or install it from https://golangci-lint.run\033[0m"; \
 		exit 1; \
 	fi
 
