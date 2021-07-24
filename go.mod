@@ -78,4 +78,5 @@ require (
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 	sigs.k8s.io/controller-runtime v0.9.2
 	sigs.k8s.io/controller-tools v0.5.0
+	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
