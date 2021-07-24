@@ -950,21 +950,22 @@
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
 <span class="nt">spec</span><span class="p">:</span>
-  <span class="c1"># provider type: azure keyvault</span>
-  <span class="nt">azurekv</span><span class="p">:</span>
-    <span class="c1"># azure tenant ID, see: https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-how-to-find-tenant</span>
-    <span class="nt">tenantId</span><span class="p">:</span> <span class="s">&quot;d3bc2180-xxxx-xxxx-xxxx-154105743342&quot;</span>
-    <span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span>
-    <span class="nt">vaultUrl</span><span class="p">:</span> <span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span>
-    <span class="nt">authSecretRef</span><span class="p">:</span>
-      <span class="c1"># points to the secret that contains</span>
-      <span class="c1"># the azure service principal credentials</span>
-      <span class="nt">clientId</span><span class="p">:</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientID</span>
-      <span class="nt">clientSecret</span><span class="p">:</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientSecret</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="c1"># provider type: azure keyvault</span>
+    <span class="nt">azurekv</span><span class="p">:</span>
+      <span class="c1"># azure tenant ID, see: https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-how-to-find-tenant</span>
+      <span class="nt">tenantId</span><span class="p">:</span> <span class="s">&quot;d3bc2180-xxxx-xxxx-xxxx-154105743342&quot;</span>
+      <span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span>
+      <span class="nt">vaultUrl</span><span class="p">:</span> <span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span>
+      <span class="nt">authSecretRef</span><span class="p">:</span>
+        <span class="c1"># points to the secret that contains</span>
+        <span class="c1"># the azure service principal credentials</span>
+        <span class="nt">clientId</span><span class="p">:</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
+          <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientID</span>
+        <span class="nt">clientSecret</span><span class="p">:</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
+          <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientSecret</span>
 </code></pre></div>
 
 <h3 id="object-types">Object Types</h3>
