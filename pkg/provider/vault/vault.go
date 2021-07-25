@@ -59,6 +59,7 @@ const (
 
 	errGetKubeSA        = "cannot get Kubernetes service account %q: %w"
 	errGetKubeSASecrets = "cannot find secrets bound to service account: %q"
+	errGetKubeSANoToken = "cannot find token in secrets bound to service account: %q"
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
@@ -301,13 +302,20 @@ func (v *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccou
 	if len(serviceAccount.Secrets) == 0 {
 		return "", fmt.Errorf(errGetKubeSASecrets, ref.Name)
 	}
-	tokenRef := serviceAccount.Secrets[0]
+	for _, tokenRef := range serviceAccount.Secrets {
+		retval, err := v.secretKeyRef(ctx, &esmeta.SecretKeySelector{
+			Name:      tokenRef.Name,
+			Namespace: &ref.Namespace,
+			Key:       "token",
+		})
 
-	return v.secretKeyRef(ctx, &esmeta.SecretKeySelector{
-		Name:      tokenRef.Name,
-		Namespace: &ref.Namespace,
-		Key:       "token",
-	})
+		if err != nil {
+			continue
+		}
+
+		return retval, nil
+	}
+	return "", fmt.Errorf(errGetKubeSANoToken, ref.Name)
 }
 
 func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
