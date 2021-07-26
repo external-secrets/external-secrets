@@ -233,18 +233,8 @@ func NestedJSONWithGJSON(f *framework.Framework) (string, func(*framework.TestCa
 func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync docker configurated json secrets with template", func(tc *framework.TestCase) {
 		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
-		//cloudSecretValue := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
-		dockerconfig := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}` // so we have the json string that is the final docker config that we want
+		dockerconfig := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
 		cloudSecretValue := fmt.Sprintf(`{"dockerconfig": %s}`, dockerconfig)
-		/*cloudSecretValue := `{
-			"dockerconfig": {
-				"auths": {
-					"https://index.docker.io/v1/": {
-						"auth": "c3R...zE2"
-					}
-				}
-			}
-		}`*/
 		tc.Secrets = map[string]string{
 			cloudSecretName: cloudSecretValue,
 		}
@@ -276,28 +266,21 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 
 // This case creates a secret with a Docker json configuration value.
 // The values from the nested data are extracted using gjson.
-// not supported by: vault.
+// Supported by vault due to type specification.
 func DockerJSONConfigVault(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync docker configurated json secrets with template", func(tc *framework.TestCase) {
 		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
-		//cloudSecretValue := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
-		//dockerconfig := "{\"auths\":{\"https://index.docker.io/v1/\": {\"auth\": \"c3R...zE2\"}}}" // so we have the json string that is the final docker config that we want
-		//cloudSecretValue := "{\"dockerconfig\": {\"auths\":{\"https://index.docker.io/v1/\": {\"auth\": \"c3R...zE2\"}}}}"
-		// cloudSecretValue := fmt.Sprintf(`{"dockerconfig": %s}`, dockerconfig)
-		//dockerconfig := "{\"auths\":{\"https://index.docker.io/v1/\": {\"auth\": \"c3R...zE2\"}}}"
-
 		dockerconfigString := `"{\"auths\":{\"https://index.docker.io/v1/\": {\"auth\": \"c3R...zE2\"}}}"`
 		dockerconfig := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
 		cloudSecretValue := fmt.Sprintf(`{"dockerconfig": %s}`, dockerconfigString)
-
 		tc.Secrets = map[string]string{
 			cloudSecretName: cloudSecretValue,
 		}
 
 		tc.ExpectedSecret = &v1.Secret{
-			Type: v1.SecretTypeDockerConfigJson, // we forgot to change this type
+			Type: v1.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
-				cloudSecretName: []byte(dockerconfig),
+				".dockerconfigjson": []byte(dockerconfig),
 			},
 		}
 
@@ -312,6 +295,7 @@ func DockerJSONConfigVault(f *framework.Framework) (string, func(*framework.Test
 		}
 
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+			Type: v1.SecretTypeDockerConfigJson,
 			Data: map[string]string{
 				".dockerconfigjson": "{{ .mysecret | toString }}",
 			},
