@@ -63,6 +63,8 @@ const (
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
+
+	errClientTLSAuth = "error from Client TLS Auth: %q"
 )
 
 type Client interface {
@@ -556,7 +558,7 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, ce
 
 	cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf(errClientTLSAuth, err)
 	}
 
 	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
