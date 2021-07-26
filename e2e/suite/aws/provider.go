@@ -32,7 +32,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
-	prov "github.com/external-secrets/external-secrets/pkg/provider/aws"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 )
 
 type SMProvider struct {
@@ -45,7 +45,7 @@ func newSMProvider(f *framework.Framework, url string) *SMProvider {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
 			Credentials: credentials.NewStaticCredentials("foobar", "foobar", "secret-manager"),
-			EndpointResolver: prov.ResolveEndpointWithServiceMap(map[string]string{
+			EndpointResolver: auth.ResolveEndpointWithServiceMap(map[string]string{
 				"secretsmanager": url,
 			}),
 			Region: aws.String("eu-east-1"),
@@ -103,8 +103,8 @@ func (s *SMProvider) BeforeEach() {
 				AWS: &esv1alpha1.AWSProvider{
 					Service: esv1alpha1.AWSServiceSecretsManager,
 					Region:  "us-east-1",
-					Auth: &esv1alpha1.AWSAuth{
-						SecretRef: esv1alpha1.AWSAuthSecretRef{
+					Auth: esv1alpha1.AWSAuth{
+						SecretRef: &esv1alpha1.AWSAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
 								Name: "provider-secret",
 								Key:  "kid",

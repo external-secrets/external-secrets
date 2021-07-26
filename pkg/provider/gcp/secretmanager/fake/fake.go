@@ -43,12 +43,14 @@ func (mc *MockSMClient) NilClose() {
 }
 
 func (mc *MockSMClient) WithValue(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
-	mc.accessSecretFn = func(paramCtx context.Context, paramReq *secretmanagerpb.AccessSecretVersionRequest, paramOpts ...grpc.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
-		// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
-		// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
-		if !cmp.Equal(paramReq, req, cmpopts.IgnoreUnexported(secretmanagerpb.AccessSecretVersionRequest{})) {
-			return nil, fmt.Errorf("unexpected test argument")
+	if mc != nil {
+		mc.accessSecretFn = func(paramCtx context.Context, paramReq *secretmanagerpb.AccessSecretVersionRequest, paramOpts ...grpc.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
+			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
+			if !cmp.Equal(paramReq, req, cmpopts.IgnoreUnexported(secretmanagerpb.AccessSecretVersionRequest{})) {
+				return nil, fmt.Errorf("unexpected test argument")
+			}
+			return val, err
 		}
-		return val, err
 	}
 }
