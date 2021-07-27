@@ -151,7 +151,7 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("Error unmarshalling json data: %w", err)
+		return nil, fmt.Errorf("error unmarshalling json data: %w", err)
 	}
 
 	secretData := make(map[string][]byte)
