@@ -37,6 +37,8 @@ var _ = Describe("[gcp] ", func() {
 		Entry(common.NestedJSONWithGJSON(f)),
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry(common.DockerJSONConfig(f)),
+		Entry(common.DataPropertyDockerconfigJSON(f)),
 		Entry(common.SSHKeySync(f)),
+		Entry(common.SSHKeySyncDataProperty(f)),
 	)
 })

@@ -41,6 +41,8 @@ var _ = Describe("[azure] ", func() {
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry(common.DockerJSONConfig(f)),
+		Entry(common.DataPropertyDockerconfigJSON(f)),
 		Entry(common.SSHKeySync(f)),
+		Entry(common.SSHKeySyncDataProperty(f)),
 	)
 })

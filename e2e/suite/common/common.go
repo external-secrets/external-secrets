@@ -231,7 +231,7 @@ func NestedJSONWithGJSON(f *framework.Framework) (string, func(*framework.TestCa
 // The values from the nested data are extracted using gjson.
 // not supported by: vault.
 func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[common] should sync docker configurated json secrets with template", func(tc *framework.TestCase) {
+	return "[common] should sync docker configurated json secrets with template simple", func(tc *framework.TestCase) {
 		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
 		dockerconfig := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
 		cloudSecretValue := fmt.Sprintf(`{"dockerconfig": %s}`, dockerconfig)
@@ -266,8 +266,8 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 
 // This case creates a secret with a Docker json configuration value.
 // The values from the nested data are extracted using gjson.
-// Supported by vault due to type specification.
-func DockerJSONConfigVault(f *framework.Framework) (string, func(*framework.TestCase)) {
+// Need to have a key holding dockerconfig to be supported by vault.
+func DataPropertyDockerconfigJSON(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync docker configurated json secrets with template", func(tc *framework.TestCase) {
 		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
 		dockerconfigString := `"{\"auths\":{\"https://index.docker.io/v1/\": {\"auth\": \"c3R...zE2\"}}}"`
@@ -304,9 +304,9 @@ func DockerJSONConfigVault(f *framework.Framework) (string, func(*framework.Test
 }
 
 // This case adds an ssh private key secret and sybcs it.
-// CHECK THIS not supported by: vault. Json parsing error.
+// Not supported by: vault. Json parsing error.
 func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[common] should sync docker configurated json secrets with template", func(tc *framework.TestCase) {
+	return "[common] should sync ssh key secret", func(tc *framework.TestCase) {
 		sshSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "ssh-priv-key-example")
 		sshSecretValue := `EY2NNWddRADTFdNvEojrCwo+DUxy6va2JltQAbxmhyvSZsL1eYsutunsKEwonGSru0Zd+m
 		z5DHJOOQdHEsH3AAAACmFub3RoZXJvbmU=
@@ -333,6 +333,43 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 		}
 
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+			Data: map[string]string{
+				"ssh-privatekey": "{{ .mysecret | toString }}",
+			},
+		}
+	}
+}
+
+// This case adds an ssh private key secret and syncs it.
+// Supported by vault. But does not work with any form of line breaks as standard ssh key.
+func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should sync ssh key with provider.", func(tc *framework.TestCase) {
+		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
+		SSHKey := "EY2NNWddRADTFdNvEojrCwo+DUxy6va2JltQAbxmhyvSZsL1eYsutunsKEwonGSru0Zd+m z5DHJOOQdHEsH3AAAACmFub3RoZXJvbmU= -----END OPENSSH PRIVATE KEY-----"
+		cloudSecretValue := fmt.Sprintf(`{"ssh-auth": "%s"}`, SSHKey)
+		tc.Secrets = map[string]string{
+			cloudSecretName: cloudSecretValue,
+		}
+
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeSSHAuth,
+			Data: map[string][]byte{
+				"ssh-privatekey": []byte(SSHKey),
+			},
+		}
+
+		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+			{
+				SecretKey: "mysecret",
+				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+					Key:      cloudSecretName,
+					Property: "ssh-auth",
+				},
+			},
+		}
+
+		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+			Type: v1.SecretTypeSSHAuth,
 			Data: map[string]string{
 				"ssh-privatekey": "{{ .mysecret | toString }}",
 			},
