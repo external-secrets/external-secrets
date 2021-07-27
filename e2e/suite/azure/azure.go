@@ -35,9 +35,7 @@ var _ = Describe("[azure] ", func() {
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.NestedJSONWithGJSON(f)),
-		// TODO: dataFrom is not working as expected RN
-		// see: https://github.com/external-secrets/external-secrets/issues/263
-		// Entry(common.JSONDataFromSync(f)),
+		Entry(common.JSONDataFromSync(f)),
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataWithTemplate(f)),
 	)

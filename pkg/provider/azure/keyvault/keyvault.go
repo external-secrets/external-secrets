@@ -33,6 +33,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
+const (
+	defaultObjType = "secret"
+)
+
 // Provider satisfies the provider interface.
 type Provider struct{}
 
@@ -86,24 +90,15 @@ func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.C
 // The Object Type is defined as a prefix in the ref.Name , if no prefix is defined , we assume a secret is required.
 func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	version := ""
-	objectType := "secret"
 	basicClient := a.baseClient
+	objectType, secretName := getObjType(ref)
 
 	if ref.Version != "" {
 		version = ref.Version
 	}
 
-	secretName := ref.Key
-	nameSplitted := strings.Split(secretName, "/")
-
-	if len(nameSplitted) > 1 {
-		objectType = nameSplitted[0]
-		secretName = nameSplitted[1]
-		// TODO: later tokens can be used to read the secret tags
-	}
-
 	switch objectType {
-	case "secret":
+	case defaultObjType:
 		// returns a SecretBundle with the secret value
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
 		secretResp, err := basicClient.GetSecret(context.Background(), a.vaultURL, secretName, version)
@@ -143,23 +138,34 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
 func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := a.GetSecret(ctx, ref)
-	if err != nil {
-		return nil, err
+	objectType, secretName := getObjType(ref)
+
+	switch objectType {
+	case defaultObjType:
+		data, err := a.GetSecret(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+
+		kv := make(map[string]string)
+		err = json.Unmarshal(data, &kv)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshalling json data: %w", err)
+		}
+
+		secretData := make(map[string][]byte)
+		for k, v := range kv {
+			secretData[k] = []byte(v)
+		}
+
+		return secretData, nil
+	case "cert":
+		return nil, fmt.Errorf("cannot get use dataFrom to get certificate secret")
+	case "key":
+		return nil, fmt.Errorf("cannot get use dataFrom to get key secret")
 	}
 
-	kv := make(map[string]string)
-	err = json.Unmarshal(data, &kv)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling json data: %w", err)
-	}
-
-	secretData := make(map[string][]byte)
-	for k, v := range kv {
-		secretData[k] = []byte(v)
-	}
-
-	return secretData, nil
+	return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
 }
 
 func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, string, error) {
@@ -223,4 +229,18 @@ func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef sm
 
 func (a *Azure) Close() error {
 	return nil
+}
+
+func getObjType(ref esv1alpha1.ExternalSecretDataRemoteRef) (string, string) {
+	objectType := defaultObjType
+
+	secretName := ref.Key
+	nameSplitted := strings.Split(secretName, "/")
+
+	if len(nameSplitted) > 1 {
+		objectType = nameSplitted[0]
+		secretName = nameSplitted[1]
+		// TODO: later tokens can be used to read the secret tags
+	}
+	return objectType, secretName
 }
