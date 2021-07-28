@@ -157,26 +157,15 @@ func TestGetSecretWithoutVersion(t *testing.T) {
 func TestGetSecretMap(t *testing.T) {
 	testAzure, azureMock := newAzure()
 	ctx := context.Background()
-	rf := esv1alpha1.ExternalSecretDataRemoteRef{}
-	azureMock.AddSecret(testAzure.vaultURL, "testName", "My Secret", true)
-	azureMock.ExpectsGetSecretsComplete(ctx, testAzure.vaultURL, nil)
+	rf := esv1alpha1.ExternalSecretDataRemoteRef{
+		Key: "testName",
+	}
+	azureMock.AddSecret(testAzure.vaultURL, "testName", "{\"username\": \"user1\", \"pass\": \"123\"}", true)
 	azureMock.ExpectsGetSecret(ctx, testAzure.vaultURL, "testName", "")
 	secretMap, err := testAzure.GetSecretMap(ctx, rf)
 	azureMock.AssertExpectations(t)
 	tassert.Nil(t, err, "the return err should be nil")
-	tassert.Equal(t, secretMap, map[string][]byte{"testName": []byte("My Secret")})
-}
-
-func TestGetSecretMapNotEnabled(t *testing.T) {
-	testAzure, azureMock := newAzure()
-	ctx := context.Background()
-	rf := esv1alpha1.ExternalSecretDataRemoteRef{}
-	azureMock.AddSecret(testAzure.vaultURL, "testName", "My Secret", false)
-	azureMock.ExpectsGetSecretsComplete(ctx, testAzure.vaultURL, nil)
-	secretMap, err := testAzure.GetSecretMap(ctx, rf)
-	azureMock.AssertExpectations(t)
-	tassert.Nil(t, err, "the return err should be nil")
-	tassert.Empty(t, secretMap)
+	tassert.Equal(t, secretMap, map[string][]byte{"username": []byte("user1"), "pass": []byte("123")})
 }
 
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
