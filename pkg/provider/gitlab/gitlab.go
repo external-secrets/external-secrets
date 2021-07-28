@@ -21,25 +21,26 @@ import (
 )
 
 // Requires a token to be set in environment variable
-var GITLABTOKEN = os.Getenv("GITLABTOKEN")
+var GITLAB_TOKEN = os.Getenv("GITLABTOKEN")
+var GITLAB_PROJECT_ID = os.Getenv("GITLABPROJECTID")
 
 type GitlabCredentials struct {
 	Token string `json:"token"`
 }
 
-// Gitlab struct with values for *gitlab.Client and projectID
+// Gitlab struct with reference to a github client and a projectID
 type Gitlab struct {
 	client    *gitlab.Client
 	projectID interface{}
 }
 
-// Function newGitlabProvider returns a reference to a new Gitlab struct 'instance'
+// Function newGitlabProvider returns a reference to a new instance of a 'Gitlab' struct
 func NewGitlabProvider() *Gitlab {
 	return &Gitlab{}
 }
 
 // Method on Gitlab to set up client with credentials and populate projectID
-func (g *Gitlab) NewGitlabClient(cred GitlabCredentials, projectID int) {
+func (g *Gitlab) NewGitlabClient(cred GitlabCredentials, projectID string) {
 	var err error
 	// Create a new Gitlab client with credentials
 	g.client, err = gitlab.NewClient(cred.Token, nil)

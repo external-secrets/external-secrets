@@ -19,9 +19,9 @@ import (
 )
 
 func TestCreateGitlabClient(t *testing.T) {
-	credentials := GitlabCredentials{Token: GITLABTOKEN}
+	credentials := GitlabCredentials{Token: GITLAB_TOKEN}
 	gitlab := NewGitlabProvider()
-	gitlab.NewGitlabClient(credentials, 28414983)
+	gitlab.NewGitlabClient(credentials, GITLAB_PROJECT_ID)
 
 	user, _, _ := gitlab.client.Users.CurrentUser()
 	fmt.Printf("Created client for username: %v", user)
