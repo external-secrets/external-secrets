@@ -14,9 +14,15 @@ limitations under the License.
 package gitlab
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	// I think I've overwritten the log package I need with the default golang one?
 	"log"
 	"os"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
@@ -48,4 +54,44 @@ func (g *Gitlab) NewGitlabClient(cred GitlabCredentials, projectID string) {
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
+}
+
+func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	data, _, err := g.client.ProjectVariables.GetVariable(g.projectID, ref.Key, nil) //Optional 'filter' parameter could be added later
+	// Do we need versions or anything?
+	if err != nil {
+		return nil, err
+	}
+
+	// Returns a secret in the form
+	// {
+	// 	"key": "TEST_VARIABLE_1",
+	// 	"variable_type": "env_var",
+	// 	"value": "TEST_1",
+	// 	"protected": false,
+	// 	"masked": true
+	// }
+
+	return []byte(data.Value), nil
+}
+
+func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	data, err := g.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
+	}
+
+	kv := make(map[string]string)
+	err = json.Unmarshal(data, &kv)
+	if err != nil {
+		fmt.Printf("unable to unmarshal secret %v: %v", ref.Key, err)
+		return nil, err
+	}
+
+	// Converts values in K:V pairs into bytes while leaving keys as strings
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		secretData[k] = []byte(v)
+	}
+	return secretData, nil
 }
