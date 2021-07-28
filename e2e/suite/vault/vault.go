@@ -33,6 +33,5 @@ var _ = Describe("[vault] ", func() {
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry(common.DataPropertyDockerconfigJSON(f)),
-		Entry(common.SSHKeySyncDataProperty(f)),
 	)
 })
