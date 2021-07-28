@@ -21,8 +21,8 @@ import (
 )
 
 // Requires a token to be set in environment variable
-var GITLAB_TOKEN = os.Getenv("GITLABTOKEN")
-var GITLAB_PROJECT_ID = os.Getenv("GITLABPROJECTID")
+var GITLAB_TOKEN = os.Getenv("GITLAB_TOKEN")
+var GITLAB_PROJECT_ID = os.Getenv("GITLAB_PROJECT_ID")
 
 type GitlabCredentials struct {
 	Token string `json:"token"`
