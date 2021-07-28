@@ -71,7 +71,15 @@ jobs:
         node_image: kindest/node:v1.20.7
         name: external-secrets
 
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v1
+      with:
+        version: ${{ env.DOCKER_BUILDX_VERSION }}
+        install: true
+
     - name: Run e2e Tests
+      env:
+        BUILD_ARGS: "--load"
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
         go get github.com/onsi/ginkgo/ginkgo
@@ -128,7 +136,15 @@ jobs:
         node_image: kindest/node:v1.20.7
         name: external-secrets
 
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v1
+      with:
+        version: ${{ env.DOCKER_BUILDX_VERSION }}
+        install: true
+
     - name: Run e2e Tests
+      env:
+        BUILD_ARGS: "--load"
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
         go get github.com/onsi/ginkgo/ginkgo
