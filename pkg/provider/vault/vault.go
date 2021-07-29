@@ -192,11 +192,11 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		dataInt, ok := vaultSecret.Data["data"]
 
 		if !ok {
-			return nil, errors.New(fmt.Sprintf(errDataField, vaultSecret.Data))
+			return nil, fmt.Errorf(errDataField, vaultSecret.Data)
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
-			return nil, errors.New(fmt.Sprintf(errJSONUnmarshall, dataInt))
+			return nil, fmt.Errorf(errJSONUnmarshall, dataInt)
 		}
 	}
 
