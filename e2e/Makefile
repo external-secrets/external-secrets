@@ -5,6 +5,7 @@ SHELL       := /bin/bash
 IMG_TAG     = test
 IMG         = local/external-secrets-e2e:$(IMG_TAG)
 K8S_VERSION = "1.20.7"
+BUILD_ARGS  ?=
 export FOCUS := $(FOCUS)
 
 start-kind: ## Start kind cluster
@@ -18,7 +19,7 @@ test: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.build \
 		IMAGE_REGISTRY=local/external-secrets \
 		VERSION=$(IMG_TAG) \
-		BUILD_ARGS="--build-arg ARCHS=amd64"
+		ARCH=amd64
 	kind load docker-image --name="external-secrets" local/external-secrets:$(IMG_TAG)
 	kind load docker-image --name="external-secrets" $(IMG)
 	./run.sh
@@ -31,7 +32,7 @@ e2e-image: e2e-bin
 	mkdir -p k8s
 	$(MAKE) -C ../ helm.generate
 	cp -r ../deploy ./k8s
-	docker build -t $(IMG) .
+	docker build $(BUILD_ARGS) -t $(IMG) .
 
 stop-kind: ## Stop kind cluster
 	kind delete cluster \

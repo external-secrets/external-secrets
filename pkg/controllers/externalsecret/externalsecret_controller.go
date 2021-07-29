@@ -54,6 +54,7 @@ const (
 	errStoreRef              = "could not get store reference"
 	errStoreProvider         = "could not get store provider"
 	errStoreClient           = "could not get provider client"
+	errCloseStoreClient      = "could not close provider client"
 	errSetCtrlReference      = "could not set ExternalSecret controller reference: %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
 	errGetSecretData         = "could not get secret data from provider: %w"
@@ -63,7 +64,6 @@ const (
 	errPolicyMergeMutate     = "unable to mutate secret %s: %w"
 	errPolicyMergePatch      = "unable to patch secret %s: %w"
 	errGetSecretKey          = "key %q from ExternalSecret %q: %w"
-	errClientClose           = "error closing the connection: %w"
 	errTplCMMissingKey       = "error in configmap %s: missing key %s"
 	errTplSecMissingKey      = "error in secret %s: missing key %s"
 )
@@ -137,6 +137,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
+
+	defer func() {
+		err = secretClient.Close()
+		if err != nil {
+			log.Error(err, errCloseStoreClient)
+		}
+	}()
 
 	refreshInt := time.Hour
 	if externalSecret.Spec.RefreshInterval != nil {
@@ -374,11 +381,6 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 		}
 
 		providerData[secretRef.SecretKey] = secretData
-	}
-
-	err := providerClient.Close()
-	if err != nil {
-		return nil, fmt.Errorf(errClientClose, err)
 	}
 
 	return providerData, nil

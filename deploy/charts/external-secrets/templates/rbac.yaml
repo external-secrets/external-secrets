@@ -21,6 +21,7 @@ rules:
     resources:
     - "externalsecrets"
     - "externalsecrets/status"
+    - "externalsecrets/finalizers"
     verbs:
     - "update"
     - "patch"
@@ -51,6 +52,7 @@ rules:
     - "create"
     - "update"
     - "delete"
+    - "patch"
   - apiGroups:
     - ""
     resources:
