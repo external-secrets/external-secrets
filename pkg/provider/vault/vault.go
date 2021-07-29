@@ -51,10 +51,9 @@ const (
 	errVaultCert      = "cannot set Vault CA certificate: %w"
 	errReadSecret     = "cannot read secret data from Vault: %w"
 	errAuthFormat     = "cannot initialize Vault client: no valid auth method specified: %w"
-	errVaultData      = "cannot parse Vault response data: %w"
 	errDataField      = "failed to find data field: %v"
 	errJSONUnmarshall = "failed to unmarshall JSON: %v"
-	errSecretFormat   = "Secret data not in expected format: %v"
+	errSecretFormat   = "secret data not in expected format: %v"
 	errVaultToken     = "cannot parse Vault authentication token: %w"
 	errVaultReqParams = "cannot set Vault request parameters: %w"
 	errVaultRequest   = "error from Vault request: %w"
@@ -187,17 +186,16 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 
 	secretData := vaultSecret.Data
 	if v.store.Version == esv1alpha1.VaultKVStoreV2 {
-
 		// Vault KV2 has data embedded within sub-field
 		// reference - https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
 		dataInt, ok := vaultSecret.Data["data"]
 
 		if !ok {
-			return nil, errors.New(fmt.Sprintf(errDataField, vaultSecret.Data))
+			return nil, fmt.Errorf(errDataField, vaultSecret.Data)
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
-			return nil, errors.New(fmt.Sprintf(errJSONUnmarshall, dataInt))
+			return nil, fmt.Errorf(errJSONUnmarshall, dataInt)
 		}
 	}
 
@@ -216,7 +214,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			}
 
 		default:
-			return nil, errors.New(fmt.Sprintf(errSecretFormat, secretData))
+			return nil, fmt.Errorf(errSecretFormat, secretData)
 		}
 	}
 
