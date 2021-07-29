@@ -380,7 +380,6 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync ssh key with provider.", func(tc *framework.TestCase) {
 		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
-		//SSHKey := "EY2NNWddRADTFdNvEojrCwo+DUxy6va2JltQAbxmhyvSZsL1eYsutunsKEwonGSru0Zd+m z5DHJOOQdHEsH3AAAACmFub3RoZXJvbmU= -----END OPENSSH PRIVATE KEY-----"
 		SSHKey := `-----BEGIN OPENSSH PRIVATE KEY-----
 		b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 		NhAAAAAwEAAQAAAYEAsARoZUqo6L5dd0WRjZ2QPq/kKlbjtUY1njzJ01UtdC1u1eSJFUnV

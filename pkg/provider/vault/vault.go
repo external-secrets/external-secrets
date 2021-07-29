@@ -52,6 +52,9 @@ const (
 	errReadSecret     = "cannot read secret data from Vault: %w"
 	errAuthFormat     = "cannot initialize Vault client: no valid auth method specified: %w"
 	errVaultData      = "cannot parse Vault response data: %w"
+	errDataField      = "failed to find data field: %v"
+	errJSONUnmarshall = "failed to unmarshall JSON: %v"
+	errSecretFormat   = "Secret data not in expected format: %v"
 	errVaultToken     = "cannot parse Vault authentication token: %w"
 	errVaultReqParams = "cannot set Vault request parameters: %w"
 	errVaultRequest   = "error from Vault request: %w"
@@ -190,11 +193,11 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		dataInt, ok := vaultSecret.Data["data"]
 
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("failed to find data field: %v", vaultSecret.Data))
+			return nil, errors.New(fmt.Sprintf(errDataField, vaultSecret.Data))
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
-			return nil, errors.New(fmt.Sprintf("failed to unmarshall JSON: %v", dataInt))
+			return nil, errors.New(fmt.Sprintf(errJSONUnmarshall, dataInt))
 		}
 	}
 
@@ -213,7 +216,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			}
 
 		default:
-			return nil, errors.New(fmt.Sprintf("Secret data not in expected format: %v", secretData))
+			return nil, errors.New(fmt.Sprintf(errSecretFormat, secretData))
 		}
 	}
 
