@@ -57,6 +57,7 @@ type SecretStoreProvider struct {
 	// YandexLockbox configures this store to sync secrets using Yandex Lockbox provider
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
+
 	// GItlab configures this store to sync secrets using Gitlab Variables provider
 	// +optional
 	Gitlab *GitlabProvider `json:"gitlab,omitempty"`

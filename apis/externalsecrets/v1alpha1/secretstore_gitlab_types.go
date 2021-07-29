@@ -24,8 +24,8 @@ type GitlabProvider struct {
 	// Auth configures how secret-manager authenticates with the IBM secrets manager.
 	Auth GitlabAuth `json:"auth"`
 
-	// ServiceURL is the Endpoint URL that is specific to the Secrets Manager service instance
-	ProjectID *string `json:"projectID,omitempty"`
+	// ProjectID project where secret is located
+	ProjectID string `json:"projectID,omitempty"`
 }
 
 type GitlabAuth struct {
@@ -34,5 +34,5 @@ type GitlabAuth struct {
 
 type GitlabSecretRef struct {
 	// The Access Token is used for authentication
-	AccessToken esmeta.SecretKeySelector `json:"token,omitempty"`
+	AccessToken esmeta.SecretKeySelector `json:"accessToken,omitempty"`
 }

@@ -24,20 +24,82 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	gitlab "github.com/xanzy/go-gitlab"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/external-secrets/external-secrets/pkg/provider"
+	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
 // Requires a token to be set in environment variable
 var GITLAB_TOKEN = os.Getenv("GITLAB_TOKEN")
 var GITLAB_PROJECT_ID = os.Getenv("GITLAB_PROJECT_ID")
 
+const (
+	// TODO: Make these more descriptive
+	errGitlabCredSecretName                   = "error with credentials"
+	errInvalidClusterStoreMissingSAKNamespace = "error"
+	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
+	errMissingSAK                             = "error"
+)
+
+// Probably don't need this any more
 type GitlabCredentials struct {
 	Token string `json:"token"`
 }
 
-// Gitlab struct with reference to a github client and a projectID
+// Gitlab Provider struct with reference to a github client and a projectID
 type Gitlab struct {
 	client    *gitlab.Client
 	projectID interface{}
+}
+
+// Client for interacting with kubernetes cluster...?
+type gClient struct {
+	kube        kclient.Client
+	store       *esv1alpha1.GitlabProvider
+	namespace   string
+	storeKind   string
+	credentials []byte
+}
+
+func init() {
+	schema.Register(&Gitlab{}, &esv1alpha1.SecretStoreProvider{
+		Gitlab: &esv1alpha1.GitlabProvider{},
+	})
+}
+
+// Set gClient credentials to Access Token
+func (c *gClient) setAuth(ctx context.Context) error {
+	credentialsSecret := &corev1.Secret{}
+	credentialsSecretName := c.store.Auth.SecretRef.AccessToken.Name
+	if credentialsSecretName == "" {
+		return fmt.Errorf(errGitlabCredSecretName)
+	}
+	objectKey := types.NamespacedName{
+		Name:      credentialsSecretName,
+		Namespace: c.namespace,
+	}
+	// only ClusterStore is allowed to set namespace (and then it's required)
+	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
+		if c.store.Auth.SecretRef.AccessToken.Namespace == nil {
+			return fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
+		}
+		objectKey.Namespace = *c.store.Auth.SecretRef.AccessToken.Namespace
+	}
+
+	err := c.kube.Get(ctx, objectKey, credentialsSecret)
+	if err != nil {
+		return fmt.Errorf(errFetchSAKSecret, err)
+	}
+
+	c.credentials = credentialsSecret.Data[c.store.Auth.SecretRef.AccessToken.Key]
+	if (c.credentials == nil) || (len(c.credentials) == 0) {
+		return fmt.Errorf(errMissingSAK)
+	}
+	c.store.ProjectID = string(credentialsSecret.Data[c.store.ProjectID])
+	return nil
 }
 
 // Function newGitlabProvider returns a reference to a new instance of a 'Gitlab' struct
@@ -45,25 +107,40 @@ func NewGitlabProvider() *Gitlab {
 	return &Gitlab{}
 }
 
-// Method on Gitlab to set up client with credentials and populate projectID
-func (g *Gitlab) NewGitlabClient(cred GitlabCredentials, projectID string) {
-	var err error
-	// Create a new Gitlab client with credentials
-	g.client, err = gitlab.NewClient(cred.Token, nil)
-	g.projectID = projectID
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+// Method on Gitlab Provider to set up client with credentials and populate projectID
+func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+	storeSpec := store.GetSpec()
+	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
+		return nil, fmt.Errorf("no store type or wrong store type")
 	}
-}
+	storeSpecGitlab := storeSpec.Provider.Gitlab
 
-func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, _, err := g.client.ProjectVariables.GetVariable(g.projectID, ref.Key, nil) //Optional 'filter' parameter could be added later
-	// Do we need versions or anything?
-	if err != nil {
+	cliStore := gClient{
+		kube:      kube,
+		store:     storeSpecGitlab,
+		namespace: namespace,
+		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+	}
+
+	if err := cliStore.setAuth(ctx); err != nil {
 		return nil, err
 	}
 
-	// Returns a secret in the form
+	var err error
+	// Create a new Gitlab client with credentials
+	gitlabClient, err := gitlab.NewClient(string(cliStore.credentials), nil)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	g.client = gitlabClient
+	g.projectID = cliStore.store.ProjectID
+
+	return g, nil
+
+}
+
+func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	// Retrieves a gitlab variable in the form
 	// {
 	// 	"key": "TEST_VARIABLE_1",
 	// 	"variable_type": "env_var",
@@ -71,16 +148,23 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	// 	"protected": false,
 	// 	"masked": true
 	// }
+	data, _, err := g.client.ProjectVariables.GetVariable(g.projectID, ref.Key, nil) //Optional 'filter' parameter could be added later
+	if err != nil {
+		return nil, err
+	}
 
+	// Return only the variable's 'value'
 	return []byte(data.Value), nil
 }
 
 func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// Gets a secret as normal, expecting secret value to be a json object
 	data, err := g.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
 	}
 
+	// Maps the json data to a string:string map
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
@@ -88,10 +172,14 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 		return nil, err
 	}
 
-	// Converts values in K:V pairs into bytes while leaving keys as strings
+	// Converts values in K:V pairs into bytes, while leaving keys as strings
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
 		secretData[k] = []byte(v)
 	}
 	return secretData, nil
+}
+
+func (g *Gitlab) Close() error {
+	return nil
 }
