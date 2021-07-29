@@ -76,3 +76,4 @@ jobs:
         run: make docker.promote
         env:
           RELEASE_TAG: ${{ github.event.inputs.version }}
+          SOURCE_TAG: main
