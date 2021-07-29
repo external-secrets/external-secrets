@@ -51,7 +51,6 @@ const (
 	errVaultCert      = "cannot set Vault CA certificate: %w"
 	errReadSecret     = "cannot read secret data from Vault: %w"
 	errAuthFormat     = "cannot initialize Vault client: no valid auth method specified: %w"
-	errVaultData      = "cannot parse Vault response data: %w"
 	errDataField      = "failed to find data field: %v"
 	errJSONUnmarshall = "failed to unmarshall JSON: %v"
 	errSecretFormat   = "Secret data not in expected format: %v"
@@ -60,6 +59,7 @@ const (
 	errVaultRequest   = "error from Vault request: %w"
 	errVaultResponse  = "cannot parse Vault response: %w"
 	errServiceAccount = "cannot read Kubernetes service account token from file system: %w"
+	// errVaultData      = "cannot parse Vault response data: %w"
 
 	errGetKubeSA        = "cannot get Kubernetes service account %q: %w"
 	errGetKubeSASecrets = "cannot find secrets bound to service account: %q"
@@ -215,7 +215,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			}
 
 		default:
-			return nil, errors.New(fmt.Sprintf(errSecretFormat, secretData))
+			return nil, fmt.Errorf(errSecretFormat, secretData)
 		}
 	}
 
