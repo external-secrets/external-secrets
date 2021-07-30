@@ -354,7 +354,7 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 		}
 
 		tc.ExpectedSecret = &v1.Secret{
-			Type: v1.SecretTypeOpaque,
+			Type: v1.SecretTypeSSHAuth,
 			Data: map[string][]byte{
 				"ssh-privatekey": []byte(sshSecretValue),
 			},
@@ -370,6 +370,7 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 		}
 
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+			Type: v1.SecretTypeSSHAuth,
 			Data: map[string]string{
 				"ssh-privatekey": "{{ .mysecret | toString }}",
 			},
