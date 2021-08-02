@@ -74,6 +74,7 @@ type Reconciler struct {
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	ControllerClass string
+	RequeueInterval time.Duration
 }
 
 // Reconcile implements the main reconciliation loop
@@ -145,7 +146,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}()
 
-	refreshInt := time.Hour
+	refreshInt := r.RequeueInterval
 	if externalSecret.Spec.RefreshInterval != nil {
 		refreshInt = externalSecret.Spec.RefreshInterval.Duration
 	}
@@ -306,7 +307,7 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 		return true
 	}
 	// skip refresh if refresh interval is 0
-	if es.Spec.RefreshInterval == nil && es.Status.SyncedResourceVersion != "" {
+	if es.Spec.RefreshInterval.Duration == 0 && es.Status.SyncedResourceVersion != "" {
 		return false
 	}
 	if es.Status.RefreshTime.IsZero() {
