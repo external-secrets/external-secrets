@@ -18,7 +18,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -200,7 +199,6 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
 			return nil, errors.New(errJSONUnmarshall)
-
 		}
 	}
 
@@ -211,13 +209,6 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			byteMap[k] = []byte(t)
 		case []byte:
 			byteMap[k] = t
-		case map[string]interface{}:
-			jsonString, err := json.Marshal(t)
-			byteMap[k] = jsonString
-			if err != nil {
-				return nil, err
-			}
-
 		default:
 			return nil, errors.New(errSecretFormat)
 		}
