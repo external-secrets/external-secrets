@@ -16,6 +16,7 @@ package vault
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -65,6 +66,8 @@ const (
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
+
+	errClientTLSAuth = "error from Client TLS Auth: %q"
 )
 
 type Client interface {
@@ -115,6 +118,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 	}
 
 	cfg, err := vStore.newConfig()
+
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +132,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
 
-	if err := vStore.setAuth(ctx, client); err != nil {
+	if err := vStore.setAuth(ctx, client, cfg); err != nil {
 		return nil, err
 	}
 
@@ -234,7 +238,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 	return cfg, nil
 }
 
-func (v *client) setAuth(ctx context.Context, client Client) error {
+func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config) error {
 	tokenRef := v.store.Auth.TokenSecretRef
 	if tokenRef != nil {
 		token, err := v.secretKeyRef(ctx, tokenRef)
@@ -278,6 +282,16 @@ func (v *client) setAuth(ctx context.Context, client Client) error {
 	jwtAuth := v.store.Auth.Jwt
 	if jwtAuth != nil {
 		token, err := v.requestTokenWithJwtAuth(ctx, client, jwtAuth)
+		if err != nil {
+			return err
+		}
+		client.SetToken(token)
+		return nil
+	}
+
+	certAuth := v.store.Auth.Cert
+	if certAuth != nil {
+		token, err := v.requestTokenWithCertAuth(ctx, client, certAuth, cfg)
 		if err != nil {
 			return err
 		}
@@ -521,6 +535,49 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 	if err != nil {
 		return "", fmt.Errorf(errVaultReqParams, err)
 	}
+
+	resp, err := client.RawRequestWithContext(ctx, request)
+	if err != nil {
+		return "", fmt.Errorf(errVaultRequest, err)
+	}
+
+	defer resp.Body.Close()
+
+	vaultResult := vault.Secret{}
+	if err = resp.DecodeJSON(&vaultResult); err != nil {
+		return "", fmt.Errorf(errVaultResponse, err)
+	}
+
+	token, err := vaultResult.TokenID()
+	if err != nil {
+		return "", fmt.Errorf(errVaultToken, err)
+	}
+
+	return token, nil
+}
+
+func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, certAuth *esv1alpha1.VaultCertAuth, cfg *vault.Config) (string, error) {
+	clientKey, err := v.secretKeyRef(ctx, &certAuth.SecretRef)
+	if err != nil {
+		return "", err
+	}
+
+	clientCert, err := v.secretKeyRef(ctx, &certAuth.ClientCert)
+	if err != nil {
+		return "", err
+	}
+
+	cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
+	if err != nil {
+		return "", fmt.Errorf(errClientTLSAuth, err)
+	}
+
+	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
+		transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	url := strings.Join([]string{"/v1", "auth", "cert", "login"}, "/")
+	request := client.NewRequest("POST", url)
 
 	resp, err := client.RawRequestWithContext(ctx, request)
 	if err != nil {
