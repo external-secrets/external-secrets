@@ -191,11 +191,12 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		dataInt, ok := vaultSecret.Data["data"]
 
 		if !ok {
-			return nil, fmt.Errorf(errDataField, vaultSecret.Data)
+			return nil, errors.New(errDataField)
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
-			return nil, fmt.Errorf(errJSONUnmarshall, dataInt)
+			return nil, errors.New(errJSONUnmarshall)
+
 		}
 	}
 
@@ -214,7 +215,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			}
 
 		default:
-			return nil, fmt.Errorf(errSecretFormat, secretData)
+			return nil, errors.New(errSecretFormat)
 		}
 	}
 
