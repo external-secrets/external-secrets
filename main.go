@@ -17,6 +17,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -88,6 +89,7 @@ func main() {
 		Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
 		Scheme:          mgr.GetScheme(),
 		ControllerClass: controllerClass,
+		RequeueInterval: time.Hour,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ExternalSecret")
 		os.Exit(1)
