@@ -19,7 +19,8 @@ import (
 	"fmt"
 
 	// I think I've overwritten the log package I need with the default golang one?
-	"log"
+	"github.com/external-secrets/external-secrets/e2e/framework/log"
+
 	"os"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -98,7 +99,10 @@ func (c *gClient) setAuth(ctx context.Context) error {
 	if (c.credentials == nil) || (len(c.credentials) == 0) {
 		return fmt.Errorf(errMissingSAK)
 	}
-	c.store.ProjectID = string(credentialsSecret.Data[c.store.ProjectID])
+	// I don't know where ProjectID is being set, but this line breaks it :)
+	// c.store.ProjectID = string(credentialsSecret.Data[c.store.ProjectID])
+
+	log.Logf("\n Set auth with projectID: %s and token: %s \n", c.store.ProjectID, c.store.Auth.SecretRef.AccessToken.Key)
 	return nil
 }
 
@@ -130,7 +134,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha1.GenericStore, k
 	// Create a new Gitlab client with credentials
 	gitlabClient, err := gitlab.NewClient(string(cliStore.credentials), nil)
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		log.Logf("Failed to create client: %v", err)
 	}
 	g.client = gitlabClient
 	g.projectID = cliStore.store.ProjectID
@@ -148,6 +152,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	// 	"protected": false,
 	// 	"masked": true
 	// }
+	log.Logf("\n Getting variable with projectID: %s and key: %s \n", g.projectID, ref.Key)
 	data, _, err := g.client.ProjectVariables.GetVariable(g.projectID, ref.Key, nil) //Optional 'filter' parameter could be added later
 	if err != nil {
 		return nil, err
