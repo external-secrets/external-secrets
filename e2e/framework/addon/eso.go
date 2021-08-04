@@ -21,7 +21,7 @@ func NewESO() *ESO {
 	return &ESO{
 		&HelmChart{
 			Namespace:   "default",
-			ReleaseName: "eso-aws-sm",
+			ReleaseName: "eso",
 			Chart:       "/k8s/deploy/charts/external-secrets",
 			Values:      []string{"/k8s/eso.values.yaml"},
 		},

@@ -13,9 +13,9 @@ limitations under the License.
 package addon
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 
 	corev1 "k8s.io/api/core/v1"
@@ -79,22 +79,28 @@ func (c *HelmChart) Install() error {
 		args = append(args, "--set", fmt.Sprintf("%s=%s", s.Key, s.Value))
 	}
 
+	var sout, serr bytes.Buffer
 	log.Logf("installing chart %s", c.ReleaseName)
 	cmd := exec.Command("helm", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	cmd.Stdout = &sout
+	cmd.Stderr = &serr
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("unable to run cmd: %w: %s %s", err, sout.String(), serr.String())
+	}
+	return nil
 }
 
 // Uninstall removes the chart aswell as the repo.
 func (c *HelmChart) Uninstall() error {
+	var sout, serr bytes.Buffer
 	args := []string{"delete", "--namespace", c.Namespace, c.ReleaseName}
 	cmd := exec.Command("helm", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = &sout
+	cmd.Stderr = &serr
 	err := cmd.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to delete helm release: %w: %s, %s", err, sout.String(), serr.String())
 	}
 	return c.removeRepo()
 }
@@ -103,23 +109,32 @@ func (c *HelmChart) addRepo() error {
 	if c.Repo.Name == "" || c.Repo.URL == "" {
 		return nil
 	}
-	log.Logf("adding repo %s", c.Repo.Name)
+	var sout, serr bytes.Buffer
 	args := []string{"repo", "add", c.Repo.Name, c.Repo.URL}
 	cmd := exec.Command("helm", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	cmd.Stdout = &sout
+	cmd.Stderr = &serr
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("unable to add helm repo: %w: %s, %s", err, sout.String(), serr.String())
+	}
+	return nil
 }
 
 func (c *HelmChart) removeRepo() error {
 	if c.Repo.Name == "" || c.Repo.URL == "" {
 		return nil
 	}
+	var sout, serr bytes.Buffer
 	args := []string{"repo", "remove", c.Repo.Name}
 	cmd := exec.Command("helm", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	cmd.Stdout = &sout
+	cmd.Stderr = &serr
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("unable to remove repo: %w: %s, %s", err, sout.String(), serr.String())
+	}
+	return nil
 }
 
 // Logs fetches the logs from all pods managed by this release

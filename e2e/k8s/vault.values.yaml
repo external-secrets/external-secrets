@@ -1,0 +1,27 @@
+injector:
+  enabled: false
+server:
+  extraEnvironmentVars:
+    VAULT_CACERT: /etc/vault-config/vault-server-ca.pem
+    VAULT_ADDR: https://127.0.0.1:8200
+  volumeMounts:
+    - name: tls-config
+      mountPath: /etc/vault-config
+      readOnly: true
+  volumes:
+    - name: tls-config
+      secret:
+        secretName: vault-tls-config
+  standalone:
+    config: |
+      ui = true
+      listener "tcp" {
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+        tls_cert_file = "/etc/vault-config/server-cert.pem"
+        tls_key_file = "/etc/vault-config/server-cert-key.pem"
+        tls_client_ca_file = "/etc/vault-config/vault-client-ca.pem"
+      }
+      storage "file" {
+        path = "/vault/data"
+      }

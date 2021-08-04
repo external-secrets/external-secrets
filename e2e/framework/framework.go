@@ -18,6 +18,7 @@ import (
 
 	// nolint
 	. "github.com/onsi/ginkgo"
+
 	// nolint
 	. "github.com/onsi/gomega"
 	api "k8s.io/api/core/v1"
@@ -83,8 +84,29 @@ func (f *Framework) BeforeEach() {
 
 // AfterEach deletes the namespace and cleans up the registered addons.
 func (f *Framework) AfterEach() {
+	for _, a := range f.Addons {
+		err := a.Uninstall()
+		Expect(err).ToNot(HaveOccurred())
+	}
+	// reset addons to default once the run is done
+	f.Addons = []addon.Addon{}
 	By("deleting test namespace")
 	err := util.DeleteKubeNamespace(f.Namespace.Name, f.KubeClientSet)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func (f *Framework) Install(a addon.Addon) {
+	f.Addons = append(f.Addons, a)
+
+	By("installing addon")
+	err := a.Setup(&addon.Config{
+		KubeConfig:    f.KubeConfig,
+		KubeClientSet: f.KubeClientSet,
+		CRClient:      f.CRClient,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	err = a.Install()
 	Expect(err).NotTo(HaveOccurred())
 }
 
