@@ -32,5 +32,6 @@ var _ = Describe("[vault] ", func() {
 		Entry(common.JSONDataFromSync(f)),
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataWithTemplate(f)),
+		Entry(common.DataPropertyDockerconfigJSON(f)),
 	)
 })

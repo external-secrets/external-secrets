@@ -121,5 +121,9 @@ var _ = Describe("[aws] ", func() {
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry("should sync secrets with jwt auth", jwt),
+		Entry(common.DockerJSONConfig(f)),
+		Entry(common.DataPropertyDockerconfigJSON(f)),
+		Entry(common.SSHKeySync(f)),
+		Entry(common.SSHKeySyncDataProperty(f)),
 	)
 })

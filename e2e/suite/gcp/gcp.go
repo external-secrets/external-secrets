@@ -146,6 +146,10 @@ x6HaRh+EUwU51von6M9lEF9/p5Q=
 		Entry(common.JSONDataFromSync(f)),
 		Entry(common.NestedJSONWithGJSON(f)),
 		Entry(common.JSONDataWithTemplate(f)),
+		Entry(common.DockerJSONConfig(f)),
+		Entry(common.DataPropertyDockerconfigJSON(f)),
+		Entry(common.SSHKeySync(f)),
+		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry("should sync p12 encoded cert secret", p12Cert),
 	)
 })
