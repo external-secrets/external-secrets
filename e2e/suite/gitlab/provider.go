@@ -24,8 +24,6 @@ import (
 	// nolint
 	. "github.com/onsi/gomega"
 
-	"github.com/external-secrets/external-secrets/e2e/framework/log"
-
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
@@ -72,7 +70,6 @@ func (s *gitlabProvider) CreateSecret(key, val string) {
 	}
 
 	// Create a variable
-	log.Logf("\n Creating variable on projectID: %s \n", s.projectID)
 	_, _, err = client.ProjectVariables.CreateVariable(s.projectID, &opt)
 
 	Expect(err).ToNot(HaveOccurred())
@@ -103,7 +100,7 @@ func (s *gitlabProvider) BeforeEach() {
 		// Puts access token into StringData
 
 		StringData: map[string]string{
-			"token": s.credentials,
+			"token":     s.credentials,
 			"projectID": s.projectID,
 		},
 	}

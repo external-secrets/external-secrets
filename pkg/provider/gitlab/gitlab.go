@@ -18,10 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	// I think I've overwritten the log package I need with the default golang one?
 	"github.com/external-secrets/external-secrets/e2e/framework/log"
-
-	"os"
+	"github.com/tidwall/gjson"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -33,9 +31,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
-// Requires a token to be set in environment variable
-var GITLAB_TOKEN = os.Getenv("GITLAB_TOKEN")
-var GITLAB_PROJECT_ID = os.Getenv("GITLAB_PROJECT_ID")
+// Requires GITLAB_TOKEN and GITLAB_PROJECT_ID to be set in environment variables
 
 const (
 	// TODO: Make these more descriptive
@@ -99,10 +95,9 @@ func (c *gClient) setAuth(ctx context.Context) error {
 	if (c.credentials == nil) || (len(c.credentials) == 0) {
 		return fmt.Errorf(errMissingSAK)
 	}
-	// I don't know where ProjectID is being set, but this line breaks it :)
+	// I don't know where ProjectID is being set
+	// This line SHOULD set it, but instead just breaks everything :)
 	// c.store.ProjectID = string(credentialsSecret.Data[c.store.ProjectID])
-
-	log.Logf("\n Set auth with projectID: %s and token: %s \n", c.store.ProjectID, c.store.Auth.SecretRef.AccessToken.Key)
 	return nil
 }
 
@@ -131,7 +126,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha1.GenericStore, k
 	}
 
 	var err error
-	// Create a new Gitlab client with credentials
+	// Create a new Gitlab client using credentials
 	gitlabClient, err := gitlab.NewClient(string(cliStore.credentials), nil)
 	if err != nil {
 		log.Logf("Failed to create client: %v", err)
@@ -151,15 +146,29 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	// 	"value": "TEST_1",
 	// 	"protected": false,
 	// 	"masked": true
-	// }
-	log.Logf("\n Getting variable with projectID: %s and key: %s \n", g.projectID, ref.Key)
 	data, _, err := g.client.ProjectVariables.GetVariable(g.projectID, ref.Key, nil) //Optional 'filter' parameter could be added later
 	if err != nil {
 		return nil, err
 	}
 
-	// Return only the variable's 'value'
-	return []byte(data.Value), nil
+	if ref.Property == "" {
+		if data.Value != "" {
+			return []byte(data.Value), nil
+		}
+		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
+	}
+
+	var payload string
+	if data.Value != "" {
+		payload = string(data.Value)
+	}
+
+	val := gjson.Get(payload, ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	}
+	return []byte(val.String()), nil
+
 }
 
 func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
