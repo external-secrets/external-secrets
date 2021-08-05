@@ -90,6 +90,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
 	if apierrors.IsNotFound(err) {
 		syncCallsTotal.With(syncCallsMetricLabels).Inc()
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretDeleted, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretDeleted, "Secret was deleted")
+		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		return ctrl.Result{}, nil
 	} else if err != nil {
 		log.Error(err, errGetES)
