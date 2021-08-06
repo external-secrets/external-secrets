@@ -103,6 +103,8 @@ func getProviderName(storeSpec *esv1alpha1.SecretStoreProvider) (string, error) 
 	}
 
 	if len(storeMap) != 1 {
+		fmt.Println(storeSpec)
+		fmt.Println(storeBytes)
 		return "", fmt.Errorf("secret stores must only have exactly one backend specified, found %d", len(storeMap))
 	}
 

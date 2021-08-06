@@ -34,6 +34,8 @@ type SecretsManager struct {
 	cache  map[string]*awssm.GetSecretValueOutput
 }
 
+
+
 // SMInterface is a subset of the smiface api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/secretsmanager/secretsmanageriface/
 type SMInterface interface {

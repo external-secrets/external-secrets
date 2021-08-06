@@ -6,7 +6,6 @@ replace (
 	github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1 => ./apis/externalsecrets/v1alpha1
 	github.com/external-secrets/external-secrets/pkg/provider/gitlab => ./pkg/provider/gitlab
 	google.golang.org/grpc => google.golang.org/grpc v1.27.0
-
 	k8s.io/api => k8s.io/api v0.21.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.21.2
@@ -41,6 +40,7 @@ require (
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
 	github.com/IBM/go-sdk-core/v5 v5.5.0
 	github.com/IBM/secrets-manager-go-sdk v1.0.23
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1192
 	github.com/aws/aws-sdk-go v1.38.6
 	github.com/crossplane/crossplane-runtime v0.13.0
 	github.com/fatih/color v1.10.0 // indirect
@@ -78,11 +78,11 @@ require (
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a
 	google.golang.org/grpc v1.31.0
 	honnef.co/go/tools v0.1.4 // indirect
-	k8s.io/api v0.21.2
-	k8s.io/apimachinery v0.21.2
+	k8s.io/api v0.21.3
+	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.2
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
-	sigs.k8s.io/controller-runtime v0.9.2
+	sigs.k8s.io/controller-runtime v0.9.3
 	sigs.k8s.io/controller-tools v0.5.0
 	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
