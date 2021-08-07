@@ -151,7 +151,8 @@ type ExternalSecretSpec struct {
 type ExternalSecretConditionType string
 
 const (
-	ExternalSecretReady ExternalSecretConditionType = "Ready"
+	ExternalSecretReady   ExternalSecretConditionType = "Ready"
+	ExternalSecretDeleted ExternalSecretConditionType = "Deleted"
 )
 
 type ExternalSecretStatusCondition struct {
@@ -173,6 +174,8 @@ const (
 	ConditionReasonSecretSynced = "SecretSynced"
 	// ConditionReasonSecretSyncedError indicates that there was an error syncing the secret.
 	ConditionReasonSecretSyncedError = "SecretSyncedError"
+	// ConditionReasonSecretDeleted indicates that the secret has been deleted.
+	ConditionReasonSecretDeleted = "SecretDeleted"
 )
 
 type ExternalSecretStatus struct {
