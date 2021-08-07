@@ -31,7 +31,7 @@ You have created a key. Press the eyeball to show the key. Copy or save it becau
 Create a secret containing your apiKey:
 
 ```shell
-kubectl create secret generic ibm-secret --from-literal=apiKey='API_KEY_VALUE' 
+kubectl create secret generic ibm-secret --from-literal=apiKey='API_KEY_VALUE'
 ```
 
 ### Update secret store
@@ -46,14 +46,33 @@ To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" 
 
 ![iam-create-success](./pictures/screenshot_service_url.png)
 
-### Creating the secret inside the provider
+### Secret Types
+We support all secret types of [IBM Secrets Manager](https://cloud.ibm.com/apidocs/secrets-manager): `arbitrary`, `username_password`, `iam_credentials` and `imported_cert`. To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to `arbitrary`:
 
-For now we only support secrets of type arbitrary. So you need to go to your Secrets Manager UI and, click 'Add Secret', and then choose 'Other Secret Type'. You can now enter your value as text or as a file. This will be the value synchronized with the secret directly.
+```yaml
+{% include 'ibm-es-types.yaml' %}
 
-### Other types of secret
+```
 
-!!! note "Not implemented" 
-    This is currently not yet implemented. See [#242](https://github.com/external-secrets/external-secrets/issues/242) for details. Feel free to contribute.
+The behavior for the different secret types is as following:
+
+#### arbitrary
+
+* `remoteRef` retrieves a string from secrets manager and sets it for specified `secretKey`
+* `dataFrom` retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful
+
+#### username_password
+* `remoteRef` requires a `property` to be set for either `username` or `password` to retrieve respective fields from the secrets manager secret and set in specified `secretKey`
+* `dataFrom` retrieves both `username` and `password` fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret
+
+#### iam_credentials
+* `remoteRef` retrieves an apikey from secrets manager and sets it for specified `secretKey`
+* `dataFrom` retrieves an apikey from secrets manager and sets it for the `apikey` Kubernetes secret key
+
+#### imported_cert
+* `remoteRef` requires a `property` to be set for either `certificate`, `private_key` or `intermediate` to retrieve respective fields from the secrets manager secret and set in specified `secretKey`
+* `dataFrom` retrieves all `certificate`, `private_key` and `intermediate` fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret
+
 
 ### Creating external secret
 
