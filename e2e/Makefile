@@ -4,7 +4,7 @@ SHELL       := /bin/bash
 
 IMG_TAG     = test
 IMG         = local/external-secrets-e2e:$(IMG_TAG)
-K8S_VERSION = "1.20.7"
+KIND_IMG    = "kindest/node:v1.20.7@sha256:cbeaf907fc78ac97ce7b625e4bf0de16e3ea725daf6b04f930bd14c67c671ff9"
 BUILD_ARGS  ?=
 export FOCUS := $(FOCUS)
 
@@ -13,7 +13,7 @@ start-kind: ## Start kind cluster
 	  --name external-secrets \
 	  --config kind.yaml \
 	  --retain \
-	  --image "kindest/node:v$(K8S_VERSION)"
+	  --image "$(KIND_IMG)"
 
 test: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.build \

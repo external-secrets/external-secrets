@@ -42,14 +42,16 @@ type SecretStoreProvider interface {
 }
 
 // TableFunc returns the main func that runs a TestCase in a table driven test.
-func TableFunc(f *Framework, prov SecretStoreProvider) func(func(*TestCase)) {
-	return func(customize func(*TestCase)) {
+func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) {
+	return func(tweaks ...func(*TestCase)) {
 		var err error
 
 		// make default test case
 		// and apply customization to it
 		tc := makeDefaultTestCase(f)
-		customize(tc)
+		for _, tweak := range tweaks {
+			tweak(tc)
+		}
 
 		// create secrets & defer delete
 		for k, v := range tc.Secrets {
