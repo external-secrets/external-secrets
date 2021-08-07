@@ -41,8 +41,9 @@ Be sure the `ibm` provider is listed in the `Kind=SecretStore`
 {% include 'ibm-secret-store.yaml' %}
 ```
 
-To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" on the left:
-
+To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" on the left.
+Note: Use the url without the `/api` suffix that is presented in the UI.
+See here for a list of [publicly available endpoints](https://cloud.ibm.com/apidocs/secrets-manager#getting-started-endpoints).
 
 ![iam-create-success](./pictures/screenshot_service_url.png)
 
