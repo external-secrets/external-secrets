@@ -19,7 +19,7 @@ Resource Types:
 <p>
 <p>AWSAuth tells the controller how to do authentication with aws.
 Only one of secretRef or jwt can be specified.
-if none is specified the controller will load credentials using the aws sdk defaults</p>
+if none is specified the controller will load credentials using the aws sdk defaults.</p>
 </p>
 <table>
 <thead>
@@ -106,7 +106,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1alpha1.AWSAuth">AWSAuth</a>)
 </p>
 <p>
-<p>Authenticate against AWS using service account tokens</p>
+<p>Authenticate against AWS using service account tokens.</p>
 </p>
 <table>
 <thead>
@@ -1843,7 +1843,7 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code> or <code>jwt</code>
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>jwt</code> or <code>cert</code>
 can be specified.</p>
 </p>
 <table>
@@ -1924,6 +1924,66 @@ VaultJwtAuth
 <em>(Optional)</em>
 <p>Jwt authenticates with Vault by passing role and JWT token using the
 JWT/OIDC authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cert</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultCertAuth">
+VaultCertAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cert authenticates with TLS Certificates by passing client certificate, private key and ca certificate
+Cert authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultCertAuth">VaultCertAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
+method, with the role name and token stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientCert</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ClientCert is a certificate to authenticate using the Cert Vault
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>SecretRef to a key in a Secret resource containing client private key to
+authenticate with Vault using the Cert authentication method</p>
 </td>
 </tr>
 </tbody>
