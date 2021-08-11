@@ -54,6 +54,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
+| scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
 | securityContext | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |

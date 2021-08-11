@@ -38,10 +38,13 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or (.Values.leaderElect) (.Values.extraArgs) }}
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.extraArgs) }}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
+          {{- end }}
+          {{- if .Values.scopedNamespace }}
+          - --namespace={{ .Values.scopedNamespace }}
           {{- end }}
           {{- range $key, $value := .Values.extraArgs }}
             {{- if $value }}
