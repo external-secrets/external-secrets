@@ -12,15 +12,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package register
+package v1alpha1
 
-// packages imported here are registered to the controller schema.
-// nolint:golint
 import (
-	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/ibm"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
+
+type YandexLockboxAuth struct {
+	// The AuthorizedKey is used for authentication
+	// +optional
+	AuthorizedKey esmeta.SecretKeySelector `json:"authorizedKeySecretRef,omitempty"`
+}
+
+// YandexLockboxProvider Configures a store to sync secrets using the Yandex Lockbox provider.
+type YandexLockboxProvider struct {
+	// Auth defines the information necessary to authenticate against Yandex Lockbox
+	Auth YandexLockboxAuth `json:"auth"`
+}

@@ -147,7 +147,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	defer func() {
-		err = secretClient.Close()
+		err = secretClient.Close(ctx)
 		if err != nil {
 			log.Error(err, errCloseStoreClient)
 		}
