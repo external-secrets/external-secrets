@@ -105,14 +105,11 @@ func (c *Client) setAuth(ctx context.Context) error {
 	if (c.keyID == nil) || (len(c.keyID) == 0) {
 		return fmt.Errorf(errMissingAKID)
 	}
-	fmt.Println("GetAuth: KEYID")
 	c.accessKey = credentialsSecret.Data[c.store.Auth.SecretRef.AccessKeySecret.Key]
 	if (c.accessKey == nil) || (len(c.accessKey) == 0) {
 		return fmt.Errorf(errMissingSAK)
 	}
-	fmt.Println("GetAuth: ACCESSKEY")
 	c.regionID = c.store.RegionID
-	fmt.Println("GetAuth: REGIONID")
 	return nil
 }
 
@@ -122,31 +119,25 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.E
 	kmsRequest.VersionId = ref.Version
 	kmsRequest.SecretName = ref.Key
 	fmt.Println(kmsRequest)
-
 	kmsRequest.SetScheme("https")
-
 	secretOut, err := kms.Client.GetSecretValue(kmsRequest)
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
-	fmt.Println("After GetSecretValue")
 	if ref.Property == "" {
 		if secretOut.SecretData != "" {
 			return []byte(secretOut.SecretData), nil
 		}
 		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
-	fmt.Println("ref.Property != ")
 	var payload string
 	if secretOut.SecretData != "" {
 		payload = secretOut.SecretData
 	}
-	fmt.Println("GetSecret: FIRST CHECKPOINT")
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
-	fmt.Println("GetSecret: SECOND CHECKPOINT")
 	return []byte(val.String()), nil
 }
 
@@ -183,17 +174,13 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1
 		return nil, err
 	}
 	alibabaRegion := iStore.regionID
-	fmt.Println("NewClient: REGIONID")
 	alibabaKeyID := iStore.keyID
-	fmt.Println("NewClient: KEYID")
 	alibabaSecretKey := iStore.accessKey
-	fmt.Println("NewClient: ACCESSKEY")
 	keyManagementService, err := kmssdk.NewClientWithAccessKey(alibabaRegion, string(alibabaKeyID), string(alibabaSecretKey))
 	if err != nil {
 		return nil, fmt.Errorf(errAlibabaClient, err)
 	}
 	kms.Client = keyManagementService
-	fmt.Println("Before printing kms")
 	return kms, nil
 }
 
