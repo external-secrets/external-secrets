@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
-	ycsdk "github.com/yandex-cloud/go-sdk"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,16 +27,17 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/grpc"
 )
 
-// providerLockbox is a provider for Yandex Lockbox.
-type providerLockbox struct {
-	sdk *ycsdk.SDK
+// lockboxProvider is a provider for Yandex Lockbox.
+type lockboxProvider struct {
+	lockboxClientCreator client.LockboxClientCreator
 }
 
 // NewClient constructs a Yandex Lockbox Provider.
-func (p *providerLockbox) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (p *lockboxProvider) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexLockbox == nil {
 		return nil, fmt.Errorf("received invalid Yandex Lockbox SecretStore resource")
@@ -78,28 +78,24 @@ func (p *providerLockbox) NewClient(ctx context.Context, store esv1alpha1.Generi
 		return nil, fmt.Errorf("unable to unmarshal authorized key: %w", err)
 	}
 
-	credentials, err := ycsdk.ServiceAccountKey(&authorizedKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create credentials: %w", err)
-	}
-
-	sdk, err := ycsdk.Build(ctx, ycsdk.Config{
-		Credentials: credentials,
-	})
+	lb, err := p.lockboxClientCreator.Create(ctx, &authorizedKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Yandex.Cloud SDK: %w", err)
 	}
 
-	p.sdk = sdk
+	return &lockboxSecretsClient{lb}, nil
+}
 
-	return p, nil
+// lockboxSecretsClient is a secrets client for Yandex Lockbox.
+type lockboxSecretsClient struct {
+	lockboxClient client.LockboxClient
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *providerLockbox) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	entries, err := requestPayload(ctx, p.sdk, ref.Key, ref.Version)
+func (p *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	entries, err := p.lockboxClient.GetPayloadEntries(ctx, ref.Key, ref.Version)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to request secret payload to get secret: %w", err)
 	}
 
 	if ref.Property == "" {
@@ -125,28 +121,11 @@ func (p *providerLockbox) GetSecret(ctx context.Context, ref esv1alpha1.External
 	return getValueAsBinary(entry)
 }
 
-// GetSecret returns a single secret from the provider.
-func requestPayload(ctx context.Context, sdk *ycsdk.SDK, secretID, versionID string) ([]*lockbox.Payload_Entry, error) {
-	if utils.IsNil(sdk) {
-		return nil, fmt.Errorf("provider Yandex Lockbox is not initialized")
-	}
-
-	payload, err := sdk.LockboxPayload().Payload().Get(ctx, &lockbox.GetPayloadRequest{
-		SecretId:  secretID,
-		VersionId: versionID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to get secret payload: %w", err)
-	}
-
-	return payload.Entries, nil
-}
-
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *providerLockbox) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	entries, err := requestPayload(ctx, p.sdk, ref.Key, ref.Version)
+func (p *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	entries, err := p.lockboxClient.GetPayloadEntries(ctx, ref.Key, ref.Version)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
 	}
 
 	secretMap := make(map[string][]byte, len(entries))
@@ -160,12 +139,8 @@ func (p *providerLockbox) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 	return secretMap, nil
 }
 
-func (p *providerLockbox) Close(ctx context.Context) error {
-	err := p.sdk.Shutdown(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to shutdown Yandex.Cloud SDK: %w", err)
-	}
-	return nil
+func (p *lockboxSecretsClient) Close(ctx context.Context) error {
+	return p.lockboxClient.Close(ctx)
 }
 
 func getValueAsIs(entry *lockbox.Payload_Entry) (interface{}, error) {
@@ -200,7 +175,12 @@ func findEntryByKey(entries []*lockbox.Payload_Entry, key string) (*lockbox.Payl
 }
 
 func init() {
-	schema.Register(&providerLockbox{}, &esv1alpha1.SecretStoreProvider{
-		YandexLockbox: &esv1alpha1.YandexLockboxProvider{},
-	})
+	schema.Register(
+		&lockboxProvider{
+			lockboxClientCreator: &grpc.LockboxClientCreator{},
+		},
+		&esv1alpha1.SecretStoreProvider{
+			YandexLockbox: &esv1alpha1.YandexLockboxProvider{},
+		},
+	)
 }
