@@ -22,7 +22,7 @@ import (
 
 // Creates LockboxClient with the given authorized key.
 type LockboxClientCreator interface {
-	Create(ctx context.Context, authorizedKey *iamkey.Key) (LockboxClient, error)
+	Create(ctx context.Context, endpoint string, authorizedKey *iamkey.Key) (LockboxClient, error)
 }
 
 // Responsible for accessing Lockbox secrets.
