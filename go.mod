@@ -57,6 +57,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.1
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
+	github.com/oracle/oci-go-sdk v24.3.0+incompatible
 	github.com/oracle/oci-go-sdk/v45 v45.2.0
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/prometheus/client_golang v1.11.0
