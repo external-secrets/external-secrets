@@ -488,6 +488,41 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	refreshintervalZero := func(tc *testCase) {
+		const targetProp = "targetProperty"
+		const secretVal = "someValue"
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: 0}
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1alpha1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
+			Eventually(func() bool {
+				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				return metric.GetCounter().GetValue() == 1.0
+			}, timeout, interval).Should(BeTrue())
+
+			// check values
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+
+			// update provider secret
+			newValue := "NEW VALUE"
+			sec := &v1.Secret{}
+			fakeProvider.WithGetSecret([]byte(newValue), nil)
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Consistently(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, sec)
+				if err != nil {
+					return false
+				}
+				v := sec.Data[targetProp]
+				return string(v) == secretVal
+			}, time.Second*10, time.Second).Should(BeTrue())
+		}
+	}
+
 	// with dataFrom all properties from the specified secret
 	// should be put into the secret
 	syncWithDataFrom := func(tc *testCase) {
@@ -669,6 +704,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should refresh secret from template", refreshWithTemplate),
 		Entry("should refresh secret value when provider secret changes", refreshSecretValue),
+		Entry("should not refresh secret value when provider secret changes but refreshInterval is zero", refreshintervalZero),
 		Entry("should fetch secret using dataFrom", syncWithDataFrom),
 		Entry("should set error condition when provider errors", providerErrCondition),
 		Entry("should set an error condition when store does not exist", storeMissingErrCondition),
@@ -695,7 +731,12 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 						"foo": "bar",
 					},
 				},
-				Status: esv1alpha1.ExternalSecretStatus{},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: time.Minute},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{
+					RefreshTime: metav1.Now(),
+				},
 			}
 			es.Status.SyncedResourceVersion = getResourceVersion(es)
 			// this should not refresh, rv matches object
@@ -714,7 +755,12 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 						"foo": "bar",
 					},
 				},
-				Status: esv1alpha1.ExternalSecretStatus{},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: time.Minute},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{
+					RefreshTime: metav1.Now(),
+				},
 			}
 			es.Status.SyncedResourceVersion = getResourceVersion(es)
 			// this should not refresh, rv matches object
@@ -730,7 +776,12 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: 1,
 				},
-				Status: esv1alpha1.ExternalSecretStatus{},
+				Spec: esv1alpha1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: 0},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{
+					RefreshTime: metav1.Now(),
+				},
 			}
 			es.Status.SyncedResourceVersion = getResourceVersion(es)
 			Expect(shouldRefresh(es)).To(BeFalse())
@@ -740,13 +791,13 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
-		It("should skip refresh when refreshInterval is nil", func() {
+		It("should skip refresh when refreshInterval is 0", func() {
 			es := esv1alpha1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: 1,
 				},
 				Spec: esv1alpha1.ExternalSecretSpec{
-					RefreshInterval: nil,
+					RefreshInterval: &metav1.Duration{Duration: 0},
 				},
 				Status: esv1alpha1.ExternalSecretStatus{},
 			}

@@ -151,7 +151,8 @@ type ExternalSecretSpec struct {
 type ExternalSecretConditionType string
 
 const (
-	ExternalSecretReady ExternalSecretConditionType = "Ready"
+	ExternalSecretReady   ExternalSecretConditionType = "Ready"
+	ExternalSecretDeleted ExternalSecretConditionType = "Deleted"
 )
 
 type ExternalSecretStatusCondition struct {
@@ -173,6 +174,8 @@ const (
 	ConditionReasonSecretSynced = "SecretSynced"
 	// ConditionReasonSecretSyncedError indicates that there was an error syncing the secret.
 	ConditionReasonSecretSyncedError = "SecretSyncedError"
+	// ConditionReasonSecretDeleted indicates that the secret has been deleted.
+	ConditionReasonSecretDeleted = "SecretDeleted"
 )
 
 type ExternalSecretStatus struct {
@@ -195,6 +198,7 @@ type ExternalSecretStatus struct {
 // +kubebuilder:resource:scope=Namespaced,categories={externalsecrets},shortName=es
 // +kubebuilder:printcolumn:name="Store",type=string,JSONPath=`.spec.secretStoreRef.name`
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshInterval`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 type ExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
