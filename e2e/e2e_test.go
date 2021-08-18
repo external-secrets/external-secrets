@@ -38,9 +38,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	err := util.WaitForURL("http://localstack.default/health")
 	Expect(err).ToNot(HaveOccurred())
 
-	By("installing vault")
-	addon.InstallGlobalAddon(addon.NewVault(), cfg)
-
 	By("installing eso")
 	addon.InstallGlobalAddon(addon.NewESO(), cfg)
 	return nil

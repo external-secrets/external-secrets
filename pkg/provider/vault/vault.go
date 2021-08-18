@@ -51,9 +51,9 @@ const (
 	errVaultCert      = "cannot set Vault CA certificate: %w"
 	errReadSecret     = "cannot read secret data from Vault: %w"
 	errAuthFormat     = "cannot initialize Vault client: no valid auth method specified: %w"
-	errDataField      = "failed to find data field: %v"
-	errJSONUnmarshall = "failed to unmarshall JSON: %v"
-	errSecretFormat   = "secret data not in expected format: %v"
+	errDataField      = "failed to find data field"
+	errJSONUnmarshall = "failed to unmarshall JSON"
+	errSecretFormat   = "secret data not in expected format"
 	errVaultToken     = "cannot parse Vault authentication token: %w"
 	errVaultReqParams = "cannot set Vault request parameters: %w"
 	errVaultRequest   = "error from Vault request: %w"
@@ -118,7 +118,6 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 	}
 
 	cfg, err := vStore.newConfig()
-
 	if err != nil {
 		return nil, err
 	}

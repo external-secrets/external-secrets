@@ -305,7 +305,7 @@ func DataPropertyDockerconfigJSON(f *framework.Framework) (string, func(*framewo
 	}
 }
 
-// This case adds an ssh private key secret and sybcs it.
+// This case adds an ssh private key secret and synchronizes it.
 // Not supported by: vault. Json parsing error.
 func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync ssh key secret", func(tc *framework.TestCase) {
@@ -379,7 +379,6 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 }
 
 // This case adds an ssh private key secret and syncs it.
-// Supported by vault. But does not work with any form of line breaks as standard ssh key.
 func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync ssh key with provider.", func(tc *framework.TestCase) {
 		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")

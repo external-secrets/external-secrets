@@ -9,15 +9,6 @@ kubeadmConfigPatches:
       service-account-key-file: "/etc/kubernetes/pki/sa.pub"
       service-account-signing-key-file: "/etc/kubernetes/pki/sa.key"
       service-account-issuer: "https://s3-XXXXXXXXXX.amazonaws.com/XXXXXXXXXXXXXXXXXXXXX"
-- |
-  apiVersion: kubelet.config.k8s.io/v1beta1
-  kind: KubeletConfiguration
-  metadata:
-    name: config
-  # this is only relevant for btrfs uses
-  # https://github.com/kubernetes/kubernetes/issues/80633#issuecomment-550994513
-  featureGates:
-    LocalStorageCapacityIsolation: false
 nodes:
 - role: control-plane
 - role: worker

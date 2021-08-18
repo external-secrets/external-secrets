@@ -17,6 +17,7 @@ package externalsecret
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -74,9 +75,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&Reconciler{
-		Client: k8sClient,
-		Scheme: k8sManager.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
+		Client:          k8sClient,
+		Scheme:          k8sManager.GetScheme(),
+		Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
+		RequeueInterval: time.Second,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
