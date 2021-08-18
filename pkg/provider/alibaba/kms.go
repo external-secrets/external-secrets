@@ -37,6 +37,7 @@ const (
 
 	errAlibabaClient                           = "cannot setup new Alibaba client: %w"
 	errAlibabaCredSecretName                   = "invalid Alibaba SecretStore resource: missing Alibaba APIKey"
+	errUninitalizedAlibabaProvider             = "provider Alibaba is not initialized"
 	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterStore, missing  AccessKeyID namespace"
 	errInvalidClusterStoreMissingSKNamespace   = "invalid ClusterStore, missing namespace"
 	errFetchSAKSecret                          = "could not fetch AccessSecretKey secret: %w"
