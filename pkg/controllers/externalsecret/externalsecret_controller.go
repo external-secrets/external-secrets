@@ -194,9 +194,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		// no template: copy data and return
 		if externalSecret.Spec.Target.Template == nil {
-			for k, v := range dataMap {
-				secret.Data[k] = v
-			}
+			secret.Data = dataMap
 			return nil
 		}
 
