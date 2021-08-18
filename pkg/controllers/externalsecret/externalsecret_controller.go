@@ -172,7 +172,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Name:      externalSecret.Spec.Target.Name,
 			Namespace: externalSecret.Namespace,
 		},
-		Data: make(map[string][]byte),
+		Immutable: &externalSecret.Spec.Target.Immutable,
+		Data:      make(map[string][]byte),
 	}
 
 	mutationFunc := func() error {

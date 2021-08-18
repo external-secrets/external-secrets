@@ -103,6 +103,10 @@ type ExternalSecretTarget struct {
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
 	Template *ExternalSecretTemplate `json:"template,omitempty"`
+
+	// Immutable defines if the final secret will be immutable
+	// +optional
+	Immutable bool `json:"immutable,omitempty"`
 }
 
 // ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.
