@@ -50,6 +50,10 @@ type SecretStoreProvider struct {
 	// +optional
 	GCPSM *GCPSMProvider `json:"gcpsm,omitempty"`
 
+	// Oracle configures this store to sync secrets using Oracle Cloud provider
+	// +optional
+	Oracle *OracleProvider `json:"oracle,omitempty"`
+
 	// IBM configures this store to sync secrets using IBM Cloud provider
 	// +optional
 	IBM *IBMProvider `json:"ibm,omitempty"`
