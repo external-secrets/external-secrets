@@ -46,6 +46,8 @@ nav:
     - IBM:
       - Secrets Manager: provider-ibm-secrets-manager.md
     - HashiCorp Vault: provider-hashicorp-vault.md
+    - Yandex:
+        - Lockbox: provider-yandex-lockbox.md
   - References:
     - API specification: spec.md
   - Contributing:

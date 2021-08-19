@@ -19,7 +19,7 @@ import (
 )
 
 type YandexLockboxAuth struct {
-	// The AuthorizedKey is used for authentication
+	// The authorized key used for authentication
 	// +optional
 	AuthorizedKey esmeta.SecretKeySelector `json:"authorizedKeySecretRef,omitempty"`
 }
