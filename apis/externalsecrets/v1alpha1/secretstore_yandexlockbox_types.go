@@ -26,8 +26,9 @@ type YandexLockboxAuth struct {
 
 // YandexLockboxProvider Configures a store to sync secrets using the Yandex Lockbox provider.
 type YandexLockboxProvider struct {
-	// Yandex.Cloud API endpoint
-	Endpoint string `json:"endpoint,omitempty"`
+	// Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
+	// +optional
+	APIEndpoint string `json:"apiEndpoint,omitempty"`
 
 	// Auth defines the information necessary to authenticate against Yandex Lockbox
 	Auth YandexLockboxAuth `json:"auth"`

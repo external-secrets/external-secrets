@@ -27,7 +27,7 @@ import (
 type LockboxClientCreator struct {
 }
 
-func (lb *LockboxClientCreator) Create(ctx context.Context, endpoint string, authorizedKey *iamkey.Key) (client.LockboxClient, error) {
+func (lb *LockboxClientCreator) Create(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (client.LockboxClient, error) {
 	credentials, err := ycsdk.ServiceAccountKey(authorizedKey)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func (lb *LockboxClientCreator) Create(ctx context.Context, endpoint string, aut
 
 	sdk, err := ycsdk.Build(ctx, ycsdk.Config{
 		Credentials: credentials,
-		Endpoint:    endpoint,
+		Endpoint:    apiEndpoint,
 	})
 	if err != nil {
 		return nil, err

@@ -78,7 +78,7 @@ func (p *lockboxProvider) NewClient(ctx context.Context, store esv1alpha1.Generi
 		return nil, fmt.Errorf("unable to unmarshal authorized key: %w", err)
 	}
 
-	lb, err := p.lockboxClientCreator.Create(ctx, storeSpecYandexLockbox.Endpoint, &authorizedKey)
+	lb, err := p.lockboxClientCreator.Create(ctx, storeSpecYandexLockbox.APIEndpoint, &authorizedKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Yandex.Cloud SDK: %w", err)
 	}

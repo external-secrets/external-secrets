@@ -2339,13 +2339,14 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
-<code>endpoint</code></br>
+<code>apiEndpoint</code></br>
 <em>
 string
 </em>
 </td>
 <td>
-<p>Yandex.Cloud API endpoint</p>
+<em>(Optional)</em>
+<p>Yandex.Cloud API endpoint (e.g. &lsquo;api.cloud.yandex.net:443&rsquo;)</p>
 </td>
 </tr>
 <tr>

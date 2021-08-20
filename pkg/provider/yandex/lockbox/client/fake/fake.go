@@ -30,7 +30,7 @@ type LockboxClientCreator struct {
 	Backend *LockboxBackend
 }
 
-func (lcc *LockboxClientCreator) Create(ctx context.Context, endpoint string, authorizedKey *iamkey.Key) (client.LockboxClient, error) {
+func (lcc *LockboxClientCreator) Create(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (client.LockboxClient, error) {
 	return &LockboxClient{lcc.Backend, authorizedKey}, nil
 }
 
