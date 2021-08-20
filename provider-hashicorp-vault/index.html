@@ -1094,10 +1094,11 @@ trade-offs. Depending on the authentication method you need to adapt your enviro
           <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;approle&quot;</span>
           <span class="c1"># RoleID configured in the App Role authentication backend</span>
           <span class="nt">roleId</span><span class="p">:</span> <span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span>
+          <span class="c1"># Reference to a key in a K8 Secret that contains the App Role SecretId</span>
           <span class="nt">secretRef</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
             <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;secret-id&quot;</span>
 </code></pre></div>
 
 <h4 id="kubernetes-authentication">Kubernetes authentication</h4>
