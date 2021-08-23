@@ -18,7 +18,7 @@ package v1
 // In some instances, `key` is a required field.
 type SecretKeySelector struct {
 	// The name of the Secret resource being referred to.
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	// Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
 	// to the namespace of the referent.
 	// +optional
