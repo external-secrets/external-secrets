@@ -66,3 +66,6 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# -- Pod priority class name.
+priorityClassName: ""
