@@ -543,7 +543,9 @@ ExternalSecretStatus
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;Ready&#34;</p></td>
+<tbody><tr><td><p>&#34;Deleted&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Ready&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -1151,6 +1153,7 @@ GCPSMAuth
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Auth defines the information necessary to authenticate against GCP</p>
 </td>
 </tr>
