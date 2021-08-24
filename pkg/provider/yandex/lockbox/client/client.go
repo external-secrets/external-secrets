@@ -15,18 +15,25 @@ package client
 
 import (
 	"context"
+	"time"
 
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 )
 
-// Creates LockboxClient with the given authorized key.
-type LockboxClientCreator interface {
-	Create(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (LockboxClient, error)
+// Creates Lockbox clients and Yandex.Cloud IAM tokens.
+type YandexCloudCreator interface {
+	CreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (LockboxClient, error)
+	CreateIamToken(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (*IamToken, error)
+	Now() time.Time
+}
+
+type IamToken struct {
+	Token     string
+	ExpiresAt time.Time
 }
 
 // Responsible for accessing Lockbox secrets.
 type LockboxClient interface {
-	GetPayloadEntries(ctx context.Context, secretID string, versionID string) ([]*lockbox.Payload_Entry, error)
-	Close(ctx context.Context) error
+	GetPayloadEntries(ctx context.Context, iamToken, secretID, versionID string) ([]*lockbox.Payload_Entry, error)
 }

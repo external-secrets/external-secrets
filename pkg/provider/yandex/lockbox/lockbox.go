@@ -15,13 +15,18 @@ package lockbox
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -31,9 +36,33 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/grpc"
 )
 
+const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
+const iamTokenCleanupDelay = 1 * time.Hour       // specifies how often cleanUpIamTokenMap() is performed
+
+var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox")
+
+type iamTokenKey struct {
+	authorizedKeyID  string
+	serviceAccountID string
+	privateKeyHash   string
+}
+
 // lockboxProvider is a provider for Yandex Lockbox.
 type lockboxProvider struct {
-	lockboxClientCreator client.LockboxClientCreator
+	yandexCloudCreator client.YandexCloudCreator
+
+	lockboxClientMap      map[string]client.LockboxClient // apiEndpoint -> LockboxClient
+	lockboxClientMapMutex sync.Mutex
+	iamTokenMap           map[iamTokenKey]*client.IamToken
+	iamTokenMapMutex      sync.Mutex
+}
+
+func newLockboxProvider(yandexCloudCreator client.YandexCloudCreator) *lockboxProvider {
+	return &lockboxProvider{
+		yandexCloudCreator: yandexCloudCreator,
+		lockboxClientMap:   make(map[string]client.LockboxClient),
+		iamTokenMap:        make(map[iamTokenKey]*client.IamToken),
+	}
 }
 
 // NewClient constructs a Yandex Lockbox Provider.
@@ -78,22 +107,99 @@ func (p *lockboxProvider) NewClient(ctx context.Context, store esv1alpha1.Generi
 		return nil, fmt.Errorf("unable to unmarshal authorized key: %w", err)
 	}
 
-	lb, err := p.lockboxClientCreator.Create(ctx, storeSpecYandexLockbox.APIEndpoint, &authorizedKey)
+	lockboxClient, err := p.getOrCreateLockboxClient(ctx, storeSpecYandexLockbox.APIEndpoint, &authorizedKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Yandex.Cloud SDK: %w", err)
+		return nil, fmt.Errorf("failed to create Yandex Lockbox client: %w", err)
 	}
 
-	return &lockboxSecretsClient{lb}, nil
+	iamToken, err := p.getOrCreateIamToken(ctx, storeSpecYandexLockbox.APIEndpoint, &authorizedKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create IAM token: %w", err)
+	}
+
+	return &lockboxSecretsClient{lockboxClient, iamToken.Token}, nil
+}
+
+func (p *lockboxProvider) getOrCreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (client.LockboxClient, error) {
+	p.lockboxClientMapMutex.Lock()
+	defer p.lockboxClientMapMutex.Unlock()
+
+	if _, ok := p.lockboxClientMap[apiEndpoint]; !ok {
+		log.Info("creating LockboxClient", "apiEndpoint", apiEndpoint)
+
+		lockboxClient, err := p.yandexCloudCreator.CreateLockboxClient(ctx, apiEndpoint, authorizedKey)
+		if err != nil {
+			return nil, err
+		}
+		p.lockboxClientMap[apiEndpoint] = lockboxClient
+	}
+	return p.lockboxClientMap[apiEndpoint], nil
+}
+
+func (p *lockboxProvider) getOrCreateIamToken(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (*client.IamToken, error) {
+	p.iamTokenMapMutex.Lock()
+	defer p.iamTokenMapMutex.Unlock()
+
+	iamTokenKey := buildIamTokenKey(authorizedKey)
+	if iamToken, ok := p.iamTokenMap[iamTokenKey]; !ok || !p.isIamTokenUsable(iamToken) {
+		log.Info("creating IAM token", "authorizedKeyId", authorizedKey.Id)
+
+		iamToken, err := p.yandexCloudCreator.CreateIamToken(ctx, apiEndpoint, authorizedKey)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Info("created IAM token", "authorizedKeyId", authorizedKey.Id, "expiresAt", iamToken.ExpiresAt)
+
+		p.iamTokenMap[iamTokenKey] = iamToken
+	}
+	return p.iamTokenMap[iamTokenKey], nil
+}
+
+func (p *lockboxProvider) isIamTokenUsable(iamToken *client.IamToken) bool {
+	now := p.yandexCloudCreator.Now()
+	return now.Add(maxSecretsClientLifetime).Before(iamToken.ExpiresAt)
+}
+
+func buildIamTokenKey(authorizedKey *iamkey.Key) iamTokenKey {
+	privateKeyHash := sha256.Sum256([]byte(authorizedKey.PrivateKey))
+	return iamTokenKey{
+		authorizedKey.GetId(),
+		authorizedKey.GetServiceAccountId(),
+		hex.EncodeToString(privateKeyHash[:]),
+	}
+}
+
+// Used for testing.
+func (p *lockboxProvider) isIamTokenCached(authorizedKey *iamkey.Key) bool {
+	p.iamTokenMapMutex.Lock()
+	defer p.iamTokenMapMutex.Unlock()
+
+	_, ok := p.iamTokenMap[buildIamTokenKey(authorizedKey)]
+	return ok
+}
+
+func (p *lockboxProvider) cleanUpIamTokenMap() {
+	p.iamTokenMapMutex.Lock()
+	defer p.iamTokenMapMutex.Unlock()
+
+	for key, value := range p.iamTokenMap {
+		if p.yandexCloudCreator.Now().After(value.ExpiresAt) {
+			log.Info("deleting IAM token", "authorizedKeyId", key.authorizedKeyID)
+			delete(p.iamTokenMap, key)
+		}
+	}
 }
 
 // lockboxSecretsClient is a secrets client for Yandex Lockbox.
 type lockboxSecretsClient struct {
 	lockboxClient client.LockboxClient
+	iamToken      string
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	entries, err := p.lockboxClient.GetPayloadEntries(ctx, ref.Key, ref.Version)
+func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Key, ref.Version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret: %w", err)
 	}
@@ -122,8 +228,8 @@ func (p *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.Ext
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	entries, err := p.lockboxClient.GetPayloadEntries(ctx, ref.Key, ref.Version)
+func (c *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Key, ref.Version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
 	}
@@ -139,8 +245,8 @@ func (p *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.
 	return secretMap, nil
 }
 
-func (p *lockboxSecretsClient) Close(ctx context.Context) error {
-	return p.lockboxClient.Close(ctx)
+func (c *lockboxSecretsClient) Close(ctx context.Context) error {
+	return nil
 }
 
 func getValueAsIs(entry *lockbox.Payload_Entry) (interface{}, error) {
@@ -175,10 +281,17 @@ func findEntryByKey(entries []*lockbox.Payload_Entry, key string) (*lockbox.Payl
 }
 
 func init() {
+	lockboxProvider := newLockboxProvider(&grpc.YandexCloudCreator{})
+
+	go func() {
+		for {
+			time.Sleep(iamTokenCleanupDelay)
+			lockboxProvider.cleanUpIamTokenMap()
+		}
+	}()
+
 	schema.Register(
-		&lockboxProvider{
-			lockboxClientCreator: &grpc.LockboxClientCreator{},
-		},
+		lockboxProvider,
 		&esv1alpha1.SecretStoreProvider{
 			YandexLockbox: &esv1alpha1.YandexLockboxProvider{},
 		},
