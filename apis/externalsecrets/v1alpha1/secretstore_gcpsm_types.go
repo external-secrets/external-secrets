@@ -31,7 +31,8 @@ type GCPSMAuthSecretRef struct {
 // GCPSMProvider Configures a store to sync secrets using the GCP Secret Manager provider.
 type GCPSMProvider struct {
 	// Auth defines the information necessary to authenticate against GCP
-	Auth GCPSMAuth `json:"auth"`
+	// +optional
+	Auth GCPSMAuth `json:"auth,omitempty"`
 
 	// ProjectID project where secret is located
 	ProjectID string `json:"projectID,omitempty"`
