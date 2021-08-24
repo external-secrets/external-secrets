@@ -35,11 +35,10 @@ import (
 // Requires GITLAB_TOKEN and GITLAB_PROJECT_ID to be set in environment variables
 
 const (
-	// TODO: Make these more descriptive.
-	errGitlabCredSecretName                   = "error with credentials"
-	errInvalidClusterStoreMissingSAKNamespace = "error"
+	errGitlabCredSecretName                   = "credentials are empty"
+	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
-	errMissingSAK                             = "error"
+	errMissingSAK                             = "missing credentials while setting auth"
 	errUninitalizedGitlabProvider             = "provider gitlab is not initialized"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
