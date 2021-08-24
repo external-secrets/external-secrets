@@ -15,21 +15,20 @@ package gitlab
 
 import (
 	"context"
-
-	// I think I've overwritten the log package I need with the default golang one?
+	"strings"
 
 	// nolint
 	. "github.com/onsi/ginkgo"
 
 	// nolint
 	. "github.com/onsi/gomega"
+	gitlab "github.com/xanzy/go-gitlab"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
-	gitlab "github.com/xanzy/go-gitlab"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type gitlabProvider struct {
@@ -49,20 +48,18 @@ func newGitlabProvider(f *framework.Framework, credentials, projectID string) *g
 }
 
 func (s *gitlabProvider) CreateSecret(key, val string) {
-	// ctx := context.Background() -- Don't think we need this here
 	// **Open the client
 	client, err := gitlab.NewClient(s.credentials)
 	Expect(err).ToNot(HaveOccurred())
 	// Open the client**
 
 	// Set variable options
+	variableKey := strings.ReplaceAll(key, "-", "_")
+	variableValue := val
 
-	// Think I need to set below values to passed arguments
-	variable_key := key
-	variable_value := val
 	opt := gitlab.CreateProjectVariableOptions{
-		Key:              &variable_key,
-		Value:            &variable_value,
+		Key:              &variableKey,
+		Value:            &variableValue,
 		VariableType:     nil,
 		Protected:        nil,
 		Masked:           nil,
@@ -78,15 +75,13 @@ func (s *gitlabProvider) CreateSecret(key, val string) {
 }
 
 func (s *gitlabProvider) DeleteSecret(key string) {
-	// ctx := context.Background()
-
 	// **Open a client
 	client, err := gitlab.NewClient(s.credentials)
 	Expect(err).ToNot(HaveOccurred())
 	// Open a client**
 
 	// Delete the secret
-	_, err = client.ProjectVariables.RemoveVariable(s.projectID, key)
+	_, err = client.ProjectVariables.RemoveVariable(s.projectID, strings.ReplaceAll(key, "-", "_"))
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -108,7 +103,7 @@ func (s *gitlabProvider) BeforeEach() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// Create a secret store - change these values to match YAML
-	By("creating an secret store for credentials")
+	By("creating a secret store for credentials")
 	secretStore := &esv1alpha1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,

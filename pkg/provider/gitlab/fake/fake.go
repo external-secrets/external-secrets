@@ -1,31 +1,38 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package fake
 
 import (
-	"fmt"
-
-	"github.com/IBM/go-sdk-core/core"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	sm "github.com/xanzy/go-gitlab"
+	gitlab "github.com/xanzy/go-gitlab"
 )
 
 type GitlabMockClient struct {
-	getSecret func(getSecretOptions *sm.GetSecretOptions) (result *sm.GetSecret, response *core.DetailedResponse, err error)
+	getVariable func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
-// Exports the mock client's getSecret function
-func (mc *GitlabMockClient) GetSecret(getSecretOptions *sm.GetSecretOptions) (result *sm.GetSecret, response *core.DetailedResponse, err error) {
-	return mc.getSecret(getSecretOptions)
+func (mc *GitlabMockClient) GetVariable(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
+	return mc.getVariable(pid, key, nil)
 }
 
-func (mc *GitlabMockClient) WithValue(input *sm.GetSecretOptions, output *sm.GetSecret, err error) {
+func (mc *GitlabMockClient) WithValue(projectIDinput, keyInput string, output *gitlab.ProjectVariable, err error) {
 	if mc != nil {
-		mc.getSecret = func(paramReq *sm.GetSecretOptions) (*sm.GetSecret, *core.DetailedResponse, error) {
+		mc.getVariable = func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
 			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
 			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
-			if !cmp.Equal(paramReq, input, cmpopts.IgnoreUnexported(sm.GetSecret{})) {
-				return nil, nil, fmt.Errorf("unexpected test argument")
-			}
+			// if !cmp.Equal(paramReq, input, cmpopts.IgnoreUnexported(gitlab.ProjectVariable{})) {
+			// 	return nil, nil, fmt.Errorf("unexpected test argument")
+			// }
 			return output, nil, err
 		}
 	}

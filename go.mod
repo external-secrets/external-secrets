@@ -4,6 +4,7 @@ go 1.16
 
 replace (
 	github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1 => ./apis/externalsecrets/v1alpha1
+	github.com/external-secrets/external-secrets/pkg/provider/gitlab => ./pkg/provider/gitlab
 	google.golang.org/grpc => google.golang.org/grpc v1.27.0
 
 	k8s.io/api => k8s.io/api v0.21.2
@@ -74,7 +75,6 @@ require (
 	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c
 	golang.org/x/tools v0.1.2-0.20210512205948-8287d5da45e4 // indirect
 	google.golang.org/api v0.30.0
-	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a
 	google.golang.org/grpc v1.31.0
 	honnef.co/go/tools v0.1.4 // indirect

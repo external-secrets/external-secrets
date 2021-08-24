@@ -17,38 +17,40 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
-	"github.com/external-secrets/external-secrets/e2e/framework/log"
 	"github.com/tidwall/gjson"
-
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	gitlab "github.com/xanzy/go-gitlab"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/e2e/framework/log"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Requires GITLAB_TOKEN and GITLAB_PROJECT_ID to be set in environment variables
 
 const (
-	// TODO: Make these more descriptive
+	// TODO: Make these more descriptive.
 	errGitlabCredSecretName                   = "error with credentials"
 	errInvalidClusterStoreMissingSAKNamespace = "error"
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
 	errMissingSAK                             = "error"
+	errUninitalizedGitlabProvider             = "provider gitlab is not initialized"
+	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
 
-// Probably don't need this any more
-type GitlabCredentials struct {
-	Token string `json:"token"`
+type Client interface {
+	GetVariable(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
-// Gitlab Provider struct with reference to a github client and a projectID
+// Gitlab Provider struct with reference to a github client and a projectID.
 type Gitlab struct {
-	client    *gitlab.Client
+	client    Client
 	projectID interface{}
 }
 
@@ -67,7 +69,7 @@ func init() {
 	})
 }
 
-// Set gClient credentials to Access Token
+// Set gClient credentials to Access Token.
 func (c *gClient) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := c.store.Auth.SecretRef.AccessToken.Name
@@ -101,12 +103,12 @@ func (c *gClient) setAuth(ctx context.Context) error {
 	return nil
 }
 
-// Function newGitlabProvider returns a reference to a new instance of a 'Gitlab' struct
+// Function newGitlabProvider returns a reference to a new instance of a 'Gitlab' struct.
 func NewGitlabProvider() *Gitlab {
 	return &Gitlab{}
 }
 
-// Method on Gitlab Provider to set up client with credentials and populate projectID
+// Method on Gitlab Provider to set up client with credentials and populate projectID.
 func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
@@ -131,14 +133,19 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha1.GenericStore, k
 	if err != nil {
 		log.Logf("Failed to create client: %v", err)
 	}
-	g.client = gitlabClient
+
+	g.client = gitlabClient.ProjectVariables
 	g.projectID = cliStore.store.ProjectID
 
 	return g, nil
-
 }
 
 func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if utils.IsNil(g.client) {
+		return nil, fmt.Errorf(errUninitalizedGitlabProvider)
+	}
+	// Need to replace hyphens with underscores to work with Gitlab API
+	ref.Key = strings.ReplaceAll(ref.Key, "-", "_")
 	// Retrieves a gitlab variable in the form
 	// {
 	// 	"key": "TEST_VARIABLE_1",
@@ -146,7 +153,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	// 	"value": "TEST_1",
 	// 	"protected": false,
 	// 	"masked": true
-	data, _, err := g.client.ProjectVariables.GetVariable(g.projectID, ref.Key, nil) //Optional 'filter' parameter could be added later
+	data, _, err := g.client.GetVariable(g.projectID, ref.Key, nil) // Optional 'filter' parameter could be added later
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +167,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 
 	var payload string
 	if data.Value != "" {
-		payload = string(data.Value)
+		payload = data.Value
 	}
 
 	val := gjson.Get(payload, ref.Property)
@@ -168,7 +175,6 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
 	return []byte(val.String()), nil
-
 }
 
 func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -182,8 +188,7 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		fmt.Printf("unable to unmarshal secret %v: %v", ref.Key, err)
-		return nil, err
+		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 
 	// Converts values in K:V pairs into bytes, while leaving keys as strings
