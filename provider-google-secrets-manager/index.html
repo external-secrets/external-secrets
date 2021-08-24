@@ -591,22 +591,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#service-account-key-authentication" class="md-nav__link">
     Service account key authentication
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -621,6 +608,53 @@
   <a href="#creating-external-secret" class="md-nav__link">
     Creating external secret
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication-with-workload-identity" class="md-nav__link">
+    Authentication with Workload Identity
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication with Workload Identity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#following-the-documentation" class="md-nav__link">
+    Following the documentation
+  </a>
+  
+    <nav class="md-nav" aria-label="Following the documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changing-values" class="md-nav__link">
+    Changing Values
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#following-through" class="md-nav__link">
+    Following through
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-with-workloadidentity" class="md-nav__link">
+    SecretStore with WorkloadIdentity
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -855,22 +889,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#service-account-key-authentication" class="md-nav__link">
     Service account key authentication
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -885,6 +906,53 @@
   <a href="#creating-external-secret" class="md-nav__link">
     Creating external secret
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication-with-workload-identity" class="md-nav__link">
+    Authentication with Workload Identity
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication with Workload Identity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#following-the-documentation" class="md-nav__link">
+    Following the documentation
+  </a>
+  
+    <nav class="md-nav" aria-label="Following the documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changing-values" class="md-nav__link">
+    Changing Values
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#following-through" class="md-nav__link">
+    Following through
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secretstore-with-workloadidentity" class="md-nav__link">
+    SecretStore with WorkloadIdentity
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -914,9 +982,7 @@
                 
                 <h2 id="google-cloud-secret-manager">Google Cloud Secret Manager</h2>
 <p>External Secrets Operator integrates with <a href="https://cloud.google.com/secret-manager">GCP Secret Manager</a> for secret management.</p>
-<h3 id="authentication">Authentication</h3>
-<p>At the moment, we only support <a href="https://cloud.google.com/iam/docs/creating-managing-service-account-keys">service account key</a> authentication.</p>
-<h4 id="service-account-key-authentication">Service account key authentication</h4>
+<h3 id="service-account-key-authentication">Service account key authentication</h3>
 <p>A service account key is created and the JSON keyfile is stored in a <code>Kind=Secret</code>. The <code>project_id</code> and <code>private_key</code> should be configured for the project.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
@@ -981,6 +1047,51 @@
 <p>The operator will fetch the GCP Secret Manager secret and inject it as a <code>Kind=Secret</code>
 <div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
 </code></pre></div></p>
+<h2 id="authentication-with-workload-identity">Authentication with Workload Identity</h2>
+<p>This makes it possible for your Google Kubernetes Engine (GKE) applications to consume services provided by Google APIs, namely Secrets Manager service in this case.</p>
+<p>Here we will assume that you installed ESO using helm and that you named the chart installation <code>external-secrets</code> and the namespace where it lives <code>es</code> like:</p>
+<div class="highlight"><pre><span></span><code>helm install external-secrets external-secrets/external-secrets --namespace es
+</code></pre></div>
+
+<p>Then most of the resources would have this name, the important one here being the k8s service account attached to the external-secrets operator deployment:</p>
+<div class="highlight"><pre><span></span><code># ...
+      containers:
+      - image: ghcr.io/external-secrets/external-secrets:vVERSION
+        name: external-secrets
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      serviceAccount: external-secrets
+      serviceAccountName: external-secrets # &lt;--- here
+</code></pre></div>
+
+<h3 id="following-the-documentation">Following the documentation</h3>
+<p>You can find the documentation for Workload Identity under <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">this url</a>. We will walk you through how to navigate it here.</p>
+<h4 id="changing-values">Changing Values</h4>
+<p>Search <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">the documment</a> for this editable values and change them to your values:</p>
+<ul>
+<li>CLUSTER_NAME: The name of your cluster</li>
+<li>PROJECT_ID: Your project ID (not your Project number nor your Project name)</li>
+<li>K8S_NAMESPACE: For us folowing these steps here it will be <code>es</code>, but this will be the namespace where you deployed the external-secrets operator</li>
+<li>KSA_NAME: external-secrets (if you are not creating a new one to attach to the deployemnt)</li>
+<li>GSA_NAME: external-secrets for simplicity, or something else if you have to follow different naming convetions for cloud resources</li>
+<li>ROLE_NAME: roles/secretmanager.secretAccessor so you make the pod only be able to access secrets on Secret Manager</li>
+</ul>
+<h4 id="following-through">Following through</h4>
+<p>You can follow through the documentation and adapt it to your specific use case. If you want to just use the serviceaccount that we deployed with the helm chart, for example, you don't need to create a new service account on 2 of <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#authenticating_to">Authenticating to Google Cloud</a>.</p>
+<h4 id="secretstore-with-workloadidentity">SecretStore with WorkloadIdentity</h4>
+<p>To use workload identity you can just omit the auth field of the secret store and let the operator client fall back to defaults using the roles attached to your service account.</p>
+<div class="highlight"><pre><span></span><code>apiVersion: external-secrets.io/v1alpha1
+kind: SecretStore
+metadata:
+  name: example
+spec:
+  provider:
+    gcpsm:
+      projectID: pid
+</code></pre></div>
                 
               
               
