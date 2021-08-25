@@ -609,6 +609,45 @@
   
 
           
+            
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_6" type="checkbox" id="__nav_5_6" >
+      
+      <label class="md-nav__link" for="__nav_5_6">
+        Yandex
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Yandex" data-md-level="2">
+        <label class="md-nav__title" for="__nav_5_6">
+          <span class="md-nav__icon md-icon"></span>
+          Yandex
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provider-yandex-lockbox/" class="md-nav__link">
+        Lockbox
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+          
         </ul>
       </nav>
     </li>
@@ -2242,6 +2281,20 @@ IBMProvider
 <p>IBM configures this store to sync secrets using IBM Cloud provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>yandexlockbox</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.YandexLockboxProvider">
+YandexLockboxProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>YandexLockbox configures this store to sync secrets using Yandex Lockbox provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.SecretStoreRef">SecretStoreRef
@@ -3050,6 +3103,80 @@ are used to validate the TLS connection.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.YandexLockboxAuth">YandexLockboxAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.YandexLockboxProvider">YandexLockboxProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authorizedKeySecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The authorized key used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.YandexLockboxProvider">YandexLockboxProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>YandexLockboxProvider Configures a store to sync secrets using the Yandex Lockbox provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Yandex.Cloud API endpoint (e.g. &lsquo;api.cloud.yandex.net:443&rsquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.YandexLockboxAuth">
+YandexLockboxAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against Yandex Lockbox</p>
+</td>
+</tr>
+</tbody>
+</table>
 <hr/>
 <p><em>
 Generated with <code>gen-crd-api-reference-docs</code>.
@@ -3073,7 +3200,7 @@ Generated with <code>gen-crd-api-reference-docs</code>.
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../provider-hashicorp-vault/" class="md-footer__link md-footer__link--prev" aria-label="Previous: HashiCorp Vault" rel="prev">
+        <a href="../provider-yandex-lockbox/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Lockbox" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -3082,7 +3209,7 @@ Generated with <code>gen-crd-api-reference-docs</code>.
               <span class="md-footer__direction">
                 Previous
               </span>
-              HashiCorp Vault
+              Lockbox
             </div>
           </div>
         </a>

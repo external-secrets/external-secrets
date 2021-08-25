@@ -14,7 +14,7 @@
     
     
       
-        <title>Introduction - External Secrets Operator</title>
+        <title>Lockbox - External Secrets Operator</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#guides" class="md-skip">
+        <a href="#yandex-lockbox" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Introduction
+              Lockbox
             
           </span>
         </div>
@@ -302,14 +302,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
       
       <label class="md-nav__link" for="__nav_4">
         Guides
@@ -325,21 +323,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../guides-introduction/" class="md-nav__link">
         Introduction
       </a>
-      
     </li>
   
 
@@ -428,12 +416,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
       
       <label class="md-nav__link" for="__nav_5">
         Provider
@@ -629,12 +619,14 @@
             
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_6" type="checkbox" id="__nav_5_6" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_6" type="checkbox" id="__nav_5_6" checked>
       
       <label class="md-nav__link" for="__nav_5_6">
         Yandex
@@ -650,11 +642,74 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../provider-yandex-lockbox/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Lockbox
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Lockbox
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#yandex-lockbox" class="md-nav__link">
+    Yandex Lockbox
+  </a>
+  
+    <nav class="md-nav" aria-label="Yandex Lockbox">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    Prerequisites
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-external-secret" class="md-nav__link">
+    Creating external secret
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -810,8 +865,48 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#yandex-lockbox" class="md-nav__link">
+    Yandex Lockbox
+  </a>
+  
+    <nav class="md-nav" aria-label="Yandex Lockbox">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    Prerequisites
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-external-secret" class="md-nav__link">
+    Creating external secret
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -823,19 +918,89 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-introduction.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-yandex-lockbox.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                <h1 id="guides">Guides</h1>
-<p>The following guides demonstrate use-cases and provide examples of how to use
-the API. Please pick one of the following guides:</p>
+                  <h1>Lockbox</h1>
+                
+                <h2 id="yandex-lockbox">Yandex Lockbox</h2>
+<p>External Secrets Operator integrates with <a href="https://cloud.yandex.com/docs/lockbox/">Yandex Lockbox</a>
+for secret management.</p>
+<h3 id="prerequisites">Prerequisites</h3>
 <ul>
-<li><a href="../guides-getting-started/">Getting started</a></li>
-<li><a href="../guides-templating/">Advanced Templating</a></li>
-<li><a href="../guides-multi-tenancy/">Multi-Tenancy Design Considerations</a></li>
+<li><a href="../guides-getting-started/#installing-with-helm">External Secrets Operator installed</a></li>
+<li><a href="https://cloud.yandex.com/docs/cli/quickstart">Yandex.Cloud CLI installed</a></li>
 </ul>
+<h3 id="authentication">Authentication</h3>
+<p>At the moment, <a href="https://cloud.yandex.com/docs/iam/concepts/authorization/key">authorized key</a> authentication is only supported:</p>
+<ul>
+<li>Create a <a href="https://cloud.yandex.com/docs/iam/concepts/users/service-accounts">service account</a> in Yandex.Cloud:
+<div class="highlight"><pre><span></span><code>yc iam service-account create --name eso-service-account
+</code></pre></div></li>
+<li>Create an authorized key for the service account and save it to <code>authorized-key.json</code> file:
+<div class="highlight"><pre><span></span><code>yc iam key create <span class="se">\</span>
+  --service-account-name eso-service-account <span class="se">\</span>
+  --output authorized-key.json
+</code></pre></div></li>
+<li>Create a k8s secret containing the authorized key saved above:
+<div class="highlight"><pre><span></span><code>kubectl create secret generic yc-auth --from-file<span class="o">=</span>authorized-key<span class="o">=</span>authorized-key.json
+</code></pre></div></li>
+<li>Create a <a href="../api-secretstore/">SecretStore</a> pointing to <code>yc-auth</code> k8s secret:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">yandexlockbox</span><span class="p">:</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="nt">authorizedKeySecretRef</span><span class="p">:</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">yc-auth</span>
+          <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">authorized-key</span>
+</code></pre></div></li>
+</ul>
+<h3 id="creating-external-secret">Creating external secret</h3>
+<p>To make External Secrets Operator sync a k8s secret with a Lockbox secret:</p>
+<ul>
+<li>Create a Lockbox secret, if not already created:
+<div class="highlight"><pre><span></span><code>yc lockbox secret create <span class="se">\</span>
+  --name lockbox-secret <span class="se">\</span>
+  --payload <span class="s1">&#39;[{&quot;key&quot;: &quot;password&quot;,&quot;textValue&quot;: &quot;p@$$w0rd&quot;}]&#39;</span>
+</code></pre></div></li>
+<li>Assign the <a href="https://cloud.yandex.com/docs/lockbox/security/#roles-list"><code>lockbox.payloadViewer</code></a> role
+  for accessing the <code>lockbox-secret</code> payload to the service account used for authentication:
+<div class="highlight"><pre><span></span><code>yc lockbox secret add-access-binding <span class="se">\</span>
+  --name lockbox-secret <span class="se">\</span>
+  --service-account-name eso-service-account <span class="se">\</span>
+  --role lockbox.payloadViewer
+</code></pre></div>
+Run the following command to ensure that the correct access binding has been added:
+<div class="highlight"><pre><span></span><code>yc lockbox secret list-access-bindings --name lockbox-secret
+</code></pre></div></li>
+<li>Create an <a href="../api-externalsecret/">ExternalSecret</a> pointing to <code>secret-store</code> and <code>lockbox-secret</code>:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secret</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-store</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">k8s-secret</span> <span class="c1"># the target k8s secret name</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span> <span class="c1"># the target k8s secret key</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="err">*****</span> <span class="c1"># ID of lockbox-secret</span>
+      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span> <span class="c1"># (optional) payload entry key of lockbox-secret</span>
+</code></pre></div></li>
+</ul>
+<p>The operator will fetch the Yandex Lockbox secret and inject it as a <code>Kind=Secret</code>
+<div class="highlight"><pre><span></span><code><span class="l l-Scalar l-Scalar-Plain">kubectl get secret k8s-secret -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.password}&#39; | base64 -d</span>
+</code></pre></div></p>
                 
               
               
@@ -855,7 +1020,7 @@ the API. Please pick one of the following guides:</p>
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../api-clustersecretstore/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ClusterSecretStore" rel="prev">
+        <a href="../provider-hashicorp-vault/" class="md-footer__link md-footer__link--prev" aria-label="Previous: HashiCorp Vault" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -864,20 +1029,20 @@ the API. Please pick one of the following guides:</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              ClusterSecretStore
+              HashiCorp Vault
             </div>
           </div>
         </a>
       
       
         
-        <a href="../guides-getting-started/" class="md-footer__link md-footer__link--next" aria-label="Next: Getting started" rel="next">
+        <a href="../spec/" class="md-footer__link md-footer__link--next" aria-label="Next: API specification" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Getting started
+              API specification
             </div>
           </div>
           <div class="md-footer__button md-icon">
