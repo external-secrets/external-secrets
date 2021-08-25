@@ -48,6 +48,8 @@ nav:
     - HashiCorp Vault: provider-hashicorp-vault.md
     - Yandex:
         - Lockbox: provider-yandex-lockbox.md
+    - Gitlab:
+      - Gitlab Project Variables: provider-gitlab-project-variables.md
   - References:
     - API specification: spec.md
   - Contributing:
