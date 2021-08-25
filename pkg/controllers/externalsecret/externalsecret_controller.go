@@ -167,9 +167,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 
+	// Target Secret Name should default to the ExternalSecret name if not explicitly specified
+	secretName := externalSecret.Spec.Target.Name
+	if secretName == "" {
+		secretName = externalSecret.ObjectMeta.Name
+	}
+
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      externalSecret.Spec.Target.Name,
+			Name:      secretName,
 			Namespace: externalSecret.Namespace,
 		},
 		Data: make(map[string][]byte),
@@ -194,9 +200,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		// no template: copy data and return
 		if externalSecret.Spec.Target.Template == nil {
-			for k, v := range dataMap {
-				secret.Data[k] = v
-			}
+			secret.Data = dataMap
 			return nil
 		}
 

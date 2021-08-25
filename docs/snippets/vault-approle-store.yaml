@@ -18,7 +18,8 @@ spec:
           path: "approle"
           # RoleID configured in the App Role authentication backend
           roleId: "db02de05-fa39-4855-059b-67221c5c2f63"
+          # Reference to a key in a K8 Secret that contains the App Role SecretId
           secretRef:
             name: "my-secret"
             namespace: "secret-admin"
-            key: "vault-token"
+            key: "secret-id"

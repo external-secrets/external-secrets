@@ -1153,6 +1153,7 @@ GCPSMAuth
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Auth defines the information necessary to authenticate against GCP</p>
 </td>
 </tr>
