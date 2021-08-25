@@ -80,10 +80,11 @@ func (c *gClient) setAuth(ctx context.Context) error {
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.SecretAccessKey.Namespace == nil {
+		if credentialsSecretName != "" && c.store.Auth.SecretRef.SecretAccessKey.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
+		} else if credentialsSecretName != "" {
+			objectKey.Namespace = *c.store.Auth.SecretRef.SecretAccessKey.Namespace
 		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.SecretAccessKey.Namespace
 	}
 	if credentialsSecretName == "" {
 		c.credentials = nil
