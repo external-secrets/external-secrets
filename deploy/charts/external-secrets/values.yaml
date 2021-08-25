@@ -17,6 +17,10 @@ fullnameOverride: ""
 # than one instance of external-secrets operates at a time.
 leaderElect: false
 
+# -- If set external secrets are only reconciled in the
+# provided namespace
+scopedNamespace: ""
+
 serviceAccount:
   # -- Specifies whether a service account should be created.
   create: true
@@ -66,3 +70,6 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# -- Pod priority class name.
+priorityClassName: ""
