@@ -976,7 +976,7 @@ is available in different tiers, <a href="https://aws.amazon.com/systems-manager
 Please estimate your costs before using ESO. Cost depends on the RefreshInterval of your ExternalSecrets.</p>
 </div>
 <h3 id="iam-policy">IAM Policy</h3>
-<p>Create a IAM Policy to pin down access to secrets matching <code>dev-*</code>, for futher information see <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html">AWS Documentation</a>:</p>
+<p>Create a IAM Policy to pin down access to secrets matching <code>dev-*</code>, for further information see <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html">AWS Documentation</a>:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;Version&quot;</span><span class="p">:</span> <span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
   <span class="nt">&quot;Statement&quot;</span><span class="p">:</span> <span class="p">[</span>
@@ -1034,6 +1034,7 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
   <span class="nt">provider</span><span class="p">:</span>
     <span class="nt">aws</span><span class="p">:</span>
       <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+      <span class="nt">region</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
       <span class="c1"># optional: do a sts:assumeRole before fetching secrets</span>
       <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-b</span>
 </code></pre></div>
@@ -1049,6 +1050,7 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
   <span class="nt">provider</span><span class="p">:</span>
     <span class="nt">aws</span><span class="p">:</span>
       <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+      <span class="nt">region</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
       <span class="c1"># optional: assume role before fetching secrets</span>
       <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-b</span>
       <span class="nt">auth</span><span class="p">:</span>
@@ -1084,6 +1086,7 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
   <span class="nt">provider</span><span class="p">:</span>
     <span class="nt">aws</span><span class="p">:</span>
       <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+      <span class="nt">region</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
       <span class="nt">auth</span><span class="p">:</span>
         <span class="nt">jwt</span><span class="p">:</span>
           <span class="nt">serviceAccountRef</span><span class="p">:</span>
