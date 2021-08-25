@@ -695,6 +695,8 @@ func (in *SecretStoreProvider) DeepCopyInto(out *SecretStoreProvider) {
 	if in.YandexLockbox != nil {
 		in, out := &in.YandexLockbox, &out.YandexLockbox
 		*out = new(YandexLockboxProvider)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Gitlab != nil {
 		in, out := &in.Gitlab, &out.Gitlab
 		*out = new(GitlabProvider)

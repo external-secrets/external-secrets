@@ -1176,6 +1176,109 @@ string
 <p>GenericStore is a common interface for interacting with ClusterSecretStore
 or a namespaced SecretStore.</p>
 </p>
+<h3 id="external-secrets.io/v1alpha1.GitlabAuth">GitlabAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.GitlabProvider">GitlabProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>SecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GitlabSecretRef">
+GitlabSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.GitlabProvider">GitlabProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures an store to sync secrets using a IBM Cloud Secrets Manager
+backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GitlabAuth">
+GitlabAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the IBM secrets manager.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID project where secret is located</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.GitlabSecretRef">GitlabSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.GitlabAuth">GitlabAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The Access Token is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.IBMAuth">IBMAuth
 </h3>
 <p>
@@ -1481,6 +1584,20 @@ YandexLockboxProvider
 <td>
 <em>(Optional)</em>
 <p>YandexLockbox configures this store to sync secrets using Yandex Lockbox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gitlab</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GitlabProvider">
+GitlabProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GItlab configures this store to sync secrets using Gitlab Variables provider</p>
 </td>
 </tr>
 </tbody>

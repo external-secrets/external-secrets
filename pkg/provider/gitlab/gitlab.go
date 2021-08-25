@@ -198,6 +198,6 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 	return secretData, nil
 }
 
-func (g *Gitlab) Close() error {
+func (g *Gitlab) Close(ctx context.Context) error {
 	return nil
 }

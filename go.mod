@@ -65,9 +65,9 @@ require (
 	github.com/spf13/cobra v1.1.3 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.7.5
+	github.com/xanzy/go-gitlab v0.50.1
 	github.com/yandex-cloud/go-genproto v0.0.0-20210809082946-a97da516c588
 	github.com/yandex-cloud/go-sdk v0.0.0-20210809100642-c13c40a429fa
-	github.com/xanzy/go-gitlab v0.50.1
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
