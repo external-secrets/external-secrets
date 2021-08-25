@@ -19,7 +19,7 @@ way users of the `SecretStore` can only access the secrets necessary.
 
 ### IAM Policy
 
-Create a IAM Policy to pin down access to secrets matching `dev-*`, for futher information see [AWS Documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html):
+Create a IAM Policy to pin down access to secrets matching `dev-*`, for further information see [AWS Documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html):
 
 ``` json
 {
