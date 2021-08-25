@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package secretsmanager
 
 import (
@@ -30,6 +31,7 @@ import (
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
 	client SMInterface
+	cache  map[string]*awssm.GetSecretValueOutput
 }
 
 // SMInterface is a subset of the smiface api.
@@ -44,20 +46,37 @@ var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager
 func New(sess client.ConfigProvider) (*SecretsManager, error) {
 	return &SecretsManager{
 		client: awssm.New(sess),
+		cache:  make(map[string]*awssm.GetSecretValueOutput),
 	}, nil
 }
 
-// GetSecret returns a single secret from the provider.
-func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (sm *SecretsManager) fetch(_ context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
 	ver := "AWSCURRENT"
 	if ref.Version != "" {
 		ver = ref.Version
 	}
 	log.Info("fetching secret value", "key", ref.Key, "version", ver)
+
+	cacheKey := fmt.Sprintf("%s#%s", ref.Key, ver)
+	if secretOut, found := sm.cache[cacheKey]; found {
+		log.Info("found secret in cache", "key", ref.Key, "version", ver)
+		return secretOut, nil
+	}
 	secretOut, err := sm.client.GetSecretValue(&awssm.GetSecretValueInput{
 		SecretId:     &ref.Key,
 		VersionStage: &ver,
 	})
+	if err != nil {
+		return nil, err
+	}
+	sm.cache[cacheKey] = secretOut
+
+	return secretOut, nil
+}
+
+// GetSecret returns a single secret from the provider.
+func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	secretOut, err := sm.fetch(ctx, ref)
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
@@ -77,6 +96,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.External
 	if secretOut.SecretBinary != nil {
 		payload = string(secretOut.SecretBinary)
 	}
+
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
