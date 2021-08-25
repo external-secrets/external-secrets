@@ -155,7 +155,7 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 	return v.readSecret(ctx, ref.Key, ref.Version)
 }
 
-func (v *client) Close() error {
+func (v *client) Close(ctx context.Context) error {
 	return nil
 }
 

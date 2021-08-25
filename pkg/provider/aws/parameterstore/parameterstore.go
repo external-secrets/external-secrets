@@ -90,6 +90,6 @@ func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 	return secretData, nil
 }
 
-func (pm *ParameterStore) Close() error {
+func (pm *ParameterStore) Close(ctx context.Context) error {
 	return nil
 }

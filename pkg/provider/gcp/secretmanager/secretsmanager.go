@@ -210,7 +210,7 @@ func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.External
 	return secretData, nil
 }
 
-func (sm *ProviderGCP) Close() error {
+func (sm *ProviderGCP) Close(ctx context.Context) error {
 	err := sm.SecretManagerClient.Close()
 	if err != nil {
 		return fmt.Errorf(errClientClose, err)
