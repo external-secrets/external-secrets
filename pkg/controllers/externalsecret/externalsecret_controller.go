@@ -38,8 +38,9 @@ import (
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
-	schema "github.com/external-secrets/external-secrets/pkg/provider/schema"
-	utils "github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/template"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -126,7 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// check if store should be handled by this controller instance
 	if !shouldProcessStore(store, r.ControllerClass) {
-		log.Info("skippig unmanaged store")
+		log.Info("skipping unmanaged store")
 		return ctrl.Result{}, nil
 	}
 
@@ -202,7 +203,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	}
 
-	//nolint
+	// nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1alpha1.Merge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc)
@@ -284,7 +285,7 @@ func hashMeta(m metav1.ObjectMeta) string {
 		annotations map[string]string
 		labels      map[string]string
 	}
-	h := md5.New() //nolint
+	h := md5.New() // nolint
 	_, _ = h.Write([]byte(fmt.Sprintf("%v", meta{
 		annotations: m.Annotations,
 		labels:      m.Labels,
