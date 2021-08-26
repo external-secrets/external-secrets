@@ -3,6 +3,8 @@ module github.com/external-secrets/external-secrets
 go 1.16
 
 replace (
+	github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1 => ./apis/externalsecrets/v1alpha1
+	github.com/external-secrets/external-secrets/pkg/provider/gitlab => ./pkg/provider/gitlab
 	google.golang.org/grpc => google.golang.org/grpc v1.27.0
 
 	k8s.io/api => k8s.io/api v0.21.2
@@ -51,7 +53,6 @@ require (
 	github.com/googleapis/gax-go v1.0.3
 	github.com/hashicorp/go-hclog v0.14.1 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20210224012239-b540be4b7ec4
 	github.com/kr/pretty v0.2.1 // indirect
@@ -64,6 +65,7 @@ require (
 	github.com/spf13/cobra v1.1.3 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.7.5
+	github.com/xanzy/go-gitlab v0.50.1
 	github.com/yandex-cloud/go-genproto v0.0.0-20210809082946-a97da516c588
 	github.com/yandex-cloud/go-sdk v0.0.0-20210809100642-c13c40a429fa
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a

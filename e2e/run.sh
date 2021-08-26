@@ -58,5 +58,7 @@ kubectl run --rm \
   --env="AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}" \
   --env="TENANT_ID=${TENANT_ID:-}" \
   --env="VAULT_URL=${VAULT_URL:-}" \
+  --env="GITLAB_TOKEN=${GITLAB_TOKEN:-}" \
+  --env="GITLAB_PROJECT_ID=${GITLAB_PROJECT_ID:-}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
   e2e --image=local/external-secrets-e2e:test
