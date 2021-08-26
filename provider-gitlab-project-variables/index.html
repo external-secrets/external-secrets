@@ -14,7 +14,7 @@
     
     
       
-        <title>ClusterSecretStore - External Secrets Operator</title>
+        <title>Gitlab Project Variables - External Secrets Operator</title>
       
     
     
@@ -71,6 +71,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#gitlab-project-variables" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -97,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ClusterSecretStore
+              Gitlab Project Variables
             
           </span>
         </div>
@@ -231,14 +236,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
       
       <label class="md-nav__link" for="__nav_3">
         API Types
@@ -278,19 +281,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../api-clustersecretstore/" class="md-nav__link">
         ClusterSecretStore
       </a>
-      
     </li>
   
 
@@ -421,12 +416,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
       
       <label class="md-nav__link" for="__nav_5">
         Provider
@@ -661,12 +658,14 @@
             
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_7" type="checkbox" id="__nav_5_7" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_7" type="checkbox" id="__nav_5_7" checked>
       
       <label class="md-nav__link" for="__nav_5_7">
         Gitlab
@@ -682,11 +681,101 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../provider-gitlab-project-variables/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Gitlab Project Variables
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Gitlab Project Variables
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#gitlab-project-variables" class="md-nav__link">
+    Gitlab Project Variables
+  </a>
+  
+    <nav class="md-nav" aria-label="Gitlab Project Variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-token-secret" class="md-nav__link">
+    Access Token secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-secret-store" class="md-nav__link">
+    Update secret store
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-external-secret" class="md-nav__link">
+    Creating external secret
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating external secret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-datafrom" class="md-nav__link">
+    Using DataFrom
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-kubernetes-secret" class="md-nav__link">
+    Getting the Kubernetes secret
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -833,123 +922,191 @@
               </div>
             
             
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#gitlab-project-variables" class="md-nav__link">
+    Gitlab Project Variables
+  </a>
+  
+    <nav class="md-nav" aria-label="Gitlab Project Variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-token-secret" class="md-nav__link">
+    Access Token secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-secret-store" class="md-nav__link">
+    Update secret store
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-external-secret" class="md-nav__link">
+    Creating external secret
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating external secret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-datafrom" class="md-nav__link">
+    Using DataFrom
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-kubernetes-secret" class="md-nav__link">
+    Getting the Kubernetes secret
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/api-clustersecretstore.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-gitlab-project-variables.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                  <h1>ClusterSecretStore</h1>
+                  <h1>Gitlab Project Variables</h1>
                 
-                <p><img alt="ClusterSecretStore" src="../pictures/diagrams-high-level-cluster-detail.png" /></p>
-<p>The <code>ClusterSecretStore</code> is a cluster scoped SecretStore that can be referenced by all
-<code>ExternalSecrets</code> from all namespaces. Use it to offer a central gateway to your secret backend.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+                <h2 id="gitlab-project-variables">Gitlab Project Variables</h2>
+<p>External Secrets Operator integrates with <a href="https://docs.gitlab.com/ee/api/project_level_variables.html">Gitlab API</a> to sync Gitlab project variables to secrets held on the Kubernetes cluster.</p>
+<h3 id="authentication">Authentication</h3>
+<p>The API requires an access token and project ID. To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).</p>
+<p><img alt="token-details" src="../pictures/screenshot_gitlab_token.png" /></p>
+<p>Click 'Create personal access token', and your token will be generated and displayed on screen. Copy or save this token since you can't access it again. 
+<img alt="token-created" src="../pictures/screenshot_gitlab_token_created.png" /></p>
+<h3 id="access-token-secret">Access Token secret</h3>
+<p>Create a secret containing your access token:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-
-  <span class="c1"># Used to select the correct ESO controller (think: ingress.ingressClassName)</span>
-  <span class="c1"># The ESO controller is instantiated with a specific controller name</span>
-  <span class="c1"># and filters ES based on this property</span>
-  <span class="c1"># Optional</span>
-  <span class="nt">controller</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev</span>
-
-  <span class="c1"># provider field contains the configuration to access the provider</span>
-  <span class="c1"># which contains the secret exactly one provider must be configured.</span>
-  <span class="nt">provider</span><span class="p">:</span>
-
-    <span class="c1"># (1): AWS Secrets Manager</span>
-    <span class="c1"># aws configures this store to sync secrets using AWS Secret Manager provider</span>
-    <span class="nt">aws</span><span class="p">:</span>
-      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
-      <span class="c1"># Role is a Role ARN which the SecretManager provider will assume</span>
-      <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-role</span>
-      <span class="c1"># AWS Region to be used for the provider</span>
-      <span class="nt">region</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
-      <span class="c1"># Auth defines the information necessary to authenticate against AWS by</span>
-      <span class="c1"># getting the accessKeyID and secretAccessKey from an already created Kubernetes Secret</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="nt">secretRef</span><span class="p">:</span>
-          <span class="nt">accessKeyID</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">access-key</span>
-          <span class="nt">secretAccessKey</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
-
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
-      <span class="c1"># Path is the mount path of the Vault KV backend endpoint</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
-      <span class="c1"># Version is the Vault KV secret engine version.</span>
-      <span class="c1"># This can be either &quot;v1&quot; or &quot;v2&quot;, defaults to &quot;v2&quot;</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
-      <span class="c1"># vault enterprise namespace: https://www.vaultproject.io/docs/enterprise/namespaces</span>
-      <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;a-team&quot;</span>
-      <span class="nt">caBundle</span><span class="p">:</span> <span class="s">&quot;...&quot;</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># static token: https://www.vaultproject.io/docs/auth/token</span>
-        <span class="nt">tokenSecretRef</span><span class="p">:</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-          <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
-
-        <span class="c1"># AppRole auth: https://www.vaultproject.io/docs/auth/approle</span>
-        <span class="nt">appRole</span><span class="p">:</span>
-          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;approle&quot;</span>
-          <span class="nt">roleId</span><span class="p">:</span> <span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
-
-        <span class="c1"># Kubernetes auth: https://www.vaultproject.io/docs/auth/kubernetes</span>
-        <span class="nt">kubernetes</span><span class="p">:</span>
-          <span class="nt">mountPath</span><span class="p">:</span> <span class="s">&quot;kubernetes&quot;</span>
-          <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;demo&quot;</span>
-          <span class="c1"># Optional service account reference</span>
-          <span class="nt">serviceAccountRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-sa&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-          <span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span>
-          <span class="c1"># used for authenticating with Vault</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault&quot;</span>
-
-    <span class="c1"># (2): GCP Secret Manager</span>
-    <span class="nt">gcpsm</span><span class="p">:</span>
-      <span class="c1"># Auth defines the information necessary to authenticate against GCP by getting</span>
-      <span class="c1"># the credentials from an already created Kubernetes Secret.</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="nt">secretRef</span><span class="p">:</span>
-          <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-      <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">myproject</span>
-    <span class="c1"># (TODO): add more provider examples here</span>
-
-<span class="nt">status</span><span class="p">:</span>
-  <span class="c1"># Standard condition schema</span>
-  <span class="nt">conditions</span><span class="p">:</span>
-  <span class="c1"># SecretStore ready condition indicates the given store is in ready</span>
-  <span class="c1"># state and able to referenced by ExternalSecrets</span>
-  <span class="c1"># If the `status` of this condition is `False`, ExternalSecret controllers</span>
-  <span class="c1"># should prevent attempts to fetch secrets</span>
-  <span class="p p-Indicator">-</span> <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ready</span>
-    <span class="nt">status</span><span class="p">:</span> <span class="s">&quot;False&quot;</span>
-    <span class="nt">reason</span><span class="p">:</span> <span class="s">&quot;ConfigError&quot;</span>
-    <span class="nt">message</span><span class="p">:</span> <span class="s">&quot;SecretStore</span><span class="nv"> </span><span class="s">validation</span><span class="nv"> </span><span class="s">failed&quot;</span>
-    <span class="nt">lastTransitionTime</span><span class="p">:</span> <span class="s">&quot;2019-08-12T12:33:02Z&quot;</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-secret</span>
+  <span class="nt">labels</span><span class="p">:</span> 
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab</span>
+<span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Opaque</span> 
+<span class="nt">stringData</span><span class="p">:</span>
+  <span class="nt">token</span><span class="p">:</span> <span class="s">&quot;**access</span><span class="nv"> </span><span class="s">token</span><span class="nv"> </span><span class="s">goes</span><span class="nv"> </span><span class="s">here**&quot;</span>
 </code></pre></div>
+
+<h3 id="update-secret-store">Update secret store</h3>
+<p>Be sure the <code>gitlab</code> provider is listed in the <code>Kind=SecretStore</code> and the ProjectID is set</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="c1"># provider type: gitlab</span>
+    <span class="nt">gitlab</span><span class="p">:</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="nt">SecretRef</span><span class="p">:</span>
+          <span class="nt">accessToken</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-secret</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">token</span>
+      <span class="nt">projectID</span><span class="p">:</span> <span class="s">&quot;**project</span><span class="nv"> </span><span class="s">ID</span><span class="nv"> </span><span class="s">goes</span><span class="nv"> </span><span class="s">here**&quot;</span>
+</code></pre></div>
+
+<p>Your project ID can be found on your project's page.
+<img alt="projectID" src="../pictures/screenshot_gitlab_projectID.png" /></p>
+<h3 id="creating-external-secret">Creating external secret</h3>
+<p>To sync a Gitlab variable to a secret on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-external-secret-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-secret-store</span> <span class="c1"># Must match SecretStore on the cluster</span>
+
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-secret-to-create</span> <span class="c1"># Name for the secret to be created on the cluster</span>
+    <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
+
+  <span class="nt">data</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretKey</span> <span class="c1"># Key given to the secret to be created on the cluster</span>
+      <span class="nt">remoteRef</span><span class="p">:</span> 
+        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">myGitlabVariable</span> <span class="c1"># Key of the variable on Gitlab</span>
+</code></pre></div>
+
+<h4 id="using-datafrom">Using DataFrom</h4>
+<p>DataFrom can be used to get a variable as a JSON string and attempt to parse it.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-external-secret-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-secret-store</span> <span class="c1"># Must match SecretStore on the cluster</span>
+
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-secret-to-create</span> <span class="c1"># Name for the secret to be created on the cluster</span>
+    <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
+
+  <span class="c1"># each secret name in the KV will be used as the secret key in the SECRET k8s target object</span>
+  <span class="nt">dataFrom</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;myJsonVariable&quot;</span> <span class="c1"># Key of the variable on Gitlab</span>
+</code></pre></div>
+
+<h3 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h3>
+<p>The operator will fetch the project variable and inject it as a <code>Kind=Secret</code>.
+<div class="highlight"><pre><span></span><code>kubectl get secret gitlab-secret-to-create -o jsonpath=&#39;{.data.secretKey}&#39; | base64 -d
+</code></pre></div></p>
                 
               
               
@@ -969,7 +1126,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../api-secretstore/" class="md-footer__link md-footer__link--prev" aria-label="Previous: SecretStore" rel="prev">
+        <a href="../provider-yandex-lockbox/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Lockbox" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -978,20 +1135,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              SecretStore
+              Lockbox
             </div>
           </div>
         </a>
       
       
         
-        <a href="../guides-introduction/" class="md-footer__link md-footer__link--next" aria-label="Next: Introduction" rel="next">
+        <a href="../spec/" class="md-footer__link md-footer__link--next" aria-label="Next: API specification" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Introduction
+              API specification
             </div>
           </div>
           <div class="md-footer__button md-icon">

@@ -648,6 +648,45 @@
   
 
           
+            
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_7" type="checkbox" id="__nav_5_7" >
+      
+      <label class="md-nav__link" for="__nav_5_7">
+        Gitlab
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Gitlab" data-md-level="2">
+        <label class="md-nav__title" for="__nav_5_7">
+          <span class="md-nav__icon md-icon"></span>
+          Gitlab
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provider-gitlab-project-variables/" class="md-nav__link">
+        Gitlab Project Variables
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+          
         </ul>
       </nav>
     </li>
@@ -1988,6 +2027,109 @@ string
 <p>GenericStore is a common interface for interacting with ClusterSecretStore
 or a namespaced SecretStore.</p>
 </p>
+<h3 id="external-secrets.io/v1alpha1.GitlabAuth">GitlabAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.GitlabProvider">GitlabProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>SecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GitlabSecretRef">
+GitlabSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.GitlabProvider">GitlabProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures an store to sync secrets using a IBM Cloud Secrets Manager
+backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GitlabAuth">
+GitlabAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the IBM secrets manager.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID project where secret is located</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.GitlabSecretRef">GitlabSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.GitlabAuth">GitlabAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The Access Token is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.IBMAuth">IBMAuth
 </h3>
 <p>
@@ -2293,6 +2435,20 @@ YandexLockboxProvider
 <td>
 <em>(Optional)</em>
 <p>YandexLockbox configures this store to sync secrets using Yandex Lockbox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gitlab</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GitlabProvider">
+GitlabProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GItlab configures this store to sync secrets using Gitlab Variables provider</p>
 </td>
 </tr>
 </tbody>
@@ -3200,7 +3356,7 @@ Generated with <code>gen-crd-api-reference-docs</code>.
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../provider-yandex-lockbox/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Lockbox" rel="prev">
+        <a href="../provider-gitlab-project-variables/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Gitlab Project Variables" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -3209,7 +3365,7 @@ Generated with <code>gen-crd-api-reference-docs</code>.
               <span class="md-footer__direction">
                 Previous
               </span>
-              Lockbox
+              Gitlab Project Variables
             </div>
           </div>
         </a>
