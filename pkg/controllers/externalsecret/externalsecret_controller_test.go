@@ -214,7 +214,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(secret.ObjectMeta.Annotations).To(BeEquivalentTo(es.ObjectMeta.Annotations))
 			Expect(hasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
-			Expect(hasFieldOwnership(secret.ObjectMeta, "external-secrets", "{\"f:data\":{\"f:targetProperty\":{}}}")).To(BeTrue())
+			Expect(hasFieldOwnership(secret.ObjectMeta, "external-secrets", "{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{}}")).To(BeTrue())
 			Expect(hasFieldOwnership(secret.ObjectMeta, "fake.manager", "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
 		}
 	}
