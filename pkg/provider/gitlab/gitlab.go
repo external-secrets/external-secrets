@@ -47,7 +47,7 @@ type Client interface {
 	GetVariable(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
-// Gitlab Provider struct with reference to a github client and a projectID.
+// Gitlab Provider struct with reference to a GitLab client and a projectID.
 type Gitlab struct {
 	client    Client
 	projectID interface{}
@@ -127,8 +127,17 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha1.GenericStore, k
 	}
 
 	var err error
-	// Create a new Gitlab client using credentials
-	gitlabClient, err := gitlab.NewClient(string(cliStore.credentials), nil)
+
+	// Create client options
+	var opts []gitlab.ClientOptionFunc
+	if cliStore.store.URL != "" {
+		opts = append(opts, gitlab.WithBaseURL(cliStore.store.URL))
+	}
+	// ClientOptionFunc from the gitlab package can be mapped with the CRD
+	// in a similar way to extend functionality of the provider
+
+	// Create a new Gitlab client using credentials and options
+	gitlabClient, err := gitlab.NewClient(string(cliStore.credentials), opts...)
 	if err != nil {
 		log.Logf("Failed to create client: %v", err)
 	}

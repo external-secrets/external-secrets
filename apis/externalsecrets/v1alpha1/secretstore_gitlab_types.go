@@ -18,13 +18,15 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Configures an store to sync secrets using a IBM Cloud Secrets Manager
-// backend.
+// Configures a store to sync secrets with a GitLab instance.
 type GitlabProvider struct {
-	// Auth configures how secret-manager authenticates with the IBM secrets manager.
+	// URL configures the GitLab instance URL. Defaults to https://gitlab.com/.
+	URL string `json:"url,omitempty"`
+
+	// Auth configures how secret-manager authenticates with a GitLab instance.
 	Auth GitlabAuth `json:"auth"`
 
-	// ProjectID project where secret is located
+	// ProjectID specifies a project where secrets are located.
 	ProjectID string `json:"projectID,omitempty"`
 }
 
@@ -33,6 +35,6 @@ type GitlabAuth struct {
 }
 
 type GitlabSecretRef struct {
-	// The Access Token is used for authentication
+	// AccessToken is used for authentication.
 	AccessToken esmeta.SecretKeySelector `json:"accessToken,omitempty"`
 }
