@@ -21,5 +21,6 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/ibm"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/oracle"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 )

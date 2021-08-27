@@ -22,8 +22,14 @@ type OracleProvider struct {
 	// Auth configures how secret-manager authenticates with the Oracle secrets manager.
 	Auth OracleAuth `json:"auth"`
 
+	// User is an access OCID specific to the account.
+	User string `json:"user,omitempty"`
+
 	// projectID is an access token specific to the secret.
-	ProjectID *string `json:"projectID,omitempty"`
+	Tenancy string `json:"tenancy,omitempty"`
+
+	// projectID is an access token specific to the secret.
+	Region string `json:"region,omitempty"`
 }
 
 type OracleAuth struct {
@@ -32,5 +38,8 @@ type OracleAuth struct {
 
 type OracleSecretRef struct {
 	// The Access Token is used for authentication
-	KeyId esmeta.SecretKeySelector `json:"token,omitempty"`
+	PrivateKey esmeta.SecretKeySelector `json:"privatekey,omitempty"`
+
+	// projectID is an access token specific to the secret.
+	Fingerprint esmeta.SecretKeySelector `json:"fingerprint,omitempty"`
 }

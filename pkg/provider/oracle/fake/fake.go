@@ -1,0 +1,43 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package fake
+
+import (
+	"context"
+
+	vault "github.com/oracle/oci-go-sdk/v45/vault"
+)
+
+type OracleMockClient struct {
+	getSecret func(ctx context.Context, request vault.GetSecretRequest) (response vault.GetSecretResponse, err error)
+}
+
+func (mc *OracleMockClient) GetSecret(ctx context.Context, request vault.GetSecretRequest) (response vault.GetSecretResponse, err error) {
+	return mc.getSecret(ctx, request)
+}
+
+func (mc *OracleMockClient) WithValue(input vault.GetSecretRequest) (output vault.GetSecretResponse, err error) {
+	if mc != nil {
+		mc.getSecret = func(ctx context.Context, paramReq vault.GetSecretRequest) (vault.GetSecretResponse, error) {
+			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
+			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
+			// if !cmp.Equal(paramReq, input, cmpopts.IgnoreUnexported(vault.Secret{})) {
+			// 	return nil, fmt.Errorf("unexpected test argument")
+			// }
+			return output, err
+		}
+	}
+	return output, nil
+	// not sure why I need this as other providers don't require extra return function
+}

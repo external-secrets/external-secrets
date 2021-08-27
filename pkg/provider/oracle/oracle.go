@@ -38,10 +38,14 @@ const (
 
 	errOracleClient                          = "cannot setup new oracle client: %w"
 	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
-	errUninitalizedORACLEProvider            = "provider oracle is not initialized"
+	errUninitalizedOracleProvider            = "provider oracle is not initialized"
 	errInvalidClusterStoreMissingSKNamespace = "invalid ClusterStore, missing namespace"
 	errFetchSAKSecret                        = "could not fetch SecretAccessKey secret: %w"
-	errMissingSAK                            = "missing SecretAccessKey"
+	errMissingPK                             = "missing PrivateKey"
+	errMissingUser                           = "missing User ID"
+	errMissingTenancy                        = "missing Tenancy ID"
+	errMissingRegion                         = "missing Region"
+	errMissingFingerprint                    = "missing Fingerprint"
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
 )
 
@@ -56,6 +60,7 @@ type client struct {
 	user        string
 	region      string
 	fingerprint string
+	privateKey  string
 }
 
 // // Oracle struct with values for *oracle.Client and projectID.
@@ -76,30 +81,9 @@ type SMInterface interface {
 	GetSecret(ctx context.Context, request vault.GetSecretRequest) (response vault.GetSecretResponse, err error)
 }
 
-// ConfigurationProvider wraps information about the account owner
-type ConfigurationProvider interface {
-	TenancyOCID() (string, error)
-	UserOCID() (string, error)
-	KeyFingerprint() (string, error)
-	Region() (string, error)
-	// AuthType() is used for specify the needed auth type, like UserPrincipal, InstancePrincipal, etc.
-	//AuthType() (AuthConfig, error)
-}
-
-type customConfig struct {
-	tenancy     string
-	user        string
-	region      string
-	fingerprint string
-}
-
-// func (oracle *providerOracle) Close() error {
-// 	return nil
-// }
-
 func (c *client) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.KeyId.Name
+	credentialsSecretName := c.store.Auth.SecretRef.PrivateKey.Name
 	if credentialsSecretName == "" {
 		return fmt.Errorf(errORACLECredSecretName)
 	}
@@ -110,10 +94,10 @@ func (c *client) setAuth(ctx context.Context) error {
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.KeyId.Namespace == nil {
+		if c.store.Auth.SecretRef.PrivateKey.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
 		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.KeyId.Namespace
+		objectKey.Namespace = *c.store.Auth.SecretRef.PrivateKey.Namespace
 	}
 
 	err := c.kube.Get(ctx, objectKey, credentialsSecret)
@@ -121,22 +105,41 @@ func (c *client) setAuth(ctx context.Context) error {
 		return fmt.Errorf(errFetchSAKSecret, err)
 	}
 
-	c.credentials = credentialsSecret.Data[c.store.Auth.SecretRef.KeyId.Key]
-	if (c.credentials == nil) || (len(c.credentials) == 0) {
-		return fmt.Errorf(errMissingSAK)
+	c.privateKey = string(credentialsSecret.Data[c.store.Auth.SecretRef.PrivateKey.Key])
+	if (c.privateKey == "") || (len(c.privateKey) == 0) {
+		return fmt.Errorf(errMissingPK)
 	}
+
+	c.fingerprint = string(credentialsSecret.Data[c.store.Auth.SecretRef.Fingerprint.Key])
+	if (c.fingerprint == "") || (len(c.fingerprint) == 0) {
+		return fmt.Errorf(errMissingFingerprint)
+	}
+
+	c.user = string(c.store.User)
+	if (c.user == "") || (len(c.user) == 0) {
+		return fmt.Errorf(errMissingUser)
+	}
+
+	c.tenancy = string(c.store.Tenancy)
+	if (c.tenancy == "") || (len(c.tenancy) == 0) {
+		return fmt.Errorf(errMissingTenancy)
+	}
+
+	c.region = string(c.store.Region)
+	if (c.region == "") || (len(c.region) == 0) {
+		return fmt.Errorf(errMissingRegion)
+	}
+
 	return nil
 }
 
 func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	kmsRequest := vault.CreateSecretRequest{}
-	// kmsRequest.CompartmentId = &ref.Version
-	// kmsRequest.SecretName = &ref.Key
-	// kmsRequest.VaultId = kms.VaultId
-	//kmsRequest.SecretContent = vault.SecretContentDetails.GetName()
-	fmt.Println(kmsRequest)
-	client2, err := vault.NewVaultsClientWithConfigurationProvider(common.DefaultConfigProvider())
-	secretOut, err := client2.CreateSecret(context.Background(), kmsRequest)
+	
+	
+	kmsRequest := vault.GetSecretRequest{
+		SecretId: &ref.Key,
+	}
+	secretOut, err := kms.Client.GetSecret(context.Background(), kmsRequest)
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
@@ -183,27 +186,25 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
-	iStore := &client{
+	oracleStore := &client{
 		kube:      kube,
 		store:     oracleSpec,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
-	if err := iStore.setAuth(ctx); err != nil {
+	if err := oracleStore.setAuth(ctx); err != nil {
 		return nil, err
 	}
-	config := common.DefaultConfigProvider()
-	// config.KeyFingerprint = iStore.fingerprint
-	// oracleRegion := iStore.region
 
-	// ConfigurationProvider.KeyFingerprint()
-	// oracleKeyID := iStore.keyID
-	// oracleSecretKey := iStore.accessKey
-	// keyManagementService, err := identity.NewIdentityClientWithConfigurationProvider(ConfigurationProvider)
+	oracleTenancy := oracleStore.tenancy
+	oracleUser := oracleStore.user
+	oracleRegion := oracleStore.region
+	oracleFingerprint := oracleStore.fingerprint
+	oraclePrivateKey := oracleStore.privateKey
 
-	//keyManagementService, err := identity.NewIdentityClientWithConfigurationProvider(config)
+	configurationProvider := common.NewRawConfigurationProvider(oracleTenancy, oracleUser, oracleRegion, oracleFingerprint, oraclePrivateKey, nil)
 
-	keyManagementService, err := vault.NewVaultsClientWithConfigurationProvider(config)
+	keyManagementService, err := vault.NewVaultsClientWithConfigurationProvider(configurationProvider)
 	if err != nil {
 		return nil, fmt.Errorf(errOracleClient, err)
 	}
@@ -226,7 +227,10 @@ func init() {
 	})
 }
 
-// func fakeMain(o *providerOracle) {
+// func fakeMain(kms *KeyManagementService) {
+
+// 	configurationProvider := common.NewRawConfigurationProvider("", "", "", "", "", nil)
+
 // 	c, err := identity.NewIdentityClientWithConfigurationProvider(common.DefaultConfigProvider())
 // 	o.client = c
 // 	fmt.Println("Client:", o.client)
