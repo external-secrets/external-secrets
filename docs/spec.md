@@ -1213,8 +1213,7 @@ GitlabSecretRef
 <a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>Configures an store to sync secrets using a IBM Cloud Secrets Manager
-backend.</p>
+<p>Configures a store to sync secrets with a GitLab instance.</p>
 </p>
 <table>
 <thead>
@@ -1226,6 +1225,17 @@ backend.</p>
 <tbody>
 <tr>
 <td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL configures the GitLab instance URL. Defaults to <a href="https://gitlab.com/">https://gitlab.com/</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>auth</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.GitlabAuth">
@@ -1234,7 +1244,7 @@ GitlabAuth
 </em>
 </td>
 <td>
-<p>Auth configures how secret-manager authenticates with the IBM secrets manager.</p>
+<p>Auth configures how secret-manager authenticates with a GitLab instance.</p>
 </td>
 </tr>
 <tr>
@@ -1245,7 +1255,7 @@ string
 </em>
 </td>
 <td>
-<p>ProjectID project where secret is located</p>
+<p>ProjectID specifies a project where secrets are located.</p>
 </td>
 </tr>
 </tbody>
@@ -1274,7 +1284,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<p>The Access Token is used for authentication</p>
+<p>AccessToken is used for authentication.</p>
 </td>
 </tr>
 </tbody>

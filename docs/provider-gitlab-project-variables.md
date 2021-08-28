@@ -8,7 +8,7 @@ The API requires an access token and project ID. To create a new access token, g
 
 ![token-details](./pictures/screenshot_gitlab_token.png)
 
-Click 'Create personal access token', and your token will be generated and displayed on screen. Copy or save this token since you can't access it again. 
+Click 'Create personal access token', and your token will be generated and displayed on screen. Copy or save this token since you can't access it again.
 ![token-created](./pictures/screenshot_gitlab_token_created.png)
 
 
@@ -22,7 +22,7 @@ Create a secret containing your access token:
 ```
 
 ### Update secret store
-Be sure the `gitlab` provider is listed in the `Kind=SecretStore` and the ProjectID is set
+Be sure the `gitlab` provider is listed in the `Kind=SecretStore` and the ProjectID is set. If you are not using `https://gitlab.com`, you must set the `url` field as well.
 
 ```yaml
 {% include 'gitlab-secret-store.yaml' %}
