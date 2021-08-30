@@ -1,10 +1,7 @@
 package fake
 
 import (
-	"fmt"
-
 	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
-	"github.com/google/go-cmp/cmp"
 )
 
 type AlibabaMockClient struct {
@@ -16,10 +13,9 @@ func (mc *AlibabaMockClient) GetSecretValue(*kmssdk.GetSecretValueRequest) (resu
 }
 
 func (sm *AlibabaMockClient) WithValue(in *kmssdk.GetSecretValueRequest, val *kmssdk.GetSecretValueResponse, err error) {
-	sm.getSecretValue = func(paramIn *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponse, error) {
-		if !cmp.Equal(paramIn, in) {
-			return nil, fmt.Errorf("unexpected test argument")
+	if sm != nil {
+		sm.getSecretValue = func(paramIn *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponse, error) {
+			return val, err
 		}
-		return val, err
 	}
 }

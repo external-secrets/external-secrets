@@ -58,7 +58,7 @@ require (
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/lestrrat-go/jwx v1.2.1
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.13.0
+	github.com/onsi/gomega v1.16.0
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/client_model v0.2.0

@@ -24,6 +24,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -116,10 +117,12 @@ func (c *Client) setAuth(ctx context.Context) error {
 
 // GetSecret returns a single secret from the provider.
 func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if utils.IsNil(kms.Client) {
+		return nil, fmt.Errorf(errUninitalizedAlibabaProvider)
+	}
 	kmsRequest := kmssdk.CreateGetSecretValueRequest()
 	kmsRequest.VersionId = ref.Version
 	kmsRequest.SecretName = ref.Key
-	fmt.Println(kmsRequest)
 	kmsRequest.SetScheme("https")
 	secretOut, err := kms.Client.GetSecretValue(kmsRequest)
 	if err != nil {
@@ -164,7 +167,6 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha
 func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
-
 	iStore := &Client{
 		kube:      kube,
 		store:     alibabaSpec,
