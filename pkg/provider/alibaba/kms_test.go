@@ -13,6 +13,11 @@ import (
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
 )
 
+const (
+	secretName  = "test-example"
+	secretValue = "value"
+)
+
 type keyManagementServiceTestCase struct {
 	mockClient     *fakesm.AlibabaMockClient
 	apiInput       *kmssdk.GetSecretValueRequest
@@ -42,13 +47,13 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key: "test-example",
+		Key: secretName,
 	}
 }
 
 func makeValidAPIInput() *kmssdk.GetSecretValueRequest {
 	return &kmssdk.GetSecretValueRequest{
-		SecretName: "test-example",
+		SecretName: secretName,
 	}
 }
 
@@ -56,7 +61,7 @@ func makeValidAPIOutput() *kmssdk.GetSecretValueResponse {
 	kmsresponse := &kmssdk.GetSecretValueResponse{
 		BaseResponse:      &responses.BaseResponse{},
 		RequestId:         "",
-		SecretName:        "test-example",
+		SecretName:        secretName,
 		VersionId:         "",
 		CreateTime:        "",
 		SecretData:        "",
@@ -95,21 +100,21 @@ func TestAlibabaKMSGetSecret(t *testing.T) {
 	secretData := make(map[string]interface{})
 	secretValue := "changedvalue"
 	secretData["payload"] = secretValue
-	
+
 	// good case: default version is set
-	//key is passed in, output is sent back
+	// key is passed in, output is sent back
 	setSecretString := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretName = "test-example"
-		kmstc.apiOutput.SecretData = "value"
-		kmstc.expectedSecret = "value"
+		kmstc.apiOutput.SecretName = secretName
+		kmstc.apiOutput.SecretData = secretValue
+		kmstc.expectedSecret = secretValue
 	}
 
-	// // good case: custom version set
+	// good case: custom version set
 	setCustomKey := func(kmstc *keyManagementServiceTestCase) {
 		kmstc.apiOutput.SecretName = "test-example-other"
 		kmstc.ref.Key = "test-example-other"
-		kmstc.apiOutput.SecretData = "value"
-		kmstc.expectedSecret = "value"
+		kmstc.apiOutput.SecretData = secretValue
+		kmstc.expectedSecret = secretValue
 	}
 
 	successCases := []*keyManagementServiceTestCase{

@@ -32,20 +32,14 @@ import (
 )
 
 const (
-	SecretsManagerEndpointEnv = "Alibaba_SECRETSMANAGER_ENDPOINT"
-	STSEndpointEnv            = "Alibaba_STS_ENDPOINT"
-	SSMEndpointEnv            = "Alibaba_SSM_ENDPOINT"
-
 	errAlibabaClient                           = "cannot setup new Alibaba client: %w"
 	errAlibabaCredSecretName                   = "invalid Alibaba SecretStore resource: missing Alibaba APIKey"
 	errUninitalizedAlibabaProvider             = "provider Alibaba is not initialized"
 	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterStore, missing  AccessKeyID namespace"
 	errInvalidClusterStoreMissingSKNamespace   = "invalid ClusterStore, missing namespace"
-	errFetchSAKSecret                          = "could not fetch AccessSecretKey secret: %w"
 	errFetchAKIDSecret                         = "could not fetch AccessKeyID secret: %w"
 	errMissingSAK                              = "missing AccessSecretKey"
 	errMissingAKID                             = "missing AccessKeyID"
-	errJSONSecretUnmarshal                     = "unable to unmarshal secret: %w"
 )
 
 type Client struct {
@@ -187,7 +181,7 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1
 	return kms, nil
 }
 
-func (kms *KeyManagementService) Close() error {
+func (kms *KeyManagementService) Close(ctx context.Context) error {
 	return nil
 }
 

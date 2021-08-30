@@ -12,9 +12,9 @@ func (mc *AlibabaMockClient) GetSecretValue(*kmssdk.GetSecretValueRequest) (resu
 	return mc.getSecretValue(&kmssdk.GetSecretValueRequest{})
 }
 
-func (sm *AlibabaMockClient) WithValue(in *kmssdk.GetSecretValueRequest, val *kmssdk.GetSecretValueResponse, err error) {
-	if sm != nil {
-		sm.getSecretValue = func(paramIn *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponse, error) {
+func (mc *AlibabaMockClient) WithValue(in *kmssdk.GetSecretValueRequest, val *kmssdk.GetSecretValueResponse, err error) {
+	if mc != nil {
+		mc.getSecretValue = func(paramIn *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponse, error) {
 			return val, err
 		}
 	}
