@@ -39,7 +39,6 @@ import (
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	schema "github.com/external-secrets/external-secrets/pkg/provider/schema"
-	"github.com/external-secrets/external-secrets/pkg/template"
 	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -58,6 +57,7 @@ const (
 	errSetCtrlReference      = "could not set ExternalSecret controller reference: %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
 	errGetSecretData         = "could not get secret data from provider: %w"
+	errApplyTemplate         = "could not apply template: %w"
 	errExecTpl               = "could not execute template: %w"
 	errPolicyMergeNotFound   = "the desired secret %s was not found. With creationPolicy=Merge the secret won't be created"
 	errPolicyMergeGetSecret  = "unable to get secret %s: %w"
@@ -188,37 +188,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return fmt.Errorf(errSetCtrlReference, err)
 			}
 		}
-		mergeMetadata(secret, externalSecret)
-		var tplMap map[string][]byte
-		var dataMap map[string][]byte
 
-		// get data
-		dataMap, err = r.getProviderSecretData(ctx, secretClient, &externalSecret)
+		dataMap, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
 		if err != nil {
 			return fmt.Errorf(errGetSecretData, err)
 		}
 
-		// no template: copy data and return
-		if externalSecret.Spec.Target.Template == nil {
-			secret.Data = dataMap
-			return nil
+		err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
+		if err != nil {
+			return fmt.Errorf(errApplyTemplate, err)
 		}
 
-		// template: fetch & execute templates
-		tplMap, err = r.getTemplateData(ctx, &externalSecret)
-		if err != nil {
-			return fmt.Errorf(errFetchTplFrom, err)
-		}
-		// override templateFrom data with template data
-		for k, v := range externalSecret.Spec.Target.Template.Data {
-			tplMap[k] = []byte(v)
-		}
-
-		log.V(1).Info("found template data", "tpl_data", tplMap)
-		err = template.Execute(tplMap, dataMap, secret)
-		if err != nil {
-			return fmt.Errorf(errExecTpl, err)
-		}
 		return nil
 	}
 
@@ -327,26 +307,6 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
 }
 
-// we do not want to force-override the label/annotations
-// and only copy the necessary key/value pairs.
-func mergeMetadata(secret *v1.Secret, externalSecret esv1alpha1.ExternalSecret) {
-	if secret.ObjectMeta.Labels == nil {
-		secret.ObjectMeta.Labels = make(map[string]string)
-	}
-	if secret.ObjectMeta.Annotations == nil {
-		secret.ObjectMeta.Annotations = make(map[string]string)
-	}
-	if externalSecret.Spec.Target.Template == nil {
-		utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.ObjectMeta.Labels)
-		utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.ObjectMeta.Annotations)
-		return
-	}
-	// if template is defined: use those labels/annotations
-	secret.Type = externalSecret.Spec.Target.Template.Type
-	utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.Spec.Target.Template.Metadata.Labels)
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
-}
-
 // getStore returns the store with the provided ExternalSecret.
 func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
 	ref := types.NamespacedName{
@@ -396,50 +356,6 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 	}
 
 	return providerData, nil
-}
-
-func (r *Reconciler) getTemplateData(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
-	out := make(map[string][]byte)
-	if externalSecret.Spec.Target.Template == nil {
-		return out, nil
-	}
-	for _, tpl := range externalSecret.Spec.Target.Template.TemplateFrom {
-		if tpl.ConfigMap != nil {
-			var cm v1.ConfigMap
-			err := r.Client.Get(ctx, types.NamespacedName{
-				Name:      tpl.ConfigMap.Name,
-				Namespace: externalSecret.Namespace,
-			}, &cm)
-			if err != nil {
-				return nil, err
-			}
-			for _, k := range tpl.ConfigMap.Items {
-				val, ok := cm.Data[k.Key]
-				if !ok {
-					return nil, fmt.Errorf(errTplCMMissingKey, tpl.ConfigMap.Name, k.Key)
-				}
-				out[k.Key] = []byte(val)
-			}
-		}
-		if tpl.Secret != nil {
-			var sec v1.Secret
-			err := r.Client.Get(ctx, types.NamespacedName{
-				Name:      tpl.Secret.Name,
-				Namespace: externalSecret.Namespace,
-			}, &sec)
-			if err != nil {
-				return nil, err
-			}
-			for _, k := range tpl.Secret.Items {
-				val, ok := sec.Data[k.Key]
-				if !ok {
-					return nil, fmt.Errorf(errTplSecMissingKey, tpl.Secret.Name, k.Key)
-				}
-				out[k.Key] = val
-			}
-		}
-	}
-	return out, nil
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
