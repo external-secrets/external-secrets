@@ -745,7 +745,6 @@ func (in *SecretStoreProvider) DeepCopyInto(out *SecretStoreProvider) {
 		*out = new(IBMProvider)
 		(*in).DeepCopyInto(*out)
 	}
-
 	if in.YandexLockbox != nil {
 		in, out := &in.YandexLockbox, &out.YandexLockbox
 		*out = new(YandexLockboxProvider)
@@ -756,7 +755,6 @@ func (in *SecretStoreProvider) DeepCopyInto(out *SecretStoreProvider) {
 		*out = new(GitlabProvider)
 		(*in).DeepCopyInto(*out)
 	}
-
 	if in.Alibaba != nil {
 		in, out := &in.Alibaba, &out.Alibaba
 		*out = new(AlibabaProvider)

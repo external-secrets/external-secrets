@@ -1,7 +1,23 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package alibaba
 
 import (
 	"context"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 
 	//nolint
 	. "github.com/onsi/ginkgo"
@@ -10,8 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -22,9 +36,12 @@ type alibabaProvider struct {
 	accessKeyID     string
 	accessKeySecret string
 	regionID        string
-	client          *kms.Client
 	framework       *framework.Framework
 }
+
+const (
+	secretName = "secretName"
+)
 
 func newAlibabaProvider(f *framework.Framework, accessKeyID, accessKeySecret, regionID string) *alibabaProvider {
 	prov := &alibabaProvider{
@@ -39,39 +56,39 @@ func newAlibabaProvider(f *framework.Framework, accessKeyID, accessKeySecret, re
 
 // CreateSecret creates a secret in both kv v1 and v2 provider.
 func (s *alibabaProvider) CreateSecret(key, val string) {
-	client, err := kms.NewClient()
+	client, err := kms.NewClientWithAccessKey(s.regionID, s.accessKeyID, s.accessKeySecret)
 	Expect(err).ToNot(HaveOccurred())
-	kmssecretrequest := kms.CreateSecretRequest{
-		SecretName: "test-example",
-		SecretData: "value",
-	}
-	client.CreateSecret(&kmssecretrequest)
+	kmssecretrequest := kms.CreateCreateSecretRequest()
+	kmssecretrequest.SecretName = secretName
+	kmssecretrequest.SecretData = "value"
+	_, err = client.CreateSecret(kmssecretrequest)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *alibabaProvider) DeleteSecret(key string) {
-	client, err := kms.NewClient()
+	client, err := kms.NewClientWithAccessKey(s.regionID, s.accessKeyID, s.accessKeySecret)
 	Expect(err).ToNot(HaveOccurred())
-	kmssecretrequest := kms.DeleteSecretRequest{
-		SecretName: "test-example",
-	}
-	client.DeleteSecret(&kmssecretrequest)
+	kmssecretrequest := kms.CreateDeleteSecretRequest()
+	kmssecretrequest.SecretName = secretName
+	_, err = client.DeleteSecret(kmssecretrequest)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *alibabaProvider) BeforeEach() {
-	//Creating an Alibaba secret
+	// Creating an Alibaba secret
 	alibabaCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-example",
+			Name:      secretName,
 			Namespace: s.framework.Namespace.Name,
 		},
 		StringData: map[string]string{
-			//secret
+			secretName: "value",
 		},
 	}
 	err := s.framework.CRClient.Create(context.Background(), alibabaCreds)
 	Expect(err).ToNot(HaveOccurred())
 
-	//Creating Alibaba secret store
+	// Creating Alibaba secret store
 	secretStore := &esv1alpha1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,

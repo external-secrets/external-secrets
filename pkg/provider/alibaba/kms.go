@@ -20,15 +20,16 @@ import (
 	"fmt"
 
 	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
+	"github.com/tidwall/gjson"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/tidwall/gjson"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -60,7 +61,7 @@ type SMInterface interface {
 	GetSecretValue(request *kmssdk.GetSecretValueRequest) (response *kmssdk.GetSecretValueResponse, err error)
 }
 
-//setAuth creates a new Alibaba session based on a store
+// setAuth creates a new Alibaba session based on a store.
 func (c *Client) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := c.store.Auth.SecretRef.AccessKeyID.Name
@@ -157,7 +158,7 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha
 	return secretData, nil
 }
 
-//NewClient constructs a new secrets client based on the provided store.
+// NewClient constructs a new secrets client based on the provided store.
 func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba

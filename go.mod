@@ -43,7 +43,6 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1192
 	github.com/aws/aws-sdk-go v1.38.6
 	github.com/crossplane/crossplane-runtime v0.13.0
-	github.com/daixiang0/gci v0.2.9 // indirect
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/frankban/quicktest v1.10.0 // indirect
 	github.com/go-logr/logr v0.4.0
