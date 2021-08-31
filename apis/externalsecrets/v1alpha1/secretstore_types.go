@@ -61,6 +61,10 @@ type SecretStoreProvider struct {
 	// GItlab configures this store to sync secrets using Gitlab Variables provider
 	// +optional
 	Gitlab *GitlabProvider `json:"gitlab,omitempty"`
+
+	// Alibaba configures this store to sync secrets using Alibaba Cloud provider
+	// +optional
+	Alibaba *AlibabaProvider `json:"alibaba,omitempty"`
 }
 
 type SecretStoreConditionType string
