@@ -227,7 +227,7 @@ func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef sm
 	return value, nil
 }
 
-func (a *Azure) Close() error {
+func (a *Azure) Close(ctx context.Context) error {
 	return nil
 }
 
