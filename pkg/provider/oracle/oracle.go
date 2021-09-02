@@ -204,7 +204,7 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1
 	return kms, nil
 }
 
-func (kms *KeyManagementService) Close() error {
+func (kms *KeyManagementService) Close(ctx context.Context) error {
 	return nil
 }
 
