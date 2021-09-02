@@ -27,17 +27,10 @@ func (mc *OracleMockClient) GetSecret(ctx context.Context, request vault.GetSecr
 	return mc.getSecret(ctx, request)
 }
 
-func (mc *OracleMockClient) WithValue(input vault.GetSecretRequest) (output vault.GetSecretResponse, err error) {
+func (mc *OracleMockClient) WithValue(input vault.GetSecretRequest, output vault.GetSecretResponse, err error) {
 	if mc != nil {
 		mc.getSecret = func(ctx context.Context, paramReq vault.GetSecretRequest) (vault.GetSecretResponse, error) {
-			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
-			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
-			// if !cmp.Equal(paramReq, input, cmpopts.IgnoreUnexported(vault.Secret{})) {
-			// 	return nil, fmt.Errorf("unexpected test argument")
-			// }
 			return output, err
 		}
 	}
-	return output, nil
-	// not sure why I need this as other providers don't require extra return function
 }

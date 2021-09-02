@@ -18,8 +18,6 @@ import (
 	"strings"
 	"testing"
 
-	
-
 	vault "github.com/oracle/oci-go-sdk/v45/vault"
 	utilpointer "k8s.io/utils/pointer"
 
@@ -50,7 +48,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		expectedSecret: "",
 		expectedData:   map[string][]byte{},
 	}
-	smtc.mockClient.WithValue(*smtc.apiInput)
+	smtc.mockClient.WithValue(*smtc.apiInput, *smtc.apiOutput, *&smtc.apiErr)
 	return &smtc
 }
 
@@ -63,13 +61,13 @@ func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 
 func makeValidAPIInput() *vault.GetSecretRequest {
 	return &vault.GetSecretRequest{
-		SecretId: utilpointer.StringPtr("i have no idea what should go here TEST CHECK"),
+		SecretId: utilpointer.StringPtr("test-secret"),
 	}
 }
 
 func makeValidAPIOutput() *vault.GetSecretResponse {
 	return &vault.GetSecretResponse{
-		Etag:   utilpointer.StringPtr("i have no idea if I need this TEST CHECK"),
+		Etag:   utilpointer.StringPtr("test-name"),
 		Secret: vault.Secret{},
 	}
 }
@@ -79,7 +77,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
-	smtc.mockClient.WithValue(*smtc.apiInput) //HAVING ONLY 1 VARIABLE SEEMS WRONG TEST CHECK
+	smtc.mockClient.WithValue(*smtc.apiInput, *smtc.apiOutput, *&smtc.apiErr)
 	return smtc
 }
 
@@ -99,31 +97,28 @@ func TestOracleSecretManagerGetSecret(t *testing.T) {
 	secretValue := "changedvalue"
 	// good case: default version is set
 	// key is passed in, output is sent back
-
 	setSecretString := func(smtc *secretManagerTestCase) {
 		smtc.apiOutput = &vault.GetSecretResponse{
-			Etag: utilpointer.StringPtr("i have no idea if I need this TEST CHECK"),
+			Etag: utilpointer.StringPtr("test-name"),
 			Secret: vault.Secret{
-				CompartmentId:  utilpointer.StringPtr("i have no idea if I need this TEST CHECK"),
-				Id:             utilpointer.StringPtr("i have no idea if I need this TEST CHECK"),
-				LifecycleState: vault.SecretLifecycleStateEnum("Unsure TEST CHECK"),
-				SecretName:     utilpointer.StringPtr("changedvalue"),
+				CompartmentId: utilpointer.StringPtr("test-compartment-id"),
+				Id:            utilpointer.StringPtr("test-id"),
+				SecretName:    utilpointer.StringPtr("changedvalue"),
 			},
-			// Key:   "testkey",
-			// Value: "changedvalue",
 		}
 		smtc.expectedSecret = secretValue
 	}
 
 	successCases := []*secretManagerTestCase{
-		makeValidSecretManagerTestCaseCustom(setSecretString),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
+		makeValidSecretManagerTestCaseCustom(setSecretString),
 	}
 
 	sm := KeyManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
+		fmt.Println(*v.ref)
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
@@ -176,14 +171,3 @@ func ErrorContains(out error, want string) bool {
 	}
 	return strings.Contains(out.Error(), want)
 }
-
-// func TestCreateOracleClient(t *testing.T) {
-// 	//credentials := OracleCredentials{Token: ORACLETOKEN}
-// 	oracle := NewOracleProvider()
-// 	fakeMain(oracle)
-// 	request, err := http.NewRequest("GET", "https://cloud.oracle.com/security/kms/vaults/ocid1.vault.oc1.uk-london-1.cbqqsukvaacas.abwgiljrme75gqca4lh5uaykjk2ot2uwdae3p4l536h3mnrbkezqaphp5vdq/secrets/ocid1.vaultsecret.oc1.uk-london-1.amaaaaaa5op3n4qaqzzdsi3pn2kwcyyoypi5xg3nhzwpr7balrgjwy6uepsq?region=uk-london-1", nil)
-// 	///20180608/secrets/ocid1.vaultsecret.oc1.uk-london-1.amaaaaaa5op3n4qaqzzdsi3pn2kwcyyoypi5xg3nhzwpr7balrgjwy6uepsq
-// 	oracle.client.Call(context.Background(), request)
-// 	//user := oracle.client.UserAgent
-// 	fmt.Printf("Created client for username: %v", err)
-// }

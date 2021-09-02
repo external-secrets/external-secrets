@@ -33,6 +33,7 @@ type OracleProvider struct {
 }
 
 type OracleAuth struct {
+	// SecretRef to pass through sensitive information.
 	SecretRef OracleSecretRef `json:"secretRef"`
 }
 
