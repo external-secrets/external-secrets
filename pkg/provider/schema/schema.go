@@ -92,7 +92,7 @@ func GetProvider(s esv1alpha1.GenericStore) (provider.Provider, error) {
 // or an error if the provider is not configured.
 func getProviderName(storeSpec *esv1alpha1.SecretStoreProvider) (string, error) {
 	storeBytes, err := json.Marshal(storeSpec)
-	if err != nil {
+	if err != nil || storeBytes == nil {
 		return "", fmt.Errorf("failed to marshal store spec: %w", err)
 	}
 

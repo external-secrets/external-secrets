@@ -19,6 +19,7 @@ spec:
   provider:
     aws:
       service: SecretsManager
+      region: eu-central-1
       # optional: do a sts:assumeRole before fetching secrets
       role: team-b
 ```
@@ -37,6 +38,7 @@ spec:
   provider:
     aws:
       service: SecretsManager
+      region: eu-central-1
       # optional: assume role before fetching secrets
       role: team-b
       auth:
@@ -78,6 +80,7 @@ spec:
   provider:
     aws:
       service: SecretsManager
+      region: eu-central-1
       auth:
         jwt:
           serviceAccountRef:

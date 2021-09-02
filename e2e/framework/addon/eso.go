@@ -27,3 +27,14 @@ func NewESO() *ESO {
 		},
 	}
 }
+
+func NewScopedESO() *ESO {
+	return &ESO{
+		&HelmChart{
+			Namespace:   "default",
+			ReleaseName: "eso-aws-sm",
+			Chart:       "/k8s/deploy/charts/external-secrets",
+			Values:      []string{"/k8s/eso.scoped.values.yaml"},
+		},
+	}
+}
