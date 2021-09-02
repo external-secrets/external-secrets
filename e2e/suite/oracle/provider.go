@@ -20,12 +20,11 @@ import (
 
 	// nolint
 	. "github.com/onsi/gomega"
+	"github.com/oracle/oci-go-sdk/v45/common"
+	vault "github.com/oracle/oci-go-sdk/v45/vault"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
-
-	"github.com/oracle/oci-go-sdk/v45/common"
-	vault "github.com/oracle/oci-go-sdk/v45/vault"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
