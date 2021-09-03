@@ -48,7 +48,7 @@ func makeValidVaultTestCase() *vaultTestCase {
 		expectedSecret: "",
 		expectedData:   map[string][]byte{},
 	}
-	smtc.mockClient.WithValue(*smtc.apiInput, *smtc.apiOutput, *&smtc.apiErr)
+	smtc.mockClient.WithValue(*smtc.apiInput, *smtc.apiOutput, smtc.apiErr)
 	return &smtc
 }
 
@@ -77,7 +77,7 @@ func makeValidVaultTestCaseCustom(tweaks ...func(smtc *vaultTestCase)) *vaultTes
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
-	smtc.mockClient.WithValue(*smtc.apiInput, *smtc.apiOutput, *&smtc.apiErr)
+	smtc.mockClient.WithValue(*smtc.apiInput, *smtc.apiOutput, smtc.apiErr)
 	return smtc
 }
 
