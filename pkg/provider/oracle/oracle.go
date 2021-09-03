@@ -33,7 +33,7 @@ import (
 const (
 	VaultEndpointEnv = "ORACLE_VAULT_ENDPOINT"
 	STSEndpointEnv   = "ORACLE_STS_ENDPOINT"
-	SSMEndpointEnv   = "ORACLE_SSM_ENDPOINT"
+	SVMEndpointEnv   = "ORACLE_SVM_ENDPOINT"
 
 	errOracleClient                          = "cannot setup new oracle client: %w"
 	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
@@ -62,11 +62,11 @@ type client struct {
 	privateKey  string
 }
 
-type KeyManagementService struct {
-	Client SMInterface
+type VaultManagementService struct {
+	Client VMInterface
 }
 
-type SMInterface interface {
+type VMInterface interface {
 	GetSecret(ctx context.Context, request vault.GetSecretRequest) (response vault.GetSecretResponse, err error)
 }
 
@@ -122,14 +122,14 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(kms.Client) {
+func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if utils.IsNil(vms.Client) {
 		return nil, fmt.Errorf(errUninitalizedOracleProvider)
 	}
-	kmsRequest := vault.GetSecretRequest{
+	vmsRequest := vault.GetSecretRequest{
 		SecretId: &ref.Key,
 	}
-	secretOut, err := kms.Client.GetSecret(context.Background(), kmsRequest)
+	secretOut, err := vms.Client.GetSecret(context.Background(), vmsRequest)
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
@@ -154,8 +154,8 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.E
 	return []byte(val.String()), nil
 }
 
-func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := kms.GetSecret(ctx, ref)
+func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	data, err := vms.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
@@ -194,20 +194,20 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1
 
 	configurationProvider := common.NewRawConfigurationProvider(oracleTenancy, oracleUser, oracleRegion, oracleFingerprint, oraclePrivateKey, nil)
 
-	keyManagementService, err := vault.NewVaultsClientWithConfigurationProvider(configurationProvider)
+	vaultManagementService, err := vault.NewVaultsClientWithConfigurationProvider(configurationProvider)
 	if err != nil {
 		return nil, fmt.Errorf(errOracleClient, err)
 	}
-	kms.Client = keyManagementService
-	return kms, nil
+	vms.Client = vaultManagementService
+	return vms, nil
 }
 
-func (kms *KeyManagementService) Close(ctx context.Context) error {
+func (vms *VaultManagementService) Close(ctx context.Context) error {
 	return nil
 }
 
 func init() {
-	schema.Register(&KeyManagementService{}, &esv1alpha1.SecretStoreProvider{
+	schema.Register(&VaultManagementService{}, &esv1alpha1.SecretStoreProvider{
 		Oracle: &esv1alpha1.OracleProvider{},
 	})
 }

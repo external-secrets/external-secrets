@@ -115,7 +115,7 @@ func TestOracleVaultGetSecret(t *testing.T) {
 		makeValidVaultTestCaseCustom(setSecretString),
 	}
 
-	sm := KeyManagementService{}
+	sm := VaultManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
 		fmt.Println(*v.ref)
@@ -149,7 +149,7 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidVaultTestCaseCustom(setAPIErr),
 	}
 
-	sm := KeyManagementService{}
+	sm := VaultManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)

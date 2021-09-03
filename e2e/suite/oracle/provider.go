@@ -62,13 +62,13 @@ func (p *oracleProvider) CreateSecret(key, val string) {
 	configurationProvider := common.NewRawConfigurationProvider(p.tenancy, p.user, p.region, p.fingerprint, p.privateKey, nil)
 	client, err := vault.NewVaultsClientWithConfigurationProvider(configurationProvider)
 	Expect(err).ToNot(HaveOccurred())
-	kmssecretrequest := vault.CreateSecretRequest{}
-	kmssecretrequest.SecretName = utilpointer.StringPtr(secretName)
-	kmssecretrequest.SecretContent = vault.Base64SecretContentDetails{
+	vmssecretrequest := vault.CreateSecretRequest{}
+	vmssecretrequest.SecretName = utilpointer.StringPtr(secretName)
+	vmssecretrequest.SecretContent = vault.Base64SecretContentDetails{
 		Name:    utilpointer.StringPtr("secretName"),
 		Content: utilpointer.StringPtr("secretContent"),
 	}
-	_, err = client.CreateSecret(p.ctx, kmssecretrequest)
+	_, err = client.CreateSecret(p.ctx, vmssecretrequest)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -76,9 +76,9 @@ func (p *oracleProvider) DeleteSecret(key string) {
 	configurationProvider := common.NewRawConfigurationProvider(p.tenancy, p.user, p.region, p.fingerprint, p.privateKey, nil)
 	client, err := vault.NewVaultsClientWithConfigurationProvider(configurationProvider)
 	Expect(err).ToNot(HaveOccurred())
-	kmssecretrequest := vault.ScheduleSecretDeletionRequest{}
-	kmssecretrequest.SecretId = utilpointer.StringPtr(secretName)
-	_, err = client.ScheduleSecretDeletion(p.ctx, kmssecretrequest)
+	vmssecretrequest := vault.ScheduleSecretDeletionRequest{}
+	vmssecretrequest.SecretId = utilpointer.StringPtr(secretName)
+	_, err = client.ScheduleSecretDeletion(p.ctx, vmssecretrequest)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -106,11 +106,11 @@ func (p *oracleProvider) BeforeEach() {
 					Auth: esv1alpha1.OracleAuth{
 						SecretRef: esv1alpha1.OracleSecretRef{
 							Fingerprint: esmeta.SecretKeySelector{
-								Name: "kms-secret",
+								Name: "vms-secret",
 								Key:  "keyid",
 							},
 							PrivateKey: esmeta.SecretKeySelector{
-								Name: "kms-secret",
+								Name: "vms-secret",
 								Key:  "accesskey",
 							},
 						},
