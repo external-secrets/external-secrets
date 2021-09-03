@@ -1,6 +1,6 @@
 ## Oracle Vault
 
-External Secrets Operator integrates with [OCI API](https://github.com/oracle/oci-go-sdk) to sync secret on the Oracle cloud to secrets held on the Kubernetes cluster.
+External Secrets Operator integrates with [OCI API](https://github.com/oracle/oci-go-sdk) to sync secret on the Oracle Vault to secrets held on the Kubernetes cluster.
 
 ### Authentication
 

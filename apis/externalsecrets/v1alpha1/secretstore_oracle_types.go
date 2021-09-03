@@ -16,10 +16,10 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// Configures an store to sync secrets using a Oracle Cloud Secrets Manager
+// Configures an store to sync secrets using a Oracle Vault
 // backend.
 type OracleProvider struct {
-	// Auth configures how secret-manager authenticates with the Oracle secrets manager.
+	// Auth configures how secret-manager authenticates with the Oracle Vault.
 	Auth OracleAuth `json:"auth"`
 
 	// User is an access OCID specific to the account.

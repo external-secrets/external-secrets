@@ -25,7 +25,7 @@ import (
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
 )
 
-type secretManagerTestCase struct {
+type vaultTestCase struct {
 	mockClient     *fakeoracle.OracleMockClient
 	apiInput       *vault.GetSecretRequest
 	apiOutput      *vault.GetSecretResponse
@@ -37,8 +37,8 @@ type secretManagerTestCase struct {
 	expectedData map[string][]byte
 }
 
-func makeValidSecretManagerTestCase() *secretManagerTestCase {
-	smtc := secretManagerTestCase{
+func makeValidVaultTestCase() *vaultTestCase {
+	smtc := vaultTestCase{
 		mockClient:     &fakeoracle.OracleMockClient{},
 		apiInput:       makeValidAPIInput(),
 		ref:            makeValidRef(),
@@ -72,8 +72,8 @@ func makeValidAPIOutput() *vault.GetSecretResponse {
 	}
 }
 
-func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
-	smtc := makeValidSecretManagerTestCase()
+func makeValidVaultTestCaseCustom(tweaks ...func(smtc *vaultTestCase)) *vaultTestCase {
+	smtc := makeValidVaultTestCase()
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
@@ -83,21 +83,21 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 
 // This case can be shared by both GetSecret and GetSecretMap tests.
 // bad case: set apiErr.
-var setAPIErr = func(smtc *secretManagerTestCase) {
+var setAPIErr = func(smtc *vaultTestCase) {
 	smtc.apiErr = fmt.Errorf("oh no")
 	smtc.expectError = "oh no"
 }
 
-var setNilMockClient = func(smtc *secretManagerTestCase) {
+var setNilMockClient = func(smtc *vaultTestCase) {
 	smtc.mockClient = nil
 	smtc.expectError = errUninitalizedOracleProvider
 }
 
-func TestOracleSecretManagerGetSecret(t *testing.T) {
+func TestOracleVaultGetSecret(t *testing.T) {
 	secretValue := "changedvalue"
 	// good case: default version is set
 	// key is passed in, output is sent back
-	setSecretString := func(smtc *secretManagerTestCase) {
+	setSecretString := func(smtc *vaultTestCase) {
 		smtc.apiOutput = &vault.GetSecretResponse{
 			Etag: utilpointer.StringPtr("test-name"),
 			Secret: vault.Secret{
@@ -109,10 +109,10 @@ func TestOracleSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = secretValue
 	}
 
-	successCases := []*secretManagerTestCase{
-		makeValidSecretManagerTestCaseCustom(setAPIErr),
-		makeValidSecretManagerTestCaseCustom(setNilMockClient),
-		makeValidSecretManagerTestCaseCustom(setSecretString),
+	successCases := []*vaultTestCase{
+		makeValidVaultTestCaseCustom(setAPIErr),
+		makeValidVaultTestCaseCustom(setNilMockClient),
+		makeValidVaultTestCaseCustom(setSecretString),
 	}
 
 	sm := KeyManagementService{}
@@ -131,22 +131,22 @@ func TestOracleSecretManagerGetSecret(t *testing.T) {
 
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
-	setDeserialization := func(smtc *secretManagerTestCase) {
+	setDeserialization := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretName = utilpointer.StringPtr(`{"foo":"bar"}`)
 		smtc.expectedData["foo"] = []byte("bar")
 	}
 
 	// bad case: invalid json
-	setInvalidJSON := func(smtc *secretManagerTestCase) {
+	setInvalidJSON := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretName = utilpointer.StringPtr(`-----------------`)
 		smtc.expectError = "unable to unmarshal secret"
 	}
 
-	successCases := []*secretManagerTestCase{
-		makeValidSecretManagerTestCaseCustom(setDeserialization),
-		makeValidSecretManagerTestCaseCustom(setInvalidJSON),
-		makeValidSecretManagerTestCaseCustom(setNilMockClient),
-		makeValidSecretManagerTestCaseCustom(setAPIErr),
+	successCases := []*vaultTestCase{
+		makeValidVaultTestCaseCustom(setDeserialization),
+		makeValidVaultTestCaseCustom(setInvalidJSON),
+		makeValidVaultTestCaseCustom(setNilMockClient),
+		makeValidVaultTestCaseCustom(setAPIErr),
 	}
 
 	sm := KeyManagementService{}

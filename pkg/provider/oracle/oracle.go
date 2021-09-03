@@ -31,9 +31,9 @@ import (
 )
 
 const (
-	SecretsManagerEndpointEnv = "ORACLE_SECRETSMANAGER_ENDPOINT"
-	STSEndpointEnv            = "ORACLE_STS_ENDPOINT"
-	SSMEndpointEnv            = "ORACLE_SSM_ENDPOINT"
+	VaultEndpointEnv = "ORACLE_VAULT_ENDPOINT"
+	STSEndpointEnv   = "ORACLE_STS_ENDPOINT"
+	SSMEndpointEnv   = "ORACLE_SSM_ENDPOINT"
 
 	errOracleClient                          = "cannot setup new oracle client: %w"
 	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
@@ -55,8 +55,6 @@ type client struct {
 	store       *esv1alpha1.OracleProvider
 	namespace   string
 	storeKind   string
-	credentials []byte
-
 	tenancy     string
 	user        string
 	region      string
@@ -97,27 +95,27 @@ func (c *client) setAuth(ctx context.Context) error {
 	}
 
 	c.privateKey = string(credentialsSecret.Data[c.store.Auth.SecretRef.PrivateKey.Key])
-	if (c.privateKey == "") || (len(c.privateKey) == 0) {
+	if c.privateKey == "" {
 		return fmt.Errorf(errMissingPK)
 	}
 
 	c.fingerprint = string(credentialsSecret.Data[c.store.Auth.SecretRef.Fingerprint.Key])
-	if (c.fingerprint == "") || (len(c.fingerprint) == 0) {
+	if c.fingerprint == "" {
 		return fmt.Errorf(errMissingFingerprint)
 	}
 
-	c.user = string(c.store.User)
-	if (c.user == "") || (len(c.user) == 0) {
+	c.user = c.store.User
+	if c.user == "" {
 		return fmt.Errorf(errMissingUser)
 	}
 
-	c.tenancy = string(c.store.Tenancy)
-	if (c.tenancy == "") || (len(c.tenancy) == 0) {
+	c.tenancy = c.store.Tenancy
+	if c.tenancy == "" {
 		return fmt.Errorf(errMissingTenancy)
 	}
 
-	c.region = string(c.store.Region)
-	if (c.region == "") || (len(c.region) == 0) {
+	c.region = c.store.Region
+	if c.region == "" {
 		return fmt.Errorf(errMissingRegion)
 	}
 
@@ -173,7 +171,7 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha
 	return secretData, nil
 }
 
-//NewClient constructs a new secrets client based on the provided store.
+// NewClient constructs a new secrets client based on the provided store.
 func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
