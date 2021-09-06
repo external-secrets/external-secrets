@@ -20,7 +20,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 - [Yandex Lockbox](https://external-secrets.io/provider-yandex-lockbox/)
 - [Gitlab Project Variables](https://external-secrets.io/provider-gitlab-project-variables/)
 - [Alibaba Cloud KMS](https://www.alibabacloud.com/product/kms) (Docs still missing, PRs welcomed!)
-- [Oracle Vault](https://www.oracle.com/uk/security/cloud-security/key-management/) 
+- [Oracle Vault]( https://external-secrets.io/provider-oracle-vault) 
 
 ## Stability and Support Level
 
@@ -41,8 +41,8 @@ Multiple people and organizations are joining efforts to create a single Externa
 | [IBM SM](https://external-secrets.io/provider-ibm-secrets-manager/) |   alpha   |   @knelasevero @sebagomez @ricardoptcosta  |
 | [Yandex Lockbox](https://external-secrets.io/provider-yandex-lockbox/) |   alpha   |   @AndreyZamyslov @knelasevero          |
 | [Gitlab Project Variables](https://external-secrets.io/provider-gitlab-project-variables/) |   alpha   |   @Jabray5          |
-| Alibaba Cloud KMS                                                    |   alpha   |            @ElsaChelala                   |
-| [Oracle Vault](https://www.oracle.com/uk/security/cloud-security/key-management/) | alpha  | @KianTigger
+| Alibaba Cloud KMS                                                   |   alpha  | @ElsaChelala                                |
+| [Oracle Vault]( https://external-secrets.io/provider-oracle-vault)  |   alpha  | @KianTigger                                 |
 
 
 ## Documentation
