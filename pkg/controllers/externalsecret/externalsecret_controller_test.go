@@ -341,15 +341,27 @@ var _ = Describe("ExternalSecret controller", func() {
 		const tplStaticKey = "tplstatickey"
 		const tplStaticVal = "tplstaticvalue"
 		const tplFromCMName = "template-cm"
+		const tplFromSecretName = "template-secret"
 		const tplFromKey = "tpl-from-key"
+		const tplFromSecKey = "tpl-from-sec-key"
 		const tplFromVal = "tpl-from-value: {{ .targetProperty | toString }} // {{ .bar | toString }}"
+		const tplFromSecVal = "tpl-from-sec-value: {{ .targetProperty | toString }} // {{ .bar | toString }}"
 		Expect(k8sClient.Create(context.Background(), &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "template-cm",
+				Name:      tplFromCMName,
 				Namespace: ExternalSecretNamespace,
 			},
 			Data: map[string]string{
 				tplFromKey: tplFromVal,
+			},
+		})).To(Succeed())
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tplFromSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				tplFromSecKey: []byte(tplFromSecVal),
 			},
 		})).To(Succeed())
 		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
@@ -362,6 +374,16 @@ var _ = Describe("ExternalSecret controller", func() {
 						Items: []esv1alpha1.TemplateRefItem{
 							{
 								Key: tplFromKey,
+							},
+						},
+					},
+				},
+				{
+					Secret: &esv1alpha1.TemplateRef{
+						Name: tplFromSecretName,
+						Items: []esv1alpha1.TemplateRefItem{
+							{
+								Key: tplFromSecKey,
 							},
 						},
 					},
@@ -392,6 +414,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(string(secret.Data[tplStaticKey])).To(Equal(tplStaticVal))
 			Expect(string(secret.Data["bar"])).To(Equal("value from map: map-bar-value"))
 			Expect(string(secret.Data[tplFromKey])).To(Equal("tpl-from-value: someValue // map-bar-value"))
+			Expect(string(secret.Data[tplFromSecKey])).To(Equal("tpl-from-sec-value: someValue // map-bar-value"))
 		}
 	}
 
@@ -446,6 +469,26 @@ var _ = Describe("ExternalSecret controller", func() {
 			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
 
 			// also check labels/annotations have been updated
+			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Labels))
+			Expect(secret.ObjectMeta.Annotations).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Annotations))
+		}
+	}
+
+	onlyMetadataFromTemplate := func(tc *testCase) {
+		const secretVal = "someValue"
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+			Metadata: esv1alpha1.ExternalSecretTemplateMetadata{
+				Labels:      map[string]string{"foo": "bar"},
+				Annotations: map[string]string{"foo": "bar"},
+			},
+		}
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+
+			// labels/annotations should be taken from the template
 			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Labels))
 			Expect(secret.ObjectMeta.Annotations).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Annotations))
 		}
@@ -703,6 +746,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should refresh secret from template", refreshWithTemplate),
+		Entry("should be able to use only metadata from template", onlyMetadataFromTemplate),
 		Entry("should refresh secret value when provider secret changes", refreshSecretValue),
 		Entry("should not refresh secret value when provider secret changes but refreshInterval is zero", refreshintervalZero),
 		Entry("should fetch secret using dataFrom", syncWithDataFrom),

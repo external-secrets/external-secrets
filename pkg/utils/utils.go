@@ -17,11 +17,11 @@ package utils
 import "reflect"
 
 // MergeByteMap merges map of byte slices.
-func MergeByteMap(src, dst map[string][]byte) map[string][]byte {
-	for k, v := range dst {
-		src[k] = v
+func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
+	for k, v := range src {
+		dst[k] = v
 	}
-	return src
+	return dst
 }
 
 // MergeStringMap performs a deep clone from src to dest.
