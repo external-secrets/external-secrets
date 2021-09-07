@@ -65,8 +65,8 @@ func (p *oracleProvider) CreateSecret(key, val string) {
 	vmssecretrequest := vault.CreateSecretRequest{}
 	vmssecretrequest.SecretName = utilpointer.StringPtr(secretName)
 	vmssecretrequest.SecretContent = vault.Base64SecretContentDetails{
-		Name:    utilpointer.StringPtr("secretName"),
-		Content: utilpointer.StringPtr("secretContent"),
+		Name:    utilpointer.StringPtr(key),
+		Content: utilpointer.StringPtr(val),
 	}
 	_, err = client.CreateSecret(p.ctx, vmssecretrequest)
 	Expect(err).ToNot(HaveOccurred())
@@ -77,7 +77,7 @@ func (p *oracleProvider) DeleteSecret(key string) {
 	client, err := vault.NewVaultsClientWithConfigurationProvider(configurationProvider)
 	Expect(err).ToNot(HaveOccurred())
 	vmssecretrequest := vault.ScheduleSecretDeletionRequest{}
-	vmssecretrequest.SecretId = utilpointer.StringPtr(secretName)
+	vmssecretrequest.SecretId = utilpointer.StringPtr(key)
 	_, err = client.ScheduleSecretDeletion(p.ctx, vmssecretrequest)
 	Expect(err).ToNot(HaveOccurred())
 }
