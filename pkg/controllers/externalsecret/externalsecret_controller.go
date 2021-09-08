@@ -166,6 +166,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
+	if externalSecret.Status.SyncedResourceVersion != "" && externalSecret.Spec.Target.Immutable {
+		return ctrl.Result{
+			RequeueAfter: 0,
+			Requeue:      false,
+		}, nil
+	}
 
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
