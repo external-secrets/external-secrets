@@ -40,6 +40,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1alpha1.ExternalS
 	// no template: copy data and return
 	if es.Spec.Target.Template == nil {
 		secret.Data = dataMap
+		secret.Annotations[esv1alpha1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 		return nil
 	}
 
@@ -67,6 +68,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1alpha1.ExternalS
 			secret.Data[k] = v
 		}
 	}
+	secret.Annotations[esv1alpha1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 
 	return nil
 }

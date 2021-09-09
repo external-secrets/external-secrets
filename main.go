@@ -59,7 +59,7 @@ func main() {
 	var lvl zapcore.Level
 	err := lvl.UnmarshalText([]byte(loglevel))
 	if err != nil {
-		setupLog.Error(err, "error unmarshaling loglevel")
+		setupLog.Error(err, "error unmarshalling loglevel")
 		os.Exit(1)
 	}
 	logger := zap.New(zap.Level(lvl))

@@ -16,9 +16,6 @@ package externalsecret
 
 import (
 	"context"
-
-	// nolint
-	"crypto/md5"
 	"fmt"
 	"time"
 
@@ -38,8 +35,8 @@ import (
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
-	schema "github.com/external-secrets/external-secrets/pkg/provider/schema"
-	utils "github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -53,6 +50,7 @@ const (
 	errStoreRef              = "could not get store reference"
 	errStoreProvider         = "could not get store provider"
 	errStoreClient           = "could not get provider client"
+	errGetExistingSecret     = "could not get existing secret: %w"
 	errCloseStoreClient      = "could not close provider client"
 	errSetCtrlReference      = "could not set ExternalSecret controller reference: %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
@@ -126,7 +124,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// check if store should be handled by this controller instance
 	if !shouldProcessStore(store, r.ControllerClass) {
-		log.Info("skippig unmanaged store")
+		log.Info("skipping unmanaged store")
 		return ctrl.Result{}, nil
 	}
 
@@ -158,19 +156,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		refreshInt = externalSecret.Spec.RefreshInterval.Duration
 	}
 
-	// refresh should be skipped if
-	// 1. resource generation hasn't changed
-	// 2. refresh interval is 0
-	// 3. if we're still within refresh-interval
-	if !shouldRefresh(externalSecret) {
-		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
-		return ctrl.Result{RequeueAfter: refreshInt}, nil
-	}
-
 	// Target Secret Name should default to the ExternalSecret name if not explicitly specified
 	secretName := externalSecret.Spec.Target.Name
 	if secretName == "" {
 		secretName = externalSecret.ObjectMeta.Name
+	}
+
+	// fetch external secret, we need to ensure that it exists, and it's hashmap corresponds
+	var existingSecret v1.Secret
+	err = r.Get(ctx, types.NamespacedName{
+		Name:      secretName,
+		Namespace: externalSecret.Namespace,
+	}, &existingSecret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		log.Error(err, errGetExistingSecret)
+	}
+
+	// refresh should be skipped if
+	// 1. resource generation hasn't changed
+	// 2. refresh interval is 0
+	// 3. if we're still within refresh-interval
+	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
+		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
+		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 
 	secret := &v1.Secret{
@@ -202,7 +210,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	}
 
-	//nolint
+	// nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1alpha1.Merge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc)
@@ -249,7 +257,7 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/526
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/1517
 	// https://github.com/kubernetes/kubernetes/issues/80609
-	// we need to manually set it befor doing a Patch() as it depends on the GVK
+	// we need to manually set it before doing a Patch() as it depends on the GVK
 	gvks, unversioned, err := scheme.ObjectKinds(secret)
 	if err != nil {
 		return err
@@ -284,12 +292,10 @@ func hashMeta(m metav1.ObjectMeta) string {
 		annotations map[string]string
 		labels      map[string]string
 	}
-	h := md5.New() //nolint
-	_, _ = h.Write([]byte(fmt.Sprintf("%v", meta{
+	return utils.ObjectHash(meta{
 		annotations: m.Annotations,
 		labels:      m.Labels,
-	})))
-	return fmt.Sprintf("%x", h.Sum(nil))
+	})
 }
 
 func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
@@ -297,6 +303,7 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
 		return true
 	}
+
 	// skip refresh if refresh interval is 0
 	if es.Spec.RefreshInterval.Duration == 0 && es.Status.SyncedResourceVersion != "" {
 		return false
@@ -305,6 +312,20 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 		return true
 	}
 	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
+}
+
+// isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.
+func isSecretValid(existingSecret v1.Secret) bool {
+	// if target secret doesn't exist, or annotations as not set, we need to refresh
+	if existingSecret.UID == "" || existingSecret.Annotations == nil {
+		return false
+	}
+
+	// if the calculated hash is different from the calculation, then it's invalid
+	if existingSecret.Annotations[esv1alpha1.AnnotationDataHash] != utils.ObjectHash(existingSecret.Data) {
+		return false
+	}
+	return true
 }
 
 // getStore returns the store with the provided ExternalSecret.
