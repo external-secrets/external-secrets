@@ -911,6 +911,12 @@ var _ = Describe("ExternalSecret controller", func() {
 					Name:      ExternalSecretTargetSecretName,
 					Namespace: ExternalSecretNamespace,
 				}
+				if createdES.Spec.Target.Name == "" {
+					secretLookupKey = types.NamespacedName{
+						Name:      ExternalSecretName,
+						Namespace: ExternalSecretNamespace,
+					}
+				}
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, secretLookupKey, syncedSecret)
 					return err == nil
