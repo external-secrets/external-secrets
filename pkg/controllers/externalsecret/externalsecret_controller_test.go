@@ -99,7 +99,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "xxx",
 					Annotations: map[string]string{
-						annotationDataHash: "xxxxxx",
+						esv1alpha1.AnnotationDataHash: "xxxxxx",
 					},
 				},
 			},
@@ -111,7 +111,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "xxx",
 					Annotations: map[string]string{
-						annotationDataHash: "caa0155759a6a9b3b6ada5a6883ee2bb",
+						esv1alpha1.AnnotationDataHash: "caa0155759a6a9b3b6ada5a6883ee2bb",
 					},
 				},
 				Data: map[string][]byte{
@@ -297,7 +297,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(hasFieldOwnership(
 				secret.ObjectMeta,
 				"external-secrets",
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", annotationDataHash)),
+				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1alpha1.AnnotationDataHash)),
 			).To(BeTrue())
 			Expect(hasFieldOwnership(secret.ObjectMeta, "fake.manager", "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
 		}
@@ -806,7 +806,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		const secretVal = "someValue"
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.Annotations[annotationDataHash]).To(Equal("9d30b95ca81e156f9454b5ef3bfcc6ee"))
+			Expect(secret.Annotations[esv1alpha1.AnnotationDataHash]).To(Equal("9d30b95ca81e156f9454b5ef3bfcc6ee"))
 		}
 	}
 
@@ -818,13 +818,13 @@ var _ = Describe("ExternalSecret controller", func() {
 		fakeProvider.WithGetSecretMap(fakeData, nil)
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Minute * 10}
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
-			oldHash := secret.Annotations[annotationDataHash]
+			oldHash := secret.Annotations[esv1alpha1.AnnotationDataHash]
 			oldResourceVersion := secret.ResourceVersion
 			Expect(oldHash).NotTo(BeEmpty())
 
 			cleanSecret := secret.DeepCopy()
 			secret.Data["new"] = []byte("value")
-			secret.ObjectMeta.Annotations[annotationDataHash] = "thisiswronghash"
+			secret.ObjectMeta.Annotations[esv1alpha1.AnnotationDataHash] = "thisiswronghash"
 			Expect(k8sClient.Patch(context.Background(), secret, client.MergeFrom(cleanSecret))).To(Succeed())
 
 			var refreshedSecret v1.Secret
@@ -839,7 +839,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				// refreshed secret should have a different generation (sign that it was updated), but since
 				// the secret source is the same (not changed), the hash should be reverted to an old value
-				return refreshedSecret.ResourceVersion != oldResourceVersion && refreshedSecret.Annotations[annotationDataHash] == oldHash
+				return refreshedSecret.ResourceVersion != oldResourceVersion && refreshedSecret.Annotations[esv1alpha1.AnnotationDataHash] == oldHash
 			}, timeout, interval).Should(BeTrue())
 		}
 	}

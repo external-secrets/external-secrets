@@ -40,8 +40,7 @@ import (
 )
 
 const (
-	requeueAfter       = time.Second * 30
-	annotationDataHash = "reconcile.external-secrets.io/data-hash"
+	requeueAfter = time.Second * 30
 
 	errGetES                 = "could not get ExternalSecret"
 	errReconcileES           = "could not reconcile ExternalSecret"
@@ -323,7 +322,7 @@ func isSecretValid(existingSecret v1.Secret) bool {
 	}
 
 	// if the calculated hash is different from the calculation, then it's invalid
-	if existingSecret.Annotations[annotationDataHash] != utils.ObjectHash(existingSecret.Data) {
+	if existingSecret.Annotations[esv1alpha1.AnnotationDataHash] != utils.ObjectHash(existingSecret.Data) {
 		return false
 	}
 	return true

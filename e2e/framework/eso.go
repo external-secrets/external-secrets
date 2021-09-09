@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package framework
 
 import (
@@ -23,6 +24,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 // WaitForSecretValue waits until a secret comes into existence and compares the secret.Data
@@ -50,6 +53,12 @@ func equalSecrets(exp, ts *v1.Secret) bool {
 	tsLabels, _ := json.Marshal(ts.ObjectMeta.Labels)
 	if !bytes.Equal(expLabels, tsLabels) {
 		return false
+	}
+
+	// secret contains data hash property which must be ignored
+	delete(ts.ObjectMeta.Annotations, esv1alpha1.AnnotationDataHash)
+	if len(ts.ObjectMeta.Annotations) == 0 {
+		ts.ObjectMeta.Annotations = nil
 	}
 
 	expAnnotations, _ := json.Marshal(exp.ObjectMeta.Annotations)
