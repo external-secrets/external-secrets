@@ -687,6 +687,45 @@
   
 
           
+            
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_8" type="checkbox" id="__nav_5_8" >
+      
+      <label class="md-nav__link" for="__nav_5_8">
+        Oracle
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Oracle" data-md-level="2">
+        <label class="md-nav__title" for="__nav_5_8">
+          <span class="md-nav__icon md-icon"></span>
+          Oracle
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provider-oracle-vault/" class="md-nav__link">
+        Oracle Vault
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+          
         </ul>
       </nav>
     </li>
@@ -2369,6 +2408,143 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.OracleAuth">OracleAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.OracleProvider">OracleProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleSecretRef">
+OracleSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef to pass through sensitive information.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.OracleProvider">OracleProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures an store to sync secrets using a Oracle Vault
+backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleAuth">
+OracleAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the Oracle Vault.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>user</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>User is an access OCID specific to the account.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenancy</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.OracleSecretRef">OracleSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.OracleAuth">OracleAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>privatekey</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The Access Token is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fingerprint</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.SecretStore">SecretStore
 </h3>
 <p>
@@ -2542,6 +2718,20 @@ GCPSMProvider
 <td>
 <em>(Optional)</em>
 <p>GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oracle</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleProvider">
+OracleProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Oracle configures this store to sync secrets using Oracle Vault provider</p>
 </td>
 </tr>
 <tr>
@@ -3505,7 +3695,7 @@ Generated with <code>gen-crd-api-reference-docs</code>.
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../provider-gitlab-project-variables/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Gitlab Project Variables" rel="prev">
+        <a href="../provider-oracle-vault/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Oracle Vault" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -3514,7 +3704,7 @@ Generated with <code>gen-crd-api-reference-docs</code>.
               <span class="md-footer__direction">
                 Previous
               </span>
-              Gitlab Project Variables
+              Oracle Vault
             </div>
           </div>
         </a>
