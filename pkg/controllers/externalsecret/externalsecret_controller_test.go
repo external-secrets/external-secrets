@@ -660,6 +660,34 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	// with dataFrom and using a template
+	// should be put into the secret
+	syncWithDataFromTemplate := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.Target = esv1alpha1.ExternalSecretTarget{
+			Name: ExternalSecretTargetSecretName,
+			Template: &esv1alpha1.ExternalSecretTemplate{
+				Type: v1.SecretTypeTLS,
+			},
+		}
+
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+			{
+				Key: remoteKey,
+			},
+		}
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"tls.crt": []byte("map-foo-value"),
+			"tls.key": []byte("map-bar-value"),
+		}, nil)
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Type).To(Equal(v1.SecretTypeTLS))
+			// check values
+			Expect(string(secret.Data["tls.crt"])).To(Equal("map-foo-value"))
+			Expect(string(secret.Data["tls.key"])).To(Equal("map-bar-value"))
+		}
+	}
+
 	// when a provider errors in a GetSecret call
 	// a error condition must be set.
 	providerErrCondition := func(tc *testCase) {
@@ -895,6 +923,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should refresh secret value when provider secret changes", refreshSecretValue),
 		Entry("should not refresh secret value when provider secret changes but refreshInterval is zero", refreshintervalZero),
 		Entry("should fetch secret using dataFrom", syncWithDataFrom),
+		Entry("should fetch secret using dataFrom and a template", syncWithDataFromTemplate),
 		Entry("should set error condition when provider errors", providerErrCondition),
 		Entry("should set an error condition when store does not exist", storeMissingErrCondition),
 		Entry("should set an error condition when store provider constructor fails", storeConstructErrCondition),
