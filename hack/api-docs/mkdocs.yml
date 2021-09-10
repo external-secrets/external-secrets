@@ -50,6 +50,8 @@ nav:
         - Lockbox: provider-yandex-lockbox.md
     - Gitlab:
       - Gitlab Project Variables: provider-gitlab-project-variables.md
+    - Oracle:
+      - Oracle Vault: provider-oracle-vault.md
   - References:
     - API specification: spec.md
   - Contributing:

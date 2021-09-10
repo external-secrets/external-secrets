@@ -60,5 +60,10 @@ kubectl run --rm \
   --env="VAULT_URL=${VAULT_URL:-}" \
   --env="GITLAB_TOKEN=${GITLAB_TOKEN:-}" \
   --env="GITLAB_PROJECT_ID=${GITLAB_PROJECT_ID:-}" \
+  --env="ORACLE_USER_OCID=${ORACLE_USER_OCID:-}" \
+  --env="ORACLE_TENANCY_OCID=${ORACLE_TENANCY_OCID:-}" \
+  --env="ORACLE_REGION=${ORACLE_REGION:-}" \
+  --env="ORACLE_FINGERPRINT=${ORACLE_FINGERPRINT:-}" \
+  --env="ORACLE_KEY=${ORACLE_KEY:-}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
   e2e --image=local/external-secrets-e2e:test
