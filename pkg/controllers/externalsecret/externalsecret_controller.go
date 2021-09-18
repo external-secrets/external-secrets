@@ -166,7 +166,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
-	if externalSecret.Status.SyncedResourceVersion != "" && externalSecret.Spec.Target.Immutable {
+	if !shouldReconcile(externalSecret) {
+		log.V(1).Info("stopping reconciling", "rv", getResourceVersion(externalSecret))
 		return ctrl.Result{
 			RequeueAfter: 0,
 			Requeue:      false,
@@ -328,6 +329,23 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 		return true
 	}
 	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
+}
+
+func shouldReconcile(es esv1alpha1.ExternalSecret) bool {
+	if es.Spec.Target.Immutable && hasSyncedCondition(es) {
+		return false
+	}
+	return true
+}
+
+func hasSyncedCondition(es esv1alpha1.ExternalSecret) bool {
+
+	for _, condition := range es.Status.Conditions {
+		if condition.Reason == "SecretSynced" {
+			return true
+		}
+	}
+	return false
 }
 
 // we do not want to force-override the label/annotations
