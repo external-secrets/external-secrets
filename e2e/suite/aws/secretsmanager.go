@@ -126,5 +126,6 @@ var _ = Describe("[aws] ", func() {
 		Entry(common.DataPropertyDockerconfigJSON(f)),
 		Entry(common.SSHKeySync(f)),
 		Entry(common.SSHKeySyncDataProperty(f)),
+		Entry(common.SyncWithoutTargetName(f)),
 	)
 })
