@@ -50,9 +50,25 @@ type SecretStoreProvider struct {
 	// +optional
 	GCPSM *GCPSMProvider `json:"gcpsm,omitempty"`
 
+	// Oracle configures this store to sync secrets using Oracle Vault provider
+	// +optional
+	Oracle *OracleProvider `json:"oracle,omitempty"`
+
 	// IBM configures this store to sync secrets using IBM Cloud provider
 	// +optional
 	IBM *IBMProvider `json:"ibm,omitempty"`
+
+	// YandexLockbox configures this store to sync secrets using Yandex Lockbox provider
+	// +optional
+	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
+
+	// GItlab configures this store to sync secrets using Gitlab Variables provider
+	// +optional
+	Gitlab *GitlabProvider `json:"gitlab,omitempty"`
+
+	// Alibaba configures this store to sync secrets using Alibaba Cloud provider
+	// +optional
+	Alibaba *AlibabaProvider `json:"alibaba,omitempty"`
 }
 
 type SecretStoreConditionType string

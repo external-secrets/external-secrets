@@ -289,7 +289,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.Externa
 	}
 }
 
-func (ibm *providerIBM) Close() error {
+func (ibm *providerIBM) Close(ctx context.Context) error {
 	return nil
 }
 

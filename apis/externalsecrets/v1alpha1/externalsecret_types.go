@@ -211,6 +211,11 @@ type ExternalSecret struct {
 	Status ExternalSecretStatus `json:"status,omitempty"`
 }
 
+const (
+	// AnnotationDataHash is used to ensure consistency.
+	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
+)
+
 // +kubebuilder:object:root=true
 
 // ExternalSecretList contains a list of ExternalSecret resources.

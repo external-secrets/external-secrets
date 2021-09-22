@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package fake
 
 import (
@@ -22,15 +23,38 @@ import (
 
 // Client implements the aws secretsmanager interface.
 type Client struct {
-	valFn func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	ExecutionCounter int
+	valFn            map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+}
+
+// NewClient init a new fake client.
+func NewClient() *Client {
+	return &Client{
+		valFn: make(map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)),
+	}
 }
 
 func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
-	return sm.valFn(in)
+	sm.ExecutionCounter++
+	if entry, found := sm.valFn[sm.cacheKeyForInput(in)]; found {
+		return entry(in)
+	}
+	return nil, fmt.Errorf("test case not found")
+}
+
+func (sm *Client) cacheKeyForInput(in *awssm.GetSecretValueInput) string {
+	var secretID, versionID string
+	if in.SecretId != nil {
+		secretID = *in.SecretId
+	}
+	if in.VersionId != nil {
+		versionID = *in.VersionId
+	}
+	return fmt.Sprintf("%s#%s", secretID, versionID)
 }
 
 func (sm *Client) WithValue(in *awssm.GetSecretValueInput, val *awssm.GetSecretValueOutput, err error) {
-	sm.valFn = func(paramIn *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
+	sm.valFn[sm.cacheKeyForInput(in)] = func(paramIn *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
 		if !cmp.Equal(paramIn, in) {
 			return nil, fmt.Errorf("unexpected test argument")
 		}

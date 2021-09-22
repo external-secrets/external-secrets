@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "external-secrets.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 spec:
@@ -38,10 +39,13 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or (.Values.leaderElect) (.Values.extraArgs) }}
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.extraArgs) }}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
+          {{- end }}
+          {{- if .Values.scopedNamespace }}
+          - --namespace={{ .Values.scopedNamespace }}
           {{- end }}
           {{- range $key, $value := .Values.extraArgs }}
             {{- if $value }}
@@ -73,4 +77,7 @@ spec:
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}

@@ -14,14 +14,20 @@ limitations under the License.
 
 package utils
 
-import "reflect"
+import (
+
+	// nolint:gosec
+	"crypto/md5"
+	"fmt"
+	"reflect"
+)
 
 // MergeByteMap merges map of byte slices.
-func MergeByteMap(src, dst map[string][]byte) map[string][]byte {
-	for k, v := range dst {
-		src[k] = v
+func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
+	for k, v := range src {
+		dst[k] = v
 	}
-	return src
+	return dst
 }
 
 // MergeStringMap performs a deep clone from src to dest.
@@ -34,4 +40,11 @@ func MergeStringMap(dest, src map[string]string) {
 // IsNil checks if an Interface is nil.
 func IsNil(i interface{}) bool {
 	return i == nil || reflect.ValueOf(i).IsNil()
+}
+
+// ObjectHash calculates md5 sum of the data contained in the secret.
+// nolint:gosec
+func ObjectHash(object interface{}) string {
+	textualVersion := fmt.Sprintf("%+v", object)
+	return fmt.Sprintf("%x", md5.Sum([]byte(textualVersion)))
 }
