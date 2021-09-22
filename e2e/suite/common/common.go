@@ -57,6 +57,32 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 	}
 }
 
+// This case creates a secret with empty target name to test if it defaults to external secret name.
+func SyncWithoutTargetName(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should sync simple secrets from .Data[]", func(tc *framework.TestCase) {
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		secretValue := "bar"
+		tc.Secrets = map[string]string{
+			secretKey1: secretValue,
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				secretKey1: []byte(secretValue),
+			},
+		}
+		tc.ExternalSecret.Spec.Target.Name = ""
+		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+			{
+				SecretKey: secretKey1,
+				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+					Key: secretKey1,
+				},
+			},
+		}
+	}
+}
+
 // This case creates multiple secrets with json values and syncs them using multiple .Spec.Data blocks.
 // The data is extracted from the JSON key using ref.Property.
 func JSONDataWithProperty(f *framework.Framework) (string, func(*framework.TestCase)) {
