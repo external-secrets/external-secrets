@@ -89,8 +89,7 @@ jobs:
   integration-fork:
     runs-on: ubuntu-latest
     if:
-      github.event_name == 'repository_dispatch' &&
-      github.event.client_payload.slash_command.args.named.sha != ''
+      github.event_name == 'repository_dispatch'
     steps:
 
     # Check out merge commit
