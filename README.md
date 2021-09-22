@@ -1,5 +1,6 @@
 # External Secrets
 
+
 <img src="assets/round_eso_logo.png" width="100">
 
 ----
