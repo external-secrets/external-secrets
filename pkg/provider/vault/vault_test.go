@@ -246,7 +246,9 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 
 								return nil
 							}),
-						MockSetToken: fake.NewSetTokenFn(),
+						MockSetToken:   fake.NewSetTokenFn(),
+						MockToken:      fake.NewTokenFn(""),
+						MockClearToken: fake.NewClearTokenFn(),
 					}, nil
 				},
 			},

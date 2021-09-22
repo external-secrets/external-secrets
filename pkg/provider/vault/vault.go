@@ -68,12 +68,16 @@ const (
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
 
 	errClientTLSAuth = "error from Client TLS Auth: %q"
+
+	errVaultRevokeToken = "error while revoking token: %w"
 )
 
 type Client interface {
 	NewRequest(method, requestPath string) *vault.Request
 	RawRequestWithContext(ctx context.Context, r *vault.Request) (*vault.Response, error)
 	SetToken(v string)
+	Token() string
+	ClearToken()
 	SetNamespace(namespace string)
 }
 
@@ -156,6 +160,15 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 }
 
 func (v *client) Close(ctx context.Context) error {
+	// Revoke the token if we have one set and it wasn't sourced from a TokenSecretRef
+	if v.client.Token() != "" && v.store.Auth.TokenSecretRef == nil {
+		req := v.client.NewRequest(http.MethodPost, "/v1/auth/token/revoke-self")
+		_, err := v.client.RawRequestWithContext(ctx, req)
+		if err != nil {
+			return fmt.Errorf(errVaultRevokeToken, err)
+		}
+		v.client.ClearToken()
+	}
 	return nil
 }
 
