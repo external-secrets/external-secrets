@@ -229,7 +229,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
 
 			// check secret name
-			Expect(string(secret.ObjectMeta.Name)).To(Equal(ExternalSecretName))
+			Expect(secret.ObjectMeta.Name).To(Equal(ExternalSecretName))
 		}
 	}
 
