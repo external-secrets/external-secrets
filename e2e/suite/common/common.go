@@ -58,8 +58,9 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 }
 
 // This case creates a secret with empty target name to test if it defaults to external secret name.
+// Not supported by: vault.
 func SyncWithoutTargetName(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[common] should sync simple secrets from .Data[]", func(tc *framework.TestCase) {
+	return "[common] should sync with empty target name.", func(tc *framework.TestCase) {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		secretValue := "bar"
 		tc.Secrets = map[string]string{
@@ -124,7 +125,7 @@ func JSONDataWithProperty(f *framework.Framework) (string, func(*framework.TestC
 // This case creates a secret with empty target name to test if it defaults to external secret name.
 // The data is extracted from the JSON key using ref.Property.
 func JSONDataWithoutTargetName(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[common] should sync multiple secrets from .Data[]", func(tc *framework.TestCase) {
+	return "[common] should sync with empty target name, using json.", func(tc *framework.TestCase) {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
 		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "two")
 		secretValue1 := "{\"foo1\":\"foo1-val\",\"bar1\":\"bar1-val\"}"
