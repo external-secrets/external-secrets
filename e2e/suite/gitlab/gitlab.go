@@ -42,5 +42,6 @@ var _ = Describe("[gitlab] ", func() {
 		Entry(common.NestedJSONWithGJSON(f)),
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry(common.SyncWithoutTargetName(f)),
+		Entry(common.JSONDataWithoutTargetName(f)),
 	)
 })
