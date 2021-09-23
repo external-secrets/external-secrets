@@ -121,17 +121,52 @@ func JSONDataWithProperty(f *framework.Framework) (string, func(*framework.TestC
 	}
 }
 
-// This case creates multiple secrets with json values and renders a template.
+// This case creates a secret with empty target name to test if it defaults to external secret name.
 // The data is extracted from the JSON key using ref.Property.
-func JSONDataWithTemplate(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[common] should sync json secrets with template", func(tc *framework.TestCase) {
+func JSONDataWithoutTargetName(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should sync multiple secrets from .Data[]", func(tc *framework.TestCase) {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
-		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "other")
+		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "two")
 		secretValue1 := "{\"foo1\":\"foo1-val\",\"bar1\":\"bar1-val\"}"
 		secretValue2 := "{\"foo2\":\"foo2-val\",\"bar2\":\"bar2-val\"}"
 		tc.Secrets = map[string]string{
 			secretKey1: secretValue1,
 			secretKey2: secretValue2,
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				secretKey1: []byte("foo1-val"),
+				secretKey2: []byte("bar2-val"),
+			},
+		}
+		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+			{
+				SecretKey: secretKey1,
+				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+					Key:      secretKey1,
+					Property: "foo1",
+				},
+			},
+			{
+				SecretKey: secretKey2,
+				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+					Key:      secretKey2,
+					Property: "bar2",
+				},
+			},
+		}
+	}
+}
+
+// This case creates multiple secrets with json values and renders a template.
+// The data is extracted from the JSON key using ref.Property.
+func JSONDataWithTemplate(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should sync json secrets with template", func(tc *framework.TestCase) {
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		secretValue1 := "{\"foo1\":\"foo1-val\",\"bar1\":\"bar1-val\"}"
+		tc.Secrets = map[string]string{
+			secretKey1: secretValue1,
 		}
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
@@ -144,35 +179,16 @@ func JSONDataWithTemplate(f *framework.Framework) (string, func(*framework.TestC
 				},
 			},
 			Data: map[string][]byte{
-				"my-data": []byte(`executed: foo1-val|bar2-val`),
+				"my-data": []byte(`executed: foo1-val`),
 			},
 		}
-		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
-			Metadata: esv1alpha1.ExternalSecretTemplateMetadata{
-				Annotations: map[string]string{
-					"example": "annotation",
-				},
-				Labels: map[string]string{
-					"example": "label",
-				},
-			},
-			Data: map[string]string{
-				"my-data": "executed: {{ .one | toString }}|{{ .two | toString }}",
-			},
-		}
+		tc.ExternalSecret.Spec.Target.Name = ""
 		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
 			{
 				SecretKey: "one",
 				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
 					Key:      secretKey1,
 					Property: "foo1",
-				},
-			},
-			{
-				SecretKey: "two",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-					Key:      secretKey2,
-					Property: "bar2",
 				},
 			},
 		}
