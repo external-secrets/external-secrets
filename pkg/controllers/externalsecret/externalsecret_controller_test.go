@@ -223,6 +223,16 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	syncWithoutTargetName := func(tc *testCase) {
+		tc.externalSecret.Spec.Target.Name = ""
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+
+			// check secret name
+			Expect(secret.ObjectMeta.Name).To(Equal(ExternalSecretName))
+		}
+	}
+
 	// labels and annotations from the Kind=ExternalSecret
 	// should be copied over to the Kind=Secret
 	syncLabelsAnnotations := func(tc *testCase) {
@@ -901,6 +911,12 @@ var _ = Describe("ExternalSecret controller", func() {
 					Name:      ExternalSecretTargetSecretName,
 					Namespace: ExternalSecretNamespace,
 				}
+				if createdES.Spec.Target.Name == "" {
+					secretLookupKey = types.NamespacedName{
+						Name:      ExternalSecretName,
+						Namespace: ExternalSecretNamespace,
+					}
+				}
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, secretLookupKey, syncedSecret)
 					return err == nil
@@ -911,6 +927,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should recreate deleted secret", checkDeletion),
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
+		Entry("should use external secret name if target secret name isn't defined", syncWithoutTargetName),
 		Entry("should set the condition eventually", syncLabelsAnnotations),
 		Entry("should set prometheus counters", checkPrometheusCounters),
 		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),

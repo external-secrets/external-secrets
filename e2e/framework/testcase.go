@@ -24,7 +24,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
-const TargetSecretName = "target-secret"
+var TargetSecretName = "target-secret"
 
 // TestCase contains the test infra to run a table driven test.
 type TestCase struct {
@@ -65,6 +65,11 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 		// create external secret
 		err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
 		Expect(err).ToNot(HaveOccurred())
+
+		// in case target name is empty
+		if tc.ExternalSecret.Spec.Target.Name == "" {
+			TargetSecretName = tc.ExternalSecret.ObjectMeta.Name
+		}
 
 		// wait for Kind=Secret to have the expected data
 		_, err = tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, TargetSecretName, tc.ExpectedSecret)
