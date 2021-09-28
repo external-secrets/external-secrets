@@ -175,11 +175,11 @@ jobs:
           export KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=true
           make test
 
-      - name: Publish Unit Test Coverage
-        uses: codecov/codecov-action@v2.0.3
-        with:
-          flags: unittests
-          file: ./cover.out
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 
   publish-artifacts:
