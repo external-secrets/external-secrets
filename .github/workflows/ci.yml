@@ -21,6 +21,9 @@ env:
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
   # credentials have been provided before trying to run steps that need them.
   GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+  
+  # Sonar
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
   detect-noop:
