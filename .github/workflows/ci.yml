@@ -176,7 +176,7 @@ jobs:
           make test
 
       - name: SonarCloud Scans
-        if: secrets.SONAR_TOKEN != ''
+        if: ${{secrets.SONAR_TOKEN}} != ''
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
