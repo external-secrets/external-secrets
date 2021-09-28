@@ -2,6 +2,7 @@
 
 <img src="assets/round_eso_logo.png" width="100">
 
+
 ----
 
 The External Secrets Operator reads information from a third party service
