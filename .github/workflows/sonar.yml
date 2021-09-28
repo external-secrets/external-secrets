@@ -1,0 +1,113 @@
+# Run secret-dependent sonar tests only after /ok-to-sonar approval
+on:
+  pull_request:
+  repository_dispatch:
+    types: [ok-to-sonar-command]
+
+env:
+  # Common versions
+  GO_VERSION: '1.16'
+  GOLANGCI_VERSION: 'v1.33'
+  DOCKER_BUILDX_VERSION: 'v0.4.2'
+
+  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+
+name: sonar
+
+jobs:
+  sonar-fork:
+    runs-on: ubuntu-latest
+    if:
+      github.event_name == 'repository_dispatch'
+    steps:
+    - name: Fork based /ok-to-sonar checkout
+      uses: actions/checkout@v2
+      with:
+        ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+
+    - name: Fetch History
+      run: git fetch --prune --unshallow
+
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Find the Go Cache
+      id: go
+      run: |
+        echo "::set-output name=build-cache::$(go env GOCACHE)"
+        echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
+
+    - name: Cache the Go Build Cache
+      uses: actions/cache@v2.1.6
+      with:
+        path: ${{ steps.go.outputs.build-cache }}
+        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-build-unit-tests-
+
+    - name: Cache Go Dependencies
+      uses: actions/cache@v2.1.6
+      with:
+        path: ${{ steps.go.outputs.mod-cache }}
+        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-pkg-
+
+    - name: Add envtest binaries
+      run:  |
+        curl -sSLo envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${{env.KUBEBUILDER_TOOLS_VERSION}}-linux-amd64.tar.gz"
+        sudo mkdir -p /usr/local/kubebuilder
+        sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz
+
+    - name: Cache envtest binaries
+      uses: actions/cache@v2.1.6
+      with:
+        path: /usr/local/kubebuilder
+        key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_TOOLS_VERSION}}
+        restore-keys: ${{ runner.os }}-kubebuilder-
+
+    - name: Run Unit Tests
+      run: |
+        export KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=true
+        make test
+
+    - name: SonarCloud Scans
+      if: env.SONAR_TOKEN != ''
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    # Update check run called "integration-fork"
+    - uses: actions/github-script@v5
+      id: update-check-run
+      if: ${{ always() }}
+      env:
+        number: ${{ github.event.client_payload.pull_request.number }}
+        job: ${{ github.job }}
+        # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
+        conclusion: ${{ job.status }}
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { data: pull } = await github.pulls.get({
+            ...context.repo,
+            pull_number: process.env.number
+          });
+          const ref = pull.head.sha;
+
+          const { data: checks } = await github.checks.listForRef({
+            ...context.repo,
+            ref
+          });
+
+          const check = checks.check_runs.filter(c => c.name === process.env.job);
+
+          const { data: result } = await github.checks.update({
+            ...context.repo,
+            check_run_id: check[0].id,
+            status: 'completed',
+            conclusion: process.env.conclusion
+          });
+
+          return result;
