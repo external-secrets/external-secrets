@@ -178,13 +178,6 @@ jobs:
           export KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=true
           make test
 
-      - name: SonarCloud Scans
-        if: env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
 
   publish-artifacts:
     runs-on: ubuntu-18.04
