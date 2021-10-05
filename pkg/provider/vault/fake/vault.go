@@ -26,6 +26,10 @@ type MockRawRequestWithContextFn func(ctx context.Context, r *vault.Request) (*v
 
 type MockSetTokenFn func(v string)
 
+type MockTokenFn func() string
+
+type MockClearTokenFn func()
+
 type MockSetNamespaceFn func(namespace string)
 
 func NewMockNewRequestFn(req *vault.Request) MockNewRequestFn {
@@ -57,6 +61,16 @@ func NewSetTokenFn(ofn ...func(v string)) MockSetTokenFn {
 	}
 }
 
+func NewTokenFn(v string) MockTokenFn {
+	return func() string {
+		return v
+	}
+}
+
+func NewClearTokenFn() MockClearTokenFn {
+	return func() {}
+}
+
 func NewSetNamespaceFn() MockSetNamespaceFn {
 	return func(namespace string) {}
 }
@@ -65,6 +79,8 @@ type VaultClient struct {
 	MockNewRequest            MockNewRequestFn
 	MockRawRequestWithContext MockRawRequestWithContextFn
 	MockSetToken              MockSetTokenFn
+	MockToken                 MockTokenFn
+	MockClearToken            MockClearTokenFn
 	MockSetNamespace          MockSetNamespaceFn
 }
 
@@ -78,6 +94,14 @@ func (c *VaultClient) RawRequestWithContext(ctx context.Context, r *vault.Reques
 
 func (c *VaultClient) SetToken(v string) {
 	c.MockSetToken(v)
+}
+
+func (c *VaultClient) Token() string {
+	return c.MockToken()
+}
+
+func (c *VaultClient) ClearToken() {
+	c.MockClearToken()
 }
 
 func (c *VaultClient) SetNamespace(namespace string) {
