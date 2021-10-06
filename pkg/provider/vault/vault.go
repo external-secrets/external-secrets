@@ -256,7 +256,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 			ctx := context.Background()
 			res, err := v.secretKeyRef(ctx, &secretRef)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf(errVaultCert, err))
+				return nil, fmt.Errorf(errVaultCert, err)
 			}
 
 			ok := caCertPool.AppendCertsFromPEM([]byte(res))
