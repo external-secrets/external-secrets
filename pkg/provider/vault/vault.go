@@ -220,14 +220,37 @@ func (v *client) newConfig() (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
 
-	if len(v.store.CABundle) == 0 {
+	if len(v.store.CABundle) == 0 && v.store.CAProvider == nil {
 		return cfg, nil
 	}
 
 	caCertPool := x509.NewCertPool()
-	ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
-	if !ok {
-		return nil, errors.New(errVaultCert)
+
+	if len(v.store.CABundle) > 0 {
+		ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
+		if !ok {
+			return nil, errors.New(errVaultCert)
+		}
+	}
+
+	if v.store.CAProvider != nil {
+		if v.store.CAProvider.Type == esv1alpha1.CAProviderTypeSecret {
+			secretRef := esmeta.SecretKeySelector{
+				Name:      v.store.CAProvider.Name,
+				Namespace: &v.store.CAProvider.Namespace,
+				Key:       v.store.CAProvider.Key,
+			}
+			ctx := context.Background()
+			res, err := v.secretKeyRef(ctx, &secretRef)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf(errVaultCert, err))
+			}
+
+			ok := caCertPool.AppendCertsFromPEM([]byte(res))
+			if !ok {
+				return nil, errors.New(errVaultCert)
+			}
+		}
 	}
 
 	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
