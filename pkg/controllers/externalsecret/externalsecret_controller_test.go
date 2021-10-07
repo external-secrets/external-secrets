@@ -137,6 +137,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		FakeManager = "fake.manager"
 		expectedSecretVal = "SOMEVALUE was templated"
 		targetPropObj = "{{ .targetProperty | toString | upper }} was templated"
+		mapFooValue = "map-foo-value"
+		mapBarValue = "map-bar-value"
 	)
 
 	var ExternalSecretNamespace string
@@ -495,8 +497,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		fakeProvider.WithGetSecretMap(map[string][]byte{
-			"targetProperty": []byte("map-foo-value"),
-			"bar":            []byte("map-bar-value"),
+			"targetProperty": []byte(mapFooValue),
+			"bar":            []byte(mapBarValue),
 		}, nil)
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
 			// check values
@@ -660,13 +662,13 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		}
 		fakeProvider.WithGetSecretMap(map[string][]byte{
-			"foo": []byte("map-foo-value"),
-			"bar": []byte("map-bar-value"),
+			"foo": []byte(mapFooValue),
+			"bar": []byte(mapBarValue),
 		}, nil)
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
 			// check values
-			Expect(string(secret.Data["foo"])).To(Equal("map-foo-value"))
-			Expect(string(secret.Data["bar"])).To(Equal("map-bar-value"))
+			Expect(string(secret.Data["foo"])).To(Equal(mapFooValue))
+			Expect(string(secret.Data["bar"])).To(Equal(mapBarValue))
 		}
 	}
 
@@ -687,14 +689,14 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		}
 		fakeProvider.WithGetSecretMap(map[string][]byte{
-			"tls.crt": []byte("map-foo-value"),
-			"tls.key": []byte("map-bar-value"),
+			"tls.crt": []byte(mapFooValue),
+			"tls.key": []byte(mapBarValue),
 		}, nil)
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
 			Expect(secret.Type).To(Equal(v1.SecretTypeTLS))
 			// check values
-			Expect(string(secret.Data["tls.crt"])).To(Equal("map-foo-value"))
-			Expect(string(secret.Data["tls.key"])).To(Equal("map-bar-value"))
+			Expect(string(secret.Data["tls.crt"])).To(Equal(mapFooValue))
+			Expect(string(secret.Data["tls.key"])).To(Equal(mapBarValue))
 		}
 	}
 
@@ -851,7 +853,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	// When we amend the created kind=secret, refresh operation should be run again regardless of refresh interval
 	checkSecretDataHashAnnotationChange := func(tc *testCase) {
 		fakeData := map[string][]byte{
-			"targetProperty": []byte("map-foo-value"),
+			"targetProperty": []byte(mapFooValue),
 		}
 		fakeProvider.WithGetSecretMap(fakeData, nil)
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Minute * 10}
