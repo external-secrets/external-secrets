@@ -213,16 +213,13 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.Externa
 		secretData := secret.SecretData.(map[string]interface{})
 		arbitrarySecretPayload := secretData["payload"].(string)
 
-		kv := make(map[string]string)
+		kv := make(map[string]interface{})
 		err = json.Unmarshal([]byte(arbitrarySecretPayload), &kv)
 		if err != nil {
 			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
 		}
 
-		secretMap := make(map[string][]byte)
-		for k, v := range kv {
-			secretMap[k] = []byte(v)
-		}
+		secretMap := byteArrayMap(kv)
 
 		return secretMap, nil
 
@@ -239,10 +236,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.Externa
 		secret := response.Resources[0].(*sm.SecretResource)
 		secretData := secret.SecretData.(map[string]interface{})
 
-		secretMap := make(map[string][]byte)
-		for k, v := range secretData {
-			secretMap[k] = []byte(v.(string))
-		}
+		secretMap := byteArrayMap(secretData)
 
 		return secretMap, nil
 
@@ -277,16 +271,21 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.Externa
 		secret := response.Resources[0].(*sm.SecretResource)
 		secretData := secret.SecretData.(map[string]interface{})
 
-		secretMap := make(map[string][]byte)
-		for k, v := range secretData {
-			secretMap[k] = []byte(v.(string))
-		}
+		secretMap := byteArrayMap(secretData)
 
 		return secretMap, nil
 
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
+}
+
+func byteArrayMap(secretData map[string]interface{}) map[string][]byte {
+	secretMap := make(map[string][]byte)
+	for k, v := range secretData {
+		secretMap[k] = []byte(v.(string))
+	}
+	return secretMap
 }
 
 func (ibm *providerIBM) Close(ctx context.Context) error {
