@@ -42,6 +42,8 @@ type secretsManagerTestCase struct {
 	expectedCounter *int
 }
 
+const unexpectedErrorString = "[%d] unexpected error: %s, expected: '%s'"
+
 func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 	smtc := secretsManagerTestCase{
 		fakeClient:     fakesm.NewClient(),
@@ -174,7 +176,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		}
 		out, err := sm.GetSecret(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
 		}
 		if err == nil && string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
@@ -223,7 +225,7 @@ func TestCaching(t *testing.T) {
 		sm.client = v.fakeClient
 		out, err := sm.GetSecret(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
 		}
 		if err == nil && string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
@@ -269,7 +271,7 @@ func TestGetSecretMap(t *testing.T) {
 		}
 		out, err := sm.GetSecretMap(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
 		}
 		if err == nil && !cmp.Equal(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
