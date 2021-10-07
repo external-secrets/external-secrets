@@ -22,6 +22,14 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
+const (
+	// Constants
+	dockerConfigExampleString = "docker-config-example"
+	dockerConfigJsonString    = ".dockerconfigjson"
+	mysecretToStringString    = "{{ .mysecret | toString }}"
+	sshPrivatekeyString       = "ssh-privatekey"
+)
+
 // This case creates multiple secrets with simple key/value pairs and syncs them using multiple .Spec.Data blocks.
 // Not supported by: vault.
 func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) {
@@ -289,7 +297,7 @@ func NestedJSONWithGJSON(f *framework.Framework) (string, func(*framework.TestCa
 // not supported by: vault.
 func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync docker configurated json secrets with template simple", func(tc *framework.TestCase) {
-		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
+		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, dockerConfigExampleString)
 		dockerconfig := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
 		cloudSecretValue := fmt.Sprintf(`{"dockerconfig": %s}`, dockerconfig)
 		tc.Secrets = map[string]string{
@@ -299,7 +307,7 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				".dockerconfigjson": []byte(dockerconfig),
+				dockerConfigJsonString: []byte(dockerconfig),
 			},
 		}
 
@@ -315,7 +323,7 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Data: map[string]string{
-				".dockerconfigjson": "{{ .mysecret | toString }}",
+				dockerConfigJsonString: mysecretToStringString,
 			},
 		}
 	}
@@ -326,7 +334,7 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 // Need to have a key holding dockerconfig to be supported by vault.
 func DataPropertyDockerconfigJSON(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync docker configurated json secrets with template", func(tc *framework.TestCase) {
-		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
+		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, dockerConfigExampleString)
 		dockerconfigString := `"{\"auths\":{\"https://index.docker.io/v1/\": {\"auth\": \"c3R...zE2\"}}}"`
 		dockerconfig := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
 		cloudSecretValue := fmt.Sprintf(`{"dockerconfig": %s}`, dockerconfigString)
@@ -337,7 +345,7 @@ func DataPropertyDockerconfigJSON(f *framework.Framework) (string, func(*framewo
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
-				".dockerconfigjson": []byte(dockerconfig),
+				dockerConfigJsonString: []byte(dockerconfig),
 			},
 		}
 
@@ -354,7 +362,7 @@ func DataPropertyDockerconfigJSON(f *framework.Framework) (string, func(*framewo
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Type: v1.SecretTypeDockerConfigJson,
 			Data: map[string]string{
-				".dockerconfigjson": "{{ .mysecret | toString }}",
+				dockerConfigJsonString: mysecretToStringString,
 			},
 		}
 	}
@@ -411,7 +419,7 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeSSHAuth,
 			Data: map[string][]byte{
-				"ssh-privatekey": []byte(sshSecretValue),
+				sshPrivatekeyString: []byte(sshSecretValue),
 			},
 		}
 
@@ -427,7 +435,7 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Type: v1.SecretTypeSSHAuth,
 			Data: map[string]string{
-				"ssh-privatekey": "{{ .mysecret | toString }}",
+				sshPrivatekeyString: mysecretToStringString,
 			},
 		}
 	}
@@ -436,7 +444,7 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 // This case adds an ssh private key secret and syncs it.
 func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync ssh key with provider.", func(tc *framework.TestCase) {
-		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, "docker-config-example")
+		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, dockerConfigExampleString)
 		SSHKey := `-----BEGIN OPENSSH PRIVATE KEY-----
 		b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 		NhAAAAAwEAAQAAAYEAsARoZUqo6L5dd0WRjZ2QPq/kKlbjtUY1njzJ01UtdC1u1eSJFUnV
@@ -483,7 +491,7 @@ func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.Tes
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeSSHAuth,
 			Data: map[string][]byte{
-				"ssh-privatekey": []byte(SSHKey),
+				sshPrivatekeyString: []byte(SSHKey),
 			},
 		}
 
@@ -500,7 +508,7 @@ func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.Tes
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Type: v1.SecretTypeSSHAuth,
 			Data: map[string]string{
-				"ssh-privatekey": "{{ .mysecret | toString }}",
+				sshPrivatekeyString: mysecretToStringString,
 			},
 		}
 	}

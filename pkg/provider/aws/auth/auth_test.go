@@ -38,16 +38,14 @@ import (
 )
 
 const (
-	myServiceAcc = "my-service-account"
-	myRole       = "my-sa-role"
-	otherNs      = "other-ns"
+	myServiceAcc   = "my-service-account"
+	myRole         = "my-sa-role"
+	otherNs        = "other-ns"
+	esNamespace    = "es-namespace"
+	platformTeamNs = "platform-team-ns"
 )
 
 func TestNewSession(t *testing.T) {
-	const (
-		esNamespace    = "es-namespace"
-		platformTeamNs = "platform-team-ns"
-	)
 
 	rows := []TestSessionRow{
 		{
