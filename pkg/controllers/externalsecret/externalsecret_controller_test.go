@@ -136,6 +136,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		ExternalSecretTargetSecretName = "test-secret"
 		FakeManager = "fake.manager"
 		expectedSecretVal = "SOMEVALUE was templated"
+		targetPropObj = "{{ .targetProperty | toString | upper }} was templated"
 	)
 
 	var ExternalSecretNamespace string
@@ -402,7 +403,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 			Type: v1.SecretTypeOpaque,
 			Data: map[string]string{
-				targetProp:   "{{ .targetProperty | toString | upper }} was templated",
+				targetProp:   targetPropObj,
 				tplStaticKey: tplStaticVal,
 			},
 		}
@@ -480,7 +481,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 			Data: map[string]string{
 				// this should be the data value, not dataFrom
-				targetProp: "{{ .targetProperty | toString | upper }} was templated",
+				targetProp: targetPropObj,
 				// this should use the value from the map
 				"bar": "value from map: {{ .bar | toString }}",
 				// just a static value
@@ -519,7 +520,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 			Type: v1.SecretTypeOpaque,
 			Data: map[string]string{
-				targetProp:   "{{ .targetProperty | toString | upper }} was templated",
+				targetProp:   targetPropObj,
 				tplStaticKey: tplStaticVal,
 			},
 		}
