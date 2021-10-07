@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	// Constants
+	// Constants.
 	dockerConfigExampleString = "docker-config-example"
-	dockerConfigJsonString    = ".dockerconfigjson"
+	dockerConfigJSONString    = ".dockerconfigjson"
 	mysecretToStringString    = "{{ .mysecret | toString }}"
 	sshPrivatekeyString       = "ssh-privatekey"
 )
@@ -307,7 +307,7 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				dockerConfigJsonString: []byte(dockerconfig),
+				dockerConfigJSONString: []byte(dockerconfig),
 			},
 		}
 
@@ -323,7 +323,7 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Data: map[string]string{
-				dockerConfigJsonString: mysecretToStringString,
+				dockerConfigJSONString: mysecretToStringString,
 			},
 		}
 	}
@@ -345,7 +345,7 @@ func DataPropertyDockerconfigJSON(f *framework.Framework) (string, func(*framewo
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
-				dockerConfigJsonString: []byte(dockerconfig),
+				dockerConfigJSONString: []byte(dockerconfig),
 			},
 		}
 
@@ -362,7 +362,7 @@ func DataPropertyDockerconfigJSON(f *framework.Framework) (string, func(*framewo
 		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Type: v1.SecretTypeDockerConfigJson,
 			Data: map[string]string{
-				dockerConfigJsonString: mysecretToStringString,
+				dockerConfigJSONString: mysecretToStringString,
 			},
 		}
 	}
