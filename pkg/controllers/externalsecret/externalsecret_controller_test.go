@@ -135,6 +135,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		ExternalSecretStore            = "test-store"
 		ExternalSecretTargetSecretName = "test-secret"
 		FakeManager = "fake.manager"
+		expectedSecretVal = "SOMEVALUE was templated"
 	)
 
 	var ExternalSecretNamespace string
@@ -382,7 +383,6 @@ var _ = Describe("ExternalSecret controller", func() {
 	// to construct a new secret: labels, annotations and type
 	syncWithTemplate := func(tc *testCase) {
 		const secretVal = "someValue"
-		const expectedSecretVal = "SOMEVALUE was templated"
 		const tplStaticKey = "tplstatickey"
 		const tplStaticVal = "tplstaticvalue"
 		tc.externalSecret.ObjectMeta.Labels = map[string]string{
@@ -427,7 +427,6 @@ var _ = Describe("ExternalSecret controller", func() {
 	// * dataFrom
 	syncWithTemplatePrecedence := func(tc *testCase) {
 		const secretVal = "someValue"
-		const expectedSecretVal = "SOMEVALUE was templated"
 		const tplStaticKey = "tplstatickey"
 		const tplStaticVal = "tplstaticvalue"
 		const tplFromCMName = "template-cm"
@@ -510,7 +509,6 @@ var _ = Describe("ExternalSecret controller", func() {
 
 	refreshWithTemplate := func(tc *testCase) {
 		const secretVal = "someValue"
-		const expectedSecretVal = "SOMEVALUE was templated"
 		const tplStaticKey = "tplstatickey"
 		const tplStaticVal = "tplstaticvalue"
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
