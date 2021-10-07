@@ -904,6 +904,43 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 	})
 })
 
+var _ = Describe("Controller Reconcile logic", func() {
+	Context("controller reconcile", func() {
+		It("should reconcile when resource is not synced", func() {
+			Expect(shouldReconcile(esv1alpha1.ExternalSecret{
+				Status: esv1alpha1.ExternalSecretStatus{
+					SyncedResourceVersion: "some resource version",
+					Conditions:            []esv1alpha1.ExternalSecretStatusCondition{{Reason: "NotASecretSynced"}},
+				},
+			})).To(BeTrue())
+		})
+
+		It("should reconcile when secret isn't immutable", func() {
+			Expect(shouldReconcile(esv1alpha1.ExternalSecret{
+				Spec: esv1alpha1.ExternalSecretSpec{
+					Target: esv1alpha1.ExternalSecretTarget{
+						Immutable: false,
+					},
+				},
+			})).To(BeTrue())
+		})
+
+		It("should not reconcile if secret is immutable and has synced condition", func() {
+			Expect(shouldReconcile(esv1alpha1.ExternalSecret{
+				Spec: esv1alpha1.ExternalSecretSpec{
+					Target: esv1alpha1.ExternalSecretTarget{
+						Immutable: true,
+					},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{
+					SyncedResourceVersion: "some resource version",
+					Conditions:            []esv1alpha1.ExternalSecretStatusCondition{{Reason: "SecretSynced"}},
+				},
+			})).To(BeFalse())
+		})
+	})
+})
+
 // CreateNamespace creates a new namespace in the cluster.
 func CreateNamespace(baseName string, c client.Client) (string, error) {
 	genName := fmt.Sprintf("ctrl-test-%v", baseName)
