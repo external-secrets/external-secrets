@@ -16,9 +16,6 @@ package externalsecret
 
 import (
 	"context"
-
-	// nolint
-	"crypto/md5"
 	"fmt"
 	"time"
 
@@ -38,9 +35,8 @@ import (
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
-	schema "github.com/external-secrets/external-secrets/pkg/provider/schema"
-	"github.com/external-secrets/external-secrets/pkg/template"
-	utils "github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -54,10 +50,12 @@ const (
 	errStoreRef              = "could not get store reference"
 	errStoreProvider         = "could not get store provider"
 	errStoreClient           = "could not get provider client"
+	errGetExistingSecret     = "could not get existing secret: %w"
 	errCloseStoreClient      = "could not close provider client"
 	errSetCtrlReference      = "could not set ExternalSecret controller reference: %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
 	errGetSecretData         = "could not get secret data from provider: %w"
+	errApplyTemplate         = "could not apply template: %w"
 	errExecTpl               = "could not execute template: %w"
 	errPolicyMergeNotFound   = "the desired secret %s was not found. With creationPolicy=Merge the secret won't be created"
 	errPolicyMergeGetSecret  = "unable to get secret %s: %w"
@@ -126,7 +124,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// check if store should be handled by this controller instance
 	if !shouldProcessStore(store, r.ControllerClass) {
-		log.Info("skippig unmanaged store")
+		log.Info("skipping unmanaged store")
 		return ctrl.Result{}, nil
 	}
 
@@ -147,7 +145,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	defer func() {
-		err = secretClient.Close()
+		err = secretClient.Close(ctx)
 		if err != nil {
 			log.Error(err, errCloseStoreClient)
 		}
@@ -158,11 +156,27 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		refreshInt = externalSecret.Spec.RefreshInterval.Duration
 	}
 
+	// Target Secret Name should default to the ExternalSecret name if not explicitly specified
+	secretName := externalSecret.Spec.Target.Name
+	if secretName == "" {
+		secretName = externalSecret.ObjectMeta.Name
+	}
+
+	// fetch external secret, we need to ensure that it exists, and it's hashmap corresponds
+	var existingSecret v1.Secret
+	err = r.Get(ctx, types.NamespacedName{
+		Name:      secretName,
+		Namespace: externalSecret.Namespace,
+	}, &existingSecret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		log.Error(err, errGetExistingSecret)
+	}
+
 	// refresh should be skipped if
 	// 1. resource generation hasn't changed
 	// 2. refresh interval is 0
 	// 3. if we're still within refresh-interval
-	if !shouldRefresh(externalSecret) {
+	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
 		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
@@ -176,7 +190,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      externalSecret.Spec.Target.Name,
+			Name:      secretName,
 			Namespace: externalSecret.Namespace,
 		},
 		Immutable: &externalSecret.Spec.Target.Immutable,
@@ -190,43 +204,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return fmt.Errorf(errSetCtrlReference, err)
 			}
 		}
-		mergeMetadata(secret, externalSecret)
-		var tplMap map[string][]byte
-		var dataMap map[string][]byte
 
-		// get data
-		dataMap, err = r.getProviderSecretData(ctx, secretClient, &externalSecret)
+		dataMap, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
 		if err != nil {
 			return fmt.Errorf(errGetSecretData, err)
 		}
 
-		// no template: copy data and return
-		if externalSecret.Spec.Target.Template == nil {
-			for k, v := range dataMap {
-				secret.Data[k] = v
-			}
-			return nil
+		err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
+		if err != nil {
+			return fmt.Errorf(errApplyTemplate, err)
 		}
 
-		// template: fetch & execute templates
-		tplMap, err = r.getTemplateData(ctx, &externalSecret)
-		if err != nil {
-			return fmt.Errorf(errFetchTplFrom, err)
-		}
-		// override templateFrom data with template data
-		for k, v := range externalSecret.Spec.Target.Template.Data {
-			tplMap[k] = []byte(v)
-		}
-
-		log.V(1).Info("found template data", "tpl_data", tplMap)
-		err = template.Execute(tplMap, dataMap, secret)
-		if err != nil {
-			return fmt.Errorf(errExecTpl, err)
-		}
 		return nil
 	}
 
-	//nolint
+	// nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1alpha1.Merge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc)
@@ -273,7 +265,7 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/526
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/1517
 	// https://github.com/kubernetes/kubernetes/issues/80609
-	// we need to manually set it befor doing a Patch() as it depends on the GVK
+	// we need to manually set it before doing a Patch() as it depends on the GVK
 	gvks, unversioned, err := scheme.ObjectKinds(secret)
 	if err != nil {
 		return err
@@ -308,12 +300,10 @@ func hashMeta(m metav1.ObjectMeta) string {
 		annotations map[string]string
 		labels      map[string]string
 	}
-	h := md5.New() //nolint
-	_, _ = h.Write([]byte(fmt.Sprintf("%v", meta{
+	return utils.ObjectHash(meta{
 		annotations: m.Annotations,
 		labels:      m.Labels,
-	})))
-	return fmt.Sprintf("%x", h.Sum(nil))
+	})
 }
 
 func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
@@ -321,6 +311,7 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
 		return true
 	}
+
 	// skip refresh if refresh interval is 0
 	if es.Spec.RefreshInterval.Duration == 0 && es.Status.SyncedResourceVersion != "" {
 		return false
@@ -339,7 +330,6 @@ func shouldReconcile(es esv1alpha1.ExternalSecret) bool {
 }
 
 func hasSyncedCondition(es esv1alpha1.ExternalSecret) bool {
-
 	for _, condition := range es.Status.Conditions {
 		if condition.Reason == "SecretSynced" {
 			return true
@@ -348,24 +338,18 @@ func hasSyncedCondition(es esv1alpha1.ExternalSecret) bool {
 	return false
 }
 
-// we do not want to force-override the label/annotations
-// and only copy the necessary key/value pairs.
-func mergeMetadata(secret *v1.Secret, externalSecret esv1alpha1.ExternalSecret) {
-	if secret.ObjectMeta.Labels == nil {
-		secret.ObjectMeta.Labels = make(map[string]string)
+// isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.
+func isSecretValid(existingSecret v1.Secret) bool {
+	// if target secret doesn't exist, or annotations as not set, we need to refresh
+	if existingSecret.UID == "" || existingSecret.Annotations == nil {
+		return false
 	}
-	if secret.ObjectMeta.Annotations == nil {
-		secret.ObjectMeta.Annotations = make(map[string]string)
+
+	// if the calculated hash is different from the calculation, then it's invalid
+	if existingSecret.Annotations[esv1alpha1.AnnotationDataHash] != utils.ObjectHash(existingSecret.Data) {
+		return false
 	}
-	if externalSecret.Spec.Target.Template == nil {
-		utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.ObjectMeta.Labels)
-		utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.ObjectMeta.Annotations)
-		return
-	}
-	// if template is defined: use those labels/annotations
-	secret.Type = externalSecret.Spec.Target.Template.Type
-	utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.Spec.Target.Template.Metadata.Labels)
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
+	return true
 }
 
 // getStore returns the store with the provided ExternalSecret.
@@ -417,50 +401,6 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 	}
 
 	return providerData, nil
-}
-
-func (r *Reconciler) getTemplateData(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
-	out := make(map[string][]byte)
-	if externalSecret.Spec.Target.Template == nil {
-		return out, nil
-	}
-	for _, tpl := range externalSecret.Spec.Target.Template.TemplateFrom {
-		if tpl.ConfigMap != nil {
-			var cm v1.ConfigMap
-			err := r.Client.Get(ctx, types.NamespacedName{
-				Name:      tpl.ConfigMap.Name,
-				Namespace: externalSecret.Namespace,
-			}, &cm)
-			if err != nil {
-				return nil, err
-			}
-			for _, k := range tpl.ConfigMap.Items {
-				val, ok := cm.Data[k.Key]
-				if !ok {
-					return nil, fmt.Errorf(errTplCMMissingKey, tpl.ConfigMap.Name, k.Key)
-				}
-				out[k.Key] = []byte(val)
-			}
-		}
-		if tpl.Secret != nil {
-			var sec v1.Secret
-			err := r.Client.Get(ctx, types.NamespacedName{
-				Name:      tpl.Secret.Name,
-				Namespace: externalSecret.Namespace,
-			}, &sec)
-			if err != nil {
-				return nil, err
-			}
-			for _, k := range tpl.Secret.Items {
-				val, ok := sec.Data[k.Key]
-				if !ok {
-					return nil, fmt.Errorf(errTplSecMissingKey, tpl.Secret.Name, k.Key)
-				}
-				out[k.Key] = val
-			}
-		}
-	}
-	return out, nil
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

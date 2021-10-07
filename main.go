@@ -46,18 +46,20 @@ func main() {
 	var controllerClass string
 	var enableLeaderElection bool
 	var loglevel string
+	var namespace string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&controllerClass, "controller-class", "default", "the controller is instantiated with a specific controller name and filters ES based on this property")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
+	flag.StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only")
 	flag.Parse()
 
 	var lvl zapcore.Level
 	err := lvl.UnmarshalText([]byte(loglevel))
 	if err != nil {
-		setupLog.Error(err, "error unmarshaling loglevel")
+		setupLog.Error(err, "error unmarshalling loglevel")
 		os.Exit(1)
 	}
 	logger := zap.New(zap.Level(lvl))
@@ -69,6 +71,7 @@ func main() {
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "external-secrets-controller",
+		Namespace:          namespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

@@ -8,6 +8,17 @@ git clone https://github.com/external-secrets/external-secrets.git
 cd external-secrets
 ```
 
+If you want to run controller tests you also need to install kubebuilder's `envtest`:
+
+```
+export KUBEBUILDER_TOOLS_VERSION='1.20.2' # check for latest version or a version that has support to what you are testing
+
+curl -sSLo envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$KUBEBUILDER_TOOLS_VERSION-linux-amd64.tar.gz"
+
+sudo mkdir -p /usr/local/kubebuilder
+sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz
+```
+
 ## Building & Testing
 
 The project uses the `make` build system. It'll run code generators, tests and
@@ -33,21 +44,19 @@ make docs
 
 ## Installing
 
-To install the External Secret Operator's CRDs into a Kubernetes Cluster run:
+To install the External Secret Operator into a Kubernetes Cluster run:
+
+```shell
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update
+helm install external-secrets external-secrets/external-secrets
+```
+
+You can alternatively run the controller on your host system for development purposes:
+
 
 ```shell
 make crds.install
-```
-
-Apply the sample resources:
-```shell
-kubectl apply -f docs/snippets/basic-secret-store.yaml
-kubectl apply -f docs/snippets/basic-external-secret.yaml
-```
-
-You can run the controller on your host system for development purposes:
-
-```shell
 make run
 ```
 
@@ -55,6 +64,20 @@ To remove the CRDs run:
 
 ```shell
 make crds.uninstall
+```
+
+If you need to test some other k8s integrations and need the operator to be deployed to the actuall cluster while developing, you can use the following workflow:
+
+```
+kind create cluster --name external-secrets
+
+export TAG=v2
+export IMAGE=eso-local
+
+docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux
+
+make helm.generate
+helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
 ```
 
 !!! note "Contributing Flow"
