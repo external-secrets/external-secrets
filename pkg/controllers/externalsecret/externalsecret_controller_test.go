@@ -134,6 +134,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		ExternalSecretName             = "test-es"
 		ExternalSecretStore            = "test-store"
 		ExternalSecretTargetSecretName = "test-secret"
+		FakeManager = "fake.manager"
 	)
 
 	var ExternalSecretNamespace string
@@ -283,13 +284,13 @@ var _ = Describe("ExternalSecret controller", func() {
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-secret",
+				Name:     ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
 			},
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
 			},
-		}, client.FieldOwner("fake.manager"))).To(Succeed())
+		}, client.FieldOwner(FakeManager))).To(Succeed())
 
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
@@ -309,7 +310,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				"external-secrets",
 				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1alpha1.AnnotationDataHash)),
 			).To(BeTrue())
-			Expect(hasFieldOwnership(secret.ObjectMeta, "fake.manager", "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
+			Expect(hasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
 		}
 	}
 
@@ -348,13 +349,13 @@ var _ = Describe("ExternalSecret controller", func() {
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-secret",
+				Name:      ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
 			},
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
 			},
-		}, client.FieldOwner("fake.manager"))).To(Succeed())
+		}, client.FieldOwner(FakeManager))).To(Succeed())
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 
 		tc.checkCondition = func(es *esv1alpha1.ExternalSecret) bool {
@@ -373,7 +374,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			// check owner/managedFields
 			Expect(hasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(1))
-			Expect(hasFieldOwnership(secret.ObjectMeta, "fake.manager", "{\"f:data\":{\".\":{},\"f:targetProperty\":{}},\"f:type\":{}}")).To(BeTrue())
+			Expect(hasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:targetProperty\":{}},\"f:type\":{}}")).To(BeTrue())
 		}
 	}
 
