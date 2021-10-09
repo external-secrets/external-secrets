@@ -93,6 +93,18 @@ func makeValidSecretStoreWithCerts() *esv1alpha1.SecretStore {
 	}
 }
 
+func makeValidSecretStoreWithK8sCerts() *esv1alpha1.SecretStore {
+	store := makeValidSecretStoreWithCerts()
+	caProvider := &esv1alpha1.CAProvider{
+		Type: "Secret",
+		Name: "vault-cert",
+		Key:  "cert",
+	}
+
+	store.Spec.Provider.Vault.CAProvider = caProvider
+	return store
+}
+
 type secretStoreTweakFn func(s *esv1alpha1.SecretStore)
 
 func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1alpha1.SecretStore {
@@ -283,6 +295,23 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"SuccessfulVaultStoreWithK8sCertSecret": {
+			reason: "Should reutnr a Vault prodvider with the cert from k8s",
+			args: args{
+				store: makeValidSecretStoreWithK8sCerts(),
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
+						if o, ok := obj.(*corev1.Secret); ok {
+							o.Data = map[string][]byte{
+								"cert": clientCrt,
+							}
+							return nil
+						}
+						return nil
+					}),
+				},
 			},
 		},
 		"GetCertificateFormatError": {
