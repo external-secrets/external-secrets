@@ -94,7 +94,7 @@ func makeValidSecretStoreWithCerts() *esv1alpha1.SecretStore {
 }
 
 func makeValidSecretStoreWithK8sCerts() *esv1alpha1.SecretStore {
-	store := makeValidSecretStoreWithCerts()
+	store := makeSecretStore()
 	caProvider := &esv1alpha1.CAProvider{
 		Type: "Secret",
 		Name: "vault-cert",
@@ -298,20 +298,41 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 			},
 		},
 		"SuccessfulVaultStoreWithK8sCertSecret": {
-			reason: "Should reutnr a Vault prodvider with the cert from k8s",
+			reason: "Should return a Vault prodvider with the cert from k8s",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(),
 				kube: &test.MockClient{
 					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
 						if o, ok := obj.(*corev1.Secret); ok {
 							o.Data = map[string][]byte{
-								"cert": clientCrt,
+								"cert":  clientCrt,
+								"token": secretData,
+							}
+							return nil
+						}
+
+						if o, ok := obj.(*corev1.ServiceAccount); ok {
+							o.Secrets = []corev1.ObjectReference{
+								{
+									Name: "example-secret-token",
+								},
 							}
 							return nil
 						}
 						return nil
 					}),
 				},
+				newClientFunc: func(c *vault.Config) (Client, error) {
+					return &fake.VaultClient{
+						MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+						MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+							newVaultTokenIDResponse("test-token"), nil, func(got *vault.Request) error { return nil }),
+						MockSetToken: fake.NewSetTokenFn(),
+					}, nil
+				},
+			},
+			want: want{
+				err: nil,
 			},
 		},
 		"GetCertificateFormatError": {
