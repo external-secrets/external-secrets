@@ -24,6 +24,10 @@ type AzureKVProvider struct {
 	TenantID *string `json:"tenantId"`
 	// Auth configures how the operator authenticates with Azure.
 	AuthSecretRef *AzureKVAuth `json:"authSecretRef"`
+	// ActiveDirectoryEndpoint configures which Active Directory Endpoint to use when not on default public cloud
+	ActiveDirectoryEndpoint *string `json:"activeDirectoryEndpoint,omitempty"`
+	// ActiveDirectoryResourceID configures which Active Directory Resource ID to use when not on default public cloud
+	ActiveDirectoryResourceID *string `json:"activeDirectoryResourceID,omitempty"`
 }
 
 // Configuration used to authenticate with Azure.
