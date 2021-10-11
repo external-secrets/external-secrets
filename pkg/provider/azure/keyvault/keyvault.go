@@ -50,11 +50,13 @@ type SecretClient interface {
 
 // Azure satisfies the provider.SecretsClient interface.
 type Azure struct {
-	kube       client.Client
-	store      esv1alpha1.GenericStore
-	baseClient SecretClient
-	vaultURL   string
-	namespace  string
+	kube                      client.Client
+	store                     esv1alpha1.GenericStore
+	baseClient                SecretClient
+	vaultURL                  string
+	ActiveDirectoryResourceID string
+	ActiveDirectoryEndpoint   string
+	namespace                 string
 }
 
 func init() {
@@ -194,7 +196,16 @@ func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, strin
 
 	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, tenantID)
 	// the default resource api is the management URL and not the vault URL which we need for keyvault operations
-	clientCredentialsConfig.Resource = "https://vault.azure.net"
+	if *spec.ActiveDirectoryResourceID == "" {
+		clientCredentialsConfig.Resource = "https://vault.azure.net"
+	} else {
+		clientCredentialsConfig.Resource = *spec.ActiveDirectoryResourceID
+	}
+
+	if *spec.ActiveDirectoryEndpoint != "" {
+		clientCredentialsConfig.AADEndpoint = *spec.ActiveDirectoryEndpoint
+	}
+
 	authorizer, err := clientCredentialsConfig.Authorizer()
 	if err != nil {
 		return nil, "", err
