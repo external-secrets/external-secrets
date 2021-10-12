@@ -153,6 +153,7 @@ MIIEpAIBAAKCAQEArfZ4HV1obFVlVNiA24tX/UOakqRnEtWXpIvaOsMaPGvvODgGe4XnyJGO32idPv85
 MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZhdWx0LWNhMB4XDTIxMDcyMDA4MTQxM1oXDTIyMDcyMDA4MTQxM1owFzEVMBMGA1UEAwwMdmF1bHQtY2xpZW50MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArfZ4HV1obFVlVNiA24tX/UOakqRnEtWXpIvaOsMaPGvvODgGe4XnyJGO32idPv85sIr7vDH9p+OhactVlJV1fu5SZoZ7pg4jTCLqVDCb3IRD++yik2Sw58YayNe3HiaCTsJQWeMXLzfaqOeyk6bEpBCJo09+3QxUWxijgJ7YZCb+Gi8pf3ZWeSZG+rGNNvXHmTs1Yu1H849SYXu+uJOd/R3ZSTw8CxFe4eTLgbCnPf6tgA8Sg2hc+CAZxunPP2JLZWbiJXxjNRoypso6MAJ1FRkx5sTJiLg6UoLvd95/S/lCVOR2PDlM1hg7ox8VEd4QHky7tLx7gji/5hHQKJQSTwIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQAsDYKtzScIA7bqIOmqF8rr+oLSjRhPt5OfT+KGNdXk8G3VAy1ED2tyCHaRNC7dPLq4EvcxbIXQnXPy1iZMofriGbFPAcQ2fyWUesAD6bYSpI+bYxwz6Ebb93hU5nc/FyXg8yh0kgiGbY3MrACPjxqP2+z5kcOC3u3hx3SZylgW7TeOXDTdqSbNfH1b+1rR/bVNgQQshjhU9d+c4Yv/t0u07uykBhHLWZDSnYiAeOZ8+mWuOSDkcZHE1zznx74fWgtN0zRDtr0L0w9evT9R2CnNSZGxXcEQxAlQ7SL/Jyw82TFCGEw0L4jj7jjvx0N5J8KX/DulUDE9vuVyQEJ88Epe
 -----END CERTIFICATE-----
 `)
+	tokenSecretName := "example-secret-token"
 
 	type args struct {
 		newClientFunc func(c *vault.Config) (Client, error)
@@ -240,7 +241,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 						if o, ok := obj.(*corev1.ServiceAccount); ok {
 							o.Secrets = []corev1.ObjectReference{
 								{
-									Name: "example-secret-token",
+									Name: tokenSecretName,
 								},
 							}
 							return nil
@@ -323,7 +324,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 						if o, ok := obj.(*corev1.ServiceAccount); ok {
 							o.Secrets = []corev1.ObjectReference{
 								{
-									Name: "example-secret-token",
+									Name: tokenSecretName,
 								},
 							}
 							return nil
@@ -353,7 +354,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 						if o, ok := obj.(*corev1.ServiceAccount); ok {
 							o.Secrets = []corev1.ObjectReference{
 								{
-									Name: "example-secret-token",
+									Name: tokenSecretName,
 								},
 							}
 							return nil
