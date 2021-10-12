@@ -93,12 +93,17 @@ func makeValidSecretStoreWithCerts() *esv1alpha1.SecretStore {
 	}
 }
 
-func makeValidSecretStoreWithK8sCerts() *esv1alpha1.SecretStore {
+func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1alpha1.SecretStore {
 	store := makeSecretStore()
 	caProvider := &esv1alpha1.CAProvider{
-		Type: "Secret",
 		Name: "vault-cert",
 		Key:  "cert",
+	}
+
+	if isSecret {
+		caProvider.Type = "Secret"
+	} else {
+		caProvider.Type = "ConfigMap"
 	}
 
 	store.Spec.Provider.Vault.CAProvider = caProvider
@@ -303,7 +308,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 		"SuccessfulVaultStoreWithK8sCertSecret": {
 			reason: "Should return a Vault prodvider with the cert from k8s",
 			args: args{
-				store: makeValidSecretStoreWithK8sCerts(),
+				store: makeValidSecretStoreWithK8sCerts(true),
 				kube: &test.MockClient{
 					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
 						if o, ok := obj.(*corev1.Secret); ok {
@@ -331,10 +336,10 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 				err: nil,
 			},
 		},
-		"GetCertSecretMissingError": {
-			reason: "Should return a Vault prodvider with the cert from k8s",
+		"GetCertSecretKeyMissingError": {
+			reason: "Should return an error if the secret key is missing",
 			args: args{
-				store: makeValidSecretStoreWithK8sCerts(),
+				store: makeValidSecretStoreWithK8sCerts(true),
 				kube: &test.MockClient{
 					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
 						if o, ok := obj.(*corev1.Secret); ok {
@@ -359,6 +364,75 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 			},
 			want: want{
 				err: fmt.Errorf(errVaultCert, errors.New(`cannot find secret data for key: "cert"`)),
+			},
+		},
+		"SuccessfulVaultStoreWithK8sCertConfigMap": {
+			reason: "Should return a Vault prodvider with the cert from k8s",
+			args: args{
+				store: makeValidSecretStoreWithK8sCerts(false),
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
+						if o, ok := obj.(*corev1.ConfigMap); ok {
+							o.Data = map[string]string{
+								"cert": string(clientCrt),
+							}
+							return nil
+						}
+
+						if o, ok := obj.(*corev1.ServiceAccount); ok {
+							o.Secrets = []corev1.ObjectReference{
+								{
+									Name: tokenSecretName,
+								},
+							}
+							return nil
+						}
+
+						if o, ok := obj.(*corev1.Secret); ok {
+							o.Data = map[string][]byte{
+								"token": secretData,
+							}
+							return nil
+						}
+
+						return nil
+					}),
+				},
+				newClientFunc: clientWithLoginMock,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"GetCertConfigMapMissingError": {
+			reason: "Should return an error if the config map key is missing",
+			args: args{
+				store: makeValidSecretStoreWithK8sCerts(false),
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
+						if o, ok := obj.(*corev1.ServiceAccount); ok {
+							o.Secrets = []corev1.ObjectReference{
+								{
+									Name: tokenSecretName,
+								},
+							}
+							return nil
+						}
+
+						if o, ok := obj.(*corev1.Secret); ok {
+							o.Data = map[string][]byte{
+								"token": secretData,
+							}
+							return nil
+						}
+
+						return nil
+					}),
+				},
+				newClientFunc: clientWithLoginMock,
+			},
+			want: want{
+				err: fmt.Errorf(errConfigMapFmt, "cert"),
 			},
 		},
 		"GetCertificateFormatError": {
