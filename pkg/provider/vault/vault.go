@@ -248,46 +248,26 @@ func (v *client) newConfig() (*vault.Config, error) {
 	}
 
 	if v.store.CAProvider != nil {
+		var cert []byte
+		var err error
+
 		// If our cert is coming from a secret, fetch it and append.
 		// else if our cert is in a config map get it from there instead.
 		if v.store.CAProvider.Type == esv1alpha1.CAProviderTypeSecret {
-			secretRef := esmeta.SecretKeySelector{
-				Name:      v.store.CAProvider.Name,
-				Namespace: &v.store.CAProvider.Namespace,
-				Key:       v.store.CAProvider.Key,
-			}
-			ctx := context.Background()
-			res, err := v.secretKeyRef(ctx, &secretRef)
+			cert, err = getCertFromSecret(v)
 			if err != nil {
-				return nil, fmt.Errorf(errVaultCert, err)
-			}
-
-			ok := caCertPool.AppendCertsFromPEM([]byte(res))
-			if !ok {
-				return nil, errors.New(errVaultCert)
+				return nil, err
 			}
 		} else if v.store.CAProvider.Type == esv1alpha1.CAProviderTypeConfigMap {
-			objKey := types.NamespacedName{
-				Namespace: v.store.CAProvider.Namespace,
-				Name:      v.store.CAProvider.Name,
-			}
-
-			configMapRef := &corev1.ConfigMap{}
-			ctx := context.Background()
-			err := v.kube.Get(ctx, objKey, configMapRef)
+			cert, err = getCertFromConfigMap(v)
 			if err != nil {
-				return nil, fmt.Errorf(errVaultCert, err)
+				return nil, err
 			}
+		}
 
-			val, ok := configMapRef.Data[v.store.CAProvider.Key]
-			if !ok {
-				return nil, fmt.Errorf(errConfigMapFmt, v.store.CAProvider.Key)
-			}
-
-			ok = caCertPool.AppendCertsFromPEM([]byte(val))
-			if !ok {
-				return nil, errors.New(errVaultCert)
-			}
+		ok := caCertPool.AppendCertsFromPEM(cert)
+		if !ok {
+			return nil, errors.New(errVaultCert)
 		}
 	}
 
@@ -296,6 +276,42 @@ func (v *client) newConfig() (*vault.Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func getCertFromSecret(v *client) ([]byte, error) {
+	secretRef := esmeta.SecretKeySelector{
+		Name:      v.store.CAProvider.Name,
+		Namespace: &v.store.CAProvider.Namespace,
+		Key:       v.store.CAProvider.Key,
+	}
+	ctx := context.Background()
+	res, err := v.secretKeyRef(ctx, &secretRef)
+	if err != nil {
+		return nil, fmt.Errorf(errVaultCert, err)
+	}
+
+	return []byte(res), nil
+}
+
+func getCertFromConfigMap(v *client) ([]byte, error) {
+	objKey := types.NamespacedName{
+		Namespace: v.store.CAProvider.Namespace,
+		Name:      v.store.CAProvider.Name,
+	}
+
+	configMapRef := &corev1.ConfigMap{}
+	ctx := context.Background()
+	err := v.kube.Get(ctx, objKey, configMapRef)
+	if err != nil {
+		return nil, fmt.Errorf(errVaultCert, err)
+	}
+
+	val, ok := configMapRef.Data[v.store.CAProvider.Key]
+	if !ok {
+		return nil, fmt.Errorf(errConfigMapFmt, v.store.CAProvider.Key)
+	}
+
+	return []byte(val), nil
 }
 
 func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config) error {
