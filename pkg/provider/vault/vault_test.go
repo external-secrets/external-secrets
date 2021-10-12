@@ -294,14 +294,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 						return nil
 					}),
 				},
-				newClientFunc: func(c *vault.Config) (Client, error) {
-					return &fake.VaultClient{
-						MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
-						MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
-							newVaultTokenIDResponse("test-token"), nil, func(got *vault.Request) error { return nil }),
-						MockSetToken: fake.NewSetTokenFn(),
-					}, nil
-				},
+				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
 				err: nil,
@@ -384,14 +377,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 						return nil
 					}),
 				},
-				newClientFunc: func(c *vault.Config) (Client, error) {
-					return &fake.VaultClient{
-						MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
-						MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
-							newVaultTokenIDResponse("test-token"), nil, func(got *vault.Request) error { return nil }),
-						MockSetToken: fake.NewSetTokenFn(),
-					}, nil
-				},
+				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
 				err: fmt.Errorf(errClientTLSAuth, "tls: failed to find any PEM data in certificate input"),
@@ -413,14 +399,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 						return nil
 					}),
 				},
-				newClientFunc: func(c *vault.Config) (Client, error) {
-					return &fake.VaultClient{
-						MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
-						MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
-							newVaultTokenIDResponse("test-token"), nil, func(got *vault.Request) error { return nil }),
-						MockSetToken: fake.NewSetTokenFn(),
-					}, nil
-				},
+				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
 				err: fmt.Errorf(errClientTLSAuth, "tls: failed to find any PEM data in key input"),
