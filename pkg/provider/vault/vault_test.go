@@ -36,6 +36,11 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 )
 
+const (
+	tokenSecretName  = "example-secret-token"
+	secretDataString = "some-creds"
+)
+
 func makeValidSecretStore() *esv1alpha1.SecretStore {
 	return &esv1alpha1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -148,9 +153,26 @@ func clientWithLoginMock(c *vault.Config) (Client, error) {
 	}, nil
 }
 
+func kubeMockWithSecretTokenAndServiceAcc(obj kclient.Object) error {
+	if o, ok := obj.(*corev1.ServiceAccount); ok {
+		o.Secrets = []corev1.ObjectReference{
+			{
+				Name: tokenSecretName,
+			},
+		}
+		return nil
+	}
+	if o, ok := obj.(*corev1.Secret); ok {
+		o.Data = map[string][]byte{
+			"token": []byte(secretDataString),
+		}
+		return nil
+	}
+	return nil
+}
+
 func TestNewVault(t *testing.T) {
 	errBoom := errors.New("boom")
-	secretData := []byte("some-creds")
 	secretClientKey := []byte(`-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEArfZ4HV1obFVlVNiA24tX/UOakqRnEtWXpIvaOsMaPGvvODgGe4XnyJGO32idPv85sIr7vDH9p+OhactVlJV1fu5SZoZ7pg4jTCLqVDCb3IRD++yik2Sw58YayNe3HiaCTsJQWeMXLzfaqOeyk6bEpBCJo09+3QxUWxijgJ7YZCb+Gi8pf3ZWeSZG+rGNNvXHmTs1Yu1H849SYXu+uJOd/R3ZSTw8CxFe4eTLgbCnPf6tgA8Sg2hc+CAZxunPP2JLZWbiJXxjNRoypso6MAJ1FRkx5sTJiLg6UoLvd95/S/lCVOR2PDlM1hg7ox8VEd4QHky7tLx7gji/5hHQKJQSTwIDAQABAoIBAQCYPICQ8hVX+MNcpLrfZenycR7sBYNOMC0silbH5cUn6yzFfgHuRxi3pOnrCJnTb3cE0BvMbdMVAVdYReD2znSsR9NEdZvvjZ/GGSgH1SIQsI7t//+mDQ/jRLJb4KsXb4vJcLLwdpLrd22bMmhMXjzndrF8gSz8NLX9omozPM8RlLxjzPzYOdlX/Zw8V68qQH2Ic04KbtnCwyAUIgAJxYtn/uYB8lzILBkyzQqwhQKkDDZQ0wbZT0hP6z+HgsdifwQvHG1GZAgCuzzyXrL/4TgDaDhYdMVoBA4+HPmzqm5MkBvjH4oqroxjRofUroVix0OGXZJMI1OJ0z/ubzmwCq5BAoGBANqbwzAydUJs0P+GFL94K/Y6tXULKA2c9N0crbxoxheobRpuJvhpW1ZE/9UGpaYX1Rw3nW4x+Jwvt83YkgHAlR4LgEwDvdJPZobybfqifQDiraUO0t62Crn8mSxOsFCugtRIFniwnX67w3uKxiSdCZYbJGs9JEDTpxRG/PSWq3QlAoGBAMu3zOv1PJAhOky7VcxFxWQPEMY+t2PA/sneD01/qgGuhlTwL4QlpywmBqXcI070dcvcBkP0flnWI7y5cnuE1+55twmsrvfaS8s1+AYje0b35DsaF2vtKuJrXC0AGKP+/eiycd9cbvVW2GWOxE7Ui76Mj95MARK8ZNjt0wJagQhjAoGASm9dD80uhhadN1RFPkjB1054OMk6sx/tdFhug8e9I5MSyzwUguME2aQW5EcmIh7dToVVUo8rUqsgz7NdS8FyRM+vuLJRcQneJDbp4bxwCdwlOh2JCZI8psVutlp4yJATNgrxs9iXV+7BChDflNnvyK+nP+iKrpQiwNHHEdU3vg0CgYEAvEpwD4+loJn1psJn9NxwK6F5IaMKIhtZ4/9pKXpcCh3jb1JouL2MnFOxRVAJGor87aW57Mlol2RDt8W4OM56PqMlOL3xIokUEQka66GT6e5pdu8QwuJ9BrWwhq9WFw4yZQe6FHb836qbbJLegvYVC9QjjZW2UDjtBUwcAkrghH0CgYBUMmMOCwIfMEtMaWxZRGdxRabazLhn7TXhBpVTuv7WouPaXYd7ZGjCTMKAuVa/E4afBlxgemnqBuX90gHpK/dDmn9l+lp8GZey0grJ7G0x5HEMiKziaX5PrgAcKbQ70m9ZNZ1deYhsC05X8rHNexZB6ns7Yms9L7qnlAy51ZH2zw==
 -----END RSA PRIVATE KEY-----`)
@@ -158,7 +180,7 @@ MIIEpAIBAAKCAQEArfZ4HV1obFVlVNiA24tX/UOakqRnEtWXpIvaOsMaPGvvODgGe4XnyJGO32idPv85
 MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZhdWx0LWNhMB4XDTIxMDcyMDA4MTQxM1oXDTIyMDcyMDA4MTQxM1owFzEVMBMGA1UEAwwMdmF1bHQtY2xpZW50MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArfZ4HV1obFVlVNiA24tX/UOakqRnEtWXpIvaOsMaPGvvODgGe4XnyJGO32idPv85sIr7vDH9p+OhactVlJV1fu5SZoZ7pg4jTCLqVDCb3IRD++yik2Sw58YayNe3HiaCTsJQWeMXLzfaqOeyk6bEpBCJo09+3QxUWxijgJ7YZCb+Gi8pf3ZWeSZG+rGNNvXHmTs1Yu1H849SYXu+uJOd/R3ZSTw8CxFe4eTLgbCnPf6tgA8Sg2hc+CAZxunPP2JLZWbiJXxjNRoypso6MAJ1FRkx5sTJiLg6UoLvd95/S/lCVOR2PDlM1hg7ox8VEd4QHky7tLx7gji/5hHQKJQSTwIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQAsDYKtzScIA7bqIOmqF8rr+oLSjRhPt5OfT+KGNdXk8G3VAy1ED2tyCHaRNC7dPLq4EvcxbIXQnXPy1iZMofriGbFPAcQ2fyWUesAD6bYSpI+bYxwz6Ebb93hU5nc/FyXg8yh0kgiGbY3MrACPjxqP2+z5kcOC3u3hx3SZylgW7TeOXDTdqSbNfH1b+1rR/bVNgQQshjhU9d+c4Yv/t0u07uykBhHLWZDSnYiAeOZ8+mWuOSDkcZHE1zznx74fWgtN0zRDtr0L0w9evT9R2CnNSZGxXcEQxAlQ7SL/Jyw82TFCGEw0L4jj7jjvx0N5J8KX/DulUDE9vuVyQEJ88Epe
 -----END CERTIFICATE-----
 `)
-	tokenSecretName := "example-secret-token"
+	secretData := []byte(secretDataString)
 
 	type args struct {
 		newClientFunc func(c *vault.Config) (Client, error)
@@ -242,23 +264,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 			args: args{
 				store: makeSecretStore(),
 				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-						if o, ok := obj.(*corev1.ServiceAccount); ok {
-							o.Secrets = []corev1.ObjectReference{
-								{
-									Name: tokenSecretName,
-								},
-							}
-							return nil
-						}
-						if o, ok := obj.(*corev1.Secret); ok {
-							o.Data = map[string][]byte{
-								"token": secretData,
-							}
-							return nil
-						}
-						return nil
-					}),
+					MockGet: test.NewMockGetFn(nil, kubeMockWithSecretTokenAndServiceAcc),
 				},
 				newClientFunc: func(c *vault.Config) (Client, error) {
 					return &fake.VaultClient{
@@ -341,24 +347,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(true),
 				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-						if o, ok := obj.(*corev1.Secret); ok {
-							o.Data = map[string][]byte{
-								"token": secretData,
-							}
-							return nil
-						}
-
-						if o, ok := obj.(*corev1.ServiceAccount); ok {
-							o.Secrets = []corev1.ObjectReference{
-								{
-									Name: tokenSecretName,
-								},
-							}
-							return nil
-						}
-						return nil
-					}),
+					MockGet: test.NewMockGetFn(nil, kubeMockWithSecretTokenAndServiceAcc),
 				},
 				newClientFunc: clientWithLoginMock,
 			},
