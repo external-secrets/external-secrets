@@ -134,6 +134,15 @@ func newVaultTokenIDResponse(token string) *vault.Response {
 	})
 }
 
+func clientWithLoginMock(c *vault.Config) (Client, error) {
+	return &fake.VaultClient{
+		MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+		MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+			newVaultTokenIDResponse("test-token"), nil, func(got *vault.Request) error { return nil }),
+		MockSetToken: fake.NewSetTokenFn(),
+	}, nil
+}
+
 func TestNewVault(t *testing.T) {
 	errBoom := errors.New("boom")
 	secretData := []byte("some-creds")
@@ -322,17 +331,40 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 						return nil
 					}),
 				},
-				newClientFunc: func(c *vault.Config) (Client, error) {
-					return &fake.VaultClient{
-						MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
-						MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
-							newVaultTokenIDResponse("test-token"), nil, func(got *vault.Request) error { return nil }),
-						MockSetToken: fake.NewSetTokenFn(),
-					}, nil
-				},
+				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"GetCertSecretMissingError": {
+			reason: "Should return a Vault prodvider with the cert from k8s",
+			args: args{
+				store: makeValidSecretStoreWithK8sCerts(),
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
+						if o, ok := obj.(*corev1.Secret); ok {
+							o.Data = map[string][]byte{
+								"token": secretData,
+							}
+							return nil
+						}
+
+						if o, ok := obj.(*corev1.ServiceAccount); ok {
+							o.Secrets = []corev1.ObjectReference{
+								{
+									Name: "example-secret-token",
+								},
+							}
+							return nil
+						}
+						return nil
+					}),
+				},
+				newClientFunc: clientWithLoginMock,
+			},
+			want: want{
+				err: fmt.Errorf(errVaultCert, errors.New(`cannot find secret data for key: "cert"`)),
 			},
 		},
 		"GetCertificateFormatError": {
