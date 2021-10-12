@@ -71,6 +71,8 @@ const (
 	errClientTLSAuth = "error from Client TLS Auth: %q"
 
 	errVaultRevokeToken = "error while revoking token: %w"
+
+	errUnknownCAProvider = "unknown caProvider type given"
 )
 
 type Client interface {
@@ -251,18 +253,17 @@ func (v *client) newConfig() (*vault.Config, error) {
 		var cert []byte
 		var err error
 
-		// If our cert is coming from a secret, fetch it and append.
-		// else if our cert is in a config map get it from there instead.
-		if v.store.CAProvider.Type == esv1alpha1.CAProviderTypeSecret {
+		switch v.store.CAProvider.Type {
+		case esv1alpha1.CAProviderTypeSecret:
 			cert, err = getCertFromSecret(v)
-			if err != nil {
-				return nil, err
-			}
-		} else if v.store.CAProvider.Type == esv1alpha1.CAProviderTypeConfigMap {
+		case esv1alpha1.CAProviderTypeConfigMap:
 			cert, err = getCertFromConfigMap(v)
-			if err != nil {
-				return nil, err
-			}
+		default:
+			return nil, errors.New(errUnknownCAProvider)
+		}
+
+		if err != nil {
+			return nil, err
 		}
 
 		ok := caCertPool.AppendCertsFromPEM(cert)
