@@ -307,7 +307,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(hasFieldOwnership(
 				secret.ObjectMeta,
 				"external-secrets",
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1alpha1.AnnotationDataHash)),
+				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1alpha1.AnnotationDataHash)),
 			).To(BeTrue())
 			Expect(hasFieldOwnership(secret.ObjectMeta, "fake.manager", "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
 		}
@@ -1134,6 +1134,43 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				},
 			})
 			Expect(h1).To(Equal(h2))
+		})
+	})
+})
+
+var _ = Describe("Controller Reconcile logic", func() {
+	Context("controller reconcile", func() {
+		It("should reconcile when resource is not synced", func() {
+			Expect(shouldReconcile(esv1alpha1.ExternalSecret{
+				Status: esv1alpha1.ExternalSecretStatus{
+					SyncedResourceVersion: "some resource version",
+					Conditions:            []esv1alpha1.ExternalSecretStatusCondition{{Reason: "NotASecretSynced"}},
+				},
+			})).To(BeTrue())
+		})
+
+		It("should reconcile when secret isn't immutable", func() {
+			Expect(shouldReconcile(esv1alpha1.ExternalSecret{
+				Spec: esv1alpha1.ExternalSecretSpec{
+					Target: esv1alpha1.ExternalSecretTarget{
+						Immutable: false,
+					},
+				},
+			})).To(BeTrue())
+		})
+
+		It("should not reconcile if secret is immutable and has synced condition", func() {
+			Expect(shouldReconcile(esv1alpha1.ExternalSecret{
+				Spec: esv1alpha1.ExternalSecretSpec{
+					Target: esv1alpha1.ExternalSecretTarget{
+						Immutable: true,
+					},
+				},
+				Status: esv1alpha1.ExternalSecretStatus{
+					SyncedResourceVersion: "some resource version",
+					Conditions:            []esv1alpha1.ExternalSecretStatusCondition{{Reason: "SecretSynced"}},
+				},
+			})).To(BeFalse())
 		})
 	})
 })

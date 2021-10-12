@@ -180,13 +180,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
+	if !shouldReconcile(externalSecret) {
+		log.V(1).Info("stopping reconciling", "rv", getResourceVersion(externalSecret))
+		return ctrl.Result{
+			RequeueAfter: 0,
+			Requeue:      false,
+		}, nil
+	}
 
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
 			Namespace: externalSecret.Namespace,
 		},
-		Data: make(map[string][]byte),
+		Immutable: &externalSecret.Spec.Target.Immutable,
+		Data:      make(map[string][]byte),
 	}
 
 	mutationFunc := func() error {
@@ -312,6 +320,22 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 		return true
 	}
 	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
+}
+
+func shouldReconcile(es esv1alpha1.ExternalSecret) bool {
+	if es.Spec.Target.Immutable && hasSyncedCondition(es) {
+		return false
+	}
+	return true
+}
+
+func hasSyncedCondition(es esv1alpha1.ExternalSecret) bool {
+	for _, condition := range es.Status.Conditions {
+		if condition.Reason == "SecretSynced" {
+			return true
+		}
+	}
+	return false
 }
 
 // isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.
