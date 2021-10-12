@@ -66,6 +66,7 @@ const (
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
+	errConfigMapFmt  = "cannot find config map data for key: %q"
 
 	errClientTLSAuth = "error from Client TLS Auth: %q"
 
@@ -247,6 +248,8 @@ func (v *client) newConfig() (*vault.Config, error) {
 	}
 
 	if v.store.CAProvider != nil {
+		// If our cert is coming from a secret, fetch it and append.
+		// else if our cert is in a config map get it from there instead.
 		if v.store.CAProvider.Type == esv1alpha1.CAProviderTypeSecret {
 			secretRef := esmeta.SecretKeySelector{
 				Name:      v.store.CAProvider.Name,
@@ -260,6 +263,28 @@ func (v *client) newConfig() (*vault.Config, error) {
 			}
 
 			ok := caCertPool.AppendCertsFromPEM([]byte(res))
+			if !ok {
+				return nil, errors.New(errVaultCert)
+			}
+		} else if v.store.CAProvider.Type == esv1alpha1.CAProviderTypeConfigMap {
+			objKey := types.NamespacedName{
+				Namespace: v.store.CAProvider.Namespace,
+				Name:      v.store.CAProvider.Name,
+			}
+
+			configMapRef := &corev1.ConfigMap{}
+			ctx := context.Background()
+			err := v.kube.Get(ctx, objKey, configMapRef)
+			if err != nil {
+				return nil, fmt.Errorf(errVaultCert, err)
+			}
+
+			val, ok := configMapRef.Data[v.store.CAProvider.Key]
+			if !ok {
+				return nil, fmt.Errorf(errConfigMapFmt, v.store.CAProvider.Key)
+			}
+
+			ok = caCertPool.AppendCertsFromPEM([]byte(val))
 			if !ok {
 				return nil, errors.New(errVaultCert)
 			}
