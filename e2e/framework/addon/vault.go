@@ -65,6 +65,8 @@ type Vault struct {
 	AppRolePath   string
 }
 
+const privatePemType = "RSA PRIVATE KEY"
+
 func NewVault(namespace string) *Vault {
 	repo := "hashicorp-" + namespace
 	return &Vault{
@@ -298,7 +300,7 @@ func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []b
 		return nil, nil, nil, nil, nil, nil, fmt.Errorf("unable to generate vault server cert")
 	}
 	serverKeyPem := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
+		Type:  privatePemType,
 		Bytes: x509.MarshalPKCS1PrivateKey(serverKey)},
 	)
 	// gen client ca + certs
@@ -311,7 +313,7 @@ func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []b
 		return nil, nil, nil, nil, nil, nil, fmt.Errorf("unable to generate vault server cert")
 	}
 	clientKeyPem := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
+		Type:  privatePemType,
 		Bytes: x509.MarshalPKCS1PrivateKey(clientKey)},
 	)
 	return serverRootPem, serverPem, serverKeyPem, clientRootPem, clientPem, clientKeyPem, err
@@ -323,7 +325,7 @@ func genVaultJWTKeys() ([]byte, []byte, string, error) {
 		return nil, nil, "", err
 	}
 	privPem := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
+		Type:  privatePemType,
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	})
 	pk, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
