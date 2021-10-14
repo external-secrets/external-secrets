@@ -133,6 +133,15 @@ spec:
     name: secret-store-name
     kind: SecretStore  # or ClusterSecretStore
 
+  # secretStoreSelector defines which SecretStore to fetch the ExternalSecret data using selector
+  secretStoreSelector:
+    # Match SecretStore or ClusterSecretStore using label selector
+    # If multiple match, the first match will be used
+    matchLabels:
+      env: prod
+      zone: private
+    kind: SecretStore # or ClusterSecretStore
+
   # RefreshInterval is the amount of time before the values reading again from the SecretStore provider
   # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h" (from time.ParseDuration)
   # May be set to zero to fetch and create it once

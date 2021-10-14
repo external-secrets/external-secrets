@@ -116,6 +116,17 @@ type ExternalSecretData struct {
 	RemoteRef ExternalSecretDataRemoteRef `json:"remoteRef"`
 }
 
+// A Selector selects an object.
+type Selector struct {
+	// MatchLabels ensures an object with matching labels is selected.
+	MatchLabels map[string]string `json:"matchLabels,omitempty"`
+
+	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+	// Defaults to `SecretStore`
+	// +optional
+	Kind string `json:"kind,omitempty"`
+}
+
 // ExternalSecretDataRemoteRef defines Provider data location.
 type ExternalSecretDataRemoteRef struct {
 	// Key is the key used in the Provider, mandatory
@@ -133,6 +144,10 @@ type ExternalSecretDataRemoteRef struct {
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	SecretStoreRef SecretStoreRef `json:"secretStoreRef"`
+
+	// SecretStoreSelector defines which SecretStore to fetch the ExternalSecret data using selector
+	// If multiple match, the first match will be used
+	SecretStoreSelector SecretStoreRef `json:"secretStoreSelector"`
 
 	Target ExternalSecretTarget `json:"target"`
 
