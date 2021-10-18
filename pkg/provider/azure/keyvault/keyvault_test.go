@@ -75,6 +75,46 @@ func TestNewClientNoCreds(t *testing.T) {
 	tassert.Nil(t, secretClient)
 }
 
+func TestNewClientClusterScoped(t *testing.T) {
+	namespace := "internal"
+	vaultURL := "https://local.vault.url"
+	tenantID := "1234"
+	store := esv1alpha1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       esv1alpha1.ClusterSecretStoreKind,
+			APIVersion: esv1alpha1.ClusterSecretStoreKindAPIVersion,
+		},
+		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
+			VaultURL: &vaultURL,
+			TenantID: &tenantID,
+		}}},
+	}
+	provider, err := schema.GetProvider(&store)
+	tassert.Nil(t, err, "the return err should be nil")
+	k8sClient := clientfake.NewClientBuilder().Build()
+	secretClient, err := provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "missing clientID/clientSecret in store config")
+	tassert.Nil(t, secretClient)
+
+	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1alpha1.AzureKVAuth{}
+	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
+	tassert.Nil(t, secretClient)
+	ns := "user"
+	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID = &v1.SecretKeySelector{Name: "user", Namespace: &ns}
+	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
+	tassert.Nil(t, secretClient)
+
+	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret = &v1.SecretKeySelector{Name: "password", Namespace: &ns}
+	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "could not find secret user/user: secrets \"user\" not found")
+	tassert.Nil(t, secretClient)
+}
+
 const (
 	jwkPubRSA = `{"kid":"ex","kty":"RSA","key_ops":["sign","verify","wrapKey","unwrapKey","encrypt","decrypt"],"n":"p2VQo8qCfWAZmdWBVaYuYb-a-tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz-Ed8Cdlf8lkDg4Ex5tkB64jRdC1Uvn4CDpOH6cp-N2s8hTFLqy9_YaDmyQS7HiqthOi9oVjil1VMeWfaAbClGtFt6UnKD0Vb_DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlIIx7unibLehhDU6q3DCwNH_OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQP_WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9vyQ","e":"AQAB"}`
 	jwkPubEC  = `{"kid":"https://example.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
