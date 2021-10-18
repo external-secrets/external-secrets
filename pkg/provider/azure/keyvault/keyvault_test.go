@@ -73,45 +73,13 @@ func TestNewClientNoCreds(t *testing.T) {
 	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "could not find secret internal/user: secrets \"user\" not found")
 	tassert.Nil(t, secretClient)
-}
-
-func TestNewClientClusterScoped(t *testing.T) {
-	namespace := "internal"
-	vaultURL := "https://local.vault.url"
-	tenantID := "1234"
-	store := esv1alpha1.ClusterSecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       esv1alpha1.ClusterSecretStoreKind,
-			APIVersion: esv1alpha1.ClusterSecretStoreKindAPIVersion,
-		},
-		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
-			VaultURL: &vaultURL,
-			TenantID: &tenantID,
-		}}},
-	}
-	provider, err := schema.GetProvider(&store)
-	tassert.Nil(t, err, "the return err should be nil")
-	k8sClient := clientfake.NewClientBuilder().Build()
-	secretClient, err := provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "missing clientID/clientSecret in store config")
-	tassert.Nil(t, secretClient)
-
-	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1alpha1.AzureKVAuth{}
+	store.TypeMeta.Kind = esv1alpha1.ClusterSecretStoreKind
+	store.TypeMeta.APIVersion = esv1alpha1.ClusterSecretStoreKindAPIVersion
+	ns := "default"
+	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID.Namespace = &ns
+	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret.Namespace = &ns
 	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
-	tassert.Nil(t, secretClient)
-	ns := "user"
-	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID = &v1.SecretKeySelector{Name: "user", Namespace: &ns}
-	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
-	tassert.Nil(t, secretClient)
-
-	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret = &v1.SecretKeySelector{Name: "password", Namespace: &ns}
-	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "could not find secret user/user: secrets \"user\" not found")
+	tassert.EqualError(t, err, "could not find secret default/user: secrets \"user\" not found")
 	tassert.Nil(t, secretClient)
 }
 
