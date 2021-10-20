@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/secretsmanagerv1"
@@ -314,6 +315,28 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1alpha1.GenericS
 			ApiKey: string(iStore.credentials),
 		},
 	})
+
+	// Setup retry options, but only if present
+	if storeSpec.RetrySettings != nil {
+		var retryAmount int
+		var retryDuration time.Duration
+
+		if storeSpec.RetrySettings.MaxRetries != nil {
+			retryAmount = int(*storeSpec.RetrySettings.MaxRetries)
+		} else {
+			retryAmount = 3
+		}
+
+		if storeSpec.RetrySettings.RetryInterval != nil {
+			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+		} else {
+			retryDuration = 5 * time.Second
+		}
+
+		if err == nil {
+			secretsManager.Service.EnableRetries(retryAmount, retryDuration)
+		}
+	}
 
 	if err != nil {
 		return nil, fmt.Errorf(errIBMClient, err)
