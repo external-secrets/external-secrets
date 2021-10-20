@@ -238,32 +238,32 @@ func (v *client) newConfig() (*vault.Config, error) {
 }
 
 func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config) error {
-	tokenExists, err := setSecretKeyToken(v, ctx, client)
+	tokenExists, err := setSecretKeyToken(ctx, v, client)
 	if tokenExists {
 		return err
 	}
 
-	tokenExists, err = setAppRoleToken(v, ctx, client)
+	tokenExists, err = setAppRoleToken(ctx, v, client)
 	if tokenExists {
 		return err
 	}
 
-	tokenExists, err = setKubernetesAuthToken(v, ctx, client)
+	tokenExists, err = setKubernetesAuthToken(ctx, v, client)
 	if tokenExists {
 		return err
 	}
 
-	tokenExists, err = setLdapAuthToken(v, ctx, client)
+	tokenExists, err = setLdapAuthToken(ctx, v, client)
 	if tokenExists {
 		return err
 	}
 
-	tokenExists, err = setJwtAuthToken(v, ctx, client)
+	tokenExists, err = setJwtAuthToken(ctx, v, client)
 	if tokenExists {
 		return err
 	}
 
-	tokenExists, err = setCertAuthToken(v, ctx, client, cfg)
+	tokenExists, err = setCertAuthToken(ctx, v, client, cfg)
 	if tokenExists {
 		return err
 	}
@@ -271,7 +271,7 @@ func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config) 
 	return errors.New(errAuthFormat)
 }
 
-func setAppRoleToken(v *client, ctx context.Context, client Client) (bool, error) {
+func setAppRoleToken(ctx context.Context, v *client, client Client) (bool, error) {
 	tokenRef := v.store.Auth.TokenSecretRef
 	if tokenRef != nil {
 		token, err := v.secretKeyRef(ctx, tokenRef)
@@ -284,7 +284,7 @@ func setAppRoleToken(v *client, ctx context.Context, client Client) (bool, error
 	return false, nil
 }
 
-func setSecretKeyToken(v *client, ctx context.Context, client Client) (bool, error) {
+func setSecretKeyToken(ctx context.Context, v *client, client Client) (bool, error) {
 	appRole := v.store.Auth.AppRole
 	if appRole != nil {
 		token, err := v.requestTokenWithAppRoleRef(ctx, client, appRole)
@@ -297,7 +297,7 @@ func setSecretKeyToken(v *client, ctx context.Context, client Client) (bool, err
 	return false, nil
 }
 
-func setKubernetesAuthToken(v *client, ctx context.Context, client Client) (bool, error) {
+func setKubernetesAuthToken(ctx context.Context, v *client, client Client) (bool, error) {
 	kubernetesAuth := v.store.Auth.Kubernetes
 	if kubernetesAuth != nil {
 		token, err := v.requestTokenWithKubernetesAuth(ctx, client, kubernetesAuth)
@@ -310,7 +310,7 @@ func setKubernetesAuthToken(v *client, ctx context.Context, client Client) (bool
 	return false, nil
 }
 
-func setLdapAuthToken(v *client, ctx context.Context, client Client) (bool, error) {
+func setLdapAuthToken(ctx context.Context, v *client, client Client) (bool, error) {
 	ldapAuth := v.store.Auth.Ldap
 	if ldapAuth != nil {
 		token, err := v.requestTokenWithLdapAuth(ctx, client, ldapAuth)
@@ -323,7 +323,7 @@ func setLdapAuthToken(v *client, ctx context.Context, client Client) (bool, erro
 	return false, nil
 }
 
-func setJwtAuthToken(v *client, ctx context.Context, client Client) (bool, error) {
+func setJwtAuthToken(ctx context.Context, v *client, client Client) (bool, error) {
 	jwtAuth := v.store.Auth.Jwt
 	if jwtAuth != nil {
 		token, err := v.requestTokenWithJwtAuth(ctx, client, jwtAuth)
@@ -336,7 +336,7 @@ func setJwtAuthToken(v *client, ctx context.Context, client Client) (bool, error
 	return false, nil
 }
 
-func setCertAuthToken(v *client, ctx context.Context, client Client, cfg *vault.Config) (bool, error) {
+func setCertAuthToken(ctx context.Context, v *client, client Client, cfg *vault.Config) (bool, error) {
 	certAuth := v.store.Auth.Cert
 	if certAuth != nil {
 		token, err := v.requestTokenWithCertAuth(ctx, client, certAuth, cfg)
@@ -463,7 +463,7 @@ func kubeParameters(role, jwt string) map[string]string {
 }
 
 func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
-	jwtString, err := getJwtString(v, kubernetesAuth, ctx)
+	jwtString, err := getJwtString(ctx, v, kubernetesAuth)
 	if err != nil {
 		return "", err
 	}
@@ -497,9 +497,8 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Clie
 	return token, nil
 }
 
-func getJwtString(v *client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth, ctx context.Context) (string, error) {
+func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
-
 		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
 		if err != nil {
 			return "", err
