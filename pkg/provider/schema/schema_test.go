@@ -26,6 +26,8 @@ import (
 
 type PP struct{}
 
+const shouldBeRegistered = "provider should be registered"
+
 // New constructs a SecretsManager Provider.
 func (p *PP) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	return p, nil
@@ -113,7 +115,7 @@ func runTest(t *testing.T, name string, provider *esv1alpha1.SecretStoreProvider
 	}
 	Register(testProvider, secretStore.Spec.Provider)
 	p1, ok := GetProviderByName(name)
-	assert.True(t, ok, "provider should be registered")
+	assert.True(t, ok, shouldBeRegistered)
 	assert.Equal(t, testProvider, p1)
 	p2, err := GetProvider(secretStore)
 	assert.Nil(t, err)
@@ -139,7 +141,7 @@ func TestForceRegister(t *testing.T) {
 		},
 	})
 	p1, ok := GetProviderByName("aws")
-	assert.True(t, ok, "provider should be registered")
+	assert.True(t, ok, shouldBeRegistered)
 	assert.Equal(t, testProvider, p1)
 	p2, err := GetProvider(secretStore)
 	assert.Nil(t, err)
@@ -162,7 +164,7 @@ func TestRegisterGCP(t *testing.T) {
 
 	ForceRegister(testProvider, secretStore.Spec.Provider)
 	p1, ok := GetProviderByName("gcpsm")
-	assert.True(t, ok, "provider should be registered")
+	assert.True(t, ok, shouldBeRegistered)
 	assert.Equal(t, testProvider, p1)
 
 	p2, err := GetProvider(secretStore)

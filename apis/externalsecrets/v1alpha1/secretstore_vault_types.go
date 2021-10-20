@@ -25,6 +25,31 @@ const (
 	VaultKVStoreV2 VaultKVStoreVersion = "v2"
 )
 
+type CAProviderType string
+
+const (
+	CAProviderTypeSecret    CAProviderType = "Secret"
+	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
+)
+
+// Defines a location to fetch the cert for the vault provider from.
+type CAProvider struct {
+	// The type of provider to use such as "Secret", or "ConfigMap".
+	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
+	Type CAProviderType `json:"type"`
+
+	// The name of the object located at the provider type.
+	Name string `json:"name"`
+
+	// The key the value inside of the provider type to use, only used with "Secret" type
+	// +kubebuilder:validation:Optional
+	Key string `json:"key,omitempty"`
+
+	// The namespace the Provider type is in.
+	// +kubebuilder:default:="Default"
+	Namespace string `json:"namespace"`
+}
+
 // Configures an store to sync secrets using a HashiCorp Vault
 // KV backend.
 type VaultProvider struct {
@@ -59,6 +84,10 @@ type VaultProvider struct {
 	// are used to validate the TLS connection.
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
+
+	// The provider for the CA bundle to use to validate Vault server certificate.
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
 // VaultAuth is the configuration used to authenticate with a Vault server.

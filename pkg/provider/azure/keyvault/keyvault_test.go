@@ -73,6 +73,14 @@ func TestNewClientNoCreds(t *testing.T) {
 	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "could not find secret internal/user: secrets \"user\" not found")
 	tassert.Nil(t, secretClient)
+	store.TypeMeta.Kind = esv1alpha1.ClusterSecretStoreKind
+	store.TypeMeta.APIVersion = esv1alpha1.ClusterSecretStoreKindAPIVersion
+	ns := "default"
+	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID.Namespace = &ns
+	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret.Namespace = &ns
+	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	tassert.EqualError(t, err, "could not find secret default/user: secrets \"user\" not found")
+	tassert.Nil(t, secretClient)
 }
 
 const (

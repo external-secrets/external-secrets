@@ -37,12 +37,12 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 | Provider                                                            | Stability |                  Contact                   |
 | ------------------------------------------------------------------- | :-------: | :----------------------------------------: |
-| [Azure KV](https://external-secrets.io/provider-azure-key-vault/)   |   alpha   | @ahmedmus-1A @asnowfix @ncourbet-1A @1A-mj |
-| [IBM SM](https://external-secrets.io/provider-ibm-secrets-manager/) |   alpha   |   @knelasevero @sebagomez @ricardoptcosta  |
-| [Yandex Lockbox](https://external-secrets.io/provider-yandex-lockbox/) |   alpha   |   @AndreyZamyslov @knelasevero          |
-| [Gitlab Project Variables](https://external-secrets.io/provider-gitlab-project-variables/) |   alpha   |   @Jabray5          |
-| Alibaba Cloud KMS                                                   |   alpha  | @ElsaChelala                                |
-| [Oracle Vault]( https://external-secrets.io/provider-oracle-vault)  |   alpha  | @KianTigger                                 |
+| [Azure KV](https://external-secrets.io/provider-azure-key-vault/)   |   alpha   | [@ahmedmus-1A](https://github.com/ahmedmus-1A) [@asnowfix](https://github.com/asnowfix) [@ncourbet-1A](https://github.com/ncourbet-1A) [@1A-mj](https://github.com/1A-mj) |
+| [IBM SM](https://external-secrets.io/provider-ibm-secrets-manager/) |   alpha   |   [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta)  |
+| [Yandex Lockbox](https://external-secrets.io/provider-yandex-lockbox/) |   alpha   |   [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero)          |
+| [Gitlab Project Variables](https://external-secrets.io/provider-gitlab-project-variables/) |   alpha   |   [@Jabray5](https://github.com/Jabray5)          |
+| Alibaba Cloud KMS                                                   |   alpha  | [@ElsaChelala](https://github.com/ElsaChelala)                                |
+| [Oracle Vault]( https://external-secrets.io/provider-oracle-vault)  |   alpha  | [@KianTigger](https://github.com/KianTigger)                                 |
 
 
 ## Documentation

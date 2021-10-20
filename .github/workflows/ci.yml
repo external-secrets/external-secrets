@@ -21,6 +21,9 @@ env:
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
   # credentials have been provided before trying to run steps that need them.
   GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+  
+  # Sonar
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
   detect-noop:
@@ -174,12 +177,6 @@ jobs:
         run: |
           export KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=true
           make test
-
-      - name: Publish Unit Test Coverage
-        uses: codecov/codecov-action@v2.0.3
-        with:
-          flags: unittests
-          file: ./cover.out
 
 
   publish-artifacts:

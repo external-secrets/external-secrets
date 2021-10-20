@@ -42,6 +42,8 @@ type SMProvider struct {
 	framework *framework.Framework
 }
 
+const secretName = "provider-secret"
+
 func newSMProvider(f *framework.Framework, url string) *SMProvider {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
@@ -82,7 +84,7 @@ func (s *SMProvider) BeforeEach() {
 	By("creating a AWS SM credentials secret")
 	awsCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "provider-secret",
+			Name:      secretName,
 			Namespace: s.framework.Namespace.Name,
 		},
 		StringData: map[string]string{
@@ -107,11 +109,11 @@ func (s *SMProvider) BeforeEach() {
 					Auth: esv1alpha1.AWSAuth{
 						SecretRef: &esv1alpha1.AWSAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
-								Name: "provider-secret",
+								Name: secretName,
 								Key:  "kid",
 							},
 							SecretAccessKey: esmeta.SecretKeySelector{
-								Name: "provider-secret",
+								Name: secretName,
 								Key:  "sak",
 							},
 						},

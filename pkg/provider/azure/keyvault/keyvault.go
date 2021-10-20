@@ -177,7 +177,7 @@ func (a *Azure) newAzureClient(ctx context.Context) (*keyvault.BaseClient, strin
 		return nil, "", fmt.Errorf("missing clientID/clientSecret in store config")
 	}
 	clusterScoped := false
-	if a.store.GetObjectMeta().String() == esv1alpha1.ClusterSecretStoreKind {
+	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
 		clusterScoped = true
 	}
 	if spec.AuthSecretRef.ClientID == nil || spec.AuthSecretRef.ClientSecret == nil {
