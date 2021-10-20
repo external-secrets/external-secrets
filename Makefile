@@ -66,7 +66,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # Conformance
 
 # Ensure a PR is ready for review.
-reviewable: generate helm.generate
+reviewable: generate helm.generate lint
 	@go mod tidy
 
 # Ensure branch is clean.
