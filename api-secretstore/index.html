@@ -932,7 +932,18 @@ The SecretStore maps to exactly one instance of an external API.</p>
       <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
       <span class="c1"># vault enterprise namespace: https://www.vaultproject.io/docs/enterprise/namespaces</span>
       <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;a-team&quot;</span>
+      <span class="c1"># base64 encoded string of certificate</span>
       <span class="nt">caBundle</span><span class="p">:</span> <span class="s">&quot;...&quot;</span>
+      <span class="c1"># Instead of caBundle you can also specify a caProvider</span>
+      <span class="c1"># this will retrieve the cert from a Secret or ConfigMap</span>
+      <span class="nt">caProvider</span><span class="p">:</span>
+        <span class="c1"># Can be Secret or ConfigMap</span>
+        <span class="nt">type</span><span class="p">:</span> <span class="s">&quot;Secret&quot;</span>
+        <span class="c1"># This is optional, if not specified will be &#39;Default&#39;</span>
+        <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;my-cert-secret-namespace&quot;</span>
+        <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-cert-secret&quot;</span>
+        <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;cert-key&quot;</span>
+
       <span class="nt">auth</span><span class="p">:</span>
         <span class="c1"># static token: https://www.vaultproject.io/docs/auth/token</span>
         <span class="nt">tokenSecretRef</span><span class="p">:</span>
