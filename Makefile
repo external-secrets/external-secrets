@@ -117,7 +117,6 @@ lint.install:
 lint: lint.check ## run golangci-lint
 	@if ! golangci-lint run; then \
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
-		@$(FAIL) Linting failed
 		exit 1; \
 	fi
 	@$(OK) Finished linting
