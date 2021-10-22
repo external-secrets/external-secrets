@@ -39,6 +39,7 @@ import (
 
 const (
 	myServiceAcc = "my-service-account"
+	myRole       = "my-sa-role"
 	otherNs      = "other-ns"
 )
 
@@ -351,14 +352,14 @@ func TestNewSession(t *testing.T) {
 					Name:      myServiceAcc,
 					Namespace: otherNs,
 					Annotations: map[string]string{
-						roleARNAnnotation: "my-sa-role",
+						roleARNAnnotation: myRole,
 					},
 				},
 			},
 			jwtProvider: func(name, namespace, roleArn, region string) (credentials.Provider, error) {
 				assert.Equal(t, myServiceAcc, name)
 				assert.Equal(t, otherNs, namespace)
-				assert.Equal(t, "my-sa-role", roleArn)
+				assert.Equal(t, myRole, roleArn)
 				return fakesess.CredentialsProvider{
 					RetrieveFunc: func() (credentials.Value, error) {
 						return credentials.Value{
@@ -402,22 +403,14 @@ func TestNewSession(t *testing.T) {
 					Name:      myServiceAcc,
 					Namespace: otherNs,
 					Annotations: map[string]string{
-						roleARNAnnotation: "my-sa-role",
+						roleARNAnnotation: myRole,
 					},
 				},
 			},
 			jwtProvider: func(name, namespace, roleArn, region string) (credentials.Provider, error) {
-				assert.Equal(t, myServiceAcc, name)
-				assert.Equal(t, otherNs, namespace)
-				assert.Equal(t, "my-sa-role", roleArn)
 				return fakesess.CredentialsProvider{
 					RetrieveFunc: func() (credentials.Value, error) {
-						return credentials.Value{
-							AccessKeyID:     "3333",
-							SecretAccessKey: "4444",
-							SessionToken:    "1234",
-							ProviderName:    "fake",
-						}, nil
+						return credentials.Value{}, nil
 					},
 					IsExpiredFunc: func() bool { return false },
 				}, nil
