@@ -434,7 +434,7 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "ServiceAccountRef has no Namespace field (mandatory for ClusterSecretStore specs)",
+			expectErr: "serviceAccountRef has no Namespace field (mandatory for ClusterSecretStore specs)",
 		},
 	}
 	for i := range rows {
