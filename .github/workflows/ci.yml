@@ -120,8 +120,12 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-
 
+      # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
-        run: make check-diff
+        run: |
+          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.33.0
+          export PATH=$PATH:./bin
+          make check-diff
 
   unit-tests:
     runs-on: ubuntu-18.04

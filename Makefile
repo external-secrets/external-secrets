@@ -66,7 +66,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # Conformance
 
 # Ensure a PR is ready for review.
-reviewable: generate helm.generate
+reviewable: generate helm.generate lint
 	@go mod tidy
 
 # Ensure branch is clean.
@@ -119,6 +119,7 @@ lint: lint.check ## run golangci-lint
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
 		exit 1; \
 	fi
+	@$(OK) Finished linting
 
 fmt: lint.check ## ensure consistent code style
 	@go mod tidy
