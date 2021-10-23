@@ -123,7 +123,7 @@ jobs:
       # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
         run: |
-          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.42.1
+          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.33.0
           export PATH=$PATH:./bin
           make check-diff
 
