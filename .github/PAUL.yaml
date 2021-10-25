@@ -47,6 +47,11 @@ pull_requests:
     If this is your first time contributing, please make
     sure to read the [Developer](https://www.external-secrets.io/contributing-devguide/) and [Contributing Process](https://www.external-secrets.io/contributing-process/) guides.
     Please also mind and follow our [Code of Conduct](https://www.external-secrets.io/contributing-coc/).
+    
+    Useful commands:
+      - make fmt: Formats the code
+      - `make check-diff`: Ensures the branch is clean
+      - `make reviewable`: Ensures a PR is ready for review
   # Enables the /cat command
   cats_enabled: true
   # enables the /dog command
