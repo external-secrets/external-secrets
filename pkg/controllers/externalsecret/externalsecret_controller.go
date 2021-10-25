@@ -238,11 +238,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
+	currCond := GetExternalSecretCondition(externalSecret.Status, esv1alpha1.ExternalSecretReady)
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
 	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
 	syncCallsTotal.With(syncCallsMetricLabels).Inc()
-	log.V(1).Info("reconciled secret")
+	if currCond == nil || currCond.Status != conditionSynced.Status {
+		log.Info("reconciled secret")
+	} else {
+		log.V(1).Info("reconciled secret")
+	}
 
 	return ctrl.Result{
 		RequeueAfter: refreshInt,
