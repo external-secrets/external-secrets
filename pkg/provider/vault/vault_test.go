@@ -144,6 +144,23 @@ func newVaultTokenIDResponse(token string) *vault.Response {
 	})
 }
 
+type args struct {
+	newClientFunc func(c *vault.Config) (Client, error)
+	store         esv1alpha1.GenericStore
+	kube          kclient.Client
+	ns            string
+}
+
+type want struct {
+	err error
+}
+
+type testCase struct {
+	reason string
+	args   args
+	want   want
+}
+
 func clientWithLoginMock(c *vault.Config) (Client, error) {
 	return &fake.VaultClient{
 		MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
@@ -182,22 +199,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 `)
 	secretData := []byte(secretDataString)
 
-	type args struct {
-		newClientFunc func(c *vault.Config) (Client, error)
-		store         esv1alpha1.GenericStore
-		kube          kclient.Client
-		ns            string
-	}
-
-	type want struct {
-		err error
-	}
-
-	cases := map[string]struct {
-		reason string
-		args   args
-		want   want
-	}{
+	cases := map[string]testCase{
 		"InvalidVaultStore": {
 			reason: "Should return error if given an invalid vault store.",
 			args: args{
@@ -472,17 +474,21 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			conn := &connector{
-				newVaultClient: tc.args.newClientFunc,
-			}
-			if tc.args.newClientFunc == nil {
-				conn.newVaultClient = newVaultClient
-			}
-			_, err := conn.NewClient(context.Background(), tc.args.store, tc.args.kube, tc.args.ns)
-			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-				t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
-			}
+			vaultTest(t, name, tc)
 		})
+	}
+}
+
+func vaultTest(t *testing.T, name string, tc testCase) {
+	conn := &connector{
+		newVaultClient: tc.args.newClientFunc,
+	}
+	if tc.args.newClientFunc == nil {
+		conn.newVaultClient = newVaultClient
+	}
+	_, err := conn.NewClient(context.Background(), tc.args.store, tc.args.kube, tc.args.ns)
+	if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}
 }
 
