@@ -192,7 +192,7 @@ serve-docs: ## Serve docs
 # ====================================================================================
 # Build Artifacts
 
-build.all: docker.build helm.build
+build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
