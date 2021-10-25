@@ -131,7 +131,7 @@ func (l *Vault) initVault() error {
 	}
 
 	// gen certificates and put them into the secret
-	serverRootPem, serverPem, serverKeyPem, clientRootPem, clientPem, clientKeyPem, err := genVaultCertificates(l.Namespace)
+	certificates, err := genVaultCertificates(l.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to gen vault certs: %w", err)
 	}
@@ -141,22 +141,22 @@ func (l *Vault) initVault() error {
 	}
 
 	// pass certs to secret
-	sec.Data["vault-server-ca.pem"] = serverRootPem
-	sec.Data["server-cert.pem"] = serverPem
-	sec.Data["server-cert-key.pem"] = serverKeyPem
-	sec.Data["vault-client-ca.pem"] = clientRootPem
-	sec.Data["es-client.pem"] = clientPem
-	sec.Data["es-client-key.pem"] = clientKeyPem
+	sec.Data["vault-server-ca.pem"] = certificates.serverRootPem
+	sec.Data["server-cert.pem"] = certificates.serverPem
+	sec.Data["server-cert-key.pem"] = certificates.serverKeyPem
+	sec.Data["vault-client-ca.pem"] = certificates.clientRootPem
+	sec.Data["es-client.pem"] = certificates.clientPem
+	sec.Data["es-client-key.pem"] = certificates.clientKeyPem
 	sec.Data["jwt-pubkey.pem"] = jwtPubkey
 
 	// make certs available to the struct
 	// so it can be used by the provider
-	l.VaultServerCA = serverRootPem
-	l.ServerCert = serverPem
-	l.ServerKey = serverKeyPem
-	l.VaultClientCA = clientRootPem
-	l.ClientCert = clientPem
-	l.ClientKey = clientKeyPem
+	l.VaultServerCA = certificates.serverRootPem
+	l.ServerCert = certificates.serverPem
+	l.ServerKey = certificates.serverKeyPem
+	l.VaultClientCA = certificates.clientRootPem
+	l.ClientCert = certificates.clientPem
+	l.ClientKey = certificates.clientKeyPem
 	l.JWTPrivKey = jwtPrivkey
 	l.JWTPubkey = jwtPubkey
 	l.JWTToken = jwtToken
@@ -286,18 +286,28 @@ func (l *Vault) Setup(cfg *Config) error {
 	return l.chart.Setup(cfg)
 }
 
-func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []byte, []byte, error) {
+type certs struct {
+	serverRootPem []byte
+	serverPem     []byte
+	serverKeyPem  []byte
+	clientRootPem []byte
+	clientPem     []byte
+	clientKeyPem  []byte
+}
+
+func genVaultCertificates(namespace string) (certs, error) {
 	// gen server ca + certs
+	cert := certs{}
 	serverRootCert, serverRootPem, serverRootKey, err := genCARoot()
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, fmt.Errorf("unable to generate ca cert: %w", err)
+		return cert, fmt.Errorf("unable to generate ca cert: %w", err)
 	}
 	serverPem, serverKey, err := genPeerCert(serverRootCert, serverRootKey, "vault", []string{
 		"localhost",
 		"vault-" + namespace,
 		fmt.Sprintf("vault-%s.%s.svc.cluster.local", namespace, namespace)})
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, fmt.Errorf("unable to generate vault server cert")
+		return cert, fmt.Errorf("unable to generate vault server cert")
 	}
 	serverKeyPem := pem.EncodeToMemory(&pem.Block{
 		Type:  privatePemType,
@@ -306,17 +316,23 @@ func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []b
 	// gen client ca + certs
 	clientRootCert, clientRootPem, clientRootKey, err := genCARoot()
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, fmt.Errorf("unable to generate ca cert: %w", err)
+		return cert, fmt.Errorf("unable to generate ca cert: %w", err)
 	}
 	clientPem, clientKey, err := genPeerCert(clientRootCert, clientRootKey, "vault-client", nil)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, fmt.Errorf("unable to generate vault server cert")
+		return cert, fmt.Errorf("unable to generate vault server cert")
 	}
 	clientKeyPem := pem.EncodeToMemory(&pem.Block{
 		Type:  privatePemType,
 		Bytes: x509.MarshalPKCS1PrivateKey(clientKey)},
 	)
-	return serverRootPem, serverPem, serverKeyPem, clientRootPem, clientPem, clientKeyPem, err
+	cert.serverPem = serverPem
+	cert.clientPem = clientPem
+	cert.clientKeyPem = clientKeyPem
+	cert.serverRootPem = serverRootPem
+	cert.clientRootPem = clientRootPem
+	cert.serverKeyPem = serverKeyPem
+	return cert, err
 }
 
 func genVaultJWTKeys() ([]byte, []byte, string, error) {
