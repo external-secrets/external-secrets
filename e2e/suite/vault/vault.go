@@ -23,6 +23,15 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
 
+const (
+	withTokenAuth = "with token auth"
+	withCertAuth  = "with cert auth"
+	withApprole   = "with approle auth"
+	withV1        = "with v1 provider"
+	withJWT       = "with jwt provider"
+	withK8s       = "with kubernetes provider"
+)
+
 var _ = Describe("[vault] ", func() {
 	f := framework.New("eso-vault")
 
@@ -30,41 +39,41 @@ var _ = Describe("[vault] ", func() {
 		framework.TableFunc(f,
 			newVaultProvider(f)),
 		// uses token auth
-		compose("with token auth", f, common.JSONDataFromSync, useTokenAuth),
-		compose("with token auth", f, common.JSONDataWithProperty, useTokenAuth),
-		compose("with token auth", f, common.JSONDataWithTemplate, useTokenAuth),
-		compose("with token auth", f, common.DataPropertyDockerconfigJSON, useTokenAuth),
-		compose("with token auth", f, common.JSONDataWithoutTargetName, useTokenAuth),
+		compose(withTokenAuth, f, common.JSONDataFromSync, useTokenAuth),
+		compose(withTokenAuth, f, common.JSONDataWithProperty, useTokenAuth),
+		compose(withTokenAuth, f, common.JSONDataWithTemplate, useTokenAuth),
+		compose(withTokenAuth, f, common.DataPropertyDockerconfigJSON, useTokenAuth),
+		compose(withTokenAuth, f, common.JSONDataWithoutTargetName, useTokenAuth),
 		// use cert auth
-		compose("with cert auth", f, common.JSONDataFromSync, useCertAuth),
-		compose("with cert auth", f, common.JSONDataWithProperty, useCertAuth),
-		compose("with cert auth", f, common.JSONDataWithTemplate, useCertAuth),
-		compose("with cert auth", f, common.DataPropertyDockerconfigJSON, useCertAuth),
-		compose("with cert auth", f, common.JSONDataWithoutTargetName, useTokenAuth),
+		compose(withCertAuth, f, common.JSONDataFromSync, useCertAuth),
+		compose(withCertAuth, f, common.JSONDataWithProperty, useCertAuth),
+		compose(withCertAuth, f, common.JSONDataWithTemplate, useCertAuth),
+		compose(withCertAuth, f, common.DataPropertyDockerconfigJSON, useCertAuth),
+		compose(withCertAuth, f, common.JSONDataWithoutTargetName, useTokenAuth),
 		// use approle auth
-		compose("with appRole auth", f, common.JSONDataFromSync, useApproleAuth),
-		compose("with appRole auth", f, common.JSONDataWithProperty, useApproleAuth),
-		compose("with appRole auth", f, common.JSONDataWithTemplate, useApproleAuth),
-		compose("with appRole auth", f, common.DataPropertyDockerconfigJSON, useApproleAuth),
-		compose("with appRole auth", f, common.JSONDataWithoutTargetName, useTokenAuth),
+		compose(withApprole, f, common.JSONDataFromSync, useApproleAuth),
+		compose(withApprole, f, common.JSONDataWithProperty, useApproleAuth),
+		compose(withApprole, f, common.JSONDataWithTemplate, useApproleAuth),
+		compose(withApprole, f, common.DataPropertyDockerconfigJSON, useApproleAuth),
+		compose(withApprole, f, common.JSONDataWithoutTargetName, useTokenAuth),
 		// use v1 provider
-		compose("with v1 kv provider", f, common.JSONDataFromSync, useV1Provider),
-		compose("with v1 kv provider", f, common.JSONDataWithProperty, useV1Provider),
-		compose("with v1 kv provider", f, common.JSONDataWithTemplate, useV1Provider),
-		compose("with v1 kv provider", f, common.DataPropertyDockerconfigJSON, useV1Provider),
-		compose("with v1 kv provider", f, common.JSONDataWithoutTargetName, useTokenAuth),
+		compose(withV1, f, common.JSONDataFromSync, useV1Provider),
+		compose(withV1, f, common.JSONDataWithProperty, useV1Provider),
+		compose(withV1, f, common.JSONDataWithTemplate, useV1Provider),
+		compose(withV1, f, common.DataPropertyDockerconfigJSON, useV1Provider),
+		compose(withV1, f, common.JSONDataWithoutTargetName, useTokenAuth),
 		// use jwt provider
-		compose("with jwt provider", f, common.JSONDataFromSync, useJWTProvider),
-		compose("with jwt provider", f, common.JSONDataWithProperty, useJWTProvider),
-		compose("with jwt provider", f, common.JSONDataWithTemplate, useJWTProvider),
-		compose("with jwt provider", f, common.DataPropertyDockerconfigJSON, useJWTProvider),
-		compose("with jwt provider", f, common.JSONDataWithoutTargetName, useTokenAuth),
+		compose(withJWT, f, common.JSONDataFromSync, useJWTProvider),
+		compose(withJWT, f, common.JSONDataWithProperty, useJWTProvider),
+		compose(withJWT, f, common.JSONDataWithTemplate, useJWTProvider),
+		compose(withJWT, f, common.DataPropertyDockerconfigJSON, useJWTProvider),
+		compose(withJWT, f, common.JSONDataWithoutTargetName, useTokenAuth),
 		// use kubernetes provider
-		compose("with kubernetes provider", f, common.JSONDataFromSync, useKubernetesProvider),
-		compose("with kubernetes provider", f, common.JSONDataWithProperty, useKubernetesProvider),
-		compose("with kubernetes provider", f, common.JSONDataWithTemplate, useKubernetesProvider),
-		compose("with kubernetes provider", f, common.DataPropertyDockerconfigJSON, useKubernetesProvider),
-		compose("with kubernetes provider", f, common.JSONDataWithoutTargetName, useTokenAuth),
+		compose(withK8s, f, common.JSONDataFromSync, useKubernetesProvider),
+		compose(withK8s, f, common.JSONDataWithProperty, useKubernetesProvider),
+		compose(withK8s, f, common.JSONDataWithTemplate, useKubernetesProvider),
+		compose(withK8s, f, common.DataPropertyDockerconfigJSON, useKubernetesProvider),
+		compose(withK8s, f, common.JSONDataWithoutTargetName, useTokenAuth),
 	)
 })
 
