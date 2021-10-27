@@ -94,6 +94,9 @@ type SecretStoreProvider struct {
 type SecretStoreRetrySettings struct {
 	MaxRetries    *int32  `json:"maxRetries,omitempty"`
 	RetryInterval *string `json:"retryInterval,omitempty"`
+	// PasswordDepot configures this store to sync secrets using PasswordDepot provider
+	// +optional
+	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
 }
 
 type SecretStoreConditionType string

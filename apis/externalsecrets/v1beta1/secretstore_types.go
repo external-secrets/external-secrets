@@ -141,6 +141,8 @@ type SecretStoreProvider struct {
 	// https://docs.delinea.com/online-help/products/devops-secrets-vault/current
 	// +optional
 	Delinea *DelineaProvider `json:"delinea,omitempty"`
+
+	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
 }
 
 type CAProviderType string
