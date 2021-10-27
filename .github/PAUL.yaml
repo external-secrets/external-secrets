@@ -49,7 +49,7 @@ pull_requests:
     Please also mind and follow our [Code of Conduct](https://www.external-secrets.io/contributing-coc/).
     
     Useful commands:
-      - make fmt: Formats the code
+      - `make fmt`: Formats the code
       - `make check-diff`: Ensures the branch is clean
       - `make reviewable`: Ensures a PR is ready for review
   # Enables the /cat command
