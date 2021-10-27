@@ -32,14 +32,10 @@ linters-settings:
     min-complexity: 16
   goheader:
     template-path: ./hack/boilerplate.go.txt
-  golint:
-    min-confidence: 0
   govet:
     check-shadowing: false
   lll:
     line-length: 300
-  maligned:
-    suggest-new: true
   misspell:
     locale: US
 
@@ -62,7 +58,6 @@ linters:
     - gocritic
     - godot
     - gofmt
-    - golint
     - goprintffuncname
     - gosec
     - gosimple
@@ -70,13 +65,12 @@ linters:
     - ineffassign
     - interfacer
     - lll
-    - maligned
     - misspell
     - nakedret
     - nolintlint
     - prealloc
+    - revive
     - rowserrcheck
-    - scopelint
     - sqlclosecheck
     - staticcheck
     - structcheck
@@ -102,7 +96,6 @@ issues:
         - errcheck
         - dupl
         - gosec
-        - scopelint
         - unparam
         - lll
 
