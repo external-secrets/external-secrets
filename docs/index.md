@@ -53,5 +53,9 @@ How to get involved:
 ### Sponsored by
 
 ![cs-logo](./pictures/cs_logo.png)
+<<<<<<< HEAD
 ![Form3](./pictures/form3_logo.png)
 ![Pento](./pictures/pento_logo.png)
+=======
+![godaddy-logo](./pictures/godaddy_logo.png)
+>>>>>>> f633a9aa... Add password depot provider
