@@ -65,12 +65,10 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-# Ensure a PR is ready for review.
-reviewable: generate helm.generate lint
+reviewable: generate helm.generate lint ## Ensure a PR is ready for review.
 	@go mod tidy
 
-# Ensure branch is clean.
-check-diff: reviewable
+check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
 	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
 	@$(OK) branch is clean
@@ -91,7 +89,7 @@ test.e2e: generate ## Run e2e tests
 	@$(OK) go test unit-tests
 
 .PHONY: build
-build: $(addprefix build-,$(ARCH))
+build: $(addprefix build-,$(ARCH)) ## Build binary 
 
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
@@ -100,28 +98,26 @@ build-%: generate ## Build binary for the specified arch
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-# Check install of golanci-lint
-lint.check:
+lint.check: ## Check install of golanci-lint
 	@if ! golangci-lint --version > /dev/null 2>&1; then \
 		echo -e "\033[0;33mgolangci-lint is not installed: run \`\033[0;32mmake lint.install\033[0m\033[0;33m\` or install it from https://golangci-lint.run\033[0m"; \
 		exit 1; \
 	fi
 
-# installs golangci-lint to the go bin dir
-lint.install:
+lint.install: ## Install golangci-lint to the go bin dir
 	@if ! golangci-lint --version > /dev/null 2>&1; then \
 		echo "Installing golangci-lint"; \
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOBIN) v1.33.0; \
 	fi
 
-lint: lint.check ## run golangci-lint
+lint: lint.check ## Run golangci-lint
 	@if ! golangci-lint run; then \
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
 		exit 1; \
 	fi
 	@$(OK) Finished linting
 
-fmt: lint.check ## ensure consistent code style
+fmt: lint.check ## Ensure consistent code style
 	@go mod tidy
 	@go fmt ./...
 	@golangci-lint run --fix > /dev/null 2>&1 || true
@@ -143,20 +139,17 @@ generate: ## Generate code and crds
 
 # This is for running out-of-cluster locally, and is for convenience.
 # For more control, try running the binary directly with different arguments.
-run: generate
+run: generate ## Run app locally (without a k8s cluster)
 	go run ./main.go
 
-# Generate manifests from helm chart
-manifests: helm.generate
+manifests: helm.generate ## Generate manifests from helm chart
 	mkdir -p $(OUTPUT_DIR)/deploy/manifests
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
-# Install CRDs into a cluster. This is for convenience.
-crds.install: generate
+crds.install: generate ## Install CRDs into a cluster. This is for convenience
 	kubectl apply -f $(CRD_DIR)
 
-# Uninstall CRDs from a cluster. This is for convenience.
-crds.uninstall:
+crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
 	kubectl delete -f $(CRD_DIR)
 
 # ====================================================================================
@@ -174,8 +167,7 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
-# Copy crds to helm chart directory
-helm.generate: helm.docs
+helm.generate: helm.docs ## Copy crds to helm chart directory
 	@cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/
 # Add helm if statement for controlling the install of CRDs
 	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
@@ -190,24 +182,24 @@ helm.generate: helm.docs
 # ====================================================================================
 # Documentation
 .PHONY: docs
-docs: generate
+docs: generate ## Generate docs
 	$(MAKE) -C ./hack/api-docs build
 
 .PHONY: serve-docs
-serve-docs:
+serve-docs: ## Serve docs
 	$(MAKE) -C ./hack/api-docs serve
 
 # ====================================================================================
 # Build Artifacts
 
-build.all: docker.build helm.build
+build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
 	@docker build . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
 	@$(OK) docker build
 
-docker.push:
+docker.push: ## Push the docker image to the registry
 	@$(INFO) docker push
 	@docker push $(IMAGE_REGISTRY):$(VERSION)
 	@$(OK) docker push
@@ -217,7 +209,7 @@ docker.push:
 RELEASE_TAG ?= main
 SOURCE_TAG ?= $(VERSION)
 
-docker.promote:
+docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
 	docker manifest inspect $(IMAGE_REGISTRY):$(SOURCE_TAG) > .tagmanifest
 	for digest in $$(jq -r '.manifests[].digest' < .tagmanifest); do \
@@ -232,5 +224,5 @@ docker.promote:
 # Help
 
 # only comments after make target name are shown as help text
-help: ## displays this help message
+help: ## Displays this help message
 	@echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s : | sort)"
