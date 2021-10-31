@@ -116,6 +116,9 @@ type SecretStoreStatusCondition struct {
 type SecretStoreStatus struct {
 	// +optional
 	Conditions []SecretStoreStatusCondition `json:"conditions"`
+	// FailureTime stores the time that this SecretStore failed.
+	// +optional
+	FailureTime *metav1.Time `json:"failureTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true

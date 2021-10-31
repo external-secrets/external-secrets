@@ -36,6 +36,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/reporter"
 )
 
 var (
@@ -144,7 +145,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 		client.AddHeader("X-Vault-Inconsistent", "forward-active-node")
 	}
 
-	if err := vStore.setAuth(ctx, client, cfg); err != nil {
+	if err := vStore.setAuth(ctx, client, cfg, store); err != nil {
 		return nil, err
 	}
 
@@ -358,7 +359,7 @@ func getCertFromConfigMap(v *client) ([]byte, error) {
 	return []byte(val), nil
 }
 
-func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config) error {
+func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config, store esv1alpha1.GenericStore) error {
 	tokenExists, err := setSecretKeyToken(ctx, v, client)
 	if tokenExists {
 		return err
@@ -369,7 +370,7 @@ func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config) 
 		return err
 	}
 
-	tokenExists, err = setKubernetesAuthToken(ctx, v, client)
+	tokenExists, err = setKubernetesAuthToken(ctx, v, client, store)
 	if tokenExists {
 		return err
 	}
@@ -418,10 +419,10 @@ func setSecretKeyToken(ctx context.Context, v *client, client Client) (bool, err
 	return false, nil
 }
 
-func setKubernetesAuthToken(ctx context.Context, v *client, client Client) (bool, error) {
+func setKubernetesAuthToken(ctx context.Context, v *client, client Client, store esv1alpha1.GenericStore) (bool, error) {
 	kubernetesAuth := v.store.Auth.Kubernetes
 	if kubernetesAuth != nil {
-		token, err := v.requestTokenWithKubernetesAuth(ctx, client, kubernetesAuth)
+		token, err := v.requestTokenWithKubernetesAuth(ctx, client, kubernetesAuth, store)
 		if err != nil {
 			return true, err
 		}
@@ -470,7 +471,7 @@ func setCertAuthToken(ctx context.Context, v *client, client Client, cfg *vault.
 	return false, nil
 }
 
-func (v *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
+func (v *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector, store esv1alpha1.GenericStore) (string, error) {
 	serviceAccount := &corev1.ServiceAccount{}
 	ref := types.NamespacedName{
 		Namespace: v.namespace,
@@ -482,6 +483,8 @@ func (v *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccou
 	}
 	err := v.kube.Get(ctx, ref, serviceAccount)
 	if err != nil {
+		message := "Could not get the service account referenced"
+		reporter.ReporterInstance.Failed(store, err, "VaultK8sServiceAccountNotFound", message)
 		return "", fmt.Errorf(errGetKubeSA, ref.Name, err)
 	}
 	if len(serviceAccount.Secrets) == 0 {
@@ -583,8 +586,8 @@ func kubeParameters(role, jwt string) map[string]string {
 	}
 }
 
-func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
-	jwtString, err := getJwtString(ctx, v, kubernetesAuth)
+func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth, store esv1alpha1.GenericStore) (string, error) {
+	jwtString, err := getJwtString(ctx, v, kubernetesAuth, store)
 	if err != nil {
 		return "", err
 	}
@@ -618,9 +621,9 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Clie
 	return token, nil
 }
 
-func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
+func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth, store esv1alpha1.GenericStore) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
-		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef, store)
 		if err != nil {
 			return "", err
 		}
