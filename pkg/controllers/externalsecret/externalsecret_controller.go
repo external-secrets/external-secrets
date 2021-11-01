@@ -244,9 +244,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
 	syncCallsTotal.With(syncCallsMetricLabels).Inc()
 	if currCond == nil || currCond.Status != conditionSynced.Status {
-		log.Info("reconciled secret")
+		log.Info("reconciled secret") // Log once if on success in any verbosity
 	} else {
-		log.V(1).Info("reconciled secret")
+		log.V(1).Info("reconciled secret") // Log all reconciliation cycles if higher verbosity applied
 	}
 
 	return ctrl.Result{
