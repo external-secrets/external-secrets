@@ -1879,6 +1879,47 @@ spec:
                       required:
                         - auth
                       type: object
+                    onepassword:
+                      description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against OnePassword Connect Server
+                          properties:
+                            secretRef:
+                              description: OnePasswordAuthSecretRef holds secret references for 1Password credentials.
+                              properties:
+                                connectTokenSecretRef:
+                                  description: The ConnectToken is used for authentication to a 1Password Connect Server.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - connectTokenSecretRef
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        connectHost:
+                          description: ConnectHost defines the OnePassword Connect Server to connect to
+                          type: string
+                        vaults:
+                          additionalProperties:
+                            type: integer
+                          description: Vaults defines which OnePassword vaults to search in which order
+                          type: object
+                      required:
+                        - auth
+                        - connectHost
+                        - vaults
+                      type: object
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
@@ -4472,6 +4513,47 @@ spec:
                           type: object
                       required:
                         - auth
+                      type: object
+                    onepassword:
+                      description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against OnePassword Connect Server
+                          properties:
+                            secretRef:
+                              description: OnePasswordAuthSecretRef holds secret references for 1Password credentials.
+                              properties:
+                                connectTokenSecretRef:
+                                  description: The ConnectToken is used for authentication to a 1Password Connect Server.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - connectTokenSecretRef
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        connectHost:
+                          description: ConnectHost defines the OnePassword Connect Server to connect to
+                          type: string
+                        vaults:
+                          additionalProperties:
+                            type: integer
+                          description: Vaults defines which OnePassword vaults to search in which order
+                          type: object
+                      required:
+                        - auth
+                        - connectHost
+                        - vaults
                       type: object
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider

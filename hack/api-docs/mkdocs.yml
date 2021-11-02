@@ -65,6 +65,8 @@ nav:
       - Gitlab Project Variables: provider-gitlab-project-variables.md
     - Oracle:
       - Oracle Vault: provider-oracle-vault.md
+    - 1Password:
+      - Secrets Automation: provider-1password-automation.md
     - Webhook: provider-webhook.md
     - Fake: provider-fake.md
     - Kubernetes: provider-kubernetes.md
