@@ -134,11 +134,11 @@ var _ = Describe("ExternalSecret controller", func() {
 		ExternalSecretName             = "test-es"
 		ExternalSecretStore            = "test-store"
 		ExternalSecretTargetSecretName = "test-secret"
-		FakeManager = "fake.manager"
-		expectedSecretVal = "SOMEVALUE was templated"
-		targetPropObj = "{{ .targetProperty | toString | upper }} was templated"
-		FooValue = "map-foo-value"
-		BarValue = "map-bar-value"
+		FakeManager                    = "fake.manager"
+		expectedSecretVal              = "SOMEVALUE was templated"
+		targetPropObj                  = "{{ .targetProperty | toString | upper }} was templated"
+		FooValue                       = "map-foo-value"
+		BarValue                       = "map-bar-value"
 	)
 
 	var ExternalSecretNamespace string
@@ -288,7 +288,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:     ExternalSecretTargetSecretName,
+				Name:      ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
 			},
 			Data: map[string][]byte{
