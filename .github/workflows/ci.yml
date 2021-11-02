@@ -11,7 +11,7 @@ on:
 env:
   # Common versions
   GO_VERSION: '1.16'
-  GOLANGCI_VERSION: 'v1.33'
+  GOLANGCI_VERSION: 'v1.42.1'
   # list of available versions: https://storage.googleapis.com/kubebuilder-tools
   # TODO: 1.21.2 does not shut down properly with controller-runtime 0.9.2
   KUBEBUILDER_TOOLS_VERSION: '1.20.2'
@@ -123,7 +123,7 @@ jobs:
       # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
         run: |
-          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.33.0
+          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.42.1
           export PATH=$PATH:./bin
           make check-diff
 
