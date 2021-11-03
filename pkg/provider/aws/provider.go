@@ -27,6 +27,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/reporter"
 )
 
 // Provider satisfies the provider interface.
@@ -44,11 +45,17 @@ func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore,
 
 func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (provider.SecretsClient, error) {
 	prov, err := util.GetAWSProvider(store)
+
 	if err != nil {
+		message := "Could not create AWS provider"
+		reporter.ReporterInstance.Failed(store, err, "AWSProviderCreationFailed", message)
 		return nil, err
 	}
 	sess, err := awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
 	if err != nil {
+		fmt.Println(err.Error())
+		message := "Could not create a new AWS session"
+		reporter.ReporterInstance.Failed(store, err, "AWSSessionCreationFailed", message)
 		return nil, fmt.Errorf(errUnableCreateSession, err)
 	}
 	switch prov.Service {
@@ -57,6 +64,8 @@ func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.C
 	case esv1alpha1.AWSServiceParameterStore:
 		return parameterstore.New(sess)
 	}
+	message := "Could not instantiate the requested AWS service"
+	reporter.ReporterInstance.Failed(store, err, "AWSServiceUnknown", message)
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
 

@@ -67,6 +67,8 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1alpha1.ExternalSecret
 		VersionStage: &ver,
 	})
 	if err != nil {
+		// message := "Failed to get the secret store"
+		// reporter.ReporterInstance.Failed(store, err, "AWSSM store not configured", message)
 		return nil, err
 	}
 	sm.cache[cacheKey] = secretOut
