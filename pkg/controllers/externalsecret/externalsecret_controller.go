@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -75,6 +76,7 @@ type Reconciler struct {
 	Scheme          *runtime.Scheme
 	ControllerClass string
 	RequeueInterval time.Duration
+	recorder        record.EventRecorder
 }
 
 // Reconcile implements the main reconciliation loop
@@ -88,6 +90,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	var externalSecret esv1alpha1.ExternalSecret
 
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
+
+	r.recorder.Event(&externalSecret, v1.EventTypeNormal, "Updated", "Updated ES")
+
 	if apierrors.IsNotFound(err) {
 		syncCallsTotal.With(syncCallsMetricLabels).Inc()
 		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretDeleted, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretDeleted, "Secret was deleted")
@@ -419,6 +424,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+	r.recorder = mgr.GetEventRecorderFor("ExternalSecret")
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1alpha1.ExternalSecret{}).
