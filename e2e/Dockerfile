@@ -1,8 +1,8 @@
 ARG GO_VERSION=1.16
 FROM golang:$GO_VERSION-buster as builder
 
-ENV KUBECTL_VERSION="v1.19.2"
-ENV HELM_VERSION="v3.3.4"
+ENV KUBECTL_VERSION="v1.21.2"
+ENV HELM_VERSION="v3.7.1"
 
 RUN go get -u github.com/onsi/ginkgo/ginkgo
 RUN wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
@@ -10,7 +10,7 @@ RUN wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_
     wget -q https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -O - | tar -xzO linux-amd64/helm > /usr/local/bin/helm && \
     chmod +x /usr/local/bin/helm
 
-FROM alpine:3.12
+FROM alpine:3.14.2
 RUN apk add -U --no-cache \
     ca-certificates \
     bash \
