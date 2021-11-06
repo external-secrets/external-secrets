@@ -57,7 +57,7 @@ require (
 	github.com/hashicorp/vault/api v1.0.5-0.20210224012239-b540be4b7ec4
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/lestrrat-go/jwx v1.2.1
-	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
 	github.com/oracle/oci-go-sdk/v45 v45.2.0
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
