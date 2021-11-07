@@ -35,6 +35,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
+| concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | extraArgs | object | `{}` |  |
 | extraEnv | list | `[]` |  |
