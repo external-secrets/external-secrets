@@ -13,7 +13,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 - [AWS Secrets Manager](https://external-secrets.io/provider-aws-secrets-manager/)
 - [AWS Parameter Store](https://external-secrets.io/provider-aws-parameter-store/)
-- [Akeyless Secrets Manager](https://www.akeyless.io/)
+- [Akeyless](https://www.akeyless.io/)
 - [Hashicorp Vault](https://www.vaultproject.io/)
 - [Google Cloud Secrets Manager](https://external-secrets.io/provider-google-secrets-manager/)
 - [Azure Key Vault](https://external-secrets.io/provider-azure-key-vault/)
@@ -21,7 +21,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 - [Yandex Lockbox](https://external-secrets.io/provider-yandex-lockbox/)
 - [Gitlab Project Variables](https://external-secrets.io/provider-gitlab-project-variables/)
 - [Alibaba Cloud KMS](https://www.alibabacloud.com/product/kms) (Docs still missing, PRs welcomed!)
-- [Oracle Vault]( https://external-secrets.io/provider-oracle-vault) 
+- [Oracle Vault]( https://external-secrets.io/provider-oracle-vault)
 
 ## Stability and Support Level
 
