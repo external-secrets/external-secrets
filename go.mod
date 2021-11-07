@@ -33,18 +33,22 @@ replace (
 )
 
 require (
-	cloud.google.com/go v0.65.0
+	cloud.google.com/go v0.81.0
 	github.com/Azure/azure-sdk-for-go v54.1.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.7
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
 	github.com/IBM/go-sdk-core/v5 v5.5.0
 	github.com/IBM/secrets-manager-go-sdk v1.0.23
+	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.2
+	github.com/akeylesslabs/akeyless-go/v2 v2.5.11
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1192
 	github.com/aws/aws-sdk-go v1.38.6
+	github.com/aws/aws-sdk-go-v2 v0.23.0
 	github.com/crossplane/crossplane-runtime v0.13.0
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/frankban/quicktest v1.10.0 // indirect
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/go-cmp v0.5.5
@@ -57,7 +61,7 @@ require (
 	github.com/hashicorp/vault/api v1.0.5-0.20210224012239-b540be4b7ec4
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/lestrrat-go/jwx v1.2.1
-	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
 	github.com/oracle/oci-go-sdk/v45 v45.2.0
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
@@ -73,11 +77,12 @@ require (
 	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect
-	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c
-	golang.org/x/tools v0.1.2-0.20210512205948-8287d5da45e4 // indirect
-	google.golang.org/api v0.30.0
-	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a
-	google.golang.org/grpc v1.31.0
+	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78
+	golang.org/x/sys v0.0.0-20211102061401-a2f17f7b995c // indirect
+	golang.org/x/tools v0.1.7 // indirect
+	google.golang.org/api v0.45.0
+	google.golang.org/genproto v0.0.0-20210413151531-c14fb6ef47c3
+	google.golang.org/grpc v1.37.0
 	honnef.co/go/tools v0.1.4 // indirect
 	k8s.io/api v0.21.3
 	k8s.io/apimachinery v0.21.3
