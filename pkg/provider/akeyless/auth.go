@@ -18,9 +18,10 @@ import (
 	"context"
 	"fmt"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 const (
@@ -32,8 +33,7 @@ const (
 	errMissingAKID                             = "missing AccessKeyID"
 )
 
-func (a *AkeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
-
+func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	prov, err := GetAKeylessProvider(a.store)
 	if err != nil {
 		return "", err

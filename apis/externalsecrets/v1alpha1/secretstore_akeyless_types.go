@@ -33,7 +33,7 @@ type AkeylessAuth struct {
 }
 
 // AkeylessAuthSecretRef
-//AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME
+//AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.
 type AkeylessAuthSecretRef struct {
 	// The SecretAccessID is used for authentication
 	AccessID        esmeta.SecretKeySelector `json:"accessID,omitempty"`

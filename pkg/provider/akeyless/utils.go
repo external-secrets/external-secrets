@@ -53,7 +53,6 @@ func GetAKeylessProvider(store esv1alpha1.GenericStore) (*esv1alpha1.AkeylessPro
 }
 
 func getV2Url(path string) string {
-
 	// add check if not v2
 	rebody := sendReq(path)
 	if strings.Contains(rebody, "unknown command") {
@@ -69,10 +68,8 @@ func getV2Url(path string) string {
 	}
 	if strings.HasSuffix(url.Host, "/v2") {
 		return path
-	} else {
-		url.Host = url.Host + "/v2"
 	}
-
+	url.Host += "/v2"
 	p := url.Scheme + "://" + url.Host
 	if url.Port() != "" {
 		p = p + ":" + url.Port()
@@ -83,6 +80,9 @@ func getV2Url(path string) string {
 
 func sendReq(url string) string {
 	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return ""
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{

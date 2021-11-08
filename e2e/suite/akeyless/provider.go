@@ -23,6 +23,11 @@ import (
 	"os"
 	"strings"
 
+	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
+	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
+	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
+	"github.com/akeylesslabs/akeyless-go/v2"
+
 	//nolint
 	. "github.com/onsi/ginkgo"
 
@@ -34,11 +39,6 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
-
-	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
-	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
-	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
-	"github.com/akeylesslabs/akeyless-go/v2"
 )
 
 type akeylessProvider struct {
@@ -46,7 +46,7 @@ type akeylessProvider struct {
 	accessType      string
 	accessTypeParam string
 	framework       *framework.Framework
-	restApiClient   *akeyless.V2ApiService
+	restAPIClient   *akeyless.V2ApiService
 }
 
 var apiErr akeyless.GenericOpenAPIError
@@ -61,7 +61,7 @@ func newAkeylessProvider(f *framework.Framework, accessID, accessType, accessTyp
 		framework:       f,
 	}
 
-	restApiClient := akeyless.NewAPIClient(&akeyless.Configuration{
+	restAPIClient := akeyless.NewAPIClient(&akeyless.Configuration{
 		Servers: []akeyless.ServerConfiguration{
 			{
 				URL: "https://api.akeyless.io",
@@ -69,7 +69,7 @@ func newAkeylessProvider(f *framework.Framework, accessID, accessType, accessTyp
 		},
 	}).V2Api
 
-	prov.restApiClient = restApiClient
+	prov.restAPIClient = restAPIClient
 
 	BeforeEach(prov.BeforeEach)
 	return prov
@@ -87,7 +87,7 @@ func (a *akeylessProvider) CreateSecret(key, val string) {
 		Token: &token,
 	}
 
-	_, _, err = a.restApiClient.CreateSecret(ctx).Body(gsvBody).Execute()
+	_, _, err = a.restAPIClient.CreateSecret(ctx).Body(gsvBody).Execute()
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -101,7 +101,7 @@ func (a *akeylessProvider) DeleteSecret(key string) {
 		Token: &token,
 	}
 
-	_, _, err = a.restApiClient.DeleteItem(ctx).Body(gsvBody).Execute()
+	_, _, err = a.restAPIClient.DeleteItem(ctx).Body(gsvBody).Execute()
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -155,7 +155,6 @@ func (a *akeylessProvider) BeforeEach() {
 }
 
 func (a *akeylessProvider) GetToken() (string, error) {
-
 	ctx := context.Background()
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = akeyless.PtrString(a.accessID)
@@ -165,48 +164,48 @@ func (a *akeylessProvider) GetToken() (string, error) {
 	} else if a.accessType == "k8s" {
 		jwtString, err := readK8SServiceAccountJWT()
 		if err != nil {
-			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %v", DefServiceAccountFile, err.Error())
+			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
 		}
 		K8SAuthConfigName := a.accessTypeParam
 		authBody.AccessType = akeyless.PtrString(a.accessType)
 		authBody.K8sServiceAccountToken = akeyless.PtrString(jwtString)
 		authBody.K8sAuthConfigName = akeyless.PtrString(K8SAuthConfigName)
 	} else {
-		cloudId, err := a.getCloudId(a.accessType, a.accessTypeParam)
+		cloudID, err := a.getCloudID(a.accessType, a.accessTypeParam)
 		if err != nil {
 			return "", fmt.Errorf("Require Cloud ID " + err.Error())
 		}
 		authBody.AccessType = akeyless.PtrString(a.accessType)
-		authBody.CloudId = akeyless.PtrString(cloudId)
+		authBody.CloudId = akeyless.PtrString(cloudID)
 	}
 
-	authOut, _, err := a.restApiClient.Auth(ctx).Body(*authBody).Execute()
+	authOut, _, err := a.restAPIClient.Auth(ctx).Body(*authBody).Execute()
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
 		}
-		return "", fmt.Errorf("authentication failed: %v", err)
+		return "", fmt.Errorf("authentication failed: %w", err)
 	}
 
 	token := authOut.GetToken()
 	return token, nil
 }
 
-func (a *akeylessProvider) getCloudId(provider string, accTypeParam string) (string, error) {
-	var cloudId string
+func (a *akeylessProvider) getCloudID(provider, accTypeParam string) (string, error) {
+	var cloudID string
 	var err error
 
 	switch provider {
 	case "azure_ad":
-		cloudId, err = azure_cloud_id.GetCloudId(accTypeParam)
+		cloudID, err = azure_cloud_id.GetCloudId(accTypeParam)
 	case "aws_iam":
-		cloudId, err = aws_cloud_id.GetCloudId()
+		cloudID, err = aws_cloud_id.GetCloudId()
 	case "gcp":
-		cloudId, err = gcp_cloud_id.GetCloudID(accTypeParam)
+		cloudID, err = gcp_cloud_id.GetCloudID(accTypeParam)
 	default:
-		return "", fmt.Errorf("Unable to determine provider: %s", provider)
+		return "", fmt.Errorf("unable to determine provider: %s", provider)
 	}
-	return cloudId, err
+	return cloudID, err
 }
 
 // readK8SServiceAccountJWT reads the JWT data for the Agent to submit to Akeyless Gateway.
@@ -225,5 +224,4 @@ func readK8SServiceAccountJWT() (string, error) {
 	a := strings.TrimSpace(string(contentBytes))
 
 	return base64.StdEncoding.EncodeToString([]byte(a)), nil
-	//return encoding_ex.Base64Encode([]byte(a)), nil
 }

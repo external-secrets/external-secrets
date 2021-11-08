@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/akeylesslabs/akeyless-go/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/akeylesslabs/akeyless-go/v2"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -30,7 +30,6 @@ import (
 )
 
 const (
-	defaultObjType = "secret"
 	defaultAPIUrl = "https://api.akeyless.io"
 )
 
@@ -38,20 +37,20 @@ const (
 type Provider struct{}
 
 // Akeyless satisfies the provider.SecretsClient interface.
-type AkeylessBase struct {
+type akeylessBase struct {
 	kube      client.Client
 	store     esv1alpha1.GenericStore
 	namespace string
 
-	akeylessGwApiURL string
-	RestApi          *akeyless.V2ApiService
+	akeylessGwAPIURL string
+	RestAPI          *akeyless.V2ApiService
 }
 
 type Akeyless struct {
-	Client AkeylessVaultInterface
+	Client akeylessVaultInterface
 }
 
-type AkeylessVaultInterface interface {
+type akeylessVaultInterface interface {
 	GetSecretByType(secretName, token string, version int32) (string, error)
 	TokenFromSecretRef(ctx context.Context) (string, error)
 }
@@ -67,8 +66,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore,
 	return newClient(ctx, store, kube, namespace)
 }
 
-func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
-	akl := &AkeylessBase{
+func newClient(_ context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+	akl := &akeylessBase{
 		kube:      kube,
 		store:     store,
 		namespace: namespace,
@@ -78,26 +77,25 @@ func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.C
 	if err != nil {
 		return nil, err
 	}
-	akeylessGwApiURL := defaultAPIUrl
-	if spec != nil && spec.AkeylessGWApiURL != nil && *spec.AkeylessGWApiURL != ""  {
-		akeylessGwApiURL = getV2Url(*spec.AkeylessGWApiURL)
+	akeylessGwAPIURL := defaultAPIUrl
+	if spec != nil && spec.AkeylessGWApiURL != nil && *spec.AkeylessGWApiURL != "" {
+		akeylessGwAPIURL = getV2Url(*spec.AkeylessGWApiURL)
 	}
-
 
 	if spec.Auth == nil {
 		return nil, fmt.Errorf("missing Auth in store config")
 	}
 
-	RestApiClient := akeyless.NewAPIClient(&akeyless.Configuration{
+	RestAPIClient := akeyless.NewAPIClient(&akeyless.Configuration{
 		Servers: []akeyless.ServerConfiguration{
 			{
-				URL: akeylessGwApiURL,
+				URL: akeylessGwAPIURL,
 			},
 		},
 	}).V2Api
 
-	akl.akeylessGwApiURL = akeylessGwApiURL
-	akl.RestApi = RestApiClient
+	akl.akeylessGwAPIURL = akeylessGwAPIURL
+	akl.RestAPI = RestAPIClient
 	return &Akeyless{Client: akl}, nil
 }
 
@@ -106,9 +104,8 @@ func (a *Akeyless) Close(ctx context.Context) error {
 }
 
 // Implements store.Client.GetSecret Interface.
-// Retrieves a secret with the secret name defined in ref.Name
+// Retrieves a secret with the secret name defined in ref.Name.
 func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-
 	if utils.IsNil(a.Client) {
 		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
 	}
@@ -134,7 +131,6 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretD
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
 func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-
 	if utils.IsNil(a.Client) {
 		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
 	}
