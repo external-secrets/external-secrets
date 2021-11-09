@@ -31,7 +31,11 @@ var _ = Describe("[alibaba] ", func() {
 	accessKeyID := os.Getenv("ACCESS_KEY_ID")
 	accessKeySecret := os.Getenv("ACCESS_KEY_SECRET")
 	regionID := os.Getenv("REGION_ID")
-	prov := newAlibabaProvider(f, accessKeyID, accessKeySecret, regionID)
+	prov := &alibabaProvider{}
+
+	if accessKeyID != "" && accessKeySecret != "" && regionID != "" {
+		prov = newAlibabaProvider(f, accessKeyID, accessKeySecret, regionID)
+	}
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
 		Entry(common.SimpleDataSync(f)),

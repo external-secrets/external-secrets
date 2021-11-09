@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -euo pipefail
 
 NC='\e[0m'
 BGREEN='\e[32m'
@@ -46,8 +46,8 @@ ginkgo_args=(
 kubectl apply -f /k8s/deploy/crds
 
 echo -e "${BGREEN}Running e2e test suite (FOCUS=${FOCUS})...${NC}"
-ginkgo "${ginkgo_args[@]}"               \
-  -focus="${FOCUS}"                      \
-  -skip="\[Serial\]|\[MemoryLeak\]"      \
-  -nodes="${E2E_NODES}"                  \
+ACK_GINKGO_RC=true ginkgo "${ginkgo_args[@]}" \
+  -focus="${FOCUS}"                           \
+  -skip="\[Serial\]|\[MemoryLeak\]"           \
+  -nodes="${E2E_NODES}"                       \
   /e2e.test

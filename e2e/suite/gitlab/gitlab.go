@@ -33,7 +33,12 @@ var _ = Describe("[gitlab] ", func() {
 	f := framework.New("esogitlab")
 	credentials := os.Getenv("GITLAB_TOKEN")
 	projectID := os.Getenv("GITLAB_PROJECT_ID")
-	prov := newGitlabProvider(f, credentials, projectID)
+
+	prov := &gitlabProvider{}
+
+	if credentials != "" && projectID != "" {
+		prov = newGitlabProvider(f, credentials, projectID)
+	}
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
 		Entry(common.SimpleDataSync(f)),
