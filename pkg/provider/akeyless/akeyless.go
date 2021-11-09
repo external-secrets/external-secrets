@@ -36,7 +36,7 @@ const (
 // Provider satisfies the provider interface.
 type Provider struct{}
 
-// Akeyless satisfies the provider.SecretsClient interface.
+// akeylessBase satisfies the provider.SecretsClient interface.
 type akeylessBase struct {
 	kube      client.Client
 	store     esv1alpha1.GenericStore
