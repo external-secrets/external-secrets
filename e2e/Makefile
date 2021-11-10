@@ -20,7 +20,7 @@ test: e2e-image ## Run e2e tests against current kube context
 		IMAGE_REGISTRY=local/external-secrets \
 		VERSION=$(IMG_TAG) \
 		ARCH=amd64 \
-		BUILD_ARGS="--build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+		BUILD_ARGS="${BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 	kind load docker-image --name="external-secrets" local/external-secrets:$(IMG_TAG)
 	kind load docker-image --name="external-secrets" $(IMG)
 	./run.sh
