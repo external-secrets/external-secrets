@@ -175,7 +175,7 @@ jobs:
 
           const { data: result } = await github.checks.update({
             ...context.repo,
-            check_run_id: check[0].id,
+            check_run_id: check.id,
             status: 'completed',
             conclusion: process.env.conclusion
           });
