@@ -28,7 +28,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	vault "github.com/hashicorp/vault/api"
 
 	// nolint
