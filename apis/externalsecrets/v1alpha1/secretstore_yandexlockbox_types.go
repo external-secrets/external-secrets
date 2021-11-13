@@ -24,6 +24,10 @@ type YandexLockboxAuth struct {
 	AuthorizedKey esmeta.SecretKeySelector `json:"authorizedKeySecretRef,omitempty"`
 }
 
+type YandexLockboxCAProvider struct {
+	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
+}
+
 // YandexLockboxProvider Configures a store to sync secrets using the Yandex Lockbox provider.
 type YandexLockboxProvider struct {
 	// Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
@@ -32,4 +36,8 @@ type YandexLockboxProvider struct {
 
 	// Auth defines the information necessary to authenticate against Yandex Lockbox
 	Auth YandexLockboxAuth `json:"auth"`
+
+	// The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
+	// +optional
+	CAProvider *YandexLockboxCAProvider `json:"caProvider,omitempty"`
 }

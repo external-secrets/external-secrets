@@ -23,7 +23,7 @@ import (
 
 // Creates Lockbox clients and Yandex.Cloud IAM tokens.
 type YandexCloudCreator interface {
-	CreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (LockboxClient, error)
+	CreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (LockboxClient, error)
 	CreateIamToken(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (*IamToken, error)
 	Now() time.Time
 }
