@@ -2,6 +2,8 @@
 
 <img src="assets/round_eso_logo.png" width="100">
 
+<!-- checking something, dont merge -->
+
 ----
 
 The External Secrets Operator reads information from a third party service
