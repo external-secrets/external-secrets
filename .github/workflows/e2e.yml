@@ -149,7 +149,7 @@ jobs:
         make test.e2e
 
     # Update check run called "integration-fork"
-    - uses: actions/github-script@v1
+    - uses: actions/github-script@v5
       id: update-check-run
       if: ${{ always() }}
       env:
