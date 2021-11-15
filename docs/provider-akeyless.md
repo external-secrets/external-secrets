@@ -5,7 +5,8 @@ External Secrets Operator integrates with [Akeyless API](https://docs.akeyless.i
 ### Authentication
 
 The API requires an access-id, access-type and access-Type-param.
-the supported auth-methods are their params:
+
+The supported auth-methods and their params are:
 
 | accessType  | accessTypeParam                                                                                                                                                                                                                      |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -13,7 +14,7 @@ the supported auth-methods are their params:
 | `k8s`         | The k8s configuration name |
 | `aws_iam` |   -                                                         |
 | `gcp` |      The gcp audience                                                      |
-| `azure_ad` |  azure object id                                                           |
+| `azure_ad` |  azure object id  (optional)                                                          |
 
 form more information about [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
@@ -50,17 +51,18 @@ To get a secret from Akeyless and secret it on the Kubernetes cluster, a `Kind=E
 
 #### Using DataFrom
 
-DataFrom can be used to get a variable as a JSON string and attempt to parse it.
+DataFrom can be used to get a secret as a JSON string and attempt to parse it.
 
 ```yaml
 {% include 'akeyless-external-secret-json.yaml' %}
 ```
 
 ### Getting the Kubernetes secret
-The operator will fetch the project variable and inject it as a `Kind=Secret`.
+The operator will fetch the secret and inject it as a `Kind=Secret`.
 ```
 kubectl get secret akeyless-secret-to-create -o jsonpath='{.data.secretKey}' | base64 -d
 ```
+
 ```
 kubectl get secret akeyless-secret-to-create-json -o jsonpath='{.data}'
 ```
