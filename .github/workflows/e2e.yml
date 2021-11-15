@@ -165,19 +165,19 @@ jobs:
             pull_number: process.env.number
           });
           const ref = pull.head.sha;
-
+          console.log("\n\nPR sha: " + ref)
           const { data: checks } = await github.checks.listForRef({
             ...context.repo,
             ref
           });
-
+          console.log("\n\nPR CHECKS: " + checks)
           const check = checks.check_runs.filter(c => c.name === process.env.job);
-
+          console.log("\n\nPR Filtered CHECK: " + check)
+          console.log(check)
           const { data: result } = await github.checks.update({
             ...context.repo,
-            check_run_id: check.id,
+            check_run_id: check[0].id,
             status: 'completed',
             conclusion: process.env.conclusion
           });
-
           return result;
