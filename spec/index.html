@@ -602,6 +602,18 @@
   
   
     <li class="md-nav__item">
+      <a href="../provider-akeyless/" class="md-nav__link">
+        Akeyless
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../provider-hashicorp-vault/" class="md-nav__link">
         HashiCorp Vault
       </a>
@@ -617,14 +629,14 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_6" type="checkbox" id="__nav_5_6" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_7" type="checkbox" id="__nav_5_7" >
       
-      <label class="md-nav__link" for="__nav_5_6">
+      <label class="md-nav__link" for="__nav_5_7">
         Yandex
         <span class="md-nav__icon md-icon"></span>
       </label>
       <nav class="md-nav" aria-label="Yandex" data-md-level="2">
-        <label class="md-nav__title" for="__nav_5_6">
+        <label class="md-nav__title" for="__nav_5_7">
           <span class="md-nav__icon md-icon"></span>
           Yandex
         </label>
@@ -656,14 +668,14 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_7" type="checkbox" id="__nav_5_7" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_8" type="checkbox" id="__nav_5_8" >
       
-      <label class="md-nav__link" for="__nav_5_7">
+      <label class="md-nav__link" for="__nav_5_8">
         Gitlab
         <span class="md-nav__icon md-icon"></span>
       </label>
       <nav class="md-nav" aria-label="Gitlab" data-md-level="2">
-        <label class="md-nav__title" for="__nav_5_7">
+        <label class="md-nav__title" for="__nav_5_8">
           <span class="md-nav__icon md-icon"></span>
           Gitlab
         </label>
@@ -695,14 +707,14 @@
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_8" type="checkbox" id="__nav_5_8" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_9" type="checkbox" id="__nav_5_9" >
       
-      <label class="md-nav__link" for="__nav_5_8">
+      <label class="md-nav__link" for="__nav_5_9">
         Oracle
         <span class="md-nav__icon md-icon"></span>
       </label>
       <nav class="md-nav" aria-label="Oracle" data-md-level="2">
-        <label class="md-nav__title" for="__nav_5_8">
+        <label class="md-nav__title" for="__nav_5_9">
           <span class="md-nav__icon md-icon"></span>
           Oracle
         </label>
@@ -1114,6 +1126,130 @@ see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/syste
 see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html">https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html</a></p>
 </td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AkeylessAuth">AkeylessAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AkeylessProvider">AkeylessProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AkeylessAuthSecretRef">
+AkeylessAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AkeylessAuthSecretRef">AkeylessAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AkeylessAuth">AkeylessAuth</a>)
+</p>
+<p>
+<p>AkeylessAuthSecretRef
+AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessID</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The SecretAccessID is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessType</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessTypeParam</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AkeylessProvider">AkeylessProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>AkeylessProvider Configures an store to sync secrets using Akeyless KV.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>akeylessGWApiURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Akeyless GW API Url from which the secrets to be fetched from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authSecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AkeylessAuth">
+AkeylessAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the operator authenticates with Akeyless.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.AlibabaAuth">AlibabaAuth
 </h3>
@@ -2788,6 +2924,20 @@ AzureKVProvider
 <td>
 <em>(Optional)</em>
 <p>AzureKV configures this store to sync secrets using Azure Key Vault provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>akeyless</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AkeylessProvider">
+AkeylessProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Akeyless configures this store to sync secrets using Akeyless Vault provider</p>
 </td>
 </tr>
 <tr>

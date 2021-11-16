@@ -14,7 +14,7 @@
     
     
       
-        <title>Common K8S Secret Types - External Secrets Operator</title>
+        <title>Akeyless - External Secrets Operator</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#a-few-common-k8s-secret-types-examples" class="md-skip">
+        <a href="#akeyless-vault" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Common K8S Secret Types
+              Akeyless
             
           </span>
         </div>
@@ -302,14 +302,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
       
       <label class="md-nav__link" for="__nav_4">
         Guides
@@ -373,72 +371,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Common K8S Secret Types
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../guides-common-k8s-secret-types/" class="md-nav__link">
         Common K8S Secret Types
       </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#dockerconfigjson-example" class="md-nav__link">
-    Dockerconfigjson example
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tls-cert-example" class="md-nav__link">
-    TLS Cert example
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ssh-auth-example" class="md-nav__link">
-    SSH Auth example
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#more-examples" class="md-nav__link">
-    More examples
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -479,12 +416,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
       
       <label class="md-nav__link" for="__nav_5">
         Provider
@@ -668,11 +607,101 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../provider-akeyless/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Akeyless
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Akeyless
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#akeyless-vault" class="md-nav__link">
+    Akeyless Vault
+  </a>
+  
+    <nav class="md-nav" aria-label="Akeyless Vault">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#akeless-credentials-secret" class="md-nav__link">
+    Akeless credentials secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-secret-store" class="md-nav__link">
+    Update secret store
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-external-secret" class="md-nav__link">
+    Creating external secret
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating external secret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-datafrom" class="md-nav__link">
+    Using DataFrom
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-kubernetes-secret" class="md-nav__link">
+    Getting the Kubernetes secret
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -951,8 +980,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -961,30 +988,63 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#dockerconfigjson-example" class="md-nav__link">
-    Dockerconfigjson example
+  <a href="#akeyless-vault" class="md-nav__link">
+    Akeyless Vault
+  </a>
+  
+    <nav class="md-nav" aria-label="Akeyless Vault">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#tls-cert-example" class="md-nav__link">
-    TLS Cert example
+        
+          <li class="md-nav__item">
+  <a href="#akeless-credentials-secret" class="md-nav__link">
+    Akeless credentials secret
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#ssh-auth-example" class="md-nav__link">
-    SSH Auth example
+        
+          <li class="md-nav__item">
+  <a href="#update-secret-store" class="md-nav__link">
+    Update secret store
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#more-examples" class="md-nav__link">
-    More examples
+        
+          <li class="md-nav__item">
+  <a href="#creating-external-secret" class="md-nav__link">
+    Creating external secret
   </a>
+  
+    <nav class="md-nav" aria-label="Creating external secret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-datafrom" class="md-nav__link">
+    Using DataFrom
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-kubernetes-secret" class="md-nav__link">
+    Getting the Kubernetes secret
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1000,122 +1060,137 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-common-k8s-secret-types.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-akeyless.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                <h1 id="a-few-common-k8s-secret-types-examples">A few common k8s secret types examples</h1>
-<p>Here we will give some examples of how to work with a few common k8s secret types. We will give this examples here with the gcp provider (should work with other providers in the same way). Please also check the guides on <a href="../guides-templating/">Advanced Templating</a> to understand the details.</p>
-<p>Please follow the authentication and SecretStore steps of the <a href="../provider-google-secrets-manager/">Google Cloud Secrets Manager guide</a> to setup access to your google cloud account first.</p>
-<h2 id="dockerconfigjson-example">Dockerconfigjson example</h2>
-<p>First create a secret in Google Cloud Secrets Manager containing your docker config:</p>
-<p><img alt="iam" src="../pictures/screenshot_docker_config_json_example.png" /></p>
-<p>Let's call this secret docker-config-example on Google Cloud.</p>
-<p>Then create a ExternalSecret resource taking advantage of templating to populate the generated secret:</p>
+                  <h1>Akeyless</h1>
+                
+                <h2 id="akeyless-vault">Akeyless Vault</h2>
+<p>External Secrets Operator integrates with <a href="https://docs.akeyless.io/reference#v2">Akeyless API</a>.</p>
+<h3 id="authentication">Authentication</h3>
+<p>The API requires an access-id, access-type and access-Type-param.</p>
+<p>The supported auth-methods and their params are:</p>
+<table>
+<thead>
+<tr>
+<th>accessType</th>
+<th>accessTypeParam</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>api_key</code></td>
+<td>The access key.</td>
+</tr>
+<tr>
+<td><code>k8s</code></td>
+<td>The k8s configuration name</td>
+</tr>
+<tr>
+<td><code>aws_iam</code></td>
+<td>-</td>
+</tr>
+<tr>
+<td><code>gcp</code></td>
+<td>The gcp audience</td>
+</tr>
+<tr>
+<td><code>azure_ad</code></td>
+<td>azure object id  (optional)</td>
+</tr>
+</tbody>
+</table>
+<p>form more information about <a href="https://docs.akeyless.io/docs/access-and-authentication-methods">Akeyless Authentication Methods</a></p>
+<h3 id="akeless-credentials-secret">Akeless credentials secret</h3>
+<p>Create a secret containing your credentials:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span>
+<span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+  <span class="nt">accessId</span><span class="p">:</span> <span class="s">&quot;p-XXXX&quot;</span>
+  <span class="nt">accessType</span><span class="p">:</span>  <span class="c1"># k8s/aws_iam/gcp/azure_ad/api_key</span>
+  <span class="nt">accessTypeParam</span><span class="p">:</span>  <span class="c1"># can be one of the following: k8s-conf-name/gcp-audience/azure-obj-id/access-key</span>
+</code></pre></div>
+
+<h3 id="update-secret-store">Update secret store</h3>
+<p>Be sure the <code>akeyless</code> provider is listed in the <code>Kind=SecretStore</code> and the <code>akeylessGWApiURL</code> is set (def: "https://api.akeless.io".</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">akeyless</span><span class="p">:</span>
+      <span class="c1"># URL of your akeyless API</span>
+      <span class="nt">akeylessGWApiURL</span><span class="p">:</span> <span class="s">&quot;https://api.akeyless.io&quot;</span>
+      <span class="nt">authSecretRef</span><span class="p">:</span>
+        <span class="nt">secretRef</span><span class="p">:</span>
+          <span class="nt">accessID</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">accessId</span>
+          <span class="nt">accessType</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">accessType</span>
+          <span class="nt">accessTypeParam</span><span class="p">:</span>
+            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">accessTypeParam</span>
+</code></pre></div>
+
+<h3 id="creating-external-secret">Creating external secret</h3>
+<p>To get a secret from Akeyless and secret it on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dk-cfg-example</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeyless-external-secret-example</span>
 <span class="nt">spec</span><span class="p">:</span>
   <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+
   <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
     <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span> <span class="c1"># Must match SecretStore on the cluster</span>
+
   <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span>
-      <span class="nt">data</span><span class="p">:</span>
-        <span class="nt">.dockerconfigjson</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">}}&quot;</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeyless-secret-to-create</span> <span class="c1"># Name for the secret to be created on the cluster</span>
     <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
+
   <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysecret</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">docker-config-example</span>
+    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretKey</span> <span class="c1"># Key given to the secret to be created on the cluster</span>
+      <span class="nt">remoteRef</span><span class="p">:</span>
+        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-name</span> <span class="c1"># Full path of the secret on Akeyless</span>
 </code></pre></div>
 
-<p>This will generate a valid dockerconfigjson secret for you to use!</p>
-<p>You can get the final value with:</p>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data\.dockerconfigjson}&quot;</span> <span class="p">|</span> base64 -d
-</code></pre></div>
-
-<h2 id="tls-cert-example">TLS Cert example</h2>
-<p>We are assuming here that you already have valid certificates, maybe generated with letsencrypt or any other CA. So to simplify you can use openssl to generate a single secret pkcs12 cert based on your cert.pem and privkey.pen files.</p>
-<div class="highlight"><pre><span></span><code>openssl pkcs12 -export -out certificate.p12 -inkey privkey.pem -in cert.pem
-</code></pre></div>
-
-<p>With a certificate.p12 you can upload it to Google Cloud Secrets Manager:</p>
-<p><img alt="p12" src="../pictures/screenshot_ssl_certificate_p12_example.png" /></p>
-<p>And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type tls with pem values.</p>
+<h4 id="using-datafrom">Using DataFrom</h4>
+<p>DataFrom can be used to get a secret as a JSON string and attempt to parse it.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">template-tls-example</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeyless-external-secret-example-json</span>
 <span class="nt">spec</span><span class="p">:</span>
   <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+
   <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
     <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span> <span class="c1"># Must match SecretStore on the cluster</span>
+
   <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-    <span class="c1"># this is how the Kind=Secret will look like</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kubernetes.io/tls</span>
-      <span class="nt">data</span><span class="p">:</span>
-        <span class="nt">tls.crt</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12cert</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemCertificate</span><span class="nv"> </span><span class="s">}}&quot;</span>
-        <span class="nt">tls.key</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12key</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemPrivateKey</span><span class="nv"> </span><span class="s">}}&quot;</span>
-
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="c1"># this is a pkcs12 archive that contains</span>
-  <span class="c1"># a cert and a private key</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysecret</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ssl-certificate-p12-example</span>
-</code></pre></div>
-
-<p>You can get their values with:</p>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.tls\.crt}&quot;</span> <span class="p">|</span> base64 -d
-kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.tls\.key}&quot;</span> <span class="p">|</span> base64 -d
-</code></pre></div>
-
-<h2 id="ssh-auth-example">SSH Auth example</h2>
-<p>Add the ssh privkey to a new Google Cloud Secrets Manager secret:</p>
-<p><img alt="ssh" src="../pictures/screenshot_ssh_privkey_example.png" /></p>
-<p>And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type ssh-auth with the privatekey value.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ssh-auth-example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kubernetes.io/ssh-auth</span>
-      <span class="nt">data</span><span class="p">:</span>
-        <span class="nt">ssh-privatekey</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">}}&quot;</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeyless-secret-to-create-json</span> <span class="c1"># Name for the secret to be created on the cluster</span>
     <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysecret</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ssh-priv-key-example</span>
+
+  <span class="c1"># for json formatted secrets: each key in the json will be used as the secret key in the SECRET k8s target object</span>
+  <span class="nt">dataFrom</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-name</span> <span class="c1"># Full path of the secret on Akeyless</span>
 </code></pre></div>
 
-<p>You can get the privkey value with:</p>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.ssh-privatekey}&quot;</span> <span class="p">|</span> base64 -d
+<h3 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h3>
+<p>The operator will fetch the secret and inject it as a <code>Kind=Secret</code>.
+<div class="highlight"><pre><span></span><code>kubectl get secret akeyless-secret-to-create -o jsonpath=&#39;{.data.secretKey}&#39; | base64 -d
+</code></pre></div></p>
+<div class="highlight"><pre><span></span><code>kubectl get secret akeyless-secret-to-create-json -o jsonpath=&#39;{.data}&#39;
 </code></pre></div>
-
-<h2 id="more-examples">More examples</h2>
-<div class="admonition note">
-<p class="admonition-title">We need more examples here</p>
-<p>Feel free to contribute with our docs and add more examples here!</p>
-</div>
                 
               
               
@@ -1135,7 +1210,7 @@ kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../guides-all-keys-one-secret/" class="md-footer__link md-footer__link--prev" aria-label="Previous: All keys, One secret" rel="prev">
+        <a href="../provider-ibm-secrets-manager/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Secrets Manager" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1144,20 +1219,20 @@ kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</
               <span class="md-footer__direction">
                 Previous
               </span>
-              All keys, One secret
+              Secrets Manager
             </div>
           </div>
         </a>
       
       
         
-        <a href="../guides-multi-tenancy/" class="md-footer__link md-footer__link--next" aria-label="Next: Multi Tenancy" rel="next">
+        <a href="../provider-hashicorp-vault/" class="md-footer__link md-footer__link--next" aria-label="Next: HashiCorp Vault" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Multi Tenancy
+              HashiCorp Vault
             </div>
           </div>
           <div class="md-footer__button md-icon">
