@@ -219,14 +219,13 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 
 	byteMap := make(map[string][]byte, len(secretData))
 	for k, v := range secretData {
-		if v == nil {
-			continue
-		}
 		switch t := v.(type) {
 		case string:
 			byteMap[k] = []byte(t)
 		case []byte:
 			byteMap[k] = t
+		case nil:
+			byteMap[k] = []byte(nil)
 		default:
 			return nil, errors.New(errSecretFormat)
 		}
