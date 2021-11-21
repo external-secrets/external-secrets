@@ -224,6 +224,8 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			byteMap[k] = []byte(t)
 		case []byte:
 			byteMap[k] = t
+		case nil:
+			byteMap[k] = []byte(nil)
 		default:
 			return nil, errors.New(errSecretFormat)
 		}
