@@ -150,6 +150,11 @@ type ExternalSecretSpec struct {
 	// If multiple entries are specified, the Secret keys are merged in the specified order
 	// +optional
 	DataFrom []ExternalSecretDataRemoteRef `json:"dataFrom,omitempty"`
+
+	// DataAll is used to fetch ALL data in the defined Provider
+	// If multiple entries are specified, the Secret keys are merged in the specified order
+	// +optional
+	DataAll []ExternalSecretDataRemoteRef `json:"dataAll,omitempty"`
 }
 
 type ExternalSecretConditionType string

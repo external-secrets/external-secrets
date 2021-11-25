@@ -70,6 +70,13 @@ func (v *Client) WithGetSecret(secData []byte, err error) *Client {
 	return v
 }
 
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (v *Client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return map[string][]byte{}, nil
+}
+
 // GetSecretMap imeplements the provider.Provider interface.
 func (v *Client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return v.GetSecretMapFn(ctx, ref)

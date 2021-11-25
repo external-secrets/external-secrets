@@ -123,6 +123,13 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 	return secretData, nil
 }
 
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return map[string][]byte{}, nil
+}
+
 func (sm *SecretsManager) Close(ctx context.Context) error {
 	return nil
 }

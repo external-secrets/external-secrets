@@ -396,6 +396,15 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 		providerData = utils.MergeByteMap(providerData, secretMap)
 	}
 
+	for _, allSecretsRef := range externalSecret.Spec.DataAll {
+		secretAll, err := providerClient.GetAllSecrets(ctx, allSecretsRef)
+		if err != nil {
+			return nil, fmt.Errorf(errGetSecretKey, allSecretsRef.Key, externalSecret.Name, err)
+		}
+
+		providerData = utils.MergeByteMap(providerData, secretAll)
+	}
+
 	for _, secretRef := range externalSecret.Spec.Data {
 		secretData, err := providerClient.GetSecret(ctx, secretRef.RemoteRef)
 		if err != nil {

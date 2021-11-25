@@ -162,6 +162,13 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 	return v.readSecret(ctx, ref.Key, ref.Version)
 }
 
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (v *client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return map[string][]byte{}, nil
+}
+
 func (v *client) Close(ctx context.Context) error {
 	// Revoke the token if we have one set and it wasn't sourced from a TokenSecretRef
 	if v.client.Token() != "" && v.store.Auth.TokenSecretRef == nil {

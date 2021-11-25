@@ -227,6 +227,13 @@ func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.Ext
 	return getValueAsBinary(entry)
 }
 
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (c *lockboxSecretsClient) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return map[string][]byte{}, nil
+}
+
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (c *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Key, ref.Version)

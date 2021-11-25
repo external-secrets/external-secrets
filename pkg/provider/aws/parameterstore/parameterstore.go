@@ -71,6 +71,13 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1alpha1.External
 	return []byte(val.String()), nil
 }
 
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return map[string][]byte{}, nil
+}
+
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	log.Info("fetching secret map", "key", ref.Key)

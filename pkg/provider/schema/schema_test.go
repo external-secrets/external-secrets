@@ -43,6 +43,13 @@ func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	return map[string][]byte{}, nil
 }
 
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (p *PP) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return map[string][]byte{}, nil
+}
+
 func (p *PP) Close(ctx context.Context) error {
 	return nil
 }
