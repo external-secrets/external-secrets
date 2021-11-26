@@ -39,7 +39,14 @@ func MergeStringMap(dest, src map[string]string) {
 
 // IsNil checks if an Interface is nil.
 func IsNil(i interface{}) bool {
-	return i == nil || reflect.ValueOf(i).IsNil()
+	if i == nil {
+		return true
+	}
+	value := reflect.ValueOf(i)
+	if value.Type().Kind() == reflect.Ptr {
+		return value.IsNil()
+	}
+	return false
 }
 
 // ObjectHash calculates md5 sum of the data contained in the secret.
