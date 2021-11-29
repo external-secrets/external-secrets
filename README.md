@@ -29,10 +29,10 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 | Provider                                                                 | Stability |                                        Contact |
 | ------------------------------------------------------------------------ | :-------: | ---------------------------------------------: |
-| [AWS SM](https://external-secrets.io/provider-aws-secrets-manager/)      |   alpha   | [ESO Org](https://github.com/external-secrets) |
-| [AWS PS](https://external-secrets.io/provider-aws-parameter-store/)      |   alpha   | [ESO Org](https://github.com/external-secrets) |
+| [AWS SM](https://external-secrets.io/provider-aws-secrets-manager/)      |   beta   | [ESO Org](https://github.com/external-secrets) |
+| [AWS PS](https://external-secrets.io/provider-aws-parameter-store/)      |   beta   | [ESO Org](https://github.com/external-secrets) |
 | [Hashicorp Vault](https://external-secrets.io/provider-hashicorp-vault/) |   stable   | [ESO Org](https://github.com/external-secrets) |
-| [GCP SM](https://external-secrets.io/provider-google-secrets-manager/)   |   alpha   | [ESO Org](https://github.com/external-secrets) |
+| [GCP SM](https://external-secrets.io/provider-google-secrets-manager/)   |   beta   | [ESO Org](https://github.com/external-secrets) |
 
 ### Community maintained:
 
