@@ -50,14 +50,14 @@ jobs:
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.build-cache }}
         key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-build-unit-tests-
 
     - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.mod-cache }}
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -113,14 +113,14 @@ jobs:
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.build-cache }}
         key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-build-unit-tests-
 
     - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.mod-cache }}
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
