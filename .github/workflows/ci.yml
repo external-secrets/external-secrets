@@ -61,14 +61,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-lint-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-lint-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -107,14 +107,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-check-diff-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-check-diff-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -151,14 +151,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-unit-tests-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -171,7 +171,7 @@ jobs:
           sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz
 
       - name: Cache envtest binaries
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: /usr/local/kubebuilder
           key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_TOOLS_VERSION}}
@@ -218,14 +218,14 @@ jobs:
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
       - name: Cache the Go Build Cache
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ${{ steps.go.outputs.build-cache }}
           key: ${{ runner.os }}-build-publish-artifacts-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-build-publish-artifacts-
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v2.1.6
+        uses: actions/cache@v2.1.7
         with:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
