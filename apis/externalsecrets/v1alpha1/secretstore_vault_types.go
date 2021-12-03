@@ -21,7 +21,7 @@ import (
 type VaultParser string
 
 const (
-	VaultParserKv     VaultParser = "kv"
+	VaultParserKv     VaultParser = "key-value"
 	VaultParserString VaultParser = "string"
 )
 
@@ -80,10 +80,10 @@ type VaultProvider struct {
 	Version VaultKVStoreVersion `json:"version"`
 
 	// Parser defines how backend data is interpreted by engine.
-	// Parser defaults to "vk".
+	// Parser defaults to "key-value".
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum="kv";"string"
-	// +kubebuilder:default:="kv"
+	// +kubebuilder:validation:Enum="key-value";"string"
+	// +kubebuilder:default:="key-value"
 	Parser VaultParser `json:"parser,omitempty"`
 
 	// Name of the vault namespace. Namespaces is a set of features within Vault Enterprise that allows
