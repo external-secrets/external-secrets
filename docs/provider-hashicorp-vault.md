@@ -177,3 +177,32 @@ spec:
         config.json: |
           {{ .data | toString }}
 ```
+
+Example for parsing json structure/remapping
+
+Path aaa/bbb properties:
+
+```json
+{"auth":{"key":"123","secret":"abc"}}
+```
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: vault-backend
+spec:
+  dataFrom:
+    - key: aaa/bbb
+  refreshInterval: 600s
+  secretStoreRef:
+    kind: SecretStore
+    name: vault-backend
+  target:
+    creationPolicy: Owner
+    name: test-1
+    template:
+      data:
+        config.cfg: |
+          key = {{ $a := .data | fromJSON }}{{ $a.auth.key }}
+```
