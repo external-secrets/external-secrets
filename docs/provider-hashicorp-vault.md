@@ -135,3 +135,21 @@ or `Kind=ClusterSecretStore` resource.
 ```yaml
 {% include 'vault-jwt-store.yaml' %}
 ```
+
+#### Nested data structures
+
+If there is need to store complex values in vault you can use string parser and post process string with template engine if needed
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      path: "secret"
+      version: "v2"
+      parser: "string"
+```

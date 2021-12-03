@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -54,6 +55,8 @@ const (
 	errDataField      = "failed to find data field"
 	errJSONUnmarshall = "failed to unmarshall JSON"
 	errSecretFormat   = "secret data not in expected format"
+	errSecretParserV2 = "secret data failed to be converted to json"
+	errUnknownParser  = "unknown parser selected"
 	errVaultToken     = "cannot parse Vault authentication token: %w"
 	errVaultReqParams = "cannot set Vault request parameters: %w"
 	errVaultRequest   = "error from Vault request: %w"
@@ -217,21 +220,32 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		}
 	}
 
-	byteMap := make(map[string][]byte, len(secretData))
-	for k, v := range secretData {
-		switch t := v.(type) {
-		case string:
-			byteMap[k] = []byte(t)
-		case []byte:
-			byteMap[k] = t
-		case nil:
-			byteMap[k] = []byte(nil)
-		default:
-			return nil, errors.New(errSecretFormat)
+	switch v.store.Parser {
+	case esv1alpha1.VaultParserString:
+		byteMap := make(map[string][]byte, 1)
+		byteMap["data"], err = json.Marshal(secretData)
+		if err != nil {
+			return nil, errors.New(errSecretParserV2)
 		}
+		return byteMap, nil
+	case esv1alpha1.VaultParserKv:
+		byteMap := make(map[string][]byte, len(secretData))
+		for k, v := range secretData {
+			switch t := v.(type) {
+			case string:
+				byteMap[k] = []byte(t)
+			case []byte:
+				byteMap[k] = t
+			case nil:
+				byteMap[k] = []byte(nil)
+			default:
+				return nil, errors.New(errSecretFormat)
+			}
+		}
+		return byteMap, nil
+	default:
+		return nil, errors.New(errUnknownParser)
 	}
-
-	return byteMap, nil
 }
 
 func (v *client) newConfig() (*vault.Config, error) {

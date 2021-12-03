@@ -18,6 +18,13 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+type VaultParser string
+
+const (
+	VaultParserKv     VaultParser = "kv"
+	VaultParserString VaultParser = "string"
+)
+
 type VaultKVStoreVersion string
 
 const (
@@ -71,6 +78,13 @@ type VaultProvider struct {
 	// +kubebuilder:validation:Enum="v1";"v2"
 	// +kubebuilder:default:="v2"
 	Version VaultKVStoreVersion `json:"version"`
+
+	// Parser defines how backend data is interpreted by engine.
+	// Parser defaults to "vk".
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum="kv";"string"
+	// +kubebuilder:default:="kv"
+	Parser VaultParser `json:"parser,omitempty"`
 
 	// Name of the vault namespace. Namespaces is a set of features within Vault Enterprise that allows
 	// Vault environments to support Secure Multi-tenancy. e.g: "ns1".

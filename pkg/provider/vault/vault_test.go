@@ -72,6 +72,12 @@ func makeValidSecretStore() *esv1alpha1.SecretStore {
 	return makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2)
 }
 
+func makeValidSecretStoreStringParser() *esv1alpha1.SecretStore {
+	var store = makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2)
+	store.Spec.Provider.Vault.Parser = esv1alpha1.VaultParserString
+	return store
+}
+
 func makeValidSecretStoreWithCerts() *esv1alpha1.SecretStore {
 	return &esv1alpha1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -511,6 +517,17 @@ func TestGetSecretMap(t *testing.T) {
 		"access_secret": "access_secret",
 		"token":         nil,
 	}
+	complexVal := map[string]interface{}{
+		"access": map[string]interface{}{
+			"id":      "1234",
+			"secret":  "avoft5",
+			"scope":   []string{"1", "2"},
+			"enabled": false,
+			"other":   secretWithNilVal,
+			"setup":   nil,
+		},
+		"name": "",
+	}
 
 	type args struct {
 		store   *esv1alpha1.VaultProvider
@@ -554,6 +571,44 @@ func TestGetSecretMap(t *testing.T) {
 						newVaultResponseWithData(
 							map[string]interface{}{
 								"data": secret,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"ReadSecretComplexParserKV": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": complexVal,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errSecretFormat),
+			},
+		},
+		"ReadSecretComplexParserJson": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreStringParser().Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": complexVal,
 							},
 						), nil,
 					),
