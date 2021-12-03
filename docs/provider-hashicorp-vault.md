@@ -153,3 +153,27 @@ spec:
       version: "v2"
       parser: "string"
 ```
+
+And then you can access contents using .data
+This example just dumps all aaa/bbb properties as json file
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: vault-backend
+spec:
+  dataFrom:
+    - key: aaa/bbb
+  refreshInterval: 600s
+  secretStoreRef:
+    kind: SecretStore
+    name: vault-backend
+  target:
+    creationPolicy: Owner
+    name: test-1
+    template:
+      data:
+        config.json: |
+          {{ .data | toString }}
+```
