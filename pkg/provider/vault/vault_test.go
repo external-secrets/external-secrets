@@ -52,6 +52,7 @@ func makeValidSecretStoreWithVersion(v esv1alpha1.VaultKVStoreVersion) *esv1alph
 				Vault: &esv1alpha1.VaultProvider{
 					Server:  "vault.example.com",
 					Path:    "secret",
+					Parser:  esv1alpha1.VaultParserKv,
 					Version: v,
 					Auth: esv1alpha1.VaultAuth{
 						Kubernetes: &esv1alpha1.VaultKubernetesAuth{
@@ -89,6 +90,7 @@ func makeValidSecretStoreWithCerts() *esv1alpha1.SecretStore {
 				Vault: &esv1alpha1.VaultProvider{
 					Server:  "vault.example.com",
 					Path:    "secret",
+					Parser:  esv1alpha1.VaultParserKv,
 					Version: esv1alpha1.VaultKVStoreV2,
 					Auth: esv1alpha1.VaultAuth{
 						Cert: &esv1alpha1.VaultCertAuth{
