@@ -1,4 +1,4 @@
-FROM alpine:3.15.0
+FROM gcr.io/distroless/static
 ARG TARGETOS
 ARG TARGETARCH
 COPY bin/external-secrets-${TARGETOS}-${TARGETARCH} /bin/external-secrets

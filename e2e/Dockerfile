@@ -10,7 +10,7 @@ RUN wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_
     wget -q https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -O - | tar -xzO linux-amd64/helm > /usr/local/bin/helm && \
     chmod +x /usr/local/bin/helm
 
-FROM alpine:3.14.2
+FROM alpine:3.15.0
 RUN apk add -U --no-cache \
     ca-certificates \
     bash \
