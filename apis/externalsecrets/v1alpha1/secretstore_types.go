@@ -42,6 +42,10 @@ type SecretStoreProvider struct {
 	// +optional
 	AzureKV *AzureKVProvider `json:"azurekv,omitempty"`
 
+	// Akeyless configures this store to sync secrets using Akeyless Vault provider
+	// +optional
+	Akeyless *AkeylessProvider `json:"akeyless,omitempty"`
+
 	// Vault configures this store to sync secrets using Hashi provider
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
