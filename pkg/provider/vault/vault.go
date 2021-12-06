@@ -76,6 +76,8 @@ const (
 	errVaultRevokeToken = "error while revoking token: %w"
 
 	errUnknownCAProvider = "unknown caProvider type given"
+
+	stringParserDataPath = "data"
 )
 
 type Client interface {
@@ -154,6 +156,9 @@ func (v *client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	if err != nil {
 		return nil, err
 	}
+	if ref.Property == "" && v.store.Parser == esv1alpha1.VaultParserKv {
+		return data[stringParserDataPath], nil
+	}
 	value, exists := data[ref.Property]
 	if !exists {
 		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
@@ -223,7 +228,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 	switch v.store.Parser {
 	case esv1alpha1.VaultParserString:
 		byteMap := make(map[string][]byte, 1)
-		byteMap["data"], err = json.Marshal(secretData)
+		byteMap[stringParserDataPath], err = json.Marshal(secretData)
 		if err != nil {
 			return nil, errors.New(errSecretParserV2)
 		}
