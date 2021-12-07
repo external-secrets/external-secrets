@@ -39,15 +39,46 @@ func newAzure() (Azure, *fake.AzureMock) {
 	return testAzure, azureMock
 }
 
-func TestNewClientNoCreds(t *testing.T) {
+func TestNewClientManagedIdentityNoNeedForCredentials(t *testing.T) {
 	namespace := "internal"
 	vaultURL := "https://local.vault.url"
-	tenantID := "1234"
+	identityID := "1234"
+	authType := esv1alpha1.ManagedIdentity
 	store := esv1alpha1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
 		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
+			AuthType:   &authType,
+			IdentityID: &identityID,
+			VaultURL:   &vaultURL,
+		}}},
+	}
+
+	provider, err := schema.GetProvider(&store)
+	tassert.Nil(t, err, "the return err should be nil")
+	k8sClient := clientfake.NewClientBuilder().Build()
+	secretClient, err := provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	if err != nil {
+		// On non Azure environment, MSI auth not available, so this error should be returned
+		tassert.EqualError(t, err, "failed to get oauth token from MSI: MSI not available")
+	} else {
+		// On Azure (where GitHub Actions are running) a secretClient is returned, as only an Authorizer is configured, but no token is requested for MI
+		tassert.NotNil(t, secretClient)
+	}
+}
+
+func TestNewClientNoCreds(t *testing.T) {
+	namespace := "internal"
+	vaultURL := "https://local.vault.url"
+	tenantID := "1234"
+	authType := esv1alpha1.ServicePrincipal
+	store := esv1alpha1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
+		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
+			AuthType: &authType,
 			VaultURL: &vaultURL,
 			TenantID: &tenantID,
 		}}},
@@ -55,32 +86,27 @@ func TestNewClientNoCreds(t *testing.T) {
 	provider, err := schema.GetProvider(&store)
 	tassert.Nil(t, err, "the return err should be nil")
 	k8sClient := clientfake.NewClientBuilder().Build()
-	secretClient, err := provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "missing clientID/clientSecret in store config")
-	tassert.Nil(t, secretClient)
 
 	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1alpha1.AzureKVAuth{}
-	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
-	tassert.Nil(t, secretClient)
 
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID = &v1.SecretKeySelector{Name: "user"}
-	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
-	tassert.Nil(t, secretClient)
 
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret = &v1.SecretKeySelector{Name: "password"}
-	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "could not find secret internal/user: secrets \"user\" not found")
-	tassert.Nil(t, secretClient)
 	store.TypeMeta.Kind = esv1alpha1.ClusterSecretStoreKind
 	store.TypeMeta.APIVersion = esv1alpha1.ClusterSecretStoreKindAPIVersion
 	ns := "default"
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID.Namespace = &ns
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret.Namespace = &ns
-	secretClient, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
+	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "could not find secret default/user: secrets \"user\" not found")
-	tassert.Nil(t, secretClient)
 }
 
 const (
