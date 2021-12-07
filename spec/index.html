@@ -1376,6 +1376,33 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.AuthType">AuthType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>AuthType describes how to authenticate to the Azure Keyvault
+Only one of the following auth types may be specified.
+If none of the following auth type is specified, the default one
+is ServicePrincipal.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ManagedIdentity&#34;</p></td>
+<td><p>Using Managed Identity to authenticate. Used with aad-pod-identity instelled in the clister.</p>
+</td>
+</tr><tr><td><p>&#34;ServicePrincipal&#34;</p></td>
+<td><p>Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.AzureKVAuth">AzureKVAuth
 </h3>
 <p>
@@ -1436,6 +1463,23 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
+<code>authType</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AuthType">
+AuthType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth type defines how to authenticate to the keyvault service.
+Valid values are:
+- &ldquo;ServicePrincipal&rdquo; (default): Using a service principal (tenantId, clientId, clientSecret)
+- &ldquo;ManagedIdentity&rdquo;: Using Managed Identity assigned to the pod (see aad-pod-identity)</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vaultUrl</code></br>
 <em>
 string
@@ -1453,7 +1497,8 @@ string
 </em>
 </td>
 <td>
-<p>TenantID configures the Azure Tenant to send requests to.</p>
+<em>(Optional)</em>
+<p>TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.</p>
 </td>
 </tr>
 <tr>
@@ -1466,7 +1511,20 @@ AzureKVAuth
 </em>
 </td>
 <td>
-<p>Auth configures how the operator authenticates with Azure.</p>
+<em>(Optional)</em>
+<p>Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>If multiple Managed Identity is assigned to the pod, you can select the one to be used</p>
 </td>
 </tr>
 </tbody>

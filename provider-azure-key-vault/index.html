@@ -566,6 +566,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#managed-identity-authentication" class="md-nav__link">
+    Managed Identity authentication
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1005,6 +1012,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#managed-identity-authentication" class="md-nav__link">
+    Managed Identity authentication
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1059,9 +1073,13 @@
 <h2 id="azure-key-vault">Azure Key vault</h2>
 <p>External Secrets Operator integrates with <a href="https://azure.microsoft.com/en-us/services/key-vault/">Azure Key vault</a> for secrets, certificates and Keys management.</p>
 <h3 id="authentication">Authentication</h3>
-<p>At the moment, we only support <a href="https://docs.microsoft.com/en-us/azure/key-vault/general/authentication">service principals</a> authentication.</p>
+<p>We support Service Principals and Managed Identity <a href="https://docs.microsoft.com/en-us/azure/key-vault/general/authentication">authentication</a>.</p>
+<p>To use Managed Identity authentication, you should use <a href="https://azure.github.io/aad-pod-identity/docs/">aad-pod-identity</a> to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use <code>podLabels</code> in your values.yaml in case of Helm installation of external-secrets.</p>
 <h4 id="service-principal-key-authentication">Service Principal key authentication</h4>
 <p>A service Principal client and Secret is created and the JSON keyfile is stored in a <code>Kind=Secret</code>. The <code>ClientID</code> and <code>ClientSecret</code> should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator</p>
+<h4 id="managed-identity-authentication">Managed Identity authentication</h4>
+<p>A Managed Identity should be created in Azure, and that Identity should have proper rights to the keyvault to be managed by the operator.</p>
+<p>If there are multiple Managed Identitites for different keyvaults, the operator should have been assigned all identities via <a href="https://azure.github.io/aad-pod-identity/docs/">aad-pod-identity</a>, then the SecretStore configuration should include the Id of the idenetity to be used via the <code>identityId</code> field.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -1073,7 +1091,7 @@
 </code></pre></div>
 
 <h3 id="update-secret-store">Update secret store</h3>
-<p>Be sure the <code>azkv</code> provider is listed in the <code>Kind=SecretStore</code></p>
+<p>Be sure the <code>azurekv</code> provider is listed in the <code>Kind=SecretStore</code></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -1095,6 +1113,22 @@
         <span class="nt">clientSecret</span><span class="p">:</span>
           <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
           <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientSecret</span>
+</code></pre></div>
+
+<p>Or in case of Managed Idenetity authentication:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="c1"># provider type: azure keyvault</span>
+    <span class="nt">azurekv</span><span class="p">:</span>
+      <span class="nt">authType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ManagedIdentity</span>
+      <span class="c1"># Optionally set the Id of the Managed Identity, if multiple identities is assignet to external-secrets operator</span>
+      <span class="nt">identityId</span><span class="p">:</span> <span class="s">&quot;&lt;MI_clientId&gt;&quot;</span>
+      <span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span>
+      <span class="nt">vaultUrl</span><span class="p">:</span> <span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span>
 </code></pre></div>
 
 <h3 id="object-types">Object Types</h3>
