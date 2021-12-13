@@ -23,9 +23,8 @@ import (
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/secretsmanagerv1"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
-	utilpointer "k8s.io/utils/pointer"
-
 	corev1 "k8s.io/api/core/v1"
+	utilpointer "k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -381,7 +380,7 @@ func TestValidRetryInput(t *testing.T) {
 	sm := providerIBM{}
 
 	invalid := "Invalid"
-	serviceUrl := "http://fake-service-url.cool"
+	serviceURL := "http://fake-service-url.cool"
 
 	spec := &esv1alpha1.SecretStore{
 		Spec: esv1alpha1.SecretStoreSpec{
@@ -395,7 +394,7 @@ func TestValidRetryInput(t *testing.T) {
 							},
 						},
 					},
-					ServiceURL: &serviceUrl,
+					ServiceURL: &serviceURL,
 				},
 			},
 			RetrySettings: &esv1alpha1.SecretStoreRetrySettings{
@@ -404,7 +403,7 @@ func TestValidRetryInput(t *testing.T) {
 		},
 	}
 
-	expected := fmt.Sprintf("cannot setup new ibm client: time: invalid duration \"%s\"", invalid)
+	expected := fmt.Sprintf("cannot setup new ibm client: time: invalid duration %q", invalid)
 	ctx := context.TODO()
 	kube := &test.MockClient{
 		MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
