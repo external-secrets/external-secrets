@@ -119,6 +119,41 @@ func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1alpha1.SecretStore {
 	return store
 }
 
+func makeInvalidClusterSecretStoreWithK8sCerts() *esv1alpha1.ClusterSecretStore {
+	return &esv1alpha1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterSecretStore",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vault-store",
+			Namespace: "default",
+		},
+		Spec: esv1alpha1.SecretStoreSpec{
+			Provider: &esv1alpha1.SecretStoreProvider{
+				Vault: &esv1alpha1.VaultProvider{
+					Server:  "vault.example.com",
+					Path:    "secret",
+					Version: "v2",
+					Auth: esv1alpha1.VaultAuth{
+						Kubernetes: &esv1alpha1.VaultKubernetesAuth{
+							Path: "kubernetes",
+							Role: "kubernetes-auth-role",
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: "example-sa",
+							},
+						},
+					},
+					CAProvider: &esv1alpha1.CAProvider{
+						Name: "vault-cert",
+						Key:  "cert",
+						Type: "Secret",
+					},
+				},
+			},
+		},
+	}
+}
+
 type secretStoreTweakFn func(s *esv1alpha1.SecretStore)
 
 func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1alpha1.SecretStore {
@@ -350,6 +385,18 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"GetCertNamespaceMissingError": {
+			reason: "Should return an error if namespace is missing and is a ClusterSecretStore",
+			args: args{
+				store: makeInvalidClusterSecretStoreWithK8sCerts(),
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil, kubeMockWithSecretTokenAndServiceAcc),
+				},
+			},
+			want: want{
+				err: errors.New(errCANamespace),
 			},
 		},
 		"GetCertSecretKeyMissingError": {
