@@ -169,6 +169,7 @@ helm.build: helm.generate ## Build helm chart
 
 helm.generate: helm.docs ## Copy crds to helm chart directory
 	@cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/
+	@rm $(HELM_DIR)/templates/crds/kustomization.yaml
 # Add helm if statement for controlling the install of CRDs
 	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
 		cp "$$i" "$$i.bkp" && \
