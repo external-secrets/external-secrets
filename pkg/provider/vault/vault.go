@@ -176,10 +176,8 @@ func (v *client) Close(ctx context.Context) error {
 	return nil
 }
 
-func (v *client) buildPath(ctx context.Context, path string) string {
+func (v *client) buildPath(path string) string {
 	optionalMount := v.store.Path
-	returnPath := path
-
 	origPath := strings.Split(path, "/")
 	newPath := make([]string, 0)
 	cursor := 0
@@ -200,13 +198,13 @@ func (v *client) buildPath(ctx context.Context, path string) string {
 		}
 	}
 	newPath = append(newPath, origPath[cursor:]...)
-	returnPath = strings.Join(newPath, "/")
+	returnPath := strings.Join(newPath, "/")
 
 	return returnPath
 }
 
 func (v *client) readSecret(ctx context.Context, path, version string) (map[string][]byte, error) {
-	dataPath := v.buildPath(ctx, path)
+	dataPath := v.buildPath(path)
 
 	// path formated according to vault docs for v1 and v2 API
 	// v1: https://www.vaultproject.io/api-docs/secret/kv/kv-v1#read-secret

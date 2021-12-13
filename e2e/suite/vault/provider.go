@@ -49,7 +49,7 @@ const (
 )
 
 var (
-	secretStorePath string = "secret"
+	secretStorePath = "secret"
 )
 
 func newVaultProvider(f *framework.Framework) *vaultProvider {

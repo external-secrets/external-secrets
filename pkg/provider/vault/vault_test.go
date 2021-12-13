@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	secretStorePath string = "secret"
+	secretStorePath = "secret"
 )
 
 func makeValidSecretStoreWithVersion(v esv1alpha1.VaultKVStoreVersion) *esv1alpha1.SecretStore {
@@ -680,14 +680,13 @@ func TestGetSecretMap(t *testing.T) {
 }
 
 func TestGetSecretPath(t *testing.T) {
-
 	storeV2 := makeValidSecretStore()
-	storeV2_NoPath := storeV2.DeepCopy()
-	storeV2_NoPath.Spec.Provider.Vault.Path = nil
+	storeV2NoPath := storeV2.DeepCopy()
+	storeV2NoPath.Spec.Provider.Vault.Path = nil
 
 	storeV1 := makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV1)
-	storeV1_NoPath := storeV1.DeepCopy()
-	storeV1_NoPath.Spec.Provider.Vault.Path = nil
+	storeV1NoPath := storeV1.DeepCopy()
+	storeV1NoPath.Spec.Provider.Vault.Path = nil
 
 	type args struct {
 		store    *esv1alpha1.VaultProvider
@@ -717,7 +716,7 @@ func TestGetSecretPath(t *testing.T) {
 		"PathWithoutFormatV2_NoPath": {
 			reason: "Data needs to be found in path and correct mountpoint is set",
 			args: args{
-				store:    storeV2_NoPath.Spec.Provider.Vault,
+				store:    storeV2NoPath.Spec.Provider.Vault,
 				path:     "secret/test",
 				expected: "secret/data/test",
 			},
@@ -733,7 +732,7 @@ func TestGetSecretPath(t *testing.T) {
 		"PathWithoutFormatV1_NoPath": {
 			reason: "Data needs to be found in path and correct mountpoint is set",
 			args: args{
-				store:    storeV1_NoPath.Spec.Provider.Vault,
+				store:    storeV1NoPath.Spec.Provider.Vault,
 				path:     "secret/test",
 				expected: "secret/test",
 			},
@@ -761,7 +760,7 @@ func TestGetSecretPath(t *testing.T) {
 			vStore := &client{
 				store: tc.args.store,
 			}
-			want := vStore.buildPath(context.Background(), tc.args.path)
+			want := vStore.buildPath(tc.args.path)
 			if diff := cmp.Diff(want, tc.args.expected); diff != "" {
 				t.Errorf("\n%s\nvault.buildPath(...): -want expected, +got error:\n%s", tc.reason, diff)
 			}
