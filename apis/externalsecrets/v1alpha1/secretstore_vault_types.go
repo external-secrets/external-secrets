@@ -63,7 +63,8 @@ type VaultProvider struct {
 	// "secret". The v2 KV secret engine version specific "/data" path suffix
 	// for fetching secrets from Vault is optional and will be appended
 	// if not present in specified path.
-	Path string `json:"path"`
+	// +optional
+	Path *string `json:"path"`
 
 	// Version is the Vault KV secret engine version. This can be either "v1" or
 	// "v2". Version defaults to "v2".
