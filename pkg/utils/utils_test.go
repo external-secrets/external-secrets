@@ -17,6 +17,7 @@ package utils
 import (
 	"testing"
 
+	vault "github.com/oracle/oci-go-sdk/v45/vault"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -56,6 +57,91 @@ func TestObjectHash(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ObjectHash(tt.input); got != tt.want {
 				t.Errorf("ObjectHash() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsNil(t *testing.T) {
+	tbl := []struct {
+		name string
+		val  interface{}
+		exp  bool
+	}{
+		{
+			name: "simple nil val",
+			val:  nil,
+			exp:  true,
+		},
+		{
+			name: "nil slice",
+			val:  (*[]struct{})(nil),
+			exp:  true,
+		},
+		{
+			name: "struct pointer",
+			val:  &testing.T{},
+			exp:  false,
+		},
+		{
+			name: "struct",
+			val:  testing.T{},
+			exp:  false,
+		},
+		{
+			name: "slice of struct",
+			val:  []struct{}{{}},
+			exp:  false,
+		},
+		{
+			name: "slice of ptr",
+			val:  []*testing.T{nil},
+			exp:  false,
+		},
+		{
+			name: "slice",
+			val:  []struct{}(nil),
+			exp:  false,
+		},
+		{
+			name: "int default value",
+			val:  0,
+			exp:  false,
+		},
+		{
+			name: "empty str",
+			val:  "",
+			exp:  false,
+		},
+		{
+			name: "oracle vault",
+			val:  vault.VaultsClient{},
+			exp:  false,
+		},
+		{
+			name: "func",
+			val: func() {
+				// noop for testing and to make linter happy
+			},
+			exp: false,
+		},
+		{
+			name: "channel",
+			val:  make(chan struct{}),
+			exp:  false,
+		},
+		{
+			name: "map",
+			val:  map[string]string{},
+			exp:  false,
+		},
+	}
+
+	for _, row := range tbl {
+		t.Run(row.name, func(t *testing.T) {
+			res := IsNil(row.val)
+			if res != row.exp {
+				t.Errorf("IsNil(%#v)=%t, expected %t", row.val, res, row.exp)
 			}
 		})
 	}

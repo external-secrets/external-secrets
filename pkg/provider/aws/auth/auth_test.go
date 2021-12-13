@@ -38,16 +38,13 @@ import (
 )
 
 const (
-	myServiceAcc = "my-service-account"
-	otherNs      = "other-ns"
+	esNamespaceKey      = "es-namespace"
+	platformTeamNsKey   = "platform-team-ns"
+	myServiceAccountKey = "my-service-account"
+	otherNsName         = "other-ns"
 )
 
 func TestNewSession(t *testing.T) {
-	const (
-		esNamespace    = "es-namespace"
-		platformTeamNs = "platform-team-ns"
-	)
-
 	rows := []TestSessionRow{
 		{
 			name:      "nil store",
@@ -271,7 +268,7 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name:      "ClusterStore should use credentials from a specific namespace",
-			namespace: esNamespace,
+			namespace: esNamespaceKey,
 			store: &esv1alpha1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: esv1alpha1.ClusterSecretStoreKindAPIVersion,
@@ -284,12 +281,12 @@ func TestNewSession(t *testing.T) {
 								SecretRef: &esv1alpha1.AWSAuthSecretRef{
 									AccessKeyID: esmeta.SecretKeySelector{
 										Name:      "onesecret",
-										Namespace: aws.String(platformTeamNs),
+										Namespace: aws.String(platformTeamNsKey),
 										Key:       "one",
 									},
 									SecretAccessKey: esmeta.SecretKeySelector{
 										Name:      "onesecret",
-										Namespace: aws.String(platformTeamNs),
+										Namespace: aws.String(platformTeamNsKey),
 										Key:       "two",
 									},
 								},
@@ -302,7 +299,7 @@ func TestNewSession(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "onesecret",
-						Namespace: platformTeamNs,
+						Namespace: platformTeamNsKey,
 					},
 					Data: map[string][]byte{
 						"one": []byte("1111"),
@@ -316,7 +313,7 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name:      "namespace is mandatory when using ClusterStore with SecretKeySelector",
-			namespace: esNamespace,
+			namespace: esNamespaceKey,
 			store: &esv1alpha1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: esv1alpha1.ClusterSecretStoreKindAPIVersion,
@@ -345,19 +342,19 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name:      "jwt auth via cluster secret store",
-			namespace: esNamespace,
+			namespace: esNamespaceKey,
 			sa: &v1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      myServiceAcc,
-					Namespace: otherNs,
+					Name:      myServiceAccountKey,
+					Namespace: otherNsName,
 					Annotations: map[string]string{
 						roleARNAnnotation: "my-sa-role",
 					},
 				},
 			},
 			jwtProvider: func(name, namespace, roleArn, region string) (credentials.Provider, error) {
-				assert.Equal(t, myServiceAcc, name)
-				assert.Equal(t, otherNs, namespace)
+				assert.Equal(t, myServiceAccountKey, name)
+				assert.Equal(t, otherNsName, namespace)
 				assert.Equal(t, "my-sa-role", roleArn)
 				return fakesess.CredentialsProvider{
 					RetrieveFunc: func() (credentials.Value, error) {
@@ -382,8 +379,8 @@ func TestNewSession(t *testing.T) {
 							Auth: esv1alpha1.AWSAuth{
 								JWTAuth: &esv1alpha1.AWSJWTAuth{
 									ServiceAccountRef: &esmeta.ServiceAccountSelector{
-										Name:      myServiceAcc,
-										Namespace: aws.String(otherNs),
+										Name:      myServiceAccountKey,
+										Namespace: aws.String(otherNsName),
 									},
 								},
 							},
@@ -434,8 +431,8 @@ func testRow(t *testing.T, row TestSessionRow) {
 	}
 	err := kc.Create(context.Background(), &authv1.TokenRequest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      myServiceAcc,
-			Namespace: otherNs,
+			Name:      myServiceAccountKey,
+			Namespace: otherNsName,
 		},
 	})
 	assert.Nil(t, err)

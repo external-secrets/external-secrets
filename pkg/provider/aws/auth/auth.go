@@ -160,6 +160,9 @@ func sessionFromSecretRef(ctx context.Context, prov *esv1alpha1.AWSProvider, sto
 
 func sessionFromServiceAccount(ctx context.Context, prov *esv1alpha1.AWSProvider, store esv1alpha1.GenericStore, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
 	if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+		if prov.Auth.JWTAuth.ServiceAccountRef.Namespace == nil {
+			return nil, fmt.Errorf("serviceAccountRef has no Namespace field (mandatory for ClusterSecretStore specs)")
+		}
 		namespace = *prov.Auth.JWTAuth.ServiceAccountRef.Namespace
 	}
 	name := prov.Auth.JWTAuth.ServiceAccountRef.Name

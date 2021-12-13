@@ -41,7 +41,7 @@ const (
 	secretDataString = "some-creds"
 )
 
-func makeValidSecretStore() *esv1alpha1.SecretStore {
+func makeValidSecretStoreWithVersion(v esv1alpha1.VaultKVStoreVersion) *esv1alpha1.SecretStore {
 	return &esv1alpha1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vault-store",
@@ -52,7 +52,7 @@ func makeValidSecretStore() *esv1alpha1.SecretStore {
 				Vault: &esv1alpha1.VaultProvider{
 					Server:  "vault.example.com",
 					Path:    "secret",
-					Version: esv1alpha1.VaultKVStoreV2,
+					Version: v,
 					Auth: esv1alpha1.VaultAuth{
 						Kubernetes: &esv1alpha1.VaultKubernetesAuth{
 							Path: "kubernetes",
@@ -66,6 +66,10 @@ func makeValidSecretStore() *esv1alpha1.SecretStore {
 			},
 		},
 	}
+}
+
+func makeValidSecretStore() *esv1alpha1.SecretStore {
+	return makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2)
 }
 
 func makeValidSecretStoreWithCerts() *esv1alpha1.SecretStore {
@@ -136,12 +140,33 @@ func newVaultResponse(data *vault.Secret) *vault.Response {
 	}
 }
 
-func newVaultTokenIDResponse(token string) *vault.Response {
+func newVaultResponseWithData(data map[string]interface{}) *vault.Response {
 	return newVaultResponse(&vault.Secret{
-		Data: map[string]interface{}{
-			"id": token,
-		},
+		Data: data,
 	})
+}
+
+func newVaultTokenIDResponse(token string) *vault.Response {
+	return newVaultResponseWithData(map[string]interface{}{
+		"id": token,
+	})
+}
+
+type args struct {
+	newClientFunc func(c *vault.Config) (Client, error)
+	store         esv1alpha1.GenericStore
+	kube          kclient.Client
+	ns            string
+}
+
+type want struct {
+	err error
+}
+
+type testCase struct {
+	reason string
+	args   args
+	want   want
 }
 
 func clientWithLoginMock(c *vault.Config) (Client, error) {
@@ -182,22 +207,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 `)
 	secretData := []byte(secretDataString)
 
-	type args struct {
-		newClientFunc func(c *vault.Config) (Client, error)
-		store         esv1alpha1.GenericStore
-		kube          kclient.Client
-		ns            string
-	}
-
-	type want struct {
-		err error
-	}
-
-	cases := map[string]struct {
-		reason string
-		args   args
-		want   want
-	}{
+	cases := map[string]testCase{
 		"InvalidVaultStore": {
 			reason: "Should return error if given an invalid vault store.",
 			args: args{
@@ -472,22 +482,35 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			conn := &connector{
-				newVaultClient: tc.args.newClientFunc,
-			}
-			if tc.args.newClientFunc == nil {
-				conn.newVaultClient = newVaultClient
-			}
-			_, err := conn.NewClient(context.Background(), tc.args.store, tc.args.kube, tc.args.ns)
-			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-				t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
-			}
+			vaultTest(t, name, tc)
 		})
+	}
+}
+
+func vaultTest(t *testing.T, name string, tc testCase) {
+	conn := &connector{
+		newVaultClient: tc.args.newClientFunc,
+	}
+	if tc.args.newClientFunc == nil {
+		conn.newVaultClient = newVaultClient
+	}
+	_, err := conn.NewClient(context.Background(), tc.args.store, tc.args.kube, tc.args.ns)
+	if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}
 }
 
 func TestGetSecretMap(t *testing.T) {
 	errBoom := errors.New("boom")
+	secret := map[string]interface{}{
+		"access_key":    "access_key",
+		"access_secret": "access_secret",
+	}
+	secretWithNilVal := map[string]interface{}{
+		"access_key":    "access_key",
+		"access_secret": "access_secret",
+		"token":         nil,
+	}
 
 	type args struct {
 		store   *esv1alpha1.VaultProvider
@@ -506,6 +529,74 @@ func TestGetSecretMap(t *testing.T) {
 		args   args
 		want   want
 	}{
+		"ReadSecretKV1": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(secret), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"ReadSecretKV2": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secret,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"ReadSecretWithNilValueKV1": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(secretWithNilVal), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"ReadSecretWithNilValueKV2": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secretWithNilVal,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 		"ReadSecretError": {
 			reason: "Should return error if vault client fails to read secret.",
 			args: args{

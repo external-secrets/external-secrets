@@ -35,6 +35,12 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/fake"
 )
 
+const (
+	errMissingKey                    = "invalid Yandex Lockbox SecretStore resource: missing AuthorizedKey Name"
+	errSecretPayloadPermissionDenied = "unable to request secret payload to get secret: permission denied"
+	errSecretPayloadNotFound         = "unable to request secret payload to get secret: secret not found"
+)
+
 func TestNewClient(t *testing.T) {
 	ctx := context.Background()
 	const namespace = "namespace"
@@ -54,17 +60,17 @@ func TestNewClient(t *testing.T) {
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	secretClient, err := provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "invalid Yandex Lockbox SecretStore resource: missing AuthorizedKey Name")
+	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
 
 	store.Spec.Provider.YandexLockbox.Auth = esv1alpha1.YandexLockboxAuth{}
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "invalid Yandex Lockbox SecretStore resource: missing AuthorizedKey Name")
+	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
 
 	store.Spec.Provider.YandexLockbox.Auth.AuthorizedKey = esmeta.SecretKeySelector{}
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "invalid Yandex Lockbox SecretStore resource: missing AuthorizedKey Name")
+	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
 
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -248,7 +254,7 @@ func TestGetSecretUnauthorized(t *testing.T) {
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
 	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID})
-	tassert.EqualError(t, err, "unable to request secret payload to get secret: permission denied")
+	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 }
 
 func TestGetSecretNotFound(t *testing.T) {
@@ -271,7 +277,7 @@ func TestGetSecretNotFound(t *testing.T) {
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
 	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: "no-secret-with-this-id"})
-	tassert.EqualError(t, err, "unable to request secret payload to get secret: secret not found")
+	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
 	secretID, _ := lockboxBackend.CreateSecret(authorizedKey,
 		textEntry("k1", "v1"),
@@ -320,11 +326,11 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	tassert.Nil(t, err)
 	data, err = secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2, Property: k2})
 	tassert.Nil(t, data)
-	tassert.EqualError(t, err, "unable to request secret payload to get secret: permission denied")
+	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 
 	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID1, Property: k1})
 	tassert.Nil(t, data)
-	tassert.EqualError(t, err, "unable to request secret payload to get secret: permission denied")
+	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2, Property: k2})
 	tassert.Equal(t, v2, string(data))
 	tassert.Nil(t, err)
@@ -381,11 +387,11 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 	tassert.Nil(t, err)
 	data, err = secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2, Property: k2})
 	tassert.Nil(t, data)
-	tassert.EqualError(t, err, "unable to request secret payload to get secret: secret not found")
+	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
 	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID1, Property: k1})
 	tassert.Nil(t, data)
-	tassert.EqualError(t, err, "unable to request secret payload to get secret: secret not found")
+	tassert.EqualError(t, err, errSecretPayloadNotFound)
 	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2, Property: k2})
 	tassert.Equal(t, v2, string(data))
 	tassert.Nil(t, err)

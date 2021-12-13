@@ -28,7 +28,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	vault "github.com/hashicorp/vault/api"
 
 	// nolint
@@ -286,6 +286,7 @@ func (l *Vault) Setup(cfg *Config) error {
 	return l.chart.Setup(cfg)
 }
 
+// nolint:gocritic
 func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []byte, []byte, error) {
 	// gen server ca + certs
 	serverRootCert, serverRootPem, serverRootKey, err := genCARoot()

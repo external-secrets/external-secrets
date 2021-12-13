@@ -15,8 +15,9 @@ limitations under the License.
 package register
 
 // packages imported here are registered to the controller schema.
-// nolint:golint
+// nolint:revive
 import (
+	_ "github.com/external-secrets/external-secrets/pkg/provider/akeyless"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/alibaba"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"

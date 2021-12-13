@@ -224,6 +224,8 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			byteMap[k] = []byte(t)
 		case []byte:
 			byteMap[k] = t
+		case nil:
+			byteMap[k] = []byte(nil)
 		default:
 			return nil, errors.New(errSecretFormat)
 		}
@@ -316,67 +318,115 @@ func getCertFromConfigMap(v *client) ([]byte, error) {
 }
 
 func (v *client) setAuth(ctx context.Context, client Client, cfg *vault.Config) error {
+	tokenExists, err := setSecretKeyToken(ctx, v, client)
+	if tokenExists {
+		return err
+	}
+
+	tokenExists, err = setAppRoleToken(ctx, v, client)
+	if tokenExists {
+		return err
+	}
+
+	tokenExists, err = setKubernetesAuthToken(ctx, v, client)
+	if tokenExists {
+		return err
+	}
+
+	tokenExists, err = setLdapAuthToken(ctx, v, client)
+	if tokenExists {
+		return err
+	}
+
+	tokenExists, err = setJwtAuthToken(ctx, v, client)
+	if tokenExists {
+		return err
+	}
+
+	tokenExists, err = setCertAuthToken(ctx, v, client, cfg)
+	if tokenExists {
+		return err
+	}
+
+	return errors.New(errAuthFormat)
+}
+
+func setAppRoleToken(ctx context.Context, v *client, client Client) (bool, error) {
 	tokenRef := v.store.Auth.TokenSecretRef
 	if tokenRef != nil {
 		token, err := v.secretKeyRef(ctx, tokenRef)
 		if err != nil {
-			return err
+			return true, err
 		}
 		client.SetToken(token)
-		return nil
+		return true, nil
 	}
+	return false, nil
+}
 
+func setSecretKeyToken(ctx context.Context, v *client, client Client) (bool, error) {
 	appRole := v.store.Auth.AppRole
 	if appRole != nil {
 		token, err := v.requestTokenWithAppRoleRef(ctx, client, appRole)
 		if err != nil {
-			return err
+			return true, err
 		}
 		client.SetToken(token)
-		return nil
+		return true, nil
 	}
+	return false, nil
+}
 
+func setKubernetesAuthToken(ctx context.Context, v *client, client Client) (bool, error) {
 	kubernetesAuth := v.store.Auth.Kubernetes
 	if kubernetesAuth != nil {
 		token, err := v.requestTokenWithKubernetesAuth(ctx, client, kubernetesAuth)
 		if err != nil {
-			return err
+			return true, err
 		}
 		client.SetToken(token)
-		return nil
+		return true, nil
 	}
+	return false, nil
+}
 
+func setLdapAuthToken(ctx context.Context, v *client, client Client) (bool, error) {
 	ldapAuth := v.store.Auth.Ldap
 	if ldapAuth != nil {
 		token, err := v.requestTokenWithLdapAuth(ctx, client, ldapAuth)
 		if err != nil {
-			return err
+			return true, err
 		}
 		client.SetToken(token)
-		return nil
+		return true, nil
 	}
+	return false, nil
+}
 
+func setJwtAuthToken(ctx context.Context, v *client, client Client) (bool, error) {
 	jwtAuth := v.store.Auth.Jwt
 	if jwtAuth != nil {
 		token, err := v.requestTokenWithJwtAuth(ctx, client, jwtAuth)
 		if err != nil {
-			return err
+			return true, err
 		}
 		client.SetToken(token)
-		return nil
+		return true, nil
 	}
+	return false, nil
+}
 
+func setCertAuthToken(ctx context.Context, v *client, client Client, cfg *vault.Config) (bool, error) {
 	certAuth := v.store.Auth.Cert
 	if certAuth != nil {
 		token, err := v.requestTokenWithCertAuth(ctx, client, certAuth, cfg)
 		if err != nil {
-			return err
+			return true, err
 		}
 		client.SetToken(token)
-		return nil
+		return true, nil
 	}
-
-	return errors.New(errAuthFormat)
+	return false, nil
 }
 
 func (v *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
@@ -493,43 +543,16 @@ func kubeParameters(role, jwt string) map[string]string {
 }
 
 func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
-	jwtString := ""
-	if kubernetesAuth.ServiceAccountRef != nil {
-		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
-		if err != nil {
-			return "", err
-		}
-		jwtString = jwt
-	} else if kubernetesAuth.SecretRef != nil {
-		tokenRef := kubernetesAuth.SecretRef
-		if tokenRef.Key == "" {
-			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
-			tokenRef.Key = "token"
-		}
-		jwt, err := v.secretKeyRef(ctx, tokenRef)
-		if err != nil {
-			return "", err
-		}
-		jwtString = jwt
-	} else {
-		// Kubernetes authentication is specified, but without a referenced
-		// Kubernetes secret. We check if the file path for in-cluster service account
-		// exists and attempt to use the token for Vault Kubernetes auth.
-		if _, err := os.Stat(serviceAccTokenPath); err != nil {
-			return "", fmt.Errorf(errServiceAccount, err)
-		}
-		jwtByte, err := ioutil.ReadFile(serviceAccTokenPath)
-		if err != nil {
-			return "", fmt.Errorf(errServiceAccount, err)
-		}
-		jwtString = string(jwtByte)
+	jwtString, err := getJwtString(ctx, v, kubernetesAuth)
+	if err != nil {
+		return "", err
 	}
 
 	parameters := kubeParameters(kubernetesAuth.Role, jwtString)
 	url := strings.Join([]string{"/v1", "auth", kubernetesAuth.Path, "login"}, "/")
 	request := client.NewRequest("POST", url)
 
-	err := request.SetJSONBody(parameters)
+	err = request.SetJSONBody(parameters)
 	if err != nil {
 		return "", fmt.Errorf(errVaultReqParams, err)
 	}
@@ -552,6 +575,39 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Clie
 	}
 
 	return token, nil
+}
+
+func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
+	if kubernetesAuth.ServiceAccountRef != nil {
+		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		if err != nil {
+			return "", err
+		}
+		return jwt, nil
+	} else if kubernetesAuth.SecretRef != nil {
+		tokenRef := kubernetesAuth.SecretRef
+		if tokenRef.Key == "" {
+			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
+			tokenRef.Key = "token"
+		}
+		jwt, err := v.secretKeyRef(ctx, tokenRef)
+		if err != nil {
+			return "", err
+		}
+		return jwt, nil
+	} else {
+		// Kubernetes authentication is specified, but without a referenced
+		// Kubernetes secret. We check if the file path for in-cluster service account
+		// exists and attempt to use the token for Vault Kubernetes auth.
+		if _, err := os.Stat(serviceAccTokenPath); err != nil {
+			return "", fmt.Errorf(errServiceAccount, err)
+		}
+		jwtByte, err := ioutil.ReadFile(serviceAccTokenPath)
+		if err != nil {
+			return "", fmt.Errorf(errServiceAccount, err)
+		}
+		return string(jwtByte), nil
+	}
 }
 
 func (v *client) requestTokenWithLdapAuth(ctx context.Context, client Client, ldapAuth *esv1alpha1.VaultLdapAuth) (string, error) {

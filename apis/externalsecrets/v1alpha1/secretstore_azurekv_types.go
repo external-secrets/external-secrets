@@ -16,14 +16,41 @@ package v1alpha1
 
 import smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// AuthType describes how to authenticate to the Azure Keyvault
+// Only one of the following auth types may be specified.
+// If none of the following auth type is specified, the default one
+// is ServicePrincipal.
+// +kubebuilder:validation:Enum=ServicePrincipal;ManagedIdentity
+type AuthType string
+
+const (
+	// Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.
+	ServicePrincipal AuthType = "ServicePrincipal"
+
+	// Using Managed Identity to authenticate. Used with aad-pod-identity instelled in the clister.
+	ManagedIdentity AuthType = "ManagedIdentity"
+)
+
 // Configures an store to sync secrets using Azure KV.
 type AzureKVProvider struct {
+	// Auth type defines how to authenticate to the keyvault service.
+	// Valid values are:
+	// - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
+	// - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
+	// +optional
+	// +kubebuilder:default=ServicePrincipal
+	AuthType *AuthType `json:"authType,omitempty"`
 	// Vault Url from which the secrets to be fetched from.
 	VaultURL *string `json:"vaultUrl"`
-	// TenantID configures the Azure Tenant to send requests to.
-	TenantID *string `json:"tenantId"`
-	// Auth configures how the operator authenticates with Azure.
-	AuthSecretRef *AzureKVAuth `json:"authSecretRef"`
+	// TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
+	// +optional
+	TenantID *string `json:"tenantId,omitempty"`
+	// Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
+	// +optional
+	AuthSecretRef *AzureKVAuth `json:"authSecretRef,omitempty"`
+	// If multiple Managed Identity is assigned to the pod, you can select the one to be used
+	// +optional
+	IdentityID *string `json:"identityId,omitempty"`
 }
 
 // Configuration used to authenticate with Azure.
