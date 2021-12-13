@@ -35,6 +35,7 @@ nav:
     - Common K8S Secret Types: guides-common-k8s-secret-types.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md
+    - Using Latest Image: guides-using-latest-image.md
   - Provider:
     - AWS:
       - Secrets Manager: provider-aws-secrets-manager.md
