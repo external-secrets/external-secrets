@@ -28,6 +28,10 @@ type SecretStoreSpec struct {
 
 	// Used to configure the provider. Only one provider may be set
 	Provider *SecretStoreProvider `json:"provider"`
+
+	// Used to configure http retries if failed
+	// +optional
+	RetrySettings *SecretStoreRetrySettings `json:"retrySettings,omitempty"`
 }
 
 // SecretStoreProvider contains the provider-specific configration.
@@ -73,6 +77,11 @@ type SecretStoreProvider struct {
 	// Alibaba configures this store to sync secrets using Alibaba Cloud provider
 	// +optional
 	Alibaba *AlibabaProvider `json:"alibaba,omitempty"`
+}
+
+type SecretStoreRetrySettings struct {
+	MaxRetries    *int32  `json:"maxRetries,omitempty"`
+	RetryInterval *string `json:"retryInterval,omitempty"`
 }
 
 type SecretStoreConditionType string
