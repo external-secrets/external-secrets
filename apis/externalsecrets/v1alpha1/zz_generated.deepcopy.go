@@ -1248,6 +1248,11 @@ func (in *VaultLdapAuth) DeepCopy() *VaultLdapAuth {
 func (in *VaultProvider) DeepCopyInto(out *VaultProvider) {
 	*out = *in
 	in.Auth.DeepCopyInto(&out.Auth)
+	if in.Path != nil {
+		in, out := &in.Path, &out.Path
+		*out = new(string)
+		**out = **in
+	}
 	if in.Namespace != nil {
 		in, out := &in.Namespace, &out.Namespace
 		*out = new(string)
