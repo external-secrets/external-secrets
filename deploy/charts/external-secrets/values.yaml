@@ -40,7 +40,12 @@ extraEnv: []
 ## -- Map of extra arguments to pass to container.
 extraArgs: {}
 
+# -- Annotations to add to Deployment
+deploymentAnnotations: {}
+
+# -- Annotations to add to Pod
 podAnnotations: {}
+
 podLabels: {}
 
 podSecurityContext: {}
