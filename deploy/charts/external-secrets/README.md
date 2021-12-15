@@ -35,6 +35,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
+| deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | extraArgs | object | `{}` |  |
 | extraEnv | list | `[]` |  |
 | fullnameOverride | string | `""` |  |
@@ -46,7 +47,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
-| podAnnotations | object | `{}` |  |
+| podAnnotations | object | `{}` | Annotations to add to Pod |
 | podLabels | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | priorityClassName | string | `""` | Pod priority class name. |
