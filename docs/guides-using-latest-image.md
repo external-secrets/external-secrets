@@ -1,4 +1,4 @@
-You can test a feature that was not yet released using the following method:
+You can test a feature that was not yet released using the following method, use it at your own discretion:
 
 1. Create a `values.yaml` file with the following content:
    
