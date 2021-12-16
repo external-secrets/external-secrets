@@ -65,6 +65,10 @@ We welcome and encourage contributions to this project! Please read the [Develop
 
 Please report vulnerabilities by email to contact@external-secrets.io, also see our [security policy](SECURITY.md) for details.
 
+## Security
+
+Please create a PR and add your company or your project to our [ADOPTERS](ADOPTERS.md) file if you are using our project!
+
 ## Kicked off by
 
 ![](assets/CS_logo_1.png)
