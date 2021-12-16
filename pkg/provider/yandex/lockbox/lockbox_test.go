@@ -91,7 +91,7 @@ func TestNewClient(t *testing.T) {
 	const caCertificateSecretKey = "caCertificateSecretKey"
 	store.Spec.Provider.YandexLockbox.CAProvider = &esv1alpha1.YandexLockboxCAProvider{
 		Certificate: esmeta.SecretKeySelector{
-			Key: caCertificateSecretKey,
+			Key:  caCertificateSecretKey,
 			Name: caCertificateSecretName,
 		},
 	}
