@@ -46,8 +46,8 @@ type CAProvider struct {
 	Key string `json:"key,omitempty"`
 
 	// The namespace the Provider type is in.
-	// +kubebuilder:default:="Default"
-	Namespace string `json:"namespace"`
+	// +optional
+	Namespace *string `json:"namespace,omitempty"`
 }
 
 // Configures an store to sync secrets using a HashiCorp Vault

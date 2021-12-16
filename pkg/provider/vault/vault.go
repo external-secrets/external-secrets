@@ -73,6 +73,7 @@ const (
 	errVaultRevokeToken = "error while revoking token: %w"
 
 	errUnknownCAProvider = "unknown caProvider type given"
+	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
 )
 
 type Client interface {
@@ -251,6 +252,10 @@ func (v *client) newConfig() (*vault.Config, error) {
 		}
 	}
 
+	if v.store.CAProvider != nil && v.storeKind == esv1alpha1.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
+		return nil, errors.New(errCANamespace)
+	}
+
 	if v.store.CAProvider != nil {
 		var cert []byte
 		var err error
@@ -283,10 +288,14 @@ func (v *client) newConfig() (*vault.Config, error) {
 
 func getCertFromSecret(v *client) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
-		Name:      v.store.CAProvider.Name,
-		Namespace: &v.store.CAProvider.Namespace,
-		Key:       v.store.CAProvider.Key,
+		Name: v.store.CAProvider.Name,
+		Key:  v.store.CAProvider.Key,
 	}
+
+	if v.store.CAProvider.Namespace != nil {
+		secretRef.Namespace = v.store.CAProvider.Namespace
+	}
+
 	ctx := context.Background()
 	res, err := v.secretKeyRef(ctx, &secretRef)
 	if err != nil {
@@ -298,8 +307,11 @@ func getCertFromSecret(v *client) ([]byte, error) {
 
 func getCertFromConfigMap(v *client) ([]byte, error) {
 	objKey := types.NamespacedName{
-		Namespace: v.store.CAProvider.Namespace,
-		Name:      v.store.CAProvider.Name,
+		Name: v.store.CAProvider.Name,
+	}
+
+	if v.store.CAProvider.Namespace != nil {
+		objKey.Namespace = *v.store.CAProvider.Namespace
 	}
 
 	configMapRef := &corev1.ConfigMap{}
