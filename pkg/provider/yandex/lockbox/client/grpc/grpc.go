@@ -16,6 +16,8 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"time"
 
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/endpoint"
@@ -33,7 +35,7 @@ import (
 type YandexCloudCreator struct {
 }
 
-func (lb *YandexCloudCreator) CreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (client.LockboxClient, error) {
+func (lb *YandexCloudCreator) CreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (client.LockboxClient, error) {
 	sdk, err := buildSDK(ctx, apiEndpoint, authorizedKey)
 	if err != nil {
 		return nil, err
@@ -51,8 +53,19 @@ func (lb *YandexCloudCreator) CreateLockboxClient(ctx context.Context, apiEndpoi
 		return nil, err
 	}
 
+	tlsConfig := tls.Config{MinVersion: tls.VersionTLS12}
+
+	if caCertificate != nil {
+		caCertPool := x509.NewCertPool()
+		ok := caCertPool.AppendCertsFromPEM(caCertificate)
+		if !ok {
+			return nil, errors.New("unable to read certificate from PEM file")
+		}
+		tlsConfig.RootCAs = caCertPool
+	}
+
 	conn, err := grpc.Dial(payloadAPIEndpoint.Address,
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS12})),
+		grpc.WithTransportCredentials(credentials.NewTLS(&tlsConfig)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                time.Second * 30,
 			Timeout:             time.Second * 10,
