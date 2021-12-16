@@ -172,11 +172,19 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectError = "unable to unmarshal secret"
 	}
 
+	// good case: deserialize nested json as []byte, if it's a string, decode the string
+	setNestedJSON := func(smtc *secretManagerTestCase) {
+		smtc.apiOutput.Payload.Data = []byte(`{"foo":{"bar":"baz"}, "qux": "qu\"z"}`)
+		smtc.expectedData["foo"] = []byte(`{"bar":"baz"}`)
+		smtc.expectedData["qux"] = []byte("qu\"z")
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(setDeserialization),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(setInvalidJSON),
+		makeValidSecretManagerTestCaseCustom(setNestedJSON),
 	}
 
 	sm := ProviderGCP{}
