@@ -15,8 +15,11 @@ package lockbox
 
 import (
 	"context"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	b64 "encoding/base64"
 	"encoding/json"
+	"math/big"
 	"testing"
 	"time"
 
@@ -82,6 +85,21 @@ func TestNewClient(t *testing.T) {
 	tassert.Nil(t, secretClient)
 
 	err = createK8sSecret(ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, newFakeAuthorizedKey())
+	tassert.Nil(t, err)
+
+	const caCertificateSecretName = "caCertificateSecretName"
+	const caCertificateSecretKey = "caCertificateSecretKey"
+	store.Spec.Provider.YandexLockbox.CAProvider = &esv1alpha1.YandexLockboxCAProvider{
+		Certificate: esmeta.SecretKeySelector{
+			Key: caCertificateSecretKey,
+			Name: caCertificateSecretName,
+		},
+	}
+	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	tassert.EqualError(t, err, "could not fetch CA certificate secret: secrets \"caCertificateSecretName\" not found")
+	tassert.Nil(t, secretClient)
+
+	err = createK8sSecret(ctx, k8sClient, namespace, caCertificateSecretName, caCertificateSecretKey, newFakeCACertificate())
 	tassert.Nil(t, err)
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, "failed to create Yandex Lockbox client: private key parsing failed: Invalid Key: Key must be PEM encoded PKCS1 or PKCS8 private key")
@@ -651,6 +669,26 @@ func newFakeAuthorizedKey() *iamkey.Key {
 		},
 		PrivateKey: uniqueLabel,
 	}
+}
+
+func newFakeCACertificate() []byte {
+	cert := x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"Company, INC."},
+			Country:       []string{"US"},
+			Locality:      []string{"San Francisco"},
+			StreetAddress: []string{"Golden Gate Bridge"},
+			PostalCode:    []string{"94016"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	return cert.Raw
 }
 
 func textEntry(key, value string) *lockbox.Payload_Entry {
