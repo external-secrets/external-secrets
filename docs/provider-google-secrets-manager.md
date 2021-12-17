@@ -2,39 +2,67 @@
 
 External Secrets Operator integrates with [GCP Secret Manager](https://cloud.google.com/secret-manager) for secret management.
 
-### Service account key authentication
+## Authentication
 
-A service account key is created and the JSON keyfile is stored in a `Kind=Secret`. The `project_id` and `private_key` should be configured for the project.
+### Workload Identity
+
+Your Google Kubernetes Engine (GKE) applications can consume GCP services like Secrets Manager without using static, long-lived authentication tokens. This is our recommended approach of handling credentials in GCP. ESO offers two options for integrating with GKE workload identity: **pod-based workload identity** and **using service accounts directly**. Before using either way you need to create a service account - this is covered below.
+
+#### Creating Workload Identity Service Accounts
+
+You can find the documentation for Workload Identity [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity). We will walk you through how to navigate it here.
+
+Search [the documment](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for this editable values and change them to your values:
+
+- `CLUSTER_NAME`: The name of your cluster
+- `PROJECT_ID`: Your project ID (not your Project number nor your Project name)
+- `K8S_NAMESPACE`: For us folowing these steps here it will be `es`, but this will be the namespace where you deployed the external-secrets operator
+- `KSA_NAME`: external-secrets (if you are not creating a new one to attach to the deployemnt)
+- `GSA_NAME`: external-secrets for simplicity, or something else if you have to follow different naming convetions for cloud resources
+- `ROLE_NAME`: should be `roles/secretmanager.secretAccessor` - so you make the pod only be able to access secrets on Secret Manager
+
+#### Using Service Accounts directly
+
+Let's assume you have created a service account correctly and attached a appropriate workload identity. It should roughly look like this:
 
 ```yaml
-{% include 'gcpsm-credentials-secret.yaml' %}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: team-a
+  namespace: team-a
+  annotations:
+    iam.gke.io/gcp-service-account: example-team-a@my-project.iam.gserviceaccount.com
 ```
 
-### Update secret store
-Be sure the `gcpsm` provider is listed in the `Kind=SecretStore`
+You can reference this particular ServiceAccount in a `SecretStore` or `ClusterSecretStore`. It's important that you also set the `projectID`, `clusterLocation` and `clusterName`. The Namespace on the `serviceAccountRef` is ignored when using a `SecretStore` resource. This is needed to isolate the namespaces properly.
 
 ```yaml
-{% include 'gcpsm-secret-store.yaml' %}
+apiVersion: external-secrets.io/v1alpha1
+kind: ClusterSecretStore
+metadata:
+  name: gcp-wi
+spec:
+  provider:
+    gcpsm:
+      projectID: my-project
+      auth:
+        workloadIdentity:
+          # name of the cluster region
+          clusterLocation: europe-central2
+          # name of the GKE cluster
+          clusterName: example-workload-identity
+          # reference the sa from above
+          serviceAccountRef:
+            name: team-a
+            namespace: team-a
 ```
 
-### Creating external secret
+#### Using Pod-based Workload Identity
 
-To create a kubernetes secret from the GCP Secret Manager secret a `Kind=ExternalSecret` is needed.
+You can attach a Workload Identity directly to the ESO pod. ESO then has access to all the APIs defined in the attached service account policy. You attach the workload identity by (1) creating a service account with a attached workload identity (described above) and (2) using this particular service account in the pod's `serviceAccountName` field.
 
-```yaml
-{% include 'gcpsm-external-secret.yaml' %}
-```
-
-The operator will fetch the GCP Secret Manager secret and inject it as a `Kind=Secret`
-```
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
-```
-
-## Authentication with Workload Identity
-
-This makes it possible for your Google Kubernetes Engine (GKE) applications to consume services provided by Google APIs, namely Secrets Manager service in this case.
-
-Here we will assume that you installed ESO using helm and that you named the chart installation `external-secrets` and the namespace where it lives `es` like:
+For this example we will assume that you installed ESO using helm and that you named the chart installation `external-secrets` and the namespace where it lives `es` like:
 
 ```sh
 helm install external-secrets external-secrets/external-secrets --namespace es
@@ -42,7 +70,7 @@ helm install external-secrets external-secrets/external-secrets --namespace es
 
 Then most of the resources would have this name, the important one here being the k8s service account attached to the external-secrets operator deployment:
 
-```
+```yaml
 # ...
       containers:
       - image: ghcr.io/external-secrets/external-secrets:vVERSION
@@ -56,30 +84,10 @@ Then most of the resources would have this name, the important one here being th
       serviceAccountName: external-secrets # <--- here
 ```
 
-### Following the documentation
+The pod now has the identity. Now you need to configure the `SecretStore`.
+You just need to set the `projectID`, all other fields can be omitted.
 
-You can find the documentation for Workload Identity under [this url](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity). We will walk you through how to navigate it here.
-
-#### Changing Values
-
-Search [the documment](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for this editable values and change them to your values:
-
-- CLUSTER_NAME: The name of your cluster
-- PROJECT_ID: Your project ID (not your Project number nor your Project name)
-- K8S_NAMESPACE: For us folowing these steps here it will be `es`, but this will be the namespace where you deployed the external-secrets operator
-- KSA_NAME: external-secrets (if you are not creating a new one to attach to the deployemnt)
-- GSA_NAME: external-secrets for simplicity, or something else if you have to follow different naming convetions for cloud resources
-- ROLE_NAME: roles/secretmanager.secretAccessor so you make the pod only be able to access secrets on Secret Manager
-
-#### Following through
-
-You can follow through the documentation and adapt it to your specific use case. If you want to just use the serviceaccount that we deployed with the helm chart, for example, you don't need to create a new service account on 2 of [Authenticating to Google Cloud](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#authenticating_to).
-
-#### SecretStore with WorkloadIdentity
-
-To use workload identity you can just omit the auth field of the secret store and let the operator client fall back to defaults using the roles attached to your service account.
-
-```
+```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: SecretStore
 metadata:
@@ -89,3 +97,32 @@ spec:
     gcpsm:
       projectID: pid
 ```
+
+### GCP Service Account authentication
+
+You can use [GCP Service Account](https://cloud.google.com/iam/docs/service-accounts) to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a `Kind=Secret`. ESO will use that Secret to authenticate with GCP. See here how you [manage GCP Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
+
+```yaml
+{% include 'gcpsm-credentials-secret.yaml' %}
+```
+
+#### Update secret store
+Be sure the `gcpsm` provider is listed in the `Kind=SecretStore`
+
+```yaml
+{% include 'gcpsm-secret-store.yaml' %}
+```
+
+#### Creating external secret
+
+To create a kubernetes secret from the GCP Secret Manager secret a `Kind=ExternalSecret` is needed.
+
+```yaml
+{% include 'gcpsm-external-secret.yaml' %}
+```
+
+The operator will fetch the GCP Secret Manager secret and inject it as a `Kind=Secret`
+```
+kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
+```
+
