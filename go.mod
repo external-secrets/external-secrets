@@ -81,7 +81,8 @@ require (
 	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/api v0.45.0
 	google.golang.org/genproto v0.0.0-20210413151531-c14fb6ef47c3
-	google.golang.org/grpc v1.37.0
+	google.golang.org/grpc v1.43.0
+	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	honnef.co/go/tools v0.1.4 // indirect
 	k8s.io/api v0.21.3
 	k8s.io/apimachinery v0.21.3

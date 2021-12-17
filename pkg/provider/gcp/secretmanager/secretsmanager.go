@@ -21,10 +21,11 @@ import (
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go"
 	"github.com/tidwall/gjson"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
-	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,11 +41,12 @@ const (
 
 	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
 	errClientClose                            = "unable to close SecretManager client: %w"
+	errMissingStoreSpec                       = "invalid: missing store spec"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid ClusterSecretStore: missing GCP SecretAccessKey Namespace"
+	errInvalidClusterStoreMissingSANamespace  = "invalid ClusterSecretStore: missing GCP Service Account Namespace"
 	errFetchSAKSecret                         = "could not fetch SecretAccessKey secret: %w"
 	errMissingSAK                             = "missing SecretAccessKey"
 	errUnableProcessJSONCredentials           = "failed to process the provided JSON credentials: %w"
-	errUnableProcessDefaultCredentials        = "failed to process the default credentials: %w"
 	errUnableCreateGCPSMClient                = "failed to create GCP secretmanager client: %w"
 	errUninitalizedGCPProvider                = "provider GCP is not initialized"
 	errClientGetSecretAccess                  = "unable to access Secret from SecretManager Client: %w"
@@ -63,43 +65,64 @@ type ProviderGCP struct {
 }
 
 type gClient struct {
-	kube        kclient.Client
-	store       *esv1alpha1.GCPSMProvider
-	namespace   string
-	storeKind   string
-	credentials []byte
+	kube             kclient.Client
+	store            *esv1alpha1.GCPSMProvider
+	namespace        string
+	storeKind        string
+	workloadIdentity *workloadIdentity
 }
 
-func (c *gClient) setAuth(ctx context.Context) error {
-	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.SecretAccessKey.Name
+func (c *gClient) getTokenSource(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+	ts, err := serviceAccountTokenSource(ctx, store, kube, namespace)
+	if ts != nil || err != nil {
+		return ts, err
+	}
+	ts, err = c.workloadIdentity.TokenSource(ctx, store, kube, namespace)
+	if ts != nil || err != nil {
+		return ts, err
+	}
+
+	return google.DefaultTokenSource(ctx, CloudPlatformRole)
+}
+
+func serviceAccountTokenSource(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+	spec := store.GetSpec()
+	if spec == nil || spec.Provider.GCPSM == nil {
+		return nil, fmt.Errorf(errMissingStoreSpec)
+	}
+	sr := spec.Provider.GCPSM.Auth.SecretRef
+	if sr == nil {
+		return nil, nil
+	}
+	storeKind := store.GetObjectKind().GroupVersionKind().Kind
+	credentialsSecret := &v1.Secret{}
+	credentialsSecretName := sr.SecretAccessKey.Name
 	objectKey := types.NamespacedName{
 		Name:      credentialsSecretName,
-		Namespace: c.namespace,
+		Namespace: namespace,
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
-		if credentialsSecretName != "" && c.store.Auth.SecretRef.SecretAccessKey.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
+	if storeKind == esv1alpha1.ClusterSecretStoreKind {
+		if credentialsSecretName != "" && sr.SecretAccessKey.Namespace == nil {
+			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		} else if credentialsSecretName != "" {
-			objectKey.Namespace = *c.store.Auth.SecretRef.SecretAccessKey.Namespace
+			objectKey.Namespace = *sr.SecretAccessKey.Namespace
 		}
 	}
-	if credentialsSecretName == "" {
-		c.credentials = nil
-		return nil
-	}
-	err := c.kube.Get(ctx, objectKey, credentialsSecret)
+	err := kube.Get(ctx, objectKey, credentialsSecret)
 	if err != nil {
-		return fmt.Errorf(errFetchSAKSecret, err)
+		return nil, fmt.Errorf(errFetchSAKSecret, err)
 	}
-
-	c.credentials = credentialsSecret.Data[c.store.Auth.SecretRef.SecretAccessKey.Key]
-	if (c.credentials == nil) || (len(c.credentials) == 0) {
-		return fmt.Errorf(errMissingSAK)
+	credentials := credentialsSecret.Data[sr.SecretAccessKey.Key]
+	if (credentials == nil) || (len(credentials) == 0) {
+		return nil, fmt.Errorf(errMissingSAK)
 	}
-	return nil
+	config, err := google.JWTConfigFromJSON(credentials, CloudPlatformRole)
+	if err != nil {
+		return nil, fmt.Errorf(errUnableProcessJSONCredentials, err)
+	}
+	return config.TokenSource(ctx), nil
 }
 
 // NewClient constructs a GCP Provider.
@@ -110,36 +133,26 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericSt
 	}
 	storeSpecGCPSM := storeSpec.Provider.GCPSM
 
-	cliStore := gClient{
-		kube:      kube,
-		store:     storeSpecGCPSM,
-		namespace: namespace,
-		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+	wi, err := newWorkloadIdentity(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize workload identity")
 	}
 
-	if err := cliStore.setAuth(ctx); err != nil {
-		return nil, err
+	cliStore := gClient{
+		kube:             kube,
+		store:            storeSpecGCPSM,
+		namespace:        namespace,
+		storeKind:        store.GetObjectKind().GroupVersionKind().Kind,
+		workloadIdentity: wi,
 	}
 
 	sm.projectID = cliStore.store.ProjectID
 
-	if cliStore.credentials != nil {
-		config, err := google.JWTConfigFromJSON(cliStore.credentials, CloudPlatformRole)
-		if err != nil {
-			return nil, fmt.Errorf(errUnableProcessJSONCredentials, err)
-		}
-		ts := config.TokenSource(ctx)
-		clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
-		if err != nil {
-			return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
-		}
-		sm.SecretManagerClient = clientGCPSM
-		return sm, nil
-	}
-	ts, err := google.DefaultTokenSource(ctx, CloudPlatformRole)
+	ts, err := cliStore.getTokenSource(ctx, store, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf(errUnableProcessDefaultCredentials, err)
+		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}
+
 	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
