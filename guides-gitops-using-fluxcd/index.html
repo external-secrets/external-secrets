@@ -14,7 +14,7 @@
     
     
       
-        <title>Developer guide - External Secrets Operator</title>
+        <title>GitOps using FluxCD - External Secrets Operator</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started" class="md-skip">
+        <a href="#gitops-using-fluxcd-v2" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Developer guide
+              GitOps using FluxCD
             
           </span>
         </div>
@@ -302,12 +302,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
       
       <label class="md-nav__link" for="__nav_4">
         Guides
@@ -419,11 +421,121 @@
             
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../guides-gitops-using-fluxcd/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          GitOps using FluxCD
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         GitOps using FluxCD
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#advantages" class="md-nav__link">
+    Advantages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-approach" class="md-nav__link">
+    The approach
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-problem" class="md-nav__link">
+    The problem
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-solution" class="md-nav__link">
+    The solution
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-the-main-kustomization" class="md-nav__link">
+    Create the main kustomization
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-the-secret" class="md-nav__link">
+    Create the secret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-the-references-to-repositories" class="md-nav__link">
+    Creating the references to repositories
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-the-crds" class="md-nav__link">
+    Deploy the CRDs
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-the-operator" class="md-nav__link">
+    Deploy the operator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-the-crs" class="md-nav__link">
+    Deploy the CRs
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results" class="md-nav__link">
+    Results
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -821,14 +933,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" >
       
       <label class="md-nav__link" for="__nav_7">
         Contributing
@@ -844,68 +954,11 @@
             
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Developer guide
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../contributing-devguide/" class="md-nav__link">
         Developer guide
       </a>
-      
-        
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
-    Getting Started
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#building-testing" class="md-nav__link">
-    Building &amp; Testing
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installing" class="md-nav__link">
-    Installing
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#documentation" class="md-nav__link">
-    Documentation
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -971,6 +1024,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -979,29 +1034,78 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
-    Getting Started
+  <a href="#advantages" class="md-nav__link">
+    Advantages
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#building-testing" class="md-nav__link">
-    Building &amp; Testing
+  <a href="#the-approach" class="md-nav__link">
+    The approach
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installing" class="md-nav__link">
-    Installing
+  <a href="#the-problem" class="md-nav__link">
+    The problem
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#documentation" class="md-nav__link">
-    Documentation
+  <a href="#the-solution" class="md-nav__link">
+    The solution
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-the-main-kustomization" class="md-nav__link">
+    Create the main kustomization
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-the-secret" class="md-nav__link">
+    Create the secret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-the-references-to-repositories" class="md-nav__link">
+    Creating the references to repositories
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-the-crds" class="md-nav__link">
+    Deploy the CRDs
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-the-operator" class="md-nav__link">
+    Deploy the operator
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-the-crs" class="md-nav__link">
+    Deploy the CRs
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results" class="md-nav__link">
+    Results
   </a>
   
 </li>
@@ -1018,89 +1122,228 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/contributing-devguide.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-gitops-using-fluxcd.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                  <h1>Developer guide</h1>
-                
-                <h2 id="getting-started">Getting Started</h2>
-<p>You must have a working <a href="https://golang.org/doc/install">Go environment</a> and
-then clone the repo:</p>
-<div class="highlight"><pre><span></span><code>git clone https://github.com/external-secrets/external-secrets.git
-<span class="nb">cd</span> external-secrets
+                <h1 id="gitops-using-fluxcd-v2">GitOps using FluxCD (v2)</h1>
+<p>FluxCD is a GitOps operator for Kubernetes. It synchronizes the status of the cluster from manifests allocated in
+different repositories (Git or Helm). This approach fits perfectly with External Secrets on clusters which are dynamically
+created, to get credentials with no manual intervention from the beginning.</p>
+<h2 id="advantages">Advantages</h2>
+<p>This approach has several advantages as follows:</p>
+<ul>
+<li><strong>Homogenize environments</strong> allowing developers to use the same toolset in Kind in the same way they do in the cloud
+  provider distributions such as EKS or GKE. This accelerates the development</li>
+<li><strong>Reduce security risks</strong>, because credentials can be easily obtained, so temptation to store them locally is reduced.</li>
+<li><strong>Application compatibility increase</strong>: Applications are deployed in different ways, and sometimes they need to share
+  credentials. This can be done using External Secrets as a wire for them at real time.</li>
+<li><strong>Automation by default</strong> oh, come on!</li>
+</ul>
+<h2 id="the-approach">The approach</h2>
+<p>FluxCD is composed by several controllers dedicated to manage different custom resources. The most important
+ones are <strong>Kustomization</strong> (to clarify, Flux one, not Kubernetes' one) and <strong>HelmRelease</strong> to deploy using the approaches
+of the same names.</p>
+<p>External Secrets can be deployed using Helm <a href="../guides-getting-started/">as explained here</a>. The deployment includes the
+CRDs if enabled on the <code>values.yaml</code>, but after this, you need to deploy some <code>SecretStore</code> to start
+getting credentials from your secrets manager with External Secrets.</p>
+<blockquote>
+<p>The idea of this guide is to deploy the whole stack, using flux, needed by developers not to worry about the credentials,
+but only about the application and its code.</p>
+</blockquote>
+<h2 id="the-problem">The problem</h2>
+<p>This can sound easy, but External Secrets is deployed using Helm, which is managed by the HelmController,
+and your custom resources, for example a <code>ClusterSecretStore</code> and the related <code>Secret</code>, are often deployed using a
+<code>kustomization.yaml</code>, which is deployed by the KustomizeController.</p>
+<p>Both controllers manage the resources independently, at different moments, with no possibility to wait each other.
+This means that we have a wonderful race condition where sometimes the CRs (<code>SecretStore</code>,<code>ClusterSecretStore</code>...) tries
+to be deployed before than the CRDs needed to recognize them.</p>
+<h2 id="the-solution">The solution</h2>
+<p>Let's see the conditions to start working on a solution:</p>
+<ul>
+<li>The External Secrets operator is deployed with Helm, and admits disabling the CRDs deployment</li>
+<li>The race condition only affects the deployment of <code>CustomResourceDefinition</code> and the CRs needed later</li>
+<li>CRDs can be deployed directly from the Git repository of the project using a Flux <code>Kustomization</code></li>
+<li>Required CRs can be deployed using a Flux <code>Kustomization</code> too, allowing dependency between CRDs and CRs</li>
+<li>All previous manifests can be applied with a Kubernetes <code>kustomization</code></li>
+</ul>
+<h2 id="create-the-main-kustomization">Create the main kustomization</h2>
+<p>To have a better view of things needed later, the first manifest to be created is the <code>kustomization.yaml</code></p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kustomize.config.k8s.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
+
+<span class="nt">resources</span><span class="p">:</span>
+<span class="c1"># Deploy the Vault access secret</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">namespace.yaml</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">secret-token.yaml</span>
+
+<span class="c1"># Deploy the repositories</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">repositories.yaml</span>
+
+<span class="c1"># Deploy the CRDs</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">deployment-crds.yaml</span>
+
+<span class="c1"># Deploy the operator</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">deployment.yaml</span>
+
+<span class="c1"># Deploy default Custom Resources from &#39;crs&#39; directory</span>
+<span class="c1"># INFO: This depends on the CRDs deployment. Will happen after it</span>
+<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">deployment-crs.yaml</span>
 </code></pre></div>
 
-<p>If you want to run controller tests you also need to install kubebuilder's <code>envtest</code>:</p>
-<div class="highlight"><pre><span></span><code>export KUBEBUILDER_TOOLS_VERSION=&#39;1.20.2&#39; # check for latest version or a version that has support to what you are testing
-
-curl -sSLo envtest-bins.tar.gz &quot;https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$KUBEBUILDER_TOOLS_VERSION-linux-amd64.tar.gz&quot;
-
-sudo mkdir -p /usr/local/kubebuilder
-sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz
+<h2 id="create-the-secret">Create the secret</h2>
+<p>To access your secret manager, External Secrets needs some credentials. They are stored inside a Secret, which is intended
+to be deployed by automation as a good practise. This time, a placeholder called <code>secret-token.yaml</code> is show as an example:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># The namespace.yaml first</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Namespace</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 </code></pre></div>
 
-<h2 id="building-testing">Building &amp; Testing</h2>
-<p>The project uses the <code>make</code> build system. It'll run code generators, tests and
-static code analysis.</p>
-<p>Building the operator binary and docker image:</p>
-<div class="highlight"><pre><span></span><code>make build
-make docker.build <span class="nv">IMG</span><span class="o">=</span>external-secrets:latest
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-token-global</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<span class="nt">stringData</span><span class="p">:</span>
+  <span class="c1"># This token must be patched by overlays. Not here for security reasons</span>
+  <span class="nt">token</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">change-me-placeholder</span>
 </code></pre></div>
 
-<p>Run tests and lint the code:
-<div class="highlight"><pre><span></span><code>make <span class="nb">test</span>
-make lint
-</code></pre></div></p>
-<p>Build the documentation:
-<div class="highlight"><pre><span></span><code>make docs
-</code></pre></div></p>
-<h2 id="installing">Installing</h2>
-<p>To install the External Secret Operator into a Kubernetes Cluster run:</p>
-<div class="highlight"><pre><span></span><code>helm repo add external-secrets https://charts.external-secrets.io
-helm repo update
-helm install external-secrets external-secrets/external-secrets
+<h2 id="creating-the-references-to-repositories">Creating the references to repositories</h2>
+<p>Create a manifest called <code>repositories.yaml</code> to store the references to external repositories for Flux</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Reference to Helm repository</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">HelmRepository</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
+  <span class="nt">url</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://charts.external-secrets.io</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
+  <span class="nt">ref</span><span class="p">:</span>
+    <span class="nt">branch</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">main</span>
+  <span class="nt">url</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">http://github.com/external-secrets/external-secrets</span>
 </code></pre></div>
 
-<p>You can alternatively run the controller on your host system for development purposes:</p>
-<div class="highlight"><pre><span></span><code>make crds.install
-make run
+<h2 id="deploy-the-crds">Deploy the CRDs</h2>
+<p>As mentioned, CRDs can be deployed using the official Helm package, but to solve the race condition, they will be deployed
+from our git repository using a Kustomization manifest called <code>deployment-crds.yaml</code> as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1beta2</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
+  <span class="nt">path</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">./deploy/crds</span>
+  <span class="nt">prune</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="nt">sourceRef</span><span class="p">:</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 </code></pre></div>
 
-<p>To remove the CRDs run:</p>
-<div class="highlight"><pre><span></span><code>make crds.uninstall
+<h2 id="deploy-the-operator">Deploy the operator</h2>
+<p>The operator is deployed using a HelmRelease manifest to deploy the Helm package, but due to the special race condition,
+the deployment must be disabled in the <code>values</code> of the manifest called <code>deployment.yaml</code>, as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># How to manage values files. Ref: https://fluxcd.io/docs/guides/helmreleases/#refer-to-values-inside-the-chart</span>
+<span class="c1"># How to inject values: https://fluxcd.io/docs/guides/helmreleases/#cloud-storage</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">helm.toolkit.fluxcd.io/v2beta1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">HelmRelease</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="c1"># Override Release name to avoid the pattern Namespace-Release</span>
+  <span class="c1"># Ref: https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io/v2beta1.HelmRelease</span>
+  <span class="nt">releaseName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+  <span class="nt">targetNamespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
+  <span class="nt">chart</span><span class="p">:</span>
+    <span class="nt">spec</span><span class="p">:</span>
+      <span class="nt">chart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.3.9</span>
+      <span class="nt">sourceRef</span><span class="p">:</span>
+        <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">HelmRepository</span>
+        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+        <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+  <span class="nt">values</span><span class="p">:</span>
+    <span class="nt">installCRDs</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+
+  <span class="c1"># Ref: https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io/v2beta1.Install</span>
+  <span class="nt">install</span><span class="p">:</span>
+    <span class="nt">createNamespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
 
-<p>If you need to test some other k8s integrations and need the operator to be deployed to the actuall cluster while developing, you can use the following workflow:</p>
-<div class="highlight"><pre><span></span><code>kind create cluster --name external-secrets
-
-export TAG=v2
-export IMAGE=eso-local
-
-docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux
-
-make helm.generate
-helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
+<h2 id="deploy-the-crs">Deploy the CRs</h2>
+<p>Now, be ready for the arcane magic. Create a Kustomization manifest called <code>deployment-crs.yaml</code> with the following content:</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1beta2</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets-crs</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">dependsOn</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span>
+  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
+  <span class="nt">path</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/crs</span>
+  <span class="nt">prune</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+  <span class="nt">sourceRef</span><span class="p">:</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
 </code></pre></div>
 
-<div class="admonition note">
-<p class="admonition-title">Contributing Flow</p>
-<p>The HOW TO guide for contributing is at the <a href="../contributing-process/">Contributing Process</a> page.</p>
-</div>
-<h2 id="documentation">Documentation</h2>
-<p>We use <a href="https://squidfunk.github.io/mkdocs-material/">mkdocs material</a> to generate this
-documentation. See <code>/docs</code> for the source code and <code>/hack/api-docs</code> for the build process.</p>
-<p>When writing documentation it is advised to run the mkdocs server with livereload:</p>
-<div class="highlight"><pre><span></span><code>make serve-docs
+<p>There are several interesting details to see here, that finally solves the race condition:</p>
+<ol>
+<li>First one is the field <code>dependsOn</code>, which points to a previous Kustomization called <code>external-secrets-crds</code>. This
+   dependency forces this deployment to wait for the other to be ready, before start being deployed.</li>
+<li>The reference to the place where to find the CRs
+   <div class="highlight"><pre><span></span><code><span class="nt">path</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/crs</span>
+<span class="nt">sourceRef</span><span class="p">:</span>
+ <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
+ <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+</code></pre></div>
+   Custom Resources will be searched in the relative path <code>./infrastructure/external-secrets/crs</code> of the GitRepository
+   called <code>flux-system</code>, which is a reference to the same repository that FluxCD watches to synchronize the cluster.
+   With fewer words, a reference to itself, but going to another directory called <code>crs</code></li>
+</ol>
+<p>Of course, allocate inside the mentioned path <code>./infrastructure/external-secrets/crs</code>, all the desired CRs to be deployed,
+for example, a manifest <code>clusterSecretStore.yaml</code> to reach your Hashicorp Vault as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend-global</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">vault</span><span class="p">:</span>
+      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.your-domain.com&quot;</span>
+      <span class="nt">path</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v2</span>
+      <span class="nt">auth</span><span class="p">:</span>
+        <span class="c1"># points to a secret that contains a vault token</span>
+        <span class="c1"># https://www.vaultproject.io/docs/auth/token</span>
+        <span class="nt">tokenSecretRef</span><span class="p">:</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;vault-token-global&quot;</span>
+          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;token&quot;</span>
+          <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 </code></pre></div>
 
-<p>Run the following command to run a complete build. The rendered assets are available under <code>/site</code>.</p>
-<div class="highlight"><pre><span></span><code>make docs
-make serve-docs
-</code></pre></div>
-
-<p>Open <code>http://localhost:8000</code> in your browser.</p>
+<h2 id="results">Results</h2>
+<p>At the end, the required files tree is shown in the following picture:</p>
+<p><img alt="FluxCD files tree" src="../pictures/screenshot_gitops_final_directory_tree.png" /></p>
                 
               
               
@@ -1120,7 +1363,7 @@ make serve-docs
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../spec/" class="md-footer__link md-footer__link--prev" aria-label="Previous: API specification" rel="prev">
+        <a href="../guides-using-latest-image/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Using Latest Image" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1129,20 +1372,20 @@ make serve-docs
               <span class="md-footer__direction">
                 Previous
               </span>
-              API specification
+              Using Latest Image
             </div>
           </div>
         </a>
       
       
         
-        <a href="../contributing-process/" class="md-footer__link md-footer__link--next" aria-label="Next: Contributing Process" rel="next">
+        <a href="../provider-aws-secrets-manager/" class="md-footer__link md-footer__link--next" aria-label="Next: Secrets Manager" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Contributing Process
+              Secrets Manager
             </div>
           </div>
           <div class="md-footer__button md-icon">
