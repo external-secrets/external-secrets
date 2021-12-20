@@ -25,13 +25,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
@@ -172,9 +172,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	var namespaceList *v1.NamespaceList
 
 	if externalSecret.Spec.Target.NamespaceSelector != nil {
-		labelMap, _ := metav1.LabelSelectorAsMap(externalSecret.Spec.Target.NamespaceSelector)
-
-		namespaceList, err = namespaces.List(ctx, metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap).String()})
+		namespaceList, err = namespaces.List(ctx, metav1.ListOptions{LabelSelector: externalSecret.Spec.Target.NamespaceSelector.String()})
 		if err != nil {
 			log.Error(err, errStoreClient)
 			setError(syncCallsMetricLabels, &externalSecret, err)
@@ -232,10 +230,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		mutationFunc := func() error {
 			if externalSecret.Spec.Target.CreationPolicy == esv1alpha1.Owner {
-				/*err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
+				err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
 				if err != nil {
 					return fmt.Errorf(errSetCtrlReference, err)
-				}*/
+				}
 			}
 
 			dataMap, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
