@@ -123,7 +123,7 @@ func (s *gcpProvider) BeforeEach() {
 				GCPSM: &esv1alpha1.GCPSMProvider{
 					ProjectID: s.projectID,
 					Auth: esv1alpha1.GCPSMAuth{
-						SecretRef: esv1alpha1.GCPSMAuthSecretRef{
+						SecretRef: &esv1alpha1.GCPSMAuthSecretRef{
 							SecretAccessKey: esmeta.SecretKeySelector{
 								Name: "provider-secret",
 								Key:  "secret-access-credentials",

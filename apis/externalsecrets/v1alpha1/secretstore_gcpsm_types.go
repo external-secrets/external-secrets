@@ -19,13 +19,22 @@ import (
 )
 
 type GCPSMAuth struct {
-	SecretRef GCPSMAuthSecretRef `json:"secretRef"`
+	// +optional
+	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
+	// +optional
+	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
 }
 
 type GCPSMAuthSecretRef struct {
 	// The SecretAccessKey is used for authentication
 	// +optional
 	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
+}
+
+type GCPWorkloadIdentity struct {
+	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+	ClusterLocation   string                        `json:"clusterLocation"`
+	ClusterName       string                        `json:"clusterName"`
 }
 
 // GCPSMProvider Configures a store to sync secrets using the GCP Secret Manager provider.
