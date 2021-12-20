@@ -107,6 +107,11 @@ type ExternalSecretTarget struct {
 	// Immutable defines if the final secret will be immutable
 	// +optional
 	Immutable bool `json:"immutable,omitempty"`
+
+	// NamespaceSelector defines if we want to deploy this secret to multiple namespaces
+	// Only useable with ClusterSecretStore, if not provided will default to the current namespace
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 }
 
 // ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.
