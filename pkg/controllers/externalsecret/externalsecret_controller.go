@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -165,131 +164,96 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		secretName = externalSecret.ObjectMeta.Name
 	}
 
-	// Fetch namespaces, or add single namespace
-	generatedClient := kubernetes.NewForConfigOrDie(ctrl.GetConfigOrDie())
-	namespaces := generatedClient.CoreV1().Namespaces()
-
-	var namespaceList *v1.NamespaceList
-
-	if externalSecret.Spec.Target.NamespaceSelector != nil {
-		namespaceList, err = namespaces.List(ctx, metav1.ListOptions{LabelSelector: externalSecret.Spec.Target.NamespaceSelector.String()})
-		if err != nil {
-			log.Error(err, errStoreClient)
-			setError(syncCallsMetricLabels, &externalSecret, err)
-			return ctrl.Result{RequeueAfter: requeueAfter}, nil
-		}
-	} else {
-		namespaceList = &v1.NamespaceList{
-			Items: make([]v1.Namespace, 1),
-		}
-
-		namespaceList.Items[0] = v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: externalSecret.Namespace,
-			},
-		}
+	// fetch external secret, we need to ensure that it exists, and it's hashmap corresponds
+	var existingSecret v1.Secret
+	err = r.Get(ctx, types.NamespacedName{
+		Name:      secretName,
+		Namespace: externalSecret.Namespace,
+	}, &existingSecret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		log.Error(err, errGetExistingSecret)
 	}
 
-	for _, namespace := range namespaceList.Items {
-		// If we shouldn't be reconciling the external secret then stop and return.
-		if !shouldReconcile(externalSecret) {
-			log.V(1).Info("stopping reconciling", "rv", getResourceVersion(externalSecret))
-			return ctrl.Result{
-				RequeueAfter: 0,
-				Requeue:      false,
-			}, nil
-		}
+	// refresh should be skipped if
+	// 1. resource generation hasn't changed
+	// 2. refresh interval is 0
+	// 3. if we're still within refresh-interval
+	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
+		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
+		return ctrl.Result{RequeueAfter: refreshInt}, nil
+	}
+	if !shouldReconcile(externalSecret) {
+		log.V(1).Info("stopping reconciling", "rv", getResourceVersion(externalSecret))
+		return ctrl.Result{
+			RequeueAfter: 0,
+			Requeue:      false,
+		}, nil
+	}
 
-		// fetch external secret, we need to ensure that it exists, and it's hashmap corresponds
-		var existingSecret v1.Secret
-		err = r.Get(ctx, types.NamespacedName{
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
-			Namespace: namespace.Name,
-		}, &existingSecret)
-		if err != nil && !apierrors.IsNotFound(err) {
-			log.Error(err, errGetExistingSecret)
-		}
+			Namespace: externalSecret.Namespace,
+		},
+		Immutable: &externalSecret.Spec.Target.Immutable,
+		Data:      make(map[string][]byte),
+	}
 
-		// refresh should be skipped if
-		// 1. resource generation hasn't changed
-		// 2. refresh interval is 0
-		// 3. if we're still within refresh-interval
-		if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
-			log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
-			continue
-		}
-
-		secret := &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: namespace.Name,
-			},
-			Immutable: &externalSecret.Spec.Target.Immutable,
-			Data:      make(map[string][]byte),
-		}
-
-		mutationFunc := func() error {
-			if externalSecret.Spec.Target.CreationPolicy == esv1alpha1.Owner {
-				err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
-				if err != nil {
-					return fmt.Errorf(errSetCtrlReference, err)
-				}
-			}
-
-			dataMap, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
+	mutationFunc := func() error {
+		if externalSecret.Spec.Target.CreationPolicy == esv1alpha1.Owner {
+			err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
 			if err != nil {
-				return fmt.Errorf(errGetSecretData, err)
+				return fmt.Errorf(errSetCtrlReference, err)
 			}
-
-			err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
-			if err != nil {
-				return fmt.Errorf(errApplyTemplate, err)
-			}
-
-			return nil
 		}
 
-		// nolint
-		switch externalSecret.Spec.Target.CreationPolicy {
-		case esv1alpha1.Merge:
-			err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc)
-		case esv1alpha1.None:
-			log.V(1).Info("secret creation skipped due to creationPolicy=None")
-			err = nil
-		default:
-			_, err = ctrl.CreateOrUpdate(ctx, r.Client, secret, mutationFunc)
-		}
-
+		dataMap, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
 		if err != nil {
-			log.Error(err, errReconcileES)
-			conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
-			SetExternalSecretCondition(&externalSecret, *conditionSynced)
-			syncCallsError.With(syncCallsMetricLabels).Inc()
-			continue
+			return fmt.Errorf(errGetSecretData, err)
 		}
 
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
-		currCond := GetExternalSecretCondition(externalSecret.Status, esv1alpha1.ExternalSecretReady)
-		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
-		externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
-		syncCallsTotal.With(syncCallsMetricLabels).Inc()
-		if currCond == nil || currCond.Status != conditionSynced.Status {
-			log.Info("reconciled secret") // Log once if on success in any verbosity
-		} else {
-			log.V(1).Info("reconciled secret") // Log all reconciliation cycles if higher verbosity applied
+		err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
+		if err != nil {
+			return fmt.Errorf(errApplyTemplate, err)
 		}
+
+		return nil
+	}
+
+	// nolint
+	switch externalSecret.Spec.Target.CreationPolicy {
+	case esv1alpha1.Merge:
+		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc)
+	case esv1alpha1.None:
+		log.V(1).Info("secret creation skipped due to creationPolicy=None")
+		err = nil
+	default:
+		_, err = ctrl.CreateOrUpdate(ctx, r.Client, secret, mutationFunc)
+	}
+
+	if err != nil {
+		log.Error(err, errReconcileES)
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		SetExternalSecretCondition(&externalSecret, *conditionSynced)
+		syncCallsError.With(syncCallsMetricLabels).Inc()
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
+	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
+	currCond := GetExternalSecretCondition(externalSecret.Status, esv1alpha1.ExternalSecretReady)
+	SetExternalSecretCondition(&externalSecret, *conditionSynced)
+	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
+	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
+	syncCallsTotal.With(syncCallsMetricLabels).Inc()
+	if currCond == nil || currCond.Status != conditionSynced.Status {
+		log.Info("reconciled secret") // Log once if on success in any verbosity
+	} else {
+		log.V(1).Info("reconciled secret") // Log all reconciliation cycles if higher verbosity applied
 	}
 
 	return ctrl.Result{
 		RequeueAfter: refreshInt,
 	}, nil
-}
-
-func setError(metricsLabel prometheus.Labels, externalSecret *esv1alpha1.ExternalSecret, err error) {
-	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
-	SetExternalSecretCondition(externalSecret, *conditionSynced)
-	syncCallsError.With(metricsLabel).Inc()
 }
 
 func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, secret *v1.Secret, mutationFunc func() error) error {
