@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
@@ -100,6 +101,15 @@ func main() {
 		MaxConcurrentReconciles: concurrent,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ExternalSecret")
+		os.Exit(1)
+	}
+	if err = (&clusterexternalsecret.Reconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecret"),
+		Scheme:          mgr.GetScheme(),
+		RequeueInterval: time.Hour,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterExternalSecret")
 		os.Exit(1)
 	}
 

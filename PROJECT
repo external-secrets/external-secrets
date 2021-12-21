@@ -8,4 +8,7 @@ resources:
 - group: external-secrets
   kind: ExternalSecret
   version: v1alpha1
+- group: external-secrets
+  kind: ClusterExternalSecret
+  version: v1alpha1
 version: "2"
