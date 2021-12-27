@@ -24,6 +24,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -45,6 +46,7 @@ func main() {
 	var metricsAddr string
 	var controllerClass string
 	var enableLeaderElection bool
+	var concurrent int
 	var loglevel string
 	var namespace string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -52,6 +54,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.IntVar(&concurrent, "concurrent", 1, "The number of concurrent ExternalSecret reconciles.")
 	flag.StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	flag.StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only")
 	flag.Parse()
@@ -93,7 +96,9 @@ func main() {
 		Scheme:          mgr.GetScheme(),
 		ControllerClass: controllerClass,
 		RequeueInterval: time.Hour,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, controller.Options{
+		MaxConcurrentReconciles: concurrent,
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ExternalSecret")
 		os.Exit(1)
 	}
