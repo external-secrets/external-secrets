@@ -77,6 +77,10 @@ type SecretStoreProvider struct {
 	// Alibaba configures this store to sync secrets using Alibaba Cloud provider
 	// +optional
 	Alibaba *AlibabaProvider `json:"alibaba,omitempty"`
+
+	// Webhook configures this store to sync secrets using a generic templated webhook
+	// +optional
+	Webhook *WebhookProvider `json:"webhook,omitempty"`
 }
 
 type SecretStoreRetrySettings struct {
