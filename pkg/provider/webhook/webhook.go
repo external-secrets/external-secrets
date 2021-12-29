@@ -100,6 +100,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDa
 	if err != nil {
 		return nil, err
 	}
+	// Only parse as json if we have a jsonpath set
 	if provider.Result.JSONPath != "" {
 		jsondata := interface{}(nil)
 		if err := yaml.Unmarshal(result, &jsondata); err != nil {
@@ -128,60 +129,55 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecre
 	if err != nil {
 		return nil, err
 	}
+
+	// We always want json here, so just parse it out
 	jsondata := interface{}(nil)
-	var jsonvalue map[string]interface{}
-	var ok bool
+	if err := yaml.Unmarshal(result, &jsondata); err != nil {
+		return nil, fmt.Errorf("failed to parse response json: %w", err)
+	}
+	// Get subdata via jsonpath, if given
 	if provider.Result.JSONPath != "" {
-		if err := yaml.Unmarshal(result, &jsondata); err != nil {
-			return nil, fmt.Errorf("failed to parse response json: %w", err)
-		}
 		jsondata, err = jsonpath.Get(provider.Result.JSONPath, jsondata)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
 		}
-		jsonvalue, ok = jsondata.(map[string]interface{})
-		if !ok {
-			jsonstring, ok := jsondata.(string)
-			if !ok {
-				return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
-			}
-			if err := yaml.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
-				return nil, fmt.Errorf("failed to parse data json: %w", err)
-			}
-			jsonvalue, ok = jsondata.(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("failed to get response (wrong type in data: %T)", jsondata)
-			}
-		}
-	} else {
-		if err := yaml.Unmarshal(result, &jsondata); err != nil {
-			return nil, fmt.Errorf("failed to parse data json: %w", err)
-		}
-		jsonvalue, ok = jsondata.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type in body: %T)", jsondata)
+	}
+	// If the value is a string, try to parse it as json
+	jsonstring, ok := jsondata.(string)
+	if ok {
+		// This could also happen if the response was a single json-encoded string
+		// but that is an extremely unlikely scenario
+		if err := yaml.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
+			return nil, fmt.Errorf("failed to parse response json from jsonpath: %w", err)
 		}
 	}
+	// Use the data as a key-value map
+	jsonvalue, ok := jsondata.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+	}
+
+	// Change the map of generic objects to a map of byte arrays
 	values := make(map[string][]byte)
 	for rKey, rValue := range jsonvalue {
 		jVal, ok := rValue.(string)
 		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type: %T)", rValue)
+			return nil, fmt.Errorf("failed to get response (wrong type in key '%s': %T)", rKey, rValue)
 		}
 		values[rKey] = []byte(jVal)
 	}
 	return values, nil
 }
 
-func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.WebhookProvider, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (w *WebHook) getTemplateData(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef, secrets []esv1alpha1.WebhookSecret) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{
 		"remoteRef": {
 			"key":     url.QueryEscape(ref.Key),
 			"version": url.QueryEscape(ref.Version),
 		},
 	}
-	if provider.Secrets != nil {
-		for _, secref := range provider.Secrets {
+	if secrets != nil {
+		for _, secref := range secrets {
 			if _, ok := data[secref.Name]; !ok {
 				data[secref.Name] = make(map[string]string)
 			}
@@ -193,6 +189,14 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.Webho
 				data[secref.Name][sKey] = string(sVal)
 			}
 		}
+	}
+	return data, nil
+}
+
+func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.WebhookProvider, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	data, err := w.getTemplateData(ctx, ref, provider.Secrets)
+	if err != nil {
+		return nil, err
 	}
 	method := provider.Method
 	if method == "" {
@@ -221,7 +225,7 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.Webho
 		}
 	}
 
-	client, err := w.getHTTPClient(ctx, provider)
+	client, err := w.getHTTPClient(provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
@@ -236,54 +240,64 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.Webho
 	return io.ReadAll(resp.Body)
 }
 
-func (w *WebHook) getHTTPClient(_ context.Context, provider *esv1alpha1.WebhookProvider) (*http.Client, error) {
+func (w *WebHook) getHTTPClient(provider *esv1alpha1.WebhookProvider) (*http.Client, error) {
 	client := &http.Client{}
 	if provider.Timeout != nil {
 		client.Timeout = provider.Timeout.Duration
 	}
-	if len(provider.CABundle) != 0 || provider.CAProvider != nil {
-		caCertPool := x509.NewCertPool()
-		if len(provider.CABundle) > 0 {
-			ok := caCertPool.AppendCertsFromPEM(provider.CABundle)
-			if !ok {
-				return nil, fmt.Errorf("failed to append cabundle")
-			}
-		}
-
-		if provider.CAProvider != nil && w.storeKind == esv1alpha1.ClusterSecretStoreKind && provider.CAProvider.Namespace == nil {
-			return nil, fmt.Errorf("missing namespace on CAProvider secret")
-		}
-
-		if provider.CAProvider != nil {
-			var cert []byte
-			var err error
-
-			switch provider.CAProvider.Type {
-			case esv1alpha1.WebhookCAProviderTypeSecret:
-				cert, err = w.getCertFromSecret(provider)
-			case esv1alpha1.WebhookCAProviderTypeConfigMap:
-				cert, err = w.getCertFromConfigMap(provider)
-			default:
-				return nil, fmt.Errorf("unknown caprovider type: %s", provider.CAProvider.Type)
-			}
-
-			if err != nil {
-				return nil, err
-			}
-
-			ok := caCertPool.AppendCertsFromPEM(cert)
-			if !ok {
-				return nil, fmt.Errorf("failed to append cabundle")
-			}
-		}
-
-		tlsConf := &tls.Config{
-			RootCAs:    caCertPool,
-			MinVersion: tls.VersionTLS12,
-		}
-		client.Transport = &http.Transport{TLSClientConfig: tlsConf}
+	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
+		// No need to process ca stuff if it is not there
+		return client, nil
 	}
+	caCertPool, err := w.getCACertPool(provider)
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConf := &tls.Config{
+		RootCAs:    caCertPool,
+		MinVersion: tls.VersionTLS12,
+	}
+	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	return client, nil
+}
+
+func (w *WebHook) getCACertPool(provider *esv1alpha1.WebhookProvider) (*x509.CertPool, error) {
+	caCertPool := x509.NewCertPool()
+	if len(provider.CABundle) > 0 {
+		ok := caCertPool.AppendCertsFromPEM(provider.CABundle)
+		if !ok {
+			return nil, fmt.Errorf("failed to append cabundle")
+		}
+	}
+
+	if provider.CAProvider != nil && w.storeKind == esv1alpha1.ClusterSecretStoreKind && provider.CAProvider.Namespace == nil {
+		return nil, fmt.Errorf("missing namespace on CAProvider secret")
+	}
+
+	if provider.CAProvider != nil {
+		var cert []byte
+		var err error
+
+		switch provider.CAProvider.Type {
+		case esv1alpha1.WebhookCAProviderTypeSecret:
+			cert, err = w.getCertFromSecret(provider)
+		case esv1alpha1.WebhookCAProviderTypeConfigMap:
+			cert, err = w.getCertFromConfigMap(provider)
+		default:
+			err = fmt.Errorf("unknown caprovider type: %s", provider.CAProvider.Type)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		ok := caCertPool.AppendCertsFromPEM(cert)
+		if !ok {
+			return nil, fmt.Errorf("failed to append cabundle")
+		}
+	}
+	return caCertPool, nil
 }
 
 func (w *WebHook) getCertFromSecret(provider *esv1alpha1.WebhookProvider) ([]byte, error) {

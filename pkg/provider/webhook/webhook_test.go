@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/provider"
 )
 
 type testCase struct {
@@ -183,7 +184,7 @@ args:
   response: 'some simple string'
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: failed to get response (wrong type in body
+  err: failed to get response (wrong type
   resultmap:
     thesecret: secret-value
     alsosecret: another-value
@@ -197,7 +198,7 @@ args:
   response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value"}}'
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: failed to get response (wrong type in data
+  err: failed to get response (wrong type
   resultmap:
     thesecret: secret-value
     alsosecret: another-value
@@ -217,9 +218,9 @@ func TestWebhookGetSecret(t *testing.T) {
 	}
 }
 
-func runTestCase(tc testCase, t *testing.T) {
+func testCaseServer(tc testCase, t *testing.T) *httptest.Server {
 	// Start a new server for every test case because the server wants to check the expected api path
-	ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	return httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if tc.Want.Path != "" && req.URL.String() != tc.Want.Path {
 			t.Errorf("%s: unexpected api path: %s, expected %s", tc.Case, req.URL.String(), tc.Want.Path)
 		}
@@ -228,17 +229,31 @@ func runTestCase(tc testCase, t *testing.T) {
 		}
 		rw.Write([]byte(tc.Args.Response))
 	}))
+}
+
+func parseTimeout(timeout string) (*metav1.Duration, error) {
+	if timeout == "" {
+		return nil, nil
+	}
+	dur, err := time.ParseDuration(timeout)
+	if err != nil {
+		return nil, err
+	}
+	return &metav1.Duration{Duration: dur}, nil
+}
+
+func runTestCase(tc testCase, t *testing.T) {
+	ts := testCaseServer(tc, t)
 	defer ts.Close()
 
 	testStore := makeClusterSecretStore(ts.URL, tc.Args)
-	if tc.Args.Timeout != "" {
-		dur, err := time.ParseDuration(tc.Args.Timeout)
-		if err != nil {
-			t.Errorf("%s: error parsing timeout '%s': %s", tc.Case, tc.Args.Timeout, err.Error())
-			return
-		}
-		testStore.Spec.Provider.Webhook.Timeout = &metav1.Duration{Duration: dur}
+	var err error
+	timeout, err := parseTimeout(tc.Args.Timeout)
+	if err != nil {
+		t.Errorf("%s: error parsing timeout '%s': %s", tc.Case, tc.Args.Timeout, err.Error())
+		return
 	}
+	testStore.Spec.Provider.Webhook.Timeout = timeout
 	testProv := &Provider{}
 	client, err := testProv.NewClient(context.Background(), testStore, nil, "testnamespace")
 	if err != nil {
@@ -246,41 +261,53 @@ func runTestCase(tc testCase, t *testing.T) {
 		return
 	}
 
+	if tc.Want.ResultMap != nil {
+		testGetSecretMap(tc, t, client)
+	} else {
+		testGetSecret(tc, t, client)
+	}
+}
+
+func testGetSecretMap(tc testCase, t *testing.T, client provider.SecretsClient) {
 	testRef := esv1alpha1.ExternalSecretDataRemoteRef{
 		Key:     tc.Args.Key,
 		Version: tc.Args.Version,
 	}
-	if tc.Want.ResultMap != nil {
-		secretmap, err := client.GetSecretMap(context.Background(), testRef)
-		errStr := ""
-		if err != nil {
-			errStr = err.Error()
-		}
-		if (tc.Want.Err == "") != (errStr == "") || !strings.Contains(errStr, tc.Want.Err) {
-			t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)
-		}
-		if err == nil {
-			for wantkey, wantval := range tc.Want.ResultMap {
-				gotval, ok := secretmap[wantkey]
-				if !ok {
-					t.Errorf("%s: unexpected response: wanted key '%s' not found", tc.Case, wantkey)
-				} else if string(gotval) != wantval {
-					t.Errorf("%s: unexpected response: key '%s' = '%s' (expected '%s')", tc.Case, wantkey, wantval, gotval)
-				}
+	secretmap, err := client.GetSecretMap(context.Background(), testRef)
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
+	if (tc.Want.Err == "") != (errStr == "") || !strings.Contains(errStr, tc.Want.Err) {
+		t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)
+	}
+	if err == nil {
+		for wantkey, wantval := range tc.Want.ResultMap {
+			gotval, ok := secretmap[wantkey]
+			if !ok {
+				t.Errorf("%s: unexpected response: wanted key '%s' not found", tc.Case, wantkey)
+			} else if string(gotval) != wantval {
+				t.Errorf("%s: unexpected response: key '%s' = '%s' (expected '%s')", tc.Case, wantkey, wantval, gotval)
 			}
 		}
-	} else {
-		secret, err := client.GetSecret(context.Background(), testRef)
-		errStr := ""
-		if err != nil {
-			errStr = err.Error()
-		}
-		if !strings.Contains(errStr, tc.Want.Err) {
-			t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)
-		}
-		if err == nil && string(secret) != tc.Want.Result {
-			t.Errorf("%s: unexpected response: '%s' (expected '%s')", tc.Case, secret, tc.Want.Result)
-		}
+	}
+}
+
+func testGetSecret(tc testCase, t *testing.T, client provider.SecretsClient) {
+	testRef := esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:     tc.Args.Key,
+		Version: tc.Args.Version,
+	}
+	secret, err := client.GetSecret(context.Background(), testRef)
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
+	if !strings.Contains(errStr, tc.Want.Err) {
+		t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)
+	}
+	if err == nil && string(secret) != tc.Want.Result {
+		t.Errorf("%s: unexpected response: '%s' (expected '%s')", tc.Case, secret, tc.Want.Result)
 	}
 }
 
