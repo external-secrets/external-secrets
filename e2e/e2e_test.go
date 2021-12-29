@@ -21,7 +21,6 @@ import (
 	// nolint
 	. "github.com/onsi/gomega"
 
-	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/framework/addon"
 	"github.com/external-secrets/external-secrets/e2e/framework/util"
 	_ "github.com/external-secrets/external-secrets/e2e/suite"
@@ -29,7 +28,7 @@ import (
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg := &addon.Config{}
-	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = framework.NewConfig()
+	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 
 	By("installing localstack")
 	addon.InstallGlobalAddon(addon.NewLocalstack(), cfg)

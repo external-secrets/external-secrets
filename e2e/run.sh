@@ -25,7 +25,6 @@ cd $DIR
 
 echo "Kubernetes cluster:"
 kubectl get nodes -o wide
-kubectl describe node external-secrets-control-plane
 
 echo -e "Granting permissions to e2e service account..."
 kubectl create serviceaccount external-secrets-e2e || true
@@ -52,6 +51,11 @@ kubectl run --rm \
   --env="FOCUS=${FOCUS:-.*}" \
   --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON:-}" \
   --env="GCP_PROJECT_ID=${GCP_PROJECT_ID:-}" \
+  --env="TF_VAR_GCP_PROJECT_ID=${TF_VAR_GCP_PROJECT_ID:-}" \
+  --env="GCP_GSA_NAME=${GCP_GSA_NAME:-}" \
+  --env="GCP_KSA_NAME=${GCP_KSA_NAME:-}" \
+  --env="TF_VAR_GCP_GSA_NAME=${TF_VAR_GCP_GSA_NAME:-}" \
+  --env="TF_VAR_GCP_KSA_NAME=${TF_VAR_GCP_KSA_NAME:-}" \
   --env="AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}" \
   --env="AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}" \
   --env="AKEYLESS_ACCESS_ID=${AKEYLESS_ACCESS_ID:-}" \
@@ -67,4 +71,4 @@ kubectl run --rm \
   --env="ORACLE_FINGERPRINT=${ORACLE_FINGERPRINT:-}" \
   --env="ORACLE_KEY=${ORACLE_KEY:-}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
-  e2e --image=local/external-secrets-e2e:test
+  e2e --image=${E2E_IMAGE_REGISTRY}:${E2E_VERSION}

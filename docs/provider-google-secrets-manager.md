@@ -58,6 +58,8 @@ spec:
             namespace: team-a
 ```
 
+*You need to give the Google service account the `roles/iam.serviceAccountTokenCreator` role so it can generate a service account token for you (not necessary in the Pod-based Workload Identity bellow)*
+
 #### Using Pod-based Workload Identity
 
 You can attach a Workload Identity directly to the ESO pod. ESO then has access to all the APIs defined in the attached service account policy. You attach the workload identity by (1) creating a service account with a attached workload identity (described above) and (2) using this particular service account in the pod's `serviceAccountName` field.

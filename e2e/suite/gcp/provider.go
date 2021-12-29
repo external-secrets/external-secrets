@@ -23,11 +23,14 @@ import (
 
 	// nolint
 	. "github.com/onsi/gomega"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilpointer "k8s.io/utils/pointer"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -35,28 +38,74 @@ import (
 	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 )
 
-type gcpProvider struct {
-	credentials string
-	projectID   string
-	framework   *framework.Framework
+const (
+	PodIDSecretStoreName     = "pod-identity"
+	SpecifcSASecretStoreName = "specific-sa"
+)
+
+func makeStore(s *GcpProvider) *esv1alpha1.SecretStore {
+	return &esv1alpha1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s.framework.Namespace.Name,
+			Namespace: s.framework.Namespace.Name,
+		},
+		Spec: esv1alpha1.SecretStoreSpec{
+			Provider: &esv1alpha1.SecretStoreProvider{
+				GCPSM: &esv1alpha1.GCPSMProvider{
+					ProjectID: s.projectID,
+				},
+			},
+		},
+	}
 }
 
-func newgcpProvider(f *framework.Framework, credentials, projectID string) *gcpProvider {
-	prov := &gcpProvider{
-		credentials: credentials,
-		projectID:   projectID,
-		framework:   f,
+// nolint // Better to keep names consistent even if it stutters;
+type GcpProvider struct {
+	credentials             string
+	projectID               string
+	framework               *framework.Framework
+	clusterLocation         string
+	clusterName             string
+	serviceAccountName      string
+	serviceAccountNamespace string
+}
+
+func NewgcpProvider(f *framework.Framework, credentials, projectID string,
+	clusterLocation string, clusterName string, serviceAccountName string, serviceAccountNamespace string) *GcpProvider {
+	prov := &GcpProvider{
+		credentials:             credentials,
+		projectID:               projectID,
+		framework:               f,
+		clusterLocation:         clusterLocation,
+		clusterName:             clusterName,
+		serviceAccountName:      serviceAccountName,
+		serviceAccountNamespace: serviceAccountNamespace,
 	}
 	BeforeEach(prov.BeforeEach)
 	return prov
 }
 
-func (s *gcpProvider) CreateSecret(key, val string) {
+func (s *GcpProvider) getClient(ctx context.Context, credentials string) (client *secretmanager.Client, err error) {
+	if credentials == "" {
+		var ts oauth2.TokenSource
+		ts, err = google.DefaultTokenSource(ctx, gcpsm.CloudPlatformRole)
+		Expect(err).ToNot(HaveOccurred())
+		client, err = secretmanager.NewClient(ctx, option.WithTokenSource(ts))
+		Expect(err).ToNot(HaveOccurred())
+	} else {
+		var config *jwt.Config
+		config, err = google.JWTConfigFromJSON([]byte(s.credentials), gcpsm.CloudPlatformRole)
+		Expect(err).ToNot(HaveOccurred())
+		ts := config.TokenSource(ctx)
+		client, err = secretmanager.NewClient(ctx, option.WithTokenSource(ts))
+		Expect(err).ToNot(HaveOccurred())
+	}
+	return client, err
+}
+
+func (s *GcpProvider) CreateSecret(key, val string) {
 	ctx := context.Background()
-	config, err := google.JWTConfigFromJSON([]byte(s.credentials), gcpsm.CloudPlatformRole)
-	Expect(err).ToNot(HaveOccurred())
-	ts := config.TokenSource(ctx)
-	client, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
+	client, err := s.getClient(ctx, s.credentials)
 	Expect(err).ToNot(HaveOccurred())
 	defer client.Close()
 	// Create the request to create the secret.
@@ -83,12 +132,10 @@ func (s *gcpProvider) CreateSecret(key, val string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func (s *gcpProvider) DeleteSecret(key string) {
+func (s *GcpProvider) DeleteSecret(key string) {
 	ctx := context.Background()
-	config, err := google.JWTConfigFromJSON([]byte(s.credentials), gcpsm.CloudPlatformRole)
+	client, err := s.getClient(ctx, s.credentials)
 	Expect(err).ToNot(HaveOccurred())
-	ts := config.TokenSource(ctx)
-	client, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
 	Expect(err).ToNot(HaveOccurred())
 	defer client.Close()
 	req := &secretmanagerpb.DeleteSecretRequest{
@@ -98,7 +145,7 @@ func (s *gcpProvider) DeleteSecret(key string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func (s *gcpProvider) BeforeEach() {
+func (s *GcpProvider) BeforeEach() {
 	By("creating a gcp secret")
 	gcpCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -110,30 +157,50 @@ func (s *gcpProvider) BeforeEach() {
 		},
 	}
 	err := s.framework.CRClient.Create(context.Background(), gcpCreds)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		err = s.framework.CRClient.Update(context.Background(), gcpCreds)
+		Expect(err).ToNot(HaveOccurred())
+	}
+	By("creating an secret stores gcp")
+	s.CreateSAKeyStore(s.framework.Namespace.Name)
+	s.CreatePodIDStore(s.framework.Namespace.Name)
+	s.CreateSpecifcSASecretStore(s.framework.Namespace.Name)
+}
 
-	By("creating an secret store for vault")
-	secretStore := &esv1alpha1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      s.framework.Namespace.Name,
-			Namespace: s.framework.Namespace.Name,
-		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				GCPSM: &esv1alpha1.GCPSMProvider{
-					ProjectID: s.projectID,
-					Auth: esv1alpha1.GCPSMAuth{
-						SecretRef: &esv1alpha1.GCPSMAuthSecretRef{
-							SecretAccessKey: esmeta.SecretKeySelector{
-								Name: "provider-secret",
-								Key:  "secret-access-credentials",
-							},
-						},
-					},
-				},
+func (s *GcpProvider) CreateSAKeyStore(ns string) {
+	secretStore := makeStore(s)
+	secretStore.Spec.Provider.GCPSM.Auth = esv1alpha1.GCPSMAuth{
+		SecretRef: &esv1alpha1.GCPSMAuthSecretRef{
+			SecretAccessKey: esmeta.SecretKeySelector{
+				Name: "provider-secret",
+				Key:  "secret-access-credentials",
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err := s.framework.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *GcpProvider) CreatePodIDStore(ns string) {
+	secretStore := makeStore(s)
+	secretStore.ObjectMeta.Name = PodIDSecretStoreName
+	err := s.framework.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *GcpProvider) CreateSpecifcSASecretStore(ns string) {
+	secretStore := makeStore(s)
+	secretStore.ObjectMeta.Name = SpecifcSASecretStoreName
+	secretStore.Spec.Provider.GCPSM.Auth = esv1alpha1.GCPSMAuth{
+		WorkloadIdentity: &esv1alpha1.GCPWorkloadIdentity{
+			ClusterLocation: s.clusterLocation,
+			ClusterName:     s.clusterName,
+			ServiceAccountRef: esmeta.ServiceAccountSelector{
+				Name:      s.serviceAccountName,
+				Namespace: utilpointer.StringPtr(s.serviceAccountNamespace),
+			},
+		},
+	}
+	err := s.framework.CRClient.Create(context.Background(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }

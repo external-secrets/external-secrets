@@ -36,10 +36,10 @@ var _ = Describe("[gcp] ", func() {
 	f := framework.New("eso-gcp")
 	credentials := os.Getenv("GCP_SM_SA_JSON")
 	projectID := os.Getenv("GCP_PROJECT_ID")
-	prov := &gcpProvider{}
+	prov := &GcpProvider{}
 
 	if credentials != "" && projectID != "" {
-		prov = newgcpProvider(f, credentials, projectID)
+		prov = NewgcpProvider(f, credentials, projectID, "", "", "", "")
 	}
 
 	// P12Cert case creates a secret with a p12 cert containing a privkey and cert bundled together.

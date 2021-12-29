@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/e2e/framework/log"
 )
 
 var TargetSecretName = "target-secret"
@@ -72,7 +73,11 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 		}
 
 		// wait for Kind=Secret to have the expected data
-		_, err = tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, TargetSecretName, tc.ExpectedSecret)
+		secret, err := tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, TargetSecretName, tc.ExpectedSecret)
+		if err != nil {
+			log.Logf("Did not match. Expected: %+v, Got: %+v", tc.ExpectedSecret, secret)
+		}
+
 		Expect(err).ToNot(HaveOccurred())
 	}
 }
