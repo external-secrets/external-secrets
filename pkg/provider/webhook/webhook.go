@@ -172,22 +172,21 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecre
 func (w *WebHook) getTemplateData(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef, secrets []esv1alpha1.WebhookSecret) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{
 		"remoteRef": {
-			"key":     url.QueryEscape(ref.Key),
-			"version": url.QueryEscape(ref.Version),
+			"key":      url.QueryEscape(ref.Key),
+			"version":  url.QueryEscape(ref.Version),
+			"property": url.QueryEscape(ref.Property),
 		},
 	}
-	if secrets != nil {
-		for _, secref := range secrets {
-			if _, ok := data[secref.Name]; !ok {
-				data[secref.Name] = make(map[string]string)
-			}
-			secret, err := w.getStoreSecret(ctx, secref.SecretRef)
-			if err != nil {
-				return nil, err
-			}
-			for sKey, sVal := range secret.Data {
-				data[secref.Name][sKey] = string(sVal)
-			}
+	for _, secref := range secrets {
+		if _, ok := data[secref.Name]; !ok {
+			data[secref.Name] = make(map[string]string)
+		}
+		secret, err := w.getStoreSecret(ctx, secref.SecretRef)
+		if err != nil {
+			return nil, err
+		}
+		for sKey, sVal := range secret.Data {
+			data[secref.Name][sKey] = string(sVal)
 		}
 	}
 	return data, nil
@@ -215,14 +214,12 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.Webho
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	if provider.Headers != nil {
-		for hKey, hValueTpl := range provider.Headers {
-			hValue, err := executeTemplateString(hValueTpl, data)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
-			}
-			req.Header.Add(hKey, hValue)
+	for hKey, hValueTpl := range provider.Headers {
+		hValue, err := executeTemplateString(hValueTpl, data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
 		}
+		req.Header.Add(hKey, hValue)
 	}
 
 	client, err := w.getHTTPClient(provider)

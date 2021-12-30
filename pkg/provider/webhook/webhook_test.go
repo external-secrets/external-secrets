@@ -281,14 +281,12 @@ func testGetSecretMap(tc testCase, t *testing.T, client provider.SecretsClient) 
 	if (tc.Want.Err == "") != (errStr == "") || !strings.Contains(errStr, tc.Want.Err) {
 		t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)
 	}
-	if err == nil {
-		for wantkey, wantval := range tc.Want.ResultMap {
-			gotval, ok := secretmap[wantkey]
-			if !ok {
-				t.Errorf("%s: unexpected response: wanted key '%s' not found", tc.Case, wantkey)
-			} else if string(gotval) != wantval {
-				t.Errorf("%s: unexpected response: key '%s' = '%s' (expected '%s')", tc.Case, wantkey, wantval, gotval)
-			}
+	for wantkey, wantval := range tc.Want.ResultMap {
+		gotval, ok := secretmap[wantkey]
+		if !ok {
+			t.Errorf("%s: unexpected response: wanted key '%s' not found", tc.Case, wantkey)
+		} else if string(gotval) != wantval {
+			t.Errorf("%s: unexpected response: key '%s' = '%s' (expected '%s')", tc.Case, wantkey, wantval, gotval)
 		}
 	}
 }
