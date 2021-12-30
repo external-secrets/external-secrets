@@ -229,6 +229,11 @@ func UpdateKubeSA(baseName string, kubeClientSet kubernetes.Interface, ns string
 	return kubeClientSet.CoreV1().ServiceAccounts(ns).Update(context.TODO(), sa, metav1.UpdateOptions{})
 }
 
+// UpdateKubeSA updates a new Kubernetes Service Account for a test.
+func GetKubeSA(baseName string, kubeClientSet kubernetes.Interface, ns string) (*v1.ServiceAccount, error) {
+	return kubeClientSet.CoreV1().ServiceAccounts(ns).Get(context.TODO(), baseName, metav1.GetOptions{})
+}
+
 // NewConfig loads and returns the kubernetes credentials from the environment.
 // KUBECONFIG env var takes precedence and falls back to in-cluster config.
 func NewConfig() (*restclient.Config, *kubernetes.Clientset, crclient.Client) {

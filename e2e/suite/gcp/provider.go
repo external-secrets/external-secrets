@@ -29,12 +29,15 @@ import (
 	"google.golang.org/api/option"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	utilpointer "k8s.io/utils/pointer"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
+	"github.com/external-secrets/external-secrets/e2e/framework/log"
 	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 )
 
@@ -45,6 +48,22 @@ const (
 
 func makeStore(s *GcpProvider) *esv1alpha1.SecretStore {
 	return &esv1alpha1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s.framework.Namespace.Name,
+			Namespace: s.framework.Namespace.Name,
+		},
+		Spec: esv1alpha1.SecretStoreSpec{
+			Provider: &esv1alpha1.SecretStoreProvider{
+				GCPSM: &esv1alpha1.GCPSMProvider{
+					ProjectID: s.projectID,
+				},
+			},
+		},
+	}
+}
+
+func makeCStore(s *GcpProvider) *esv1alpha1.ClusterSecretStore {
+	return &esv1alpha1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
 			Namespace: s.framework.Namespace.Name,
@@ -189,9 +208,9 @@ func (s *GcpProvider) CreatePodIDStore(ns string) {
 }
 
 func (s *GcpProvider) CreateSpecifcSASecretStore(ns string) {
-	secretStore := makeStore(s)
-	secretStore.ObjectMeta.Name = SpecifcSASecretStoreName
-	secretStore.Spec.Provider.GCPSM.Auth = esv1alpha1.GCPSMAuth{
+	clusterSecretStore := makeCStore(s)
+	clusterSecretStore.ObjectMeta.Name = SpecifcSASecretStoreName
+	clusterSecretStore.Spec.Provider.GCPSM.Auth = esv1alpha1.GCPSMAuth{
 		WorkloadIdentity: &esv1alpha1.GCPWorkloadIdentity{
 			ClusterLocation: s.clusterLocation,
 			ClusterName:     s.clusterName,
@@ -201,6 +220,16 @@ func (s *GcpProvider) CreateSpecifcSASecretStore(ns string) {
 			},
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), secretStore)
-	Expect(err).ToNot(HaveOccurred())
+
+	var cSS esv1alpha1.ClusterSecretStore
+
+	err := s.framework.CRClient.Get(context.Background(), types.NamespacedName{
+		Name: SpecifcSASecretStoreName,
+	}, &cSS)
+	if apierrors.IsNotFound(err) {
+		err := s.framework.CRClient.Create(context.Background(), clusterSecretStore)
+		Expect(err).ToNot(HaveOccurred())
+	} else {
+		log.Logf("%s CSStore already created", SpecifcSASecretStoreName)
+	}
 }
