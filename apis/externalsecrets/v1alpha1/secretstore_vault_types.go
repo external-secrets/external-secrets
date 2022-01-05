@@ -173,6 +173,11 @@ type VaultKubernetesAuth struct {
 // VaultLdapAuth authenticates with Vault using the LDAP authentication method,
 // with the username and password stored in a Kubernetes Secret resource.
 type VaultLdapAuth struct {
+	// Path where the LDAP authentication backend is mounted
+	// in Vault, e.g: "ldap"
+	// +kubebuilder:default=ldap
+	Path string `json:"path"`
+	
 	// Username is a LDAP user name used to authenticate using the LDAP Vault
 	// authentication method
 	Username string `json:"username"`

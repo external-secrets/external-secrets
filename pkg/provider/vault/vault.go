@@ -633,7 +633,7 @@ func (v *client) requestTokenWithLdapAuth(ctx context.Context, client Client, ld
 	parameters := map[string]string{
 		"password": password,
 	}
-	url := strings.Join([]string{"/v1", "auth", "ldap", "login", username}, "/")
+	url := strings.Join([]string{"/v1", "auth", ldapAuth.Path, "login", username}, "/")
 	request := client.NewRequest("POST", url)
 
 	err = request.SetJSONBody(parameters)

@@ -77,10 +77,12 @@ Vault supports only simple key/value pairs - nested objects are not supported. H
 
 ### Authentication
 
-We support three different modes for authentication:
+We support five different modes for authentication:
 [token-based](https://www.vaultproject.io/docs/auth/token),
-[appRole](https://www.vaultproject.io/docs/auth/approle) and
-[kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes), each one comes with it's own
+[appRole](https://www.vaultproject.io/docs/auth/approle),
+[kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
+[ldap](https://www.vaultproject.io/docs/auth/ldap) and
+[jwt/odic](https://www.vaultproject.io/docs/auth/jwt), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
 #### Token-based authentication
