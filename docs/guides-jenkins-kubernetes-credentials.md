@@ -1,16 +1,10 @@
 # Getting started
 
-Jenkins is one of the most popular automation servers for continous integration, automation, scheduling jobs and for generic pipelining. It has an extensive set of plugins that extend or provide additional functionality including the kubernetes secrets plugin. This plugin takes kubernetes secrets and creates Jenkins credentials from them removing the need for manual entry of secrets, local storage and manual secret rotation.
+Jenkins is one of the most popular automation servers for continous integration, automation, scheduling jobs and for generic pipelining. It has an extensive set of plugins that extend or provide additional functionality including the [kubernetes credentials plugin](https://github.com/jenkinsci/kubernetes-credentials-provider-plugin). This plugin takes kubernetes secrets and creates Jenkins credentials from them removing the need for manual entry of secrets, local storage and manual secret rotation.
 
 ## Examples
 
-The Jenkins credentials plugin uses labels and annotations on a kubernetes secret to create a Jenkins credential, here's an example of one
-
-```yaml
-
-Secret YAML HERE
-
-```
+The Jenkins credentials plugin uses labels and annotations on a kubernetes secret to create a Jenkins credential.
 
 The different types of Jenkins credentials that can be created are SecretText, privateSSHKey, UsernamePassword.
 
