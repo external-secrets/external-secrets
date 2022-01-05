@@ -191,6 +191,11 @@ type VaultLdapAuth struct {
 // VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
 // method, with the role name and token stored in a Kubernetes Secret resource.
 type VaultJwtAuth struct {
+	// Path where the JWT authentication backend is mounted
+	// in Vault, e.g: "jwt"
+	// +kubebuilder:default=jwt
+	Path string `json:"path"`
+
 	// Role is a JWT role to authenticate using the JWT/OIDC Vault
 	// authentication method
 	// +optional

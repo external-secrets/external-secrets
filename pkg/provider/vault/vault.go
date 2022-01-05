@@ -673,7 +673,7 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 		"role": role,
 		"jwt":  jwt,
 	}
-	url := strings.Join([]string{"/v1", "auth", "jwt", "login"}, "/")
+	url := strings.Join([]string{"/v1", "auth", jwtAuth.Path, "login"}, "/")
 	request := client.NewRequest("POST", url)
 
 	err = request.SetJSONBody(parameters)
