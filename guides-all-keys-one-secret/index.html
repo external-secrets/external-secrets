@@ -1012,8 +1012,8 @@
 </code></pre></div>
 
 <p>To check both values we can run:</p>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.username}&#39; | base64 -d
-kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.surname}&#39; | base64 -d
+<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.data.username}&#39; | base64 -d
+kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.data.surname}&#39; | base64 -d
 </code></pre></div>
                 
               
