@@ -14,7 +14,7 @@ db-user
 postgres-password
 
 
-Creating the following external secret ensure the credentials are drawn from the backend provider of choice example for Hashicorp Vault and AWS Secrets Manager providers
+Creating the following external secret ensure the credentials are drawn from the backend provider of choice. The example shown here works with Hashicorp Vault and AWS Secrets Manager providers.
 
 #### Hashicorp Vault
 
