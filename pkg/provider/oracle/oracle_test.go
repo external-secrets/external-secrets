@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	vault "github.com/oracle/oci-go-sdk/v45/vault"
+	secrets "github.com/oracle/oci-go-sdk/v45/secrets"
 	utilpointer "k8s.io/utils/pointer"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -27,8 +27,8 @@ import (
 
 type vaultTestCase struct {
 	mockClient     *fakeoracle.OracleMockClient
-	apiInput       *vault.GetSecretRequest
-	apiOutput      *vault.GetSecretResponse
+	apiInput       *secrets.GetSecretBundleRequest
+	apiOutput      *secrets.GetSecretBundleResponse
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
@@ -59,16 +59,16 @@ func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	}
 }
 
-func makeValidAPIInput() *vault.GetSecretRequest {
-	return &vault.GetSecretRequest{
+func makeValidAPIInput() *secrets.GetSecretBundleRequest {
+	return &secrets.GetSecretBundleRequest{
 		SecretId: utilpointer.StringPtr("test-secret"),
 	}
 }
 
-func makeValidAPIOutput() *vault.GetSecretResponse {
-	return &vault.GetSecretResponse{
-		Etag:   utilpointer.StringPtr("test-name"),
-		Secret: vault.Secret{},
+func makeValidAPIOutput() *secrets.GetSecretBundleResponse {
+	return &secrets.GetSecretBundleResponse{
+		Etag:         utilpointer.StringPtr("test-name"),
+		SecretBundle: secrets.SecretBundle{},
 	}
 }
 
@@ -98,12 +98,11 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	// good case: default version is set
 	// key is passed in, output is sent back
 	setSecretString := func(smtc *vaultTestCase) {
-		smtc.apiOutput = &vault.GetSecretResponse{
+		smtc.apiOutput = &secrets.GetSecretBundleResponse{
 			Etag: utilpointer.StringPtr("test-name"),
-			Secret: vault.Secret{
-				CompartmentId: utilpointer.StringPtr("test-compartment-id"),
-				Id:            utilpointer.StringPtr("test-id"),
-				SecretName:    utilpointer.StringPtr("changedvalue"),
+			SecretBundle: secrets.SecretBundle{
+				SecretId:            ,
+				SecretBundleContent: ,
 			},
 		}
 		smtc.expectedSecret = secretValue
