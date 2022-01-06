@@ -1,6 +1,6 @@
 # Getting started
 
-Anchore engine is one of the best of breed security scanning used for scanning docker images, filesystems and with Harbor allowing a complete solution to container scanning at build time, nightly and with the admission controller the prevention of unscanned images from being deployed into kubernetes clusters.
+Anchore Engine is an open-source project that provides a centralized service for inspection, analysis, and certification of container images. With Kubernetes, it also brings nice features like preventing unscanned images from being deployed into your clusters
 
 ## Installing with Helm
 
