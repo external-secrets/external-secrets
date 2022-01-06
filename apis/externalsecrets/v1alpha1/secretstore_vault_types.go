@@ -177,7 +177,7 @@ type VaultLdapAuth struct {
 	// in Vault, e.g: "ldap"
 	// +kubebuilder:default=ldap
 	Path string `json:"path"`
-	
+
 	// Username is a LDAP user name used to authenticate using the LDAP Vault
 	// authentication method
 	Username string `json:"username"`
