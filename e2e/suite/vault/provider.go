@@ -242,6 +242,7 @@ func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 	secretStore := makeStore(jwtProviderName, ns, v)
 	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
 		Jwt: &esv1alpha1.VaultJwtAuth{
+			Path: v.JWTPath,
 			Role: v.JWTRole,
 			SecretRef: esmeta.SecretKeySelector{
 				Name: "jwt-provider",
