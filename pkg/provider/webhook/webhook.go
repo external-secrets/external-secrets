@@ -199,7 +199,7 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.Webho
 	}
 	method := provider.Method
 	if method == "" {
-		method = "GET"
+		method = http.MethodGet
 	}
 	url, err := executeTemplateString(provider.URL, data)
 	if err != nil {
