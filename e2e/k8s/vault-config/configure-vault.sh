@@ -51,17 +51,17 @@ vault write auth/myapprole/role/eso-e2e-role \
     secret_id_num_uses=40
 
 # ------------------
-#   App Role AUTH
+#   JWT AUTH
 #   https://www.vaultproject.io/docs/auth/jwt
 # ------------------
-vault auth enable jwt
+vault auth enable -path=myjwt jwt
 
-vault write auth/jwt/config \
+vault write auth/myjwt/config \
    jwt_validation_pubkeys=@/etc/vault-config/jwt-pubkey.pem \
    bound_issuer="example.iss" \
    default_role="external-secrets-operator"
 
-vault write auth/jwt/role/external-secrets-operator \
+vault write auth/myjwt/role/external-secrets-operator \
     role_type="jwt" \
     bound_subject="vault@example" \
     bound_audiences="vault.client" \
