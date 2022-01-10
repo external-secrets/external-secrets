@@ -101,8 +101,11 @@ func TestOracleVaultGetSecret(t *testing.T) {
 		smtc.apiOutput = &secrets.GetSecretBundleResponse{
 			Etag: utilpointer.StringPtr("test-name"),
 			SecretBundle: secrets.SecretBundle{
-				SecretId:            ,
-				SecretBundleContent: ,
+				SecretId: utilpointer.StringPtr("test-id"),
+				VersionNumber: utilpointer.Int64(1),
+				SecretBundleContent: secrets.Base64SecretBundleContentDetails{
+					Content: utilpointer.StringPtr(secretValue),
+				},
 			},
 		}
 		smtc.expectedSecret = secretValue
