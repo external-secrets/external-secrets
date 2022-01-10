@@ -48,7 +48,6 @@ const (
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
 	errMissingKey                            = "missing Key in secret: %s"
 	errUnexpectedContent                     = "unexpected secret bundle content"
-	errInvalidSecret                         = "invalid secret received. no secret string nor binary for key: %s"
 )
 
 type client struct {
