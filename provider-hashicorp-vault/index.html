@@ -1197,10 +1197,12 @@ management. Vault itself implements lots of different secret engines, as of now 
 <h4 id="limitations">Limitations</h4>
 <p>Vault supports only simple key/value pairs - nested objects are not supported. Hence specifying <code>gjson</code> properties like other providers support it is not supported.</p>
 <h3 id="authentication">Authentication</h3>
-<p>We support three different modes for authentication:
+<p>We support five different modes for authentication:
 <a href="https://www.vaultproject.io/docs/auth/token">token-based</a>,
-<a href="https://www.vaultproject.io/docs/auth/approle">appRole</a> and
-<a href="https://www.vaultproject.io/docs/auth/kubernetes">kubernetes-native</a>, each one comes with it's own
+<a href="https://www.vaultproject.io/docs/auth/approle">appRole</a>,
+<a href="https://www.vaultproject.io/docs/auth/kubernetes">kubernetes-native</a>,
+<a href="https://www.vaultproject.io/docs/auth/ldap">ldap</a> and
+<a href="https://www.vaultproject.io/docs/auth/jwt">jwt/odic</a>, each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.</p>
 <h4 id="token-based-authentication">Token-based authentication</h4>
 <p>A static token is stored in a <code>Kind=Secret</code> and is used to authenticate with vault.</p>
@@ -1316,6 +1318,8 @@ in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
         <span class="c1"># VaultLdap authenticates with Vault using the LDAP auth mechanism</span>
         <span class="c1"># https://www.vaultproject.io/docs/auth/ldap</span>
         <span class="nt">ldap</span><span class="p">:</span>
+          <span class="c1"># Path where the LDAP authentication backend is mounted</span>
+          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;ldap&quot;</span>
           <span class="c1"># LDAP username</span>
           <span class="nt">username</span><span class="p">:</span> <span class="s">&quot;username&quot;</span>
           <span class="nt">secretRef</span><span class="p">:</span>
@@ -1344,6 +1348,8 @@ or <code>Kind=ClusterSecretStore</code> resource.</p>
         <span class="c1"># VaultJwt authenticates with Vault using the JWT/OIDC auth mechanism</span>
         <span class="c1"># https://www.vaultproject.io/docs/auth/jwt</span>
         <span class="nt">jwt</span><span class="p">:</span>
+          <span class="c1"># Path where the JWT authentication backend is mounted</span>
+          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;jwt&quot;</span>
           <span class="c1"># JWT role configured in a Vault server, optional.</span>
           <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;vault-jwt-role&quot;</span>
           <span class="nt">secretRef</span><span class="p">:</span>
