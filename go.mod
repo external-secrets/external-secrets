@@ -6,7 +6,6 @@ replace (
 	github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1 => ./apis/externalsecrets/v1alpha1
 	github.com/external-secrets/external-secrets/e2e/framework/log => ./e2e/framework/log
 	github.com/external-secrets/external-secrets/pkg/provider/gitlab => ./pkg/provider/gitlab
-	google.golang.org/grpc => google.golang.org/grpc v1.27.0
 	k8s.io/api => k8s.io/api v0.21.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.21.2
@@ -35,6 +34,7 @@ replace (
 
 require (
 	cloud.google.com/go v0.99.0
+	cloud.google.com/go/secretmanager v1.0.0
 	github.com/Azure/azure-sdk-for-go v54.1.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.7
 	github.com/IBM/go-sdk-core/v5 v5.5.0
@@ -84,8 +84,6 @@ require (
 	sigs.k8s.io/controller-tools v0.5.0
 	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
-
-require cloud.google.com/go/secretmanager v1.0.0
 
 require (
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
