@@ -12,11 +12,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterexternalsecret
+package testing
 
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,6 +39,8 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
+
+var controllers = []string{"ExternalSecrets", "ClusterExternalSecret"}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -73,12 +76,15 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&Reconciler{
-		Client: k8sClient,
-		Scheme: k8sManager.GetScheme(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ClusterExternalSecret"),
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
+	for _, name := range controllers {
+		err = (&Reconciler{
+			Client:          k8sClient,
+			Scheme:          k8sManager.GetScheme(),
+			Log:             ctrl.Log.WithName("controllers").WithName(name),
+			RequeueInterval: time.Second,
+		}).SetupWithManager(k8sManager)
+		Expect(err).ToNot(HaveOccurred())
+	}
 
 	go func() {
 		defer GinkgoRecover()
