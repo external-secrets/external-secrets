@@ -47,6 +47,7 @@ type WebHook struct {
 	store     esv1alpha1.GenericStore
 	namespace string
 	storeKind string
+	http      *http.Client
 }
 
 func init() {
@@ -61,6 +62,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore,
 		store:     store,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+	}
+	provider, err := getProvider(store)
+	if err != nil {
+		return nil, err
+	}
+	whClient.http, err = whClient.getHTTPClient(provider)
+	if err != nil {
+		return nil, err
 	}
 	return whClient, nil
 }
@@ -193,6 +202,9 @@ func (w *WebHook) getTemplateData(ctx context.Context, ref esv1alpha1.ExternalSe
 }
 
 func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.WebhookProvider, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if w.http == nil {
+		return nil, fmt.Errorf("http client not initialized")
+	}
 	data, err := w.getTemplateData(ctx, ref, provider.Secrets)
 	if err != nil {
 		return nil, err
@@ -222,11 +234,7 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.Webho
 		req.Header.Add(hKey, hValue)
 	}
 
-	client, err := w.getHTTPClient(provider)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call endpoint: %w", err)
-	}
-	resp, err := client.Do(req)
+	resp, err := w.http.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
