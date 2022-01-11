@@ -54,7 +54,7 @@ spec:
   refreshInterval: "15s"
   secretStoreRef:
     name: vault-backend
-    kind: ClusterSecretStore
+    kind: SecretStore
   target:
     name: example-sync
   data:
