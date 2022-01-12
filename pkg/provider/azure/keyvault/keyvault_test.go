@@ -22,11 +22,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -38,7 +37,7 @@ type secretManagerTestCase struct {
 	mockClient     *fake.AzureMockClient
 	secretName     string
 	secretVersion  string
-	serviceUrl     string
+	serviceURL     string
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
 	apiErr         error
 	secretOutput   keyvault.SecretBundle
@@ -58,14 +57,14 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		secretVersion:  "",
 		ref:            makeValidRef(),
 		secretOutput:   keyvault.SecretBundle{Value: &secretString},
-		serviceUrl:     "",
+		serviceURL:     "",
 		apiErr:         nil,
 		expectError:    "",
 		expectedSecret: secretString,
 		expectedData:   map[string][]byte{},
 	}
 
-	smtc.mockClient.WithValue(smtc.serviceUrl, smtc.secretName, smtc.secretVersion, smtc.secretOutput, smtc.apiErr)
+	smtc.mockClient.WithValue(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.secretOutput, smtc.apiErr)
 
 	return &smtc
 }
@@ -76,9 +75,9 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 		fn(smtc)
 	}
 
-	smtc.mockClient.WithValue(smtc.serviceUrl, smtc.secretName, smtc.secretVersion, smtc.secretOutput, smtc.apiErr)
-	smtc.mockClient.WithKey(smtc.serviceUrl, smtc.secretName, smtc.secretVersion, smtc.keyOutput, smtc.apiErr)
-	smtc.mockClient.WithCertificate(smtc.serviceUrl, smtc.secretName, smtc.secretVersion, smtc.certOutput, smtc.apiErr)
+	smtc.mockClient.WithValue(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.secretOutput, smtc.apiErr)
+	smtc.mockClient.WithKey(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.keyOutput, smtc.apiErr)
+	smtc.mockClient.WithCertificate(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.certOutput, smtc.apiErr)
 
 	return smtc
 }
@@ -128,8 +127,12 @@ func TestNewClientNoCreds(t *testing.T) {
 }
 
 const (
-	jwkPubRSA = `{"kid":"ex","kty":"RSA","key_ops":["sign","verify","wrapKey","unwrapKey","encrypt","decrypt"],"n":"p2VQo8qCfWAZmdWBVaYuYb-a-tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz-Ed8Cdlf8lkDg4Ex5tkB64jRdC1Uvn4CDpOH6cp-N2s8hTFLqy9_YaDmyQS7HiqthOi9oVjil1VMeWfaAbClGtFt6UnKD0Vb_DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlIIx7unibLehhDU6q3DCwNH_OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQP_WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9vyQ","e":"AQAB"}`
-	jwkPubEC  = `{"kid":"https://example.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
+	jwkPubRSA            = `{"kid":"ex","kty":"RSA","key_ops":["sign","verify","wrapKey","unwrapKey","encrypt","decrypt"],"n":"p2VQo8qCfWAZmdWBVaYuYb-a-tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz-Ed8Cdlf8lkDg4Ex5tkB64jRdC1Uvn4CDpOH6cp-N2s8hTFLqy9_YaDmyQS7HiqthOi9oVjil1VMeWfaAbClGtFt6UnKD0Vb_DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlIIx7unibLehhDU6q3DCwNH_OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQP_WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9vyQ","e":"AQAB"}`
+	jwkPubEC             = `{"kid":"https://example.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
+	jsonTestString       = `{"Name": "External", "LastName": "Secret", "Address": { "Street": "Myroad st.", "CP": "J4K4T4" } }`
+	jsonSingleTestString = `{"Name": "External", "LastName": "Secret" }`
+	keyName              = "key/keyname"
+	certName             = "cert/certname"
 )
 
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
@@ -165,7 +168,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	setSecretWithProperty := func(smtc *secretManagerTestCase) {
-		jsonString := `{"Name": "External", "LastName": "Secret"}`
+		jsonString := jsonTestString
 		smtc.expectedSecret = "External"
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
@@ -174,7 +177,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	badSecretWithProperty := func(smtc *secretManagerTestCase) {
-		jsonString := `{"Name": "External", "LastName": "Secret"}`
+		jsonString := jsonTestString
 		smtc.expectedSecret = ""
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
@@ -186,7 +189,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 
 	// // good case: key set
 	setPubRSAKey := func(smtc *secretManagerTestCase) {
-		smtc.secretName = "key/keyname"
+		smtc.secretName = keyName
 		smtc.expectedSecret = jwkPubRSA
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubRSA)),
@@ -196,7 +199,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 
 	// // good case: key set
 	setPubECKey := func(smtc *secretManagerTestCase) {
-		smtc.secretName = "key/keyname"
+		smtc.secretName = keyName
 		smtc.expectedSecret = jwkPubEC
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubEC)),
@@ -207,7 +210,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	// // good case: key set
 	setCertificate := func(smtc *secretManagerTestCase) {
 		byteArrString := []byte(secretCertificate)
-		smtc.secretName = "cert/certname"
+		smtc.secretName = certName
 		smtc.expectedSecret = secretCertificate
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &byteArrString,
@@ -259,8 +262,8 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.expectError = "error unmarshalling json data: invalid character 'c' looking for beginning of value"
 	}
 
-	setSecretJson := func(smtc *secretManagerTestCase) {
-		jsonString := `{"Name": "External", "LastName": "Secret"}`
+	setSecretJSON := func(smtc *secretManagerTestCase) {
+		jsonString := jsonSingleTestString
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 		}
@@ -268,8 +271,8 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.expectedData["LastName"] = []byte("Secret")
 	}
 
-	setSecretJsonWithProperty := func(smtc *secretManagerTestCase) {
-		jsonString := `{"Name": "External", "LastName": "Secret", "Address": { "Street": "Myroad st.", "CP": "J4K4T4" } }`
+	setSecretJSONWithProperty := func(smtc *secretManagerTestCase) {
+		jsonString := jsonTestString
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 		}
@@ -280,7 +283,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	badSecretWithProperty := func(smtc *secretManagerTestCase) {
-		jsonString := `{"Name": "External", "LastName": "Secret"}`
+		jsonString := jsonTestString
 		smtc.expectedSecret = ""
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
@@ -291,7 +294,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	badPubRSAKey := func(smtc *secretManagerTestCase) {
-		smtc.secretName = "key/keyname"
+		smtc.secretName = keyName
 		smtc.expectedSecret = jwkPubRSA
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubRSA)),
@@ -302,7 +305,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 
 	badCertificate := func(smtc *secretManagerTestCase) {
 		byteArrString := []byte(secretCertificate)
-		smtc.secretName = "cert/certname"
+		smtc.secretName = certName
 		smtc.expectedSecret = secretCertificate
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &byteArrString,
@@ -320,8 +323,8 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(badSecretString),
-		makeValidSecretManagerTestCaseCustom(setSecretJson),
-		makeValidSecretManagerTestCaseCustom(setSecretJsonWithProperty),
+		makeValidSecretManagerTestCaseCustom(setSecretJSON),
+		makeValidSecretManagerTestCaseCustom(setSecretJSONWithProperty),
 		makeValidSecretManagerTestCaseCustom(badSecretWithProperty),
 		makeValidSecretManagerTestCaseCustom(badPubRSAKey),
 		makeValidSecretManagerTestCaseCustom(badCertificate),
