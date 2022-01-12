@@ -37,7 +37,7 @@ var _ = Describe("[gcpmanaged] ", func() {
 	if os.Getenv("FOCUS") == "gcpmanaged" {
 		f := framework.New("eso-gcp-managed")
 		projectID := os.Getenv("GCP_PROJECT_ID")
-		clusterLocation := "europe-west1"
+		clusterLocation := "europe-west1-b"
 		clusterName := "test-cluster"
 		serviceAccountName := os.Getenv("GCP_KSA_NAME")
 		serviceAccountNamespace := "default"
