@@ -15,14 +15,18 @@ limitations under the License.
 package keyvault
 
 import (
-	context "context"
+	"context"
 	"encoding/json"
+	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -30,13 +34,53 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
-func newAzure() (Azure, *fake.AzureMock) {
-	azureMock := &fake.AzureMock{}
-	testAzure := Azure{
-		baseClient: azureMock,
-		vaultURL:   "https://local.vault/",
+type secretManagerTestCase struct {
+	mockClient     *fake.AzureMockClient
+	secretName     string
+	secretVersion  string
+	serviceUrl     string
+	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	apiErr         error
+	secretOutput   keyvault.SecretBundle
+	keyOutput      keyvault.KeyBundle
+	certOutput     keyvault.CertificateBundle
+	expectError    string
+	expectedSecret string
+	// for testing secretmap
+	expectedData map[string][]byte
+}
+
+func makeValidSecretManagerTestCase() *secretManagerTestCase {
+	secretString := "Hello World!"
+	smtc := secretManagerTestCase{
+		mockClient:     &fake.AzureMockClient{},
+		secretName:     "MySecret",
+		secretVersion:  "",
+		ref:            makeValidRef(),
+		secretOutput:   keyvault.SecretBundle{Value: &secretString},
+		serviceUrl:     "",
+		apiErr:         nil,
+		expectError:    "",
+		expectedSecret: secretString,
+		expectedData:   map[string][]byte{},
 	}
-	return testAzure, azureMock
+
+	smtc.mockClient.WithValue(smtc.serviceUrl, smtc.secretName, smtc.secretVersion, smtc.secretOutput, smtc.apiErr)
+
+	return &smtc
+}
+
+func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
+	smtc := makeValidSecretManagerTestCase()
+	for _, fn := range tweaks {
+		fn(smtc)
+	}
+
+	smtc.mockClient.WithValue(smtc.serviceUrl, smtc.secretName, smtc.secretVersion, smtc.secretOutput, smtc.apiErr)
+	smtc.mockClient.WithKey(smtc.serviceUrl, smtc.secretName, smtc.secretVersion, smtc.keyOutput, smtc.apiErr)
+	smtc.mockClient.WithCertificate(smtc.serviceUrl, smtc.secretName, smtc.secretVersion, smtc.certOutput, smtc.apiErr)
+
+	return smtc
 }
 
 func TestNewClientNoCreds(t *testing.T) {
@@ -88,94 +132,6 @@ const (
 	jwkPubEC  = `{"kid":"https://example.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
 )
 
-func TestGetKey(t *testing.T) {
-	testAzure, azureMock := newAzure()
-	ctx := context.Background()
-
-	tbl := []struct {
-		name   string
-		kvName string
-		jwk    *keyvault.JSONWebKey
-		out    string
-	}{
-		{
-			name:   "test public rsa key",
-			kvName: "my-rsa",
-			jwk:    newKVJWK([]byte(jwkPubRSA)),
-			out:    jwkPubRSA,
-		},
-		{
-			name:   "test public ec key",
-			kvName: "my-ec",
-			jwk:    newKVJWK([]byte(jwkPubEC)),
-			out:    jwkPubEC,
-		},
-	}
-
-	for _, row := range tbl {
-		t.Run(row.name, func(t *testing.T) {
-			azureMock.AddKey(testAzure.vaultURL, row.kvName, row.jwk, true)
-			azureMock.ExpectsGetKey(ctx, testAzure.vaultURL, row.kvName, "")
-
-			rf := esv1alpha1.ExternalSecretDataRemoteRef{
-				Key: "key/" + row.kvName,
-			}
-			secret, err := testAzure.GetSecret(ctx, rf)
-			azureMock.AssertExpectations(t)
-			tassert.Nil(t, err, "the return err should be nil")
-			tassert.Equal(t, []byte(row.out), secret)
-		})
-	}
-}
-
-func TestGetSecretWithVersion(t *testing.T) {
-	testAzure, azureMock := newAzure()
-	ctx := context.Background()
-	version := "v1"
-
-	rf := esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "testName",
-		Version: version,
-	}
-	azureMock.AddSecretWithVersion(testAzure.vaultURL, "testName", version, "My Secret", true)
-	azureMock.ExpectsGetSecret(ctx, testAzure.vaultURL, "testName", version)
-
-	secret, err := testAzure.GetSecret(ctx, rf)
-	azureMock.AssertExpectations(t)
-	tassert.Nil(t, err, "the return err should be nil")
-	tassert.Equal(t, []byte("My Secret"), secret)
-}
-
-func TestGetSecretWithoutVersion(t *testing.T) {
-	testAzure, azureMock := newAzure()
-	ctx := context.Background()
-
-	rf := esv1alpha1.ExternalSecretDataRemoteRef{
-		Key: "testName",
-	}
-	azureMock.AddSecret(testAzure.vaultURL, "testName", "My Secret", true)
-	azureMock.ExpectsGetSecret(ctx, testAzure.vaultURL, "testName", "")
-
-	secret, err := testAzure.GetSecret(ctx, rf)
-	azureMock.AssertExpectations(t)
-	tassert.Nil(t, err, "the return err should be nil")
-	tassert.Equal(t, []byte("My Secret"), secret)
-}
-
-func TestGetSecretMap(t *testing.T) {
-	testAzure, azureMock := newAzure()
-	ctx := context.Background()
-	rf := esv1alpha1.ExternalSecretDataRemoteRef{
-		Key: "testName",
-	}
-	azureMock.AddSecret(testAzure.vaultURL, "testName", "{\"username\": \"user1\", \"pass\": \"123\"}", true)
-	azureMock.ExpectsGetSecret(ctx, testAzure.vaultURL, "testName", "")
-	secretMap, err := testAzure.GetSecretMap(ctx, rf)
-	azureMock.AssertExpectations(t)
-	tassert.Nil(t, err, "the return err should be nil")
-	tassert.Equal(t, secretMap, map[string][]byte{"username": []byte("user1"), "pass": []byte("123")})
-}
-
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
 	var key keyvault.JSONWebKey
 	err := json.Unmarshal(b, &key)
@@ -183,4 +139,221 @@ func newKVJWK(b []byte) *keyvault.JSONWebKey {
 		panic(err)
 	}
 	return &key
+}
+
+// test the sm<->azurekv interface
+// make sure correct values are passed and errors are handled accordingly.
+func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
+	secretString := "changedvalue"
+	secretCertificate := "certificate_value"
+
+	// good case
+	setSecretString := func(smtc *secretManagerTestCase) {
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+	}
+
+	setSecretStringWithVersion := func(smtc *secretManagerTestCase) {
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+		smtc.ref.Version = "v1"
+		smtc.secretVersion = smtc.ref.Version
+	}
+
+	setSecretWithProperty := func(smtc *secretManagerTestCase) {
+		jsonString := `{"Name": "External", "LastName": "Secret"}`
+		smtc.expectedSecret = "External"
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &jsonString,
+		}
+		smtc.ref.Property = "Name"
+	}
+
+	badSecretWithProperty := func(smtc *secretManagerTestCase) {
+		jsonString := `{"Name": "External", "LastName": "Secret"}`
+		smtc.expectedSecret = ""
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &jsonString,
+		}
+		smtc.ref.Property = "Age"
+		smtc.expectError = fmt.Sprintf("property %s does not exist in key %s", smtc.ref.Property, smtc.ref.Key)
+		smtc.apiErr = fmt.Errorf(smtc.expectError)
+	}
+
+	// // good case: key set
+	setPubRSAKey := func(smtc *secretManagerTestCase) {
+		smtc.secretName = "key/keyname"
+		smtc.expectedSecret = jwkPubRSA
+		smtc.keyOutput = keyvault.KeyBundle{
+			Key: newKVJWK([]byte(jwkPubRSA)),
+		}
+		smtc.ref.Key = smtc.secretName
+	}
+
+	// // good case: key set
+	setPubECKey := func(smtc *secretManagerTestCase) {
+		smtc.secretName = "key/keyname"
+		smtc.expectedSecret = jwkPubEC
+		smtc.keyOutput = keyvault.KeyBundle{
+			Key: newKVJWK([]byte(jwkPubEC)),
+		}
+		smtc.ref.Key = smtc.secretName
+	}
+
+	// // good case: key set
+	setCertificate := func(smtc *secretManagerTestCase) {
+		byteArrString := []byte(secretCertificate)
+		smtc.secretName = "cert/certname"
+		smtc.expectedSecret = secretCertificate
+		smtc.certOutput = keyvault.CertificateBundle{
+			Cer: &byteArrString,
+		}
+		smtc.ref.Key = smtc.secretName
+	}
+
+	badSecretType := func(smtc *secretManagerTestCase) {
+		smtc.secretName = "name"
+		smtc.expectedSecret = ""
+		smtc.expectError = fmt.Sprintf("unknown Azure Keyvault object Type for %s", smtc.secretName)
+		smtc.ref.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
+	}
+
+	successCases := []*secretManagerTestCase{
+		makeValidSecretManagerTestCase(),
+		makeValidSecretManagerTestCaseCustom(setSecretString),
+		makeValidSecretManagerTestCaseCustom(setSecretStringWithVersion),
+		makeValidSecretManagerTestCaseCustom(setSecretWithProperty),
+		makeValidSecretManagerTestCaseCustom(badSecretWithProperty),
+		makeValidSecretManagerTestCaseCustom(setPubRSAKey),
+		makeValidSecretManagerTestCaseCustom(setPubECKey),
+		makeValidSecretManagerTestCaseCustom(setCertificate),
+		makeValidSecretManagerTestCaseCustom(badSecretType),
+	}
+
+	sm := Azure{}
+	for k, v := range successCases {
+		sm.baseClient = v.mockClient
+		out, err := sm.GetSecret(context.Background(), *v.ref)
+		if !ErrorContains(err, v.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if string(out) != v.expectedSecret {
+			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
+		}
+	}
+}
+
+func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
+	secretString := "changedvalue"
+	secretCertificate := "certificate_value"
+
+	badSecretString := func(smtc *secretManagerTestCase) {
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+		smtc.expectError = "error unmarshalling json data: invalid character 'c' looking for beginning of value"
+	}
+
+	setSecretJson := func(smtc *secretManagerTestCase) {
+		jsonString := `{"Name": "External", "LastName": "Secret"}`
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &jsonString,
+		}
+		smtc.expectedData["Name"] = []byte("External")
+		smtc.expectedData["LastName"] = []byte("Secret")
+	}
+
+	setSecretJsonWithProperty := func(smtc *secretManagerTestCase) {
+		jsonString := `{"Name": "External", "LastName": "Secret", "Address": { "Street": "Myroad st.", "CP": "J4K4T4" } }`
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &jsonString,
+		}
+		smtc.ref.Property = "Address"
+
+		smtc.expectedData["Street"] = []byte("Myroad st.")
+		smtc.expectedData["CP"] = []byte("J4K4T4")
+	}
+
+	badSecretWithProperty := func(smtc *secretManagerTestCase) {
+		jsonString := `{"Name": "External", "LastName": "Secret"}`
+		smtc.expectedSecret = ""
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &jsonString,
+		}
+		smtc.ref.Property = "Age"
+		smtc.expectError = fmt.Sprintf("property %s does not exist in key %s", smtc.ref.Property, smtc.ref.Key)
+		smtc.apiErr = fmt.Errorf(smtc.expectError)
+	}
+
+	badPubRSAKey := func(smtc *secretManagerTestCase) {
+		smtc.secretName = "key/keyname"
+		smtc.expectedSecret = jwkPubRSA
+		smtc.keyOutput = keyvault.KeyBundle{
+			Key: newKVJWK([]byte(jwkPubRSA)),
+		}
+		smtc.ref.Key = smtc.secretName
+		smtc.expectError = "cannot get use dataFrom to get key secret"
+	}
+
+	badCertificate := func(smtc *secretManagerTestCase) {
+		byteArrString := []byte(secretCertificate)
+		smtc.secretName = "cert/certname"
+		smtc.expectedSecret = secretCertificate
+		smtc.certOutput = keyvault.CertificateBundle{
+			Cer: &byteArrString,
+		}
+		smtc.ref.Key = smtc.secretName
+		smtc.expectError = "cannot get use dataFrom to get certificate secret"
+	}
+
+	badSecretType := func(smtc *secretManagerTestCase) {
+		smtc.secretName = "name"
+		smtc.expectedSecret = ""
+		smtc.expectError = fmt.Sprintf("unknown Azure Keyvault object Type for %s", smtc.secretName)
+		smtc.ref.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
+	}
+
+	successCases := []*secretManagerTestCase{
+		makeValidSecretManagerTestCaseCustom(badSecretString),
+		makeValidSecretManagerTestCaseCustom(setSecretJson),
+		makeValidSecretManagerTestCaseCustom(setSecretJsonWithProperty),
+		makeValidSecretManagerTestCaseCustom(badSecretWithProperty),
+		makeValidSecretManagerTestCaseCustom(badPubRSAKey),
+		makeValidSecretManagerTestCaseCustom(badCertificate),
+		makeValidSecretManagerTestCaseCustom(badSecretType),
+	}
+
+	sm := Azure{}
+	for k, v := range successCases {
+		sm.baseClient = v.mockClient
+		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		if !ErrorContains(err, v.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
+			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
+		}
+	}
+}
+
+func ErrorContains(out error, want string) bool {
+	if out == nil {
+		return want == ""
+	}
+	if want == "" {
+		return false
+	}
+	return strings.Contains(out.Error(), want)
+}
+
+func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
+	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:     "test-secret",
+		Version: "default",
+	}
 }
