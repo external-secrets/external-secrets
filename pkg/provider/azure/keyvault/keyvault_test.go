@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
@@ -31,6 +30,7 @@ import (
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type secretManagerTestCase struct {
@@ -267,7 +267,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecret(context.Background(), *v.ref)
-		if !ErrorContains(err, v.expectError) {
+		if !utils.ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
 		if string(out) != v.expectedSecret {
@@ -361,23 +361,13 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
-		if !ErrorContains(err, v.expectError) {
+		if !utils.ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
 	}
-}
-
-func ErrorContains(out error, want string) bool {
-	if out == nil {
-		return want == ""
-	}
-	if want == "" {
-		return false
-	}
-	return strings.Contains(out.Error(), want)
 }
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
