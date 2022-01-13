@@ -26,15 +26,15 @@ type AzureMockClient struct {
 	getCertificate     func(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
 }
 
-func (mc *AzureMockClient) GetSecret(ctx context.Context, vaultBaseURL string, secretName string, secretVersion string) (result keyvault.SecretBundle, err error) {
+func (mc *AzureMockClient) GetSecret(ctx context.Context, vaultBaseURL, secretName, secretVersion string) (result keyvault.SecretBundle, err error) {
 	return mc.getSecret(ctx, vaultBaseURL, secretName, secretVersion)
 }
 
-func (mc *AzureMockClient) GetCertificate(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error) {
+func (mc *AzureMockClient) GetCertificate(ctx context.Context, vaultBaseURL, certificateName, certificateVersion string) (result keyvault.CertificateBundle, err error) {
 	return mc.getCertificate(ctx, vaultBaseURL, certificateName, certificateVersion)
 }
 
-func (mc *AzureMockClient) GetKey(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string) (result keyvault.KeyBundle, err error) {
+func (mc *AzureMockClient) GetKey(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.KeyBundle, err error) {
 	return mc.getKey(ctx, vaultBaseURL, keyName, keyVersion)
 }
 
@@ -42,25 +42,25 @@ func (mc *AzureMockClient) GetSecretsComplete(ctx context.Context, vaultBaseURL 
 	return mc.getSecretsComplete(ctx, vaultBaseURL, maxresults)
 }
 
-func (mc *AzureMockClient) WithValue(serviceUrl string, secretName string, secretVersion string, apiOutput keyvault.SecretBundle, err error) {
+func (mc *AzureMockClient) WithValue(serviceURL, secretName, secretVersion string, apiOutput keyvault.SecretBundle, err error) {
 	if mc != nil {
-		mc.getSecret = func(ctx context.Context, serviceUrl string, secretName string, secretVersion string) (result keyvault.SecretBundle, retErr error) {
+		mc.getSecret = func(ctx context.Context, serviceURL, secretName, secretVersion string) (result keyvault.SecretBundle, retErr error) {
 			return apiOutput, err
 		}
 	}
 }
 
-func (mc *AzureMockClient) WithKey(serviceUrl string, secretName string, secretVersion string, apiOutput keyvault.KeyBundle, err error) {
+func (mc *AzureMockClient) WithKey(serviceURL, secretName, secretVersion string, apiOutput keyvault.KeyBundle, err error) {
 	if mc != nil {
-		mc.getKey = func(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string) (result keyvault.KeyBundle, retErr error) {
+		mc.getKey = func(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.KeyBundle, retErr error) {
 			return apiOutput, err
 		}
 	}
 }
 
-func (mc *AzureMockClient) WithCertificate(serviceUrl string, secretName string, secretVersion string, apiOutput keyvault.CertificateBundle, err error) {
+func (mc *AzureMockClient) WithCertificate(serviceURL, secretName, secretVersion string, apiOutput keyvault.CertificateBundle, err error) {
 	if mc != nil {
-		mc.getCertificate = func(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string) (result keyvault.CertificateBundle, retErr error) {
+		mc.getCertificate = func(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.CertificateBundle, retErr error) {
 			return apiOutput, err
 		}
 	}
