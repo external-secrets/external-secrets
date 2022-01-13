@@ -136,7 +136,7 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1alpha1.ClusterSecretStore 
 			Provider: &esv1alpha1.SecretStoreProvider{
 				Vault: &esv1alpha1.VaultProvider{
 					Server:  "vault.example.com",
-					Path:    "secret",
+					Path:    &secretStorePath,
 					Version: "v2",
 					Auth: esv1alpha1.VaultAuth{
 						Kubernetes: &esv1alpha1.VaultKubernetesAuth{
