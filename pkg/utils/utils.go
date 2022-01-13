@@ -20,6 +20,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // MergeByteMap merges map of byte slices.
@@ -54,4 +55,14 @@ func IsNil(i interface{}) bool {
 func ObjectHash(object interface{}) string {
 	textualVersion := fmt.Sprintf("%+v", object)
 	return fmt.Sprintf("%x", md5.Sum([]byte(textualVersion)))
+}
+
+func ErrorContains(out error, want string) bool {
+	if out == nil {
+		return want == ""
+	}
+	if want == "" {
+		return false
+	}
+	return strings.Contains(out.Error(), want)
 }

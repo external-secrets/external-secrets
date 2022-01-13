@@ -38,9 +38,6 @@ const (
 	vaultResource  = "https://vault.azure.net"
 )
 
-// Provider satisfies the provider interface.
-type Provider struct{}
-
 // interface to keyvault.BaseClient.
 type SecretClient interface {
 	GetKey(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string) (result keyvault.KeyBundle, err error)
@@ -49,7 +46,6 @@ type SecretClient interface {
 	GetCertificate(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
 }
 
-// Azure satisfies the provider.SecretsClient interface.
 type Azure struct {
 	kube       client.Client
 	store      esv1alpha1.GenericStore
@@ -59,13 +55,13 @@ type Azure struct {
 }
 
 func init() {
-	schema.Register(&Provider{}, &esv1alpha1.SecretStoreProvider{
+	schema.Register(&Azure{}, &esv1alpha1.SecretStoreProvider{
 		AzureKV: &esv1alpha1.AzureKVProvider{},
 	})
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (a *Azure) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace)
 }
 
@@ -126,7 +122,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		}
 		return *secretResp.Cer, nil
 	case "key":
-		// returns a KeyBundla that contains a jwk
+		// returns a KeyBundle that contains a jwk
 		// azure kv returns only public keys
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
 		keyResp, err := basicClient.GetKey(context.Background(), a.vaultURL, secretName, version)
