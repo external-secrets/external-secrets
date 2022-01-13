@@ -5,6 +5,10 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
+  {{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -39,13 +43,16 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.extraArgs) }}
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.concurrent) (.Values.extraArgs) }}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
           {{- end }}
           {{- if .Values.scopedNamespace }}
           - --namespace={{ .Values.scopedNamespace }}
+          {{- end }}
+          {{- if .Values.concurrent }}
+          - --concurrent={{ .Values.concurrent }}
           {{- end }}
           {{- range $key, $value := .Values.extraArgs }}
             {{- if $value }}

@@ -21,6 +21,10 @@ leaderElect: false
 # provided namespace
 scopedNamespace: ""
 
+# -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
+# a time.
+concurrent: 1
+
 serviceAccount:
   # -- Specifies whether a service account should be created.
   create: true
@@ -40,7 +44,12 @@ extraEnv: []
 ## -- Map of extra arguments to pass to container.
 extraArgs: {}
 
+# -- Annotations to add to Deployment
+deploymentAnnotations: {}
+
+# -- Annotations to add to Pod
 podAnnotations: {}
+
 podLabels: {}
 
 podSecurityContext: {}

@@ -28,7 +28,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	vault "github.com/hashicorp/vault/api"
 
 	// nolint
@@ -57,6 +57,7 @@ type Vault struct {
 	JWTPrivKey         []byte
 	JWTToken           string
 	JWTRole            string
+	JWTPath            string
 	KubernetesAuthPath string
 	KubernetesAuthRole string
 
@@ -160,6 +161,7 @@ func (l *Vault) initVault() error {
 	l.JWTPrivKey = jwtPrivkey
 	l.JWTPubkey = jwtPubkey
 	l.JWTToken = jwtToken
+	l.JWTPath = "myjwt"                                // see configure-vault.sh
 	l.JWTRole = "external-secrets-operator"            // see configure-vault.sh
 	l.KubernetesAuthPath = "mykubernetes"              // see configure-vault.sh
 	l.KubernetesAuthRole = "external-secrets-operator" // see configure-vault.sh

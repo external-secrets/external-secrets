@@ -13,6 +13,8 @@ spec:
         # VaultJwt authenticates with Vault using the JWT/OIDC auth mechanism
         # https://www.vaultproject.io/docs/auth/jwt
         jwt:
+          # Path where the JWT authentication backend is mounted
+          path: "jwt"
           # JWT role configured in a Vault server, optional.
           role: "vault-jwt-role"
           secretRef:

@@ -35,6 +35,8 @@ nav:
     - Common K8S Secret Types: guides-common-k8s-secret-types.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md
+    - Using Latest Image: guides-using-latest-image.md
+    - GitOps using FluxCD: guides-gitops-using-fluxcd.md
   - Provider:
     - AWS:
       - Secrets Manager: provider-aws-secrets-manager.md
@@ -45,6 +47,7 @@ nav:
       - Secrets Manager: provider-google-secrets-manager.md
     - IBM:
       - Secrets Manager: provider-ibm-secrets-manager.md
+    - Akeyless: provider-akeyless.md
     - HashiCorp Vault: provider-hashicorp-vault.md
     - Yandex:
         - Lockbox: provider-yandex-lockbox.md

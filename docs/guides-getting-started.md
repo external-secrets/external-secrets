@@ -77,6 +77,10 @@ Events:                    <none>
 For more advanced examples, please read the other
 [guides](guides-introduction.md).
 
+## Installing with OLM
+
+External-secrets can be managed by [Operator Lifecycle Manager](https://olm.operatorframework.io/) (OLM) via an installer operator. It is made available through [OperatorHub.io](https://operatorhub.io/), this installation method is suited best for OpenShift. See installation instructions on the [external-secrets-operator](https://operatorhub.io/operator/external-secrets-operator) package.
+
 ## Uninstalling
 
 Before continuing, ensure that all external-secret resources that have been created by users have been deleted.

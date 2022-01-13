@@ -6,7 +6,7 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.16'
+  GO_VERSION: '1.17'
   GOLANGCI_VERSION: 'v1.33'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
@@ -50,14 +50,14 @@ jobs:
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.build-cache }}
         key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-build-unit-tests-
 
     - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.mod-cache }}
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -113,14 +113,14 @@ jobs:
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.build-cache }}
         key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-build-unit-tests-
 
     - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.mod-cache }}
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -149,7 +149,7 @@ jobs:
         make test.e2e
 
     # Update check run called "integration-fork"
-    - uses: actions/github-script@v5
+    - uses: actions/github-script@v1
       id: update-check-run
       if: ${{ always() }}
       env:
@@ -165,19 +165,19 @@ jobs:
             pull_number: process.env.number
           });
           const ref = pull.head.sha;
-
+          console.log("\n\nPR sha: " + ref)
           const { data: checks } = await github.checks.listForRef({
             ...context.repo,
             ref
           });
-
+          console.log("\n\nPR CHECKS: " + checks)
           const check = checks.check_runs.filter(c => c.name === process.env.job);
-
+          console.log("\n\nPR Filtered CHECK: " + check)
+          console.log(check)
           const { data: result } = await github.checks.update({
             ...context.repo,
             check_run_id: check[0].id,
             status: 'completed',
             conclusion: process.env.conclusion
           });
-
           return result;

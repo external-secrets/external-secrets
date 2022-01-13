@@ -46,8 +46,8 @@ type CAProvider struct {
 	Key string `json:"key,omitempty"`
 
 	// The namespace the Provider type is in.
-	// +kubebuilder:default:="Default"
-	Namespace string `json:"namespace"`
+	// +optional
+	Namespace *string `json:"namespace,omitempty"`
 }
 
 // Configures an store to sync secrets using a HashiCorp Vault
@@ -173,6 +173,11 @@ type VaultKubernetesAuth struct {
 // VaultLdapAuth authenticates with Vault using the LDAP authentication method,
 // with the username and password stored in a Kubernetes Secret resource.
 type VaultLdapAuth struct {
+	// Path where the LDAP authentication backend is mounted
+	// in Vault, e.g: "ldap"
+	// +kubebuilder:default=ldap
+	Path string `json:"path"`
+
 	// Username is a LDAP user name used to authenticate using the LDAP Vault
 	// authentication method
 	Username string `json:"username"`
@@ -186,6 +191,11 @@ type VaultLdapAuth struct {
 // VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
 // method, with the role name and token stored in a Kubernetes Secret resource.
 type VaultJwtAuth struct {
+	// Path where the JWT authentication backend is mounted
+	// in Vault, e.g: "jwt"
+	// +kubebuilder:default=jwt
+	Path string `json:"path"`
+
 	// Role is a JWT role to authenticate using the JWT/OIDC Vault
 	// authentication method
 	// +optional

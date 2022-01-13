@@ -7,21 +7,35 @@ External Secrets Operator integrates with [Azure Key vault](https://azure.micros
 
 ### Authentication
 
-At the moment, we only support [service principals](https://docs.microsoft.com/en-us/azure/key-vault/general/authentication) authentication.
+We support Service Principals and Managed Identity [authentication](https://docs.microsoft.com/en-us/azure/key-vault/general/authentication).
+
+To use Managed Identity authentication, you should use [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/) to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use `podLabels` in your values.yaml in case of Helm installation of external-secrets.
 
 #### Service Principal key authentication
 
 A service Principal client and Secret is created and the JSON keyfile is stored in a `Kind=Secret`. The `ClientID` and `ClientSecret` should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator
+
+#### Managed Identity authentication
+
+A Managed Identity should be created in Azure, and that Identity should have proper rights to the keyvault to be managed by the operator.
+
+If there are multiple Managed Identitites for different keyvaults, the operator should have been assigned all identities via [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/), then the SecretStore configuration should include the Id of the idenetity to be used via the `identityId` field.
 
 ```yaml
 {% include 'azkv-credentials-secret.yaml' %}
 ```
 
 ### Update secret store
-Be sure the `azkv` provider is listed in the `Kind=SecretStore`
+Be sure the `azurekv` provider is listed in the `Kind=SecretStore`
 
 ```yaml
 {% include 'azkv-secret-store.yaml' %}
+```
+
+Or in case of Managed Idenetity authentication:
+
+```yaml
+{% include 'azkv-secret-store-mi.yaml' %}
 ```
 
 ### Object Types
