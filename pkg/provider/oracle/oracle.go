@@ -13,6 +13,7 @@ package oracle
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -139,12 +140,12 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 	if !ok {
 		return nil, fmt.Errorf(errUnexpectedContent)
 	}
-	payload := *bt.Content
+	payload, err := base64.StdEncoding.DecodeString(*bt.Content)
 	if ref.Property == "" {
 		return []byte(payload), nil
 	}
 
-	val := gjson.Get(payload, ref.Property)
+	val := gjson.Get(string(payload), ref.Property)
 
 	if !val.Exists() {
 		return nil, fmt.Errorf(errMissingKey, ref.Key)
