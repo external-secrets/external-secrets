@@ -1,8 +1,8 @@
-# Run secret-dependent e2e tests only after /ok-to-test approval
+# Run secret-dependent e2e tests only after /ok-to-test-managed approval
 on:
   pull_request:
   repository_dispatch:
-    types: [ok-to-test-command]
+    types: [ok-to-test-managed-command]
 
 env:
   # Common versions
@@ -35,127 +35,18 @@ env:
 name: e2e tests
 
 jobs:
-  # Branch-based pull request
-  integration-trusted-managed:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-    steps:
-
-    - name: Branch based PR checkout
-      uses: actions/checkout@v2
-
-    # <insert integration tests needing secrets>
-
-    - name: Fetch History
-      run: git fetch --prune --unshallow
-
-    - name: Setup Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Find the Go Cache
-      id: go
-      run: |
-        echo "::set-output name=build-cache::$(go env GOCACHE)"
-        echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-    - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.7
-      with:
-        path: ${{ steps.go.outputs.build-cache }}
-        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-build-unit-tests-
-
-    - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.7
-      with:
-        path: ${{ steps.go.outputs.mod-cache }}
-        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-pkg-
-    
-    - name: Setup gcloud CLI
-      uses: google-github-actions/setup-gcloud@master
-      with:
-        service_account_key: ${{ env.GCP_SM_SA_GKE_JSON }}
-        project_id: ${{ env.GCP_PROJECT_ID }}
-    
-    - name: Setup TFLint
-      uses: terraform-linters/setup-tflint@v1
-      with:
-        tflint_version: v0.28.0  # Must be specified. See: https://github.com/terraform-linters/tflint/releases for latest versions
-
-    - name: Run TFLint
-      run: find ${{ github.workspace }} | grep tf$ | xargs -n1 dirname | xargs -IXXX -n1 /bin/sh -c 'set -o errexit; cd XXX; pwd; tflint --loglevel=info .; cd - >/dev/null'
-
-    - name: Setup TF Gcloud Provider
-      run: |-
-        mkdir -p terraform/gcp/secrets
-        echo ${GCP_SM_SA_GKE_JSON} > terraform/gcp/secrets/gcloud-service-account-key.json
-
-    - name: Show TF GKE
-      run: |-
-        make tf.show.gcp
-
-    - name: Setup Infracost
-      uses: infracost/actions/setup@v1
-      with:
-        api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-    - name: Generate Infracost JSON
-      run: infracost breakdown --path terraform/gcp/plan.json --format json --out-file /tmp/infracost.json
-
-    - name: Post Infracost comment
-      uses: infracost/actions/comment@v1
-      with:
-        path: /tmp/infracost.json
-        # Choose the commenting behavior, 'update' is a good default:
-        behavior: update # Create a single comment and update it. The "quietest" option.                 
-        # behavior: delete-and-new # Delete previous comments and create a new one.
-        # behavior: hide-and-new # Minimize previous comments and create a new one.
-        # behavior: new # Create a new cost estimate comment on every push.
-
-    - name: Apply TF GKE
-      run: |-
-        make tf.apply.gcp
-
-    - name: Get the GKE credentials
-      run: |-
-        gcloud container clusters get-credentials "$GCP_GKE_CLUSTER" --zone "$GCP_GKE_ZONE" --project "$GCP_PROJECT_ID"
-
-    - name: Login to Docker
-      uses: docker/login-action@v1
-      if: env.GHCR_USERNAME != ''
-      with:
-        registry: ghcr.io
-        username: ${{ secrets.GHCR_USERNAME }}
-        password: ${{ secrets.GHCR_TOKEN }}
-
-    - name: Run e2e Tests for GCP
-      run: |
-        export E2E_VERSION=$GITHUB_SHA
-        export PR_IMG_TAG=$GITHUB_SHA
-        export PATH=$PATH:$(go env GOPATH)/bin
-        go get github.com/onsi/ginkgo/ginkgo
-        make test.e2e.managed FOCUS="gcpmanaged"
-
-    - name: Destroy TF GKE
-      if: always()
-      run: |-
-        make tf.destroy.gcp
-
-
-  # Repo owner has commented /ok-to-test on a (fork-based) pull request
+  # Repo owner has commented /ok-to-test-managed on a (fork-based) pull request
   integration-fork-managed:
     runs-on: ubuntu-latest
     if:
       github.event_name == 'repository_dispatch'
     steps:
 
-    - name: Branch based PR checkout
+    # Check out merge commit
+    - name: Fork based /ok-to-test-managed checkout
       uses: actions/checkout@v2
-
-    # <insert integration tests needing secrets>
+      with:
+        ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 
     - name: Fetch History
       run: git fetch --prune --unshallow
