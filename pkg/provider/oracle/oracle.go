@@ -140,9 +140,15 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 	if !ok {
 		return nil, fmt.Errorf(errUnexpectedContent)
 	}
+
 	payload, err := base64.StdEncoding.DecodeString(*bt.Content)
+
+	if err != nil {
+		return nil, err
+	}
+
 	if ref.Property == "" {
-		return []byte(payload), nil
+		return payload, nil
 	}
 
 	val := gjson.Get(string(payload), ref.Property)
