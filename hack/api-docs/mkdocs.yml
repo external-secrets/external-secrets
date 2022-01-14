@@ -55,6 +55,7 @@ nav:
       - Gitlab Project Variables: provider-gitlab-project-variables.md
     - Oracle:
       - Oracle Vault: provider-oracle-vault.md
+    - Webhook: provider-webhook.md
   - References:
     - API specification: spec.md
   - Contributing:
