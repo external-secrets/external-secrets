@@ -43,6 +43,7 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/PaesslerAG/jsonpath v0.1.1
+	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.2
 	github.com/akeylesslabs/akeyless-go/v2 v2.5.11
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1192
@@ -169,7 +170,9 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/common v0.28.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
+	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
+	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
@@ -201,6 +204,8 @@ require (
 	honnef.co/go/tools v0.1.4 // indirect
 	k8s.io/apiextensions-apiserver v0.23.0 // indirect
 	k8s.io/component-base v0.23.0 // indirect
+	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
+	k8s.io/klog v0.3.0 // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
