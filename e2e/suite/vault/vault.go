@@ -49,31 +49,31 @@ var _ = Describe("[vault] ", func() {
 		framework.Compose(withCertAuth, f, common.JSONDataWithProperty, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataWithTemplate, useCertAuth),
 		framework.Compose(withCertAuth, f, common.DataPropertyDockerconfigJSON, useCertAuth),
-		framework.Compose(withCertAuth, f, common.JSONDataWithoutTargetName, useTokenAuth),
+		framework.Compose(withCertAuth, f, common.JSONDataWithoutTargetName, useCertAuth),
 		// use approle auth
 		framework.Compose(withApprole, f, common.JSONDataFromSync, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithProperty, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithTemplate, useApproleAuth),
 		framework.Compose(withApprole, f, common.DataPropertyDockerconfigJSON, useApproleAuth),
-		framework.Compose(withApprole, f, common.JSONDataWithoutTargetName, useTokenAuth),
+		framework.Compose(withApprole, f, common.JSONDataWithoutTargetName, useApproleAuth),
 		// use v1 provider
 		framework.Compose(withV1, f, common.JSONDataFromSync, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataWithProperty, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataWithTemplate, useV1Provider),
 		framework.Compose(withV1, f, common.DataPropertyDockerconfigJSON, useV1Provider),
-		framework.Compose(withV1, f, common.JSONDataWithoutTargetName, useTokenAuth),
+		framework.Compose(withV1, f, common.JSONDataWithoutTargetName, useV1Provider),
 		// use jwt provider
 		framework.Compose(withJWT, f, common.JSONDataFromSync, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithProperty, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithTemplate, useJWTProvider),
 		framework.Compose(withJWT, f, common.DataPropertyDockerconfigJSON, useJWTProvider),
-		framework.Compose(withJWT, f, common.JSONDataWithoutTargetName, useTokenAuth),
+		framework.Compose(withJWT, f, common.JSONDataWithoutTargetName, useJWTProvider),
 		// use kubernetes provider
 		framework.Compose(withK8s, f, common.JSONDataFromSync, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataWithProperty, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataWithTemplate, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.DataPropertyDockerconfigJSON, useKubernetesProvider),
-		framework.Compose(withK8s, f, common.JSONDataWithoutTargetName, useTokenAuth),
+		framework.Compose(withK8s, f, common.JSONDataWithoutTargetName, useKubernetesProvider),
 	)
 })
 
