@@ -881,6 +881,18 @@
   
 
           
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provider-webhook/" class="md-nav__link">
+        Webhook
+      </a>
+    </li>
+  
+
+          
         </ul>
       </nav>
     </li>
@@ -1181,6 +1193,7 @@
             <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-a</span>
 </code></pre></div>
 
+<p><em>You need to give the Google service account the <code>roles/iam.serviceAccountTokenCreator</code> role so it can generate a service account token for you (not necessary in the Pod-based Workload Identity bellow)</em></p>
 <h4 id="using-pod-based-workload-identity">Using Pod-based Workload Identity</h4>
 <p>You can attach a Workload Identity directly to the ESO pod. ESO then has access to all the APIs defined in the attached service account policy. You attach the workload identity by (1) creating a service account with a attached workload identity (described above) and (2) using this particular service account in the pod's <code>serviceAccountName</code> field.</p>
 <p>For this example we will assume that you installed ESO using helm and that you named the chart installation <code>external-secrets</code> and the namespace where it lives <code>es</code> like:</p>

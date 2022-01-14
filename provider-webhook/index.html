@@ -14,7 +14,7 @@
     
     
       
-        <title>Provider webhook - External Secrets Operator</title>
+        <title>Webhook - External Secrets Operator</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#macro-rendering-error" class="md-skip">
+        <a href="#generic-webhook" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Provider webhook
+              Webhook
             
           </span>
         </div>
@@ -440,12 +440,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
       
       <label class="md-nav__link" for="__nav_5">
         Provider
@@ -767,6 +769,94 @@
   
 
           
+            
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Webhook
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Webhook
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#generic-webhook" class="md-nav__link">
+    Generic Webhook
+  </a>
+  
+    <nav class="md-nav" aria-label="Generic Webhook">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+    <nav class="md-nav" aria-label="Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    Limitations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#templating" class="md-nav__link">
+    Templating
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#all-parameters" class="md-nav__link">
+    All Parameters
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+          
         </ul>
       </nav>
     </li>
@@ -912,8 +1002,61 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#generic-webhook" class="md-nav__link">
+    Generic Webhook
+  </a>
+  
+    <nav class="md-nav" aria-label="Generic Webhook">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+    <nav class="md-nav" aria-label="Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    Limitations
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#templating" class="md-nav__link">
+    Templating
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#all-parameters" class="md-nav__link">
+    All Parameters
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -930,55 +1073,108 @@
                   </a>
                 
                 
-                <h1 id="macro-rendering-error"><em>Macro Rendering Error</em></h1>
-<p><strong>TemplateSyntaxError</strong>: unexpected '.'</p>
-<div class="highlight"><pre><span></span><code>Traceback (most recent call last):
-  File &quot;/usr/lib/python3.8/site-packages/macros/plugin.py&quot;, line 257, in render
-    md_template = self.env.from_string(markdown)
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/environment.py&quot;, line 880, in from_string
-    return cls.from_code(self, self.compile(source), globals, None)
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/environment.py&quot;, line 591, in compile
-    self.handle_exception(exc_info, source_hint=source_hint)
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/environment.py&quot;, line 780, in handle_exception
-    reraise(exc_type, exc_value, tb)
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/_compat.py&quot;, line 37, in reraise
-    raise value.with_traceback(tb)
-  File &quot;&lt;unknown&gt;&quot;, line 17, in &lt;module&gt;
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/environment.py&quot;, line 497, in _parse
-    return Parser(self, source, name, encode_filename(filename)).parse()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 901, in parse
-    result = nodes.Template(self.subparse(), lineno=1)
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 875, in subparse
-    add_data(self.parse_tuple(with_condexpr=True))
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 620, in parse_tuple
-    args.append(parse())
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 432, in parse_expression
-    return self.parse_condexpr()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 437, in parse_condexpr
-    expr1 = self.parse_or()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 450, in parse_or
-    left = self.parse_and()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 459, in parse_and
-    left = self.parse_not()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 470, in parse_not
-    return self.parse_compare()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 474, in parse_compare
-    expr = self.parse_math1()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 496, in parse_math1
-    left = self.parse_concat()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 507, in parse_concat
-    args = [self.parse_math2()]
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 517, in parse_math2
-    left = self.parse_pow()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 528, in parse_pow
-    left = self.parse_unary()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 546, in parse_unary
-    node = self.parse_primary()
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 583, in parse_primary
-    self.fail(&quot;unexpected &#39;%s&#39;&quot; % describe_token(token), token.lineno)
-  File &quot;/usr/lib/python3.8/site-packages/jinja2/parser.py&quot;, line 59, in fail
-    raise exc(msg, lineno, self.name, self.filename)
-jinja2.exceptions.TemplateSyntaxError: unexpected &#39;.&#39;
+                  <h1>Webhook</h1>
+                
+                <h2 id="generic-webhook">Generic Webhook</h2>
+<p>External Secrets Operator can integrate with simple web apis by specifying the endpoint</p>
+<h3 id="example">Example</h3>
+<p>First, create a SecretStore with a webhook backend.  We'll use a static user/password <code>root</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-backend</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">webhook</span><span class="p">:</span>
+      <span class="nt">url</span><span class="p">:</span> <span class="s">&quot;http://httpbin.org/get?parameter={{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
+      <span class="nt">result</span><span class="p">:</span>
+        <span class="nt">jsonPath</span><span class="p">:</span> <span class="s">&quot;$.args.parameter&quot;</span>
+      <span class="nt">headers</span><span class="p">:</span>
+        <span class="nt">Content-Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">application/json</span>
+        <span class="nt">Authorization</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Basic {{ print .auth.username &quot;:&quot; .auth.password | b64enc }}</span>
+      <span class="nt">secrets</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">auth</span>
+        <span class="nt">secretRef</span><span class="p">:</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">username</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span> <span class="c1"># &quot;test&quot;</span>
+  <span class="nt">password</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span> <span class="c1"># &quot;test&quot;</span>
+</code></pre></div>
+
+<p>NB: This is obviously not practical because it just returns the key as the result, but it shows how it works</p>
+<p>Now create an ExternalSecret that uses the above SecretStore:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="s">&quot;15s&quot;</span>
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-backend</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-sync</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foobar</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret</span>
+<span class="nn">---</span>
+<span class="c1"># will create a secret with:</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-sync</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">foobar</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">c2VjcmV0</span>
+</code></pre></div>
+
+<h4 id="limitations">Limitations</h4>
+<p>Webhook does not support authorization, other than what can be sent by generating http headers</p>
+<h3 id="templating">Templating</h3>
+<p>Generic WebHook provider uses the templating engine to generate the API call.  It can be used in the url, headers, body and result.jsonPath fields.</p>
+<p>The provider inserts the secret to be retrieved in the object named <code>remoteRef</code>.</p>
+<p>In addition, secrets can be added as named objects, for example to use in authorization headers.
+Each secret has a <code>name</code> property which determines the name of the object in the templating engine.</p>
+<h3 id="all-parameters">All Parameters</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">statervault</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">webhook</span><span class="p">:</span>
+      <span class="c1"># Url to call.  Use templating engine to fill in the request parameters</span>
+      <span class="nt">url</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;url&gt;</span>
+      <span class="c1"># http method, defaults to GET</span>
+      <span class="nt">method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;method&gt;</span>
+      <span class="c1"># Timeout in duration (1s, 1m, etc)</span>
+      <span class="nt">timeout</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1s</span>
+      <span class="nt">result</span><span class="p">:</span>
+        <span class="c1"># [jsonPath](https://jsonpath.com) syntax, which also can be templated</span>
+        <span class="nt">jsonPath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;jsonPath&gt;</span>
+      <span class="c1"># Map of headers, can be templated</span>
+      <span class="nt">headers</span><span class="p">:</span>
+        <span class="nt">&lt;Header-Name&gt;</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;header contents&gt;</span>
+      <span class="c1"># Body to sent as request, can be templated (optional)</span>
+      <span class="nt">body</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;body&gt;</span>
+      <span class="c1"># List of secrets to expose to the templating engine</span>
+      <span class="nt">secrets</span><span class="p">:</span>
+      <span class="c1"># Use this name to refer to this secret in templating, above</span>
+      <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span>
+        <span class="nt">secretRef</span><span class="p">:</span>
+          <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span>
+          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span>
+      <span class="c1"># Add CAs here for the TLS handshake</span>
+      <span class="nt">caBundle</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;base64 encoded cabundle&gt;</span>
+      <span class="nt">caProvider</span><span class="p">:</span>
+        <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret or COnfigMap</span>
+        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name of secret or configmap&gt;</span>
+        <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span>
+        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;key inside secret&gt;</span>
 </code></pre></div>
                 
               
@@ -995,6 +1191,41 @@ jinja2.exceptions.TemplateSyntaxError: unexpected &#39;.&#39;
       
         
 <footer class="md-footer">
+  
+    <nav class="md-footer__inner md-grid" aria-label="Footer">
+      
+        
+        <a href="../provider-oracle-vault/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Oracle Vault" rel="prev">
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+          </div>
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              Oracle Vault
+            </div>
+          </div>
+        </a>
+      
+      
+        
+        <a href="../spec/" class="md-footer__link md-footer__link--next" aria-label="Next: API specification" rel="next">
+          <div class="md-footer__title">
+            <div class="md-ellipsis">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              API specification
+            </div>
+          </div>
+          <div class="md-footer__button md-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+          </div>
+        </a>
+      
+    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
