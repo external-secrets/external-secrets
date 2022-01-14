@@ -13,6 +13,7 @@ package oracle
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strings"
@@ -104,7 +105,7 @@ func TestOracleVaultGetSecret(t *testing.T) {
 				SecretId:      utilpointer.StringPtr("test-id"),
 				VersionNumber: utilpointer.Int64(1),
 				SecretBundleContent: secrets.Base64SecretBundleContentDetails{
-					Content: utilpointer.StringPtr(secretValue),
+					Content: utilpointer.StringPtr(base64.StdEncoding.EncodeToString([]byte(secretValue))),
 				},
 			},
 		}
@@ -135,7 +136,7 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: utilpointer.StringPtr(`{"foo":"bar"}`),
+			Content: utilpointer.StringPtr(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
 		}
 		smtc.expectedData["foo"] = []byte("bar")
 	}
@@ -143,7 +144,7 @@ func TestGetSecretMap(t *testing.T) {
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: utilpointer.StringPtr(`-----------------`),
+			Content: utilpointer.StringPtr(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
 		}
 		smtc.expectError = "unable to unmarshal secret"
 	}
