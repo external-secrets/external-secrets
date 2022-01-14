@@ -279,10 +279,9 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	if !unversioned && len(gvks) == 1 {
 		secret.SetGroupVersionKind(gvks[0])
 	}
-	// we might get into a conflict here if we are not the manager of that particular field
-	// we do not resolve the conflict and return an error instead
-	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
-	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner("external-secrets"))
+	// we're not able to resolve conflicts so we force ownership
+	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#using-server-side-apply-in-a-controller
+	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner("external-secrets"), client.ForceOwnership)
 	if err != nil {
 		return fmt.Errorf(errPolicyMergePatch, secret.Name, err)
 	}

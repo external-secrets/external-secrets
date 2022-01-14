@@ -341,8 +341,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
-	// controller should not force override but
-	// return an error on conflict
+	// controller should force ownership
 	mergeWithConflict := func(tc *testCase) {
 		const secretVal = "someValue"
 		// this should confict
@@ -362,23 +361,14 @@ var _ = Describe("ExternalSecret controller", func() {
 		}, client.FieldOwner(FakeManager))).To(Succeed())
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 
-		tc.checkCondition = func(es *esv1alpha1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1alpha1.ExternalSecretReady)
-			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1alpha1.ConditionReasonSecretSyncedError {
-				return false
-			}
-			return true
-		}
-
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
 			// check that value stays the same
-			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
-			Expect(string(secret.Data[targetProp])).ToNot(Equal(secretVal))
+			Expect(string(secret.Data[existingKey])).To(Equal(secretVal))
 
 			// check owner/managedFields
 			Expect(hasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeFalse())
-			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(1))
-			Expect(hasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:targetProperty\":{}},\"f:type\":{}}")).To(BeTrue())
+			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
+			Expect(hasFieldOwnership(secret.ObjectMeta, "external-secrets", "{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:reconcile.external-secrets.io/data-hash\":{}}}}")).To(BeTrue())
 		}
 	}
 
