@@ -176,19 +176,40 @@ func (v *client) Close(ctx context.Context) error {
 	return nil
 }
 
-func (v *client) readSecret(ctx context.Context, path, version string) (map[string][]byte, error) {
-	kvPath := v.store.Path
+func (v *client) buildPath(path string) string {
+	optionalMount := v.store.Path
+	origPath := strings.Split(path, "/")
+	newPath := make([]string, 0)
+	cursor := 0
+
+	if optionalMount != nil && origPath[0] != *optionalMount {
+		// Default case before path was optional
+		// Ensure that the requested path includes the SecretStores paths as prefix
+		newPath = append(newPath, *optionalMount)
+	} else {
+		newPath = append(newPath, origPath[cursor])
+		cursor++
+	}
 
 	if v.store.Version == esv1alpha1.VaultKVStoreV2 {
-		if !strings.HasSuffix(kvPath, "/data") {
-			kvPath = fmt.Sprintf("%s/data", kvPath)
+		// Add the required `data` part of the URL for the v2 API
+		if len(origPath) < 2 || origPath[1] != "data" {
+			newPath = append(newPath, "data")
 		}
 	}
+	newPath = append(newPath, origPath[cursor:]...)
+	returnPath := strings.Join(newPath, "/")
+
+	return returnPath
+}
+
+func (v *client) readSecret(ctx context.Context, path, version string) (map[string][]byte, error) {
+	dataPath := v.buildPath(path)
 
 	// path formated according to vault docs for v1 and v2 API
 	// v1: https://www.vaultproject.io/api-docs/secret/kv/kv-v1#read-secret
 	// v2: https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
-	req := v.client.NewRequest(http.MethodGet, fmt.Sprintf("/v1/%s/%s", kvPath, path))
+	req := v.client.NewRequest(http.MethodGet, fmt.Sprintf("/v1/%s", dataPath))
 	if version != "" {
 		req.Params.Set("version", version)
 	}
