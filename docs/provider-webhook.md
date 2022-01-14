@@ -7,6 +7,7 @@ External Secrets Operator can integrate with simple web apis by specifying the e
 First, create a SecretStore with a webhook backend.  We'll use a static user/password `root`:
 
 ```yaml
+{% raw %}
 apiVersion: external-secrets.io/v1alpha1
 kind: SecretStore
 metadata:
@@ -24,6 +25,7 @@ spec:
       - name: auth
         secretRef:
           name: webhook-credentials
+{%- endraw %}
 ---
 apiVersion: v1
 kind: Secret

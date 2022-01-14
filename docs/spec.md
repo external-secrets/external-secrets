@@ -687,6 +687,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The namespace the Provider type is in.</p>
 </td>
 </tr>
@@ -1511,6 +1512,20 @@ GCPSMAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GCPWorkloadIdentity">
+GCPWorkloadIdentity
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -1585,6 +1600,54 @@ string
 </td>
 <td>
 <p>ProjectID project where secret is located</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.GCPWorkloadIdentity">GCPWorkloadIdentity
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.GCPSMAuth">GCPSMAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterLocation</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -2222,6 +2285,20 @@ AlibabaProvider
 <p>Alibaba configures this store to sync secrets using Alibaba Cloud provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>webhook</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookProvider">
+WebhookProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Webhook configures this store to sync secrets using a generic templated webhook</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.SecretStoreRef">SecretStoreRef
@@ -2816,6 +2893,18 @@ method, with the role name and token stored in a Kubernetes Secret resource.</p>
 <tbody>
 <tr>
 <td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the JWT authentication backend is mounted
+in Vault, e.g: &ldquo;jwt&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>role</code></br>
 <em>
 string
@@ -2956,6 +3045,18 @@ with the username and password stored in a Kubernetes Secret resource.</p>
 <tbody>
 <tr>
 <td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the LDAP authentication backend is mounted
+in Vault, e.g: &ldquo;ldap&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>username</code></br>
 <em>
 string
@@ -3031,6 +3132,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path is the mount path of the Vault KV backend endpoint, e.g:
 &ldquo;secret&rdquo;. The v2 KV secret engine version specific &ldquo;/data&rdquo; path suffix
 for fetching secrets from Vault is optional and will be appended
@@ -3096,6 +3198,299 @@ CAProvider
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.WebhookCAProvider">WebhookCAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+<p>Defines a location to fetch the cert for the webhook provider from.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookCAProviderType">
+WebhookCAProviderType
+</a>
+</em>
+</td>
+<td>
+<p>The type of provider to use such as &ldquo;Secret&rdquo;, or &ldquo;ConfigMap&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the object located at the provider type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The key the value inside of the provider type to use, only used with &ldquo;Secret&rdquo; type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The namespace the Provider type is in.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookCAProviderType">WebhookCAProviderType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.WebhookCAProvider">WebhookCAProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ConfigMap&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Secret&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookProvider">WebhookProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>AkeylessProvider Configures an store to sync secrets using Akeyless KV.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>method</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Webhook Method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Webhook url to call</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>headers</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Headers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>body</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Body</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>timeout</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Timeout</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>result</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookResult">
+WebhookResult
+</a>
+</em>
+</td>
+<td>
+<p>Result formatting</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secrets</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookSecret">
+[]WebhookSecret
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Secrets to fill in templates
+These secrets will be passed to the templating function as key value pairs under the given name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM encoded CA bundle used to validate webhook server certificate. Only used
+if the Server URL is using HTTPS protocol. This parameter is ignored for
+plain HTTP protocol connection. If not set the system root certificates
+are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookCAProvider">
+WebhookCAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate webhook server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookResult">WebhookResult
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>jsonPath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Json path of return value</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookSecret">WebhookSecret
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of this secret in templates</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>Secret ref to fill in credentials</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.YandexLockboxAuth">YandexLockboxAuth
 </h3>
 <p>
@@ -3122,6 +3517,34 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>The authorized key used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.YandexLockboxCAProvider">YandexLockboxCAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.YandexLockboxProvider">YandexLockboxProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -3166,6 +3589,20 @@ YandexLockboxAuth
 </td>
 <td>
 <p>Auth defines the information necessary to authenticate against Yandex Lockbox</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.YandexLockboxCAProvider">
+YandexLockboxCAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Yandex.Cloud server certificate.</p>
 </td>
 </tr>
 </tbody>
