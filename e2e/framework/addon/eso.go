@@ -13,6 +13,19 @@ limitations under the License.
 */
 package addon
 
+import (
+	"fmt"
+	"os"
+
+	// nolint
+	. "github.com/onsi/ginkgo"
+	// nolint
+	. "github.com/onsi/gomega"
+
+	// nolint
+	"github.com/external-secrets/external-secrets/e2e/framework/util"
+)
+
 type ESO struct {
 	Addon
 }
@@ -26,6 +39,58 @@ func NewESO() *ESO {
 			Values:      []string{"/k8s/eso.values.yaml"},
 		},
 	}
+}
+
+func (l *ESO) Install() error {
+	By("Installing eso\n")
+	err := l.Addon.Install()
+	if err != nil {
+		return err
+	}
+
+	By("afterInstall eso\n")
+	err = l.afterInstall()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *ESO) afterInstall() error {
+	err := gcpPreparation()
+	Expect(err).NotTo(HaveOccurred())
+	err = awsPreparation()
+	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func gcpPreparation() error {
+	gcpProjectID := os.Getenv("GCP_PROJECT_ID")
+	gcpGSAName := os.Getenv("GCP_GSA_NAME")
+	gcpKSAName := os.Getenv("GCP_KSA_NAME")
+	_, kubeClientSet, _ := util.NewConfig()
+
+	annotations := make(map[string]string)
+	annotations["iam.gke.io/gcp-service-account"] = fmt.Sprintf("%s@%s.iam.gserviceaccount.com", gcpGSAName, gcpProjectID)
+	_, err := util.UpdateKubeSA(gcpKSAName, kubeClientSet, "default", annotations)
+	Expect(err).NotTo(HaveOccurred())
+
+	_, err = util.UpdateKubeSA("external-secrets-e2e", kubeClientSet, "default", annotations)
+	Expect(err).NotTo(HaveOccurred())
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func awsPreparation() error {
+	return nil
 }
 
 func NewScopedESO() *ESO {

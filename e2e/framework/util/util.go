@@ -18,17 +18,27 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
+	// nolint
+	. "github.com/onsi/ginkgo"
+	// nolint
+	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var Scheme = runtime.NewScheme()
 
 const (
 	// How often to poll for conditions.
@@ -205,4 +215,46 @@ func WaitForURL(url string) error {
 		}
 		return false, err
 	})
+}
+
+// UpdateKubeSA updates a new Kubernetes Service Account for a test.
+func UpdateKubeSA(baseName string, kubeClientSet kubernetes.Interface, ns string, annotations map[string]string) (*v1.ServiceAccount, error) {
+	sa := &v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        baseName,
+			Annotations: annotations,
+		},
+	}
+
+	return kubeClientSet.CoreV1().ServiceAccounts(ns).Update(context.TODO(), sa, metav1.UpdateOptions{})
+}
+
+// UpdateKubeSA updates a new Kubernetes Service Account for a test.
+func GetKubeSA(baseName string, kubeClientSet kubernetes.Interface, ns string) (*v1.ServiceAccount, error) {
+	return kubeClientSet.CoreV1().ServiceAccounts(ns).Get(context.TODO(), baseName, metav1.GetOptions{})
+}
+
+// NewConfig loads and returns the kubernetes credentials from the environment.
+// KUBECONFIG env var takes precedence and falls back to in-cluster config.
+func NewConfig() (*restclient.Config, *kubernetes.Clientset, crclient.Client) {
+	var kubeConfig *restclient.Config
+	var err error
+	kcPath := os.Getenv("KUBECONFIG")
+	if kcPath != "" {
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kcPath)
+		Expect(err).NotTo(HaveOccurred())
+	} else {
+		kubeConfig, err = restclient.InClusterConfig()
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	By("creating a kubernetes client")
+	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("creating a controller-runtime client")
+	CRClient, err := crclient.New(kubeConfig, crclient.Options{Scheme: Scheme})
+	Expect(err).NotTo(HaveOccurred())
+
+	return kubeConfig, kubeClientSet, CRClient
 }
