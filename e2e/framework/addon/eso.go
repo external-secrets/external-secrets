@@ -58,6 +58,17 @@ func (l *ESO) Install() error {
 }
 
 func (l *ESO) afterInstall() error {
+	err := gcpPreparation()
+	Expect(err).NotTo(HaveOccurred())
+	err = awsPreparation()
+	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func gcpPreparation() error {
 	gcpProjectID := os.Getenv("GCP_PROJECT_ID")
 	gcpGSAName := os.Getenv("GCP_GSA_NAME")
 	gcpKSAName := os.Getenv("GCP_KSA_NAME")
@@ -71,6 +82,14 @@ func (l *ESO) afterInstall() error {
 	_, err = util.UpdateKubeSA("external-secrets-e2e", kubeClientSet, "default", annotations)
 	Expect(err).NotTo(HaveOccurred())
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func awsPreparation() error {
 	return nil
 }
 
