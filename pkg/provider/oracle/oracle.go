@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/oracle/oci-go-sdk/v45/common"
-	secrets "github.com/oracle/oci-go-sdk/v45/secrets"
+	"github.com/oracle/oci-go-sdk/v45/secrets"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,6 +46,7 @@ const (
 	errMissingTenancy                        = "missing Tenancy ID"
 	errMissingRegion                         = "missing Region"
 	errMissingFingerprint                    = "missing Fingerprint"
+	errMissingVault                          = "missing Vault"
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
 	errMissingKey                            = "missing Key in secret: %s"
 	errUnexpectedContent                     = "unexpected secret bundle content"
@@ -65,10 +66,11 @@ type client struct {
 
 type VaultManagementService struct {
 	Client VMInterface
+	vault  string
 }
 
 type VMInterface interface {
-	GetSecretBundle(ctx context.Context, request secrets.GetSecretBundleRequest) (response secrets.GetSecretBundleResponse, err error)
+	GetSecretBundleByName(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error)
 }
 
 func (c *client) setAuth(ctx context.Context) error {
@@ -127,22 +129,22 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 	if utils.IsNil(vms.Client) {
 		return nil, fmt.Errorf(errUninitalizedOracleProvider)
 	}
-	sec, err := vms.Client.GetSecretBundle(ctx, secrets.GetSecretBundleRequest{
-		SecretId: &ref.Key,
-		Stage:    secrets.GetSecretBundleStageEnum(ref.Version),
-	})
 
+	sec, err := vms.Client.GetSecretBundleByName(ctx, secrets.GetSecretBundleByNameRequest{
+		VaultId:    &vms.vault,
+		SecretName: &ref.Key,
+		Stage:      secrets.GetSecretBundleByNameStageEnum(ref.Version),
+	})
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
-	// TODO: should bt.Content be base64 decoded??
+
 	bt, ok := sec.SecretBundleContent.(secrets.Base64SecretBundleContentDetails)
 	if !ok {
 		return nil, fmt.Errorf(errUnexpectedContent)
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(*bt.Content)
-
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +184,10 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1alph
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
+	if oracleSpec.Vault == "" {
+		return nil, fmt.Errorf(errMissingVault)
+	}
+
 	oracleStore := &client{
 		kube:      kube,
 		store:     oracleSpec,
@@ -204,8 +210,11 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1alph
 	if err != nil {
 		return nil, fmt.Errorf(errOracleClient, err)
 	}
-	vms.Client = secretManagementService
-	return vms, nil
+
+	return &VaultManagementService{
+		Client: secretManagementService,
+		vault:  oracleSpec.Vault,
+	}, nil
 }
 
 func (vms *VaultManagementService) Close(ctx context.Context) error {
