@@ -63,7 +63,7 @@ func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 func makeValidAPIInput() *secrets.GetSecretBundleByNameRequest {
 	return &secrets.GetSecretBundleByNameRequest{
 		SecretName: utilpointer.StringPtr("test-secret"),
-		VaultId: utilpointer.StringPtr("test-vault"),
+		VaultId:    utilpointer.StringPtr("test-vault"),
 	}
 }
 
