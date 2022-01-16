@@ -32,7 +32,7 @@ This will automatically generate a fingerprint.
 ![API-key-details](./pictures/screenshot_API_key.png)
 
 ### Update secret store
-Be sure the `oracle` provider is listed in the `Kind=SecretStore`
+Be sure the `oracle` provider is listed in the `Kind=SecretStore`.
 
 ```yaml
 {% include 'oracle-secret-store.yaml' %}

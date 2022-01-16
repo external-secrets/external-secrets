@@ -20,16 +20,16 @@ import (
 )
 
 type OracleMockClient struct {
-	getSecret func(ctx context.Context, request secrets.GetSecretBundleRequest) (response secrets.GetSecretBundleResponse, err error)
+	getSecret func(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (response secrets.GetSecretBundleByNameResponse, err error)
 }
 
-func (mc *OracleMockClient) GetSecretBundle(ctx context.Context, request secrets.GetSecretBundleRequest) (response secrets.GetSecretBundleResponse, err error) {
+func (mc *OracleMockClient) GetSecretBundleByName(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (response secrets.GetSecretBundleByNameResponse, err error) {
 	return mc.getSecret(ctx, request)
 }
 
-func (mc *OracleMockClient) WithValue(input secrets.GetSecretBundleRequest, output secrets.GetSecretBundleResponse, err error) {
+func (mc *OracleMockClient) WithValue(input secrets.GetSecretBundleByNameRequest, output secrets.GetSecretBundleByNameResponse, err error) {
 	if mc != nil {
-		mc.getSecret = func(ctx context.Context, paramReq secrets.GetSecretBundleRequest) (secrets.GetSecretBundleResponse, error) {
+		mc.getSecret = func(ctx context.Context, paramReq secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error) {
 			return output, err
 		}
 	}

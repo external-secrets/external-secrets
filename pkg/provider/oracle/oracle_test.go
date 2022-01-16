@@ -28,8 +28,8 @@ import (
 
 type vaultTestCase struct {
 	mockClient     *fakeoracle.OracleMockClient
-	apiInput       *secrets.GetSecretBundleRequest
-	apiOutput      *secrets.GetSecretBundleResponse
+	apiInput       *secrets.GetSecretBundleByNameRequest
+	apiOutput      *secrets.GetSecretBundleByNameResponse
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
@@ -60,15 +60,15 @@ func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	}
 }
 
-func makeValidAPIInput() *secrets.GetSecretBundleRequest {
-	return &secrets.GetSecretBundleRequest{
-		SecretId: utilpointer.StringPtr("test-secret"),
+func makeValidAPIInput() *secrets.GetSecretBundleByNameRequest {
+	return &secrets.GetSecretBundleByNameRequest{
+		SecretName: utilpointer.StringPtr("test-secret"),
+		VaultId:    utilpointer.StringPtr("test-vault"),
 	}
 }
 
-func makeValidAPIOutput() *secrets.GetSecretBundleResponse {
-	return &secrets.GetSecretBundleResponse{
-		Etag:         utilpointer.StringPtr("test-name"),
+func makeValidAPIOutput() *secrets.GetSecretBundleByNameResponse {
+	return &secrets.GetSecretBundleByNameResponse{
 		SecretBundle: secrets.SecretBundle{},
 	}
 }
@@ -99,8 +99,7 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	// good case: default version is set
 	// key is passed in, output is sent back
 	setSecretString := func(smtc *vaultTestCase) {
-		smtc.apiOutput = &secrets.GetSecretBundleResponse{
-			Etag: utilpointer.StringPtr("test-name"),
+		smtc.apiOutput = &secrets.GetSecretBundleByNameResponse{
 			SecretBundle: secrets.SecretBundle{
 				SecretId:      utilpointer.StringPtr("test-id"),
 				VersionNumber: utilpointer.Int64(1),
