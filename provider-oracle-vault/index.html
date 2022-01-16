@@ -1121,7 +1121,7 @@
 This will automatically generate a fingerprint.
 <img alt="API-key-details" src="../pictures/screenshot_API_key.png" /></p>
 <h3 id="update-secret-store">Update secret store</h3>
-<p>Be sure the <code>oracle</code> provider is listed in the <code>Kind=SecretStore</code></p>
+<p>Be sure the <code>oracle</code> provider is listed in the <code>Kind=SecretStore</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -1129,9 +1129,10 @@ This will automatically generate a fingerprint.
 <span class="nt">spec</span><span class="p">:</span>
   <span class="nt">provider</span><span class="p">:</span>
     <span class="nt">oracle</span><span class="p">:</span> <span class="c1">#Needs to match value in secretstore_types.go</span>
-      <span class="nt">user</span><span class="p">:</span> 
-      <span class="nt">tenancy</span><span class="p">:</span> 
-      <span class="nt">region</span><span class="p">:</span> 
+      <span class="nt">vault</span><span class="p">:</span> <span class="c1"># The vault OCID</span>
+      <span class="nt">user</span><span class="p">:</span>
+      <span class="nt">tenancy</span><span class="p">:</span>
+      <span class="nt">region</span><span class="p">:</span>
       <span class="nt">auth</span><span class="p">:</span>
         <span class="nt">secretRef</span><span class="p">:</span>
           <span class="nt">privatekey</span><span class="p">:</span>
@@ -1156,10 +1157,8 @@ This will automatically generate a fingerprint.
   <span class="nt">target</span><span class="p">:</span>
     <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span> <span class="c1"># Name for the secret on the cluster</span>
     <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> 
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> 
+  <span class="nt">dataFrom</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">the-secret-name</span>
 </code></pre></div>
 
 <h3 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h3>
