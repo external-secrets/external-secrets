@@ -16,20 +16,20 @@ package fake
 import (
 	"context"
 
-	vault "github.com/oracle/oci-go-sdk/v45/vault"
+	secrets "github.com/oracle/oci-go-sdk/v45/secrets"
 )
 
 type OracleMockClient struct {
-	getSecret func(ctx context.Context, request vault.GetSecretRequest) (response vault.GetSecretResponse, err error)
+	getSecret func(ctx context.Context, request secrets.GetSecretBundleRequest) (response secrets.GetSecretBundleResponse, err error)
 }
 
-func (mc *OracleMockClient) GetSecret(ctx context.Context, request vault.GetSecretRequest) (response vault.GetSecretResponse, err error) {
+func (mc *OracleMockClient) GetSecretBundle(ctx context.Context, request secrets.GetSecretBundleRequest) (response secrets.GetSecretBundleResponse, err error) {
 	return mc.getSecret(ctx, request)
 }
 
-func (mc *OracleMockClient) WithValue(input vault.GetSecretRequest, output vault.GetSecretResponse, err error) {
+func (mc *OracleMockClient) WithValue(input secrets.GetSecretBundleRequest, output secrets.GetSecretBundleResponse, err error) {
 	if mc != nil {
-		mc.getSecret = func(ctx context.Context, paramReq vault.GetSecretRequest) (vault.GetSecretResponse, error) {
+		mc.getSecret = func(ctx context.Context, paramReq secrets.GetSecretBundleRequest) (secrets.GetSecretBundleResponse, error) {
 			return output, err
 		}
 	}

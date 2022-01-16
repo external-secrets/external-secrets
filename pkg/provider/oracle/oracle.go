@@ -13,11 +13,12 @@ package oracle
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
 	"github.com/oracle/oci-go-sdk/v45/common"
-	vault "github.com/oracle/oci-go-sdk/v45/vault"
+	secrets "github.com/oracle/oci-go-sdk/v45/secrets"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,7 +48,7 @@ const (
 	errMissingFingerprint                    = "missing Fingerprint"
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
 	errMissingKey                            = "missing Key in secret: %s"
-	errInvalidSecret                         = "invalid secret received. no secret string nor binary for key: %s"
+	errUnexpectedContent                     = "unexpected secret bundle content"
 )
 
 type client struct {
@@ -67,7 +68,7 @@ type VaultManagementService struct {
 }
 
 type VMInterface interface {
-	GetSecret(ctx context.Context, request vault.GetSecretRequest) (response vault.GetSecretResponse, err error)
+	GetSecretBundle(ctx context.Context, request secrets.GetSecretBundleRequest) (response secrets.GetSecretBundleResponse, err error)
 }
 
 func (c *client) setAuth(ctx context.Context) error {
@@ -126,27 +127,32 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 	if utils.IsNil(vms.Client) {
 		return nil, fmt.Errorf(errUninitalizedOracleProvider)
 	}
-	vmsRequest := vault.GetSecretRequest{
+	sec, err := vms.Client.GetSecretBundle(ctx, secrets.GetSecretBundleRequest{
 		SecretId: &ref.Key,
-	}
-	secretOut, err := vms.Client.GetSecret(context.Background(), vmsRequest)
+		Stage:    secrets.GetSecretBundleStageEnum(ref.Version),
+	})
+
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
+	// TODO: should bt.Content be base64 decoded??
+	bt, ok := sec.SecretBundleContent.(secrets.Base64SecretBundleContentDetails)
+	if !ok {
+		return nil, fmt.Errorf(errUnexpectedContent)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(*bt.Content)
+
+	if err != nil {
+		return nil, err
+	}
+
 	if ref.Property == "" {
-		if *secretOut.SecretName != "" {
-			return []byte(*secretOut.SecretName), nil
-		}
-		return nil, fmt.Errorf(errInvalidSecret, ref.Key)
-	}
-	var payload *string
-	if secretOut.SecretName != nil {
-		payload = secretOut.SecretName
+		return payload, nil
 	}
 
-	payloadval := *payload
+	val := gjson.Get(string(payload), ref.Property)
 
-	val := gjson.Get(payloadval, ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf(errMissingKey, ref.Key)
 	}
@@ -194,11 +200,11 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1alph
 
 	configurationProvider := common.NewRawConfigurationProvider(oracleTenancy, oracleUser, oracleRegion, oracleFingerprint, oraclePrivateKey, nil)
 
-	vaultManagementService, err := vault.NewVaultsClientWithConfigurationProvider(configurationProvider)
+	secretManagementService, err := secrets.NewSecretsClientWithConfigurationProvider(configurationProvider)
 	if err != nil {
 		return nil, fmt.Errorf(errOracleClient, err)
 	}
-	vms.Client = vaultManagementService
+	vms.Client = secretManagementService
 	return vms, nil
 }
 
