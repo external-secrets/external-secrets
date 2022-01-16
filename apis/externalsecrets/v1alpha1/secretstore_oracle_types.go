@@ -30,6 +30,9 @@ type OracleProvider struct {
 
 	// Region is the region where secret is located.
 	Region string `json:"region,omitempty"`
+
+	// Vault is the vault's OCID of the specific vault where secret is located.
+	Vault string `json:"vault,omitempty"`
 }
 
 type OracleAuth struct {
