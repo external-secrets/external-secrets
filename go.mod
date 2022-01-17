@@ -49,7 +49,7 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1192
 	github.com/aws/aws-sdk-go v1.38.6
 	github.com/crossplane/crossplane-runtime v0.15.1
-	github.com/go-logr/logr v1.2.0
+	github.com/go-logr/logr v1.2.2
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.2.0
