@@ -51,6 +51,11 @@ var tplFuncs = tpl.FuncMap{
 	"lower":    strings.ToLower,
 }
 
+// So other templating calls can use the same extra functions.
+func FuncMap() tpl.FuncMap {
+	return tplFuncs
+}
+
 const (
 	errParse                = "unable to parse template at key %s: %s"
 	errExecute              = "unable to execute template at key %s: %s"

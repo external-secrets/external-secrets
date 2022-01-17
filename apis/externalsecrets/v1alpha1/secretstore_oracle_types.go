@@ -25,11 +25,14 @@ type OracleProvider struct {
 	// User is an access OCID specific to the account.
 	User string `json:"user,omitempty"`
 
-	// projectID is an access token specific to the secret.
+	// Tenancy is the tenancy OCID where secret is located.
 	Tenancy string `json:"tenancy,omitempty"`
 
-	// projectID is an access token specific to the secret.
+	// Region is the region where secret is located.
 	Region string `json:"region,omitempty"`
+
+	// Vault is the vault's OCID of the specific vault where secret is located.
+	Vault string `json:"vault,omitempty"`
 }
 
 type OracleAuth struct {
@@ -38,9 +41,9 @@ type OracleAuth struct {
 }
 
 type OracleSecretRef struct {
-	// The Access Token is used for authentication
+	// PrivateKey is the user's API Signing Key in PEM format, used for authentication.
 	PrivateKey esmeta.SecretKeySelector `json:"privatekey,omitempty"`
 
-	// projectID is an access token specific to the secret.
+	// Fingerprint is the fingerprint of the API private key.
 	Fingerprint esmeta.SecretKeySelector `json:"fingerprint,omitempty"`
 }

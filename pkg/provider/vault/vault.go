@@ -73,6 +73,7 @@ const (
 	errVaultRevokeToken = "error while revoking token: %w"
 
 	errUnknownCAProvider = "unknown caProvider type given"
+	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
 )
 
 type Client interface {
@@ -182,19 +183,40 @@ func (v *client) Close(ctx context.Context) error {
 	return nil
 }
 
-func (v *client) readSecret(ctx context.Context, path, version string) (map[string][]byte, error) {
-	kvPath := v.store.Path
+func (v *client) buildPath(path string) string {
+	optionalMount := v.store.Path
+	origPath := strings.Split(path, "/")
+	newPath := make([]string, 0)
+	cursor := 0
+
+	if optionalMount != nil && origPath[0] != *optionalMount {
+		// Default case before path was optional
+		// Ensure that the requested path includes the SecretStores paths as prefix
+		newPath = append(newPath, *optionalMount)
+	} else {
+		newPath = append(newPath, origPath[cursor])
+		cursor++
+	}
 
 	if v.store.Version == esv1alpha1.VaultKVStoreV2 {
-		if !strings.HasSuffix(kvPath, "/data") {
-			kvPath = fmt.Sprintf("%s/data", kvPath)
+		// Add the required `data` part of the URL for the v2 API
+		if len(origPath) < 2 || origPath[1] != "data" {
+			newPath = append(newPath, "data")
 		}
 	}
+	newPath = append(newPath, origPath[cursor:]...)
+	returnPath := strings.Join(newPath, "/")
+
+	return returnPath
+}
+
+func (v *client) readSecret(ctx context.Context, path, version string) (map[string][]byte, error) {
+	dataPath := v.buildPath(path)
 
 	// path formated according to vault docs for v1 and v2 API
 	// v1: https://www.vaultproject.io/api-docs/secret/kv/kv-v1#read-secret
 	// v2: https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
-	req := v.client.NewRequest(http.MethodGet, fmt.Sprintf("/v1/%s/%s", kvPath, path))
+	req := v.client.NewRequest(http.MethodGet, fmt.Sprintf("/v1/%s", dataPath))
 	if version != "" {
 		req.Params.Set("version", version)
 	}
@@ -258,6 +280,10 @@ func (v *client) newConfig() (*vault.Config, error) {
 		}
 	}
 
+	if v.store.CAProvider != nil && v.storeKind == esv1alpha1.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
+		return nil, errors.New(errCANamespace)
+	}
+
 	if v.store.CAProvider != nil {
 		var cert []byte
 		var err error
@@ -290,10 +316,14 @@ func (v *client) newConfig() (*vault.Config, error) {
 
 func getCertFromSecret(v *client) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
-		Name:      v.store.CAProvider.Name,
-		Namespace: &v.store.CAProvider.Namespace,
-		Key:       v.store.CAProvider.Key,
+		Name: v.store.CAProvider.Name,
+		Key:  v.store.CAProvider.Key,
 	}
+
+	if v.store.CAProvider.Namespace != nil {
+		secretRef.Namespace = v.store.CAProvider.Namespace
+	}
+
 	ctx := context.Background()
 	res, err := v.secretKeyRef(ctx, &secretRef)
 	if err != nil {
@@ -305,8 +335,11 @@ func getCertFromSecret(v *client) ([]byte, error) {
 
 func getCertFromConfigMap(v *client) ([]byte, error) {
 	objKey := types.NamespacedName{
-		Namespace: v.store.CAProvider.Namespace,
-		Name:      v.store.CAProvider.Name,
+		Name: v.store.CAProvider.Name,
+	}
+
+	if v.store.CAProvider.Namespace != nil {
+		objKey.Namespace = *v.store.CAProvider.Namespace
 	}
 
 	configMapRef := &corev1.ConfigMap{}
@@ -628,7 +661,7 @@ func (v *client) requestTokenWithLdapAuth(ctx context.Context, client Client, ld
 	parameters := map[string]string{
 		"password": password,
 	}
-	url := strings.Join([]string{"/v1", "auth", "ldap", "login", username}, "/")
+	url := strings.Join([]string{"/v1", "auth", ldapAuth.Path, "login", username}, "/")
 	request := client.NewRequest("POST", url)
 
 	err = request.SetJSONBody(parameters)
@@ -668,7 +701,7 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 		"role": role,
 		"jwt":  jwt,
 	}
-	url := strings.Join([]string{"/v1", "auth", "jwt", "login"}, "/")
+	url := strings.Join([]string{"/v1", "auth", jwtAuth.Path, "login"}, "/")
 	request := client.NewRequest("POST", url)
 
 	err = request.SetJSONBody(parameters)

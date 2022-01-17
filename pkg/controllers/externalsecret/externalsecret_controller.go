@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -278,10 +279,9 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	if !unversioned && len(gvks) == 1 {
 		secret.SetGroupVersionKind(gvks[0])
 	}
-	// we might get into a conflict here if we are not the manager of that particular field
-	// we do not resolve the conflict and return an error instead
-	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#conflicts
-	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner("external-secrets"))
+	// we're not able to resolve conflicts so we force ownership
+	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#using-server-side-apply-in-a-controller
+	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner("external-secrets"), client.ForceOwnership)
 	if err != nil {
 		return fmt.Errorf(errPolicyMergePatch, secret.Name, err)
 	}
@@ -418,8 +418,9 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&esv1alpha1.ExternalSecret{}).
 		Owns(&v1.Secret{}).
 		Complete(r)

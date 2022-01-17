@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+env:
+  # Common versions
+  GO_VERSION: '1.17'
+
 jobs:
   deploy:
     runs-on: ubuntu-18.04

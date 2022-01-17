@@ -20,6 +20,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // MergeByteMap merges map of byte slices.
@@ -39,7 +40,14 @@ func MergeStringMap(dest, src map[string]string) {
 
 // IsNil checks if an Interface is nil.
 func IsNil(i interface{}) bool {
-	return i == nil || reflect.ValueOf(i).IsNil()
+	if i == nil {
+		return true
+	}
+	value := reflect.ValueOf(i)
+	if value.Type().Kind() == reflect.Ptr {
+		return value.IsNil()
+	}
+	return false
 }
 
 // ObjectHash calculates md5 sum of the data contained in the secret.
@@ -47,4 +55,14 @@ func IsNil(i interface{}) bool {
 func ObjectHash(object interface{}) string {
 	textualVersion := fmt.Sprintf("%+v", object)
 	return fmt.Sprintf("%x", md5.Sum([]byte(textualVersion)))
+}
+
+func ErrorContains(out error, want string) bool {
+	if out == nil {
+		return want == ""
+	}
+	if want == "" {
+		return false
+	}
+	return strings.Contains(out.Error(), want)
 }

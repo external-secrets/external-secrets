@@ -243,6 +243,12 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectedData["foo"] = []byte("bar")
 	}
 
+	// good case: nested json
+	setNestedJSON := func(smtc *secretsManagerTestCase) {
+		smtc.apiOutput.SecretString = aws.String(`{"foobar":{"baz":"nestedval"}}`)
+		smtc.expectedData["foobar"] = []byte("{\"baz\":\"nestedval\"}")
+	}
+
 	// good case: caching
 	cachedMap := func(smtc *secretsManagerTestCase) {
 		smtc.apiOutput.SecretString = aws.String(`{"foo":"bar", "plus": "one"}`)
@@ -259,6 +265,7 @@ func TestGetSecretMap(t *testing.T) {
 
 	successCases := []*secretsManagerTestCase{
 		makeValidSecretsManagerTestCaseCustom(setDeserialization),
+		makeValidSecretsManagerTestCaseCustom(setNestedJSON),
 		makeValidSecretsManagerTestCaseCustom(setAPIErr),
 		makeValidSecretsManagerTestCaseCustom(setInvalidJSON),
 		makeValidSecretsManagerTestCaseCustom(cachedMap),

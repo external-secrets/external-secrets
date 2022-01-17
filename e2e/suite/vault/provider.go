@@ -48,6 +48,10 @@ const (
 	kubernetesProviderName  = "kubernetes-provider"
 )
 
+var (
+	secretStorePath = "secret"
+)
+
 func newVaultProvider(f *framework.Framework) *vaultProvider {
 	prov := &vaultProvider{
 		framework: f,
@@ -104,7 +108,7 @@ func makeStore(name, ns string, v *addon.Vault) *esv1alpha1.SecretStore {
 			Provider: &esv1alpha1.SecretStoreProvider{
 				Vault: &esv1alpha1.VaultProvider{
 					Version:  esv1alpha1.VaultKVStoreV2,
-					Path:     "secret",
+					Path:     &secretStorePath,
 					Server:   v.VaultURL,
 					CABundle: v.VaultServerCA,
 				},
@@ -215,8 +219,9 @@ func (s vaultProvider) CreateV1Store(v *addon.Vault, ns string) {
 	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := makeStore(kvv1ProviderName, ns, v)
+	secretV1StorePath := "secret_v1"
 	secretStore.Spec.Provider.Vault.Version = esv1alpha1.VaultKVStoreV1
-	secretStore.Spec.Provider.Vault.Path = "secret_v1"
+	secretStore.Spec.Provider.Vault.Path = &secretV1StorePath
 	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: "v1-provider",
@@ -242,6 +247,7 @@ func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 	secretStore := makeStore(jwtProviderName, ns, v)
 	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
 		Jwt: &esv1alpha1.VaultJwtAuth{
+			Path: v.JWTPath,
 			Role: v.JWTRole,
 			SecretRef: esmeta.SecretKeySelector{
 				Name: "jwt-provider",

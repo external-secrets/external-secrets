@@ -22,6 +22,6 @@ Now, when creating our ExternalSecret resource, instead of using the data field,
 To check both values we can run:
 
 ```
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.username}' | base64 -d
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.surname}' | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.username}' | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.surname}' | base64 -d
 ```

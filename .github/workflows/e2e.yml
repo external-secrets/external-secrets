@@ -6,7 +6,7 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.16'
+  GO_VERSION: '1.17'
   GOLANGCI_VERSION: 'v1.33'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
@@ -15,11 +15,16 @@ env:
   # credentials have been provided before trying to run steps that need them.
   GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
   GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
+  GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
+  GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
+  GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID}}
   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET}}
   TENANT_ID: ${{ secrets.TENANT_ID}}
   VAULT_URL: ${{ secrets.VAULT_URL}}
+  E2E_IMAGE_REGISTRY: local/external-secrets-e2e
+  E2E_VERSION: test
 
 name: e2e tests
 
@@ -50,14 +55,14 @@ jobs:
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.build-cache }}
         key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-build-unit-tests-
 
     - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.mod-cache }}
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -113,14 +118,14 @@ jobs:
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.build-cache }}
         key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-build-unit-tests-
 
     - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v2.1.7
       with:
         path: ${{ steps.go.outputs.mod-cache }}
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}

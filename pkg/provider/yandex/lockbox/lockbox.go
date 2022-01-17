@@ -107,7 +107,34 @@ func (p *lockboxProvider) NewClient(ctx context.Context, store esv1alpha1.Generi
 		return nil, fmt.Errorf("unable to unmarshal authorized key: %w", err)
 	}
 
-	lockboxClient, err := p.getOrCreateLockboxClient(ctx, storeSpecYandexLockbox.APIEndpoint, &authorizedKey)
+	var caCertificateData []byte
+
+	if storeSpecYandexLockbox.CAProvider != nil {
+		certObjectKey := types.NamespacedName{
+			Name:      storeSpecYandexLockbox.CAProvider.Certificate.Name,
+			Namespace: namespace,
+		}
+
+		if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+			if storeSpecYandexLockbox.CAProvider.Certificate.Namespace == nil {
+				return nil, fmt.Errorf("invalid ClusterSecretStore: missing CA certificate Namespace")
+			}
+			certObjectKey.Namespace = *storeSpecYandexLockbox.CAProvider.Certificate.Namespace
+		}
+
+		caCertificateSecret := &corev1.Secret{}
+		err := kube.Get(ctx, certObjectKey, caCertificateSecret)
+		if err != nil {
+			return nil, fmt.Errorf("could not fetch CA certificate secret: %w", err)
+		}
+
+		caCertificateData = caCertificateSecret.Data[storeSpecYandexLockbox.CAProvider.Certificate.Key]
+		if (caCertificateData == nil) || (len(caCertificateData) == 0) {
+			return nil, fmt.Errorf("missing CA Certificate")
+		}
+	}
+
+	lockboxClient, err := p.getOrCreateLockboxClient(ctx, storeSpecYandexLockbox.APIEndpoint, &authorizedKey, caCertificateData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Yandex Lockbox client: %w", err)
 	}
@@ -120,14 +147,14 @@ func (p *lockboxProvider) NewClient(ctx context.Context, store esv1alpha1.Generi
 	return &lockboxSecretsClient{lockboxClient, iamToken.Token}, nil
 }
 
-func (p *lockboxProvider) getOrCreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (client.LockboxClient, error) {
+func (p *lockboxProvider) getOrCreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (client.LockboxClient, error) {
 	p.lockboxClientMapMutex.Lock()
 	defer p.lockboxClientMapMutex.Unlock()
 
 	if _, ok := p.lockboxClientMap[apiEndpoint]; !ok {
 		log.Info("creating LockboxClient", "apiEndpoint", apiEndpoint)
 
-		lockboxClient, err := p.yandexCloudCreator.CreateLockboxClient(ctx, apiEndpoint, authorizedKey)
+		lockboxClient, err := p.yandexCloudCreator.CreateLockboxClient(ctx, apiEndpoint, authorizedKey, caCertificate)
 		if err != nil {
 			return nil, err
 		}

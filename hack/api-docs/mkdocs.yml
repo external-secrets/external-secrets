@@ -35,6 +35,8 @@ nav:
     - Common K8S Secret Types: guides-common-k8s-secret-types.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md
+    - Using Latest Image: guides-using-latest-image.md
+    - GitOps using FluxCD: guides-gitops-using-fluxcd.md
   - Provider:
     - AWS:
       - Secrets Manager: provider-aws-secrets-manager.md
@@ -53,6 +55,7 @@ nav:
       - Gitlab Project Variables: provider-gitlab-project-variables.md
     - Oracle:
       - Oracle Vault: provider-oracle-vault.md
+    - Webhook: provider-webhook.md
   - References:
     - API specification: spec.md
   - Contributing:

@@ -31,7 +31,7 @@ type YandexCloudCreator struct {
 	Backend *LockboxBackend
 }
 
-func (c *YandexCloudCreator) CreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key) (client.LockboxClient, error) {
+func (c *YandexCloudCreator) CreateLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (client.LockboxClient, error) {
 	return &LockboxClient{c.Backend}, nil
 }
 

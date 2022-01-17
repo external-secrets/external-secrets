@@ -16,11 +16,14 @@ all: $(addprefix build-,$(ARCH))
 # Image registry for build/push image targets
 IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
+PR_IMG_TAG ?=
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 CRD_DIR     ?= deploy/crds
 
 HELM_DIR    ?= deploy/charts/external-secrets
+TF_DIR ?= terraform
 
 OUTPUT_DIR  ?= bin
 
@@ -86,6 +89,12 @@ test: generate ## Run tests
 test.e2e: generate ## Run e2e tests
 	@$(INFO) go test e2e-tests
 	$(MAKE) -C ./e2e test
+	@$(OK) go test unit-tests
+
+.PHONY: test.e2e.managed
+test.e2e.managed: generate ## Run e2e tests
+	@$(INFO) go test e2e-tests
+	$(MAKE) -C ./e2e test.managed
 	@$(OK) go test unit-tests
 
 .PHONY: build
@@ -219,6 +228,32 @@ docker.promote: ## Promote the docker image to the registry
 		$$(jq -j '"--amend $(IMAGE_REGISTRY)@" + .manifests[].digest + " "' < .tagmanifest)
 	docker manifest push $(IMAGE_REGISTRY):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
+
+# ====================================================================================
+# Terraform
+
+tf.plan.gcp: ## Runs terrform plan for gcp provider bringing GKE up
+	@cd $(TF_DIR)/gcp; \
+	terraform init; \
+	terraform plan -auto-approve
+
+tf.apply.gcp: ## Runs terrform apply for gcp provider bringing GKE up
+	@cd $(TF_DIR)/gcp; \
+	terraform init; \
+	terraform apply -auto-approve
+
+tf.destroy.gcp: ## Runs terrform destroy for gcp provider bringing GKE down
+	@cd $(TF_DIR)/gcp; \
+	terraform init; \
+	terraform destroy -auto-approve
+
+tf.show.gcp: ## Runs terrform show for gcp and outputs to a file
+	@cd $(TF_DIR)/gcp; \
+	terraform init; \
+	terraform plan -out tfplan.binary; \
+	terraform show -json tfplan.binary > plan.json
+
+
 
 # ====================================================================================
 # Help

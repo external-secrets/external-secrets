@@ -41,6 +41,10 @@ const (
 	secretDataString = "some-creds"
 )
 
+var (
+	secretStorePath = "secret"
+)
+
 func makeValidSecretStoreWithVersion(v esv1alpha1.VaultKVStoreVersion) *esv1alpha1.SecretStore {
 	return &esv1alpha1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -51,7 +55,7 @@ func makeValidSecretStoreWithVersion(v esv1alpha1.VaultKVStoreVersion) *esv1alph
 			Provider: &esv1alpha1.SecretStoreProvider{
 				Vault: &esv1alpha1.VaultProvider{
 					Server:  "vault.example.com",
-					Path:    "secret",
+					Path:    &secretStorePath,
 					Version: v,
 					Auth: esv1alpha1.VaultAuth{
 						Kubernetes: &esv1alpha1.VaultKubernetesAuth{
@@ -82,7 +86,7 @@ func makeValidSecretStoreWithCerts() *esv1alpha1.SecretStore {
 			Provider: &esv1alpha1.SecretStoreProvider{
 				Vault: &esv1alpha1.VaultProvider{
 					Server:  "vault.example.com",
-					Path:    "secret",
+					Path:    &secretStorePath,
 					Version: esv1alpha1.VaultKVStoreV2,
 					Auth: esv1alpha1.VaultAuth{
 						Cert: &esv1alpha1.VaultCertAuth{
@@ -117,6 +121,41 @@ func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1alpha1.SecretStore {
 
 	store.Spec.Provider.Vault.CAProvider = caProvider
 	return store
+}
+
+func makeInvalidClusterSecretStoreWithK8sCerts() *esv1alpha1.ClusterSecretStore {
+	return &esv1alpha1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterSecretStore",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vault-store",
+			Namespace: "default",
+		},
+		Spec: esv1alpha1.SecretStoreSpec{
+			Provider: &esv1alpha1.SecretStoreProvider{
+				Vault: &esv1alpha1.VaultProvider{
+					Server:  "vault.example.com",
+					Path:    &secretStorePath,
+					Version: "v2",
+					Auth: esv1alpha1.VaultAuth{
+						Kubernetes: &esv1alpha1.VaultKubernetesAuth{
+							Path: "kubernetes",
+							Role: "kubernetes-auth-role",
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: "example-sa",
+							},
+						},
+					},
+					CAProvider: &esv1alpha1.CAProvider{
+						Name: "vault-cert",
+						Key:  "cert",
+						Type: "Secret",
+					},
+				},
+			},
+		},
+	}
 }
 
 type secretStoreTweakFn func(s *esv1alpha1.SecretStore)
@@ -350,6 +389,18 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"GetCertNamespaceMissingError": {
+			reason: "Should return an error if namespace is missing and is a ClusterSecretStore",
+			args: args{
+				store: makeInvalidClusterSecretStoreWithK8sCerts(),
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(nil, kubeMockWithSecretTokenAndServiceAcc),
+				},
+			},
+			want: want{
+				err: errors.New(errCANamespace),
 			},
 		},
 		"GetCertSecretKeyMissingError": {
@@ -623,6 +674,95 @@ func TestGetSecretMap(t *testing.T) {
 			_, err := vStore.GetSecretMap(context.Background(), tc.args.data)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestGetSecretPath(t *testing.T) {
+	storeV2 := makeValidSecretStore()
+	storeV2NoPath := storeV2.DeepCopy()
+	storeV2NoPath.Spec.Provider.Vault.Path = nil
+
+	storeV1 := makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV1)
+	storeV1NoPath := storeV1.DeepCopy()
+	storeV1NoPath.Spec.Provider.Vault.Path = nil
+
+	type args struct {
+		store    *esv1alpha1.VaultProvider
+		path     string
+		expected string
+	}
+	cases := map[string]struct {
+		reason string
+		args   args
+	}{
+		"PathWithoutFormatV2": {
+			reason: "Data needs to be found in path",
+			args: args{
+				store:    storeV2.Spec.Provider.Vault,
+				path:     "secret/test",
+				expected: "secret/data/test",
+			},
+		},
+		"PathWithDataV2": {
+			reason: "Data needs to be found only once in path",
+			args: args{
+				store:    storeV2.Spec.Provider.Vault,
+				path:     "secret/data/test",
+				expected: "secret/data/test",
+			},
+		},
+		"PathWithoutFormatV2_NoPath": {
+			reason: "Data needs to be found in path and correct mountpoint is set",
+			args: args{
+				store:    storeV2NoPath.Spec.Provider.Vault,
+				path:     "secret/test",
+				expected: "secret/data/test",
+			},
+		},
+		"PathWithoutFormatV1": {
+			reason: "Data needs to be found in path",
+			args: args{
+				store:    storeV1.Spec.Provider.Vault,
+				path:     "secret/test",
+				expected: "secret/test",
+			},
+		},
+		"PathWithoutFormatV1_NoPath": {
+			reason: "Data needs to be found in path and correct mountpoint is set",
+			args: args{
+				store:    storeV1NoPath.Spec.Provider.Vault,
+				path:     "secret/test",
+				expected: "secret/test",
+			},
+		},
+		"WithoutPathButMountpointV2": {
+			reason: "Mountpoint needs to be set in addition to data",
+			args: args{
+				store:    storeV2.Spec.Provider.Vault,
+				path:     "test",
+				expected: "secret/data/test",
+			},
+		},
+		"WithoutPathButMountpointV1": {
+			reason: "Mountpoint needs to be set in addition to data",
+			args: args{
+				store:    storeV1.Spec.Provider.Vault,
+				path:     "test",
+				expected: "secret/test",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			vStore := &client{
+				store: tc.args.store,
+			}
+			want := vStore.buildPath(tc.args.path)
+			if diff := cmp.Diff(want, tc.args.expected); diff != "" {
+				t.Errorf("\n%s\nvault.buildPath(...): -want expected, +got error:\n%s", tc.reason, diff)
 			}
 		})
 	}

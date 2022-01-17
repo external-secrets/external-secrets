@@ -225,6 +225,282 @@ see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.AkeylessAuth">AkeylessAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AkeylessProvider">AkeylessProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AkeylessAuthSecretRef">
+AkeylessAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AkeylessAuthSecretRef">AkeylessAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AkeylessAuth">AkeylessAuth</a>)
+</p>
+<p>
+<p>AkeylessAuthSecretRef
+AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessID</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The SecretAccessID is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessType</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessTypeParam</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AkeylessProvider">AkeylessProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>AkeylessProvider Configures an store to sync secrets using Akeyless KV.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>akeylessGWApiURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Akeyless GW API Url from which the secrets to be fetched from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authSecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AkeylessAuth">
+AkeylessAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the operator authenticates with Akeyless.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AlibabaAuth">AlibabaAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AlibabaProvider">AlibabaProvider</a>)
+</p>
+<p>
+<p>AlibabaAuth contains a secretRef for credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AlibabaAuthSecretRef">
+AlibabaAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AlibabaAuthSecretRef">AlibabaAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AlibabaAuth">AlibabaAuth</a>)
+</p>
+<p>
+<p>AlibabaAuthSecretRef holds secret references for Alibaba credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessKeyIDSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The AccessKeyID is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessKeySecretSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The AccessKeySecret is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AlibabaProvider">AlibabaProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AlibabaAuth">
+AlibabaAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>endpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>regionID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Alibaba Region to be used for the provider</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AuthType">AuthType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>AuthType describes how to authenticate to the Azure Keyvault
+Only one of the following auth types may be specified.
+If none of the following auth type is specified, the default one
+is ServicePrincipal.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ManagedIdentity&#34;</p></td>
+<td><p>Using Managed Identity to authenticate. Used with aad-pod-identity instelled in the clister.</p>
+</td>
+</tr><tr><td><p>&#34;ServicePrincipal&#34;</p></td>
+<td><p>Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.AzureKVAuth">AzureKVAuth
 </h3>
 <p>
@@ -285,6 +561,23 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
+<code>authType</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AuthType">
+AuthType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth type defines how to authenticate to the keyvault service.
+Valid values are:
+- &ldquo;ServicePrincipal&rdquo; (default): Using a service principal (tenantId, clientId, clientSecret)
+- &ldquo;ManagedIdentity&rdquo;: Using Managed Identity assigned to the pod (see aad-pod-identity)</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vaultUrl</code></br>
 <em>
 string
@@ -302,7 +595,8 @@ string
 </em>
 </td>
 <td>
-<p>TenantID configures the Azure Tenant to send requests to.</p>
+<em>(Optional)</em>
+<p>TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.</p>
 </td>
 </tr>
 <tr>
@@ -315,10 +609,110 @@ AzureKVAuth
 </em>
 </td>
 <td>
-<p>Auth configures how the operator authenticates with Azure.</p>
+<em>(Optional)</em>
+<p>Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>If multiple Managed Identity is assigned to the pod, you can select the one to be used</p>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.CAProvider">CAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+<p>Defines a location to fetch the cert for the vault provider from.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.CAProviderType">
+CAProviderType
+</a>
+</em>
+</td>
+<td>
+<p>The type of provider to use such as &ldquo;Secret&rdquo;, or &ldquo;ConfigMap&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the object located at the provider type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The key the value inside of the provider type to use, only used with &ldquo;Secret&rdquo; type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The namespace the Provider type is in.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.CAProviderType">CAProviderType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.CAProvider">CAProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ConfigMap&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Secret&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.ClusterSecretStore">ClusterSecretStore
 </h3>
@@ -384,6 +778,20 @@ SecretStoreProvider
 </td>
 <td>
 <p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrySettings</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreRetrySettings">
+SecretStoreRetrySettings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to configure http retries if failed</p>
 </td>
 </tr>
 </table>
@@ -953,6 +1361,18 @@ ExternalSecretTemplate
 <p>Template defines a blueprint for the created Secret resource.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>immutable</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Immutable defines if the final secret will be immutable</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.ExternalSecretTemplate">ExternalSecretTemplate
@@ -1092,6 +1512,20 @@ GCPSMAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.GCPWorkloadIdentity">
+GCPWorkloadIdentity
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -1166,6 +1600,54 @@ string
 </td>
 <td>
 <p>ProjectID project where secret is located</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.GCPWorkloadIdentity">GCPWorkloadIdentity
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.GCPSMAuth">GCPSMAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterLocation</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -1393,6 +1875,143 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.OracleAuth">OracleAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.OracleProvider">OracleProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleSecretRef">
+OracleSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef to pass through sensitive information.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.OracleProvider">OracleProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures an store to sync secrets using a Oracle Vault
+backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleAuth">
+OracleAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the Oracle Vault.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>user</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>User is an access OCID specific to the account.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenancy</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.OracleSecretRef">OracleSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.OracleAuth">OracleAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>privatekey</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The Access Token is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fingerprint</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.SecretStore">SecretStore
 </h3>
 <p>
@@ -1457,6 +2076,20 @@ SecretStoreProvider
 </td>
 <td>
 <p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrySettings</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreRetrySettings">
+SecretStoreRetrySettings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to configure http retries if failed</p>
 </td>
 </tr>
 </table>
@@ -1542,6 +2175,20 @@ AzureKVProvider
 </tr>
 <tr>
 <td>
+<code>akeyless</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AkeylessProvider">
+AkeylessProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Akeyless configures this store to sync secrets using Akeyless Vault provider</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vault</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.VaultProvider">
@@ -1566,6 +2213,20 @@ GCPSMProvider
 <td>
 <em>(Optional)</em>
 <p>GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oracle</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleProvider">
+OracleProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Oracle configures this store to sync secrets using Oracle Vault provider</p>
 </td>
 </tr>
 <tr>
@@ -1608,6 +2269,34 @@ GitlabProvider
 <td>
 <em>(Optional)</em>
 <p>GItlab configures this store to sync secrets using Gitlab Variables provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>alibaba</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AlibabaProvider">
+AlibabaProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Alibaba configures this store to sync secrets using Alibaba Cloud provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>webhook</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookProvider">
+WebhookProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Webhook configures this store to sync secrets using a generic templated webhook</p>
 </td>
 </tr>
 </tbody>
@@ -1655,6 +2344,44 @@ Defaults to <code>SecretStore</code></p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.SecretStoreRetrySettings">SecretStoreRetrySettings
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreSpec">SecretStoreSpec</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxRetries</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>retryInterval</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.SecretStoreSpec">SecretStoreSpec
 </h3>
 <p>
@@ -1697,6 +2424,20 @@ SecretStoreProvider
 </td>
 <td>
 <p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrySettings</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreRetrySettings">
+SecretStoreRetrySettings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to configure http retries if failed</p>
 </td>
 </tr>
 </tbody>
@@ -2152,6 +2893,18 @@ method, with the role name and token stored in a Kubernetes Secret resource.</p>
 <tbody>
 <tr>
 <td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the JWT authentication backend is mounted
+in Vault, e.g: &ldquo;jwt&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>role</code></br>
 <em>
 string
@@ -2292,6 +3045,18 @@ with the username and password stored in a Kubernetes Secret resource.</p>
 <tbody>
 <tr>
 <td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the LDAP authentication backend is mounted
+in Vault, e.g: &ldquo;ldap&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>username</code></br>
 <em>
 string
@@ -2367,6 +3132,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path is the mount path of the Vault KV backend endpoint, e.g:
 &ldquo;secret&rdquo;. The v2 KV secret engine version specific &ldquo;/data&rdquo; path suffix
 for fetching secrets from Vault is optional and will be appended
@@ -2416,6 +3182,313 @@ plain HTTP protocol connection. If not set the system root certificates
 are used to validate the TLS connection.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Vault server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookCAProvider">WebhookCAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+<p>Defines a location to fetch the cert for the webhook provider from.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookCAProviderType">
+WebhookCAProviderType
+</a>
+</em>
+</td>
+<td>
+<p>The type of provider to use such as &ldquo;Secret&rdquo;, or &ldquo;ConfigMap&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the object located at the provider type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The key the value inside of the provider type to use, only used with &ldquo;Secret&rdquo; type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The namespace the Provider type is in.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookCAProviderType">WebhookCAProviderType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.WebhookCAProvider">WebhookCAProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ConfigMap&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Secret&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookProvider">WebhookProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>AkeylessProvider Configures an store to sync secrets using Akeyless KV.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>method</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Webhook Method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Webhook url to call</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>headers</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Headers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>body</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Body</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>timeout</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Timeout</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>result</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookResult">
+WebhookResult
+</a>
+</em>
+</td>
+<td>
+<p>Result formatting</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secrets</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookSecret">
+[]WebhookSecret
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Secrets to fill in templates
+These secrets will be passed to the templating function as key value pairs under the given name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM encoded CA bundle used to validate webhook server certificate. Only used
+if the Server URL is using HTTPS protocol. This parameter is ignored for
+plain HTTP protocol connection. If not set the system root certificates
+are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.WebhookCAProvider">
+WebhookCAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate webhook server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookResult">WebhookResult
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>jsonPath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Json path of return value</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.WebhookSecret">WebhookSecret
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of this secret in templates</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>Secret ref to fill in credentials</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.YandexLockboxAuth">YandexLockboxAuth
@@ -2444,6 +3517,34 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>The authorized key used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.YandexLockboxCAProvider">YandexLockboxCAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.YandexLockboxProvider">YandexLockboxProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -2488,6 +3589,20 @@ YandexLockboxAuth
 </td>
 <td>
 <p>Auth defines the information necessary to authenticate against Yandex Lockbox</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.YandexLockboxCAProvider">
+YandexLockboxCAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Yandex.Cloud server certificate.</p>
 </td>
 </tr>
 </tbody>

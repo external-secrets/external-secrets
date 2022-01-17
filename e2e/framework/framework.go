@@ -14,19 +14,18 @@ limitations under the License.
 package framework
 
 import (
-	"os"
 
 	// nolint
 	. "github.com/onsi/ginkgo"
 
 	// nolint
 	. "github.com/onsi/gomega"
+	// nolint
+	. "github.com/onsi/ginkgo/extensions/table"
 	api "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	kscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -34,11 +33,9 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/framework/util"
 )
 
-var Scheme = runtime.NewScheme()
-
 func init() {
-	_ = kscheme.AddToScheme(Scheme)
-	_ = esv1alpha1.AddToScheme(Scheme)
+	_ = kscheme.AddToScheme(util.Scheme)
+	_ = esv1alpha1.AddToScheme(util.Scheme)
 }
 
 type Framework struct {
@@ -64,7 +61,7 @@ func New(baseName string) *Framework {
 	f := &Framework{
 		BaseName: baseName,
 	}
-	f.KubeConfig, f.KubeClientSet, f.CRClient = NewConfig()
+	f.KubeConfig, f.KubeClientSet, f.CRClient = util.NewConfig()
 
 	BeforeEach(f.BeforeEach)
 	AfterEach(f.AfterEach)
@@ -110,27 +107,17 @@ func (f *Framework) Install(a addon.Addon) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-// NewConfig loads and returns the kubernetes credentials from the environment.
-// KUBECONFIG env var takes precedence and falls back to in-cluster config.
-func NewConfig() (*rest.Config, *kubernetes.Clientset, crclient.Client) {
-	var kubeConfig *rest.Config
-	var err error
-	kcPath := os.Getenv("KUBECONFIG")
-	if kcPath != "" {
-		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kcPath)
-		Expect(err).NotTo(HaveOccurred())
-	} else {
-		kubeConfig, err = rest.InClusterConfig()
-		Expect(err).NotTo(HaveOccurred())
+// Compose helps define multiple testcases with same/different auth methods.
+func Compose(descAppend string, f *Framework, fn func(f *Framework) (string, func(*TestCase)), tweaks ...func(*TestCase)) TableEntry {
+	desc, tfn := fn(f)
+	tweaks = append(tweaks, tfn)
+	te := Entry(desc + " " + descAppend)
+
+	// need to convert []func to []interface{}
+	ifs := make([]interface{}, len(tweaks))
+	for i := 0; i < len(tweaks); i++ {
+		ifs[i] = tweaks[i]
 	}
-
-	By("creating a kubernetes client")
-	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
-	Expect(err).NotTo(HaveOccurred())
-
-	By("creating a controller-runtime client")
-	CRClient, err := crclient.New(kubeConfig, crclient.Options{Scheme: Scheme})
-	Expect(err).NotTo(HaveOccurred())
-
-	return kubeConfig, kubeClientSet, CRClient
+	te.Parameters = ifs
+	return te
 }
