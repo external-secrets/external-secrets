@@ -106,8 +106,8 @@ github.com/ahmetb/gen-crd-api-reference-docs v0.3.0 h1:+XfOU14S4bGuwyvCijJwhhBIj
 github.com/ahmetb/gen-crd-api-reference-docs v0.3.0/go.mod h1:TdjdkYhlOifCQWPs1UdTma97kQQMozf5h26hTuG70u8=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.2 h1:1h4udX3Y5KgSG0m4Th2bHfaYxZB9fbngiij9PrKEp6c=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.2/go.mod h1:ionnWiARf5TYoFGuHS7syh51/7lYosZejpZbnECFJcU=
-github.com/akeylesslabs/akeyless-go/v2 v2.5.11 h1:Z7xJAUPk1h4/YGS7yr/nx9RSMaSESzPwClqe21WFYHo=
-github.com/akeylesslabs/akeyless-go/v2 v2.5.11/go.mod h1:uOdXD49NCCe4rexeSc2aBU5Qv4KZgJE6YlbtYalvb+I=
+github.com/akeylesslabs/akeyless-go/v2 v2.15.24 h1:q++f8n4l66kSptlo9cxrYq8fGHg25GdjqOsw0vbKUAE=
+github.com/akeylesslabs/akeyless-go/v2 v2.15.24/go.mod h1:uOdXD49NCCe4rexeSc2aBU5Qv4KZgJE6YlbtYalvb+I=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
