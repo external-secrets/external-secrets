@@ -373,6 +373,13 @@ func (w *WebHook) getCertFromConfigMap(provider *esv1alpha1.WebhookProvider) ([]
 	return []byte(val), nil
 }
 
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (sm *WebHook) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return map[string][]byte{}, nil
+}
+
 func (w *WebHook) Close(ctx context.Context) error {
 	return nil
 }
