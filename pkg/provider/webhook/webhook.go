@@ -26,7 +26,7 @@ import (
 	"strings"
 	tpl "text/template"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/PaesslerAG/jsonpath"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +36,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-	"github.com/external-secrets/external-secrets/pkg/template"
+	"github.com/external-secrets/external-secrets/pkg/template/v1"
 )
 
 // Provider satisfies the provider interface.

@@ -16,13 +16,11 @@ package template
 import (
 	"bytes"
 	"crypto/x509"
-	"encoding/base64"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"strings"
 	tpl "text/template"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/youmark/pkcs8"
 	"golang.org/x/crypto/pkcs12"
@@ -37,18 +35,9 @@ var tplFuncs = tpl.FuncMap{
 
 	"pemPrivateKey":  pemPrivateKey,
 	"pemCertificate": pemCertificate,
-	"base64decode":   base64decode,
-	"base64encode":   base64encode,
-	"fromJSON":       fromJSON,
-	"toJSON":         toJSON,
 
 	"jwkPublicKeyPem":  jwkPublicKeyPem,
 	"jwkPrivateKeyPem": jwkPrivateKeyPem,
-
-	"toString": toString,
-	"toBytes":  toBytes,
-	"upper":    strings.ToUpper,
-	"lower":    strings.ToLower,
 }
 
 // So other templating calls can use the same extra functions.
@@ -64,10 +53,19 @@ const (
 	errDecodeCertWithPass   = "unable to decode pkcs12 certificate with password: %s"
 	errEncodePEMKey         = "unable to encode pem private key: %s"
 	errEncodePEMCert        = "unable to encode pem certificate: %s"
-	errDecodeBase64         = "unable to decode base64: %s"
-	errUnmarshalJSON        = "unable to unmarshal json: %s"
-	errMarshalJSON          = "unable to marshal json: %s"
 )
+
+func init() {
+	fmt.Printf("calling init in v2 pkg")
+	sprigFuncs := sprig.TxtFuncMap()
+	delete(sprigFuncs, "env")
+	delete(sprigFuncs, "expandenv")
+
+	for k, v := range sprigFuncs {
+		fmt.Printf("adding func %s\n", k)
+		tplFuncs[k] = v
+	}
+}
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
 func Execute(tpl, data map[string][]byte, secret *corev1.Secret) error {
@@ -85,6 +83,11 @@ func Execute(tpl, data map[string][]byte, secret *corev1.Secret) error {
 }
 
 func execute(k, val string, data map[string][]byte) ([]byte, error) {
+	strValData := make(map[string]string, len(data))
+	for k := range data {
+		strValData[k] = string(data[k])
+	}
+
 	t, err := tpl.New(k).
 		Funcs(tplFuncs).
 		Parse(val)
@@ -92,43 +95,43 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 		return nil, fmt.Errorf(errParse, k, err)
 	}
 	buf := bytes.NewBuffer(nil)
-	err = t.Execute(buf, data)
+	err = t.Execute(buf, strValData)
 	if err != nil {
 		return nil, fmt.Errorf(errExecute, k, err)
 	}
 	return buf.Bytes(), nil
 }
 
-func pkcs12keyPass(pass string, input []byte) ([]byte, error) {
-	key, _, err := pkcs12.Decode(input, pass)
+func pkcs12keyPass(pass, input string) (string, error) {
+	key, _, err := pkcs12.Decode([]byte(input), pass)
 	if err != nil {
-		return nil, fmt.Errorf(errDecodePKCS12WithPass, err)
+		return "", fmt.Errorf(errDecodePKCS12WithPass, err)
 	}
 	kb, err := pkcs8.ConvertPrivateKeyToPKCS8(key)
 	if err != nil {
-		return nil, fmt.Errorf(errConvertPrivKey, err)
+		return "", fmt.Errorf(errConvertPrivKey, err)
 	}
-	return kb, nil
+	return string(kb), nil
 }
 
-func pkcs12key(input []byte) ([]byte, error) {
+func pkcs12key(input string) (string, error) {
 	return pkcs12keyPass("", input)
 }
 
-func pkcs12certPass(pass string, input []byte) ([]byte, error) {
-	_, cert, err := pkcs12.Decode(input, pass)
+func pkcs12certPass(pass, input string) (string, error) {
+	_, cert, err := pkcs12.Decode([]byte(input), pass)
 	if err != nil {
-		return nil, fmt.Errorf(errDecodeCertWithPass, err)
+		return "", fmt.Errorf(errDecodeCertWithPass, err)
 	}
-	return cert.Raw, nil
+	return string(cert.Raw), nil
 }
 
-func pkcs12cert(input []byte) ([]byte, error) {
+func pkcs12cert(input string) (string, error) {
 	return pkcs12certPass("", input)
 }
 
-func jwkPublicKeyPem(jwkjson []byte) (string, error) {
-	k, err := jwk.ParseKey(jwkjson)
+func jwkPublicKeyPem(jwkjson string) (string, error) {
+	k, err := jwk.ParseKey([]byte(jwkjson))
 	if err != nil {
 		return "", err
 	}
@@ -141,11 +144,11 @@ func jwkPublicKeyPem(jwkjson []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return pemEncode(mpk, "PUBLIC KEY")
+	return pemEncode(string(mpk), "PUBLIC KEY")
 }
 
-func jwkPrivateKeyPem(jwkjson []byte) (string, error) {
-	k, err := jwk.ParseKey(jwkjson)
+func jwkPrivateKeyPem(jwkjson string) (string, error) {
+	k, err := jwk.ParseKey([]byte(jwkjson))
 	if err != nil {
 		return "", err
 	}
@@ -159,16 +162,16 @@ func jwkPrivateKeyPem(jwkjson []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return pemEncode(mpk, "PRIVATE KEY")
+	return pemEncode(string(mpk), "PRIVATE KEY")
 }
 
-func pemEncode(thing []byte, kind string) (string, error) {
+func pemEncode(thing, kind string) (string, error) {
 	buf := bytes.NewBuffer(nil)
-	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: thing})
+	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: []byte(thing)})
 	return buf.String(), err
 }
 
-func pemPrivateKey(key []byte) (string, error) {
+func pemPrivateKey(key string) (string, error) {
 	res, err := pemEncode(key, "PRIVATE KEY")
 	if err != nil {
 		return res, fmt.Errorf(errEncodePEMKey, err)
@@ -176,50 +179,10 @@ func pemPrivateKey(key []byte) (string, error) {
 	return res, nil
 }
 
-func pemCertificate(cert []byte) (string, error) {
+func pemCertificate(cert string) (string, error) {
 	res, err := pemEncode(cert, "CERTIFICATE")
 	if err != nil {
 		return res, fmt.Errorf(errEncodePEMCert, err)
 	}
 	return res, nil
-}
-
-func base64decode(in []byte) ([]byte, error) {
-	out := make([]byte, len(in))
-	l, err := base64.StdEncoding.Decode(out, in)
-	if err != nil {
-		return nil, fmt.Errorf(errDecodeBase64, err)
-	}
-	return out[:l], nil
-}
-
-func base64encode(in []byte) []byte {
-	out := make([]byte, base64.StdEncoding.EncodedLen(len(in)))
-	base64.StdEncoding.Encode(out, in)
-	return out
-}
-
-func fromJSON(in []byte) (interface{}, error) {
-	var out interface{}
-	err := json.Unmarshal(in, &out)
-	if err != nil {
-		return nil, fmt.Errorf(errUnmarshalJSON, err)
-	}
-	return out, nil
-}
-
-func toJSON(in interface{}) (string, error) {
-	output, err := json.Marshal(in)
-	if err != nil {
-		return "", fmt.Errorf(errMarshalJSON, err)
-	}
-	return string(output), nil
-}
-
-func toString(in []byte) string {
-	return string(in)
-}
-
-func toBytes(in string) []byte {
-	return []byte(in)
 }

@@ -110,8 +110,9 @@ func (f *Framework) Install(a addon.Addon) {
 
 // Compose helps define multiple testcases with same/different auth methods.
 func Compose(descAppend string, f *Framework, fn func(f *Framework) (string, func(*TestCase)), tweaks ...func(*TestCase)) TableEntry {
-	desc, tfn := fn(f)
-	tweaks = append(tweaks, tfn)
+	// prepend common fn to tweaks
+	desc, cfn := fn(f)
+	tweaks = append([]func(*TestCase){cfn}, tweaks...)
 
 	// need to convert []func to []interface{}
 	ifs := make([]interface{}, len(tweaks))
