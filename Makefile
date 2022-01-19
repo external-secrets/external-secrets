@@ -18,8 +18,6 @@ IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
 PR_IMG_TAG ?=
 
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
 CRD_DIR     ?= deploy/crds
 
 HELM_DIR    ?= deploy/charts/external-secrets
@@ -98,7 +96,7 @@ test.e2e.managed: generate ## Run e2e tests
 	@$(OK) go test unit-tests
 
 .PHONY: build
-build: $(addprefix build-,$(ARCH)) ## Build binary 
+build: $(addprefix build-,$(ARCH)) ## Build binary
 
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
@@ -134,10 +132,10 @@ fmt: lint.check ## Ensure consistent code style
 
 generate: ## Generate code and crds
 	@go run sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	@go run sigs.k8s.io/controller-tools/cmd/controller-gen $(CRD_OPTIONS) paths="./..." output:crd:artifacts:config=$(CRD_DIR)
+	@go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths="./..." output:crd:artifacts:config=$(CRD_DIR)
 # Remove extra header lines in generated CRDs
 	@for i in $(CRD_DIR)/*.yaml; do \
-  		tail -n +3 <"$$i" >"$$i.bkp" && \
+  		tail -n +2 <"$$i" >"$$i.bkp" && \
   		cp "$$i.bkp" "$$i" && \
   		rm "$$i.bkp"; \
   	done
