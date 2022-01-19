@@ -32,7 +32,7 @@ type MockClearTokenFn func()
 
 type MockSetNamespaceFn func(namespace string)
 
-type MockAddHeaderFn func (key, value string)
+type MockAddHeaderFn func(key, value string)
 
 func NewMockNewRequestFn(req *vault.Request) MockNewRequestFn {
 	return func(method, requestPath string) *vault.Request {
@@ -115,6 +115,6 @@ func (c *VaultClient) SetNamespace(namespace string) {
 	c.MockSetNamespace(namespace)
 }
 
-func (c *VaultClient) AddHeader (key, value string) {
+func (c *VaultClient) AddHeader(key, value string) {
 	c.MockAddHeader(key, value)
 }

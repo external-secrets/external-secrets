@@ -76,7 +76,6 @@ const (
 	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
 )
 
-
 type Client interface {
 	NewRequest(method, requestPath string) *vault.Request
 	RawRequestWithContext(ctx context.Context, r *vault.Request) (*vault.Response, error)
