@@ -38,24 +38,7 @@ metadata:
 You can reference this particular ServiceAccount in a `SecretStore` or `ClusterSecretStore`. It's important that you also set the `projectID`, `clusterLocation` and `clusterName`. The Namespace on the `serviceAccountRef` is ignored when using a `SecretStore` resource. This is needed to isolate the namespaces properly.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: ClusterSecretStore
-metadata:
-  name: gcp-wi
-spec:
-  provider:
-    gcpsm:
-      projectID: my-project
-      auth:
-        workloadIdentity:
-          # name of the cluster region
-          clusterLocation: europe-central2
-          # name of the GKE cluster
-          clusterName: example-workload-identity
-          # reference the sa from above
-          serviceAccountRef:
-            name: team-a
-            namespace: team-a
+{% include 'gcpsm-wi-secret-store.yaml' %}
 ```
 
 *You need to give the Google service account the `roles/iam.serviceAccountTokenCreator` role so it can generate a service account token for you (not necessary in the Pod-based Workload Identity bellow)*
@@ -90,14 +73,7 @@ The pod now has the identity. Now you need to configure the `SecretStore`.
 You just need to set the `projectID`, all other fields can be omitted.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: SecretStore
-metadata:
-  name: example
-spec:
-  provider:
-    gcpsm:
-      projectID: pid
+{% include 'gcpsm-pod-wi-secret-store.yaml' %}
 ```
 
 ### GCP Service Account authentication
