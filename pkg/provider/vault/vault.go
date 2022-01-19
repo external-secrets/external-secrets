@@ -76,6 +76,7 @@ const (
 	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
 )
 
+
 type Client interface {
 	NewRequest(method, requestPath string) *vault.Request
 	RawRequestWithContext(ctx context.Context, r *vault.Request) (*vault.Response, error)
@@ -83,6 +84,7 @@ type Client interface {
 	Token() string
 	ClearToken()
 	SetNamespace(namespace string)
+	AddHeader(key, value string)
 }
 
 type client struct {
@@ -137,6 +139,10 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 
 	if vaultSpec.Namespace != nil {
 		client.SetNamespace(*vaultSpec.Namespace)
+	}
+
+	if vaultSpec.ReadYourWrites && vaultSpec.ForwardInconsistent {
+		client.AddHeader("X-Vault-Inconsistent", "forward-active-node")
 	}
 
 	if err := vStore.setAuth(ctx, client, cfg); err != nil {
@@ -303,6 +309,9 @@ func (v *client) newConfig() (*vault.Config, error) {
 	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
 		transport.TLSClientConfig.RootCAs = caCertPool
 	}
+
+	// If either read-after-write consistency feature is enabled, enable ReadYourWrites
+	cfg.ReadYourWrites = v.store.ReadYourWrites || v.store.ForwardInconsistent
 
 	return cfg, nil
 }
