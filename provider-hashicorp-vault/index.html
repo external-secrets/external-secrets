@@ -749,6 +749,33 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#vault-enterprise-and-eventual-consistency" class="md-nav__link">
+    Vault Enterprise and Eventual Consistency
+  </a>
+  
+    <nav class="md-nav" aria-label="Vault Enterprise and Eventual Consistency">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#read-your-writes" class="md-nav__link">
+    Read Your Writes
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forward-inconsistent" class="md-nav__link">
+    Forward Inconsistent
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1119,6 +1146,33 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#vault-enterprise-and-eventual-consistency" class="md-nav__link">
+    Vault Enterprise and Eventual Consistency
+  </a>
+  
+    <nav class="md-nav" aria-label="Vault Enterprise and Eventual Consistency">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#read-your-writes" class="md-nav__link">
+    Read Your Writes
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forward-inconsistent" class="md-nav__link">
+    Forward Inconsistent
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1369,6 +1423,28 @@ or <code>Kind=ClusterSecretStore</code> resource.</p>
             <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
             <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;jwt-token&quot;</span>
 </code></pre></div>
+
+<h3 id="vault-enterprise-and-eventual-consistency">Vault Enterprise and Eventual Consistency</h3>
+<p>When using Vault Enterprise with <a href="https://www.vaultproject.io/docs/enterprise/consistency#performance-standby-nodes">performance standby nodes</a>,
+any follower can handle read requests immediately after the provider has
+authenticated. Since Vault becomes eventually consistent in this mode, these
+requests can fail if the login has not yet propagated to each server's local
+state.</p>
+<p>Below are two different solutions to this scenario. You'll need to review them
+and pick the best fit for your environment and Vault configuration.</p>
+<h4 id="read-your-writes">Read Your Writes</h4>
+<p>The simplest method is simply utilizing the <code>X-Vault-Index</code> header returned on
+all write requests (including logins). Passing this header back on subsequent
+requests instructs the Vault client to retry the request until the server has an
+index greater than or equal to that returned with the last write.</p>
+<p>Obviously though, this has a performance hit because the read is blocked until
+the follower's local state has caught up.</p>
+<h4 id="forward-inconsistent">Forward Inconsistent</h4>
+<p>In addition to the aforementioned <code>X-Vault-Index</code> header, Vault also supports
+proxying inconsistent requests to the current cluster leader for immediate
+read-after-write consistency. This is achieved by setting the <code>X-Vault-Inconsistent</code>
+header to <code>forward-active-node</code>. By default, this behavior is disabled and must
+be explicitly enabled in the server's <a href="https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header">replication configuration</a>.</p>
                 
               
               
