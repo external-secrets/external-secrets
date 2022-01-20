@@ -137,3 +137,32 @@ or `Kind=ClusterSecretStore` resource.
 ```yaml
 {% include 'vault-jwt-store.yaml' %}
 ```
+
+### Vault Enterprise and Eventual Consistency
+
+When using Vault Enterprise with [performance standby nodes](https://www.vaultproject.io/docs/enterprise/consistency#performance-standby-nodes),
+any follower can handle read requests immediately after the provider has
+authenticated. Since Vault becomes eventually consistent in this mode, these
+requests can fail if the login has not yet propagated to each server's local
+state.
+
+Below are two different solutions to this scenario. You'll need to review them
+and pick the best fit for your environment and Vault configuration.
+
+#### Read Your Writes
+
+The simplest method is simply utilizing the `X-Vault-Index` header returned on
+all write requests (including logins). Passing this header back on subsequent
+requests instructs the Vault client to retry the request until the server has an
+index greater than or equal to that returned with the last write.
+
+Obviously though, this has a performance hit because the read is blocked until
+the follower's local state has caught up.
+
+#### Forward Inconsistent
+
+In addition to the aforementioned `X-Vault-Index` header, Vault also supports
+proxying inconsistent requests to the current cluster leader for immediate
+read-after-write consistency. This is achieved by setting the `X-Vault-Inconsistent`
+header to `forward-active-node`. By default, this behavior is disabled and must
+be explicitly enabled in the server's [replication configuration](https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header).

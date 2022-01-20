@@ -32,6 +32,8 @@ type MockClearTokenFn func()
 
 type MockSetNamespaceFn func(namespace string)
 
+type MockAddHeaderFn func(key, value string)
+
 func NewMockNewRequestFn(req *vault.Request) MockNewRequestFn {
 	return func(method, requestPath string) *vault.Request {
 		return req
@@ -75,6 +77,10 @@ func NewSetNamespaceFn() MockSetNamespaceFn {
 	return func(namespace string) {}
 }
 
+func NewAddHeaderFn() MockAddHeaderFn {
+	return func(key, value string) {}
+}
+
 type VaultClient struct {
 	MockNewRequest            MockNewRequestFn
 	MockRawRequestWithContext MockRawRequestWithContextFn
@@ -82,6 +88,7 @@ type VaultClient struct {
 	MockToken                 MockTokenFn
 	MockClearToken            MockClearTokenFn
 	MockSetNamespace          MockSetNamespaceFn
+	MockAddHeader             MockAddHeaderFn
 }
 
 func (c *VaultClient) NewRequest(method, requestPath string) *vault.Request {
@@ -106,4 +113,8 @@ func (c *VaultClient) ClearToken() {
 
 func (c *VaultClient) SetNamespace(namespace string) {
 	c.MockSetNamespace(namespace)
+}
+
+func (c *VaultClient) AddHeader(key, value string) {
+	c.MockAddHeader(key, value)
 }
