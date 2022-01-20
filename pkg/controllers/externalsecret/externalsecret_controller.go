@@ -388,21 +388,23 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 	providerData := make(map[string][]byte)
 
 	for _, remoteRef := range externalSecret.Spec.DataFrom {
-		secretMap, err := providerClient.GetSecretMap(ctx, remoteRef)
-		if err != nil {
-			return nil, fmt.Errorf(errGetSecretKey, remoteRef.Key, externalSecret.Name, err)
-		}
+		var secretMap map[string][]byte
+		var err error
 
+		// If tags were added get all secret by tags
+		// Also if a regular expression was entered
+		if len(remoteRef.Tags) > 0 || len(remoteRef.RegExp) > 0 {
+			secretMap, err = providerClient.GetAllSecrets(ctx, remoteRef)
+			if err != nil {
+				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Key, externalSecret.Name, err)
+			}
+		} else {
+			secretMap, err = providerClient.GetSecretMap(ctx, remoteRef)
+			if err != nil {
+				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Key, externalSecret.Name, err)
+			}
+		}
 		providerData = utils.MergeByteMap(providerData, secretMap)
-	}
-
-	for _, allSecretsRef := range externalSecret.Spec.DataAll {
-		secretAll, err := providerClient.GetAllSecrets(ctx, allSecretsRef)
-		if err != nil {
-			return nil, fmt.Errorf(errGetSecretKey, allSecretsRef.Key, externalSecret.Name, err)
-		}
-
-		providerData = utils.MergeByteMap(providerData, secretAll)
 	}
 
 	for _, secretRef := range externalSecret.Spec.Data {

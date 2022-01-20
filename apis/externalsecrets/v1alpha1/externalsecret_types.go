@@ -118,8 +118,24 @@ type ExternalSecretData struct {
 
 // ExternalSecretDataRemoteRef defines Provider data location.
 type ExternalSecretDataRemoteRef struct {
-	// Key is the key used in the Provider, mandatory
-	Key string `json:"key"`
+	// Key is the key used in the Provider
+	// +optional
+	Key string `json:"key,omitempty"`
+
+	// Used to select multiple secrets based on a pattern
+	// +optional
+	MatchKey string `json:"matchKey,omitempty"`
+
+	// List of tags used to filter the secrets
+	Tags map[string]string `json:"tags,omitempty"`
+
+	// Used to select multiple secrets based on the name
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// Used to select multiple secrets based on a regular expression of the name
+	// +optional
+	RegExp string `json:"regexp,omitempty"`
 
 	// Used to select a specific version of the Provider value, if supported
 	// +optional
@@ -129,6 +145,15 @@ type ExternalSecretDataRemoteRef struct {
 	// Used to select a specific property of the Provider value (if a map), if supported
 	Property string `json:"property,omitempty"`
 }
+
+// type ExternalSecretDataRemoteMatchKey struct {
+
+// 	//A regular expression used to get the secrets
+// 	//Name string `json:"name,omitempty"`
+
+// 	// List of tags used to filter the secrets
+// 	Tags map[string]string `json:"tags,omitempty"`
+// }
 
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
@@ -150,11 +175,6 @@ type ExternalSecretSpec struct {
 	// If multiple entries are specified, the Secret keys are merged in the specified order
 	// +optional
 	DataFrom []ExternalSecretDataRemoteRef `json:"dataFrom,omitempty"`
-
-	// DataAll is used to fetch ALL data in the defined Provider
-	// If multiple entries are specified, the Secret keys are merged in the specified order
-	// +optional
-	DataAll []ExternalSecretDataRemoteRef `json:"dataAll,omitempty"`
 }
 
 type ExternalSecretConditionType string

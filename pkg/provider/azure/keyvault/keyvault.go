@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
@@ -93,6 +94,10 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	version := ""
 	basicClient := a.baseClient
 	objectType, secretName := getObjType(ref)
+
+	if secretName == "" {
+		return nil, fmt.Errorf("%s name cannot be empty", objectType)
+	}
 
 	if ref.Version != "" {
 		version = ref.Version
@@ -174,6 +179,8 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	basicClient := a.baseClient
 	secretsMap := make(map[string][]byte)
+	checkTags := len(ref.Tags) > 0
+	checkName := len(ref.RegExp) > 0
 
 	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), a.vaultURL, nil)
 
@@ -186,7 +193,15 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecret
 			if !*secret.Attributes.Enabled {
 				continue
 			}
+
+			if checkTags && !okByTags(ref, secret) {
+				continue
+			}
+
 			secretName := path.Base(*secret.ID)
+			if checkName && !okByName(ref, secretName) {
+				continue
+			}
 			secretResp, err := basicClient.GetSecret(context.Background(), a.vaultURL, secretName, "")
 			secretValue := *secretResp.Value
 
@@ -201,6 +216,22 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecret
 		}
 	}
 	return secretsMap, nil
+}
+
+func okByName(ref esv1alpha1.ExternalSecretDataRemoteRef, secretName string) bool {
+	matches, _ := regexp.MatchString(ref.RegExp, secretName)
+	return matches
+}
+
+func okByTags(ref esv1alpha1.ExternalSecretDataRemoteRef, secret keyvault.SecretItem) bool {
+	tagFound := true
+	for k, v := range ref.Tags {
+		if val, ok := secret.Tags[k]; !ok || *val != v {
+			tagFound = false
+			break
+		}
+	}
+	return tagFound
 }
 
 func (a *Azure) setAzureClientWithManagedIdentity() (bool, error) {
