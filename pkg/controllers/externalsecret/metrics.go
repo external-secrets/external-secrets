@@ -52,7 +52,6 @@ var (
 // updateExternalSecretCondition updates the ExternalSecret conditions.
 func updateExternalSecretCondition(es *esv1alpha1.ExternalSecret, condition *esv1alpha1.ExternalSecretStatusCondition, value float64) {
 	switch condition.Type {
-
 	case esv1alpha1.ExternalSecretDeleted:
 		// Remove condition=Ready metrics when the object gets deleted.
 		externalSecretCondition.Delete(prometheus.Labels{
@@ -86,6 +85,9 @@ func updateExternalSecretCondition(es *esv1alpha1.ExternalSecret, condition *esv
 				"status":    string(v1.ConditionFalse),
 			}).Set(0)
 		}
+
+	default:
+		break
 	}
 
 	externalSecretCondition.With(prometheus.Labels{
