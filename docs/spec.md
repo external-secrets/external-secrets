@@ -1956,7 +1956,7 @@ string
 </em>
 </td>
 <td>
-<p>projectID is an access token specific to the secret.</p>
+<p>Tenancy is the tenancy OCID where secret is located.</p>
 </td>
 </tr>
 <tr>
@@ -1967,7 +1967,18 @@ string
 </em>
 </td>
 <td>
-<p>projectID is an access token specific to the secret.</p>
+<p>Region is the region where secret is located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vault</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault is the vault&rsquo;s OCID of the specific vault where secret is located.</p>
 </td>
 </tr>
 </tbody>
@@ -1996,7 +2007,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<p>The Access Token is used for authentication</p>
+<p>PrivateKey is the user&rsquo;s API Signing Key in PEM format, used for authentication.</p>
 </td>
 </tr>
 <tr>
@@ -2007,7 +2018,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<p>projectID is an access token specific to the secret.</p>
+<p>Fingerprint is the fingerprint of the API private key.</p>
 </td>
 </tr>
 </tbody>
