@@ -336,7 +336,26 @@ var _ = Describe("ExternalSecret controller", func() {
 		}, client.FieldOwner(FakeManager))).To(Succeed())
 
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.ResourceVersion).To(Equal("295"))
+			oldResourceVersion := secret.ResourceVersion
+
+			cleanSecret := secret.DeepCopy()
+			Expect(k8sClient.Patch(context.Background(), secret, client.MergeFrom(cleanSecret))).To(Succeed())
+
+			newSecret := &v1.Secret{}
+
+			Eventually(func() bool {
+				secretLookupKey := types.NamespacedName{
+					Name:      ExternalSecretTargetSecretName,
+					Namespace: ExternalSecretNamespace,
+				}
+
+				err := k8sClient.Get(context.Background(), secretLookupKey, newSecret)
+				if err != nil {
+					return false
+				}
+				return oldResourceVersion == newSecret.ResourceVersion
+			}, timeout, interval).Should(Equal(true))
+
 		}
 	}
 
