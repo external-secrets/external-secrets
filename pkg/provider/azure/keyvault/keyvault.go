@@ -190,7 +190,7 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecret
 	for secretListIter.NotDone() {
 		secretList := secretListIter.Response().Value
 		for _, secret := range *secretList {
-			if !*secret.Attributes.Enabled {
+			if secret.ID == nil || !*secret.Attributes.Enabled {
 				continue
 			}
 
@@ -224,14 +224,14 @@ func okByName(ref esv1alpha1.ExternalSecretDataRemoteRef, secretName string) boo
 }
 
 func okByTags(ref esv1alpha1.ExternalSecretDataRemoteRef, secret keyvault.SecretItem) bool {
-	tagFound := true
+	tagsFound := true
 	for k, v := range ref.Tags {
 		if val, ok := secret.Tags[k]; !ok || *val != v {
-			tagFound = false
+			tagsFound = false
 			break
 		}
 	}
-	return tagFound
+	return tagsFound
 }
 
 func (a *Azure) setAzureClientWithManagedIdentity() (bool, error) {

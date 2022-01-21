@@ -65,3 +65,11 @@ func (mc *AzureMockClient) WithCertificate(serviceURL, secretName, secretVersion
 		}
 	}
 }
+
+func (mc *AzureMockClient) WithList(serviceURL string, apiOutput keyvault.SecretListResultIterator, err error) {
+	if mc != nil {
+		mc.getSecretsComplete = func(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error) {
+			return apiOutput, err
+		}
+	}
+}

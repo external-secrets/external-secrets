@@ -43,6 +43,7 @@ type secretManagerTestCase struct {
 	secretOutput   keyvault.SecretBundle
 	keyOutput      keyvault.KeyBundle
 	certOutput     keyvault.CertificateBundle
+	listOutput     keyvault.SecretListResultIterator
 	expectError    string
 	expectedSecret string
 	// for testing secretmap
@@ -78,6 +79,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	smtc.mockClient.WithValue(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.secretOutput, smtc.apiErr)
 	smtc.mockClient.WithKey(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.keyOutput, smtc.apiErr)
 	smtc.mockClient.WithCertificate(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.certOutput, smtc.apiErr)
+	smtc.mockClient.WithList(smtc.serviceURL, smtc.listOutput, smtc.apiErr)
 
 	return smtc
 }
@@ -184,6 +186,13 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		}
 	}
 
+	badNoNameSecret := func(smtc *secretManagerTestCase) {
+		smtc.ref.Key = ""
+		smtc.expectedSecret = ""
+		smtc.secretName = "secret/"
+		smtc.expectError = fmt.Sprintf("%s name cannot be empty", "secret")
+	}
+
 	setSecretStringWithVersion := func(smtc *secretManagerTestCase) {
 		smtc.expectedSecret = secretString
 		smtc.secretOutput = keyvault.SecretBundle{
@@ -254,6 +263,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCase(),
 		makeValidSecretManagerTestCaseCustom(setSecretString),
+		makeValidSecretManagerTestCaseCustom(badNoNameSecret),
 		makeValidSecretManagerTestCaseCustom(setSecretStringWithVersion),
 		makeValidSecretManagerTestCaseCustom(setSecretWithProperty),
 		makeValidSecretManagerTestCaseCustom(badSecretWithProperty),
@@ -361,6 +371,173 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		if !utils.ErrorContains(err, v.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
+			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
+		}
+	}
+}
+
+func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
+	secretString := "changedvalue"
+
+	getNextPage := func(ctx context.Context, list keyvault.SecretListResult) (result keyvault.SecretListResult, err error) {
+		return keyvault.SecretListResult{
+			Value:    nil,
+			NextLink: nil,
+		}, nil
+	}
+
+	setOneSecretByName := func(smtc *secretManagerTestCase) {
+
+		smtc.ref.RegExp = "^example"
+		secretName := "example-1"
+		enabled := true
+		enabledAtt := keyvault.SecretAttributes{
+			Enabled: &enabled,
+		}
+		secretItem := keyvault.SecretItem{
+			ID:         &secretName,
+			Attributes: &enabledAtt,
+		}
+
+		secretList := make([]keyvault.SecretItem, 0)
+		secretList = append(secretList, secretItem)
+
+		list := keyvault.SecretListResult{
+			Value: &secretList,
+		}
+
+		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
+		smtc.listOutput = keyvault.NewSecretListResultIterator(resultPage)
+
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+
+		smtc.expectedData["example-1"] = []byte(secretString)
+	}
+
+	setTwoSecretsByName := func(smtc *secretManagerTestCase) {
+
+		smtc.ref.RegExp = "^example"
+		secretName := "example-1"
+		wrongName := "not-valid"
+		enabled := true
+		enabledAtt := keyvault.SecretAttributes{
+			Enabled: &enabled,
+		}
+		secretItemOne := keyvault.SecretItem{
+			ID:         &secretName,
+			Attributes: &enabledAtt,
+		}
+
+		secretItemTwo := keyvault.SecretItem{
+			ID:         &wrongName,
+			Attributes: &enabledAtt,
+		}
+
+		secretList := make([]keyvault.SecretItem, 1)
+		secretList = append(secretList, secretItemOne)
+		secretList = append(secretList, secretItemTwo)
+
+		list := keyvault.SecretListResult{
+			Value: &secretList,
+		}
+
+		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
+		smtc.listOutput = keyvault.NewSecretListResultIterator(resultPage)
+
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+
+		smtc.expectedData["example-1"] = []byte(secretString)
+	}
+
+	setOneSecretByTag := func(smtc *secretManagerTestCase) {
+
+		secretName := "example-1"
+		environment := "dev"
+
+		enabled := true
+		enabledAtt := keyvault.SecretAttributes{
+			Enabled: &enabled,
+		}
+		secretItem := keyvault.SecretItem{
+			ID:         &secretName,
+			Attributes: &enabledAtt,
+			Tags:       map[string]*string{"environment": &environment},
+		}
+
+		secretList := make([]keyvault.SecretItem, 0)
+		secretList = append(secretList, secretItem)
+
+		list := keyvault.SecretListResult{
+			Value: &secretList,
+		}
+
+		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
+		smtc.listOutput = keyvault.NewSecretListResultIterator(resultPage)
+
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+		smtc.ref.Tags = map[string]string{"environment": environment}
+
+		smtc.expectedData["example-1"] = []byte(secretString)
+	}
+
+	setTwoSecretsByTag := func(smtc *secretManagerTestCase) {
+
+		secretName := "example-1"
+		environment := "dev"
+		author := "seb"
+		enabled := true
+		enabledAtt := keyvault.SecretAttributes{
+			Enabled: &enabled,
+		}
+		secretItem := keyvault.SecretItem{
+			ID:         &secretName,
+			Attributes: &enabledAtt,
+			Tags:       map[string]*string{"environment": &environment, "author": &author},
+		}
+
+		secretList := make([]keyvault.SecretItem, 0)
+		secretList = append(secretList, secretItem)
+
+		list := keyvault.SecretListResult{
+			Value: &secretList,
+		}
+
+		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
+		smtc.listOutput = keyvault.NewSecretListResultIterator(resultPage)
+
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+		smtc.ref.Tags = map[string]string{"environment": environment, "author": author}
+
+		smtc.expectedData["example-1"] = []byte(secretString)
+	}
+
+	successCases := []*secretManagerTestCase{
+		makeValidSecretManagerTestCaseCustom(setOneSecretByName),
+		makeValidSecretManagerTestCaseCustom(setTwoSecretsByName),
+		makeValidSecretManagerTestCaseCustom(setOneSecretByTag),
+		makeValidSecretManagerTestCaseCustom(setTwoSecretsByTag),
+	}
+
+	sm := Azure{}
+	for k, v := range successCases {
+		sm.baseClient = v.mockClient
+		out, err := sm.GetAllSecrets(context.Background(), *v.ref)
 		if !utils.ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}
