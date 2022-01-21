@@ -318,6 +318,28 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	// should not update if no changes
+	mergeWithSecretNoChange := func(tc *testCase) {
+		const existingKey = "pre-existing-key"
+		existingVal := "someValue"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1alpha1.Merge
+
+		// create secret beforehand
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner(FakeManager))).To(Succeed())
+
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.ResourceVersion).To(Equal("295"))
+		}
+	}
+
 	// should not merge with secret if it doesn't exist
 	mergeWithSecretErr := func(tc *testCase) {
 		const secretVal = "someValue"
@@ -925,6 +947,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),
 		Entry("should error if secret doesn't exist when using creationPolicy=Merge", mergeWithSecretErr),
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
+		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should refresh secret from template", refreshWithTemplate),

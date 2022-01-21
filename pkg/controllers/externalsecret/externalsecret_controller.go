@@ -17,6 +17,7 @@ package externalsecret
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -263,10 +264,13 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	if err != nil {
 		return fmt.Errorf(errPolicyMergeGetSecret, secret.Name, err)
 	}
+	existing := secret.DeepCopyObject()
+
 	err = mutationFunc()
 	if err != nil {
 		return fmt.Errorf(errPolicyMergeMutate, secret.Name, err)
 	}
+
 	// GVK is missing in the Secret, see:
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/526
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/1517
@@ -279,6 +283,11 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	if !unversioned && len(gvks) == 1 {
 		secret.SetGroupVersionKind(gvks[0])
 	}
+
+	if equality.Semantic.DeepEqual(existing, secret) {
+		return nil
+	}
+
 	// we're not able to resolve conflicts so we force ownership
 	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#using-server-side-apply-in-a-controller
 	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner("external-secrets"), client.ForceOwnership)
