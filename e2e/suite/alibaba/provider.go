@@ -16,11 +16,12 @@ package alibaba
 
 import (
 	"context"
+	"os"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 
 	//nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 
 	//nolint
 	. "github.com/onsi/gomega"
@@ -52,6 +53,13 @@ func newAlibabaProvider(f *framework.Framework, accessKeyID, accessKeySecret, re
 	}
 	BeforeEach(prov.BeforeEach)
 	return prov
+}
+
+func newFromEnv(f *framework.Framework) *alibabaProvider {
+	accessKeyID := os.Getenv("ACCESS_KEY_ID")
+	accessKeySecret := os.Getenv("ACCESS_KEY_SECRET")
+	regionID := os.Getenv("REGION_ID")
+	return newAlibabaProvider(f, accessKeyID, accessKeySecret, regionID)
 }
 
 // CreateSecret creates a secret in both kv v1 and v2 provider.

@@ -15,9 +15,7 @@ package vault
 import (
 
 	// nolint
-	. "github.com/onsi/ginkgo"
-	// nolint
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
@@ -32,12 +30,12 @@ const (
 	withK8s       = "with kubernetes provider"
 )
 
-var _ = Describe("[vault] ", func() {
+var _ = Describe("[vault]", Label("vault"), func() {
 	f := framework.New("eso-vault")
+	prov := newVaultProvider(f)
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f,
-			newVaultProvider(f)),
+		framework.TableFunc(f, prov),
 		// uses token auth
 		framework.Compose(withTokenAuth, f, common.JSONDataFromSync, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataWithProperty, useTokenAuth),

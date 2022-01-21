@@ -14,9 +14,7 @@ BUILD_ARGS ?=
 all: $(addprefix build-,$(ARCH))
 
 # Image registry for build/push image targets
-IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
-
-PR_IMG_TAG ?=
+export IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
 CRD_DIR     ?= deploy/crds
 
@@ -35,10 +33,10 @@ endif
 # check if there are any existing `git tag` values
 ifeq ($(shell git tag),)
 # no tags found - default to initial tag `v0.0.0`
-VERSION := $(shell echo "v0.0.0-$$(git rev-list HEAD --count)-g$$(git describe --dirty --always)" | sed 's/-/./2' | sed 's/-/./2')
+export VERSION := $(shell echo "v0.0.0-$$(git rev-list HEAD --count)-g$$(git describe --dirty --always)" | sed 's/-/./2' | sed 's/-/./2')
 else
 # use tags
-VERSION := $(shell git describe --dirty --always --tags --exclude 'helm*' | sed 's/-/./2' | sed 's/-/./2')
+export VERSION := $(shell git describe --dirty --always --tags --exclude 'helm*' | sed 's/-/./2' | sed 's/-/./2')
 endif
 
 # ====================================================================================
@@ -87,13 +85,13 @@ test: generate ## Run tests
 test.e2e: generate ## Run e2e tests
 	@$(INFO) go test e2e-tests
 	$(MAKE) -C ./e2e test
-	@$(OK) go test unit-tests
+	@$(OK) go test e2e-tests
 
 .PHONY: test.e2e.managed
-test.e2e.managed: generate ## Run e2e tests
-	@$(INFO) go test e2e-tests
+test.e2e.managed: generate ## Run e2e tests managed
+	@$(INFO) go test e2e-tests-managed
 	$(MAKE) -C ./e2e test.managed
-	@$(OK) go test unit-tests
+	@$(OK) go test e2e-tests-managed
 
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
@@ -211,7 +209,7 @@ docker.push: ## Push the docker image to the registry
 	@docker push $(IMAGE_REGISTRY):$(VERSION)
 	@$(OK) docker push
 
-# RELEASE_TAG is tag to promote. Default is promooting to main branch, but can be overriden
+# RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.
 RELEASE_TAG ?= main
 SOURCE_TAG ?= $(VERSION)
@@ -230,28 +228,26 @@ docker.promote: ## Promote the docker image to the registry
 # ====================================================================================
 # Terraform
 
-tf.plan.gcp: ## Runs terrform plan for gcp provider bringing GKE up
-	@cd $(TF_DIR)/gcp; \
+tf.plan.%: ## Runs terrform plan for a provider
+	@cd $(TF_DIR)/$*; \
 	terraform init; \
-	terraform plan -auto-approve
+	terraform plan
 
-tf.apply.gcp: ## Runs terrform apply for gcp provider bringing GKE up
-	@cd $(TF_DIR)/gcp; \
+tf.apply.%: ## Runs terrform apply for a provider
+	@cd $(TF_DIR)/$*; \
 	terraform init; \
 	terraform apply -auto-approve
 
-tf.destroy.gcp: ## Runs terrform destroy for gcp provider bringing GKE down
-	@cd $(TF_DIR)/gcp; \
+tf.destroy.%: ## Runs terrform destroy for a provider
+	@cd $(TF_DIR)/$*; \
 	terraform init; \
 	terraform destroy -auto-approve
 
-tf.show.gcp: ## Runs terrform show for gcp and outputs to a file
-	@cd $(TF_DIR)/gcp; \
+tf.show.%: ## Runs terrform show for a provider and outputs to a file
+	@cd $(TF_DIR)/$*; \
 	terraform init; \
 	terraform plan -out tfplan.binary; \
 	terraform show -json tfplan.binary > plan.json
-
-
 
 # ====================================================================================
 # Help

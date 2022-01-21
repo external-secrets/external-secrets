@@ -14,15 +14,17 @@ package azure
 
 import (
 	"context"
+	"os"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	// nolint
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
@@ -45,7 +47,9 @@ func newazureProvider(f *framework.Framework, clientID, clientSecret, tenantID, 
 	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
 	clientCredentialsConfig.Resource = "https://vault.azure.net"
 	authorizer, err := clientCredentialsConfig.Authorizer()
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		Fail(err.Error())
+	}
 	basicClient := keyvault.New()
 	basicClient.Authorizer = authorizer
 
@@ -57,8 +61,20 @@ func newazureProvider(f *framework.Framework, clientID, clientSecret, tenantID, 
 		vaultURL:     vaultURL,
 		client:       &basicClient,
 	}
-	BeforeEach(prov.BeforeEach)
+
+	BeforeEach(func() {
+		prov.CreateSecretStore()
+	})
+
 	return prov
+}
+
+func newFromEnv(f *framework.Framework) *azureProvider {
+	vaultURL := os.Getenv("VAULT_URL")
+	tenantID := os.Getenv("TENANT_ID")
+	clientID := os.Getenv("AZURE_CLIENT_ID")
+	clientSecret := os.Getenv("AZURE_CLIENT_SECRET")
+	return newazureProvider(f, clientID, clientSecret, tenantID, vaultURL)
 }
 
 func (s *azureProvider) CreateSecret(key, val string) {
@@ -84,7 +100,7 @@ func (s *azureProvider) DeleteSecret(key string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func (s *azureProvider) BeforeEach() {
+func (s *azureProvider) CreateSecretStore() {
 	azureCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "provider-secret",

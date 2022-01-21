@@ -18,27 +18,19 @@ package gitlab
 // and in e2e/suite/common/common.go, but this breaks Azure provider.
 
 import (
-	"os"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	// nolint
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2/extensions/table"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
 
-var _ = Describe("[gitlab] ", func() {
-	f := framework.New("esogitlab")
-	credentials := os.Getenv("GITLAB_TOKEN")
-	projectID := os.Getenv("GITLAB_PROJECT_ID")
-
-	prov := &gitlabProvider{}
-
-	if credentials != "" && projectID != "" {
-		prov = newGitlabProvider(f, credentials, projectID)
-	}
+var _ = Describe("[gitlab]", Label("gitlab"), func() {
+	f := framework.New("eso-gitlab")
+	prov := newFromEnv(f)
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
 		Entry(common.SimpleDataSync(f)),

@@ -15,27 +15,19 @@ limitations under the License.
 package alibaba
 
 import (
-	"os"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	// nolint
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2/extensions/table"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
 
-var _ = Describe("[alibaba] ", func() {
+var _ = Describe("[alibaba]", Label("alibaba"), func() {
 	f := framework.New("eso-alibaba")
-	accessKeyID := os.Getenv("ACCESS_KEY_ID")
-	accessKeySecret := os.Getenv("ACCESS_KEY_SECRET")
-	regionID := os.Getenv("REGION_ID")
-	prov := &alibabaProvider{}
-
-	if accessKeyID != "" && accessKeySecret != "" && regionID != "" {
-		prov = newAlibabaProvider(f, accessKeyID, accessKeySecret, regionID)
-	}
+	prov := newFromEnv(f)
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
 		Entry(common.SimpleDataSync(f)),

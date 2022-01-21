@@ -63,7 +63,7 @@ func (c *HelmChart) Install() error {
 
 	args := []string{"install", c.ReleaseName, c.Chart,
 		"--wait",
-		"--timeout", "600s",
+		"--timeout", "120s",
 		"--namespace", c.Namespace,
 	}
 

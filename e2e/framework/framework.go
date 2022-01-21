@@ -16,12 +16,10 @@ package framework
 import (
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 
 	// nolint
 	. "github.com/onsi/gomega"
-	// nolint
-	. "github.com/onsi/ginkgo/extensions/table"
 	api "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	kscheme "k8s.io/client-go/kubernetes/scheme"
@@ -30,6 +28,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/e2e/framework/addon"
+	"github.com/external-secrets/external-secrets/e2e/framework/log"
 	"github.com/external-secrets/external-secrets/e2e/framework/util"
 )
 
@@ -72,11 +71,9 @@ func New(baseName string) *Framework {
 // BeforeEach creates a namespace.
 func (f *Framework) BeforeEach() {
 	var err error
-	By("Building a namespace api object")
 	f.Namespace, err = util.CreateKubeNamespace(f.BaseName, f.KubeClientSet)
-	Expect(err).NotTo(HaveOccurred())
-
-	By("Using the namespace " + f.Namespace.Name)
+	log.Logf("created test namespace %s", f.Namespace.Name)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 // AfterEach deletes the namespace and cleans up the registered addons.
@@ -87,7 +84,7 @@ func (f *Framework) AfterEach() {
 	}
 	// reset addons to default once the run is done
 	f.Addons = []addon.Addon{}
-	By("deleting test namespace")
+	log.Logf("deleting test namespace %s", f.Namespace.Name)
 	err := util.DeleteKubeNamespace(f.Namespace.Name, f.KubeClientSet)
 	Expect(err).NotTo(HaveOccurred())
 }
@@ -111,13 +108,13 @@ func (f *Framework) Install(a addon.Addon) {
 func Compose(descAppend string, f *Framework, fn func(f *Framework) (string, func(*TestCase)), tweaks ...func(*TestCase)) TableEntry {
 	desc, tfn := fn(f)
 	tweaks = append(tweaks, tfn)
-	te := Entry(desc + " " + descAppend)
 
 	// need to convert []func to []interface{}
 	ifs := make([]interface{}, len(tweaks))
 	for i := 0; i < len(tweaks); i++ {
 		ifs[i] = tweaks[i]
 	}
-	te.Parameters = ifs
+	te := Entry(desc+" "+descAppend, ifs...)
+
 	return te
 }

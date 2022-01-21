@@ -42,20 +42,22 @@ done
 
 kubectl apply -f ${DIR}/k8s/deploy/crds
 
-echo -e "Starting the e2e test pod"
+echo -e "Starting the e2e test pod ${E2E_IMAGE_REGISTRY}:${VERSION}"
 
 kubectl run --rm \
   --attach \
   --restart=Never \
-  --pod-running-timeout=10m \
-  --env="FOCUS=${FOCUS:-.*}" \
+  --pod-running-timeout=5m \
+  --env="GINKGO_LABELS=${GINKGO_LABELS:-.*}" \
   --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON:-}" \
   --env="GCP_PROJECT_ID=${GCP_PROJECT_ID:-}" \
-  --env="TF_VAR_GCP_PROJECT_ID=${TF_VAR_GCP_PROJECT_ID:-}" \
   --env="GCP_GSA_NAME=${GCP_GSA_NAME:-}" \
-  --env="GCP_KSA_NAME=${GCP_KSA_NAME:-}" \
-  --env="TF_VAR_GCP_GSA_NAME=${TF_VAR_GCP_GSA_NAME:-}" \
-  --env="TF_VAR_GCP_KSA_NAME=${TF_VAR_GCP_KSA_NAME:-}" \
+  --env="GCP_GKE_ZONE=${GCP_GKE_ZONE:-}" \
+  --env="GCP_GKE_CLUSTER=${GCP_GKE_CLUSTER:-}" \
+  --env="AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}" \
+  --env="AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}" \
+  --env="AWS_SA_NAME=${AWS_SA_NAME:-}" \
+  --env="AWS_SA_NAMESPACE=${AWS_SA_NAMESPACE:-}" \
   --env="AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}" \
   --env="AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}" \
   --env="AKEYLESS_ACCESS_ID=${AKEYLESS_ACCESS_ID:-}" \
@@ -70,5 +72,7 @@ kubectl run --rm \
   --env="ORACLE_REGION=${ORACLE_REGION:-}" \
   --env="ORACLE_FINGERPRINT=${ORACLE_FINGERPRINT:-}" \
   --env="ORACLE_KEY=${ORACLE_KEY:-}" \
+  --env="IMAGE_REGISTRY=${IMAGE_REGISTRY}" \
+  --env="VERSION=${VERSION}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
-  e2e --image=${E2E_IMAGE_REGISTRY}:${E2E_VERSION}
+  e2e --image=${E2E_IMAGE_REGISTRY}:${VERSION}

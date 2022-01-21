@@ -19,12 +19,12 @@ env:
   GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
   GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID}}
   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET}}
   TENANT_ID: ${{ secrets.TENANT_ID}}
   VAULT_URL: ${{ secrets.VAULT_URL}}
-  E2E_IMAGE_REGISTRY: local/external-secrets-e2e
-  E2E_VERSION: test
 
 name: e2e tests
 
@@ -87,7 +87,7 @@ jobs:
         BUILD_ARGS: "--load"
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        go get github.com/onsi/ginkgo/ginkgo
+        go get github.com/onsi/ginkgo/v2/ginkgo
         make test.e2e
 
   # Repo owner has commented /ok-to-test on a (fork-based) pull request
@@ -150,7 +150,7 @@ jobs:
         BUILD_ARGS: "--load"
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
-        go get github.com/onsi/ginkgo/ginkgo
+        go get github.com/onsi/ginkgo/v2/ginkgo
         make test.e2e
 
     # Update check run called "integration-fork"
