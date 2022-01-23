@@ -920,6 +920,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#proposal-process" class="md-nav__link">
+    Proposal Process
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cutting-releases" class="md-nav__link">
     Cutting Releases
   </a>
@@ -1012,6 +1019,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#proposal-process" class="md-nav__link">
+    Proposal Process
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cutting-releases" class="md-nav__link">
     Cutting Releases
   </a>
@@ -1060,10 +1074,22 @@ be merged:</p>
 <li>tests must pass</li>
 <li>PR needs be reviewed and approved</li>
 </ul>
-<p>Once these steps are completed the PR will be merged by a code owner.</p>
+<p>Once these steps are completed the PR will be merged by a code owner.
+We're using the pull request <code>assignee</code> feature to track who is responsible
+for the lifecycle of the PR: review, merging, ping on inactivity, close.
+We close pull requests or issues if there is no response from the author for
+a period of time. Feel free to reopen if you want to get back on it.</p>
+<h2 id="proposal-process">Proposal Process</h2>
+<p>Before we introduce significant changes to the project we want to gather feedback
+from the community to ensure that we progress in the right direction before we
+develop and release big changes. Significant changes include for example:
+* creating new custom resources
+* proposing breaking changes
+* changing the behavior of the controller significantly</p>
+<p>Please create a document in the <code>design/</code> directory based on the template <code>000-template.md</code>
+and fill in your proposal. Open a pull request in draft mode and request feedback. Once the proposal is accepted and the pull request is merged we can create work packages and proceed with the implementation.</p>
 <h2 id="cutting-releases">Cutting Releases</h2>
-<p>As of now this project is in an early alpha phase. There is just the main branch
-;)</p>
+<p>The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the <code>RELEASE.md</code> file in the repo.</p>
                 
               
               
