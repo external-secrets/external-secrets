@@ -46,7 +46,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.2
 	github.com/akeylesslabs/akeyless-go/v2 v2.15.24
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1192
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1458
 	github.com/aws/aws-sdk-go v1.38.6
 	github.com/crossplane/crossplane-runtime v0.15.1
 	github.com/go-logr/logr v1.2.2
@@ -209,7 +209,7 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/ini.v1 v1.62.0 // indirect
+	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
