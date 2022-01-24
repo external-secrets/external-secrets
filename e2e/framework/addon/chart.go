@@ -62,8 +62,10 @@ func (c *HelmChart) Install() error {
 	}
 
 	args := []string{"install", c.ReleaseName, c.Chart,
+		"--debug",
 		"--wait",
-		"--timeout", "120s",
+		"--timeout", "600s",
+		"-o", "yaml",
 		"--namespace", c.Namespace,
 	}
 
@@ -80,7 +82,7 @@ func (c *HelmChart) Install() error {
 	}
 
 	var sout, serr bytes.Buffer
-	log.Logf("installing chart %s", c.ReleaseName)
+	log.Logf("installing chart with args: %+q", args)
 	cmd := exec.Command("helm", args...)
 	cmd.Stdout = &sout
 	cmd.Stderr = &serr
