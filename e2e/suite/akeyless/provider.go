@@ -29,7 +29,7 @@ import (
 	"github.com/akeylesslabs/akeyless-go/v2"
 
 	//nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 
 	//nolint
 	. "github.com/onsi/gomega"
@@ -73,6 +73,13 @@ func newAkeylessProvider(f *framework.Framework, accessID, accessType, accessTyp
 
 	BeforeEach(prov.BeforeEach)
 	return prov
+}
+
+func newFromEnv(f *framework.Framework) *akeylessProvider {
+	accessID := os.Getenv("AKEYLESS_ACCESS_ID")
+	accessType := os.Getenv("AKEYLESS_ACCESS_TYPE")
+	accessTypeParam := os.Getenv("AKEYLESS_ACCESS_TYPE_PARAM")
+	return newAkeylessProvider(f, accessID, accessType, accessTypeParam)
 }
 
 // CreateSecret creates a secret.

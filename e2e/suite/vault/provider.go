@@ -21,7 +21,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 
 	//nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 
 	//nolint
 	. "github.com/onsi/gomega"

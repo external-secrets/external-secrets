@@ -13,28 +13,17 @@ limitations under the License.
 package azure
 
 import (
-	"os"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
-	// nolint
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
 
-var _ = Describe("[azure] ", func() {
+var _ = Describe("[azure]", Label("azure", "keyvault"), func() {
 	f := framework.New("eso-azure")
-	vaultURL := os.Getenv("VAULT_URL")
-	tenantID := os.Getenv("TENANT_ID")
-	clientID := os.Getenv("AZURE_CLIENT_ID")
-	clientSecret := os.Getenv("AZURE_CLIENT_SECRET")
-	prov := &azureProvider{}
-
-	if vaultURL != "" && tenantID != "" && clientID != "" && clientSecret != "" {
-		prov = newazureProvider(f, clientID, clientSecret, tenantID, vaultURL)
-	}
+	prov := newFromEnv(f)
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
 		Entry(common.SimpleDataSync(f)),

@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	// nolint
 	. "github.com/onsi/gomega"
 
@@ -30,25 +30,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg := &addon.Config{}
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 
-	By("installing localstack")
-	addon.InstallGlobalAddon(addon.NewLocalstack(), cfg)
-
-	By("waiting for localstack")
-	err := util.WaitForURL("http://localstack.default/health")
-	Expect(err).ToNot(HaveOccurred())
-
 	By("installing eso")
 	addon.InstallGlobalAddon(addon.NewESO(), cfg)
 
-	By("installing scoped eso")
-	addon.InstallGlobalAddon(addon.NewScopedESO(), cfg)
 	return nil
 }, func([]byte) {})
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
 	By("Cleaning up global addons")
 	addon.UninstallGlobalAddons()
-	if CurrentGinkgoTestDescription().Failed {
+	if CurrentSpecReport().Failed() {
 		addon.PrintLogs()
 	}
 })
@@ -56,5 +47,5 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 func TestE2E(t *testing.T) {
 	NewWithT(t)
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "external-secrets e2e suite")
+	RunSpecs(t, "external-secrets e2e suite", Label("e2e"))
 }

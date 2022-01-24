@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -89,7 +89,7 @@ var _ = BeforeSuite(func() {
 		defer GinkgoRecover()
 		Expect(k8sManager.Start(ctrl.SetupSignalHandler())).ToNot(HaveOccurred())
 	}()
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

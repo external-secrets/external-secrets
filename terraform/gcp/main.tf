@@ -11,6 +11,7 @@ module "test-network" {
   env = var.env
   region = var.region
   ip_cidr_range = var.ip_cidr_range
+  project_id = var.project_id
 }
 
 module "test-cluster" {
