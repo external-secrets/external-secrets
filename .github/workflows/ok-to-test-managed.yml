@@ -30,7 +30,6 @@ jobs:
         token: ${{ env.TOKEN }} # GitHub App installation access token
         # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # PAT or OAuth token will also work
         reaction-token: ${{ secrets.GITHUB_TOKEN }}
-        static-args: pull=${{ github.event.client_payload.pull_request.number }}
         issue-type: pull-request
         commands: ok-to-test-managed
         permission: maintain
