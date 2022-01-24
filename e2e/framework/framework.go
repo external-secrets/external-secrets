@@ -79,6 +79,10 @@ func (f *Framework) BeforeEach() {
 // AfterEach deletes the namespace and cleans up the registered addons.
 func (f *Framework) AfterEach() {
 	for _, a := range f.Addons {
+		if CurrentSpecReport().Failed() {
+			err := a.Logs()
+			Expect(err).ToNot(HaveOccurred())
+		}
 		err := a.Uninstall()
 		Expect(err).ToNot(HaveOccurred())
 	}
