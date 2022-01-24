@@ -58,8 +58,10 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "/baz",
-		Version: "default",
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     "/baz",
+			Version: "default",
+		},
 	}
 }
 
@@ -111,9 +113,11 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	// good case: ref with
 	setCustomRef := func(smtc *secretManagerTestCase) {
 		smtc.ref = &esv1alpha1.ExternalSecretDataRemoteRef{
-			Key:      "/baz",
-			Version:  "default",
-			Property: "name.first",
+			Extract: esv1alpha1.ExternalSecretExtract{
+				Key:      "/baz",
+				Version:  "default",
+				Property: "name.first",
+			},
 		}
 		smtc.apiInput.Name = "projects/default/secrets//baz/versions/default"
 		smtc.apiOutput.Payload.Data = []byte(
@@ -130,7 +134,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 
 	// good case: custom version set
 	setCustomVersion := func(smtc *secretManagerTestCase) {
-		smtc.ref.Version = "1234"
+		smtc.ref.Extract.Version = "1234"
 		smtc.apiInput.Name = "projects/default/secrets//baz/versions/1234"
 		smtc.apiOutput.Payload.Data = []byte("FOOBA!")
 		smtc.expectedSecret = "FOOBA!"

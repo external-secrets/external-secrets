@@ -99,8 +99,8 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		return nil, fmt.Errorf("%s name cannot be empty", objectType)
 	}
 
-	if ref.Version != "" {
-		version = ref.Version
+	if ref.Extract.Version != "" {
+		version = ref.Extract.Version
 	}
 
 	switch objectType {
@@ -111,12 +111,12 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		if err != nil {
 			return nil, err
 		}
-		if ref.Property == "" {
+		if ref.Extract.Property == "" {
 			return []byte(*secretResp.Value), nil
 		}
-		res := gjson.Get(*secretResp.Value, ref.Property)
+		res := gjson.Get(*secretResp.Value, ref.Extract.Property)
 		if !res.Exists() {
-			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Extract.Property, ref.Extract.Key)
 		}
 		return []byte(res.String()), err
 	case "cert":
@@ -179,8 +179,8 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	basicClient := a.baseClient
 	secretsMap := make(map[string][]byte)
-	checkTags := len(ref.Tags) > 0
-	checkName := len(ref.RegExp) > 0
+	checkTags := len(ref.Find.Tags) > 0
+	checkName := len(ref.Find.Name.RegExp) > 0
 
 	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), a.vaultURL, nil)
 
@@ -219,13 +219,13 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecret
 }
 
 func okByName(ref esv1alpha1.ExternalSecretDataRemoteRef, secretName string) bool {
-	matches, _ := regexp.MatchString(ref.RegExp, secretName)
+	matches, _ := regexp.MatchString(ref.Find.Name.RegExp, secretName)
 	return matches
 }
 
 func okByTags(ref esv1alpha1.ExternalSecretDataRemoteRef, secret keyvault.SecretItem) bool {
 	tagsFound := true
-	for k, v := range ref.Tags {
+	for k, v := range ref.Find.Tags {
 		if val, ok := secret.Tags[k]; !ok || *val != v {
 			tagsFound = false
 			break
@@ -333,7 +333,7 @@ func (a *Azure) Close(ctx context.Context) error {
 func getObjType(ref esv1alpha1.ExternalSecretDataRemoteRef) (string, string) {
 	objectType := defaultObjType
 
-	secretName := ref.Key
+	secretName := ref.Extract.Key
 	nameSplitted := strings.Split(secretName, "/")
 
 	if len(nameSplitted) > 1 {

@@ -62,7 +62,9 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key: secretName,
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key: secretName,
+		},
 	}
 }
 
@@ -127,7 +129,7 @@ func TestAlibabaKMSGetSecret(t *testing.T) {
 	// good case: custom version set
 	setCustomKey := func(kmstc *keyManagementServiceTestCase) {
 		kmstc.apiOutput.SecretName = "test-example-other"
-		kmstc.ref.Key = "test-example-other"
+		kmstc.ref.Extract.Key = "test-example-other"
 		kmstc.apiOutput.SecretData = secretValue
 		kmstc.expectedSecret = secretValue
 	}

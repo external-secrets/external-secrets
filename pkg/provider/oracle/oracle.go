@@ -132,8 +132,8 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 
 	sec, err := vms.Client.GetSecretBundleByName(ctx, secrets.GetSecretBundleByNameRequest{
 		VaultId:    &vms.vault,
-		SecretName: &ref.Key,
-		Stage:      secrets.GetSecretBundleByNameStageEnum(ref.Version),
+		SecretName: &ref.Extract.Key,
+		Stage:      secrets.GetSecretBundleByNameStageEnum(ref.Extract.Version),
 	})
 	if err != nil {
 		return nil, util.SanitizeErr(err)
@@ -149,14 +149,14 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 		return nil, err
 	}
 
-	if ref.Property == "" {
+	if ref.Extract.Property == "" {
 		return payload, nil
 	}
 
-	val := gjson.Get(string(payload), ref.Property)
+	val := gjson.Get(string(payload), ref.Extract.Property)
 
 	if !val.Exists() {
-		return nil, fmt.Errorf(errMissingKey, ref.Key)
+		return nil, fmt.Errorf(errMissingKey, ref.Extract.Key)
 	}
 
 	return []byte(val.String()), nil

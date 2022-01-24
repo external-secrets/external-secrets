@@ -181,9 +181,9 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecre
 func (w *WebHook) getTemplateData(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef, secrets []esv1alpha1.WebhookSecret) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{
 		"remoteRef": {
-			"key":      url.QueryEscape(ref.Key),
-			"version":  url.QueryEscape(ref.Version),
-			"property": url.QueryEscape(ref.Property),
+			"key":      url.QueryEscape(ref.Extract.Key),
+			"version":  url.QueryEscape(ref.Extract.Version),
+			"property": url.QueryEscape(ref.Extract.Property),
 		},
 	}
 	for _, secref := range secrets {

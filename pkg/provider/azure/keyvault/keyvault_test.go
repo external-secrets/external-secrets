@@ -30,7 +30,7 @@ import (
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-	utils "github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type secretManagerTestCase struct {
@@ -187,7 +187,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	badNoNameSecret := func(smtc *secretManagerTestCase) {
-		smtc.ref.Key = ""
+		smtc.ref.Extract.Key = ""
 		smtc.expectedSecret = ""
 		smtc.secretName = "secret/"
 		smtc.expectError = fmt.Sprintf("%s name cannot be empty", "secret")
@@ -198,8 +198,8 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &secretString,
 		}
-		smtc.ref.Version = "v1"
-		smtc.secretVersion = smtc.ref.Version
+		smtc.ref.Extract.Version = "v1"
+		smtc.secretVersion = smtc.ref.Extract.Version
 	}
 
 	setSecretWithProperty := func(smtc *secretManagerTestCase) {
@@ -208,7 +208,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 		}
-		smtc.ref.Property = "Name"
+		smtc.ref.Extract.Property = "Name"
 	}
 
 	badSecretWithProperty := func(smtc *secretManagerTestCase) {
@@ -217,8 +217,8 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 		}
-		smtc.ref.Property = "Age"
-		smtc.expectError = fmt.Sprintf("property %s does not exist in key %s", smtc.ref.Property, smtc.ref.Key)
+		smtc.ref.Extract.Property = "Age"
+		smtc.expectError = fmt.Sprintf("property %s does not exist in key %s", smtc.ref.Extract.Property, smtc.ref.Extract.Key)
 		smtc.apiErr = fmt.Errorf(smtc.expectError)
 	}
 
@@ -229,7 +229,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubRSA)),
 		}
-		smtc.ref.Key = smtc.secretName
+		smtc.ref.Extract.Key = smtc.secretName
 	}
 
 	// // good case: key set
@@ -239,7 +239,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubEC)),
 		}
-		smtc.ref.Key = smtc.secretName
+		smtc.ref.Extract.Key = smtc.secretName
 	}
 
 	// // good case: key set
@@ -250,14 +250,14 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &byteArrString,
 		}
-		smtc.ref.Key = smtc.secretName
+		smtc.ref.Extract.Key = smtc.secretName
 	}
 
 	badSecretType := func(smtc *secretManagerTestCase) {
 		smtc.secretName = "name"
 		smtc.expectedSecret = ""
 		smtc.expectError = fmt.Sprintf("unknown Azure Keyvault object Type for %s", smtc.secretName)
-		smtc.ref.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
+		smtc.ref.Extract.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -312,7 +312,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 		}
-		smtc.ref.Property = "Address"
+		smtc.ref.Extract.Property = "Address"
 
 		smtc.expectedData["Street"] = []byte("Myroad st.")
 		smtc.expectedData["CP"] = []byte("J4K4T4")
@@ -324,8 +324,8 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 		}
-		smtc.ref.Property = "Age"
-		smtc.expectError = fmt.Sprintf("property %s does not exist in key %s", smtc.ref.Property, smtc.ref.Key)
+		smtc.ref.Extract.Property = "Age"
+		smtc.expectError = fmt.Sprintf("property %s does not exist in key %s", smtc.ref.Extract.Property, smtc.ref.Extract.Key)
 		smtc.apiErr = fmt.Errorf(smtc.expectError)
 	}
 
@@ -335,7 +335,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubRSA)),
 		}
-		smtc.ref.Key = smtc.secretName
+		smtc.ref.Extract.Key = smtc.secretName
 		smtc.expectError = "cannot get use dataFrom to get key secret"
 	}
 
@@ -346,7 +346,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &byteArrString,
 		}
-		smtc.ref.Key = smtc.secretName
+		smtc.ref.Extract.Key = smtc.secretName
 		smtc.expectError = "cannot get use dataFrom to get certificate secret"
 	}
 
@@ -354,7 +354,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.secretName = "name"
 		smtc.expectedSecret = ""
 		smtc.expectError = fmt.Sprintf("unknown Azure Keyvault object Type for %s", smtc.secretName)
-		smtc.ref.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
+		smtc.ref.Extract.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -382,6 +382,12 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 
 func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	secretString := "changedvalue"
+	secretName := "example-1"
+	wrongName := "not-valid"
+	environment := "dev"
+	author := "seb"
+	regexp := "^example"
+	enabled := true
 
 	getNextPage := func(ctx context.Context, list keyvault.SecretListResult) (result keyvault.SecretListResult, err error) {
 		return keyvault.SecretListResult{
@@ -391,10 +397,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 
 	setOneSecretByName := func(smtc *secretManagerTestCase) {
-
-		smtc.ref.RegExp = "^example"
-		secretName := "example-1"
-		enabled := true
+		smtc.ref.Find.Name.RegExp = regexp
 		enabledAtt := keyvault.SecretAttributes{
 			Enabled: &enabled,
 		}
@@ -422,11 +425,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 
 	setTwoSecretsByName := func(smtc *secretManagerTestCase) {
-
-		smtc.ref.RegExp = "^example"
-		secretName := "example-1"
-		wrongName := "not-valid"
-		enabled := true
+		smtc.ref.Find.Name.RegExp = regexp
 		enabledAtt := keyvault.SecretAttributes{
 			Enabled: &enabled,
 		}
@@ -460,11 +459,6 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 
 	setOneSecretByTag := func(smtc *secretManagerTestCase) {
-
-		secretName := "example-1"
-		environment := "dev"
-
-		enabled := true
 		enabledAtt := keyvault.SecretAttributes{
 			Enabled: &enabled,
 		}
@@ -488,16 +482,12 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &secretString,
 		}
-		smtc.ref.Tags = map[string]string{"environment": environment}
+		smtc.ref.Find.Tags = map[string]string{"environment": environment}
 
-		smtc.expectedData["example-1"] = []byte(secretString)
+		smtc.expectedData[secretName] = []byte(secretString)
 	}
 
 	setTwoSecretsByTag := func(smtc *secretManagerTestCase) {
-
-		secretName := "example-1"
-		environment := "dev"
-		author := "seb"
 		enabled := true
 		enabledAtt := keyvault.SecretAttributes{
 			Enabled: &enabled,
@@ -522,9 +512,9 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &secretString,
 		}
-		smtc.ref.Tags = map[string]string{"environment": environment, "author": author}
+		smtc.ref.Find.Tags = map[string]string{"environment": environment, "author": author}
 
-		smtc.expectedData["example-1"] = []byte(secretString)
+		smtc.expectedData[secretName] = []byte(secretString)
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -549,7 +539,9 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "default",
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     "test-secret",
+			Version: "default",
+		},
 	}
 }

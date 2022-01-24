@@ -118,24 +118,17 @@ type ExternalSecretData struct {
 
 // ExternalSecretDataRemoteRef defines Provider data location.
 type ExternalSecretDataRemoteRef struct {
+	// Used to select a specific version and property from the secret
+	// +optional
+	Extract ExternalSecretExtract `json:"extract,omitempty"`
+	// Used to find secrets based on tags or regular expressions
+	Find ExternalSecretFind `json:"find,omitempty"`
+}
+
+type ExternalSecretExtract struct {
 	// Key is the key used in the Provider
 	// +optional
 	Key string `json:"key,omitempty"`
-
-	// Used to select multiple secrets based on a pattern
-	// +optional
-	MatchKey string `json:"matchKey,omitempty"`
-
-	// List of tags used to filter the secrets
-	Tags map[string]string `json:"tags,omitempty"`
-
-	// Used to select multiple secrets based on the name
-	// +optional
-	Name string `json:"name,omitempty"`
-
-	// Used to select multiple secrets based on a regular expression of the name
-	// +optional
-	RegExp string `json:"regexp,omitempty"`
 
 	// Used to select a specific version of the Provider value, if supported
 	// +optional
@@ -146,14 +139,21 @@ type ExternalSecretDataRemoteRef struct {
 	Property string `json:"property,omitempty"`
 }
 
-// type ExternalSecretDataRemoteMatchKey struct {
+type ExternalSecretFind struct {
+	// Key is the key used in the Provider
+	// +optional
+	Name FindName `json:"name,omitempty"`
 
-// 	//A regular expression used to get the secrets
-// 	//Name string `json:"name,omitempty"`
+	// Used to select a specific version of the Provider value, if supported
+	// +optional
+	Tags map[string]string `json:"tags,omitempty"`
+}
 
-// 	// List of tags used to filter the secrets
-// 	Tags map[string]string `json:"tags,omitempty"`
-// }
+type FindName struct {
+	// Used to select multiple secrets based on a regular expression of the name
+	// +optional
+	RegExp string `json:"regexp,omitempty"`
+}
 
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {

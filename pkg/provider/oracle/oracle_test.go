@@ -55,8 +55,10 @@ func makeValidVaultTestCase() *vaultTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "default",
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     "test-secret",
+			Version: "default",
+		},
 	}
 }
 

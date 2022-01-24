@@ -153,7 +153,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 		return nil, fmt.Errorf(errUninitalizedGitlabProvider)
 	}
 	// Need to replace hyphens with underscores to work with Gitlab API
-	ref.Key = strings.ReplaceAll(ref.Key, "-", "_")
+	ref.Extract.Key = strings.ReplaceAll(ref.Extract.Key, "-", "_")
 	// Retrieves a gitlab variable in the form
 	// {
 	// 	"key": "TEST_VARIABLE_1",
@@ -161,16 +161,16 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	// 	"value": "TEST_1",
 	// 	"protected": false,
 	// 	"masked": true
-	data, _, err := g.client.GetVariable(g.projectID, ref.Key, nil) // Optional 'filter' parameter could be added later
+	data, _, err := g.client.GetVariable(g.projectID, ref.Extract.Key, nil) // Optional 'filter' parameter could be added later
 	if err != nil {
 		return nil, err
 	}
 
-	if ref.Property == "" {
+	if ref.Extract.Property == "" {
 		if data.Value != "" {
 			return []byte(data.Value), nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
+		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Extract.Key)
 	}
 
 	var payload string
@@ -178,9 +178,9 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 		payload = data.Value
 	}
 
-	val := gjson.Get(payload, ref.Property)
+	val := gjson.Get(payload, ref.Extract.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
 	}
 	return []byte(val.String()), nil
 }
@@ -196,7 +196,7 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 	// Gets a secret as normal, expecting secret value to be a json object
 	data, err := g.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
+		return nil, fmt.Errorf("error getting secret %s: %w", ref.Extract.Key, err)
 	}
 
 	// Maps the json data to a string:string map

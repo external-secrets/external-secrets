@@ -115,13 +115,13 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretD
 		return nil, err
 	}
 	version := int32(0)
-	if ref.Version != "" {
-		i, err := strconv.ParseInt(ref.Version, 10, 32)
+	if ref.Extract.Version != "" {
+		i, err := strconv.ParseInt(ref.Extract.Version, 10, 32)
 		if err == nil {
 			version = int32(i)
 		}
 	}
-	value, err := a.Client.GetSecretByType(ref.Key, token, version)
+	value, err := a.Client.GetSecretByType(ref.Extract.Key, token, version)
 	if err != nil {
 		return nil, err
 	}

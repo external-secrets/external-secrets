@@ -148,19 +148,19 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 }
 
 func (v *client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, err := v.readSecret(ctx, ref.Key, ref.Version)
+	data, err := v.readSecret(ctx, ref.Extract.Key, ref.Extract.Version)
 	if err != nil {
 		return nil, err
 	}
-	value, exists := data[ref.Property]
+	value, exists := data[ref.Extract.Property]
 	if !exists {
-		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
+		return nil, fmt.Errorf(errSecretKeyFmt, ref.Extract.Property)
 	}
 	return value, nil
 }
 
 func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return v.readSecret(ctx, ref.Key, ref.Version)
+	return v.readSecret(ctx, ref.Extract.Key, ref.Extract.Version)
 }
 
 // Implements store.Client.GetAllSecrets Interface.

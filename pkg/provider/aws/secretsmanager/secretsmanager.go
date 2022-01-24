@@ -52,18 +52,18 @@ func New(sess client.ConfigProvider) (*SecretsManager, error) {
 
 func (sm *SecretsManager) fetch(_ context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
 	ver := "AWSCURRENT"
-	if ref.Version != "" {
-		ver = ref.Version
+	if ref.Extract.Version != "" {
+		ver = ref.Extract.Version
 	}
-	log.Info("fetching secret value", "key", ref.Key, "version", ver)
+	log.Info("fetching secret value", "key", ref.Extract.Key, "version", ver)
 
-	cacheKey := fmt.Sprintf("%s#%s", ref.Key, ver)
+	cacheKey := fmt.Sprintf("%s#%s", ref.Extract.Key, ver)
 	if secretOut, found := sm.cache[cacheKey]; found {
-		log.Info("found secret in cache", "key", ref.Key, "version", ver)
+		log.Info("found secret in cache", "key", ref.Extract.Key, "version", ver)
 		return secretOut, nil
 	}
 	secretOut, err := sm.client.GetSecretValue(&awssm.GetSecretValueInput{
-		SecretId:     &ref.Key,
+		SecretId:     &ref.Extract.Key,
 		VersionStage: &ver,
 	})
 	if err != nil {
@@ -80,14 +80,14 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.External
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
-	if ref.Property == "" {
+	if ref.Extract.Property == "" {
 		if secretOut.SecretString != nil {
 			return []byte(*secretOut.SecretString), nil
 		}
 		if secretOut.SecretBinary != nil {
 			return secretOut.SecretBinary, nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
+		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Extract.Key)
 	}
 	var payload string
 	if secretOut.SecretString != nil {
@@ -97,16 +97,16 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.External
 		payload = string(secretOut.SecretBinary)
 	}
 
-	val := gjson.Get(payload, ref.Property)
+	val := gjson.Get(payload, ref.Extract.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
 	}
 	return []byte(val.String()), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	log.Info("fetching secret map", "key", ref.Key)
+	log.Info("fetching secret map", "key", ref.Extract.Key)
 	data, err := sm.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
+		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Extract.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {

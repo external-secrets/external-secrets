@@ -167,24 +167,24 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSec
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
-	version := ref.Version
+	version := ref.Extract.Version
 	if version == "" {
 		version = defaultVersion
 	}
 
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", sm.projectID, ref.Key, version),
+		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", sm.projectID, ref.Extract.Key, version),
 	}
 	result, err := sm.SecretManagerClient.AccessSecretVersion(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf(errClientGetSecretAccess, err)
 	}
 
-	if ref.Property == "" {
+	if ref.Extract.Property == "" {
 		if result.Payload.Data != nil {
 			return result.Payload.Data, nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
+		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Extract.Key)
 	}
 
 	var payload string
@@ -192,9 +192,9 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSec
 		payload = string(result.Payload.Data)
 	}
 
-	val := gjson.Get(payload, ref.Property)
+	val := gjson.Get(payload, ref.Extract.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
 	}
 	return []byte(val.String()), nil
 }

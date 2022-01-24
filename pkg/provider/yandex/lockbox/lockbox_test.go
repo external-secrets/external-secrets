@@ -131,7 +131,11 @@ func TestGetSecretForAllEntries(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID})
+	data, err := secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key: secretID,
+		},
+	})
 	tassert.Nil(t, err)
 
 	tassert.Equal(
@@ -169,7 +173,12 @@ func TestGetSecretForTextEntry(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Property: k1})
+	data, err := secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID,
+			Property: k1,
+		},
+	})
 	tassert.Nil(t, err)
 
 	tassert.Equal(t, v1, string(data))
@@ -200,7 +209,12 @@ func TestGetSecretForBinaryEntry(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Property: k2})
+	data, err := secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID,
+			Property: k2,
+		},
+	})
 	tassert.Nil(t, err)
 
 	tassert.Equal(t, v2, data)
@@ -229,7 +243,12 @@ func TestGetSecretByVersionID(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Version: oldVersionID})
+	data, err := secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     secretID,
+			Version: oldVersionID,
+		},
+	})
 	tassert.Nil(t, err)
 
 	tassert.Equal(t, map[string]string{oldKey: oldVal}, unmarshalStringMap(t, data))
@@ -239,11 +258,21 @@ func TestGetSecretByVersionID(t *testing.T) {
 		textEntry(newKey, newVal),
 	)
 
-	data, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Version: oldVersionID})
+	data, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     secretID,
+			Version: oldVersionID,
+		},
+	})
 	tassert.Nil(t, err)
 	tassert.Equal(t, map[string]string{oldKey: oldVal}, unmarshalStringMap(t, data))
 
-	data, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Version: newVersionID})
+	data, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     secretID,
+			Version: newVersionID,
+		},
+	})
 	tassert.Nil(t, err)
 	tassert.Equal(t, map[string]string{newKey: newVal}, unmarshalStringMap(t, data))
 }
@@ -271,7 +300,11 @@ func TestGetSecretUnauthorized(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID})
+	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key: secretID,
+		},
+	})
 	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 }
 
@@ -294,13 +327,22 @@ func TestGetSecretNotFound(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: "no-secret-with-this-id"})
+	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key: "no-secret-with-this-id",
+		},
+	})
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
 	secretID, _ := lockboxBackend.CreateSecret(authorizedKey,
 		textEntry("k1", "v1"),
 	)
-	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Version: "no-version-with-this-id"})
+	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     secretID,
+			Version: "no-version-with-this-id",
+		},
+	})
 	tassert.EqualError(t, err, "unable to request secret payload to get secret: version not found")
 }
 
@@ -339,17 +381,37 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	secretsClient2, err := provider.NewClient(ctx, store2, k8sClient, namespace2)
 	tassert.Nil(t, err)
 
-	data, err := secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID1, Property: k1})
+	data, err := secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID1,
+			Property: k1,
+		},
+	})
 	tassert.Equal(t, v1, string(data))
 	tassert.Nil(t, err)
-	data, err = secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2, Property: k2})
+	data, err = secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID2,
+			Property: k2,
+		},
+	})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 
-	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID1, Property: k1})
+	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID1,
+			Property: k1,
+		},
+	})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
-	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2, Property: k2})
+	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID2,
+			Property: k2,
+		},
+	})
 	tassert.Equal(t, v2, string(data))
 	tassert.Nil(t, err)
 }
@@ -400,17 +462,37 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 
 	var data []byte
 
-	data, err = secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID1, Property: k1})
+	data, err = secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID1,
+			Property: k1,
+		},
+	})
 	tassert.Equal(t, v1, string(data))
 	tassert.Nil(t, err)
-	data, err = secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2, Property: k2})
+	data, err = secretsClient1.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID2,
+			Property: k2,
+		},
+	})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
-	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID1, Property: k1})
+	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID1,
+			Property: k1,
+		},
+	})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
-	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2, Property: k2})
+	data, err = secretsClient2.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID1,
+			Property: k2,
+		},
+	})
 	tassert.Equal(t, v2, string(data))
 	tassert.Nil(t, err)
 }
@@ -442,19 +524,34 @@ func TestGetSecretWithIamTokenExpiration(t *testing.T) {
 
 	oldSecretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err = oldSecretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Property: k1})
+	data, err = oldSecretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID,
+			Property: k1,
+		},
+	})
 	tassert.Equal(t, v1, string(data))
 	tassert.Nil(t, err)
 
 	lockboxBackend.AdvanceClock(2 * tokenExpirationTime)
 
-	data, err = oldSecretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Property: k1})
+	data, err = oldSecretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID,
+			Property: k1,
+		},
+	})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, "unable to request secret payload to get secret: iam token expired")
 
 	newSecretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err = newSecretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Property: k1})
+	data, err = newSecretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      secretID,
+			Property: k1,
+		},
+	})
 	tassert.Equal(t, v1, string(data))
 	tassert.Nil(t, err)
 }
@@ -499,7 +596,11 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	// Access secretID1 with authorizedKey1, IAM token for authorizedKey1 should be cached
 	secretsClient, err := provider.NewClient(ctx, store1, k8sClient, namespace)
 	tassert.Nil(t, err)
-	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID1})
+	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key: secretID1,
+		},
+	})
 	tassert.Nil(t, err)
 
 	tassert.True(t, provider.isIamTokenCached(authorizedKey1))
@@ -510,7 +611,11 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	// Access secretID2 with authorizedKey2, IAM token for authorizedKey2 should be cached
 	secretsClient, err = provider.NewClient(ctx, store2, k8sClient, namespace)
 	tassert.Nil(t, err)
-	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID2})
+	_, err = secretsClient.GetSecret(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key: secretID2,
+		},
+	})
 	tassert.Nil(t, err)
 
 	tassert.True(t, provider.isIamTokenCached(authorizedKey1))
@@ -562,7 +667,11 @@ func TestGetSecretMap(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecretMap(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID})
+	data, err := secretsClient.GetSecretMap(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key: secretID,
+		},
+	})
 	tassert.Nil(t, err)
 
 	tassert.Equal(
@@ -598,7 +707,12 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecretMap(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Version: oldVersionID})
+	data, err := secretsClient.GetSecretMap(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     secretID,
+			Version: oldVersionID,
+		},
+	})
 	tassert.Nil(t, err)
 
 	tassert.Equal(t, map[string][]byte{oldKey: []byte(oldVal)}, data)
@@ -608,11 +722,21 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 		textEntry(newKey, newVal),
 	)
 
-	data, err = secretsClient.GetSecretMap(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Version: oldVersionID})
+	data, err = secretsClient.GetSecretMap(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     secretID,
+			Version: oldVersionID,
+		},
+	})
 	tassert.Nil(t, err)
 	tassert.Equal(t, map[string][]byte{oldKey: []byte(oldVal)}, data)
 
-	data, err = secretsClient.GetSecretMap(ctx, esv1alpha1.ExternalSecretDataRemoteRef{Key: secretID, Version: newVersionID})
+	data, err = secretsClient.GetSecretMap(ctx, esv1alpha1.ExternalSecretDataRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     secretID,
+			Version: newVersionID,
+		},
+	})
 	tassert.Nil(t, err)
 	tassert.Equal(t, map[string][]byte{newKey: []byte(newVal)}, data)
 }

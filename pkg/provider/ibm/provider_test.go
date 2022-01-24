@@ -63,8 +63,10 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "default",
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     "test-secret",
+			Version: "default",
+		},
 	}
 }
 
@@ -146,7 +148,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 				Name:       utilpointer.StringPtr("testyname"),
 				SecretData: secretData,
 			}}
-		smtc.ref.Key = "testyname"
+		smtc.ref.Extract.Key = "testyname"
 		smtc.apiInput.ID = utilpointer.StringPtr("testyname")
 		smtc.apiOutput.Resources = resources
 		smtc.expectedSecret = secretString
@@ -164,7 +166,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = secretUserPass
+		smtc.ref.Extract.Key = secretUserPass
 		smtc.expectError = "remoteRef.property required for secret type username_password"
 	}
 
@@ -179,8 +181,8 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = secretUserPass
-		smtc.ref.Property = "password"
+		smtc.ref.Extract.Key = secretUserPass
+		smtc.ref.Extract.Property = "password"
 		smtc.expectedSecret = secretPassword
 	}
 
@@ -195,7 +197,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "iam_credentials/test-secret"
+		smtc.ref.Extract.Key = "iam_credentials/test-secret"
 		smtc.expectedSecret = secretAPIKey
 	}
 
@@ -211,8 +213,8 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = secretCert
-		smtc.ref.Property = "certificate"
+		smtc.ref.Extract.Key = secretCert
+		smtc.ref.Extract.Property = "certificate"
 		smtc.expectedSecret = secretCertificate
 	}
 
@@ -227,8 +229,8 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = secretCert
-		smtc.expectError = "remoteRef.property required for secret type imported_cert"
+		smtc.ref.Extract.Key = secretCert
+		smtc.expectError = "remoteRef.Extract.property required for secret type imported_cert"
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -311,7 +313,7 @@ func TestGetSecretMap(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "username_password/test-secret"
+		smtc.ref.Extract.Key = "username_password/test-secret"
 		smtc.expectedData["username"] = []byte(secretUsername)
 		smtc.expectedData["password"] = []byte(secretPassword)
 	}
@@ -327,7 +329,7 @@ func TestGetSecretMap(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "iam_credentials/test-secret"
+		smtc.ref.Extract.Key = "iam_credentials/test-secret"
 		smtc.expectedData["apikey"] = []byte(secretAPIKey)
 	}
 
@@ -347,7 +349,7 @@ func TestGetSecretMap(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "imported_cert/test-secret"
+		smtc.ref.Extract.Key = "imported_cert/test-secret"
 		smtc.expectedData["certificate"] = []byte(secretCertificate)
 		smtc.expectedData["private_key"] = []byte(secretPrivateKey)
 		smtc.expectedData["intermediate"] = []byte(secretIntermediate)

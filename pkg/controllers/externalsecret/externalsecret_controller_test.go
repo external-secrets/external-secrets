@@ -218,8 +218,10 @@ var _ = Describe("ExternalSecret controller", func() {
 						{
 							SecretKey: targetProp,
 							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-								Key:      remoteKey,
-								Property: remoteProperty,
+								Extract: esv1alpha1.ExternalSecretExtract{
+									Key:      remoteKey,
+									Property: remoteProperty,
+								},
 							},
 						},
 					},
@@ -482,7 +484,9 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Key: "datamap",
+				Extract: esv1alpha1.ExternalSecretExtract{
+					Key: "datamap",
+				},
 			},
 		}
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
@@ -648,7 +652,9 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.externalSecret.Spec.Data = nil
 		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Key: remoteKey,
+				Extract: esv1alpha1.ExternalSecretExtract{
+					Key: remoteKey,
+				},
 			},
 		}
 		fakeProvider.WithGetSecretMap(map[string][]byte{
@@ -675,7 +681,9 @@ var _ = Describe("ExternalSecret controller", func() {
 
 		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Key: remoteKey,
+				Extract: esv1alpha1.ExternalSecretExtract{
+					Key: remoteKey,
+				},
 			},
 		}
 		fakeProvider.WithGetSecretMap(map[string][]byte{

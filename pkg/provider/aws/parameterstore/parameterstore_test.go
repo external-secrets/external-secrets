@@ -68,7 +68,9 @@ func makeValidAPIOutput() *ssm.GetParameterOutput {
 
 func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key: "/baz",
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key: "/baz",
+		},
 	}
 }
 
@@ -94,20 +96,20 @@ func TestGetSecret(t *testing.T) {
 	setExtractProperty := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
 		pstc.expectedSecret = "bang"
-		pstc.remoteRef.Property = "/shmoo"
+		pstc.remoteRef.Extract.Property = "/shmoo"
 	}
 
 	// bad case: missing property
 	setMissingProperty := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
-		pstc.remoteRef.Property = "INVALPROP"
+		pstc.remoteRef.Extract.Property = "INVALPROP"
 		pstc.expectError = "key INVALPROP does not exist in secret"
 	}
 
 	// bad case: extract property failure due to invalid json
 	setPropertyFail := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`------`)
-		pstc.remoteRef.Property = "INVALPROP"
+		pstc.remoteRef.Extract.Property = "INVALPROP"
 		pstc.expectError = "key INVALPROP does not exist in secret"
 	}
 

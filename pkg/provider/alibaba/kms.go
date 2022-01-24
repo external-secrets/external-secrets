@@ -116,26 +116,26 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.E
 		return nil, fmt.Errorf(errUninitalizedAlibabaProvider)
 	}
 	kmsRequest := kmssdk.CreateGetSecretValueRequest()
-	kmsRequest.VersionId = ref.Version
-	kmsRequest.SecretName = ref.Key
+	kmsRequest.VersionId = ref.Extract.Version
+	kmsRequest.SecretName = ref.Extract.Key
 	kmsRequest.SetScheme("https")
 	secretOut, err := kms.Client.GetSecretValue(kmsRequest)
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
-	if ref.Property == "" {
+	if ref.Extract.Property == "" {
 		if secretOut.SecretData != "" {
 			return []byte(secretOut.SecretData), nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
+		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Extract.Key)
 	}
 	var payload string
 	if secretOut.SecretData != "" {
 		payload = secretOut.SecretData
 	}
-	val := gjson.Get(payload, ref.Property)
+	val := gjson.Get(payload, ref.Extract.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
 	}
 	return []byte(val.String()), nil
 }
@@ -156,7 +156,7 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
+		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Extract.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {

@@ -51,8 +51,10 @@ func makeValidAkeylessTestCase() *akeylessTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "1",
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:     "test-secret",
+			Version: "1",
+		},
 	}
 }
 
