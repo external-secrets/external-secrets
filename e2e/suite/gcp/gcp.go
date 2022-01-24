@@ -130,7 +130,9 @@ x6HaRh+EUwU51von6M9lEF9/p5Q=
 			{
 				SecretKey: "mysecret",
 				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-					Key: cloudSecretName,
+					Extract: esv1alpha1.ExternalSecretExtract{
+						Key: cloudSecretName,
+					},
 				},
 			},
 		}

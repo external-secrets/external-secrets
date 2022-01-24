@@ -161,6 +161,7 @@ const (
 	jsonSingleTestString = `{"Name": "External", "LastName": "Secret" }`
 	keyName              = "key/keyname"
 	certName             = "cert/certname"
+	secretString         = "changedvalue"
 )
 
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
@@ -175,7 +176,7 @@ func newKVJWK(b []byte) *keyvault.JSONWebKey {
 // test the sm<->azurekv interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
-	secretString := "changedvalue"
+	secretString := secretString
 	secretCertificate := "certificate_value"
 
 	// good case
@@ -287,7 +288,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 }
 
 func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
-	secretString := "changedvalue"
+	secretString := secretString
 	secretCertificate := "certificate_value"
 
 	badSecretString := func(smtc *secretManagerTestCase) {
@@ -381,7 +382,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 }
 
 func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
-	secretString := "changedvalue"
+	secretString := secretString
 	secretName := "example-1"
 	wrongName := "not-valid"
 	environment := "dev"
@@ -440,8 +441,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 		}
 
 		secretList := make([]keyvault.SecretItem, 1)
-		secretList = append(secretList, secretItemOne)
-		secretList = append(secretList, secretItemTwo)
+		secretList = append(secretList, secretItemOne, secretItemTwo)
 
 		list := keyvault.SecretListResult{
 			Value: &secretList,

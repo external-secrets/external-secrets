@@ -142,7 +142,7 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.E
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (a *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }

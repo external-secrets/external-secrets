@@ -101,13 +101,17 @@ var _ = Describe("[aws] ", func() {
 			{
 				SecretKey: secretKey1,
 				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-					Key: secretKey1,
+					Extract: esv1alpha1.ExternalSecretExtract{
+						Key: secretKey1,
+					},
 				},
 			},
 			{
 				SecretKey: secretKey2,
 				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-					Key: secretKey2,
+					Extract: esv1alpha1.ExternalSecretExtract{
+						Key: secretKey2,
+					},
 				},
 			},
 		}
