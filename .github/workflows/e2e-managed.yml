@@ -138,7 +138,7 @@ jobs:
       with:
         api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-    - name: Generate Infracost JSON for AWS
+    - name: Generate Infracost JSON for provider
       run: infracost breakdown --path terraform/${{github.event.client_payload.slash_command.args.named.provider}}/plan.json --format json --out-file /tmp/infracost.json
 
     - name: Post Infracost comment
