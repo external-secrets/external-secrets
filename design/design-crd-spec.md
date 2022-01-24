@@ -4,7 +4,7 @@ title: External Secrets Operator CRD
 version: v1alpha1
 authors: all of us
 creation-date: 2020-09-01
-status: draft
+status: accepted
 ---
 ```
 

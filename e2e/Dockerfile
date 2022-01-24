@@ -4,7 +4,7 @@ FROM golang:$GO_VERSION-buster as builder
 ENV KUBECTL_VERSION="v1.21.2"
 ENV HELM_VERSION="v3.7.1"
 
-RUN go get -u github.com/onsi/ginkgo/ginkgo
+RUN go get -u github.com/onsi/ginkgo/v2/ginkgo
 RUN wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && \
     wget -q https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -O - | tar -xzO linux-amd64/helm > /usr/local/bin/helm && \

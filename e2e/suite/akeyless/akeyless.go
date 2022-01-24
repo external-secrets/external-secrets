@@ -15,23 +15,19 @@ limitations under the License.
 package akeyless
 
 import (
-	"os"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	// nolint
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2/extensions/table"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
 
-var _ = Describe("[akeyless] ", func() {
+var _ = Describe("[akeyless]", Label("akeyless"), func() {
 	f := framework.New("eso-akeyless")
-	accessID := os.Getenv("AKEYLESS_ACCESS_ID")
-	accessType := os.Getenv("AKEYLESS_ACCESS_TYPE")
-	accessTypeParam := os.Getenv("AKEYLESS_ACCESS_TYPE_PARAM")
-	prov := newAkeylessProvider(f, accessID, accessType, accessTypeParam)
+	prov := newFromEnv(f)
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
 		Entry(common.SimpleDataSync(f)),

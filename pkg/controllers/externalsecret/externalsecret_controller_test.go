@@ -20,8 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
@@ -317,6 +316,47 @@ var _ = Describe("ExternalSecret controller", func() {
 				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1alpha1.AnnotationDataHash)),
 			).To(BeTrue())
 			Expect(hasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
+		}
+	}
+
+	// should not update if no changes
+	mergeWithSecretNoChange := func(tc *testCase) {
+		const existingKey = "pre-existing-key"
+		existingVal := "someValue"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1alpha1.Merge
+
+		// create secret beforehand
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner(FakeManager))).To(Succeed())
+
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			oldResourceVersion := secret.ResourceVersion
+
+			cleanSecret := secret.DeepCopy()
+			Expect(k8sClient.Patch(context.Background(), secret, client.MergeFrom(cleanSecret))).To(Succeed())
+
+			newSecret := &v1.Secret{}
+
+			Eventually(func() bool {
+				secretLookupKey := types.NamespacedName{
+					Name:      ExternalSecretTargetSecretName,
+					Namespace: ExternalSecretNamespace,
+				}
+
+				err := k8sClient.Get(context.Background(), secretLookupKey, newSecret)
+				if err != nil {
+					return false
+				}
+				return oldResourceVersion == newSecret.ResourceVersion
+			}, timeout, interval).Should(Equal(true))
+
 		}
 	}
 
@@ -933,6 +973,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),
 		Entry("should error if secret doesn't exist when using creationPolicy=Merge", mergeWithSecretErr),
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
+		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should refresh secret from template", refreshWithTemplate),

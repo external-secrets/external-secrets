@@ -39,8 +39,8 @@ even opinions matter!
 
 How to get involved:
 
-- Monthly Meeting: we announce our meetings on slack
-  ([agenda](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA))
+- Bi-weekly Development Meeting every odd week at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin)
+  ([agenda](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA), [jitsi call](https://meet.jit.si/SurroundingContentionsImportSubsequently))
 - [Kubernetes Slack
   #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
 - [Contributing Process](contributing-process.md)

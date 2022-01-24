@@ -26,20 +26,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	"github.com/external-secrets/external-secrets/e2e/framework/log"
 )
 
 // WaitForSecretValue waits until a secret comes into existence and compares the secret.Data
 // with the provided values.
 func (f *Framework) WaitForSecretValue(namespace, name string, expected *v1.Secret) (*v1.Secret, error) {
 	secret := &v1.Secret{}
-	err := wait.PollImmediate(time.Second*2, time.Minute*2, func() (bool, error) {
+	err := wait.PollImmediate(time.Second*10, time.Minute, func() (bool, error) {
 		err := f.CRClient.Get(context.Background(), types.NamespacedName{
 			Namespace: namespace,
 			Name:      name,
 		}, secret)
 		if apierrors.IsNotFound(err) {
-			log.Logf("Secret Not Found. Expected: %+v, Got: %+v", expected, secret)
 			return false, nil
 		}
 		return equalSecrets(expected, secret), nil

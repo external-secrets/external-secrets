@@ -62,6 +62,12 @@ Even though we have active maintainers and people assigned to this project, we k
 
 We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/contributing-devguide/) and [Contribution process](https://www.external-secrets.io/contributing-process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/contributing-coc/) and adhere to its guidelines.
 
+## Bi-weekly Development Meeting
+
+We host our development meeting every odd wednesday at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin) on [Jitsi](https://meet.jit.si/SurroundingContentionsImportSubsequently). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
+
+Anyone is welcome to join. Feel free to ask questions, request feedback, raise awareness for an issue or just say hi ;)
+
 ## Security
 
 Please report vulnerabilities by email to contact@external-secrets.io, also see our [security policy](SECURITY.md) for details.

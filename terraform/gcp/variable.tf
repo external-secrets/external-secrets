@@ -1,7 +1,6 @@
 variable "env" { default = "test" }
 variable "region" { default = "europe-west1" }
 variable "zone" { default = "europe-west1-b" }
-variable "project_id" { default = "external-secrets-operator" }
 variable "horizontal_pod_autoscaling" { default = false }
 variable "node_count" { default = 2 }
 variable "node_min_count" { default = 2 }
