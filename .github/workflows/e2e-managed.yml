@@ -52,7 +52,7 @@ jobs:
     # set status=in_progress
     - uses: actions/github-script@v1
       env:
-        number: ${{ github.event.client_payload.slash_command.args.named.pull }}
+        number: ${{ github.event.client_payload.pull_request.number }}
         job: ${{ github.job }}
         conclusion: ${{ job.status }}
       with:
@@ -193,7 +193,7 @@ jobs:
     - uses: actions/github-script@v1
       if: ${{ always() }}
       env:
-        number: ${{ github.event.client_payload.slash_command.args.named.pull }}
+        number: ${{ github.event.client_payload.pull_request.number }}
         job: ${{ github.job }}
         # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
         conclusion: ${{ job.status }}
