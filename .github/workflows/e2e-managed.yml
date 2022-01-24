@@ -51,7 +51,6 @@ jobs:
 
     # set status=in_progress
     - uses: actions/github-script@v1
-      id: update-check-run
       env:
         number: ${{ github.event.client_payload.slash_command.args.named.pull }}
         job: ${{ github.job }}
@@ -192,7 +191,6 @@ jobs:
 
     # set status=completed
     - uses: actions/github-script@v1
-      id: update-check-run
       if: ${{ always() }}
       env:
         number: ${{ github.event.client_payload.slash_command.args.named.pull }}
