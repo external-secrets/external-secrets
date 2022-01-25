@@ -83,7 +83,6 @@ jobs:
           }
           const { data: result } = await github.checks.create({
             ...context.repo,
-            check_run_id: check[0].id,
             name: job_name,
             status: 'in_progress',
           });
