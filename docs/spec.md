@@ -3207,6 +3207,36 @@ CAProvider
 <p>The provider for the CA bundle to use to validate Vault server certificate.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>readYourWrites</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ReadYourWrites ensures isolated read-after-write semantics by
+providing discovered cluster replication states in each request.
+More information about eventual consistency in Vault can be found here
+<a href="https://www.vaultproject.io/docs/enterprise/consistency">https://www.vaultproject.io/docs/enterprise/consistency</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>forwardInconsistent</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ForwardInconsistent tells Vault to forward read-after-write requests to the Vault
+leader instead of simply retrying within a loop. This can increase performance if
+the option is enabled serverside.
+<a href="https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header">https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header</a></p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.WebhookCAProvider">WebhookCAProvider

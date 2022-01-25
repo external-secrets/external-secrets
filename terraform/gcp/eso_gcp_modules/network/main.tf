@@ -1,9 +1,11 @@
 resource "google_compute_network" "env-vpc" {
-  name          =  "${var.env}-vpc"
+  project                 = var.project_id
+  name                    = "${var.env}-vpc"
   auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "env-subnet" {
+  project       = var.project_id
   name          = "${google_compute_network.env-vpc.name}-subnet"
   region        = var.region
   network       = google_compute_network.env-vpc.name

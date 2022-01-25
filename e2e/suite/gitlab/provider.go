@@ -15,10 +15,11 @@ package gitlab
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 
 	// nolint
 	. "github.com/onsi/gomega"
@@ -45,6 +46,12 @@ func newGitlabProvider(f *framework.Framework, credentials, projectID string) *g
 	}
 	BeforeEach(prov.BeforeEach)
 	return prov
+}
+
+func newFromEnv(f *framework.Framework) *gitlabProvider {
+	credentials := os.Getenv("GITLAB_TOKEN")
+	projectID := os.Getenv("GITLAB_PROJECT_ID")
+	return newGitlabProvider(f, credentials, projectID)
 }
 
 func (s *gitlabProvider) CreateSecret(key, val string) {

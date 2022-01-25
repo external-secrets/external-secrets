@@ -19,8 +19,6 @@ set -euo pipefail
 NC='\e[0m'
 BGREEN='\e[32m'
 
-SLOW_E2E_THRESHOLD=${SLOW_E2E_THRESHOLD:-50}
-FOCUS=${FOCUS:-.*}
 E2E_NODES=${E2E_NODES:-5}
 
 if [ ! -f "${HOME}/.kube/config" ]; then
@@ -31,13 +29,13 @@ if [ ! -f "${HOME}/.kube/config" ]; then
 fi
 
 ginkgo_args=(
-  "-randomizeSuites"
-  "-randomizeAllSpecs"
-  "-flakeAttempts=2"
+  "--randomize-suites"
+  "--randomize-all"
+  "--flake-attempts=2"
   "-p"
   "-progress"
   "-trace"
-  "-slowSpecThreshold=${SLOW_E2E_THRESHOLD}"
+  "--slow-spec-threshold=5m"
   "-r"
   "-v"
   "-timeout=45m"
@@ -45,9 +43,8 @@ ginkgo_args=(
 
 kubectl apply -f /k8s/deploy/crds
 
-echo -e "${BGREEN}Running e2e test suite (FOCUS=${FOCUS})...${NC}"
+echo -e "${BGREEN}Running e2e test suite (LABELS=${GINKGO_LABELS})...${NC}"
 ACK_GINKGO_RC=true ginkgo "${ginkgo_args[@]}" \
-  -focus="${FOCUS}"                           \
-  -skip="\[Serial\]|\[MemoryLeak\]"           \
+  -label-filter="${GINKGO_LABELS}"            \
   -nodes="${E2E_NODES}"                       \
   /e2e.test

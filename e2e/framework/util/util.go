@@ -22,9 +22,7 @@ import (
 	"time"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
-	// nolint
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -242,19 +240,25 @@ func NewConfig() (*restclient.Config, *kubernetes.Clientset, crclient.Client) {
 	kcPath := os.Getenv("KUBECONFIG")
 	if kcPath != "" {
 		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kcPath)
-		Expect(err).NotTo(HaveOccurred())
+		if err != nil {
+			Fail(err.Error())
+		}
 	} else {
 		kubeConfig, err = restclient.InClusterConfig()
-		Expect(err).NotTo(HaveOccurred())
+		if err != nil {
+			Fail(err.Error())
+		}
 	}
 
-	By("creating a kubernetes client")
 	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		Fail(err.Error())
+	}
 
-	By("creating a controller-runtime client")
 	CRClient, err := crclient.New(kubeConfig, crclient.Options{Scheme: Scheme})
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		Fail(err.Error())
+	}
 
 	return kubeConfig, kubeClientSet, CRClient
 }

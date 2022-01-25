@@ -14,9 +14,10 @@ package oracle
 
 import (
 	"context"
+	"os"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 
 	// nolint
 	. "github.com/onsi/gomega"
@@ -56,6 +57,15 @@ func newOracleProvider(f *framework.Framework, tenancy, user, region, fingerprin
 	}
 	BeforeEach(prov.BeforeEach)
 	return prov
+}
+
+func newFromEnv(f *framework.Framework) *oracleProvider {
+	tenancy := os.Getenv("OCI_TENANCY_OCID")
+	user := os.Getenv("OCI_USER_OCID")
+	region := os.Getenv("OCI_REGION")
+	fingerprint := os.Getenv("OCI_FINGERPRINT")
+	privateKey := os.Getenv("OCI_PRIVATE_KEY")
+	return newOracleProvider(f, tenancy, user, region, fingerprint, privateKey)
 }
 
 func (p *oracleProvider) CreateSecret(key, val string) {

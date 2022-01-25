@@ -1,4 +1,5 @@
 resource "google_service_account" "default" {
+  project    = var.project_id
   account_id = var.GCP_GSA_NAME
 }
 
@@ -27,6 +28,7 @@ resource "google_service_account_iam_member" "pod_identity_e2e" {
 }
 
 resource "google_container_cluster" "primary" {
+  project                  = var.project_id
   name                     = "${var.env}-cluster"
   location                 = var.zone
   remove_default_node_pool = true
@@ -43,6 +45,7 @@ resource "google_container_cluster" "primary" {
 }
 
 resource "google_container_node_pool" "nodes" {
+  project    = var.project_id
   name       = "${google_container_cluster.primary.name}-node-pool"
   location   = google_container_cluster.primary.location
   cluster    = google_container_cluster.primary.name
@@ -55,5 +58,22 @@ resource "google_container_node_pool" "nodes" {
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
+  }
+}
+
+provider "kubernetes" {
+  host                   = "https://${google_container_cluster.primary.endpoint}"
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(google_container_cluster.primary.master_auth.0.cluster_ca_certificate)
+}
+
+data "google_client_config" "default" {}
+
+resource "kubernetes_service_account" "test" {
+  metadata {
+    name = var.GCP_KSA_NAME
+    annotations = {
+      "iam.gke.io/gcp-service-account" : "${var.GCP_GSA_NAME}@${var.project_id}.iam.gserviceaccount.com"
+    }
   }
 }

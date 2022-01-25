@@ -13,25 +13,19 @@ limitations under the License.
 package oracle
 
 import (
-	"os"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	// nolint
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2/extensions/table"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
 
-var _ = Describe("[oracle] ", func() {
+var _ = Describe("[oracle]", Label("oracle"), func() {
 	f := framework.New("eso-oracle")
-	tenancy := os.Getenv("OCI_TENANCY_OCID")
-	user := os.Getenv("OCI_USER_OCID")
-	region := os.Getenv("OCI_REGION")
-	fingerprint := os.Getenv("OCI_FINGERPRINT")
-	privateKey := os.Getenv("OCI_PRIVATE_KEY")
-	prov := newOracleProvider(f, tenancy, user, region, fingerprint, privateKey)
+	prov := newFromEnv(f)
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
 		Entry(common.SimpleDataSync(f)),

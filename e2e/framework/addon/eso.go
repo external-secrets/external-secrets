@@ -14,92 +14,99 @@ limitations under the License.
 package addon
 
 import (
-	"fmt"
 	"os"
 
 	// nolint
-	. "github.com/onsi/ginkgo"
-	// nolint
-	. "github.com/onsi/gomega"
-
-	// nolint
-	"github.com/external-secrets/external-secrets/e2e/framework/util"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 type ESO struct {
-	Addon
+	*HelmChart
 }
 
-func NewESO() *ESO {
-	return &ESO{
+func NewESO(mutators ...MutationFunc) *ESO {
+	eso := &ESO{
 		&HelmChart{
 			Namespace:   "default",
 			ReleaseName: "eso",
 			Chart:       "/k8s/deploy/charts/external-secrets",
-			Values:      []string{"/k8s/eso.values.yaml"},
+			Vars: []StringTuple{
+				{
+					Key:   "image.repository",
+					Value: os.Getenv("IMAGE_REGISTRY"),
+				},
+				{
+					Key:   "image.tag",
+					Value: os.Getenv("VERSION"),
+				},
+				{
+					Key:   "installCRDs",
+					Value: "false",
+				},
+			},
 		},
+	}
+
+	for _, f := range mutators {
+		f(eso)
+	}
+
+	return eso
+}
+
+type MutationFunc func(eso *ESO)
+
+func WithReleaseName(name string) MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.ReleaseName = name
+	}
+}
+
+func WithNamespace(namespace string) MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Namespace = namespace
+	}
+}
+
+func WithNamespaceScope(namespace string) MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "scopedNamespace",
+			Value: namespace,
+		})
+	}
+}
+
+func WithServiceAccount(saName string) MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, []StringTuple{
+			{
+				Key:   "serviceAccount.create",
+				Value: "false",
+			},
+			{
+				Key:   "serviceAccount.name",
+				Value: saName,
+			},
+		}...)
+	}
+}
+
+func WithControllerClass(class string) MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "extraArgs.controller-class",
+			Value: class,
+		})
 	}
 }
 
 func (l *ESO) Install() error {
 	By("Installing eso\n")
-	err := l.Addon.Install()
-	if err != nil {
-		return err
-	}
-
-	By("afterInstall eso\n")
-	err = l.afterInstall()
+	err := l.HelmChart.Install()
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (l *ESO) afterInstall() error {
-	err := gcpPreparation()
-	Expect(err).NotTo(HaveOccurred())
-	err = awsPreparation()
-	Expect(err).NotTo(HaveOccurred())
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func gcpPreparation() error {
-	gcpProjectID := os.Getenv("GCP_PROJECT_ID")
-	gcpGSAName := os.Getenv("GCP_GSA_NAME")
-	gcpKSAName := os.Getenv("GCP_KSA_NAME")
-	_, kubeClientSet, _ := util.NewConfig()
-
-	annotations := make(map[string]string)
-	annotations["iam.gke.io/gcp-service-account"] = fmt.Sprintf("%s@%s.iam.gserviceaccount.com", gcpGSAName, gcpProjectID)
-	_, err := util.UpdateKubeSA(gcpKSAName, kubeClientSet, "default", annotations)
-	Expect(err).NotTo(HaveOccurred())
-
-	_, err = util.UpdateKubeSA("external-secrets-e2e", kubeClientSet, "default", annotations)
-	Expect(err).NotTo(HaveOccurred())
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func awsPreparation() error {
-	return nil
-}
-
-func NewScopedESO() *ESO {
-	return &ESO{
-		&HelmChart{
-			Namespace:   "default",
-			ReleaseName: "eso-aws-sm",
-			Chart:       "/k8s/deploy/charts/external-secrets",
-			Values:      []string{"/k8s/eso.scoped.values.yaml"},
-		},
-	}
 }

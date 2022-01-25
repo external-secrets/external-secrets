@@ -14,12 +14,10 @@ limitations under the License.
 package log
 
 import (
-	"fmt"
-
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 )
 
 // Logf logs the format string to ginkgo stdout.
 func Logf(format string, args ...interface{}) {
-	fmt.Fprintf(ginkgo.GinkgoWriter, format, args...)
+	ginkgo.GinkgoWriter.Printf(format, args)
 }

@@ -26,9 +26,22 @@ be merged:
 * PR needs be reviewed and approved
 
 Once these steps are completed the PR will be merged by a code owner.
+We're using the pull request `assignee` feature to track who is responsible
+for the lifecycle of the PR: review, merging, ping on inactivity, close.
+We close pull requests or issues if there is no response from the author for
+a period of time. Feel free to reopen if you want to get back on it.
 
+## Proposal Process
+Before we introduce significant changes to the project we want to gather feedback
+from the community to ensure that we progress in the right direction before we
+develop and release big changes. Significant changes include for example:
+* creating new custom resources
+* proposing breaking changes
+* changing the behavior of the controller significantly
+
+Please create a document in the `design/` directory based on the template `000-template.md`
+and fill in your proposal. Open a pull request in draft mode and request feedback. Once the proposal is accepted and the pull request is merged we can create work packages and proceed with the implementation.
 
 ## Cutting Releases
 
-As of now this project is in an early alpha phase. There is just the main branch
-;)
+The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the `RELEASE.md` file in the repo.
