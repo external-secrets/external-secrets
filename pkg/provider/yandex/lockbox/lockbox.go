@@ -226,12 +226,12 @@ type lockboxSecretsClient struct {
 
 // GetSecret returns a single secret from the provider.
 func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Extract.Key, ref.Extract.Version)
+	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Key, ref.Version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret: %w", err)
 	}
 
-	if ref.Extract.Property == "" {
+	if ref.Property == "" {
 		keyToValue := make(map[string]interface{}, len(entries))
 		for _, entry := range entries {
 			value, err := getValueAsIs(entry)
@@ -247,7 +247,7 @@ func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.Ext
 		return out, nil
 	}
 
-	entry, err := findEntryByKey(entries, ref.Extract.Property)
+	entry, err := findEntryByKey(entries, ref.Property)
 	if err != nil {
 		return nil, err
 	}
@@ -256,13 +256,13 @@ func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.Ext
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (c *lockboxSecretsClient) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *lockboxSecretsClient) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (c *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Extract.Key, ref.Extract.Version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)

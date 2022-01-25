@@ -95,7 +95,7 @@ func (c *client) setAuth(ctx context.Context) error {
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }
@@ -106,7 +106,7 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSe
 	}
 
 	secretType := sm.GetSecretOptionsSecretTypeArbitraryConst
-	secretName := ref.Extract.Key
+	secretName := ref.Key
 	nameSplitted := strings.Split(secretName, "/")
 
 	if len(nameSplitted) > 1 {
@@ -121,7 +121,7 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSe
 
 	case sm.CreateSecretOptionsSecretTypeUsernamePasswordConst:
 
-		if ref.Extract.Property == "" {
+		if ref.Property == "" {
 			return nil, fmt.Errorf("remoteRef.property required for secret type username_password")
 		}
 		return getUsernamePasswordSecret(ibm, &secretName, ref)
@@ -132,8 +132,8 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSe
 
 	case sm.CreateSecretOptionsSecretTypeImportedCertConst:
 
-		if ref.Extract.Property == "" {
-			return nil, fmt.Errorf("remoteRef.Extract.property required for secret type imported_cert")
+		if ref.Property == "" {
+			return nil, fmt.Errorf("remoteref.Property required for secret type imported_cert")
 		}
 
 		return getImportCertSecret(ibm, &secretName, ref)
@@ -171,10 +171,10 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1alpha1.Ex
 	secret := response.Resources[0].(*sm.SecretResource)
 	secretData := secret.SecretData.(map[string]interface{})
 
-	if val, ok := secretData[ref.Extract.Property]; ok {
+	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
 	}
-	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
 func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, error) {
@@ -206,13 +206,13 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1alp
 	secret := response.Resources[0].(*sm.SecretResource)
 	secretData := secret.SecretData.(map[string]interface{})
 
-	if val, ok := secretData[ref.Extract.Property]; ok {
+	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
 	}
-	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
-func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}

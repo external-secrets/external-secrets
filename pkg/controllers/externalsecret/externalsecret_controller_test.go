@@ -217,10 +217,8 @@ var _ = Describe("ExternalSecret controller", func() {
 						{
 							SecretKey: targetProp,
 							RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
-								Extract: esv1alpha1.ExternalSecretExtract{
-									Key:      remoteKey,
-									Property: remoteProperty,
-								},
+								Key:      remoteKey,
+								Property: remoteProperty,
 							},
 						},
 					},
@@ -522,7 +520,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				tplStaticKey: tplStaticVal,
 			},
 		}
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
 			{
 				Extract: esv1alpha1.ExternalSecretExtract{
 					Key: "datamap",
@@ -690,7 +688,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	// should be put into the secret
 	syncWithDataFrom := func(tc *testCase) {
 		tc.externalSecret.Spec.Data = nil
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
 			{
 				Extract: esv1alpha1.ExternalSecretExtract{
 					Key: remoteKey,
@@ -719,7 +717,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		}
 
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
 			{
 				Extract: esv1alpha1.ExternalSecretExtract{
 					Key: remoteKey,

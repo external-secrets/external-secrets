@@ -33,6 +33,7 @@ type secretsManagerTestCase struct {
 	apiInput       *awssm.GetSecretValueInput
 	apiOutput      *awssm.GetSecretValueOutput
 	remoteRef      *esv1alpha1.ExternalSecretDataRemoteRef
+	remoteRefFrom  *esv1alpha1.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -49,6 +50,7 @@ func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 		fakeClient:     fakesm.NewClient(),
 		apiInput:       makeValidAPIInput(),
 		remoteRef:      makeValidRemoteRef(),
+		remoteRefFrom:  makeValidRemoteRefFrom(),
 		apiOutput:      makeValidAPIOutput(),
 		apiErr:         nil,
 		expectError:    "",
@@ -61,6 +63,13 @@ func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 
 func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:     "/baz",
+		Version: "AWSCURRENT",
+	}
+}
+
+func makeValidRemoteRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
+	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
 		Extract: esv1alpha1.ExternalSecretExtract{
 			Key:     "/baz",
 			Version: "AWSCURRENT",
@@ -110,20 +119,20 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	// good case: extract property
 	// Testing that the property exists in the SecretString
 	setRemoteRefPropertyExistsInKey := func(smtc *secretsManagerTestCase) {
-		smtc.remoteRef.Extract.Property = "/shmoo"
+		smtc.remoteRef.Property = "/shmoo"
 		smtc.apiOutput.SecretString = aws.String(`{"/shmoo": "bang"}`)
 		smtc.expectedSecret = "bang"
 	}
 
 	// bad case: missing property
 	setRemoteRefMissingProperty := func(smtc *secretsManagerTestCase) {
-		smtc.remoteRef.Extract.Property = "INVALPROP"
+		smtc.remoteRef.Property = "INVALPROP"
 		smtc.expectError = "key INVALPROP does not exist in secret"
 	}
 
 	// bad case: extract property failure due to invalid json
 	setRemoteRefMissingPropertyInvalidJSON := func(smtc *secretsManagerTestCase) {
-		smtc.remoteRef.Extract.Property = "INVALPROP"
+		smtc.remoteRef.Property = "INVALPROP"
 		smtc.apiOutput.SecretString = aws.String(`------`)
 		smtc.expectError = "key INVALPROP does not exist in secret"
 	}
@@ -146,14 +155,14 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	setNestedSecretValueJSONParsing := func(smtc *secretsManagerTestCase) {
 		smtc.apiOutput.SecretString = nil
 		smtc.apiOutput.SecretBinary = []byte(`{"foobar":{"baz":"nestedval"}}`)
-		smtc.remoteRef.Extract.Property = "foobar.baz"
+		smtc.remoteRef.Property = "foobar.baz"
 		smtc.expectedSecret = "nestedval"
 	}
 
 	// good case: custom version set
 	setCustomVersion := func(smtc *secretsManagerTestCase) {
 		smtc.apiInput.VersionStage = aws.String("1234")
-		smtc.remoteRef.Extract.Version = "1234"
+		smtc.remoteRef.Version = "1234"
 		smtc.apiOutput.SecretString = aws.String("FOOBA!")
 		smtc.expectedSecret = "FOOBA!"
 	}
@@ -192,26 +201,26 @@ func TestCaching(t *testing.T) {
 	// over 1
 	firstCall := func(smtc *secretsManagerTestCase) {
 		smtc.apiOutput.SecretString = aws.String(`{"foo":"bar", "bar":"vodka"}`)
-		smtc.remoteRef.Extract.Property = "foo"
+		smtc.remoteRef.Property = "foo"
 		smtc.expectedSecret = "bar"
 		smtc.expectedCounter = aws.Int(1)
 		smtc.fakeClient = fakeClient
 	}
 	secondCall := func(smtc *secretsManagerTestCase) {
 		smtc.apiOutput.SecretString = aws.String(`{"foo":"bar", "bar":"vodka"}`)
-		smtc.remoteRef.Extract.Property = "bar"
+		smtc.remoteRef.Property = "bar"
 		smtc.expectedSecret = "vodka"
 		smtc.expectedCounter = aws.Int(1)
 		smtc.fakeClient = fakeClient
 	}
 	notCachedCall := func(smtc *secretsManagerTestCase) {
 		smtc.apiOutput.SecretString = aws.String(`{"sheldon":"bazinga", "bar":"foo"}`)
-		smtc.remoteRef.Extract.Property = "sheldon"
+		smtc.remoteRef.Property = "sheldon"
 		smtc.expectedSecret = "bazinga"
 		smtc.expectedCounter = aws.Int(2)
 		smtc.fakeClient = fakeClient
 		smtc.apiInput.SecretId = aws.String("xyz")
-		smtc.remoteRef.Extract.Key = "xyz" // it should reset the cache since the key is different
+		smtc.remoteRef.Key = "xyz" // it should reset the cache since the key is different
 	}
 
 	cachedCases := []*secretsManagerTestCase{
@@ -278,7 +287,7 @@ func TestGetSecretMap(t *testing.T) {
 			cache:  make(map[string]*awssm.GetSecretValueOutput),
 			client: v.fakeClient,
 		}
-		out, err := sm.GetSecretMap(context.Background(), *v.remoteRef)
+		out, err := sm.GetSecretMap(context.Background(), *v.remoteRefFrom)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
 		}

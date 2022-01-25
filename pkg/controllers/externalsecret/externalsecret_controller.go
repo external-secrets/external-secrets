@@ -419,7 +419,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 	for _, secretRef := range externalSecret.Spec.Data {
 		secretData, err := providerClient.GetSecret(ctx, secretRef.RemoteRef)
 		if err != nil {
-			return nil, fmt.Errorf(errGetSecretKey, secretRef.RemoteRef.Extract.Key, externalSecret.Name, err)
+			return nil, fmt.Errorf(errGetSecretKey, secretRef.RemoteRef.Key, externalSecret.Name, err)
 		}
 
 		providerData[secretRef.SecretKey] = secretData

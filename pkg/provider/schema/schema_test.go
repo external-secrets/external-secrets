@@ -39,13 +39,13 @@ func (p *PP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRem
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *PP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	return map[string][]byte{}, nil
 }
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (p *PP) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *PP) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }

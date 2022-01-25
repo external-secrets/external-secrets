@@ -31,6 +31,7 @@ type vaultTestCase struct {
 	apiInput       *secrets.GetSecretBundleByNameRequest
 	apiOutput      *secrets.GetSecretBundleByNameResponse
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -43,6 +44,7 @@ func makeValidVaultTestCase() *vaultTestCase {
 		mockClient:     &fakeoracle.OracleMockClient{},
 		apiInput:       makeValidAPIInput(),
 		ref:            makeValidRef(),
+		refFrom:        makeValidRefFrom(),
 		apiOutput:      makeValidAPIOutput(),
 		apiErr:         nil,
 		expectError:    "",
@@ -55,6 +57,13 @@ func makeValidVaultTestCase() *vaultTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:     "test-secret",
+		Version: "default",
+	}
+}
+
+func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
+	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
 		Extract: esv1alpha1.ExternalSecretExtract{
 			Key:     "test-secret",
 			Version: "default",
@@ -160,7 +169,7 @@ func TestGetSecretMap(t *testing.T) {
 	sm := VaultManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, err := sm.GetSecretMap(context.Background(), *v.refFrom)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}

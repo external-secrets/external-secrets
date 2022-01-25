@@ -115,13 +115,13 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretD
 		return nil, err
 	}
 	version := int32(0)
-	if ref.Extract.Version != "" {
-		i, err := strconv.ParseInt(ref.Extract.Version, 10, 32)
+	if ref.Version != "" {
+		i, err := strconv.ParseInt(ref.Version, 10, 32)
 		if err == nil {
 			version = int32(i)
 		}
 	}
-	value, err := a.Client.GetSecretByType(ref.Extract.Key, token, version)
+	value, err := a.Client.GetSecretByType(ref.Key, token, version)
 	if err != nil {
 		return nil, err
 	}
@@ -130,19 +130,19 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretD
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }
 
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
-func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(a.Client) {
 		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
 	}
 
-	val, err := a.GetSecret(ctx, ref)
+	val, err := a.GetSecret(ctx, ref.GetDataRemoteRef())
 	if err != nil {
 		return nil, err
 	}

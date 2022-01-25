@@ -118,11 +118,34 @@ type ExternalSecretData struct {
 
 // ExternalSecretDataRemoteRef defines Provider data location.
 type ExternalSecretDataRemoteRef struct {
+	// Key is the key used in the Provider, mandatory
+	Key string `json:"key"`
+
+	// Used to select a specific version of the Provider value, if supported
+	// +optional
+	Version string `json:"version,omitempty"`
+
+	// +optional
+	// Used to select a specific property of the Provider value (if a map), if supported
+	Property string `json:"property,omitempty"`
+}
+
+// ExternalSecretDataFromRemoteRef defines Provider data location.
+type ExternalSecretDataFromRemoteRef struct {
 	// Used to select a specific version and property from the secret
 	// +optional
 	Extract ExternalSecretExtract `json:"extract,omitempty"`
 	// Used to find secrets based on tags or regular expressions
+	// +optional
 	Find ExternalSecretFind `json:"find,omitempty"`
+}
+
+func (ref ExternalSecretDataFromRemoteRef) GetDataRemoteRef() ExternalSecretDataRemoteRef {
+	return ExternalSecretDataRemoteRef{
+		Key:      ref.Extract.Key,
+		Property: ref.Extract.Property,
+		Version:  ref.Extract.Version,
+	}
 }
 
 type ExternalSecretExtract struct {
@@ -174,7 +197,7 @@ type ExternalSecretSpec struct {
 	// DataFrom is used to fetch all properties from a specific Provider data
 	// If multiple entries are specified, the Secret keys are merged in the specified order
 	// +optional
-	DataFrom []ExternalSecretDataRemoteRef `json:"dataFrom,omitempty"`
+	DataFrom []ExternalSecretDataFromRemoteRef `json:"dataFrom,omitempty"`
 }
 
 type ExternalSecretConditionType string

@@ -38,6 +38,7 @@ type keyManagementServiceTestCase struct {
 	apiInput       *kmssdk.GetSecretValueRequest
 	apiOutput      *kmssdk.GetSecretValueResponse
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -50,6 +51,7 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 		mockClient:     &fakesm.AlibabaMockClient{},
 		apiInput:       makeValidAPIInput(),
 		ref:            makeValidRef(),
+		refFrom:        makeValidRefFrom(),
 		apiOutput:      makeValidAPIOutput(),
 		apiErr:         nil,
 		expectError:    "",
@@ -62,6 +64,12 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key: secretName,
+	}
+}
+
+func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
+	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
 		Extract: esv1alpha1.ExternalSecretExtract{
 			Key: secretName,
 		},
@@ -129,7 +137,7 @@ func TestAlibabaKMSGetSecret(t *testing.T) {
 	// good case: custom version set
 	setCustomKey := func(kmstc *keyManagementServiceTestCase) {
 		kmstc.apiOutput.SecretName = "test-example-other"
-		kmstc.ref.Extract.Key = "test-example-other"
+		kmstc.ref.Key = "test-example-other"
 		kmstc.apiOutput.SecretData = secretValue
 		kmstc.expectedSecret = secretValue
 	}
@@ -178,7 +186,7 @@ func TestGetSecretMap(t *testing.T) {
 	sm := KeyManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, err := sm.GetSecretMap(context.Background(), *v.refFrom)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}

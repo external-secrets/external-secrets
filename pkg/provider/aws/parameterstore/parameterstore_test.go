@@ -32,6 +32,7 @@ type parameterstoreTestCase struct {
 	apiInput       *ssm.GetParameterInput
 	apiOutput      *ssm.GetParameterOutput
 	remoteRef      *esv1alpha1.ExternalSecretDataRemoteRef
+	remoteRefFrom  *esv1alpha1.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -44,6 +45,7 @@ func makeValidParameterStoreTestCase() *parameterstoreTestCase {
 		apiInput:       makeValidAPIInput(),
 		apiOutput:      makeValidAPIOutput(),
 		remoteRef:      makeValidRemoteRef(),
+		remoteRefFrom:  makeValidRemoteRefFrom(),
 		apiErr:         nil,
 		expectError:    "",
 		expectedSecret: "",
@@ -68,6 +70,12 @@ func makeValidAPIOutput() *ssm.GetParameterOutput {
 
 func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key: "/baz",
+	}
+}
+
+func makeValidRemoteRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
+	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
 		Extract: esv1alpha1.ExternalSecretExtract{
 			Key: "/baz",
 		},
@@ -96,20 +104,20 @@ func TestGetSecret(t *testing.T) {
 	setExtractProperty := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
 		pstc.expectedSecret = "bang"
-		pstc.remoteRef.Extract.Property = "/shmoo"
+		pstc.remoteRef.Property = "/shmoo"
 	}
 
 	// bad case: missing property
 	setMissingProperty := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
-		pstc.remoteRef.Extract.Property = "INVALPROP"
+		pstc.remoteRef.Property = "INVALPROP"
 		pstc.expectError = "key INVALPROP does not exist in secret"
 	}
 
 	// bad case: extract property failure due to invalid json
 	setPropertyFail := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`------`)
-		pstc.remoteRef.Extract.Property = "INVALPROP"
+		pstc.remoteRef.Property = "INVALPROP"
 		pstc.expectError = "key INVALPROP does not exist in secret"
 	}
 
@@ -176,7 +184,7 @@ func TestGetSecretMap(t *testing.T) {
 	ps := ParameterStore{}
 	for k, v := range successCases {
 		ps.client = v.fakeClient
-		out, err := ps.GetSecretMap(context.Background(), *v.remoteRef)
+		out, err := ps.GetSecretMap(context.Background(), *v.remoteRefFrom)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}

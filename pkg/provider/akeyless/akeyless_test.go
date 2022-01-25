@@ -29,6 +29,7 @@ type akeylessTestCase struct {
 	apiInput       *fakeakeyless.Input
 	apiOutput      *fakeakeyless.Output
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
 	expectError    string
 	expectedSecret string
 	// for testing secretmap
@@ -40,6 +41,7 @@ func makeValidAkeylessTestCase() *akeylessTestCase {
 		mockClient:     &fakeakeyless.AkeylessMockClient{},
 		apiInput:       makeValidInput(),
 		ref:            makeValidRef(),
+		refFrom:        makeValidRefFrom(),
 		apiOutput:      makeValidOutput(),
 		expectError:    "",
 		expectedSecret: "",
@@ -51,6 +53,13 @@ func makeValidAkeylessTestCase() *akeylessTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:     "test-secret",
+		Version: "1",
+	}
+}
+
+func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
+	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
 		Extract: esv1alpha1.ExternalSecretExtract{
 			Key:     "test-secret",
 			Version: "1",
@@ -149,7 +158,7 @@ func TestGetSecretMap(t *testing.T) {
 	sm := Akeyless{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, err := sm.GetSecretMap(context.Background(), *v.refFrom)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}

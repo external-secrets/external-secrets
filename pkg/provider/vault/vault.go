@@ -153,24 +153,24 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 }
 
 func (v *client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, err := v.readSecret(ctx, ref.Extract.Key, ref.Extract.Version)
+	data, err := v.readSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
 		return nil, err
 	}
-	value, exists := data[ref.Extract.Property]
+	value, exists := data[ref.Property]
 	if !exists {
-		return nil, fmt.Errorf(errSecretKeyFmt, ref.Extract.Property)
+		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
 	}
 	return value, nil
 }
 
-func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	return v.readSecret(ctx, ref.Extract.Key, ref.Extract.Version)
 }
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (v *client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (v *client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }

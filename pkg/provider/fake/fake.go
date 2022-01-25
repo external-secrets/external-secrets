@@ -31,7 +31,7 @@ type Client struct {
 	NewFn func(context.Context, esv1alpha1.GenericStore, client.Client,
 		string) (provider.SecretsClient, error)
 	GetSecretFn    func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error)
-	GetSecretMapFn func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
+	GetSecretMapFn func(context.Context, esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error)
 }
 
 // New returns a fake provider/client.
@@ -40,7 +40,7 @@ func New() *Client {
 		GetSecretFn: func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 			return nil, nil
 		},
-		GetSecretMapFn: func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+		GetSecretMapFn: func(context.Context, esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 			return nil, nil
 		},
 	}
@@ -72,13 +72,13 @@ func (v *Client) WithGetSecret(secData []byte, err error) *Client {
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (v *Client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (v *Client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }
 
 // GetSecretMap imeplements the provider.Provider interface.
-func (v *Client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (v *Client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	return v.GetSecretMapFn(ctx, ref)
 }
 func (v *Client) Close(ctx context.Context) error {
@@ -87,7 +87,7 @@ func (v *Client) Close(ctx context.Context) error {
 
 // WithGetSecretMap wraps the secret data map returned by this fake provider.
 func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client {
-	v.GetSecretMapFn = func(context.Context, esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	v.GetSecretMapFn = func(context.Context, esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 		return secData, err
 	}
 	return v

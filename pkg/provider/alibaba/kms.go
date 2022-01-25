@@ -116,40 +116,40 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.E
 		return nil, fmt.Errorf(errUninitalizedAlibabaProvider)
 	}
 	kmsRequest := kmssdk.CreateGetSecretValueRequest()
-	kmsRequest.VersionId = ref.Extract.Version
-	kmsRequest.SecretName = ref.Extract.Key
+	kmsRequest.VersionId = ref.Version
+	kmsRequest.SecretName = ref.Key
 	kmsRequest.SetScheme("https")
 	secretOut, err := kms.Client.GetSecretValue(kmsRequest)
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
-	if ref.Extract.Property == "" {
+	if ref.Property == "" {
 		if secretOut.SecretData != "" {
 			return []byte(secretOut.SecretData), nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Extract.Key)
+		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
 	var payload string
 	if secretOut.SecretData != "" {
 		payload = secretOut.SecretData
 	}
-	val := gjson.Get(payload, ref.Extract.Property)
+	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
 	return []byte(val.String()), nil
 }
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := kms.GetSecret(ctx, ref)
+func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+	data, err := kms.GetSecret(ctx, ref.GetDataRemoteRef())
 	if err != nil {
 		return nil, err
 	}

@@ -562,7 +562,7 @@ func TestGetSecretMap(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecretMap(ctx, getRemoteDef(secretID, "", ""))
+	data, err := secretsClient.GetSecretMap(ctx, getRemoteFromDef(secretID, "", ""))
 	tassert.Nil(t, err)
 
 	tassert.Equal(
@@ -598,7 +598,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	})
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecretMap(ctx, getRemoteDef(secretID, "", oldVersionID))
+	data, err := secretsClient.GetSecretMap(ctx, getRemoteFromDef(secretID, "", oldVersionID))
 	tassert.Nil(t, err)
 
 	tassert.Equal(t, map[string][]byte{oldKey: []byte(oldVal)}, data)
@@ -608,11 +608,11 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 		textEntry(newKey, newVal),
 	)
 
-	data, err = secretsClient.GetSecretMap(ctx, getRemoteDef(secretID, "", oldVersionID))
+	data, err = secretsClient.GetSecretMap(ctx, getRemoteFromDef(secretID, "", oldVersionID))
 	tassert.Nil(t, err)
 	tassert.Equal(t, map[string][]byte{oldKey: []byte(oldVal)}, data)
 
-	data, err = secretsClient.GetSecretMap(ctx, getRemoteDef(secretID, "", newVersionID))
+	data, err = secretsClient.GetSecretMap(ctx, getRemoteFromDef(secretID, "", newVersionID))
 	tassert.Nil(t, err)
 	tassert.Equal(t, map[string][]byte{newKey: []byte(newVal)}, data)
 }
@@ -642,6 +642,14 @@ func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName
 
 func getRemoteDef(key, property, version string) esv1alpha1.ExternalSecretDataRemoteRef {
 	return esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:      key,
+		Property: property,
+		Version:  version,
+	}
+}
+
+func getRemoteFromDef(key, property, version string) esv1alpha1.ExternalSecretDataFromRemoteRef {
+	return esv1alpha1.ExternalSecretDataFromRemoteRef{
 		Extract: esv1alpha1.ExternalSecretExtract{
 			Key:      key,
 			Property: property,

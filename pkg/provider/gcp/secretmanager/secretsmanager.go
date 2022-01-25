@@ -167,24 +167,24 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSec
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
-	version := ref.Extract.Version
+	version := ref.Version
 	if version == "" {
 		version = defaultVersion
 	}
 
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", sm.projectID, ref.Extract.Key, version),
+		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", sm.projectID, ref.Key, version),
 	}
 	result, err := sm.SecretManagerClient.AccessSecretVersion(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf(errClientGetSecretAccess, err)
 	}
 
-	if ref.Extract.Property == "" {
+	if ref.Property == "" {
 		if result.Payload.Data != nil {
 			return result.Payload.Data, nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Extract.Key)
+		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
 	var payload string
@@ -192,27 +192,27 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSec
 		payload = string(result.Payload.Data)
 	}
 
-	val := gjson.Get(payload, ref.Extract.Property)
+	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
 	return []byte(val.String()), nil
 }
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	if sm.SecretManagerClient == nil || sm.projectID == "" {
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
-	data, err := sm.GetSecret(ctx, ref)
+	data, err := sm.GetSecret(ctx, ref.GetDataRemoteRef())
 	if err != nil {
 		return nil, err
 	}

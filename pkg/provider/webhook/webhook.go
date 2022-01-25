@@ -129,12 +129,12 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDa
 	return result, nil
 }
 
-func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
 	}
-	result, err := w.getWebhookData(ctx, provider, ref)
+	result, err := w.getWebhookData(ctx, provider, ref.GetDataRemoteRef())
 	if err != nil {
 		return nil, err
 	}
@@ -181,9 +181,9 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecre
 func (w *WebHook) getTemplateData(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef, secrets []esv1alpha1.WebhookSecret) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{
 		"remoteRef": {
-			"key":      url.QueryEscape(ref.Extract.Key),
-			"version":  url.QueryEscape(ref.Extract.Version),
-			"property": url.QueryEscape(ref.Extract.Property),
+			"key":      url.QueryEscape(ref.Key),
+			"version":  url.QueryEscape(ref.Version),
+			"property": url.QueryEscape(ref.Property),
 		},
 	}
 	for _, secref := range secrets {
@@ -375,7 +375,7 @@ func (w *WebHook) getCertFromConfigMap(provider *esv1alpha1.WebhookProvider) ([]
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }

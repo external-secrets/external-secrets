@@ -50,38 +50,38 @@ func New(sess client.ConfigProvider) (*ParameterStore, error) {
 
 // GetSecret returns a single secret from the provider.
 func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	log.Info("fetching secret value", "key", ref.Extract.Key)
+	log.Info("fetching secret value", "key", ref.Key)
 	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
-		Name:           &ref.Extract.Key,
+		Name:           &ref.Key,
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
-	if ref.Extract.Property == "" {
+	if ref.Property == "" {
 		if out.Parameter.Value != nil {
 			return []byte(*out.Parameter.Value), nil
 		}
-		return nil, fmt.Errorf("invalid secret received. parameter value is nil for key: %s", ref.Extract.Key)
+		return nil, fmt.Errorf("invalid secret received. parameter value is nil for key: %s", ref.Key)
 	}
-	val := gjson.Get(*out.Parameter.Value, ref.Extract.Property)
+	val := gjson.Get(*out.Parameter.Value, ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Extract.Property, ref.Extract.Key)
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
 	return []byte(val.String()), nil
 }
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	log.Info("fetching secret map", "key", ref.Extract.Key)
-	data, err := pm.GetSecret(ctx, ref)
+	data, err := pm.GetSecret(ctx, ref.GetDataRemoteRef())
 	if err != nil {
 		return nil, err
 	}

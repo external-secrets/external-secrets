@@ -99,8 +99,8 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		return nil, fmt.Errorf("%s name cannot be empty", objectType)
 	}
 
-	if ref.Extract.Version != "" {
-		version = ref.Extract.Version
+	if ref.Version != "" {
+		version = ref.Version
 	}
 
 	switch objectType {
@@ -111,12 +111,12 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		if err != nil {
 			return nil, err
 		}
-		if ref.Extract.Property == "" {
+		if ref.Property == "" {
 			return []byte(*secretResp.Value), nil
 		}
-		res := gjson.Get(*secretResp.Value, ref.Extract.Property)
+		res := gjson.Get(*secretResp.Value, ref.Property)
 		if !res.Exists() {
-			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Extract.Property, ref.Extract.Key)
+			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
 		}
 		return []byte(res.String()), err
 	case "cert":
@@ -143,12 +143,13 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
-func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	objectType, secretName := getObjType(ref)
+func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+	dataRef := ref.GetDataRemoteRef()
+	objectType, secretName := getObjType(dataRef)
 
 	switch objectType {
 	case defaultObjType:
-		data, err := a.GetSecret(ctx, ref)
+		data, err := a.GetSecret(ctx, dataRef)
 		if err != nil {
 			return nil, err
 		}
@@ -176,7 +177,7 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	basicClient := a.baseClient
 	secretsMap := make(map[string][]byte)
 	checkTags := len(ref.Find.Tags) > 0
@@ -218,12 +219,12 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecret
 	return secretsMap, nil
 }
 
-func okByName(ref esv1alpha1.ExternalSecretDataRemoteRef, secretName string) bool {
+func okByName(ref esv1alpha1.ExternalSecretDataFromRemoteRef, secretName string) bool {
 	matches, _ := regexp.MatchString(ref.Find.Name.RegExp, secretName)
 	return matches
 }
 
-func okByTags(ref esv1alpha1.ExternalSecretDataRemoteRef, secret keyvault.SecretItem) bool {
+func okByTags(ref esv1alpha1.ExternalSecretDataFromRemoteRef, secret keyvault.SecretItem) bool {
 	tagsFound := true
 	for k, v := range ref.Find.Tags {
 		if val, ok := secret.Tags[k]; !ok || *val != v {
@@ -333,7 +334,7 @@ func (a *Azure) Close(ctx context.Context) error {
 func getObjType(ref esv1alpha1.ExternalSecretDataRemoteRef) (string, string) {
 	objectType := defaultObjType
 
-	secretName := ref.Extract.Key
+	secretName := ref.Key
 	nameSplitted := strings.Split(secretName, "/")
 
 	if len(nameSplitted) > 1 {
