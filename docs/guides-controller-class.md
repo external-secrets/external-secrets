@@ -15,3 +15,5 @@ helm install custom-external-secrets external-secrets/external-secrets --set con
 ```
 
 Now, any `ExternalSecret` bound to this secret store will be evaluated by the operator with the controllerClass custom.
+
+> Note: Any SecretStore without `spec.controller` set will be considered as valid by any operator, regardless of their respective controllerClasses.
