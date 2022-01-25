@@ -122,7 +122,7 @@ spec:
     kind: SecretStore
     type: Source # Can be Source or Sink
   - name: second-secret-store
-    kind: SecretStore #or ClusterSecretSink
+    kind: SecretStore #or ClusterSecretStore
     type: Sink #There can only be 0..1 Source, or we make the first entry the Source.
   target:
     name: my-secret
@@ -131,12 +131,11 @@ spec:
     - secretKey: secret-key-to-be-managed
       remoteRef:
         key: provider-key
-        version: provider-key-version
+        version: provider-key-version #only used for Source operations (Sink operations would always create a new version)
         property: provider-key-property
-  dataFrom:
+  dataFrom: # In dataFrom for Sink we get all k8s secret keys and marshal them into a json.
   - key: provider-key
     version: provider-key-version
-    property: provider-key-property
 status:
   refreshTime: "2019-08-12T12:33:02Z"
   conditions:
