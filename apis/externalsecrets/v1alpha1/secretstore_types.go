@@ -81,6 +81,10 @@ type SecretStoreProvider struct {
 	// Webhook configures this store to sync secrets using a generic templated webhook
 	// +optional
 	Webhook *WebhookProvider `json:"webhook,omitempty"`
+
+	// Kubernetes configures this store to sync secrets using a Kubernetes cluster provider
+	// +optional
+	Kubernetes *KubernetesProvider `json:"kubernetes,omitempty"`
 }
 
 type SecretStoreRetrySettings struct {
