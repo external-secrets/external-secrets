@@ -74,7 +74,14 @@ kind create cluster --name external-secrets
 export TAG=v2
 export IMAGE=eso-local
 
+#For building in linux
 docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux
+
+#For building in MacOS (OSX)
+#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=darwin
+
+#For building in ARM
+#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=arm --build-arg TARGETOS=linux
 
 make helm.generate
 helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
