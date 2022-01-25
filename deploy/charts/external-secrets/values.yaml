@@ -17,7 +17,7 @@ fullnameOverride: ""
 # than one instance of external-secrets operates at a time.
 leaderElect: false
 
-# -- If set external secrets will filter matching 
+# -- If set external secrets will filter matching
 # Secret Stores with the appropriate controller values.
 controllerClass: ""
 
