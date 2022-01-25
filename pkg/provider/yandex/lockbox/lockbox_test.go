@@ -410,7 +410,7 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 	data, err = secretsClient2.GetSecret(ctx, getRemoteDef(secretID1, k1, ""))
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
-	data, err = secretsClient2.GetSecret(ctx, getRemoteDef(secretID1, k2, ""))
+	data, err = secretsClient2.GetSecret(ctx, getRemoteDef(secretID2, k2, ""))
 	tassert.Equal(t, v2, string(data))
 	tassert.Nil(t, err)
 }
