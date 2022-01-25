@@ -73,7 +73,7 @@ jobs:
           const check = checks.check_runs.filter(c => c.name === job_name);
           console.log("\n\nPR Filtered CHECK: " + check)
           console.log(check)
-          if(check){
+          if(check && check.length > 0){
             const { data: result } = await github.checks.update({
               ...context.repo,
               check_run_id: check[0].id,
