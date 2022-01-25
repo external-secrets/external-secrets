@@ -15,7 +15,7 @@ spec:
         # https://www.vaultproject.io/docs/auth/kubernetes
         kubernetes:
           # Path where the Kubernetes authentication backend is mounted in Vault
-          mountPath: "kubernetes"
+          path: "kubernetes"
           # A required field containing the Vault Role to assume.
           role: "demo"
           # Optional service account field containing the name
