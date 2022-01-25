@@ -84,6 +84,7 @@ jobs:
           const { data: result } = await github.checks.create({
             ...context.repo,
             name: job_name,
+            head_sha: pull.head.sha,
             status: 'in_progress',
           });
           return result;
