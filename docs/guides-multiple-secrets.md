@@ -58,7 +58,7 @@ Now, when creating our ExternalSecret resource, instead of using the data field,
 To check both values we can run:
 
 ```sh
-❯ kubectl get secret getall-secret-test -o jsonpath='{.data}'
+❯ kubectl get secret secret-to-be-created -o jsonpath='{.data}'
 ```
 ```json
 {
