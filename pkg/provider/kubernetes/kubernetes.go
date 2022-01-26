@@ -20,6 +20,8 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
+	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +38,7 @@ const (
 	errFetchCredentialsSecret              = "could not fetch Credentials secret: %w"
 	errMissingCredentials                  = "missing Credentials"
 	errUninitalizedKubernetesProvider      = "provider kubernetes is not initialized"
+	errJSONSecretUnmarshal                 = "unable to unmarshal secret: %w"
 )
 
 type KubernetesClient interface {
@@ -55,6 +58,8 @@ type ProviderKubernetes struct {
 	Client    KubernetesClient
 }
 
+var _ provider.SecretsClient = &ProviderKubernetes{}
+
 type BaseClient struct {
 	kube        kclient.Client
 	store       *esv1alpha1.KubernetesProvider
@@ -66,6 +71,12 @@ type BaseClient struct {
 	Key         []byte
 	CA          []byte
 	BearerToken []byte
+}
+
+func init() {
+	schema.Register(&ProviderKubernetes{}, &esv1alpha1.SecretStoreProvider{
+		Kubernetes: &esv1alpha1.KubernetesProvider{},
+	})
 }
 
 // NewClient constructs a Kubernetes Provider.
@@ -83,9 +94,6 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1alpha1.Gen
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 		Server:    storeSpecKubernetes.Server,
 		User:      storeSpecKubernetes.User,
-		// Certificate: xsxx,
-		// Key:,
-		// CA:,
 	}
 
 	if err := kStore.setAuth(ctx); err != nil {
@@ -120,12 +128,40 @@ func (k *ProviderKubernetes) Close(ctx context.Context) error {
 
 func (k *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 
-	return []byte{}, nil
+	if ref.Property == "" {
+		return nil, fmt.Errorf("property field not found on extrenal secrets")
+	}
+
+	payload, err := k.GetSecretMap(ctx, ref)
+
+	if err != nil {
+		return nil, err
+	}
+
+	val, ok := payload[ref.Property]
+	if !ok {
+		return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+	}
+	return val, nil
 }
 
 func (k *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	result := make(map[string][]byte)
-	return result, nil
+	if utils.IsNil(k.Client) {
+		return nil, fmt.Errorf(errUninitalizedKubernetesProvider)
+	}
+	opts := metav1.GetOptions{}
+	secretOut, err := k.Client.Get(ctx, ref.Key, opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var payload map[string][]byte
+	if len(secretOut.Data) != 0 {
+		payload = secretOut.Data
+	}
+
+	return payload, nil
 }
 
 func (k *BaseClient) setAuth(ctx context.Context) error {
