@@ -28,4 +28,5 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/oracle"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/webhook"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox"
 )
