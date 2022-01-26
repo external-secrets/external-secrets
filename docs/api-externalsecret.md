@@ -5,7 +5,7 @@ be transformed and saved as a `Kind=Secret`:
   explicitly sync individual keys or use `spec.dataFrom` to get **all values**
   from the external API.
 * you can also use `spec.dataFrom` to sync many secrets at once, based on a
-  regular expression of their name or on tags/attributes
+  regular expression of their name or on tags/attributes. You need to check if your provider implements this behavior or not.
 * you can specify how the secret should look like by specifying a
   `spec.target.template`
 
