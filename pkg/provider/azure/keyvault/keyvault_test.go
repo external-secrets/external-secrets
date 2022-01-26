@@ -164,6 +164,9 @@ const (
 	keyName              = "key/keyname"
 	certName             = "cert/certname"
 	secretString         = "changedvalue"
+	unexpectedError      = "[%d] unexpected error: %s, expected: '%s'"
+	unexpectedSecret     = "[%d] unexpected secret: expected %s, got %s"
+	unexpectedSecretData = "[%d] unexpected secret data: expected %#v, got %#v"
 )
 
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
@@ -281,10 +284,10 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !utils.ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 		}
 		if string(out) != v.expectedSecret {
-			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
+			t.Errorf(unexpectedSecret, k, v.expectedSecret, string(out))
 		}
 	}
 }
@@ -375,10 +378,10 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.refFrom)
 		if !utils.ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
-			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
+			t.Errorf(unexpectedSecretData, k, v.expectedData, out)
 		}
 	}
 }
@@ -531,10 +534,10 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetAllSecrets(context.Background(), *v.refFrom)
 		if !utils.ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
-			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
+			t.Errorf(unexpectedSecretData, k, v.expectedData, out)
 		}
 	}
 }

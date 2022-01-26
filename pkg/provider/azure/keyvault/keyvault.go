@@ -191,18 +191,11 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecret
 	for secretListIter.NotDone() {
 		secretList := secretListIter.Response().Value
 		for _, secret := range *secretList {
-			if secret.ID == nil || !*secret.Attributes.Enabled {
+			ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
+			if !ok {
 				continue
 			}
 
-			if checkTags && !okByTags(ref, secret) {
-				continue
-			}
-
-			secretName := path.Base(*secret.ID)
-			if checkName && !okByName(ref, secretName) {
-				continue
-			}
 			secretResp, err := basicClient.GetSecret(context.Background(), a.vaultURL, secretName, "")
 			secretValue := *secretResp.Value
 
@@ -217,6 +210,23 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecret
 		}
 	}
 	return secretsMap, nil
+}
+
+func isValidSecret(checkTags, checkName bool, ref esv1alpha1.ExternalSecretDataFromRemoteRef, secret keyvault.SecretItem) (bool, string) {
+	if secret.ID == nil || !*secret.Attributes.Enabled {
+		return false, ""
+	}
+
+	if checkTags && !okByTags(ref, secret) {
+		return false, ""
+	}
+
+	secretName := path.Base(*secret.ID)
+	if checkName && !okByName(ref, secretName) {
+		return false, ""
+	}
+
+	return true, secretName
 }
 
 func okByName(ref esv1alpha1.ExternalSecretDataFromRemoteRef, secretName string) bool {
