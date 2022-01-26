@@ -166,7 +166,7 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 // New version of GetAllSecrets.
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
-	return map[string][]byte{}, nil
+	return nil, utils.ThrowNotImplemented()
 }
 
 func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {

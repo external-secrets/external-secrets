@@ -26,6 +26,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // ParameterStore is a provider for AWS ParameterStore.
@@ -75,7 +76,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1alpha1.External
 // New version of GetAllSecrets.
 func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
-	return map[string][]byte{}, nil
+	return nil, utils.ThrowNotImplemented()
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.

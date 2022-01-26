@@ -37,6 +37,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/template"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Provider satisfies the provider interface.
@@ -377,7 +378,7 @@ func (w *WebHook) getCertFromConfigMap(provider *esv1alpha1.WebhookProvider) ([]
 // New version of GetAllSecrets.
 func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
-	return map[string][]byte{}, nil
+	return nil, utils.ThrowNotImplemented()
 }
 
 func (w *WebHook) Close(ctx context.Context) error {

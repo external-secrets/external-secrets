@@ -189,7 +189,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 // New version of GetAllSecrets.
 func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
-	return map[string][]byte{}, nil
+	return nil, utils.ThrowNotImplemented()
 }
 
 func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {

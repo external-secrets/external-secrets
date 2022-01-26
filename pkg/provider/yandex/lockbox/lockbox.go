@@ -34,6 +34,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/grpc"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
@@ -258,7 +259,7 @@ func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.Ext
 // New version of GetAllSecrets.
 func (c *lockboxSecretsClient) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
-	return map[string][]byte{}, nil
+	return nil, utils.ThrowNotImplemented()
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.

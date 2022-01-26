@@ -144,7 +144,7 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.E
 // New version of GetAllSecrets.
 func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
-	return map[string][]byte{}, nil
+	return nil, utils.ThrowNotImplemented()
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.

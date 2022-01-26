@@ -20,7 +20,12 @@ import (
 	"crypto/md5"
 	"fmt"
 	"reflect"
+	"runtime"
 	"strings"
+)
+
+const (
+	notImplemented = "not implemented: %s"
 )
 
 // MergeByteMap merges map of byte slices.
@@ -65,4 +70,12 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func ThrowNotImplemented() error {
+	pc := make([]uintptr, 10) // at least 1 entry needed
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+
+	return fmt.Errorf(notImplemented, f.Name())
 }

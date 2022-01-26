@@ -22,6 +22,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var _ provider.Provider = &Client{}
@@ -74,7 +75,7 @@ func (v *Client) WithGetSecret(secData []byte, err error) *Client {
 // New version of GetAllSecrets.
 func (v *Client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
-	return map[string][]byte{}, nil
+	return nil, utils.ThrowNotImplemented()
 }
 
 // GetSecretMap imeplements the provider.Provider interface.
