@@ -21,6 +21,8 @@ import (
 // Configures a store to sync secrets with a Kubernetes instance.
 type KubernetesProvider struct {
 	// configures the Kubernetes server Address.
+	// +kubebuilder:default= kubernetes.default
+	// +optional
 	Server string `json:"server,omitempty"`
 
 	// Auth configures how secret-manager authenticates with a Kubernetes instance.
@@ -31,6 +33,7 @@ type KubernetesProvider struct {
 	User string `json:"user"`
 
 	//Remote namespace to fetch the secrets from
+	// +kubebuilder:default= default
 	// +optional
 	RemoteNamespace string `json:"remoteNamespace"`
 }
@@ -40,7 +43,9 @@ type KubernetesAuth struct {
 }
 
 type KubernetesSecretRef struct {
+	// +optional
 	Certificate esmeta.SecretKeySelector `json:"certificate,omitempty"`
+	// +optional
 	Key         esmeta.SecretKeySelector `json:"key,omitempty"`
 	CA          esmeta.SecretKeySelector `json:"ca,omitempty"`
 	BearerToken esmeta.SecretKeySelector `json:"bearerToken,omitempty"`
