@@ -46,6 +46,11 @@ type secretManagerTestCase struct {
 	expectedData map[string][]byte
 }
 
+const (
+	testSecret     = "test-secret"
+	defaultVersion = "default"
+)
+
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc := secretManagerTestCase{
 		mockClient:     &fakesm.IBMMockClient{},
@@ -65,16 +70,16 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "default",
+		Key:     testSecret,
+		Version: defaultVersion,
 	}
 }
 
 func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
 	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
 		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     "test-secret",
-			Version: "default",
+			Key:     testSecret,
+			Version: defaultVersion,
 		},
 	}
 }
