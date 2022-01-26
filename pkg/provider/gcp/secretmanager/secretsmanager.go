@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"github.com/googleapis/gax-go"
+	"github.com/googleapis/gax-go/v2"
 	"github.com/tidwall/gjson"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"

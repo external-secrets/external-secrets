@@ -21,7 +21,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/googleapis/gax-go"
+	"github.com/googleapis/gax-go/v2"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 	credentialspb "google.golang.org/genproto/googleapis/iam/credentials/v1"
