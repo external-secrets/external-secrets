@@ -167,6 +167,9 @@ const (
 	unexpectedError      = "[%d] unexpected error: %s, expected: '%s'"
 	unexpectedSecret     = "[%d] unexpected secret: expected %s, got %s"
 	unexpectedSecretData = "[%d] unexpected secret data: expected %#v, got %#v"
+	testSecret           = "test-secret"
+	secretName           = "example-1"
+	defaultVersion       = "default"
 )
 
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
@@ -388,7 +391,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 
 func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	secretString := secretString
-	secretName := "example-1"
+	secretName := secretName
 	wrongName := "not-valid"
 	environment := "dev"
 	author := "seb"
@@ -427,7 +430,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 			Value: &secretString,
 		}
 
-		smtc.expectedData["example-1"] = []byte(secretString)
+		smtc.expectedData[secretName] = []byte(secretString)
 	}
 
 	setTwoSecretsByName := func(smtc *secretManagerTestCase) {
@@ -460,7 +463,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 			Value: &secretString,
 		}
 
-		smtc.expectedData["example-1"] = []byte(secretString)
+		smtc.expectedData[secretName] = []byte(secretString)
 	}
 
 	setOneSecretByTag := func(smtc *secretManagerTestCase) {
@@ -544,16 +547,16 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 
 func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "default",
+		Key:     testSecret,
+		Version: defaultVersion,
 	}
 }
 
 func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
 	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
 		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     "test-secret",
-			Version: "default",
+			Key:     testSecret,
+			Version: defaultVersion,
 		},
 	}
 }
