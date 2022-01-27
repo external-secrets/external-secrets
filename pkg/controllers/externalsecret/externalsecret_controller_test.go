@@ -666,9 +666,11 @@ var _ = Describe("ExternalSecret controller", func() {
 			"bar": []byte("2222"),
 		}, nil)
 		tc.externalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{}
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
 			{
-				Key: remoteKey,
+				Extract: esv1alpha1.ExternalSecretExtract{
+					Key: remoteKey,
+				},
 			},
 		}
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
@@ -706,9 +708,11 @@ var _ = Describe("ExternalSecret controller", func() {
 		}, nil)
 		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{}
 		tc.externalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{}
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
 			{
-				Key: remoteKey,
+				Extract: esv1alpha1.ExternalSecretExtract{
+					Key: remoteKey,
+				},
 			},
 		}
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
