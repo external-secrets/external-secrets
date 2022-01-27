@@ -30,6 +30,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/ibm/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type secretManagerTestCase struct {
@@ -46,17 +47,12 @@ type secretManagerTestCase struct {
 	expectedData map[string][]byte
 }
 
-const (
-	testSecret     = "test-secret"
-	defaultVersion = "default"
-)
-
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc := secretManagerTestCase{
 		mockClient:     &fakesm.IBMMockClient{},
 		apiInput:       makeValidAPIInput(),
-		ref:            makeValidRef(),
-		refFrom:        makeValidRefFrom(),
+		ref:            utils.MakeValidRef(),
+		refFrom:        utils.MakeValidRefFrom(),
 		apiOutput:      makeValidAPIOutput(),
 		serviceURL:     nil,
 		apiErr:         nil,
@@ -66,22 +62,6 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	}
 	smtc.mockClient.WithValue(smtc.apiInput, smtc.apiOutput, smtc.apiErr)
 	return &smtc
-}
-
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     testSecret,
-		Version: defaultVersion,
-	}
-}
-
-func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     testSecret,
-			Version: defaultVersion,
-		},
-	}
 }
 
 func makeValidAPIInput() *sm.GetSecretOptions {

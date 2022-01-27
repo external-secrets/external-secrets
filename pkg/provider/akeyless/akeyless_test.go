@@ -22,6 +22,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	fakeakeyless "github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type akeylessTestCase struct {
@@ -40,8 +41,8 @@ func makeValidAkeylessTestCase() *akeylessTestCase {
 	smtc := akeylessTestCase{
 		mockClient:     &fakeakeyless.AkeylessMockClient{},
 		apiInput:       makeValidInput(),
-		ref:            makeValidRef(),
-		refFrom:        makeValidRefFrom(),
+		ref:            utils.MakeValidRef(),
+		refFrom:        utils.MakeValidRefFrom(),
 		apiOutput:      makeValidOutput(),
 		expectError:    "",
 		expectedSecret: "",
@@ -49,22 +50,6 @@ func makeValidAkeylessTestCase() *akeylessTestCase {
 	}
 	smtc.mockClient.WithValue(smtc.apiInput, smtc.apiOutput)
 	return &smtc
-}
-
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "1",
-	}
-}
-
-func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     "test-secret",
-			Version: "1",
-		},
-	}
 }
 
 func makeValidInput() *fakeakeyless.Input {

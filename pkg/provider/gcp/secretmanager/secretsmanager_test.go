@@ -24,6 +24,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type secretManagerTestCase struct {
@@ -44,8 +45,8 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc := secretManagerTestCase{
 		mockClient:     &fakesm.MockSMClient{},
 		apiInput:       makeValidAPIInput(),
-		ref:            makeValidRef(),
-		refFrom:        makeValidRefFrom(),
+		ref:            utils.MakeValidRefWithParams("/baz", "", "default"),
+		refFrom:        utils.MakeValidRefFromWithParams("/baz", "", "default"),
 		apiOutput:      makeValidAPIOutput(),
 		projectID:      "default",
 		apiErr:         nil,
@@ -56,22 +57,6 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc.mockClient.NilClose()
 	smtc.mockClient.WithValue(context.Background(), smtc.apiInput, smtc.apiOutput, smtc.apiErr)
 	return &smtc
-}
-
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "/baz",
-		Version: "default",
-	}
-}
-
-func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     "/baz",
-			Version: "default",
-		},
-	}
 }
 
 func makeValidAPIInput() *secretmanagerpb.AccessSecretVersionRequest {

@@ -22,11 +22,11 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -57,8 +57,8 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		mockClient:     &fake.AzureMockClient{},
 		secretName:     "MySecret",
 		secretVersion:  "",
-		ref:            makeValidRef(),
-		refFrom:        makeValidRefFrom(),
+		ref:            utils.MakeValidRef(),
+		refFrom:        utils.MakeValidRefFrom(),
 		secretOutput:   keyvault.SecretBundle{Value: &secretString},
 		serviceURL:     "",
 		apiErr:         nil,
@@ -542,21 +542,5 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf(unexpectedSecretData, k, v.expectedData, out)
 		}
-	}
-}
-
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     testSecret,
-		Version: defaultVersion,
-	}
-}
-
-func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     testSecret,
-			Version: defaultVersion,
-		},
 	}
 }

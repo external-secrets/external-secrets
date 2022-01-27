@@ -26,6 +26,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -50,8 +51,8 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 	kmstc := keyManagementServiceTestCase{
 		mockClient:     &fakesm.AlibabaMockClient{},
 		apiInput:       makeValidAPIInput(),
-		ref:            makeValidRef(),
-		refFrom:        makeValidRefFrom(),
+		ref:            utils.MakeValidRef(),
+		refFrom:        utils.MakeValidRefFrom(),
 		apiOutput:      makeValidAPIOutput(),
 		apiErr:         nil,
 		expectError:    "",
@@ -60,20 +61,6 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 	}
 	kmstc.mockClient.WithValue(kmstc.apiInput, kmstc.apiOutput, kmstc.apiErr)
 	return &kmstc
-}
-
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key: secretName,
-	}
-}
-
-func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
-			Key: secretName,
-		},
-	}
 }
 
 func makeValidAPIInput() *kmssdk.GetSecretValueRequest {

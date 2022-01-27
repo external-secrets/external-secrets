@@ -24,6 +24,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type secretManagerTestCase struct {
@@ -46,8 +47,8 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		mockClient:        &fakegitlab.GitlabMockClient{},
 		apiInputProjectID: makeValidAPIInputProjectID(),
 		apiInputKey:       makeValidAPIInputKey(),
-		ref:               makeValidRef(),
-		refFrom:           makeValidRefFrom(),
+		ref:               utils.MakeValidRef(),
+		refFrom:           utils.MakeValidRefFrom(),
 		projectID:         nil,
 		apiOutput:         makeValidAPIOutput(),
 		apiErr:            nil,
@@ -57,22 +58,6 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	}
 	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputKey, smtc.apiOutput, smtc.apiErr)
 	return &smtc
-}
-
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "default",
-	}
-}
-
-func makeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     "test-secret",
-			Version: "default",
-		},
-	}
 }
 
 func makeValidAPIInputProjectID() string {
