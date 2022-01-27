@@ -22,11 +22,11 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -167,9 +167,7 @@ const (
 	unexpectedError      = "[%d] unexpected error: %s, expected: '%s'"
 	unexpectedSecret     = "[%d] unexpected secret: expected %s, got %s"
 	unexpectedSecretData = "[%d] unexpected secret data: expected %#v, got %#v"
-	testSecret           = "test-secret"
 	secretName           = "example-1"
-	defaultVersion       = "default"
 )
 
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
