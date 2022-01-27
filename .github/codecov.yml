@@ -1,6 +1,0 @@
-ignore:
-- pkg/provider/**/fake
-- "**/*_test.go"
-coverage:
-  round: down
-  precision: 2
