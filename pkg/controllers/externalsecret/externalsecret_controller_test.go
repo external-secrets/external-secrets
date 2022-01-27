@@ -658,6 +658,85 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	// when a provider secret was deleted it must be deleted from
+	// the secret aswell
+	refreshSecretValueMap := func(tc *testCase) {
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"foo": []byte("1111"),
+			"bar": []byte("2222"),
+		}, nil)
+		tc.externalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{}
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+			{
+				Key: remoteKey,
+			},
+		}
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["foo"])).To(Equal("1111"))
+			Expect(string(secret.Data["bar"])).To(Equal("2222"))
+
+			// update provider secret
+			sec := &v1.Secret{}
+			fakeProvider.WithGetSecretMap(map[string][]byte{
+				"foo": []byte("1111"),
+			}, nil)
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, sec)
+				if err != nil {
+					return false
+				}
+				return string(sec.Data["foo"]) == "1111" &&
+					sec.Data["bar"] == nil // must not be defined, it was deleted
+			}, timeout, interval).Should(BeTrue())
+		}
+	}
+
+	// when a provider secret was deleted it must be deleted from
+	// the secret aswell when using a template
+	refreshSecretValueMapTemplate := func(tc *testCase) {
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"foo": []byte("1111"),
+			"bar": []byte("2222"),
+		}, nil)
+		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{}
+		tc.externalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{}
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+			{
+				Key: remoteKey,
+			},
+		}
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["foo"])).To(Equal("1111"))
+			Expect(string(secret.Data["bar"])).To(Equal("2222"))
+
+			// update provider secret
+			sec := &v1.Secret{}
+			fakeProvider.WithGetSecretMap(map[string][]byte{
+				"foo": []byte("1111"),
+			}, nil)
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, sec)
+				if err != nil {
+					return false
+				}
+				return string(sec.Data["foo"]) == "1111" &&
+					sec.Data["bar"] == nil // must not be defined, it was deleted
+			}, timeout, interval).Should(BeTrue())
+		}
+	}
+
 	refreshintervalZero := func(tc *testCase) {
 		const targetProp = "targetProperty"
 		const secretVal = "someValue"
@@ -979,6 +1058,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should refresh secret from template", refreshWithTemplate),
 		Entry("should be able to use only metadata from template", onlyMetadataFromTemplate),
 		Entry("should refresh secret value when provider secret changes", refreshSecretValue),
+		Entry("should refresh secret map when provider secret changes", refreshSecretValueMap),
+		Entry("should refresh secret map when provider secret changes when using a template", refreshSecretValueMapTemplate),
 		Entry("should not refresh secret value when provider secret changes but refreshInterval is zero", refreshintervalZero),
 		Entry("should fetch secret using dataFrom", syncWithDataFrom),
 		Entry("should fetch secret using dataFrom and a template", syncWithDataFromTemplate),

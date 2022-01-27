@@ -37,6 +37,25 @@ resource "aws_iam_role" "eso-e2e-irsa" {
     "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
   ]
 
+  inline_policy {
+    name = "aws_ssm_parameterstore"
+
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Action = [
+            "ssm:GetParameter",
+            "ssm:PutParameter",
+          ]
+          Effect   = "Allow"
+          Resource = "*"
+        },
+      ]
+    })
+  }
+
+
 }
 
 resource "null_resource" "apply_sa" {

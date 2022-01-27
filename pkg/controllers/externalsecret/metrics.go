@@ -16,6 +16,7 @@ package externalsecret
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -50,6 +51,62 @@ var (
 
 // updateExternalSecretCondition updates the ExternalSecret conditions.
 func updateExternalSecretCondition(es *esv1alpha1.ExternalSecret, condition *esv1alpha1.ExternalSecretStatusCondition, value float64) {
+	switch condition.Type {
+	case esv1alpha1.ExternalSecretDeleted:
+		// Remove condition=Ready metrics when the object gets deleted.
+		externalSecretCondition.Delete(prometheus.Labels{
+			"name":      es.Name,
+			"namespace": es.Namespace,
+			"condition": string(esv1alpha1.ExternalSecretReady),
+			"status":    string(v1.ConditionFalse),
+		})
+		externalSecretCondition.Delete(prometheus.Labels{
+			"name":      es.Name,
+			"namespace": es.Namespace,
+			"condition": string(esv1alpha1.ExternalSecretReady),
+			"status":    string(v1.ConditionTrue),
+		})
+
+	case esv1alpha1.ExternalSecretReady:
+		// Remove condition=Deleted metrics when the object gets ready.
+		externalSecretCondition.Delete(prometheus.Labels{
+			"name":      es.Name,
+			"namespace": es.Namespace,
+			"condition": string(esv1alpha1.ExternalSecretDeleted),
+			"status":    string(v1.ConditionFalse),
+		})
+		externalSecretCondition.Delete(prometheus.Labels{
+			"name":      es.Name,
+			"namespace": es.Namespace,
+			"condition": string(esv1alpha1.ExternalSecretDeleted),
+			"status":    string(v1.ConditionTrue),
+		})
+		// Toggle opposite Status to 0
+		switch condition.Status {
+		case v1.ConditionFalse:
+			externalSecretCondition.With(prometheus.Labels{
+				"name":      es.Name,
+				"namespace": es.Namespace,
+				"condition": string(esv1alpha1.ExternalSecretReady),
+				"status":    string(v1.ConditionTrue),
+			}).Set(0)
+		case v1.ConditionTrue:
+			externalSecretCondition.With(prometheus.Labels{
+				"name":      es.Name,
+				"namespace": es.Namespace,
+				"condition": string(esv1alpha1.ExternalSecretReady),
+				"status":    string(v1.ConditionFalse),
+			}).Set(0)
+		case v1.ConditionUnknown:
+			break
+		default:
+			break
+		}
+
+	default:
+		break
+	}
+
 	externalSecretCondition.With(prometheus.Labels{
 		"name":      es.Name,
 		"namespace": es.Namespace,
