@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -253,6 +254,12 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			byteMap[k] = t
 		case nil:
 			byteMap[k] = []byte(nil)
+		case map[string]interface{}:
+			jsonData, err := json.Marshal(t)
+			if err != nil {
+				return nil, err
+			}
+			byteMap[k] = jsonData
 		default:
 			return nil, errors.New(errSecretFormat)
 		}

@@ -417,7 +417,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 			},
 		},
 		"SuccessfulVaultStoreWithK8sCertConfigMap": {
-			reason: "Should return a Vault prodvider with the cert from k8s",
+			reason: "Should return a Vault provider with the cert from k8s",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(false),
 				kube: &test.MockClient{
@@ -562,6 +562,15 @@ func TestGetSecretMap(t *testing.T) {
 		"access_secret": "access_secret",
 		"token":         nil,
 	}
+	secretWithNestedVal := map[string]interface{}{
+		"access_key":    "access_key",
+		"access_secret": "access_secret",
+		"address": map[string]interface{}{
+			"location": "US",
+			"zip":      "12345",
+			"address":  "123 Main St",
+		},
+	}
 
 	type args struct {
 		store   *esv1alpha1.VaultProvider
@@ -622,6 +631,39 @@ func TestGetSecretMap(t *testing.T) {
 					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
 					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
 						newVaultResponseWithData(secretWithNilVal), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"ReadSecretWithNestedValueKV1": {
+			reason: "Should map the secret even if it has a nested value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(secretWithNestedVal), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"ReadSecretWithNestedValueKV2": {
+			reason: "Should map the secret even if it has a nested value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(map[string]interface{}{
+							"data": secretWithNestedVal,
+						},
+						), nil,
 					),
 				},
 			},
