@@ -16,7 +16,8 @@ package suite
 import (
 
 	// import different e2e test suites.
-	_ "github.com/external-secrets/external-secrets/e2e/suite/aws"
+	_ "github.com/external-secrets/external-secrets/e2e/suite/aws/parameterstore"
+	_ "github.com/external-secrets/external-secrets/e2e/suite/aws/secretsmanager"
 	_ "github.com/external-secrets/external-secrets/e2e/suite/azure"
 	_ "github.com/external-secrets/external-secrets/e2e/suite/gcp"
 	_ "github.com/external-secrets/external-secrets/e2e/suite/vault"
