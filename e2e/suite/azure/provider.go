@@ -15,16 +15,15 @@ package azure
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 
 	// nolint
-	. "github.com/onsi/gomega"
-
-	// nolint
 	. "github.com/onsi/ginkgo/v2"
-
+	// nolint
+	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
@@ -97,6 +96,83 @@ func (s *azureProvider) DeleteSecret(key string) {
 		context.Background(),
 		s.vaultURL,
 		key)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *azureProvider) CreateKey(key string) *keyvault.JSONWebKey {
+	out, err := s.client.CreateKey(
+		context.Background(),
+		s.vaultURL,
+		key,
+		keyvault.KeyCreateParameters{
+			Kty: keyvault.RSA,
+			KeyAttributes: &keyvault.KeyAttributes{
+				RecoveryLevel: keyvault.Purgeable,
+				Enabled:       utilpointer.BoolPtr(true),
+			},
+		},
+	)
+	Expect(err).ToNot(HaveOccurred())
+	return out.Key
+}
+
+func (s *azureProvider) DeleteKey(key string) {
+	_, err := s.client.DeleteKey(context.Background(), s.vaultURL, key)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *azureProvider) CreateCertificate(key string) {
+	_, err := s.client.CreateCertificate(
+		context.Background(),
+		s.vaultURL,
+		key,
+		keyvault.CertificateCreateParameters{
+			CertificatePolicy: &keyvault.CertificatePolicy{
+				X509CertificateProperties: &keyvault.X509CertificateProperties{
+					Subject:          utilpointer.String("CN=e2e.test"),
+					ValidityInMonths: utilpointer.Int32(42),
+				},
+				IssuerParameters: &keyvault.IssuerParameters{
+					Name: utilpointer.String("Self"),
+				},
+				Attributes: &keyvault.CertificateAttributes{
+					RecoveryLevel: keyvault.Purgeable,
+					Enabled:       utilpointer.BoolPtr(true),
+				},
+			},
+			CertificateAttributes: &keyvault.CertificateAttributes{
+				RecoveryLevel: keyvault.Purgeable,
+				Enabled:       utilpointer.BoolPtr(true),
+			},
+		},
+	)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *azureProvider) GetCertificate(key string) []byte {
+	attempts := 20
+	for {
+		out, err := s.client.GetCertificate(
+			context.Background(),
+			s.vaultURL,
+			key,
+			"",
+		)
+		Expect(err).ToNot(HaveOccurred())
+		if out.Cer != nil {
+			return *out.Cer
+		}
+
+		attempts--
+		if attempts <= 0 {
+			Fail("failed fetching azkv certificate")
+		}
+		<-time.After(time.Second * 5)
+	}
+}
+
+func (s *azureProvider) DeleteCertificate(key string) {
+	_, err := s.client.DeleteCertificate(context.Background(), s.vaultURL, key)
 	Expect(err).ToNot(HaveOccurred())
 }
 
