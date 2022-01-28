@@ -31,6 +31,82 @@ for the lifecycle of the PR: review, merging, ping on inactivity, close.
 We close pull requests or issues if there is no response from the author for
 a period of time. Feel free to reopen if you want to get back on it.
 
+### Triggering e2e tests
+
+We have an extensive set of e2e tests that test the integration with *real* cloud provider APIs.
+Maintainers must trigger these kind of tests manually for PRs that come from forked repositories. These tests run inside a `kind` cluster in the GitHub Actions runner:
+
+```
+/ok-to-test sha=xxxxxx
+```
+
+#### Executing e2e tests locally
+
+You have to prepare your shell environment with the necessary variables so the e2e test
+runner knows what credentials to use. See `e2e/run.sh` for the variables that are passed in.
+If you e.g. want to test AWS integration make sure set all `AWS_*` variables mentioned
+in that file.
+
+Use [ginkgo labels](https://onsi.github.io/ginkgo/#spec-labels) to select the tests
+you want to execute. You have to specify `!managed` to ensure that you do not
+run managed tests.
+
+```
+make test.e2e GINKGO_LABELS='gcp&&!managed'
+```
+
+#### Managed Kubernetes e2e tests
+
+There's another suite of e2e tests that integrate with managed Kuberentes offerings.
+They create real infrastructure at a cloud provider and deploy the controller
+into that environment.
+This is necessary to test the authentication integration
+([GCP Worklaod Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity),
+[EKS IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)...).
+
+These tests are time intensive (~20-45min) and must be triggered manually by
+a maintainer when a particular provider or authentication mechanism was changed:
+
+```
+/ok-to-test-managed sha=xxxxxx provider=aws
+# or
+/ok-to-test-managed sha=xxxxxx provider=gcp
+```
+
+Both tests can run in parallel. Once started they add a dynamic GitHub check `integration-managed-(gcp|aws)` to the PR that triggered the test.
+
+
+### Executing Managed Kubernetes e2e tests locally
+
+You have to prepare your shell environment with the necessary variables so the e2e
+test runner knows what credentials to use. See `.github/workflows/e2e-managed.yml`
+for the variables that are passed in. If you e.g. want to test AWS integration make
+sure set all variables containing `AWS_*` and `TF_VAR_AWS_*` mentioned in that file.
+
+Then execute `tf.apply.aws` or `tf.apply.gcp` to create the infrastructure.
+
+```
+make tf.apply.aws
+```
+
+Then run the `managed` testsuite. You will need push permissions to the external-secrets ghcr repository. You can set `IMAGE_REGISTRY` to control which image registry is used to store the controller and e2e test images in.
+
+You also have to setup a proper Kubeconfig so the e2e test pod gets deployed into the managed cluster.
+
+```
+aws eks update-kubeconfig --name ${AWS_CLUSTER_NAME}
+or
+gcloud container clusters get-credentials ${GCP_GKE_CLUSTER} --region europe-west1-b
+```
+
+Use [ginkgo labels](https://onsi.github.io/ginkgo/#spec-labels) to select the tests
+you want to execute.
+
+```
+# you may have to set IMAGE_REGISTRY=docker.io/your-user/external-secrets
+make test.e2e.managed GINKGO_LABELS='gcp'
+```
+
 ## Proposal Process
 Before we introduce significant changes to the project we want to gather feedback
 from the community to ensure that we progress in the right direction before we
