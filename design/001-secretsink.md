@@ -113,29 +113,45 @@ spec:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: ExternalSecret
+kind: SecretSink
 metadata:
   name: "hello-world"
+  namespace: my-ns # Same of the SecretStores
 spec:
   secretStoreRefs:
   - name: secret-store
     kind: SecretStore
-    type: Source # Can be Source or Sink
-  - name: second-secret-store
-    kind: SecretStore #or ClusterSecretStore
-    type: Sink #There can only be 0..1 Source, or we make the first entry the Source.
-  target:
-    name: my-secret
-    creationPolicy: 'Merge' # We get a nice use of creationPolicy: None to only sync from within to outside
+  - name: secret-store-2
+    kind: SecretStore
+  - name: cluster-secret-store
+    kind: ClusterSecretStore
+  refreshInterval: "1h"
+
   data:
-    - secretKey: secret-key-to-be-managed
-      remoteRef:
-        key: provider-key
-        version: provider-key-version #only used for Source operations (Sink operations would always create a new version)
-        property: provider-key-property
-  dataFrom: # In dataFrom for Sink we get all k8s secret keys and marshal them into a json.
-  - key: provider-key
-    version: provider-key-version
+    selector:
+      secret:
+        name: foobar
+    match:
+    - secretKey: foobar
+      remoteRefs:
+      - remoteKey: my/path/foobar 
+        property: my-property #optional. To allow coming back from a 'dataFrom'
+        secretStores:  # To allow changing patterns between secretstores. If not provided, will write to all SecretStores
+        - name: secret-store
+        - name: secret-store-2
+      - remoteKey: secret/my-path-foobar
+        property: another-property
+        secretStores:  # To allow changing patterns between secretstores
+        - name: cluster-secret-store
+    rewrite:
+    - secretKey: game-(.+).(.+)
+      remoteRefs:
+      - remoteKey: my/path/($1) 
+        property: prop-($2)
+        secretStores:
+        - name: secret-store #Applies this way only to 'secret-store' secretStore
+      - remoteKey: my-path-($1)-($2) #Applies this way to all other secretStores
+
 status:
   refreshTime: "2019-08-12T12:33:02Z"
   conditions:
