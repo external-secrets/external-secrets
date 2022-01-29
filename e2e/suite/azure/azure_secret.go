@@ -21,7 +21,8 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
 
-var _ = Describe("[azure]", Label("azure", "keyvault"), func() {
+// keyvault type=secret should behave just like any other secret store.
+var _ = Describe("[azure]", Label("azure", "keyvault", "secret"), func() {
 	f := framework.New("eso-azure")
 	prov := newFromEnv(f)
 
