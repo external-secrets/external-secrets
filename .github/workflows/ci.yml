@@ -12,9 +12,7 @@ env:
   # Common versions
   GO_VERSION: '1.17'
   GOLANGCI_VERSION: 'v1.42.1'
-  # list of available versions: https://storage.googleapis.com/kubebuilder-tools
-  # TODO: 1.21.2 does not shut down properly with controller-runtime 0.9.2
-  KUBEBUILDER_TOOLS_VERSION: '1.20.2'
+  KUBERNETES_VERSION: '1.23.x'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
@@ -164,22 +162,22 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-
 
-      - name: Add envtest binaries
-        run:  |
-          curl -sSLo envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${{env.KUBEBUILDER_TOOLS_VERSION}}-linux-amd64.tar.gz"
-          sudo mkdir -p /usr/local/kubebuilder
-          sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz
+      - name: Add setup-envtest
+        run: |
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          setup-envtest use ${{env.KUBERNETES_VERSION}} -p env --os $(go env GOOS) --arch $(go env GOARCH)
 
       - name: Cache envtest binaries
         uses: actions/cache@v2.1.7
         with:
-          path: /usr/local/kubebuilder
-          key: ${{ runner.os }}-kubebuilder-${{env.KUBEBUILDER_TOOLS_VERSION}}
+          path: /home/runner/.local/share/kubebuilder-envtest/
+          key: ${{ runner.os }}-kubebuilder-${{env.KUBERNETES_VERSION}}
           restore-keys: ${{ runner.os }}-kubebuilder-
 
       - name: Run Unit Tests
         run: |
           export KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=true
+          source <(setup-envtest use ${{env.KUBERNETES_VERSION}} -p env --os $(go env GOOS) --arch $(go env GOARCH))
           make test
 
 
