@@ -20,7 +20,11 @@ go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 # list available versions
 setup-envtest list --os $(go env GOOS) --arch $(go env GOARCH)
 
-source <(setup-envtest use 1.21.x -p env --os $(go env GOOS) --arch $(go env GOARCH))
+# To use a specific version
+setup-envtest use -p path 1.20.2
+
+#To set environment variables
+source <(setup-envtest use 1.20.2 -p env --os $(go env GOOS) --arch $(go env GOARCH))
 
 ```
 
