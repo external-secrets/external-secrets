@@ -8,24 +8,23 @@ git clone https://github.com/external-secrets/external-secrets.git
 cd external-secrets
 ```
 
-If you want to run controller tests you also need to install kubebuilder's `envtest`:
+If you want to run controller tests you also need to install kubebuilder's `envtest`.
+
+The recommended way to do so is to install [setup-envtest](https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest)
+
+Here is an example on how to set it up:
 
 ```
-export KUBEBUILDER_TOOLS_VERSION='1.20.2' # check for latest version or a version that has support to what you are testing
+go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
-# Using Linux
-curl -sSLo envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$KUBEBUILDER_TOOLS_VERSION-linux-amd64.tar.gz"
+# list available versions
+setup-envtest list --os $(go env GOOS) --arch $(go env GOARCH)
 
-# Using MacOS (OSX)
-#curl -sSLo envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$KUBEBUILDER_TOOLS_VERSION-darwin-amd64.tar.gz"
+source <(setup-envtest use 1.21.x -p env --os $(go env GOOS) --arch $(go env GOARCH))
 
-# Using ARM based processors
-#curl -sSLo envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$KUBEBUILDER_TOOLS_VERSION-linux-arm64.tar.gz"
-
-
-sudo mkdir -p /usr/local/kubebuilder
-sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz
 ```
+
+for more information, please see [setup-envtest docs](https://github.com/kubernetes-sigs/controller-runtime/tree/master/tools/setup-envtest)
 
 ## Building & Testing
 
