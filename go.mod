@@ -64,7 +64,7 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.12.1
-	github.com/xanzy/go-gitlab v0.50.1
+	github.com/xanzy/go-gitlab v0.54.3
 	github.com/yandex-cloud/go-genproto v0.0.0-20210809082946-a97da516c588
 	github.com/yandex-cloud/go-sdk v0.0.0-20210809100642-c13c40a429fa
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
@@ -130,7 +130,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
