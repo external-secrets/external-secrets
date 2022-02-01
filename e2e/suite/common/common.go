@@ -235,11 +235,9 @@ func JSONDataFromSync(f *framework.Framework) (string, func(*framework.TestCase)
 				targetSecretKey2: []byte(targetSecretValue2),
 			},
 		}
-		tc.ExternalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
+		tc.ExternalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Extract: esv1alpha1.ExternalSecretExtract{
-					Key: secretKey1,
-				},
+				Key: secretKey1,
 			},
 		}
 	}

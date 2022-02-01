@@ -140,23 +140,16 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.E
 	return []byte(val.String()), nil
 }
 
-// Implements store.Client.GetAllSecrets Interface.
-// New version of GetAllSecrets.
-func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, utils.ThrowNotImplemented()
-}
-
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	data, err := kms.GetSecret(ctx, ref.GetDataRemoteRef())
+func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	data, err := kms.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Extract.Key, err)
+		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {

@@ -18,8 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path"
-	"regexp"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
@@ -95,10 +93,6 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	basicClient := a.baseClient
 	objectType, secretName := getObjType(ref)
 
-	if secretName == "" {
-		return nil, fmt.Errorf("%s name cannot be empty", objectType)
-	}
-
 	if ref.Version != "" {
 		version = ref.Version
 	}
@@ -143,13 +137,12 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
-func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	dataRef := ref.GetDataRemoteRef()
-	objectType, secretName := getObjType(dataRef)
+func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	objectType, secretName := getObjType(ref)
 
 	switch objectType {
 	case defaultObjType:
-		data, err := a.GetSecret(ctx, dataRef)
+		data, err := a.GetSecret(ctx, ref)
 		if err != nil {
 			return nil, err
 		}
@@ -173,76 +166,6 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 	}
 
 	return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
-}
-
-// Implements store.Client.GetAllSecrets Interface.
-// New version of GetAllSecrets.
-func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	basicClient := a.baseClient
-	secretsMap := make(map[string][]byte)
-	checkTags := len(ref.Find.Tags) > 0
-	checkName := len(ref.Find.Name.RegExp) > 0
-
-	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), a.vaultURL, nil)
-
-	if err != nil {
-		return nil, err
-	}
-	for secretListIter.NotDone() {
-		secretList := secretListIter.Response().Value
-		for _, secret := range *secretList {
-			ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
-			if !ok {
-				continue
-			}
-
-			secretResp, err := basicClient.GetSecret(context.Background(), a.vaultURL, secretName, "")
-			secretValue := *secretResp.Value
-
-			if err != nil {
-				return nil, err
-			}
-			secretsMap[secretName] = []byte(secretValue)
-		}
-		err = secretListIter.Next()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return secretsMap, nil
-}
-
-func isValidSecret(checkTags, checkName bool, ref esv1alpha1.ExternalSecretDataFromRemoteRef, secret keyvault.SecretItem) (bool, string) {
-	if secret.ID == nil || !*secret.Attributes.Enabled {
-		return false, ""
-	}
-
-	if checkTags && !okByTags(ref, secret) {
-		return false, ""
-	}
-
-	secretName := path.Base(*secret.ID)
-	if checkName && !okByName(ref, secretName) {
-		return false, ""
-	}
-
-	return true, secretName
-}
-
-func okByName(ref esv1alpha1.ExternalSecretDataFromRemoteRef, secretName string) bool {
-	matches, _ := regexp.MatchString(ref.Find.Name.RegExp, secretName)
-	return matches
-}
-
-func okByTags(ref esv1alpha1.ExternalSecretDataFromRemoteRef, secret keyvault.SecretItem) bool {
-	tagsFound := true
-	for k, v := range ref.Find.Tags {
-		if val, ok := secret.Tags[k]; !ok || *val != v {
-			tagsFound = false
-			break
-		}
-	}
-	return tagsFound
 }
 
 func (a *Azure) setAzureClientWithManagedIdentity() (bool, error) {

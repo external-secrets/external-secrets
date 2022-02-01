@@ -199,20 +199,13 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSec
 	return []byte(val.String()), nil
 }
 
-// Implements store.Client.GetAllSecrets Interface.
-// New version of GetAllSecrets.
-func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, utils.ThrowNotImplemented()
-}
-
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if sm.SecretManagerClient == nil || sm.projectID == "" {
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
-	data, err := sm.GetSecret(ctx, ref.GetDataRemoteRef())
+	data, err := sm.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}

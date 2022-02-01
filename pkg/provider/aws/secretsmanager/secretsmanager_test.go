@@ -33,7 +33,6 @@ type secretsManagerTestCase struct {
 	apiInput       *awssm.GetSecretValueInput
 	apiOutput      *awssm.GetSecretValueOutput
 	remoteRef      *esv1alpha1.ExternalSecretDataRemoteRef
-	remoteRefFrom  *esv1alpha1.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -50,7 +49,6 @@ func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 		fakeClient:     fakesm.NewClient(),
 		apiInput:       makeValidAPIInput(),
 		remoteRef:      makeValidRemoteRef(),
-		remoteRefFrom:  makeValidRemoteRefFrom(),
 		apiOutput:      makeValidAPIOutput(),
 		apiErr:         nil,
 		expectError:    "",
@@ -65,15 +63,6 @@ func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
 	return &esv1alpha1.ExternalSecretDataRemoteRef{
 		Key:     "/baz",
 		Version: "AWSCURRENT",
-	}
-}
-
-func makeValidRemoteRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     "/baz",
-			Version: "AWSCURRENT",
-		},
 	}
 }
 
@@ -287,7 +276,7 @@ func TestGetSecretMap(t *testing.T) {
 			cache:  make(map[string]*awssm.GetSecretValueOutput),
 			client: v.fakeClient,
 		}
-		out, err := sm.GetSecretMap(context.Background(), *v.remoteRefFrom)
+		out, err := sm.GetSecretMap(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
 		}

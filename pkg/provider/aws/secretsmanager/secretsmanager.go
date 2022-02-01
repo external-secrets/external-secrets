@@ -26,7 +26,6 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // SecretsManager is a provider for AWS SecretsManager.
@@ -106,16 +105,16 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.External
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	log.Info("fetching secret map", "key", ref.Extract.Key)
-	data, err := sm.GetSecret(ctx, ref.GetDataRemoteRef())
+func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	log.Info("fetching secret map", "key", ref.Key)
+	data, err := sm.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Extract.Key, err)
+		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
@@ -128,13 +127,6 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 		}
 	}
 	return secretData, nil
-}
-
-// Implements store.Client.GetAllSecrets Interface.
-// New version of GetAllSecrets.
-func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, utils.ThrowNotImplemented()
 }
 
 func (sm *SecretsManager) Close(ctx context.Context) error {
