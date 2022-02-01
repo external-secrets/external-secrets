@@ -361,18 +361,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides-controller-class/" class="md-nav__link">
-        Controller Classes
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../guides-all-keys-one-secret/" class="md-nav__link">
         All keys, One secret
       </a>
@@ -1056,22 +1044,15 @@ then clone the repo:</p>
 <span class="nb">cd</span> external-secrets
 </code></pre></div>
 
-<p>If you want to run controller tests you also need to install kubebuilder's <code>envtest</code>.</p>
-<p>The recommended way to do so is to install <a href="https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest">setup-envtest</a></p>
-<p>Here is an example on how to set it up:</p>
-<div class="highlight"><pre><span></span><code>go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+<p>If you want to run controller tests you also need to install kubebuilder's <code>envtest</code>:</p>
+<div class="highlight"><pre><span></span><code>export KUBEBUILDER_TOOLS_VERSION=&#39;1.20.2&#39; # check for latest version or a version that has support to what you are testing
 
-# list available versions
-setup-envtest list --os $(go env GOOS) --arch $(go env GOARCH)
+curl -sSLo envtest-bins.tar.gz &quot;https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$KUBEBUILDER_TOOLS_VERSION-linux-amd64.tar.gz&quot;
 
-# To use a specific version
-setup-envtest use -p path 1.20.2
-
-#To set environment variables
-source &lt;(setup-envtest use 1.20.2 -p env --os $(go env GOOS) --arch $(go env GOARCH))
+sudo mkdir -p /usr/local/kubebuilder
+sudo tar -C /usr/local/kubebuilder --strip-components=1 -zvxf envtest-bins.tar.gz
 </code></pre></div>
 
-<p>for more information, please see <a href="https://github.com/kubernetes-sigs/controller-runtime/tree/master/tools/setup-envtest">setup-envtest docs</a></p>
 <h2 id="building-testing">Building &amp; Testing</h2>
 <p>The project uses the <code>make</code> build system. It'll run code generators, tests and
 static code analysis.</p>
@@ -1109,14 +1090,7 @@ make run
 export TAG=v2
 export IMAGE=eso-local
 
-#For building in linux
 docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux
-
-#For building in MacOS (OSX)
-#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=darwin
-
-#For building in ARM
-#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=arm --build-arg TARGETOS=linux
 
 make helm.generate
 helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
@@ -1209,7 +1183,7 @@ make serve-docs
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.b0710199.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.b0710199.min.js", "version": null}</script>
     
     
       <script src="../assets/javascripts/bundle.76f349be.min.js"></script>

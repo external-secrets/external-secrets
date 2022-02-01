@@ -361,18 +361,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../guides-controller-class/" class="md-nav__link">
-        Controller Classes
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../guides-all-keys-one-secret/" class="md-nav__link">
         All keys, One secret
       </a>
@@ -929,6 +917,46 @@
     Submitting a Pull Request
   </a>
   
+    <nav class="md-nav" aria-label="Submitting a Pull Request">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#triggering-e2e-tests" class="md-nav__link">
+    Triggering e2e tests
+  </a>
+  
+    <nav class="md-nav" aria-label="Triggering e2e tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#executing-e2e-tests-locally" class="md-nav__link">
+    Executing e2e tests locally
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#managed-kubernetes-e2e-tests" class="md-nav__link">
+    Managed Kubernetes e2e tests
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#executing-managed-kubernetes-e2e-tests-locally" class="md-nav__link">
+    Executing Managed Kubernetes e2e tests locally
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1028,6 +1056,46 @@
     Submitting a Pull Request
   </a>
   
+    <nav class="md-nav" aria-label="Submitting a Pull Request">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#triggering-e2e-tests" class="md-nav__link">
+    Triggering e2e tests
+  </a>
+  
+    <nav class="md-nav" aria-label="Triggering e2e tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#executing-e2e-tests-locally" class="md-nav__link">
+    Executing e2e tests locally
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#managed-kubernetes-e2e-tests" class="md-nav__link">
+    Managed Kubernetes e2e tests
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#executing-managed-kubernetes-e2e-tests-locally" class="md-nav__link">
+    Executing Managed Kubernetes e2e tests locally
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1091,6 +1159,60 @@ We're using the pull request <code>assignee</code> feature to track who is respo
 for the lifecycle of the PR: review, merging, ping on inactivity, close.
 We close pull requests or issues if there is no response from the author for
 a period of time. Feel free to reopen if you want to get back on it.</p>
+<h3 id="triggering-e2e-tests">Triggering e2e tests</h3>
+<p>We have an extensive set of e2e tests that test the integration with <em>real</em> cloud provider APIs.
+Maintainers must trigger these kind of tests manually for PRs that come from forked repositories. These tests run inside a <code>kind</code> cluster in the GitHub Actions runner:</p>
+<div class="highlight"><pre><span></span><code>/ok-to-test sha=xxxxxx
+</code></pre></div>
+
+<h4 id="executing-e2e-tests-locally">Executing e2e tests locally</h4>
+<p>You have to prepare your shell environment with the necessary variables so the e2e test
+runner knows what credentials to use. See <code>e2e/run.sh</code> for the variables that are passed in.
+If you e.g. want to test AWS integration make sure set all <code>AWS_*</code> variables mentioned
+in that file.</p>
+<p>Use <a href="https://onsi.github.io/ginkgo/#spec-labels">ginkgo labels</a> to select the tests
+you want to execute. You have to specify <code>!managed</code> to ensure that you do not
+run managed tests.</p>
+<div class="highlight"><pre><span></span><code>make test.e2e GINKGO_LABELS=&#39;gcp&amp;&amp;!managed&#39;
+</code></pre></div>
+
+<h4 id="managed-kubernetes-e2e-tests">Managed Kubernetes e2e tests</h4>
+<p>There's another suite of e2e tests that integrate with managed Kuberentes offerings.
+They create real infrastructure at a cloud provider and deploy the controller
+into that environment.
+This is necessary to test the authentication integration
+(<a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">GCP Worklaod Identity</a>,
+<a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">EKS IRSA</a>...).</p>
+<p>These tests are time intensive (~20-45min) and must be triggered manually by
+a maintainer when a particular provider or authentication mechanism was changed:</p>
+<div class="highlight"><pre><span></span><code>/ok-to-test-managed sha=xxxxxx provider=aws
+# or
+/ok-to-test-managed sha=xxxxxx provider=gcp
+</code></pre></div>
+
+<p>Both tests can run in parallel. Once started they add a dynamic GitHub check <code>integration-managed-(gcp|aws)</code> to the PR that triggered the test.</p>
+<h3 id="executing-managed-kubernetes-e2e-tests-locally">Executing Managed Kubernetes e2e tests locally</h3>
+<p>You have to prepare your shell environment with the necessary variables so the e2e
+test runner knows what credentials to use. See <code>.github/workflows/e2e-managed.yml</code>
+for the variables that are passed in. If you e.g. want to test AWS integration make
+sure set all variables containing <code>AWS_*</code> and <code>TF_VAR_AWS_*</code> mentioned in that file.</p>
+<p>Then execute <code>tf.apply.aws</code> or <code>tf.apply.gcp</code> to create the infrastructure.</p>
+<div class="highlight"><pre><span></span><code>make tf.apply.aws
+</code></pre></div>
+
+<p>Then run the <code>managed</code> testsuite. You will need push permissions to the external-secrets ghcr repository. You can set <code>IMAGE_REGISTRY</code> to control which image registry is used to store the controller and e2e test images in.</p>
+<p>You also have to setup a proper Kubeconfig so the e2e test pod gets deployed into the managed cluster.</p>
+<div class="highlight"><pre><span></span><code>aws eks update-kubeconfig --name ${AWS_CLUSTER_NAME}
+or
+gcloud container clusters get-credentials ${GCP_GKE_CLUSTER} --region europe-west1-b
+</code></pre></div>
+
+<p>Use <a href="https://onsi.github.io/ginkgo/#spec-labels">ginkgo labels</a> to select the tests
+you want to execute.</p>
+<div class="highlight"><pre><span></span><code># you may have to set IMAGE_REGISTRY=docker.io/your-user/external-secrets
+make test.e2e.managed GINKGO_LABELS=&#39;gcp&#39;
+</code></pre></div>
+
 <h2 id="proposal-process">Proposal Process</h2>
 <p>Before we introduce significant changes to the project we want to gather feedback
 from the community to ensure that we progress in the right direction before we
@@ -1172,7 +1294,7 @@ and fill in your proposal. Open a pull request in draft mode and request feedbac
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.b0710199.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.b0710199.min.js", "version": null}</script>
     
     
       <script src="../assets/javascripts/bundle.76f349be.min.js"></script>

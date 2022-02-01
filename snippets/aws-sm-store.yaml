@@ -3,6 +3,7 @@ kind: SecretStore
 metadata:
   name: secretstore-sample
 spec:
+  controller: dev
   provider:
     aws:
       service: SecretsManager
