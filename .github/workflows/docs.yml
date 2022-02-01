@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-
+      - feature/docs-versioning
 env:
   # Common versions
   GO_VERSION: '1.17'
@@ -23,7 +23,9 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Build Docs
-        run: make docs
+        run: make docs.publish
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3.8.0
