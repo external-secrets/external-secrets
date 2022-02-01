@@ -81,6 +81,10 @@ type SecretStoreProvider struct {
 	// Webhook configures this store to sync secrets using a generic templated webhook
 	// +optional
 	Webhook *WebhookProvider `json:"webhook,omitempty"`
+
+	// Fake configures a store with static key/value pairs
+	// +optional
+	Fake *FakeProvider `json:"fake,omitempty"`
 }
 
 type SecretStoreRetrySettings struct {
