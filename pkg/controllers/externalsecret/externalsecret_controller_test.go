@@ -138,8 +138,6 @@ var _ = Describe("ExternalSecret controller", func() {
 		targetPropObj                  = "{{ .targetProperty | toString | upper }} was templated"
 		FooValue                       = "map-foo-value"
 		BarValue                       = "map-bar-value"
-		foo                            = "foo"
-		bar                            = "bar"
 	)
 
 	var ExternalSecretNamespace string
@@ -522,23 +520,21 @@ var _ = Describe("ExternalSecret controller", func() {
 				tplStaticKey: tplStaticVal,
 			},
 		}
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Extract: esv1alpha1.ExternalSecretExtract{
-					Key: "datamap",
-				},
+				Key: "datamap",
 			},
 		}
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		fakeProvider.WithGetSecretMap(map[string][]byte{
 			"targetProperty": []byte(FooValue),
-			bar:              []byte(BarValue),
+			"bar":            []byte(BarValue),
 		}, nil)
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
 			// check values
 			Expect(string(secret.Data[targetProp])).To(Equal(expectedSecretVal))
 			Expect(string(secret.Data[tplStaticKey])).To(Equal(tplStaticVal))
-			Expect(string(secret.Data[bar])).To(Equal("value from map: map-bar-value"))
+			Expect(string(secret.Data["bar"])).To(Equal("value from map: map-bar-value"))
 			Expect(string(secret.Data[tplFromKey])).To(Equal("tpl-from-value: someValue // map-bar-value"))
 			Expect(string(secret.Data[tplFromSecKey])).To(Equal("tpl-from-sec-value: someValue // map-bar-value"))
 		}
@@ -551,8 +547,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
 		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Metadata: esv1alpha1.ExternalSecretTemplateMetadata{
-				Labels:      map[string]string{foo: bar},
-				Annotations: map[string]string{foo: bar},
+				Labels:      map[string]string{"foo": "bar"},
+				Annotations: map[string]string{"foo": "bar"},
 			},
 			Type: v1.SecretTypeOpaque,
 			Data: map[string]string{
@@ -611,8 +607,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
 		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 			Metadata: esv1alpha1.ExternalSecretTemplateMetadata{
-				Labels:      map[string]string{foo: bar},
-				Annotations: map[string]string{foo: bar},
+				Labels:      map[string]string{"foo": "bar"},
+				Annotations: map[string]string{"foo": "bar"},
 			},
 		}
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
@@ -666,11 +662,9 @@ var _ = Describe("ExternalSecret controller", func() {
 			"bar": []byte("2222"),
 		}, nil)
 		tc.externalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{}
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Extract: esv1alpha1.ExternalSecretExtract{
-					Key: remoteKey,
-				},
+				Key: remoteKey,
 			},
 		}
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
@@ -708,11 +702,9 @@ var _ = Describe("ExternalSecret controller", func() {
 		}, nil)
 		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{}
 		tc.externalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{}
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Extract: esv1alpha1.ExternalSecretExtract{
-					Key: remoteKey,
-				},
+				Key: remoteKey,
 			},
 		}
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
@@ -773,21 +765,19 @@ var _ = Describe("ExternalSecret controller", func() {
 	// should be put into the secret
 	syncWithDataFrom := func(tc *testCase) {
 		tc.externalSecret.Spec.Data = nil
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Extract: esv1alpha1.ExternalSecretExtract{
-					Key: remoteKey,
-				},
+				Key: remoteKey,
 			},
 		}
 		fakeProvider.WithGetSecretMap(map[string][]byte{
-			foo: []byte(FooValue),
-			bar: []byte(BarValue),
+			"foo": []byte(FooValue),
+			"bar": []byte(BarValue),
 		}, nil)
 		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
 			// check values
-			Expect(string(secret.Data[foo])).To(Equal(FooValue))
-			Expect(string(secret.Data[bar])).To(Equal(BarValue))
+			Expect(string(secret.Data["foo"])).To(Equal(FooValue))
+			Expect(string(secret.Data["bar"])).To(Equal(BarValue))
 		}
 	}
 
@@ -802,11 +792,9 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		}
 
-		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
+		tc.externalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
 			{
-				Extract: esv1alpha1.ExternalSecretExtract{
-					Key: remoteKey,
-				},
+				Key: remoteKey,
 			},
 		}
 		fakeProvider.WithGetSecretMap(map[string][]byte{
@@ -824,7 +812,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	// when a provider errors in a GetSecret call
 	// a error condition must be set.
 	providerErrCondition := func(tc *testCase) {
-		const secretVal = foo + bar
+		const secretVal = "foobar"
 		fakeProvider.WithGetSecret(nil, fmt.Errorf("boom"))
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Millisecond * 100}
 		tc.checkCondition = func(es *esv1alpha1.ExternalSecret) bool {

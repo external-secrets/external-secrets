@@ -93,13 +93,6 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-// Implements store.Client.GetAllSecrets Interface.
-// New version of GetAllSecrets.
-func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, utils.ThrowNotImplemented()
-}
-
 func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
@@ -133,7 +126,7 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSe
 	case sm.CreateSecretOptionsSecretTypeImportedCertConst:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteref.Property required for secret type imported_cert")
+			return nil, fmt.Errorf("remoteRef.property required for secret type imported_cert")
 		}
 
 		return getImportCertSecret(ibm, &secretName, ref)
@@ -212,13 +205,13 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1alp
 	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
-func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
 
 	secretType := sm.GetSecretOptionsSecretTypeArbitraryConst
-	secretName := ref.Extract.Key
+	secretName := ref.Key
 	nameSplitted := strings.Split(secretName, "/")
 
 	if len(nameSplitted) > 1 {
@@ -231,7 +224,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.Externa
 		response, _, err := ibm.IBMClient.GetSecret(
 			&sm.GetSecretOptions{
 				SecretType: core.StringPtr(sm.GetSecretOptionsSecretTypeArbitraryConst),
-				ID:         &ref.Extract.Key,
+				ID:         &ref.Key,
 			})
 		if err != nil {
 			return nil, err

@@ -24,7 +24,6 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type secretManagerTestCase struct {
@@ -33,7 +32,6 @@ type secretManagerTestCase struct {
 	apiInputKey       string
 	apiOutput         *gitlab.ProjectVariable
 	ref               *esv1alpha1.ExternalSecretDataRemoteRef
-	refFrom           *esv1alpha1.ExternalSecretDataFromRemoteRef
 	projectID         *string
 	apiErr            error
 	expectError       string
@@ -47,8 +45,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		mockClient:        &fakegitlab.GitlabMockClient{},
 		apiInputProjectID: makeValidAPIInputProjectID(),
 		apiInputKey:       makeValidAPIInputKey(),
-		ref:               utils.MakeValidRef(),
-		refFrom:           utils.MakeValidRefFrom(),
+		ref:               makeValidRef(),
 		projectID:         nil,
 		apiOutput:         makeValidAPIOutput(),
 		apiErr:            nil,
@@ -58,6 +55,13 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	}
 	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputKey, smtc.apiOutput, smtc.apiErr)
 	return &smtc
+}
+
+func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
+	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:     "test-secret",
+		Version: "default",
+	}
 }
 
 func makeValidAPIInputProjectID() string {
@@ -153,7 +157,7 @@ func TestGetSecretMap(t *testing.T) {
 	sm := Gitlab{}
 	for k, v := range successCases {
 		sm.client = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.refFrom)
+		out, err := sm.GetSecretMap(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}

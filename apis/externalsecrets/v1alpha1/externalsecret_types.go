@@ -130,54 +130,6 @@ type ExternalSecretDataRemoteRef struct {
 	Property string `json:"property,omitempty"`
 }
 
-// ExternalSecretDataFromRemoteRef defines Provider data location.
-type ExternalSecretDataFromRemoteRef struct {
-	// Used to select a specific version and property from the secret
-	// +optional
-	Extract ExternalSecretExtract `json:"extract,omitempty"`
-	// Used to find secrets based on tags or regular expressions
-	// +optional
-	Find ExternalSecretFind `json:"find,omitempty"`
-}
-
-func (ref ExternalSecretDataFromRemoteRef) GetDataRemoteRef() ExternalSecretDataRemoteRef {
-	return ExternalSecretDataRemoteRef{
-		Key:      ref.Extract.Key,
-		Property: ref.Extract.Property,
-		Version:  ref.Extract.Version,
-	}
-}
-
-type ExternalSecretExtract struct {
-	// Key is the key used in the Provider
-	// +optional
-	Key string `json:"key,omitempty"`
-
-	// Used to select a specific version of the Provider value, if supported
-	// +optional
-	Version string `json:"version,omitempty"`
-
-	// +optional
-	// Used to select a specific property of the Provider value (if a map), if supported
-	Property string `json:"property,omitempty"`
-}
-
-type ExternalSecretFind struct {
-	// Key is the key used in the Provider
-	// +optional
-	Name FindName `json:"name,omitempty"`
-
-	// Used to select a specific version of the Provider value, if supported
-	// +optional
-	Tags map[string]string `json:"tags,omitempty"`
-}
-
-type FindName struct {
-	// Used to select multiple secrets based on a regular expression of the name
-	// +optional
-	RegExp string `json:"regexp,omitempty"`
-}
-
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	SecretStoreRef SecretStoreRef `json:"secretStoreRef"`
@@ -197,7 +149,7 @@ type ExternalSecretSpec struct {
 	// DataFrom is used to fetch all properties from a specific Provider data
 	// If multiple entries are specified, the Secret keys are merged in the specified order
 	// +optional
-	DataFrom []ExternalSecretDataFromRemoteRef `json:"dataFrom,omitempty"`
+	DataFrom []ExternalSecretDataRemoteRef `json:"dataFrom,omitempty"`
 }
 
 type ExternalSecretConditionType string

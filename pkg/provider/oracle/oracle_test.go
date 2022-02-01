@@ -24,7 +24,6 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type vaultTestCase struct {
@@ -32,7 +31,6 @@ type vaultTestCase struct {
 	apiInput       *secrets.GetSecretBundleByNameRequest
 	apiOutput      *secrets.GetSecretBundleByNameResponse
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
-	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -44,8 +42,7 @@ func makeValidVaultTestCase() *vaultTestCase {
 	smtc := vaultTestCase{
 		mockClient:     &fakeoracle.OracleMockClient{},
 		apiInput:       makeValidAPIInput(),
-		ref:            utils.MakeValidRef(),
-		refFrom:        utils.MakeValidRefFrom(),
+		ref:            makeValidRef(),
 		apiOutput:      makeValidAPIOutput(),
 		apiErr:         nil,
 		expectError:    "",
@@ -54,6 +51,13 @@ func makeValidVaultTestCase() *vaultTestCase {
 	}
 	smtc.mockClient.WithValue(*smtc.apiInput, *smtc.apiOutput, smtc.apiErr)
 	return &smtc
+}
+
+func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
+	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:     "test-secret",
+		Version: "default",
+	}
 }
 
 func makeValidAPIInput() *secrets.GetSecretBundleByNameRequest {
@@ -154,7 +158,7 @@ func TestGetSecretMap(t *testing.T) {
 	sm := VaultManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.refFrom)
+		out, err := sm.GetSecretMap(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}

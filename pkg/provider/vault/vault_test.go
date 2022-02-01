@@ -564,11 +564,11 @@ func TestGetSecretMap(t *testing.T) {
 	}
 
 	type args struct {
-		store    *esv1alpha1.VaultProvider
-		kube     kclient.Client
-		vClient  Client
-		ns       string
-		dataFrom esv1alpha1.ExternalSecretDataFromRemoteRef
+		store   *esv1alpha1.VaultProvider
+		kube    kclient.Client
+		vClient Client
+		ns      string
+		data    esv1alpha1.ExternalSecretDataRemoteRef
 	}
 
 	type want struct {
@@ -671,7 +671,7 @@ func TestGetSecretMap(t *testing.T) {
 				store:     tc.args.store,
 				namespace: tc.args.ns,
 			}
-			_, err := vStore.GetSecretMap(context.Background(), tc.args.dataFrom)
+			_, err := vStore.GetSecretMap(context.Background(), tc.args.data)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
 			}

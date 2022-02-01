@@ -128,21 +128,14 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretD
 	return []byte(value), nil
 }
 
-// Implements store.Client.GetAllSecrets Interface.
-// New version of GetAllSecrets.
-func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, utils.ThrowNotImplemented()
-}
-
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
-func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(a.Client) {
 		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
 	}
 
-	val, err := a.GetSecret(ctx, ref.GetDataRemoteRef())
+	val, err := a.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}

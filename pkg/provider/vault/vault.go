@@ -36,7 +36,6 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
@@ -165,15 +164,8 @@ func (v *client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	return value, nil
 }
 
-func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	return v.readSecret(ctx, ref.Extract.Key, ref.Extract.Version)
-}
-
-// Implements store.Client.GetAllSecrets Interface.
-// New version of GetAllSecrets.
-func (v *client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, utils.ThrowNotImplemented()
+func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	return v.readSecret(ctx, ref.Key, ref.Version)
 }
 
 func (v *client) Close(ctx context.Context) error {

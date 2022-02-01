@@ -269,11 +269,9 @@ func runTestCase(tc testCase, t *testing.T) {
 }
 
 func testGetSecretMap(tc testCase, t *testing.T, client provider.SecretsClient) {
-	testRef := esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
-			Key:     tc.Args.Key,
-			Version: tc.Args.Version,
-		},
+	testRef := esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:     tc.Args.Key,
+		Version: tc.Args.Version,
 	}
 	secretmap, err := client.GetSecretMap(context.Background(), testRef)
 	errStr := ""
