@@ -36,6 +36,7 @@ The command removes all the Kubernetes components associated with the chart and 
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
+| controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | extraArgs | object | `{}` |  |
 | extraEnv | list | `[]` |  |
