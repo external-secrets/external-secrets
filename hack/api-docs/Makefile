@@ -64,7 +64,7 @@ build.publish: image generate $(SOURCES)
 		--rm \
 		--user $(UID):$(GID) \
 		$(MKDOCS_IMAGE) \
-		/bin/bash -c "cd /repo && git config user.name "Docs" && git config user.email "docs@external-secrets.io" && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
+		/bin/bash -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 
 .PHONY: generate
 generate:
