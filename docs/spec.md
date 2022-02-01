@@ -714,237 +714,6 @@ string
 <td></td>
 </tr></tbody>
 </table>
-<h3 id="external-secrets.io/v1alpha1.ClusterExternalSecret">ClusterExternalSecret
-</h3>
-<p>
-<p>ClusterExternalSecret is the Schema for the clusterexternalsecrets API.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code></br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
-Kubernetes meta/v1.ObjectMeta
-</a>
-</em>
-</td>
-<td>
-Refer to the Kubernetes API documentation for the fields of the
-<code>metadata</code> field.
-</td>
-</tr>
-<tr>
-<td>
-<code>spec</code></br>
-<em>
-<a href="#external-secrets.io/v1alpha1.ClusterExternalSecretSpec">
-ClusterExternalSecretSpec
-</a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>externalSecretSpec</code></br>
-<em>
-<a href="#external-secrets.io/v1alpha1.ExternalSecretSpec">
-ExternalSecretSpec
-</a>
-</em>
-</td>
-<td>
-<p>The spec for the ExternalSecrets to be created</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>externalSecretName</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>The name of the external secrets to be created defaults to the name of the ClusterExternalSecret</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>namespaceSelector</code></br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
-Kubernetes meta/v1.LabelSelector
-</a>
-</em>
-</td>
-<td>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code></br>
-<em>
-<a href="#external-secrets.io/v1alpha1.ClusterExternalSecretStatus">
-ClusterExternalSecretStatus
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1alpha1.ClusterExternalSecretConditionType">ClusterExternalSecretConditionType
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterExternalSecretStatus">ClusterExternalSecretStatus</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr><td><p>&#34;NotReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;PartiallyReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Ready&#34;</p></td>
-<td></td>
-</tr></tbody>
-</table>
-<h3 id="external-secrets.io/v1alpha1.ClusterExternalSecretSpec">ClusterExternalSecretSpec
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterExternalSecret">ClusterExternalSecret</a>)
-</p>
-<p>
-<p>ClusterExternalSecretSpec defines the desired state of ClusterExternalSecret.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>externalSecretSpec</code></br>
-<em>
-<a href="#external-secrets.io/v1alpha1.ExternalSecretSpec">
-ExternalSecretSpec
-</a>
-</em>
-</td>
-<td>
-<p>The spec for the ExternalSecrets to be created</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>externalSecretName</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>The name of the external secrets to be created defaults to the name of the ClusterExternalSecret</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>namespaceSelector</code></br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
-Kubernetes meta/v1.LabelSelector
-</a>
-</em>
-</td>
-<td>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1alpha1.ClusterExternalSecretStatus">ClusterExternalSecretStatus
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterExternalSecret">ClusterExternalSecret</a>)
-</p>
-<p>
-<p>ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>type</code></br>
-<em>
-<a href="#external-secrets.io/v1alpha1.ClusterExternalSecretConditionType">
-ClusterExternalSecretConditionType
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code></br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#conditionstatus-v1-core">
-Kubernetes core/v1.ConditionStatus
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>externalSecretStatuses</code></br>
-<em>
-<a href="#external-secrets.io/v1alpha1.ExternalSecretStatus">
-[]ExternalSecretStatus
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1alpha1.ClusterSecretStore">ClusterSecretStore
 </h3>
 <p>
@@ -1315,7 +1084,6 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>, 
 <a href="#external-secrets.io/v1alpha1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -1403,7 +1171,6 @@ If multiple entries are specified, the Secret keys are merged in the specified o
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterExternalSecretStatus">ClusterExternalSecretStatus</a>, 
 <a href="#external-secrets.io/v1alpha1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -1726,7 +1493,7 @@ map[string]string
 <a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>FakeProvider configures a fake provider that returns static values</p>
+<p>FakeProvider configures a fake provider that returns static values.</p>
 </p>
 <table>
 <thead>
