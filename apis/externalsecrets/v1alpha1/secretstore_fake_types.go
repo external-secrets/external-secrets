@@ -11,14 +11,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package suite
 
-import (
+package v1alpha1
 
-	// import different e2e test suites.
-	_ "github.com/external-secrets/external-secrets/e2e/suite/aws/parameterstore"
-	_ "github.com/external-secrets/external-secrets/e2e/suite/aws/secretsmanager"
-	_ "github.com/external-secrets/external-secrets/e2e/suite/azure"
-	_ "github.com/external-secrets/external-secrets/e2e/suite/gcp"
-	_ "github.com/external-secrets/external-secrets/e2e/suite/vault"
-)
+// FakeProvider configures a fake provider that returns static values.
+type FakeProvider struct {
+	Data []FakeProviderData `json:"data"`
+}
+
+type FakeProviderData struct {
+	Key      string            `json:"key"`
+	Value    string            `json:"value,omitempty"`
+	ValueMap map[string]string `json:"valueMap,omitempty"`
+	Version  string            `json:"version,omitempty"`
+}

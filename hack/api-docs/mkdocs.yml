@@ -61,6 +61,7 @@ nav:
     - Oracle:
       - Oracle Vault: provider-oracle-vault.md
     - Webhook: provider-webhook.md
+    - Fake: provider-fake.md
   - References:
     - API specification: spec.md
   - Contributing:

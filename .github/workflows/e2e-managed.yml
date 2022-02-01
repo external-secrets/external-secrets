@@ -1,6 +1,5 @@
 # Run secret-dependent e2e tests only after /ok-to-test-managed approval
 on:
-  pull_request:
   repository_dispatch:
     types: [ok-to-test-managed-command]
 
@@ -48,6 +47,48 @@ jobs:
     if: github.event_name == 'repository_dispatch'
 
     steps:
+
+    # create new status check for this specific provider
+    - uses: actions/github-script@v1
+      if: ${{ always() }}
+      env:
+        number: ${{ github.event.client_payload.pull_request.number }}
+        provider: ${{ github.event.client_payload.slash_command.args.named.provider }}
+        job: ${{ github.job }}
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { data: pull } = await github.pulls.get({
+            ...context.repo,
+            pull_number: process.env.number
+          });
+          const ref = pull.head.sha;
+          console.log("\n\nPR sha: " + ref)
+          const { data: checks } = await github.checks.listForRef({
+            ...context.repo,
+            ref
+          });
+          const job_name = process.env.job + "-" + process.env.provider
+          console.log("\n\nPR CHECKS: " + checks)
+          const check = checks.check_runs.filter(c => c.name === job_name);
+          console.log("\n\nPR Filtered CHECK: " + check)
+          console.log(check)
+          if(check && check.length > 0){
+            const { data: result } = await github.checks.update({
+              ...context.repo,
+              check_run_id: check[0].id,
+              status: 'in_progress',
+            });
+            return result;
+          }
+          const { data: result } = await github.checks.create({
+            ...context.repo,
+            name: job_name,
+            head_sha: pull.head.sha,
+            status: 'in_progress',
+          });
+          return result;
+
 
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout
@@ -164,6 +205,7 @@ jobs:
       if: ${{ always() }}
       env:
         number: ${{ github.event.client_payload.pull_request.number }}
+        provider: ${{ github.event.client_payload.slash_command.args.named.provider }}
         job: ${{ github.job }}
         # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
         conclusion: ${{ job.status }}
@@ -180,8 +222,9 @@ jobs:
             ...context.repo,
             ref
           });
+          const job_name = process.env.job + "-" + process.env.provider
           console.log("\n\nPR CHECKS: " + checks)
-          const check = checks.check_runs.filter(c => c.name === process.env.job);
+          const check = checks.check_runs.filter(c => c.name === job_name);
           console.log("\n\nPR Filtered CHECK: " + check)
           console.log(check)
           const { data: result } = await github.checks.update({

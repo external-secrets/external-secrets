@@ -298,7 +298,9 @@ func testGetSecret(tc testCase, t *testing.T, client provider.SecretsClient) {
 		Key:     tc.Args.Key,
 		Version: tc.Args.Version,
 	}
-	secret, err := client.GetSecret(context.Background(), testRef)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	secret, err := client.GetSecret(ctx, testRef)
 	errStr := ""
 	if err != nil {
 		errStr = err.Error()
