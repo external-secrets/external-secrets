@@ -185,11 +185,18 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	return []byte(val.String()), nil
 }
 
-func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, utils.ThrowNotImplemented()
+}
+
+func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// Gets a secret as normal, expecting secret value to be a json object
-	data, err := g.GetSecret(ctx, ref)
+	data, err := g.GetSecret(ctx, ref.GetDataRemoteRef())
 	if err != nil {
-		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
+		return nil, fmt.Errorf("error getting secret %s: %w", ref.Extract.Key, err)
 	}
 
 	// Maps the json data to a string:string map

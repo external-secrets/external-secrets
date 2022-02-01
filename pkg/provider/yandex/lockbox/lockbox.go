@@ -34,6 +34,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/grpc"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
@@ -254,9 +255,16 @@ func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.Ext
 	return getValueAsBinary(entry)
 }
 
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (c *lockboxSecretsClient) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, utils.ThrowNotImplemented()
+}
+
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (c *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Key, ref.Version)
+func (c *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Extract.Key, ref.Extract.Version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
 	}

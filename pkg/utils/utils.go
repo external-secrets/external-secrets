@@ -20,7 +20,16 @@ import (
 	"crypto/md5"
 	"fmt"
 	"reflect"
+	"runtime"
 	"strings"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+)
+
+const (
+	notImplemented = "not implemented: %s"
+	testSecret     = "test-secret"
+	defaultVersion = "default"
 )
 
 // MergeByteMap merges map of byte slices.
@@ -65,4 +74,38 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func MakeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
+	return MakeValidRefWithParams(testSecret, "", defaultVersion)
+}
+
+func MakeValidRefWithParams(key, property, version string) *esv1alpha1.ExternalSecretDataRemoteRef {
+	return &esv1alpha1.ExternalSecretDataRemoteRef{
+		Key:      key,
+		Property: property,
+		Version:  version,
+	}
+}
+
+func MakeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
+	return MakeValidRefFromWithParams(testSecret, "", defaultVersion)
+}
+
+func MakeValidRefFromWithParams(key, property, version string) *esv1alpha1.ExternalSecretDataFromRemoteRef {
+	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
+		Extract: esv1alpha1.ExternalSecretExtract{
+			Key:      key,
+			Property: property,
+			Version:  version,
+		},
+	}
+}
+
+func ThrowNotImplemented() error {
+	pc := make([]uintptr, 10) // at least 1 entry needed
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+
+	return fmt.Errorf(notImplemented, f.Name())
 }
