@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/docs-versioning
 env:
   # Common versions
   GO_VERSION: '1.17'
