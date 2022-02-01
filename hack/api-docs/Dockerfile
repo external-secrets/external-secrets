@@ -18,6 +18,9 @@ RUN apk add -U --no-cache \
     python3 \
     python3-dev \
     musl-dev \
+    git \
+    openssh \
+    git-fast-import \
     bash \
     gcc \
     diffutils \
