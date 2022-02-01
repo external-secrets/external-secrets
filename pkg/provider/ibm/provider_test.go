@@ -30,6 +30,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/ibm/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type secretManagerTestCase struct {
@@ -37,6 +38,7 @@ type secretManagerTestCase struct {
 	apiInput       *sm.GetSecretOptions
 	apiOutput      *sm.GetSecret
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
 	serviceURL     *string
 	apiErr         error
 	expectError    string
@@ -49,7 +51,8 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc := secretManagerTestCase{
 		mockClient:     &fakesm.IBMMockClient{},
 		apiInput:       makeValidAPIInput(),
-		ref:            makeValidRef(),
+		ref:            utils.MakeValidRef(),
+		refFrom:        utils.MakeValidRefFrom(),
 		apiOutput:      makeValidAPIOutput(),
 		serviceURL:     nil,
 		apiErr:         nil,
@@ -59,13 +62,6 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	}
 	smtc.mockClient.WithValue(smtc.apiInput, smtc.apiOutput, smtc.apiErr)
 	return &smtc
-}
-
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "default",
-	}
 }
 
 func makeValidAPIInput() *sm.GetSecretOptions {
@@ -228,7 +224,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst)
 		smtc.apiOutput.Resources = resources
 		smtc.ref.Key = secretCert
-		smtc.expectError = "remoteRef.property required for secret type imported_cert"
+		smtc.expectError = "remoteref.Property required for secret type imported_cert"
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -311,7 +307,7 @@ func TestGetSecretMap(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "username_password/test-secret"
+		smtc.refFrom.Extract.Key = "username_password/test-secret"
 		smtc.expectedData["username"] = []byte(secretUsername)
 		smtc.expectedData["password"] = []byte(secretPassword)
 	}
@@ -327,7 +323,7 @@ func TestGetSecretMap(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "iam_credentials/test-secret"
+		smtc.refFrom.Extract.Key = "iam_credentials/test-secret"
 		smtc.expectedData["apikey"] = []byte(secretAPIKey)
 	}
 
@@ -347,7 +343,7 @@ func TestGetSecretMap(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "imported_cert/test-secret"
+		smtc.refFrom.Extract.Key = "imported_cert/test-secret"
 		smtc.expectedData["certificate"] = []byte(secretCertificate)
 		smtc.expectedData["private_key"] = []byte(secretPrivateKey)
 		smtc.expectedData["intermediate"] = []byte(secretIntermediate)
@@ -366,7 +362,7 @@ func TestGetSecretMap(t *testing.T) {
 	sm := providerIBM{}
 	for k, v := range successCases {
 		sm.IBMClient = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, err := sm.GetSecretMap(context.Background(), *v.refFrom)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}

@@ -26,6 +26,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -38,6 +39,7 @@ type keyManagementServiceTestCase struct {
 	apiInput       *kmssdk.GetSecretValueRequest
 	apiOutput      *kmssdk.GetSecretValueResponse
 	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -49,7 +51,8 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 	kmstc := keyManagementServiceTestCase{
 		mockClient:     &fakesm.AlibabaMockClient{},
 		apiInput:       makeValidAPIInput(),
-		ref:            makeValidRef(),
+		ref:            utils.MakeValidRef(),
+		refFrom:        utils.MakeValidRefFrom(),
 		apiOutput:      makeValidAPIOutput(),
 		apiErr:         nil,
 		expectError:    "",
@@ -58,12 +61,6 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 	}
 	kmstc.mockClient.WithValue(kmstc.apiInput, kmstc.apiOutput, kmstc.apiErr)
 	return &kmstc
-}
-
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
-		Key: secretName,
-	}
 }
 
 func makeValidAPIInput() *kmssdk.GetSecretValueRequest {
@@ -176,7 +173,7 @@ func TestGetSecretMap(t *testing.T) {
 	sm := KeyManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, err := sm.GetSecretMap(context.Background(), *v.refFrom)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
 		}

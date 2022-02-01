@@ -908,8 +908,8 @@ May be set to zero to fetch and create it once. Defaults to 1h.</p>
 <td>
 <code>dataFrom</code></br>
 <em>
-<a href="#external-secrets.io/v1alpha1.ExternalSecretDataRemoteRef">
-[]ExternalSecretDataRemoteRef
+<a href="#external-secrets.io/v1alpha1.ExternalSecretDataFromRemoteRef">
+[]ExternalSecretDataFromRemoteRef
 </a>
 </em>
 </td>
@@ -1025,12 +1025,58 @@ ExternalSecretDataRemoteRef
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretSpec">ExternalSecretSpec</a>)
+</p>
+<p>
+<p>ExternalSecretDataFromRemoteRef defines Provider data location.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>extract</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretExtract">
+ExternalSecretExtract
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select a specific version and property from the secret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>find</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretFind">
+ExternalSecretFind
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to find secrets based on tags or regular expressions</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ExternalSecretData">ExternalSecretData</a>, 
-<a href="#external-secrets.io/v1alpha1.ExternalSecretSpec">ExternalSecretSpec</a>)
+<a href="#external-secrets.io/v1alpha1.ExternalSecretData">ExternalSecretData</a>)
 </p>
 <p>
 <p>ExternalSecretDataRemoteRef defines Provider data location.</p>
@@ -1076,6 +1122,104 @@ string
 <td>
 <em>(Optional)</em>
 <p>Used to select a specific property of the Provider value (if a map), if supported</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.ExternalSecretExtract">ExternalSecretExtract
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Key is the key used in the Provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select a specific version of the Provider value, if supported</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>property</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select a specific property of the Provider value (if a map), if supported</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.ExternalSecretFind">ExternalSecretFind
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.FindName">
+FindName
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Key is the key used in the Provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tags</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select a specific version of the Provider value, if supported</p>
 </td>
 </tr>
 </tbody>
@@ -1154,8 +1298,8 @@ May be set to zero to fetch and create it once. Defaults to 1h.</p>
 <td>
 <code>dataFrom</code></br>
 <em>
-<a href="#external-secrets.io/v1alpha1.ExternalSecretDataRemoteRef">
-[]ExternalSecretDataRemoteRef
+<a href="#external-secrets.io/v1alpha1.ExternalSecretDataFromRemoteRef">
+[]ExternalSecretDataFromRemoteRef
 </a>
 </em>
 </td>
@@ -1482,6 +1626,36 @@ map[string]string
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.FindName">FindName
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretFind">ExternalSecretFind</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select multiple secrets based on a regular expression of the name</p>
 </td>
 </tr>
 </tbody>

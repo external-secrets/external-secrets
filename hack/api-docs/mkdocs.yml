@@ -32,6 +32,7 @@ nav:
     - Getting started: guides-getting-started.md
     - Advanced Templating: guides-templating.md
     - All keys, One secret: guides-all-keys-one-secret.md
+    - Multiple secrets: guides-multiple-secrets.md
     - Common K8S Secret Types: guides-common-k8s-secret-types.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md

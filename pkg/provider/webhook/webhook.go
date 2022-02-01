@@ -37,6 +37,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/template"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Provider satisfies the provider interface.
@@ -129,12 +130,12 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDa
 	return result, nil
 }
 
-func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
 	}
-	result, err := w.getWebhookData(ctx, provider, ref)
+	result, err := w.getWebhookData(ctx, provider, ref.GetDataRemoteRef())
 	if err != nil {
 		return nil, err
 	}
@@ -371,6 +372,13 @@ func (w *WebHook) getCertFromConfigMap(provider *esv1alpha1.WebhookProvider) ([]
 	}
 
 	return []byte(val), nil
+}
+
+// Implements store.Client.GetAllSecrets Interface.
+// New version of GetAllSecrets.
+func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, utils.ThrowNotImplemented()
 }
 
 func (w *WebHook) Close(ctx context.Context) error {
