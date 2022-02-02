@@ -33,6 +33,9 @@ type ClusterExternalSecretSpec struct {
 
 	// The labels to select by to find the Namespaces to create the ExternalSecrets in.
 	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector"`
+
+	// The time in which the controller should reconcile it's objects and recheck namespaces for labels.
+	RefreshInterval *metav1.Duration `json:"refreshTime,omitempty"`
 }
 
 type ClusterExternalSecretConditionType string

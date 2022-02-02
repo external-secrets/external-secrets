@@ -78,16 +78,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	genClient := kubernetes.NewForConfigOrDie(ctrl.GetConfigOrDie())
 	namespaces := genClient.CoreV1().Namespaces()
 
+	refreshInt := r.RequeueInterval
+	if clusterExternalSecret.Spec.RefreshInterval != nil {
+		refreshInt = clusterExternalSecret.Spec.RefreshInterval.Duration
+	}
+
 	labelMap, err := metav1.LabelSelectorAsMap(&clusterExternalSecret.Spec.NamespaceSelector)
 	if err != nil {
 		log.Error(err, errLabelMap)
-		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 
 	namespaceList, err := namespaces.List(ctx, metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap).String()})
 	if err != nil {
 		log.Error(err, errNamespaces)
-		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 
 	esName := clusterExternalSecret.Spec.ExternalSecretName
@@ -117,7 +122,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		err = controllerutil.SetControllerReference(&clusterExternalSecret, &externalSecret, r.Scheme)
 		if err != nil {
 			log.Error(err, errSetCtrlReference)
-			return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+			return ctrl.Result{RequeueAfter: refreshInt}, nil
 		}
 
 		mutateFunc := func() error {
@@ -133,7 +138,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
