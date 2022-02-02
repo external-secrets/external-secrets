@@ -12,7 +12,6 @@
 # limitations under the License.
 
 FROM alpine:3.11
-
 COPY requirements.txt /
 RUN apk add -U --no-cache \
     python3 \
@@ -24,6 +23,4 @@ RUN apk add -U --no-cache \
     bash \
     gcc \
     diffutils \
-  && pip3 install -r /requirements.txt \
-  && git config --global user.email "docs@external-secrets.io" \
-  && git config --global user.name "Docs"
+  && pip3 install -r /requirements.txt
