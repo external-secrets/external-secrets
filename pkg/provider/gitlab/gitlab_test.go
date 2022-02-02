@@ -22,7 +22,7 @@ import (
 
 	gitlab "github.com/xanzy/go-gitlab"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -32,8 +32,8 @@ type secretManagerTestCase struct {
 	apiInputProjectID string
 	apiInputKey       string
 	apiOutput         *gitlab.ProjectVariable
-	ref               *esv1alpha1.ExternalSecretDataRemoteRef
-	refFrom           *esv1alpha1.ExternalSecretDataFromRemoteRef
+	ref               *esv1alpha2.ExternalSecretDataRemoteRef
+	refFrom           *esv1alpha2.ExternalSecretDataFromRemoteRef
 	projectID         *string
 	apiErr            error
 	expectError       string

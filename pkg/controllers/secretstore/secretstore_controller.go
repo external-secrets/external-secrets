@@ -22,7 +22,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 )
 
 // Reconciler reconciles a SecretStore object.
@@ -45,6 +45,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&esv1alpha1.SecretStore{}).
+		For(&esv1alpha2.SecretStore{}).
 		Complete(r)
 }

@@ -19,25 +19,25 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 )
 
 // Provider is a common interface for interacting with secret backends.
 type Provider interface {
 	// NewClient constructs a SecretsManager Provider
-	NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (SecretsClient, error)
+	NewClient(ctx context.Context, store esv1alpha2.GenericStore, kube client.Client, namespace string) (SecretsClient, error)
 }
 
 // SecretsClient provides access to secrets.
 type SecretsClient interface {
 	// GetSecret returns a single secret from the provider
-	GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error)
+	GetSecret(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// GetSecretMap returns multiple k/v pairs from the provider
-	GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error)
+	GetSecretMap(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error)
 
 	// GetSecretMap returns all k/v pairs from the provider
-	GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error)
+	GetAllSecrets(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error)
 
 	Close(ctx context.Context) error
 }

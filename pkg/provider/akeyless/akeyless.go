@@ -23,7 +23,7 @@ import (
 	"github.com/akeylesslabs/akeyless-go/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -39,7 +39,7 @@ type Provider struct{}
 // akeylessBase satisfies the provider.SecretsClient interface.
 type akeylessBase struct {
 	kube      client.Client
-	store     esv1alpha1.GenericStore
+	store     esv1alpha2.GenericStore
 	namespace string
 
 	akeylessGwAPIURL string
@@ -56,17 +56,17 @@ type akeylessVaultInterface interface {
 }
 
 func init() {
-	schema.Register(&Provider{}, &esv1alpha1.SecretStoreProvider{
-		Akeyless: &esv1alpha1.AkeylessProvider{},
+	schema.Register(&Provider{}, &esv1alpha2.SecretStoreProvider{
+		Akeyless: &esv1alpha2.AkeylessProvider{},
 	})
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1alpha2.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace)
 }
 
-func newClient(_ context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func newClient(_ context.Context, store esv1alpha2.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	akl := &akeylessBase{
 		kube:      kube,
 		store:     store,
@@ -105,7 +105,7 @@ func (a *Akeyless) Close(ctx context.Context) error {
 
 // Implements store.Client.GetSecret Interface.
 // Retrieves a secret with the secret name defined in ref.Name.
-func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(a.Client) {
 		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
 	}
@@ -130,14 +130,14 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretD
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, utils.ThrowNotImplemented()
 }
 
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
-func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(a.Client) {
 		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
 	}

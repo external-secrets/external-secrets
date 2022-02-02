@@ -36,7 +36,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
@@ -129,16 +129,16 @@ func (a *akeylessProvider) BeforeEach() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// Creating Akeyless secret store
-	secretStore := &esv1alpha1.SecretStore{
+	secretStore := &esv1alpha2.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      a.framework.Namespace.Name,
 			Namespace: a.framework.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				Akeyless: &esv1alpha1.AkeylessProvider{
-					Auth: &esv1alpha1.AkeylessAuth{
-						SecretRef: esv1alpha1.AkeylessAuthSecretRef{
+		Spec: esv1alpha2.SecretStoreSpec{
+			Provider: &esv1alpha2.SecretStoreProvider{
+				Akeyless: &esv1alpha2.AkeylessProvider{
+					Auth: &esv1alpha2.AkeylessAuth{
+						SecretRef: esv1alpha2.AkeylessAuthSecretRef{
 							AccessID: esmeta.SecretKeySelector{
 								Name: "access-id-secret",
 								Key:  "access-id",

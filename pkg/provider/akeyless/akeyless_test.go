@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	fakeakeyless "github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -29,8 +29,8 @@ type akeylessTestCase struct {
 	mockClient     *fakeakeyless.AkeylessMockClient
 	apiInput       *fakeakeyless.Input
 	apiOutput      *fakeakeyless.Output
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
-	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
+	ref            *esv1alpha2.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha2.ExternalSecretDataFromRemoteRef
 	expectError    string
 	expectedSecret string
 	// for testing secretmap

@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -56,7 +56,7 @@ type providerIBM struct {
 
 type client struct {
 	kube        kclient.Client
-	store       *esv1alpha1.IBMProvider
+	store       *esv1alpha2.IBMProvider
 	namespace   string
 	storeKind   string
 	credentials []byte
@@ -74,7 +74,7 @@ func (c *client) setAuth(ctx context.Context) error {
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if c.storeKind == esv1alpha2.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.SecretAPIKey.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
 		}
@@ -95,12 +95,12 @@ func (c *client) setAuth(ctx context.Context) error {
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, utils.ThrowNotImplemented()
 }
 
-func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
@@ -158,7 +158,7 @@ func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, error) {
 	return []byte(arbitrarySecretPayload), nil
 }
 
-func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
@@ -193,7 +193,7 @@ func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, erro
 	return []byte(secretData), nil
 }
 
-func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
@@ -212,7 +212,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1alp
 	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
-func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
@@ -320,7 +320,7 @@ func (ibm *providerIBM) Close(ctx context.Context) error {
 	return nil
 }
 
-func (ibm *providerIBM) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (ibm *providerIBM) NewClient(ctx context.Context, store esv1alpha2.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	ibmSpec := storeSpec.Provider.IBM
 
@@ -373,7 +373,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1alpha1.GenericS
 }
 
 func init() {
-	schema.Register(&providerIBM{}, &esv1alpha1.SecretStoreProvider{
-		IBM: &esv1alpha1.IBMProvider{},
+	schema.Register(&providerIBM{}, &esv1alpha2.SecretStoreProvider{
+		IBM: &esv1alpha2.IBMProvider{},
 	})
 }

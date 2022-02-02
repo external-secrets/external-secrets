@@ -21,7 +21,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/e2e/framework/log"
 )
 
@@ -30,7 +30,7 @@ var TargetSecretName = "target-secret"
 // TestCase contains the test infra to run a table driven test.
 type TestCase struct {
 	Framework      *Framework
-	ExternalSecret *esv1alpha1.ExternalSecret
+	ExternalSecret *esv1alpha2.ExternalSecret
 	Secrets        map[string]string
 	ExpectedSecret *v1.Secret
 }
@@ -85,16 +85,16 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 func makeDefaultTestCase(f *Framework) *TestCase {
 	return &TestCase{
 		Framework: f,
-		ExternalSecret: &esv1alpha1.ExternalSecret{
+		ExternalSecret: &esv1alpha2.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "e2e-es",
 				Namespace: f.Namespace.Name,
 			},
-			Spec: esv1alpha1.ExternalSecretSpec{
-				SecretStoreRef: esv1alpha1.SecretStoreRef{
+			Spec: esv1alpha2.ExternalSecretSpec{
+				SecretStoreRef: esv1alpha2.SecretStoreRef{
 					Name: f.Namespace.Name,
 				},
-				Target: esv1alpha1.ExternalSecretTarget{
+				Target: esv1alpha2.ExternalSecretTarget{
 					Name: TargetSecretName,
 				},
 			},

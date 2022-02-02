@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/e2e/framework/log"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -56,15 +56,15 @@ type Gitlab struct {
 // Client for interacting with kubernetes cluster...?
 type gClient struct {
 	kube        kclient.Client
-	store       *esv1alpha1.GitlabProvider
+	store       *esv1alpha2.GitlabProvider
 	namespace   string
 	storeKind   string
 	credentials []byte
 }
 
 func init() {
-	schema.Register(&Gitlab{}, &esv1alpha1.SecretStoreProvider{
-		Gitlab: &esv1alpha1.GitlabProvider{},
+	schema.Register(&Gitlab{}, &esv1alpha2.SecretStoreProvider{
+		Gitlab: &esv1alpha2.GitlabProvider{},
 	})
 }
 
@@ -80,7 +80,7 @@ func (c *gClient) setAuth(ctx context.Context) error {
 		Namespace: c.namespace,
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if c.storeKind == esv1alpha2.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.AccessToken.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		}
@@ -108,7 +108,7 @@ func NewGitlabProvider() *Gitlab {
 }
 
 // Method on Gitlab Provider to set up client with credentials and populate projectID.
-func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha2.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
 		return nil, fmt.Errorf("no store type or wrong store type")
@@ -148,7 +148,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1alpha1.GenericStore, k
 	return g, nil
 }
 
-func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(g.client) {
 		return nil, fmt.Errorf(errUninitalizedGitlabProvider)
 	}
@@ -187,12 +187,12 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, utils.ThrowNotImplemented()
 }
 
-func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// Gets a secret as normal, expecting secret value to be a json object
 	data, err := g.GetSecret(ctx, ref.GetDataRemoteRef())
 	if err != nil {

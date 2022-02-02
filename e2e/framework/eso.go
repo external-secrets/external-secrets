@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 )
 
 // WaitForSecretValue waits until a secret comes into existence and compares the secret.Data
@@ -56,7 +56,7 @@ func equalSecrets(exp, ts *v1.Secret) bool {
 	}
 
 	// secret contains data hash property which must be ignored
-	delete(ts.ObjectMeta.Annotations, esv1alpha1.AnnotationDataHash)
+	delete(ts.ObjectMeta.Annotations, esv1alpha2.AnnotationDataHash)
 	if len(ts.ObjectMeta.Annotations) == 0 {
 		ts.ObjectMeta.Annotations = nil
 	}

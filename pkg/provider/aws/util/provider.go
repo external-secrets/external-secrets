@@ -16,7 +16,7 @@ package util
 import (
 	"fmt"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 
 // GetAWSProvider does the necessary nil checks on the generic store
 // it returns the aws provider or an error.
-func GetAWSProvider(store esv1alpha1.GenericStore) (*esv1alpha1.AWSProvider, error) {
+func GetAWSProvider(store esv1alpha2.GenericStore) (*esv1alpha2.AWSProvider, error) {
 	if store == nil {
 		return nil, fmt.Errorf(errNilStore)
 	}

@@ -27,7 +27,7 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/ibm/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -37,8 +37,8 @@ type secretManagerTestCase struct {
 	mockClient     *fakesm.IBMMockClient
 	apiInput       *sm.GetSecretOptions
 	apiOutput      *sm.GetSecret
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
-	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
+	ref            *esv1alpha2.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha2.ExternalSecretDataFromRemoteRef
 	serviceURL     *string
 	apiErr         error
 	expectError    string
@@ -378,12 +378,12 @@ func TestValidRetryInput(t *testing.T) {
 	invalid := "Invalid"
 	serviceURL := "http://fake-service-url.cool"
 
-	spec := &esv1alpha1.SecretStore{
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				IBM: &esv1alpha1.IBMProvider{
-					Auth: esv1alpha1.IBMAuth{
-						SecretRef: esv1alpha1.IBMAuthSecretRef{
+	spec := &esv1alpha2.SecretStore{
+		Spec: esv1alpha2.SecretStoreSpec{
+			Provider: &esv1alpha2.SecretStoreProvider{
+				IBM: &esv1alpha2.IBMProvider{
+					Auth: esv1alpha2.IBMAuth{
+						SecretRef: esv1alpha2.IBMAuthSecretRef{
 							SecretAPIKey: v1.SecretKeySelector{
 								Name: "fake-secret",
 								Key:  "fake-key",
@@ -393,7 +393,7 @@ func TestValidRetryInput(t *testing.T) {
 					ServiceURL: &serviceURL,
 				},
 			},
-			RetrySettings: &esv1alpha1.SecretStoreRetrySettings{
+			RetrySettings: &esv1alpha2.SecretStoreRetrySettings{
 				RetryInterval: &invalid,
 			},
 		},

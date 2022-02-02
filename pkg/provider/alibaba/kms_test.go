@@ -24,7 +24,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -38,8 +38,8 @@ type keyManagementServiceTestCase struct {
 	mockClient     *fakesm.AlibabaMockClient
 	apiInput       *kmssdk.GetSecretValueRequest
 	apiOutput      *kmssdk.GetSecretValueResponse
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
-	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
+	ref            *esv1alpha2.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha2.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string

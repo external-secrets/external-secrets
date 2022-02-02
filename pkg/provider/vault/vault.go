@@ -32,7 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -89,7 +89,7 @@ type Client interface {
 
 type client struct {
 	kube      kclient.Client
-	store     *esv1alpha1.VaultProvider
+	store     *esv1alpha2.VaultProvider
 	log       logr.Logger
 	client    Client
 	namespace string
@@ -99,8 +99,8 @@ type client struct {
 func init() {
 	schema.Register(&connector{
 		newVaultClient: newVaultClient,
-	}, &esv1alpha1.SecretStoreProvider{
-		Vault: &esv1alpha1.VaultProvider{},
+	}, &esv1alpha2.SecretStoreProvider{
+		Vault: &esv1alpha2.VaultProvider{},
 	})
 }
 
@@ -112,7 +112,7 @@ type connector struct {
 	newVaultClient func(c *vault.Config) (Client, error)
 }
 
-func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (c *connector) NewClient(ctx context.Context, store esv1alpha2.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {
 		return nil, errors.New(errVaultStore)
@@ -153,7 +153,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 	return vStore, nil
 }
 
-func (v *client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (v *client) GetSecret(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	data, err := v.readSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
 		return nil, err
@@ -165,13 +165,13 @@ func (v *client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	return value, nil
 }
 
-func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	return v.readSecret(ctx, ref.Extract.Key, ref.Extract.Version)
 }
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (v *client) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (v *client) GetAllSecrets(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, utils.ThrowNotImplemented()
 }
@@ -204,7 +204,7 @@ func (v *client) buildPath(path string) string {
 		cursor++
 	}
 
-	if v.store.Version == esv1alpha1.VaultKVStoreV2 {
+	if v.store.Version == esv1alpha2.VaultKVStoreV2 {
 		// Add the required `data` part of the URL for the v2 API
 		if len(origPath) < 2 || origPath[1] != "data" {
 			newPath = append(newPath, "data")
@@ -238,7 +238,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 	}
 
 	secretData := vaultSecret.Data
-	if v.store.Version == esv1alpha1.VaultKVStoreV2 {
+	if v.store.Version == esv1alpha2.VaultKVStoreV2 {
 		// Vault KV2 has data embedded within sub-field
 		// reference - https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
 		dataInt, ok := vaultSecret.Data["data"]
@@ -286,7 +286,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 		}
 	}
 
-	if v.store.CAProvider != nil && v.storeKind == esv1alpha1.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
+	if v.store.CAProvider != nil && v.storeKind == esv1alpha2.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
 		return nil, errors.New(errCANamespace)
 	}
 
@@ -295,9 +295,9 @@ func (v *client) newConfig() (*vault.Config, error) {
 		var err error
 
 		switch v.store.CAProvider.Type {
-		case esv1alpha1.CAProviderTypeSecret:
+		case esv1alpha2.CAProviderTypeSecret:
 			cert, err = getCertFromSecret(v)
-		case esv1alpha1.CAProviderTypeConfigMap:
+		case esv1alpha2.CAProviderTypeConfigMap:
 			cert, err = getCertFromConfigMap(v)
 		default:
 			return nil, errors.New(errUnknownCAProvider)
@@ -484,7 +484,7 @@ func (v *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccou
 		Namespace: v.namespace,
 		Name:      serviceAccountRef.Name,
 	}
-	if (v.storeKind == esv1alpha1.ClusterSecretStoreKind) &&
+	if (v.storeKind == esv1alpha2.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		ref.Namespace = *serviceAccountRef.Namespace
 	}
@@ -517,7 +517,7 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 		Namespace: v.namespace,
 		Name:      secretRef.Name,
 	}
-	if (v.storeKind == esv1alpha1.ClusterSecretStoreKind) &&
+	if (v.storeKind == esv1alpha2.ClusterSecretStoreKind) &&
 		(secretRef.Namespace != nil) {
 		ref.Namespace = *secretRef.Namespace
 	}
@@ -545,7 +545,7 @@ func appRoleParameters(role, secret string) map[string]string {
 	}
 }
 
-func (v *client) requestTokenWithAppRoleRef(ctx context.Context, client Client, appRole *esv1alpha1.VaultAppRole) (string, error) {
+func (v *client) requestTokenWithAppRoleRef(ctx context.Context, client Client, appRole *esv1alpha2.VaultAppRole) (string, error) {
 	roleID := strings.TrimSpace(appRole.RoleID)
 
 	secretID, err := v.secretKeyRef(ctx, &appRole.SecretRef)
@@ -591,7 +591,7 @@ func kubeParameters(role, jwt string) map[string]string {
 	}
 }
 
-func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
+func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Client, kubernetesAuth *esv1alpha2.VaultKubernetesAuth) (string, error) {
 	jwtString, err := getJwtString(ctx, v, kubernetesAuth)
 	if err != nil {
 		return "", err
@@ -626,7 +626,7 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, client Clie
 	return token, nil
 }
 
-func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1alpha1.VaultKubernetesAuth) (string, error) {
+func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1alpha2.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
 		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
 		if err != nil {
@@ -659,7 +659,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1alpha1.Vau
 	}
 }
 
-func (v *client) requestTokenWithLdapAuth(ctx context.Context, client Client, ldapAuth *esv1alpha1.VaultLdapAuth) (string, error) {
+func (v *client) requestTokenWithLdapAuth(ctx context.Context, client Client, ldapAuth *esv1alpha2.VaultLdapAuth) (string, error) {
 	username := strings.TrimSpace(ldapAuth.Username)
 
 	password, err := v.secretKeyRef(ctx, &ldapAuth.SecretRef)
@@ -698,7 +698,7 @@ func (v *client) requestTokenWithLdapAuth(ctx context.Context, client Client, ld
 	return token, nil
 }
 
-func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwtAuth *esv1alpha1.VaultJwtAuth) (string, error) {
+func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwtAuth *esv1alpha2.VaultJwtAuth) (string, error) {
 	role := strings.TrimSpace(jwtAuth.Role)
 
 	jwt, err := v.secretKeyRef(ctx, &jwtAuth.SecretRef)
@@ -738,7 +738,7 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwt
 	return token, nil
 }
 
-func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, certAuth *esv1alpha1.VaultCertAuth, cfg *vault.Config) (string, error) {
+func (v *client) requestTokenWithCertAuth(ctx context.Context, client Client, certAuth *esv1alpha2.VaultCertAuth, cfg *vault.Config) (string, error) {
 	clientKey, err := v.secretKeyRef(ctx, &certAuth.SecretRef)
 	if err != nil {
 		return "", err

@@ -23,7 +23,7 @@ import (
 	"runtime"
 	"strings"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 )
 
 const (
@@ -76,25 +76,25 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
-func MakeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
+func MakeValidRef() *esv1alpha2.ExternalSecretDataRemoteRef {
 	return MakeValidRefWithParams(testSecret, "", defaultVersion)
 }
 
-func MakeValidRefWithParams(key, property, version string) *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
+func MakeValidRefWithParams(key, property, version string) *esv1alpha2.ExternalSecretDataRemoteRef {
+	return &esv1alpha2.ExternalSecretDataRemoteRef{
 		Key:      key,
 		Property: property,
 		Version:  version,
 	}
 }
 
-func MakeValidRefFrom() *esv1alpha1.ExternalSecretDataFromRemoteRef {
+func MakeValidRefFrom() *esv1alpha2.ExternalSecretDataFromRemoteRef {
 	return MakeValidRefFromWithParams(testSecret, "", defaultVersion)
 }
 
-func MakeValidRefFromWithParams(key, property, version string) *esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return &esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
+func MakeValidRefFromWithParams(key, property, version string) *esv1alpha2.ExternalSecretDataFromRemoteRef {
+	return &esv1alpha2.ExternalSecretDataFromRemoteRef{
+		Extract: esv1alpha2.ExternalSecretExtract{
 			Key:      key,
 			Property: property,
 			Version:  version,

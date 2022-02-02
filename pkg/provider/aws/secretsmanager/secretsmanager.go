@@ -24,7 +24,7 @@ import (
 	"github.com/tidwall/gjson"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -51,7 +51,7 @@ func New(sess client.ConfigProvider) (*SecretsManager, error) {
 	}, nil
 }
 
-func (sm *SecretsManager) fetch(_ context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
+func (sm *SecretsManager) fetch(_ context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
 	ver := "AWSCURRENT"
 	if ref.Version != "" {
 		ver = ref.Version
@@ -76,7 +76,7 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1alpha1.ExternalSecret
 }
 
 // GetSecret returns a single secret from the provider.
-func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secretOut, err := sm.fetch(ctx, ref)
 	if err != nil {
 		return nil, util.SanitizeErr(err)
@@ -106,7 +106,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.External
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	log.Info("fetching secret map", "key", ref.Extract.Key)
 	data, err := sm.GetSecret(ctx, ref.GetDataRemoteRef())
 	if err != nil {
@@ -132,7 +132,7 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, utils.ThrowNotImplemented()
 }

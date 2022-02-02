@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
@@ -105,16 +105,16 @@ func (p *oracleProvider) BeforeEach() {
 	err := p.framework.CRClient.Create(context.Background(), OracleCreds)
 	Expect(err).ToNot(HaveOccurred())
 
-	secretStore := &esv1alpha1.SecretStore{
+	secretStore := &esv1alpha2.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.framework.Namespace.Name,
 			Namespace: p.framework.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				Oracle: &esv1alpha1.OracleProvider{
-					Auth: esv1alpha1.OracleAuth{
-						SecretRef: esv1alpha1.OracleSecretRef{
+		Spec: esv1alpha2.SecretStoreSpec{
+			Provider: &esv1alpha2.SecretStoreProvider{
+				Oracle: &esv1alpha2.OracleProvider{
+					Auth: esv1alpha2.OracleAuth{
+						SecretRef: esv1alpha2.OracleSecretRef{
 							Fingerprint: esmeta.SecretKeySelector{
 								Name: "vms-secret",
 								Key:  "keyid",

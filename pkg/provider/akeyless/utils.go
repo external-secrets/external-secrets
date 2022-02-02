@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 )
 
 const (
@@ -34,7 +34,7 @@ const (
 )
 
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.
-func GetAKeylessProvider(store esv1alpha1.GenericStore) (*esv1alpha1.AkeylessProvider, error) {
+func GetAKeylessProvider(store esv1alpha2.GenericStore) (*esv1alpha2.AkeylessProvider, error) {
 	if store == nil {
 		return nil, fmt.Errorf(errNilStore)
 	}

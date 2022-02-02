@@ -32,7 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -45,19 +45,19 @@ type Provider struct{}
 
 type WebHook struct {
 	kube      client.Client
-	store     esv1alpha1.GenericStore
+	store     esv1alpha2.GenericStore
 	namespace string
 	storeKind string
 	http      *http.Client
 }
 
 func init() {
-	schema.Register(&Provider{}, &esv1alpha1.SecretStoreProvider{
-		Webhook: &esv1alpha1.WebhookProvider{},
+	schema.Register(&Provider{}, &esv1alpha2.SecretStoreProvider{
+		Webhook: &esv1alpha2.WebhookProvider{},
 	})
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1alpha2.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	whClient := &WebHook{
 		kube:      kube,
 		store:     store,
@@ -75,7 +75,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore,
 	return whClient, nil
 }
 
-func getProvider(store esv1alpha1.GenericStore) (*esv1alpha1.WebhookProvider, error) {
+func getProvider(store esv1alpha2.GenericStore) (*esv1alpha2.WebhookProvider, error) {
 	spc := store.GetSpec()
 	if spc == nil || spc.Provider == nil || spc.Provider.Webhook == nil {
 		return nil, fmt.Errorf("missing store provider webhook")
@@ -88,7 +88,7 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 		Name:      ref.Name,
 		Namespace: w.namespace,
 	}
-	if w.storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if w.storeKind == esv1alpha2.ClusterSecretStoreKind {
 		if ref.Namespace == nil {
 			return nil, fmt.Errorf("no namespace on ClusterSecretStore webhook secret %s", ref.Name)
 		}
@@ -101,7 +101,7 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 	return secret, nil
 }
 
-func (w *WebHook) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (w *WebHook) GetSecret(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
@@ -130,7 +130,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDa
 	return result, nil
 }
 
-func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
@@ -179,7 +179,7 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecre
 	return values, nil
 }
 
-func (w *WebHook) getTemplateData(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef, secrets []esv1alpha1.WebhookSecret) (map[string]map[string]string, error) {
+func (w *WebHook) getTemplateData(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef, secrets []esv1alpha2.WebhookSecret) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{
 		"remoteRef": {
 			"key":      url.QueryEscape(ref.Key),
@@ -202,7 +202,7 @@ func (w *WebHook) getTemplateData(ctx context.Context, ref esv1alpha1.ExternalSe
 	return data, nil
 }
 
-func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.WebhookProvider, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha2.WebhookProvider, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if w.http == nil {
 		return nil, fmt.Errorf("http client not initialized")
 	}
@@ -246,7 +246,7 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1alpha1.Webho
 	return io.ReadAll(resp.Body)
 }
 
-func (w *WebHook) getHTTPClient(provider *esv1alpha1.WebhookProvider) (*http.Client, error) {
+func (w *WebHook) getHTTPClient(provider *esv1alpha2.WebhookProvider) (*http.Client, error) {
 	client := &http.Client{}
 	if provider.Timeout != nil {
 		client.Timeout = provider.Timeout.Duration
@@ -268,7 +268,7 @@ func (w *WebHook) getHTTPClient(provider *esv1alpha1.WebhookProvider) (*http.Cli
 	return client, nil
 }
 
-func (w *WebHook) getCACertPool(provider *esv1alpha1.WebhookProvider) (*x509.CertPool, error) {
+func (w *WebHook) getCACertPool(provider *esv1alpha2.WebhookProvider) (*x509.CertPool, error) {
 	caCertPool := x509.NewCertPool()
 	if len(provider.CABundle) > 0 {
 		ok := caCertPool.AppendCertsFromPEM(provider.CABundle)
@@ -277,7 +277,7 @@ func (w *WebHook) getCACertPool(provider *esv1alpha1.WebhookProvider) (*x509.Cer
 		}
 	}
 
-	if provider.CAProvider != nil && w.storeKind == esv1alpha1.ClusterSecretStoreKind && provider.CAProvider.Namespace == nil {
+	if provider.CAProvider != nil && w.storeKind == esv1alpha2.ClusterSecretStoreKind && provider.CAProvider.Namespace == nil {
 		return nil, fmt.Errorf("missing namespace on CAProvider secret")
 	}
 
@@ -286,9 +286,9 @@ func (w *WebHook) getCACertPool(provider *esv1alpha1.WebhookProvider) (*x509.Cer
 		var err error
 
 		switch provider.CAProvider.Type {
-		case esv1alpha1.WebhookCAProviderTypeSecret:
+		case esv1alpha2.WebhookCAProviderTypeSecret:
 			cert, err = w.getCertFromSecret(provider)
-		case esv1alpha1.WebhookCAProviderTypeConfigMap:
+		case esv1alpha2.WebhookCAProviderTypeConfigMap:
 			cert, err = w.getCertFromConfigMap(provider)
 		default:
 			err = fmt.Errorf("unknown caprovider type: %s", provider.CAProvider.Type)
@@ -306,7 +306,7 @@ func (w *WebHook) getCACertPool(provider *esv1alpha1.WebhookProvider) (*x509.Cer
 	return caCertPool, nil
 }
 
-func (w *WebHook) getCertFromSecret(provider *esv1alpha1.WebhookProvider) ([]byte, error) {
+func (w *WebHook) getCertFromSecret(provider *esv1alpha2.WebhookProvider) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
 		Name: provider.CAProvider.Name,
 		Key:  provider.CAProvider.Key,
@@ -331,7 +331,7 @@ func (w *WebHook) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeyS
 		Namespace: w.namespace,
 		Name:      secretRef.Name,
 	}
-	if (w.storeKind == esv1alpha1.ClusterSecretStoreKind) &&
+	if (w.storeKind == esv1alpha2.ClusterSecretStoreKind) &&
 		(secretRef.Namespace != nil) {
 		ref.Namespace = *secretRef.Namespace
 	}
@@ -350,7 +350,7 @@ func (w *WebHook) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeyS
 	return valueStr, nil
 }
 
-func (w *WebHook) getCertFromConfigMap(provider *esv1alpha1.WebhookProvider) ([]byte, error) {
+func (w *WebHook) getCertFromConfigMap(provider *esv1alpha2.WebhookProvider) ([]byte, error) {
 	objKey := client.ObjectKey{
 		Name: provider.CAProvider.Name,
 	}
@@ -376,7 +376,7 @@ func (w *WebHook) getCertFromConfigMap(provider *esv1alpha1.WebhookProvider) ([]
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, utils.ThrowNotImplemented()
 }

@@ -28,7 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/framework/addon"
@@ -98,16 +98,16 @@ func (s *vaultProvider) BeforeEach() {
 	s.CreateKubernetesAuthStore(v, ns)
 }
 
-func makeStore(name, ns string, v *addon.Vault) *esv1alpha1.SecretStore {
-	return &esv1alpha1.SecretStore{
+func makeStore(name, ns string, v *addon.Vault) *esv1alpha2.SecretStore {
+	return &esv1alpha2.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				Vault: &esv1alpha1.VaultProvider{
-					Version:  esv1alpha1.VaultKVStoreV2,
+		Spec: esv1alpha2.SecretStoreSpec{
+			Provider: &esv1alpha2.SecretStoreProvider{
+				Vault: &esv1alpha2.VaultProvider{
+					Version:  esv1alpha2.VaultKVStoreV2,
 					Path:     &secretStorePath,
 					Server:   v.VaultURL,
 					CABundle: v.VaultServerCA,
@@ -137,8 +137,8 @@ func (s *vaultProvider) CreateCertStore(v *addon.Vault, ns string) {
 
 	By("creating an secret store for vault")
 	secretStore := makeStore(certAuthProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
-		Cert: &esv1alpha1.VaultCertAuth{
+	secretStore.Spec.Provider.Vault.Auth = esv1alpha2.VaultAuth{
+		Cert: &esv1alpha2.VaultCertAuth{
 			ClientCert: esmeta.SecretKeySelector{
 				Name: certAuthProviderName,
 				Key:  "client_cert",
@@ -166,7 +166,7 @@ func (s vaultProvider) CreateTokenStore(v *addon.Vault, ns string) {
 	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := makeStore(s.framework.Namespace.Name, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
+	secretStore.Spec.Provider.Vault.Auth = esv1alpha2.VaultAuth{
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: "token-provider",
 			Key:  "token",
@@ -192,8 +192,8 @@ func (s vaultProvider) CreateAppRoleStore(v *addon.Vault, ns string) {
 
 	By("creating an secret store for vault")
 	secretStore := makeStore(appRoleAuthProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
-		AppRole: &esv1alpha1.VaultAppRole{
+	secretStore.Spec.Provider.Vault.Auth = esv1alpha2.VaultAuth{
+		AppRole: &esv1alpha2.VaultAppRole{
 			Path:   v.AppRolePath,
 			RoleID: v.AppRoleID,
 			SecretRef: esmeta.SecretKeySelector{
@@ -220,9 +220,9 @@ func (s vaultProvider) CreateV1Store(v *addon.Vault, ns string) {
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := makeStore(kvv1ProviderName, ns, v)
 	secretV1StorePath := "secret_v1"
-	secretStore.Spec.Provider.Vault.Version = esv1alpha1.VaultKVStoreV1
+	secretStore.Spec.Provider.Vault.Version = esv1alpha2.VaultKVStoreV1
 	secretStore.Spec.Provider.Vault.Path = &secretV1StorePath
-	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
+	secretStore.Spec.Provider.Vault.Auth = esv1alpha2.VaultAuth{
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: "v1-provider",
 			Key:  "token",
@@ -245,8 +245,8 @@ func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := makeStore(jwtProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
-		Jwt: &esv1alpha1.VaultJwtAuth{
+	secretStore.Spec.Provider.Vault.Auth = esv1alpha2.VaultAuth{
+		Jwt: &esv1alpha2.VaultJwtAuth{
 			Path: v.JWTPath,
 			Role: v.JWTRole,
 			SecretRef: esmeta.SecretKeySelector{
@@ -261,8 +261,8 @@ func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 
 func (s vaultProvider) CreateKubernetesAuthStore(v *addon.Vault, ns string) {
 	secretStore := makeStore(kubernetesProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = esv1alpha1.VaultAuth{
-		Kubernetes: &esv1alpha1.VaultKubernetesAuth{
+	secretStore.Spec.Provider.Vault.Auth = esv1alpha2.VaultAuth{
+		Kubernetes: &esv1alpha2.VaultKubernetesAuth{
 			Path: v.KubernetesAuthPath,
 			Role: v.KubernetesAuthRole,
 			ServiceAccountRef: &esmeta.ServiceAccountSelector{

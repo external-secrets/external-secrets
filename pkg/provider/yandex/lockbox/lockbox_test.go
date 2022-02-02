@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/fake"
@@ -48,13 +48,13 @@ func TestNewClient(t *testing.T) {
 	ctx := context.Background()
 	const namespace = "namespace"
 
-	store := &esv1alpha1.SecretStore{
+	store := &esv1alpha2.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				YandexLockbox: &esv1alpha1.YandexLockboxProvider{},
+		Spec: esv1alpha2.SecretStoreSpec{
+			Provider: &esv1alpha2.SecretStoreProvider{
+				YandexLockbox: &esv1alpha2.YandexLockboxProvider{},
 			},
 		},
 	}
@@ -66,7 +66,7 @@ func TestNewClient(t *testing.T) {
 	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
 
-	store.Spec.Provider.YandexLockbox.Auth = esv1alpha1.YandexLockboxAuth{}
+	store.Spec.Provider.YandexLockbox.Auth = esv1alpha2.YandexLockboxAuth{}
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
@@ -89,7 +89,7 @@ func TestNewClient(t *testing.T) {
 
 	const caCertificateSecretName = "caCertificateSecretName"
 	const caCertificateSecretKey = "caCertificateSecretKey"
-	store.Spec.Provider.YandexLockbox.CAProvider = &esv1alpha1.YandexLockboxCAProvider{
+	store.Spec.Provider.YandexLockbox.CAProvider = &esv1alpha2.YandexLockboxCAProvider{
 		Certificate: esmeta.SecretKeySelector{
 			Key:  caCertificateSecretKey,
 			Name: caCertificateSecretName,
@@ -619,16 +619,16 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 
 // helper functions
 
-func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey string) esv1alpha1.GenericStore {
-	return &esv1alpha1.SecretStore{
+func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey string) esv1alpha2.GenericStore {
+	return &esv1alpha2.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				YandexLockbox: &esv1alpha1.YandexLockboxProvider{
+		Spec: esv1alpha2.SecretStoreSpec{
+			Provider: &esv1alpha2.SecretStoreProvider{
+				YandexLockbox: &esv1alpha2.YandexLockboxProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1alpha1.YandexLockboxAuth{
+					Auth: esv1alpha2.YandexLockboxAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
@@ -640,17 +640,17 @@ func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName
 	}
 }
 
-func getRemoteDef(key, property, version string) esv1alpha1.ExternalSecretDataRemoteRef {
-	return esv1alpha1.ExternalSecretDataRemoteRef{
+func getRemoteDef(key, property, version string) esv1alpha2.ExternalSecretDataRemoteRef {
+	return esv1alpha2.ExternalSecretDataRemoteRef{
 		Key:      key,
 		Property: property,
 		Version:  version,
 	}
 }
 
-func getRemoteFromDef(key, property, version string) esv1alpha1.ExternalSecretDataFromRemoteRef {
-	return esv1alpha1.ExternalSecretDataFromRemoteRef{
-		Extract: esv1alpha1.ExternalSecretExtract{
+func getRemoteFromDef(key, property, version string) esv1alpha2.ExternalSecretDataFromRemoteRef {
+	return esv1alpha2.ExternalSecretDataFromRemoteRef{
+		Extract: esv1alpha2.ExternalSecretExtract{
 			Key:      key,
 			Property: property,
 			Version:  version,

@@ -21,7 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
@@ -41,18 +41,18 @@ func MountedIRSAStoreName(f *framework.Framework) string {
 }
 
 func UseClusterSecretStore(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1alpha1.ClusterSecretStoreKind
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1alpha2.ClusterSecretStoreKind
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = ReferencedIRSAStoreName(tc.Framework)
 }
 
 func UseMountedIRSAStore(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1alpha1.SecretStoreKind
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1alpha2.SecretStoreKind
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = MountedIRSAStoreName(tc.Framework)
 }
 
 // StaticStore is namespaced and references
 // static credentials from a secret.
-func SetupStaticStore(f *framework.Framework, kid, sak, region string, serviceType esv1alpha1.AWSServiceType) {
+func SetupStaticStore(f *framework.Framework, kid, sak, region string, serviceType esv1alpha2.AWSServiceType) {
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      StaticCredentialsSecretName,
@@ -66,18 +66,18 @@ func SetupStaticStore(f *framework.Framework, kid, sak, region string, serviceTy
 	err := f.CRClient.Create(context.Background(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
-	secretStore := &esv1alpha1.SecretStore{
+	secretStore := &esv1alpha2.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.Namespace.Name,
 			Namespace: f.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				AWS: &esv1alpha1.AWSProvider{
+		Spec: esv1alpha2.SecretStoreSpec{
+			Provider: &esv1alpha2.SecretStoreProvider{
+				AWS: &esv1alpha2.AWSProvider{
 					Service: serviceType,
 					Region:  region,
-					Auth: esv1alpha1.AWSAuth{
-						SecretRef: &esv1alpha1.AWSAuthSecretRef{
+					Auth: esv1alpha2.AWSAuth{
+						SecretRef: &esv1alpha2.AWSAuthSecretRef{
 							AccessKeyID: esmetav1.SecretKeySelector{
 								Name: StaticCredentialsSecretName,
 								Key:  "kid",

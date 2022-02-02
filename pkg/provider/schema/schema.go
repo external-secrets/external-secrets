@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"sync"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 )
 
@@ -32,7 +32,7 @@ func init() {
 
 // Register a store backend type. Register panics if a
 // backend with the same store is already registered.
-func Register(s provider.Provider, storeSpec *esv1alpha1.SecretStoreProvider) {
+func Register(s provider.Provider, storeSpec *esv1alpha2.SecretStoreProvider) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
@@ -50,7 +50,7 @@ func Register(s provider.Provider, storeSpec *esv1alpha1.SecretStoreProvider) {
 
 // ForceRegister adds to store schema, overwriting a store if
 // already registered. Should only be used for testing.
-func ForceRegister(s provider.Provider, storeSpec *esv1alpha1.SecretStoreProvider) {
+func ForceRegister(s provider.Provider, storeSpec *esv1alpha2.SecretStoreProvider) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
@@ -70,7 +70,7 @@ func GetProviderByName(name string) (provider.Provider, bool) {
 }
 
 // GetProvider returns the provider from the generic store.
-func GetProvider(s esv1alpha1.GenericStore) (provider.Provider, error) {
+func GetProvider(s esv1alpha2.GenericStore) (provider.Provider, error) {
 	spec := s.GetSpec()
 	storeName, err := getProviderName(spec.Provider)
 	if err != nil {
@@ -90,7 +90,7 @@ func GetProvider(s esv1alpha1.GenericStore) (provider.Provider, error) {
 
 // getProviderName returns the name of the configured provider
 // or an error if the provider is not configured.
-func getProviderName(storeSpec *esv1alpha1.SecretStoreProvider) (string, error) {
+func getProviderName(storeSpec *esv1alpha2.SecretStoreProvider) (string, error) {
 	storeBytes, err := json.Marshal(storeSpec)
 	if err != nil || storeBytes == nil {
 		return "", fmt.Errorf("failed to marshal store spec: %w", err)

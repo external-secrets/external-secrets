@@ -20,7 +20,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	// nolint
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
@@ -52,10 +52,10 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "cert"), func() {
 					secretKey: certBytes,
 				},
 			}
-			tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+			tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 				{
 					SecretKey: secretKey,
-					RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+					RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 						Key: "cert/" + certName,
 					},
 				},

@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -38,8 +38,8 @@ type secretManagerTestCase struct {
 	secretName     string
 	secretVersion  string
 	serviceURL     string
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
-	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
+	ref            *esv1alpha2.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha2.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	secretOutput   keyvault.SecretBundle
 	keyOutput      keyvault.KeyBundle
@@ -90,12 +90,12 @@ func TestNewClientManagedIdentityNoNeedForCredentials(t *testing.T) {
 	namespace := "internal"
 	vaultURL := "https://local.vault.url"
 	identityID := "1234"
-	authType := esv1alpha1.ManagedIdentity
-	store := esv1alpha1.SecretStore{
+	authType := esv1alpha2.ManagedIdentity
+	store := esv1alpha2.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
+		Spec: esv1alpha2.SecretStoreSpec{Provider: &esv1alpha2.SecretStoreProvider{AzureKV: &esv1alpha2.AzureKVProvider{
 			AuthType:   &authType,
 			IdentityID: &identityID,
 			VaultURL:   &vaultURL,
@@ -119,12 +119,12 @@ func TestNewClientNoCreds(t *testing.T) {
 	namespace := "internal"
 	vaultURL := "https://local.vault.url"
 	tenantID := "1234"
-	authType := esv1alpha1.ServicePrincipal
-	store := esv1alpha1.SecretStore{
+	authType := esv1alpha2.ServicePrincipal
+	store := esv1alpha2.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
+		Spec: esv1alpha2.SecretStoreSpec{Provider: &esv1alpha2.SecretStoreProvider{AzureKV: &esv1alpha2.AzureKVProvider{
 			AuthType: &authType,
 			VaultURL: &vaultURL,
 			TenantID: &tenantID,
@@ -136,7 +136,7 @@ func TestNewClientNoCreds(t *testing.T) {
 	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "missing clientID/clientSecret in store config")
 
-	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1alpha1.AzureKVAuth{}
+	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1alpha2.AzureKVAuth{}
 	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
 
@@ -147,8 +147,8 @@ func TestNewClientNoCreds(t *testing.T) {
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret = &v1.SecretKeySelector{Name: "password"}
 	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "could not find secret internal/user: secrets \"user\" not found")
-	store.TypeMeta.Kind = esv1alpha1.ClusterSecretStoreKind
-	store.TypeMeta.APIVersion = esv1alpha1.ClusterSecretStoreKindAPIVersion
+	store.TypeMeta.Kind = esv1alpha2.ClusterSecretStoreKind
+	store.TypeMeta.APIVersion = esv1alpha2.ClusterSecretStoreKindAPIVersion
 	ns := "default"
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID.Namespace = &ns
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret.Namespace = &ns

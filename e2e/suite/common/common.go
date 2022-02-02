@@ -18,7 +18,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
@@ -48,16 +48,16 @@ func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) 
 				secretKey2: []byte(secretValue),
 			},
 		}
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: secretKey1,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key: secretKey1,
 				},
 			},
 			{
 				SecretKey: secretKey2,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key: secretKey2,
 				},
 			},
@@ -81,10 +81,10 @@ func SyncWithoutTargetName(f *framework.Framework) (string, func(*framework.Test
 			},
 		}
 		tc.ExternalSecret.Spec.Target.Name = ""
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: secretKey1,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key: secretKey1,
 				},
 			},
@@ -111,17 +111,17 @@ func JSONDataWithProperty(f *framework.Framework) (string, func(*framework.TestC
 				secretKey2: []byte("bar2-val"),
 			},
 		}
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: secretKey1,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      secretKey1,
 					Property: "foo1",
 				},
 			},
 			{
 				SecretKey: secretKey2,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      secretKey2,
 					Property: "bar2",
 				},
@@ -146,10 +146,10 @@ func JSONDataWithoutTargetName(f *framework.Framework) (string, func(*framework.
 			},
 		}
 		tc.ExternalSecret.Spec.Target.Name = ""
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: secretKey,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      secretKey,
 					Property: "foo",
 				},
@@ -184,8 +184,8 @@ func JSONDataWithTemplate(f *framework.Framework) (string, func(*framework.TestC
 				"my-data": []byte(`executed: foo1-val|bar2-val`),
 			},
 		}
-		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
-			Metadata: esv1alpha1.ExternalSecretTemplateMetadata{
+		tc.ExternalSecret.Spec.Target.Template = &esv1alpha2.ExternalSecretTemplate{
+			Metadata: esv1alpha2.ExternalSecretTemplateMetadata{
 				Annotations: map[string]string{
 					"example": "annotation",
 				},
@@ -197,17 +197,17 @@ func JSONDataWithTemplate(f *framework.Framework) (string, func(*framework.TestC
 				"my-data": "executed: {{ .one | toString }}|{{ .two | toString }}",
 			},
 		}
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: "one",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      secretKey1,
 					Property: "foo1",
 				},
 			},
 			{
 				SecretKey: "two",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      secretKey2,
 					Property: "bar2",
 				},
@@ -235,9 +235,9 @@ func JSONDataFromSync(f *framework.Framework) (string, func(*framework.TestCase)
 				targetSecretKey2: []byte(targetSecretValue2),
 			},
 		}
-		tc.ExternalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataFromRemoteRef{
+		tc.ExternalSecret.Spec.DataFrom = []esv1alpha2.ExternalSecretDataFromRemoteRef{
 			{
-				Extract: esv1alpha1.ExternalSecretExtract{
+				Extract: esv1alpha2.ExternalSecretExtract{
 					Key: secretKey1,
 				},
 			},
@@ -275,17 +275,17 @@ func NestedJSONWithGJSON(f *framework.Framework) (string, func(*framework.TestCa
 				targetSecretKey2: []byte(targetSecretValue2),
 			},
 		}
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: targetSecretKey1,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      secretKey1,
 					Property: "name.first",
 				},
 			},
 			{
 				SecretKey: targetSecretKey2,
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      secretKey1,
 					Property: "friends.1.first",
 				},
@@ -313,17 +313,17 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 			},
 		}
 
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: "mysecret",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      cloudSecretName,
 					Property: "dockerconfig",
 				},
 			},
 		}
 
-		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+		tc.ExternalSecret.Spec.Target.Template = &esv1alpha2.ExternalSecretTemplate{
 			Data: map[string]string{
 				dockerConfigJSONKey: mysecretToStringTemplating,
 			},
@@ -351,17 +351,17 @@ func DataPropertyDockerconfigJSON(f *framework.Framework) (string, func(*framewo
 			},
 		}
 
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: "mysecret",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      cloudSecretName,
 					Property: "dockerconfig",
 				},
 			},
 		}
 
-		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+		tc.ExternalSecret.Spec.Target.Template = &esv1alpha2.ExternalSecretTemplate{
 			Type: v1.SecretTypeDockerConfigJson,
 			Data: map[string]string{
 				dockerConfigJSONKey: mysecretToStringTemplating,
@@ -425,16 +425,16 @@ func SSHKeySync(f *framework.Framework) (string, func(*framework.TestCase)) {
 			},
 		}
 
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: "mysecret",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key: sshSecretName,
 				},
 			},
 		}
 
-		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+		tc.ExternalSecret.Spec.Target.Template = &esv1alpha2.ExternalSecretTemplate{
 			Type: v1.SecretTypeSSHAuth,
 			Data: map[string]string{
 				sshPrivateKey: mysecretToStringTemplating,
@@ -497,17 +497,17 @@ func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.Tes
 			},
 		}
 
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1alpha2.ExternalSecretData{
 			{
 				SecretKey: "mysecret",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1alpha2.ExternalSecretDataRemoteRef{
 					Key:      cloudSecretName,
 					Property: "ssh-auth",
 				},
 			},
 		}
 
-		tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+		tc.ExternalSecret.Spec.Target.Template = &esv1alpha2.ExternalSecretTemplate{
 			Type: v1.SecretTypeSSHAuth,
 			Data: map[string]string{
 				sshPrivateKey: mysecretToStringTemplating,

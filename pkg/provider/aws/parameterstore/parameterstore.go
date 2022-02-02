@@ -24,7 +24,7 @@ import (
 	"github.com/tidwall/gjson"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -50,7 +50,7 @@ func New(sess client.ConfigProvider) (*ParameterStore, error) {
 }
 
 // GetSecret returns a single secret from the provider.
-func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1alpha2.ExternalSecretDataRemoteRef) ([]byte, error) {
 	log.Info("fetching secret value", "key", ref.Key)
 	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
 		Name:           &ref.Key,
@@ -74,13 +74,13 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1alpha1.External
 
 // Implements store.Client.GetAllSecrets Interface.
 // New version of GetAllSecrets.
-func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, utils.ThrowNotImplemented()
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1alpha2.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
 	log.Info("fetching secret map", "key", ref.Extract.Key)
 	data, err := pm.GetSecret(ctx, ref.GetDataRemoteRef())
 	if err != nil {

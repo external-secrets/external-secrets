@@ -22,7 +22,7 @@ import (
 	secrets "github.com/oracle/oci-go-sdk/v45/secrets"
 	utilpointer "k8s.io/utils/pointer"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1alpha2 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha2"
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -31,8 +31,8 @@ type vaultTestCase struct {
 	mockClient     *fakeoracle.OracleMockClient
 	apiInput       *secrets.GetSecretBundleByNameRequest
 	apiOutput      *secrets.GetSecretBundleByNameResponse
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
-	refFrom        *esv1alpha1.ExternalSecretDataFromRemoteRef
+	ref            *esv1alpha2.ExternalSecretDataRemoteRef
+	refFrom        *esv1alpha2.ExternalSecretDataFromRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
