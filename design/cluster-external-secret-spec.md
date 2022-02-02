@@ -78,9 +78,10 @@ When created the controller will find namespaces via a label selector, and match
 
 Edge cases are, 
 
-1. namespaces being labeled after creation - currently handled via a re-queue interval, but the interval is a tad high and the changes won't take place right away.
+1. namespaces being labeled after creation - currently handled via a re-queue interval, but the interval is a tad high and the changes won't take place right away. --
+This has been handled by adding a refreshInterval to the spec which can be defined and controls when the controller is requeued.
 
-2. Template being changed after deployment - Handled via the `createOrUpdate` function which should reconcile the `ExternalSecrets`
+1. Template being changed after deployment - Handled via the `createOrUpdate` function which should reconcile the `ExternalSecrets`
 
 ### Drawbacks
 This will incur a high load on providers as it will create N number of `ExternalSecret`s which will also poll the provider separately. This can be fixed in two ways,
