@@ -18,7 +18,12 @@ RUN apk add -U --no-cache \
     python3 \
     python3-dev \
     musl-dev \
+    git \
+    openssh \
+    git-fast-import \
     bash \
     gcc \
     diffutils \
-  && pip3 install -r /requirements.txt
+  && pip3 install -r /requirements.txt \
+  && git config --global user.email "docs@external-secrets.io" \
+  && git config --global user.name "Docs"

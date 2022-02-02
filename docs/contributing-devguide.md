@@ -104,7 +104,7 @@ helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set 
 
 ## Documentation
 
-We use [mkdocs material](https://squidfunk.github.io/mkdocs-material/) to generate this
+We use [mkdocs material](https://squidfunk.github.io/mkdocs-material/) and [mike](https://github.com/jimporter/mike) to generate this
 documentation. See `/docs` for the source code and `/hack/api-docs` for the build process.
 
 When writing documentation it is advised to run the mkdocs server with livereload:
@@ -121,3 +121,7 @@ make serve-docs
 ```
 
 Open `http://localhost:8000` in your browser.
+
+Since mike uses a branch to create/update documentation, any docs operation will create a diff on your local `gh-pages` branch.
+
+When finished writing/reviewing the docs, clean up your local docs branch changes with `git branch -D gh-pages`

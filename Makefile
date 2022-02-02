@@ -190,6 +190,10 @@ helm.generate: helm.docs ## Copy crds to helm chart directory
 docs: generate ## Generate docs
 	$(MAKE) -C ./hack/api-docs build
 
+.PHONY: docs.publish
+docs.publish: generate ## Generate and deploys docs
+	$(MAKE) -C ./hack/api-docs build.publish
+
 .PHONY: serve-docs
 serve-docs: ## Serve docs
 	$(MAKE) -C ./hack/api-docs serve
