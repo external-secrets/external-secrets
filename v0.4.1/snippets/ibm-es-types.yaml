@@ -1,0 +1,20 @@
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: ibm-sample
+spec:
+  # [...]
+  data:
+  - secretKey: test
+    remoteRef:
+      # defaults to type=arbitrary
+      key: xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  - secretKey: foo
+    remoteRef:
+      key: username_password/yyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+  - secretKey: bar
+    remoteRef:
+      key: iam_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: baz
+    remoteRef:
+      key: imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
