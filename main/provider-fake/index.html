@@ -13,7 +13,7 @@
     
     
       
-        <title>Using Latest Image - External Secrets Operator</title>
+        <title>Fake - External Secrets Operator</title>
       
     
     
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Using Latest Image
+              Fake
             
           </span>
         </div>
@@ -326,14 +326,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
       
       
       
@@ -466,19 +464,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../guides-using-latest-image/" class="md-nav__link">
         Using Latest Image
       </a>
-      
     </li>
   
 
@@ -510,12 +500,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
       
       
       
@@ -921,11 +913,19 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../provider-fake/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Fake
       </a>
+      
     </li>
   
 
@@ -1088,41 +1088,76 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-using-latest-image.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-fake.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-  <h1>Using Latest Image</h1>
+  <h1>Fake</h1>
 
-<p>You can test a feature that was not yet released using the following method, use it at your own discretion:</p>
-<ol>
-<li>Create a <code>values.yaml</code> file with the following content:</li>
-</ol>
-<div class="highlight"><pre><span></span><code>replicaCount: 1
-
-image:
-  repository: ghcr.io/external-secrets/external-secrets
-  pullPolicy: IfNotPresent
-  # -- The image tag to use. The default is the chart appVersion.
-  tag: &quot;main&quot;
-
-# -- If set, install and upgrade CRDs through helm chart.
-installCRDs: false
+<p>We provide a <code>fake</code> implementation to help with testing. This provider returns static key/value pairs and nothing else.
+To use the <code>fake</code> provider simply create a <code>SecretStore</code> or <code>ClusterSecretStore</code> and configure it like in the following example:</p>
+<div class="admonition note inline end">
+<p class="admonition-title">Note</p>
+<p>The provider returns static data configured in <code>value</code> or <code>valueMap</code>. You can define a <code>version</code>, too. If set the <code>remoteRef</code> from an ExternalSecret must match otherwise no value is returned.</p>
+</div>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">fake</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">fake</span><span class="p">:</span>
+      <span class="nt">data</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;/foo/bar&quot;</span>
+        <span class="nt">value</span><span class="p">:</span> <span class="s">&quot;HELLO1&quot;</span>
+        <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v1&quot;</span>
+      <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;/foo/bar&quot;</span>
+        <span class="nt">value</span><span class="p">:</span> <span class="s">&quot;HELLO2&quot;</span>
+        <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
+      <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;/foo/baz&quot;</span>
+        <span class="nt">valueMap</span><span class="p">:</span>
+          <span class="nt">foo</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+          <span class="nt">other</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">thing</span>
 </code></pre></div>
 
-<ol>
-<li>
-<p>Install the crds
-<div class="highlight"><pre><span></span><code>make crds.install
-</code></pre></div></p>
-</li>
-<li>
-<p>Install the external-secrets Helm chart indicating the values file created before:
-<div class="highlight"><pre><span></span><code>helm install external-secrets external-secrets/external-secrets -f values.yaml
-</code></pre></div></p>
-</li>
-</ol>
+<p>Please note that <code>value</code> is intended for exclusive use with <code>data</code> and <code>valueMap</code> for <code>dataFrom</code>.
+Here is an example <code>ExternalSecret</code> that displays this behavior:</p>
+<div class="admonition warning inline end">
+<p class="admonition-title">Warning</p>
+<p>This provider supports specifying different <code>data[].version</code> configurations. However, <code>data[].property</code> is ignored.</p>
+</div>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
+  <span class="nt">secretStoreRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">fake</span>
+    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+  <span class="nt">target</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foo_bar</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/foo/bar</span>
+      <span class="nt">version</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+  <span class="nt">dataFrom</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/foo/baz</span>
+</code></pre></div>
+
+<p>This results in the following secret:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">default</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">foo_bar</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SEVMTE8x</span> <span class="c1"># HELLO1  (via data)</span>
+  <span class="nt">foo</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ZXhhbXBsZQ==</span> <span class="c1"># example (via dataFrom)</span>
+  <span class="nt">other</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dGhpbmc=</span>   <span class="c1"># thing   (via dataFrom)</span>
+</code></pre></div>
 
               
             </article>
@@ -1136,7 +1171,7 @@ installCRDs: false
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../guides-metrics/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Metrics" rel="prev">
+        <a href="../provider-webhook/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Webhook" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1145,20 +1180,20 @@ installCRDs: false
               <span class="md-footer__direction">
                 Previous
               </span>
-              Metrics
+              Webhook
             </div>
           </div>
         </a>
       
       
         
-        <a href="../guides-gitops-using-fluxcd/" class="md-footer__link md-footer__link--next" aria-label="Next: GitOps using FluxCD" rel="next">
+        <a href="../spec/" class="md-footer__link md-footer__link--next" aria-label="Next: API specification" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              GitOps using FluxCD
+              API specification
             </div>
           </div>
           <div class="md-footer__button md-icon">
