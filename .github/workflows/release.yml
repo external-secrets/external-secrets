@@ -10,6 +10,7 @@ on:
 
 env:
   GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+  GO_VERSION: '1.17'
 
 jobs:
   release:
@@ -53,6 +54,11 @@ jobs:
           body_path: .changelog
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Update Docs
         run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
