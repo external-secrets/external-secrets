@@ -38,6 +38,8 @@ data:
 
 NB: This is obviously not practical because it just returns the key as the result, but it shows how it works
 
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in all `secrets` references with the namespaces where the secrets reside.
+
 Now create an ExternalSecret that uses the above SecretStore:
 
 ```yaml
@@ -107,14 +109,14 @@ spec:
       # Use this name to refer to this secret in templating, above
       - name: <name>
         secretRef:
-          namespace: <namespace>
+          namespace: <namespace> # Only used in ClusterSecretStores
           name: <name>
       # Add CAs here for the TLS handshake
       caBundle: <base64 encoded cabundle>
       caProvider:
         type: Secret or COnfigMap
         name: <name of secret or configmap>
-        namespace: <namespace>
+        namespace: <namespace> # Only used in ClusterSecretStores
         key: <key inside secret>
 ```
 

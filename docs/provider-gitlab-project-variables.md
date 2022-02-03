@@ -27,6 +27,7 @@ Be sure the `gitlab` provider is listed in the `Kind=SecretStore` and the Projec
 ```yaml
 {% include 'gitlab-secret-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessToken` with the namespace where the secret resides.
 
 Your project ID can be found on your project's page.
 ![projectID](./pictures/screenshot_gitlab_projectID.png)
