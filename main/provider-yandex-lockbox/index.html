@@ -1252,6 +1252,7 @@ for secret management.</p>
           <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">authorized-key</span>
 </code></pre></div></li>
 </ul>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in all <code>authorizedKeySecretRef</code> with the namespace where the secret resides.</p>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To make External Secrets Operator sync a k8s secret with a Lockbox secret:</p>
 <ul>

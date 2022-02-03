@@ -1272,6 +1272,7 @@
 </code></pre></div>
 
 <p>NB: This is obviously not practical because it just returns the key as the result, but it shows how it works</p>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in all <code>secrets</code> references with the namespaces where the secrets reside.</p>
 <p>Now create an ExternalSecret that uses the above SecretStore:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -1331,14 +1332,14 @@ Each secret has a <code>name</code> property which determines the name of the ob
       <span class="c1"># Use this name to refer to this secret in templating, above</span>
       <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span>
         <span class="nt">secretRef</span><span class="p">:</span>
-          <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span>
+          <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span> <span class="c1"># Only used in ClusterSecretStores</span>
           <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span>
       <span class="c1"># Add CAs here for the TLS handshake</span>
       <span class="nt">caBundle</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;base64 encoded cabundle&gt;</span>
       <span class="nt">caProvider</span><span class="p">:</span>
         <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret or COnfigMap</span>
         <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name of secret or configmap&gt;</span>
-        <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span>
+        <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span> <span class="c1"># Only used in ClusterSecretStores</span>
         <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;key inside secret&gt;</span>
 </code></pre></div>
 

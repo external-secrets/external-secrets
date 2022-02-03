@@ -1416,7 +1416,6 @@ You just need to set the <code>projectID</code>, all other fields can be omitted
     <span class="no">}</span>
 </code></pre></div>
 
-<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>SecretAccessKeyRef</code> with the namespace of the secret that we just created.</p>
 <h4 id="update-secret-store">Update secret store</h4>
 <p>Be sure the <code>gcpsm</code> provider is listed in the <code>Kind=SecretStore</code></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
@@ -1434,6 +1433,7 @@ You just need to set the <code>projectID</code>, all other fields can be omitted
         <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">myproject</span>                  <span class="c1"># name of Google Cloud project</span>
 </code></pre></div>
 
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>SecretAccessKeyRef</code> with the namespace of the secret that we just created.</p>
 <h4 id="creating-external-secret">Creating external secret</h4>
 <p>To create a kubernetes secret from the GCP Secret Manager secret a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>

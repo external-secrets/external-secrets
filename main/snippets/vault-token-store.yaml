@@ -14,5 +14,4 @@ spec:
         # https://www.vaultproject.io/docs/auth/token
         tokenSecretRef:
           name: "my-secret"
-          namespace: "secret-admin"
           key: "vault-token"

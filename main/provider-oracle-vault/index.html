@@ -1308,6 +1308,7 @@ This will automatically generate a fingerprint.
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">fingerprint</span>
 </code></pre></div>
 
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>privatekey</code> and <code>fingerprint</code> with the namespaces where the secrets reside.</p>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To create a kubernetes secret from the Oracle Cloud Interface secret a<code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>

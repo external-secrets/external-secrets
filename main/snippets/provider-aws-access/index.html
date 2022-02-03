@@ -1170,7 +1170,7 @@
 <h3 id="access-key-id-secret-access-key">Access Key ID &amp; Secret Access Key</h3>
 <p><img alt="SecretRef" src="./pictures/diagrams-provider-aws-auth-secret-ref.png" /></p>
 <p>You can store Access Key ID &amp; Secret Access Key in a <code>Kind=Secret</code> and reference it from a SecretStore.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-b-store</span>
@@ -1190,7 +1190,7 @@
             <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessKeyIDSecretRef</code>, <code>secretAccessKeySecretRef</code>  with the namespaces where the secrets reside.</p>
 <h3 id="eks-service-account-credentials">EKS Service Account credentials</h3>
 <p><img alt="Service Account" src="./pictures/diagrams-provider-aws-auth-service-account.png" /></p>
 <p>This feature lets you use short-lived service account tokens to authenticate with AWS.
@@ -1219,7 +1219,8 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
         <span class="nt">jwt</span><span class="p">:</span>
           <span class="nt">serviceAccountRef</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-serviceaccount</span>
-</code></pre></div></p>
+</code></pre></div>
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> with the namespace where the service account resides.</p>
 
               
             </article>

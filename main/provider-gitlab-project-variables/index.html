@@ -1292,7 +1292,7 @@
 
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>gitlab</code> provider is listed in the <code>Kind=SecretStore</code> and the ProjectID is set. If you are not using <code>https://gitlab.com</code>, you must set the <code>url</code> field as well.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gitlab-secret-store</span>
@@ -1308,7 +1308,7 @@
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">token</span>
       <span class="nt">projectID</span><span class="p">:</span> <span class="s">&quot;**project</span><span class="nv"> </span><span class="s">ID</span><span class="nv"> </span><span class="s">goes</span><span class="nv"> </span><span class="s">here**&quot;</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessToken</code> with the namespace where the secret resides.</p>
 <p>Your project ID can be found on your project's page.
 <img alt="projectID" src="../pictures/screenshot_gitlab_projectID.png" /></p>
 <h3 id="creating-external-secret">Creating external secret</h3>

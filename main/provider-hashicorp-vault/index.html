@@ -1369,7 +1369,7 @@ management. Vault itself implements lots of different secret engines, as of now 
 <a href="https://www.vaultproject.io/docs/secrets/kv">KV Secrets Engine</a>.</p>
 <h3 id="example">Example</h3>
 <p>First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token <code>root</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -1384,7 +1384,6 @@ management. Vault itself implements lots of different secret engines, as of now 
         <span class="c1"># https://www.vaultproject.io/docs/auth/token</span>
         <span class="nt">tokenSecretRef</span><span class="p">:</span>
           <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
-          <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;default&quot;</span>
           <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;token&quot;</span>
 <span class="nn">---</span>
 <span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
@@ -1394,7 +1393,7 @@ management. Vault itself implements lots of different secret engines, as of now 
 <span class="nt">data</span><span class="p">:</span>
   <span class="nt">token</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cm9vdA==</span> <span class="c1"># &quot;root&quot;</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>tokenSecretRef</code> with the namespace of the secret that we just created.</p>
 <p>Then create a simple k/v pair at path <code>secret/foo</code>:</p>
 <div class="highlight"><pre><span></span><code>vault kv put secret/foo my-value=s3cr3t
 </code></pre></div>
@@ -1437,7 +1436,7 @@ management. Vault itself implements lots of different secret engines, as of now 
 trade-offs. Depending on the authentication method you need to adapt your environment.</p>
 <h4 id="token-based-authentication">Token-based authentication</h4>
 <p>A static token is stored in a <code>Kind=Secret</code> and is used to authenticate with vault.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -1453,14 +1452,13 @@ trade-offs. Depending on the authentication method you need to adapt your enviro
         <span class="c1"># https://www.vaultproject.io/docs/auth/token</span>
         <span class="nt">tokenSecretRef</span><span class="p">:</span>
           <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-          <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
           <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>tokenSecretRef</code> with the namespace where the secret resides.</p>
 <h4 id="approle-authentication-example">AppRole authentication example</h4>
 <p><a href="https://www.vaultproject.io/docs/auth/approle">AppRole authentication</a> reads the secret id from a
 <code>Kind=Secret</code> and uses the specified <code>roleId</code> to aquire a temporary token to fetch secrets.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -1483,10 +1481,9 @@ trade-offs. Depending on the authentication method you need to adapt your enviro
           <span class="c1"># Reference to a key in a K8 Secret that contains the App Role SecretId</span>
           <span class="nt">secretRef</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
             <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;secret-id&quot;</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h4 id="kubernetes-authentication">Kubernetes authentication</h4>
 <p><a href="https://www.vaultproject.io/docs/auth/kubernetes">Kubernetes-native authentication</a> has three
 options of optaining credentials for vault:</p>
@@ -1496,7 +1493,7 @@ options of optaining credentials for vault:</p>
 <li>by using transient credentials from the mounted service account token within the
     external-secrets operator</li>
 </ol>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -1520,21 +1517,19 @@ options of optaining credentials for vault:</p>
           <span class="c1"># of a kubernetes ServiceAccount</span>
           <span class="nt">serviceAccountRef</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-sa&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
           <span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span>
           <span class="c1">#  used for authenticating with Vault</span>
           <span class="nt">secretRef</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
             <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault&quot;</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>serviceAccountRef</code> or in <code>secretRef</code>, if used.</p>
 <h4 id="ldap-authentication">LDAP authentication</h4>
 <p><a href="https://www.vaultproject.io/docs/auth/ldap">LDAP authentication</a> uses
 username/password pair to get an access token. Username is stored directly in
 a <code>Kind=SecretStore</code> or <code>Kind=ClusterSecretStore</code> resource, password is stored
 in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -1555,16 +1550,15 @@ in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
           <span class="nt">username</span><span class="p">:</span> <span class="s">&quot;username&quot;</span>
           <span class="nt">secretRef</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
             <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;ldap-password&quot;</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h4 id="jwtoidc-authentication">JWT/OIDC authentication</h4>
 <p><a href="https://www.vaultproject.io/docs/auth/jwt">JWT/OIDC</a> uses a
 <a href="https://jwt.io/">JWT</a> token stored in a <code>Kind=Secret</code> and referenced by the
 <code>secretRef</code>. Optionally a <code>role</code> field can be defined in a <code>Kind=SecretStore</code>
 or <code>Kind=ClusterSecretStore</code> resource.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -1585,10 +1579,9 @@ or <code>Kind=ClusterSecretStore</code> resource.</p>
           <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;vault-jwt-role&quot;</span>
           <span class="nt">secretRef</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
             <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;jwt-token&quot;</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h3 id="vault-enterprise-and-eventual-consistency">Vault Enterprise and Eventual Consistency</h3>
 <p>When using Vault Enterprise with <a href="https://www.vaultproject.io/docs/enterprise/consistency#performance-standby-nodes">performance standby nodes</a>,
 any follower can handle read requests immediately after the provider has

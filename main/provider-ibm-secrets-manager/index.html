@@ -1358,7 +1358,7 @@
 
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>ibm</code> provider is listed in the <code>Kind=SecretStore</code></p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
@@ -1372,7 +1372,7 @@
             <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ibm-secret</span>
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">apiKey</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretApiKeySecretRef</code> with the namespace where the secret resides.</p>
 <p>To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" on the left.
 Note: Use the url without the <code>/api</code> suffix that is presented in the UI.
 See here for a list of <a href="https://cloud.ibm.com/apidocs/secrets-manager#getting-started-endpoints">publicly available endpoints</a>.</p>

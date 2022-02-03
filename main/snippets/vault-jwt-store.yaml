@@ -19,5 +19,4 @@ spec:
           role: "vault-jwt-role"
           secretRef:
             name: "my-secret"
-            namespace: "secret-admin"
             key: "jwt-token"

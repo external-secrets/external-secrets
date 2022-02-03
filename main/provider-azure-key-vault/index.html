@@ -1293,7 +1293,7 @@
 
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>azurekv</code> provider is listed in the <code>Kind=SecretStore</code></p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
@@ -1315,7 +1315,7 @@
           <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
           <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientSecret</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>clientId</code> and <code>clientSecret</code>  with the namespaces where the secrets reside.</p>
 <p>Or in case of Managed Idenetity authentication:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>

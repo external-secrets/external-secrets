@@ -1319,7 +1319,7 @@
 
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>akeyless</code> provider is listed in the <code>Kind=SecretStore</code> and the <code>akeylessGWApiURL</code> is set (def: "https://api.akeless.io".</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
   <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span>
@@ -1340,7 +1340,7 @@
             <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span>
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">accessTypeParam</span>
 </code></pre></div>
-
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>accessID</code>, <code>accessType</code> and <code>accessTypeParam</code> with the namespaces where the secrets reside.</p>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To get a secret from Akeyless and secret it on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
