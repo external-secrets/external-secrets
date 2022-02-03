@@ -40,7 +40,7 @@ Be sure the `akeyless` provider is listed in the `Kind=SecretStore` and the `ake
 ```yaml
 {% include 'akeyless-secret-store.yaml' %}
 ```
-
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `accessID`, `accessType` and `accessTypeParam` with the namespaces where the secrets reside.
 ### Creating external secret
 
 To get a secret from Akeyless and secret it on the Kubernetes cluster, a `Kind=ExternalSecret` is needed.
@@ -48,6 +48,7 @@ To get a secret from Akeyless and secret it on the Kubernetes cluster, a `Kind=E
 ```yaml
 {% include 'akeyless-external-secret.yaml' %}
 ```
+
 
 #### Using DataFrom
 

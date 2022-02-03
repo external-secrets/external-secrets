@@ -26,7 +26,6 @@ spec:
         # https://www.vaultproject.io/docs/auth/token
         tokenSecretRef:
           name: "vault-token"
-          namespace: "default"
           key: "token"
 ---
 apiVersion: v1
@@ -36,6 +35,7 @@ metadata:
 data:
   token: cm9vdA== # "root"
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `tokenSecretRef` with the namespace of the secret that we just created.
 
 Then create a simple k/v pair at path `secret/foo`:
 
@@ -92,6 +92,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 ```yaml
 {% include 'vault-token-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `tokenSecretRef` with the namespace where the secret resides.
 
 #### AppRole authentication example
 
@@ -101,6 +102,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 ```yaml
 {% include 'vault-approle-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### Kubernetes authentication
 
@@ -115,6 +117,7 @@ options of optaining credentials for vault:
 ```yaml
 {% include 'vault-kubernetes-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `serviceAccountRef` or in `secretRef`, if used.
 
 #### LDAP authentication
 
@@ -126,6 +129,7 @@ in a `Kind=Secret` referenced by the `secretRef`.
 ```yaml
 {% include 'vault-ldap-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### JWT/OIDC authentication
 
@@ -137,6 +141,7 @@ or `Kind=ClusterSecretStore` resource.
 ```yaml
 {% include 'vault-jwt-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 ### Vault Enterprise and Eventual Consistency
 

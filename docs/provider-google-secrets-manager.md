@@ -84,7 +84,6 @@ You can use [GCP Service Account](https://cloud.google.com/iam/docs/service-acco
 {% include 'gcpsm-credentials-secret.yaml' %}
 ```
 
-**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `SecretAccessKeyRef` with the namespace of the secret that we just created.
 
 #### Update secret store
 Be sure the `gcpsm` provider is listed in the `Kind=SecretStore`
@@ -92,6 +91,8 @@ Be sure the `gcpsm` provider is listed in the `Kind=SecretStore`
 ```yaml
 {% include 'gcpsm-secret-store.yaml' %}
 ```
+
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `SecretAccessKeyRef` with the namespace of the secret that we just created.
 
 #### Creating external secret
 

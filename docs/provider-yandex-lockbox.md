@@ -39,6 +39,7 @@ spec:
           key: authorized-key
 ```
 
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in all `authorizedKeySecretRef` with the namespace where the secret resides.
 ### Creating external secret
 To make External Secrets Operator sync a k8s secret with a Lockbox secret:
 

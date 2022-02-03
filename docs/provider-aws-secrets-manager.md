@@ -11,7 +11,7 @@ way users of the `SecretStore` can only access the secrets necessary.
 ``` yaml
 {% include 'aws-sm-store.yaml' %}
 ```
-
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
 ### IAM Policy
 
 Create a IAM Policy to pin down access to secrets matching `dev-*`.

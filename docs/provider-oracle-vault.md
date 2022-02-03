@@ -38,6 +38,7 @@ Be sure the `oracle` provider is listed in the `Kind=SecretStore`.
 {% include 'oracle-secret-store.yaml' %}
 ```
 
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `privatekey` and `fingerprint` with the namespaces where the secrets reside.
 ### Creating external secret
 
 To create a kubernetes secret from the Oracle Cloud Interface secret a`Kind=ExternalSecret` is needed.
