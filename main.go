@@ -37,6 +37,8 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
+const errCreateController = "unable to create controller"
+
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = esv1alpha1.AddToScheme(scheme)
@@ -81,13 +83,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&secretstore.Reconciler{
+	if err = (&secretstore.StoreReconciler{
 		Client:          mgr.GetClient(),
 		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 		Scheme:          mgr.GetScheme(),
 		ControllerClass: controllerClass,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "SecretStore")
+		setupLog.Error(err, errCreateController, "controller", "SecretStore")
+		os.Exit(1)
+	}
+	if err = (&secretstore.ClusterStoreReconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+		Scheme:          mgr.GetScheme(),
+		ControllerClass: controllerClass,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
 		os.Exit(1)
 	}
 	if err = (&externalsecret.Reconciler{
@@ -99,7 +110,7 @@ func main() {
 	}).SetupWithManager(mgr, controller.Options{
 		MaxConcurrentReconciles: concurrent,
 	}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ExternalSecret")
+		setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 		os.Exit(1)
 	}
 

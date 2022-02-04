@@ -32,7 +32,6 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-	"github.com/external-secrets/external-secrets/pkg/reporter"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -41,6 +40,7 @@ const (
 	defaultVersion    = "latest"
 
 	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
+	errUnableGetCredentials                   = "unable to get credentials: %w"
 	errClientClose                            = "unable to close SecretManager client: %w"
 	errMissingStoreSpec                       = "invalid: missing store spec"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid ClusterSecretStore: missing GCP SecretAccessKey Namespace"
@@ -151,15 +151,19 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericSt
 
 	ts, err := cliStore.getTokenSource(ctx, store, kube, namespace)
 	if err != nil {
-		reporter.ReporterInstance.Failed(store, err, "GCPInvalidCredentials", errUnableCreateGCPSMClient)
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+	}
+
+	// check if we can get credentials
+	_, err = ts.Token()
+	if err != nil {
+		return nil, fmt.Errorf(errUnableGetCredentials, err)
 	}
 
 	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}
-	reporter.ReporterInstance.Ready(store)
 	sm.SecretManagerClient = clientGCPSM
 	return sm, nil
 }
