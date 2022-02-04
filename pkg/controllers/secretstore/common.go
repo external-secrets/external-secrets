@@ -30,7 +30,9 @@ import (
 const (
 	errStoreProvider       = "could not get store provider: %w"
 	errStoreClient         = "could not get provider client: %w"
+	errValidationFailed    = "could not validate provider: %w"
 	errPatchStatus         = "unable to patch status: %w"
+	errUnableCreateClient  = "unable to create client"
 	errUnableValidateStore = "unable to validate store"
 	errUnableGetProvider   = "unable to get store provider"
 
@@ -80,14 +82,20 @@ func validateStore(ctx context.Context, namespace string, store esapi.GenericSto
 		return fmt.Errorf(errStoreProvider, err)
 	}
 
-	// we just try to create the client to see if authentication
-	// works as expected. If not we record a event and set the condition
-	_, err = storeProvider.NewClient(ctx, store, client, namespace)
+	cl, err := storeProvider.NewClient(ctx, store, client, namespace)
 	if err != nil {
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableValidateStore)
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
 		SetExternalSecretCondition(store, *cond)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
 		return fmt.Errorf(errStoreClient, err)
+	}
+
+	err = cl.Validate()
+	if err != nil {
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, errUnableValidateStore)
+		SetExternalSecretCondition(store, *cond)
+		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())
+		return fmt.Errorf(errValidationFailed, err)
 	}
 
 	return nil

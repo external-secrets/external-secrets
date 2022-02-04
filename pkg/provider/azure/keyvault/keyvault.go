@@ -264,6 +264,10 @@ func (a *Azure) Close(ctx context.Context) error {
 	return nil
 }
 
+func (a *Azure) Validate() error {
+	return nil
+}
+
 func getObjType(ref esv1alpha1.ExternalSecretDataRemoteRef) (string, string) {
 	objectType := defaultObjType
 

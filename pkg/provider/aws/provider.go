@@ -34,7 +34,6 @@ type Provider struct{}
 
 const (
 	errUnableCreateSession    = "unable to create session: %w"
-	errUnableGetCredentials   = "unable to get credentials: %w"
 	errUnknownProviderService = "unknown AWS Provider Service: %s"
 )
 
@@ -52,11 +51,6 @@ func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.C
 	sess, err := awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateSession, err)
-	}
-
-	_, err = sess.Config.Credentials.Get()
-	if err != nil {
-		return nil, fmt.Errorf(errUnableGetCredentials, err)
 	}
 
 	switch prov.Service {

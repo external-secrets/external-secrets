@@ -210,3 +210,7 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 func (g *Gitlab) Close(ctx context.Context) error {
 	return nil
 }
+
+func (g *Gitlab) Validate() error {
+	return nil
+}

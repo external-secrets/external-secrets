@@ -151,11 +151,6 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 
 	vStore.client = client
 
-	err = checkToken(ctx, vStore)
-	if err != nil {
-		return nil, fmt.Errorf(errInvalidCredentials, err)
-	}
-
 	return vStore, nil
 }
 
@@ -184,6 +179,14 @@ func (v *client) Close(ctx context.Context) error {
 			return fmt.Errorf(errVaultRevokeToken, err)
 		}
 		v.client.ClearToken()
+	}
+	return nil
+}
+
+func (v *client) Validate() error {
+	err := checkToken(context.Background(), v)
+	if err != nil {
+		return fmt.Errorf(errInvalidCredentials, err)
 	}
 	return nil
 }

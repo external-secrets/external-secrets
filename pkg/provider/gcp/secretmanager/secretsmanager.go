@@ -245,6 +245,10 @@ func (sm *ProviderGCP) Close(ctx context.Context) error {
 	return nil
 }
 
+func (sm *ProviderGCP) Validate() error {
+	return nil
+}
+
 func init() {
 	schema.Register(&ProviderGCP{}, &esv1alpha1.SecretStoreProvider{
 		GCPSM: &esv1alpha1.GCPSMProvider{},

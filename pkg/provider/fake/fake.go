@@ -89,6 +89,10 @@ func (p *Provider) Close(ctx context.Context) error {
 	return nil
 }
 
+func (p *Provider) Validate() error {
+	return nil
+}
+
 func init() {
 	schema.Register(&Provider{}, &esv1alpha1.SecretStoreProvider{
 		Fake: &esv1alpha1.FakeProvider{},
