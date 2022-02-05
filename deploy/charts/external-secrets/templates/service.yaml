@@ -12,7 +12,8 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: {{ .Values.prometheus.service.port }}
+    - name: metrics
+      port: {{ .Values.prometheus.service.port }}
       targetPort: {{ .Values.prometheus.service.port }}
       protocol: TCP
   selector:
