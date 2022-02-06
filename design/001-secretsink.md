@@ -136,13 +136,8 @@ spec:
       remoteRefs:
       - remoteKey: my/path/foobar 
         property: my-property #optional. To allow coming back from a 'dataFrom'
-        secretStores:  # To allow changing patterns between secretstores. If not provided, will write to all SecretStores
-        - name: secret-store
-        - name: secret-store-2
       - remoteKey: secret/my-path-foobar
         property: another-property
-        secretStores:  # To allow changing patterns between secretstores
-        - name: cluster-secret-store
     rewrite:
     - secretKey: game-(.+).(.+)
       remoteRefs:
@@ -158,30 +153,36 @@ status:
   - type: Ready
     status: "True" 
     reason: "SecretSynced"
-    message: "Secret was synced" #Fully synced (to and from)
+    message: "Secret was synced" #Fully synced
     lastTransitionTime: "2019-08-12T12:33:02Z"
   - type: Ready
     status: "True"
-    reason: "SecretSynced"
-    message: "Secret sync failed from Source SecretStore abc"
+    reason: "SecretSyncError"
+    message: "Secret sync failed to Sink SecretStore: abc"
     lastTransitionTime: "2019-08-12T12:33:02Z"
   - type: Ready
     status: "False"
     reason: "SecretSyncError"
-    message: "Secret sync failed to Sink SecretStore def"
+    message: "Secret sync failed to Sink SecretStore: abc, def"
     lastTransitionTime: "2019-08-12T12:33:02Z"
 ```
 
 ### Behavior
-When checking the the ExternalSecrets for a change, after it updates from the Source Secret Store, it proceeds to update Each Sink Secret Store as well. We probably need to check the reconciliation loop if we have a case no Source Secret Store is defined. We also need to check if a single config
+When checking SecretSink for the Source Secret, check existing labels for SecretStore reference of that particular Secret. If this SecretStore reference is an object in SecretSink SecretStore lists, a SecretSyncError should be emited as we cannot sink the secret to the same SecretStore.
+
+If the SecretStores are all fine or if the Secret has no labels (secret created by user / another tool), for Each SecretStore, get the SyncState of this store (New, SecretSynced, SecretSyncedErr).
+
+If new Secret, or SecretSynced with refreshInterval expired, get the secret from the secretStore and see if it matches the content of the secrets. If it doesn't match, create a new secret (bumping the version, if possible) within the provider. On errors, emit SecretSyncedErr.
 
 ### Drawbacks
 
 We had several discussions on how to implement this feature, and it turns out just by typing how many duplicate fields we would have defeated my original issue to have two separate CRDs. The biggest drawback of this solution is that it implies SecretStores to be able to write with no other mechanism available. Also, it might overload the reconciliation loop as we have 1xN secret Syncing, where most of them are actually outside the cluster.
 
 ### Acceptance Criteria
-TODO
-
++ ExternalSecrets create appropriate labels on generated Secrets
++ SecretSinks can read labels on source Secrets
++ SecretSinks cannot have same references to SecretStores
++ SecretSinks respect refreshInterval
 ## Alternatives
 Using some integration with Crossplane can allow to sync the secrets. Cons is this must be either manual or through some integration that would be an independent project on its own.
 
