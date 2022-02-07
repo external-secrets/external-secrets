@@ -41,7 +41,7 @@ Here are some examples of UsernamePassword credentials with the Hashicorp Vault 
 #### AWS Secrets Manager
 
 ``` yaml
-{% include 'aws-jenkins-credential-harbor-chart-robot-external-secret.yaml' %}
+{% include 'aws-jenkins-credentials-harbor-chart-robot-external-secret.yaml' %}
 ```
 
 

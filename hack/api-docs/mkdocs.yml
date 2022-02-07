@@ -41,7 +41,6 @@ nav:
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md
     - Using Latest Image: guides-using-latest-image.md
-    - GitOps using FluxCD: guides-gitops-using-fluxcd.md
   - Provider:
     - AWS:
       - Secrets Manager: provider-aws-secrets-manager.md
@@ -62,6 +61,10 @@ nav:
       - Oracle Vault: provider-oracle-vault.md
     - Webhook: provider-webhook.md
     - Fake: provider-fake.md
+  - Examples:
+    - FluxCD: examples-gitops-using-fluxcd.md
+    - Anchore Engine: examples-anchore-engine-credentials.md
+    - Jenkins: examples-jenkins-kubernetes-credentials.md
   - References:
     - API specification: spec.md
   - Contributing:
