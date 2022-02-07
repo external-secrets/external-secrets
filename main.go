@@ -51,6 +51,7 @@ func main() {
 	var concurrent int
 	var loglevel string
 	var namespace string
+	var storeRequeueInterval time.Duration
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&controllerClass, "controller-class", "default", "the controller is instantiated with a specific controller name and filters ES based on this property")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -59,6 +60,7 @@ func main() {
 	flag.IntVar(&concurrent, "concurrent", 1, "The number of concurrent ExternalSecret reconciles.")
 	flag.StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	flag.StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
+	flag.DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Time duration between reconciling (Cluster)SecretStores")
 	flag.Parse()
 
 	var lvl zapcore.Level
@@ -88,6 +90,7 @@ func main() {
 		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 		Scheme:          mgr.GetScheme(),
 		ControllerClass: controllerClass,
+		RequeueInterval: storeRequeueInterval,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, errCreateController, "controller", "SecretStore")
 		os.Exit(1)
@@ -97,6 +100,7 @@ func main() {
 		Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
 		Scheme:          mgr.GetScheme(),
 		ControllerClass: controllerClass,
+		RequeueInterval: storeRequeueInterval,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
 		os.Exit(1)

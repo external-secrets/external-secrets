@@ -16,6 +16,7 @@ package secretstore
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -39,8 +40,8 @@ const (
 	msgStoreValidated = "store validated"
 )
 
-func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore,
-	cl client.Client, log logr.Logger, controllerClass string, recorder record.EventRecorder) (ctrl.Result, error) {
+func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client,
+	log logr.Logger, controllerClass string, recorder record.EventRecorder, requeueInterval time.Duration) (ctrl.Result, error) {
 	if !ShouldProcessStore(ss, controllerClass) {
 		log.V(1).Info("skip store")
 		return ctrl.Result{}, nil
@@ -67,7 +68,9 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore,
 	cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonStoreValid, msgStoreValidated)
 	SetExternalSecretCondition(ss, *cond)
 
-	return ctrl.Result{}, err
+	return ctrl.Result{
+		RequeueAfter: requeueInterval,
+	}, err
 }
 
 // validateStore tries to construct a new client

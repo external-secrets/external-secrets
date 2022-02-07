@@ -16,6 +16,7 @@ package secretstore
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,6 +37,7 @@ type StoreReconciler struct {
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	recorder        record.EventRecorder
+	RequeueInterval time.Duration
 	ControllerClass string
 }
 
@@ -50,7 +52,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &ss, r.Client, log, r.ControllerClass, r.recorder)
+	return reconcile(ctx, req, &ss, r.Client, log, r.ControllerClass, r.recorder, r.RequeueInterval)
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
