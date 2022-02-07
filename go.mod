@@ -58,7 +58,7 @@ require (
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/lestrrat-go/jwx v1.2.1
 	github.com/onsi/ginkgo/v2 v2.1.1
-	github.com/onsi/gomega v1.17.0
+	github.com/onsi/gomega v1.18.1
 	github.com/oracle/oci-go-sdk/v45 v45.2.0
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/client_model v0.2.0
