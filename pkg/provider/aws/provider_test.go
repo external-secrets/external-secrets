@@ -16,6 +16,7 @@ package aws
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,6 +32,14 @@ import (
 func TestProvider(t *testing.T) {
 	cl := clientfake.NewClientBuilder().Build()
 	p := Provider{}
+
+	// inject fake static credentials because we test
+	// if we are able to get credentials when constructing the client
+	// see #415
+	os.Setenv("AWS_ACCESS_KEY_ID", "1234")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "1234")
+	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
+	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
 
 	tbl := []struct {
 		test    string

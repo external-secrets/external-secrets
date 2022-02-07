@@ -221,6 +221,10 @@ func (vms *VaultManagementService) Close(ctx context.Context) error {
 	return nil
 }
 
+func (vms *VaultManagementService) Validate() error {
+	return nil
+}
+
 func init() {
 	schema.Register(&VaultManagementService{}, &esv1alpha1.SecretStoreProvider{
 		Oracle: &esv1alpha1.OracleProvider{},

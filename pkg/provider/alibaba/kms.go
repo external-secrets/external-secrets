@@ -186,6 +186,10 @@ func (kms *KeyManagementService) Close(ctx context.Context) error {
 	return nil
 }
 
+func (kms *KeyManagementService) Validate() error {
+	return nil
+}
+
 func init() {
 	schema.Register(&KeyManagementService{}, &esv1alpha1.SecretStoreProvider{
 		Alibaba: &esv1alpha1.AlibabaProvider{},

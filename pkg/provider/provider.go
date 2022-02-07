@@ -33,6 +33,10 @@ type SecretsClient interface {
 	// GetSecret returns a single secret from the provider
 	GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error)
 
+	// Validate checks if the client is configured correctly
+	// and is able to retrieve secrets from the provider
+	Validate() error
+
 	// GetSecretMap returns multiple k/v pairs from the provider
 	GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 	Close(ctx context.Context) error

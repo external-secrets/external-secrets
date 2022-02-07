@@ -180,6 +180,11 @@ const (
 	ConditionReasonSecretSyncedError = "SecretSyncedError"
 	// ConditionReasonSecretDeleted indicates that the secret has been deleted.
 	ConditionReasonSecretDeleted = "SecretDeleted"
+
+	ReasonInvalidStoreRef      = "InvalidStoreRef"
+	ReasonProviderClientConfig = "InvalidProviderClientConfig"
+	ReasonUpdateFailed         = "UpdateFailed"
+	ReasonUpdated              = "Updated"
 )
 
 type ExternalSecretStatus struct {

@@ -31,35 +31,35 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 )
 
-// StoreReconciler reconciles a SecretStore object.
-type StoreReconciler struct {
+// ClusterStoreReconciler reconciles a SecretStore object.
+type ClusterStoreReconciler struct {
 	client.Client
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
-	recorder        record.EventRecorder
-	RequeueInterval time.Duration
 	ControllerClass string
+	RequeueInterval time.Duration
+	recorder        record.EventRecorder
 }
 
-func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("secretstore", req.NamespacedName)
-	var ss esapi.SecretStore
-	err := r.Get(ctx, req.NamespacedName, &ss)
+func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.WithValues("clustersecretstore", req.NamespacedName)
+	var css esapi.ClusterSecretStore
+	err := r.Get(ctx, req.NamespacedName, &css)
 	if apierrors.IsNotFound(err) {
 		return ctrl.Result{}, nil
 	} else if err != nil {
-		log.Error(err, "unable to get SecretStore")
+		log.Error(err, "unable to get ClusterSecretStore")
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &ss, r.Client, log, r.ControllerClass, r.recorder, r.RequeueInterval)
+	return reconcile(ctx, req, &css, r.Client, log, r.ControllerClass, r.recorder, r.RequeueInterval)
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
-func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.recorder = mgr.GetEventRecorderFor("secret-store")
+func (r *ClusterStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.recorder = mgr.GetEventRecorderFor("cluster-secret-store")
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&esapi.SecretStore{}).
+		For(&esapi.ClusterSecretStore{}).
 		Complete(r)
 }

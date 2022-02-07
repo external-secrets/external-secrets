@@ -46,19 +46,20 @@ var (
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
-	errVaultStore     = "received invalid Vault SecretStore resource: %w"
-	errVaultClient    = "cannot setup new vault client: %w"
-	errVaultCert      = "cannot set Vault CA certificate: %w"
-	errReadSecret     = "cannot read secret data from Vault: %w"
-	errAuthFormat     = "cannot initialize Vault client: no valid auth method specified: %w"
-	errDataField      = "failed to find data field"
-	errJSONUnmarshall = "failed to unmarshall JSON"
-	errSecretFormat   = "secret data not in expected format"
-	errVaultToken     = "cannot parse Vault authentication token: %w"
-	errVaultReqParams = "cannot set Vault request parameters: %w"
-	errVaultRequest   = "error from Vault request: %w"
-	errVaultResponse  = "cannot parse Vault response: %w"
-	errServiceAccount = "cannot read Kubernetes service account token from file system: %w"
+	errVaultStore         = "received invalid Vault SecretStore resource: %w"
+	errVaultClient        = "cannot setup new vault client: %w"
+	errVaultCert          = "cannot set Vault CA certificate: %w"
+	errReadSecret         = "cannot read secret data from Vault: %w"
+	errAuthFormat         = "cannot initialize Vault client: no valid auth method specified"
+	errInvalidCredentials = "invalid vault credentials: %w"
+	errDataField          = "failed to find data field"
+	errJSONUnmarshall     = "failed to unmarshall JSON"
+	errSecretFormat       = "secret data not in expected format"
+	errVaultToken         = "cannot parse Vault authentication token: %w"
+	errVaultReqParams     = "cannot set Vault request parameters: %w"
+	errVaultRequest       = "error from Vault request: %w"
+	errVaultResponse      = "cannot parse Vault response: %w"
+	errServiceAccount     = "cannot read Kubernetes service account token from file system: %w"
 
 	errGetKubeSA        = "cannot get Kubernetes service account %q: %w"
 	errGetKubeSASecrets = "cannot find secrets bound to service account: %q"
@@ -149,6 +150,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 	}
 
 	vStore.client = client
+
 	return vStore, nil
 }
 
@@ -177,6 +179,14 @@ func (v *client) Close(ctx context.Context) error {
 			return fmt.Errorf(errVaultRevokeToken, err)
 		}
 		v.client.ClearToken()
+	}
+	return nil
+}
+
+func (v *client) Validate() error {
+	err := checkToken(context.Background(), v)
+	if err != nil {
+		return fmt.Errorf(errInvalidCredentials, err)
 	}
 	return nil
 }
@@ -526,6 +536,14 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	value := string(keyBytes)
 	valueStr := strings.TrimSpace(value)
 	return valueStr, nil
+}
+
+// checkToken does a lookup and checks if the provided token exists.
+func checkToken(ctx context.Context, vStore *client) error {
+	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
+	req := vStore.client.NewRequest("GET", "/v1/auth/token/lookup-self")
+	_, err := vStore.client.RawRequestWithContext(ctx, req)
+	return err
 }
 
 // appRoleParameters creates the required body for Vault AppRole Auth.

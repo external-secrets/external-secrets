@@ -47,6 +47,10 @@ func (p *PP) Close(ctx context.Context) error {
 	return nil
 }
 
+func (p *PP) Validate() error {
+	return nil
+}
+
 // TestRegister tests if the Register function
 // (1) panics if it tries to register something invalid
 // (2) stores the correct provider.
