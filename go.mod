@@ -59,7 +59,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.1
 	github.com/onsi/ginkgo/v2 v2.1.1
 	github.com/onsi/gomega v1.18.1
-	github.com/oracle/oci-go-sdk/v45 v45.2.0
+	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/client_model v0.2.0
 	github.com/stretchr/testify v1.7.0
@@ -181,6 +181,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
+	github.com/sony/gobreaker v0.4.2-0.20210216022020-dd874f9dd33b // indirect
 	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
