@@ -103,9 +103,9 @@ spec:
       version: provider-key-version
       property: provider-key-property
   - find:
-      name:  #extract all keys from all secrets that match a pattern
+      name:  #find secrets that match a particular pattern
         regexp: .*pattern.*
-      tags:  #extract all keys from all secrets that have the following labels/tags
+      tags:  #find secrets that match the following labels/tags
         provider-label: provider-value
 status:
   refreshTime: "2019-08-12T12:33:02Z"
@@ -121,6 +121,7 @@ status:
 
 ExternalSecrets now will have a different structure for `dataFrom`, which will allow fetching several provider secrets with only one ExternalSecret definition. It should be possible to fetch secrets based on regular expressions or by a label/tag selector.
 
+If the user desires to rename the secret keys (e.g. because the key name is not a valid secret key name `/foo/bar`) they should use `template` functions to produce a mapping. 
 ### Secret Store
 
 SecretStore and ClusterSecretStore do not have any changes from v1alpha1.
