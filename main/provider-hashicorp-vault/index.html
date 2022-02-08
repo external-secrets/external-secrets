@@ -783,8 +783,22 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#limitations" class="md-nav__link">
-    Limitations
+  <a href="#fetching-raw-values" class="md-nav__link">
+    Fetching Raw Values
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nested-values" class="md-nav__link">
+    Nested Values
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-nested-values" class="md-nav__link">
+    Multiple nested Values
   </a>
   
 </li>
@@ -1314,8 +1328,22 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#limitations" class="md-nav__link">
-    Limitations
+  <a href="#fetching-raw-values" class="md-nav__link">
+    Fetching Raw Values
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nested-values" class="md-nav__link">
+    Nested Values
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-nested-values" class="md-nav__link">
+    Multiple nested Values
   </a>
   
 </li>
@@ -1486,8 +1514,75 @@ management. Vault itself implements lots of different secret engines, as of now 
   <span class="nt">foobar</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">czNjcjN0</span>
 </code></pre></div>
 
-<h4 id="limitations">Limitations</h4>
-<p>Vault supports only simple key/value pairs - nested objects are not supported. Hence specifying <code>gjson</code> properties like other providers support it is not supported.</p>
+<h4 id="fetching-raw-values">Fetching Raw Values</h4>
+<p>You can fetch all key/value pairs for a given path If you leave the <code>remoteRef.property</code> empty. This returns the json-encoded secret value for that path.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="c1"># ...</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foobar</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/dev/package.json</span>
+</code></pre></div>
+
+<h4 id="nested-values">Nested Values</h4>
+<p>Vault supports nested key/value pairs. You can specify a <a href="https://github.com/tidwall/gjson">gjson</a> expression at <code>remoteRef.property</code> to get a nested value.</p>
+<p>Given the following secret - assume its path is <code>/dev/config</code>:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="nt">&quot;foo&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;nested&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;bar&quot;</span><span class="p">:</span> <span class="s2">&quot;mysecret&quot;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>You can set the <code>remoteRef.property</code> to point to the nested key using a <a href="https://github.com/tidwall/gjson">gjson</a> expression.
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="c1"># ...</span>
+  <span class="nt">data</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foobar</span>
+    <span class="nt">remoteRef</span><span class="p">:</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/dev/config</span>
+      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foo.nested.bar</span>
+<span class="nn">---</span>
+<span class="c1"># creates a secret with:</span>
+<span class="c1"># foobar=mysecret</span>
+</code></pre></div></p>
+<p>If you would set the <code>remoteRef.property</code> to just <code>foo</code> then you would get the json-encoded value of that property: <code>{"nested":{"bar":"mysecret"}}</code>.</p>
+<h4 id="multiple-nested-values">Multiple nested Values</h4>
+<p>You can extract multiple keys from a nested secret using <code>dataFrom</code>.</p>
+<p>Given the following secret - assume its path is <code>/dev/config</code>:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="nt">&quot;foo&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;nested&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;bar&quot;</span><span class="p">:</span> <span class="s2">&quot;mysecret&quot;</span><span class="p">,</span>
+      <span class="nt">&quot;baz&quot;</span><span class="p">:</span> <span class="s2">&quot;bang&quot;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>You can set the <code>remoteRef.property</code> to point to the nested key using a <a href="https://github.com/tidwall/gjson">gjson</a> expression.
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="c1"># ...</span>
+  <span class="nt">dataFrom</span><span class="p">:</span>
+  <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/dev/config</span>
+    <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foo.nested</span>
+</code></pre></div></p>
+<p>That results in a secret with these values:
+<div class="highlight"><pre><span></span><code>bar=mysecret
+baz=bang
+</code></pre></div></p>
 <h3 id="authentication">Authentication</h3>
 <p>We support five different modes for authentication:
 <a href="https://www.vaultproject.io/docs/auth/token">token-based</a>,
