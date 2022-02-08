@@ -71,9 +71,92 @@ data:
   foobar: czNjcjN0
 ```
 
-#### Limitations
+#### Fetching Raw Values
 
-Vault supports only simple key/value pairs - nested objects are not supported. Hence specifying `gjson` properties like other providers support it is not supported.
+You can fetch all key/value pairs for a given path If you leave the `remoteRef.property` empty. This returns the json-encoded secret value for that path.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  data:
+  - secretKey: foobar
+    remoteRef:
+      key: /dev/package.json
+```
+
+#### Nested Values
+
+Vault supports nested key/value pairs. You can specify a [gjson](https://github.com/tidwall/gjson) expression at `remoteRef.property` to get a nested value.
+
+Given the following secret - assume its path is `/dev/config`:
+```json
+{
+  "foo": {
+    "nested": {
+      "bar": "mysecret"
+    }
+  }
+}
+```
+
+You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  data:
+  - secretKey: foobar
+    remoteRef:
+      key: /dev/config
+      property: foo.nested.bar
+---
+# creates a secret with:
+# foobar=mysecret
+```
+
+If you would set the `remoteRef.property` to just `foo` then you would get the json-encoded value of that property: `{"nested":{"bar":"mysecret"}}`.
+
+#### Multiple nested Values
+
+You can extract multiple keys from a nested secret using `dataFrom`.
+
+Given the following secret - assume its path is `/dev/config`:
+```json
+{
+  "foo": {
+    "nested": {
+      "bar": "mysecret",
+      "baz": "bang"
+    }
+  }
+}
+```
+
+You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  dataFrom:
+  - key: /dev/config
+    property: foo.nested
+```
+
+That results in a secret with these values:
+```
+bar=mysecret
+baz=bang
+```
 
 ### Authentication
 

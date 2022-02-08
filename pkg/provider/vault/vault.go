@@ -174,7 +174,7 @@ func (v *client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 }
 
 func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := v.readSecret(ctx, ref.Key, ref.Version)
+	data, err := v.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -189,6 +189,12 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecret
 		switch t := v.(type) {
 		case string:
 			byteMap[k] = []byte(t)
+		case map[string]interface{}:
+			jsonData, err := json.Marshal(t)
+			if err != nil {
+				return nil, err
+			}
+			byteMap[k] = jsonData
 		case []byte:
 			byteMap[k] = t
 		// also covers int and float32 due to json.Marshal

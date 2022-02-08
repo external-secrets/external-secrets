@@ -725,6 +725,16 @@ func TestGetSecretMap(t *testing.T) {
 		"access_secret": "access_secret",
 		"token":         nil,
 	}
+	secretWithNestedVal := map[string]interface{}{
+		"access_key":    "access_key",
+		"access_secret": "access_secret",
+		"nested": map[string]interface{}{
+			"foo": map[string]string{
+				"oke":    "yup",
+				"mhkeih": "yada yada",
+			},
+		},
+	}
 	secretWithTypes := map[string]interface{}{
 		"access_secret": "access_secret",
 		"f32":           float32(2.12),
@@ -862,6 +872,57 @@ func TestGetSecretMap(t *testing.T) {
 					"int":           []byte("42"),
 					"bool":          []byte("true"),
 					"bt":            []byte("Zm9vYmFy"), // base64
+				},
+			},
+		},
+		"ReadNestedSecret": {
+			reason: "Should map the secret for deeply nested property",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1alpha1.ExternalSecretDataRemoteRef{
+					Property: "nested",
+				},
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secretWithNestedVal,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"foo": []byte(`{"mhkeih":"yada yada","oke":"yup"}`),
+				},
+			},
+		},
+		"ReadDeeplyNestedSecret": {
+			reason: "Should map the secret for deeply nested property",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1alpha1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1alpha1.ExternalSecretDataRemoteRef{
+					Property: "nested.foo",
+				},
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secretWithNestedVal,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"oke":    []byte("yup"),
+					"mhkeih": []byte("yada yada"),
 				},
 			},
 		},
