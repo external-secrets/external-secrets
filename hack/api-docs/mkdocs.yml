@@ -48,7 +48,7 @@ nav:
     - Azure:
       - Key Vault: provider-azure-key-vault.md
     - Google:
-      - Secrets Manager: provider-google-secrets-manager.md
+      - Secret Manager: provider-google-secrets-manager.md
     - IBM:
       - Secrets Manager: provider-ibm-secrets-manager.md
     - Akeyless: provider-akeyless.md
