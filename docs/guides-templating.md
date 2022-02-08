@@ -84,7 +84,7 @@ spec:
 
 * `base64encode` was renamed to `b64dec`.
 * `base64decode` was renamed to `b64dec`. Any errors that occurr during decoding are silenced.
-* `fromJSON` was renamed to `toJson`. Any errors that occurr during unmarshalling are silenced.
+* `fromJSON` was renamed to `fromJson`. Any errors that occurr during unmarshalling are silenced.
 * `toJSON` was renamed to `toJson`. Any errors that occurr during marshalling are silenced.
 * `toString` implementation was replaced by the `sprig` implementation and should be api-compatible.
 * `toBytes` was removed.
