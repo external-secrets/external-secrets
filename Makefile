@@ -194,8 +194,8 @@ docs: generate ## Generate docs
 docs.publish: generate ## Generate and deploys docs
 	$(MAKE) -C ./hack/api-docs build.publish
 
-.PHONY: serve-docs
-serve-docs: ## Serve docs
+.PHONY: docs.serve
+docs.serve: ## Serve docs
 	$(MAKE) -C ./hack/api-docs serve
 
 # ====================================================================================

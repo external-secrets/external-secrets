@@ -24,3 +24,6 @@ RUN apk add -U --no-cache \
     gcc \
     diffutils \
   && pip3 install -r /requirements.txt
+
+RUN git config --global user.email "docs@external-secrets.io"
+RUN git config --global user.name "Docs"

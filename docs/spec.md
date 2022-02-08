@@ -1408,6 +1408,21 @@ Kubernetes core/v1.SecretType
 </tr>
 <tr>
 <td>
+<code>engineVersion</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.TemplateEngineVersion">
+TemplateEngineVersion
+</a>
+</em>
+</td>
+<td>
+<p>EngineVersion specifies the template engine version
+that should be used to compile/execute the
+template specified in .data and .templateFrom[].</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>metadata</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.ExternalSecretTemplateMetadata">
@@ -2665,6 +2680,27 @@ Kubernetes meta/v1.Time
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.TemplateEngineVersion">TemplateEngineVersion
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretTemplate">ExternalSecretTemplate</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;v1&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;v2&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.TemplateFrom">TemplateFrom
 </h3>
