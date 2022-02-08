@@ -36,7 +36,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
-	"github.com/external-secrets/external-secrets/pkg/template/v1"
+	"github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
 // Provider satisfies the provider interface.
