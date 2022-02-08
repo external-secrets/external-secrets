@@ -126,11 +126,10 @@ spec:
   - name: cluster-secret-store
     kind: ClusterSecretStore
   refreshInterval: "1h"
-
+  selector:
+    secret:
+      name: foobar
   data:
-    selector:
-      secret:
-        name: foobar
     match:
     - secretKey: foobar
       remoteRefs:
@@ -143,8 +142,6 @@ spec:
       remoteRefs:
       - remoteKey: my/path/($1) 
         property: prop-($2)
-        secretStores:
-        - name: secret-store #Applies this way only to 'secret-store' secretStore
       - remoteKey: my-path-($1)-($2) #Applies this way to all other secretStores
 
 status:
