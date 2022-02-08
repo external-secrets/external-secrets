@@ -24,7 +24,7 @@ import (
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
 )
 
@@ -32,7 +32,7 @@ type secretsManagerTestCase struct {
 	fakeClient     *fakesm.Client
 	apiInput       *awssm.GetSecretValueInput
 	apiOutput      *awssm.GetSecretValueOutput
-	remoteRef      *esv1alpha1.ExternalSecretDataRemoteRef
+	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -59,8 +59,8 @@ func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 	return &smtc
 }
 
-func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
+func makeValidRemoteRef() *esv1beta1.ExternalSecretDataRemoteRef {
+	return &esv1beta1.ExternalSecretDataRemoteRef{
 		Key:     "/baz",
 		Version: "AWSCURRENT",
 	}

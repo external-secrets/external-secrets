@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
@@ -62,7 +62,7 @@ const (
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
+func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
@@ -113,13 +113,13 @@ func New(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client,
 	return sess, nil
 }
 
-func sessionFromSecretRef(ctx context.Context, prov *esv1alpha1.AWSProvider, store esv1alpha1.GenericStore, kube client.Client, namespace string) (*credentials.Credentials, error) {
+func sessionFromSecretRef(ctx context.Context, prov *esv1beta1.AWSProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*credentials.Credentials, error) {
 	ke := client.ObjectKey{
 		Name:      prov.Auth.SecretRef.AccessKeyID.Name,
 		Namespace: namespace, // default to ExternalSecret namespace
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 		if prov.Auth.SecretRef.AccessKeyID.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
 		}
@@ -135,7 +135,7 @@ func sessionFromSecretRef(ctx context.Context, prov *esv1alpha1.AWSProvider, sto
 		Namespace: namespace, // default to ExternalSecret namespace
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 		if prov.Auth.SecretRef.SecretAccessKey.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		}
@@ -158,8 +158,8 @@ func sessionFromSecretRef(ctx context.Context, prov *esv1alpha1.AWSProvider, sto
 	return credentials.NewStaticCredentials(aks, sak, ""), err
 }
 
-func sessionFromServiceAccount(ctx context.Context, prov *esv1alpha1.AWSProvider, store esv1alpha1.GenericStore, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider, store esv1beta1.GenericStore, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 		if prov.Auth.JWTAuth.ServiceAccountRef.Namespace == nil {
 			return nil, fmt.Errorf("serviceAccountRef has no Namespace field (mandatory for ClusterSecretStore specs)")
 		}

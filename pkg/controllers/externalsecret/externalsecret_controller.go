@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 
@@ -88,13 +88,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	syncCallsMetricLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
 
-	var externalSecret esv1alpha1.ExternalSecret
+	var externalSecret esv1beta1.ExternalSecret
 
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
 	if apierrors.IsNotFound(err) {
 		syncCallsTotal.With(syncCallsMetricLabels).Inc()
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretDeleted, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretDeleted, "Secret was deleted")
-		SetExternalSecretCondition(&esv1alpha1.ExternalSecret{
+		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretDeleted, v1.ConditionFalse, esv1beta1.ConditionReasonSecretDeleted, "Secret was deleted")
+		SetExternalSecretCondition(&esv1beta1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      req.Name,
 				Namespace: req.Namespace,
@@ -119,8 +119,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	store, err := r.getStore(ctx, &externalSecret)
 	if err != nil {
 		log.Error(err, errStoreRef)
-		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1alpha1.ReasonInvalidStoreRef, err.Error())
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, errStoreRef)
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonInvalidStoreRef, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errStoreRef)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
@@ -144,9 +144,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
 	if err != nil {
 		log.Error(err, errStoreClient)
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, errStoreClient)
+		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errStoreClient)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1alpha1.ReasonProviderClientConfig, err.Error())
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonProviderClientConfig, err.Error())
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
@@ -205,7 +205,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	mutationFunc := func() error {
-		if externalSecret.Spec.Target.CreationPolicy == esv1alpha1.Owner {
+		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.Owner {
 			err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
 			if err != nil {
 				return fmt.Errorf(errSetCtrlReference, err)
@@ -227,9 +227,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
-	case esv1alpha1.Merge:
+	case esv1beta1.Merge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc)
-	case esv1alpha1.None:
+	case esv1beta1.None:
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
@@ -238,16 +238,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err != nil {
 		log.Error(err, errUpdateSecret)
-		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1alpha1.ReasonUpdateFailed, err.Error())
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, errUpdateSecret)
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errUpdateSecret)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
-	r.recorder.Event(&externalSecret, v1.EventTypeNormal, esv1alpha1.ReasonUpdated, "Updated Secret")
-	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
-	currCond := GetExternalSecretCondition(externalSecret.Status, esv1alpha1.ExternalSecretReady)
+	r.recorder.Event(&externalSecret, v1.EventTypeNormal, esv1beta1.ReasonUpdated, "Updated Secret")
+	conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretSynced, "Secret was synced")
+	currCond := GetExternalSecretCondition(externalSecret.Status, esv1beta1.ExternalSecretReady)
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
 	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
@@ -304,7 +304,7 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	return nil
 }
 
-func getResourceVersion(es esv1alpha1.ExternalSecret) string {
+func getResourceVersion(es esv1beta1.ExternalSecret) string {
 	return fmt.Sprintf("%d-%s", es.ObjectMeta.GetGeneration(), hashMeta(es.ObjectMeta))
 }
 
@@ -319,7 +319,7 @@ func hashMeta(m metav1.ObjectMeta) string {
 	})
 }
 
-func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
+func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	// refresh if resource version changed
 	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
 		return true
@@ -335,14 +335,14 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
 }
 
-func shouldReconcile(es esv1alpha1.ExternalSecret) bool {
+func shouldReconcile(es esv1beta1.ExternalSecret) bool {
 	if es.Spec.Target.Immutable && hasSyncedCondition(es) {
 		return false
 	}
 	return true
 }
 
-func hasSyncedCondition(es esv1alpha1.ExternalSecret) bool {
+func hasSyncedCondition(es esv1beta1.ExternalSecret) bool {
 	for _, condition := range es.Status.Conditions {
 		if condition.Reason == "SecretSynced" {
 			return true
@@ -359,20 +359,20 @@ func isSecretValid(existingSecret v1.Secret) bool {
 	}
 
 	// if the calculated hash is different from the calculation, then it's invalid
-	if existingSecret.Annotations[esv1alpha1.AnnotationDataHash] != utils.ObjectHash(existingSecret.Data) {
+	if existingSecret.Annotations[esv1beta1.AnnotationDataHash] != utils.ObjectHash(existingSecret.Data) {
 		return false
 	}
 	return true
 }
 
 // getStore returns the store with the provided ExternalSecret.
-func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (esv1alpha1.GenericStore, error) {
+func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.ExternalSecret) (esv1beta1.GenericStore, error) {
 	ref := types.NamespacedName{
 		Name: externalSecret.Spec.SecretStoreRef.Name,
 	}
 
-	if externalSecret.Spec.SecretStoreRef.Kind == esv1alpha1.ClusterSecretStoreKind {
-		var store esv1alpha1.ClusterSecretStore
+	if externalSecret.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind {
+		var store esv1beta1.ClusterSecretStore
 		err := r.Get(ctx, ref, &store)
 		if err != nil {
 			return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
@@ -383,7 +383,7 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.Ex
 
 	ref.Namespace = externalSecret.Namespace
 
-	var store esv1alpha1.SecretStore
+	var store esv1beta1.SecretStore
 	err := r.Get(ctx, ref, &store)
 	if err != nil {
 		return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
@@ -392,13 +392,22 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1alpha1.Ex
 }
 
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
-func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.SecretsClient, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
+func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
 
 	for _, remoteRef := range externalSecret.Spec.DataFrom {
-		secretMap, err := providerClient.GetSecretMap(ctx, remoteRef)
-		if err != nil {
-			return nil, fmt.Errorf(errGetSecretKey, remoteRef.Key, externalSecret.Name, err)
+		var secretMap map[string][]byte
+		var err error
+		if len(remoteRef.Find.Tags) > 0 || len(remoteRef.Find.Name.RegExp) > 0 {
+			secretMap, err = providerClient.GetAllSecrets(ctx, remoteRef.Find)
+			if err != nil {
+				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
+			}
+		} else if remoteRef.Extract.Key != "" {
+			secretMap, err = providerClient.GetSecretMap(ctx, remoteRef.Extract)
+			if err != nil {
+				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
+			}
 		}
 
 		providerData = utils.MergeByteMap(providerData, secretMap)
@@ -422,7 +431,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
-		For(&esv1alpha1.ExternalSecret{}).
+		For(&esv1beta1.ExternalSecret{}).
 		Owns(&v1.Secret{}).
 		Complete(r)
 }

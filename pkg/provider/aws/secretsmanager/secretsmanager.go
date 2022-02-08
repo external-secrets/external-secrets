@@ -24,7 +24,7 @@ import (
 	"github.com/tidwall/gjson"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
@@ -52,7 +52,7 @@ func New(sess *session.Session) (*SecretsManager, error) {
 	}, nil
 }
 
-func (sm *SecretsManager) fetch(_ context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
+func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
 	ver := "AWSCURRENT"
 	if ref.Version != "" {
 		ver = ref.Version
@@ -76,8 +76,14 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1alpha1.ExternalSecret
 	return secretOut, nil
 }
 
+// Empty GetAllSecrets.
+func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, fmt.Errorf("GetAllSecrets not implemented")
+}
+
 // GetSecret returns a single secret from the provider.
-func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secretOut, err := sm.fetch(ctx, ref)
 	if err != nil {
 		return nil, util.SanitizeErr(err)
@@ -107,7 +113,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1alpha1.External
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	log.Info("fetching secret map", "key", ref.Key)
 	data, err := sm.GetSecret(ctx, ref)
 	if err != nil {

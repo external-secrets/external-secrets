@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -67,13 +67,13 @@ type ProviderGCP struct {
 
 type gClient struct {
 	kube             kclient.Client
-	store            *esv1alpha1.GCPSMProvider
+	store            *esv1beta1.GCPSMProvider
 	namespace        string
 	storeKind        string
 	workloadIdentity *workloadIdentity
 }
 
-func (c *gClient) getTokenSource(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+func (c *gClient) getTokenSource(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	ts, err := serviceAccountTokenSource(ctx, store, kube, namespace)
 	if ts != nil || err != nil {
 		return ts, err
@@ -86,7 +86,7 @@ func (c *gClient) getTokenSource(ctx context.Context, store esv1alpha1.GenericSt
 	return google.DefaultTokenSource(ctx, CloudPlatformRole)
 }
 
-func serviceAccountTokenSource(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+func serviceAccountTokenSource(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	spec := store.GetSpec()
 	if spec == nil || spec.Provider.GCPSM == nil {
 		return nil, fmt.Errorf(errMissingStoreSpec)
@@ -104,7 +104,7 @@ func serviceAccountTokenSource(ctx context.Context, store esv1alpha1.GenericStor
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if storeKind == esv1beta1.ClusterSecretStoreKind {
 		if credentialsSecretName != "" && sr.SecretAccessKey.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		} else if credentialsSecretName != "" {
@@ -127,7 +127,7 @@ func serviceAccountTokenSource(ctx context.Context, store esv1alpha1.GenericStor
 }
 
 // NewClient constructs a GCP Provider.
-func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.GCPSM == nil {
 		return nil, fmt.Errorf(errGCPSMStore)
@@ -168,8 +168,14 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericSt
 	return sm, nil
 }
 
+// Empty GetAllSecrets.
+func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, fmt.Errorf("GetAllSecrets not implemented")
+}
+
 // GetSecret returns a single secret from the provider.
-func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(sm.SecretManagerClient) || sm.projectID == "" {
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
@@ -207,7 +213,7 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSec
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if sm.SecretManagerClient == nil || sm.projectID == "" {
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
@@ -250,7 +256,7 @@ func (sm *ProviderGCP) Validate() error {
 }
 
 func init() {
-	schema.Register(&ProviderGCP{}, &esv1alpha1.SecretStoreProvider{
-		GCPSM: &esv1alpha1.GCPSMProvider{},
+	schema.Register(&ProviderGCP{}, &esv1beta1.SecretStoreProvider{
+		GCPSM: &esv1beta1.GCPSMProvider{},
 	})
 }

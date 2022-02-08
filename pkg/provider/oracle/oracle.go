@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -54,7 +54,7 @@ const (
 
 type client struct {
 	kube        kclient.Client
-	store       *esv1alpha1.OracleProvider
+	store       *esv1beta1.OracleProvider
 	namespace   string
 	storeKind   string
 	tenancy     string
@@ -85,7 +85,7 @@ func (c *client) setAuth(ctx context.Context) error {
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.PrivateKey.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
 		}
@@ -125,7 +125,13 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+// Empty GetAllSecrets.
+func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, fmt.Errorf("GetAllSecrets not implemented")
+}
+
+func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(vms.Client) {
 		return nil, fmt.Errorf(errUninitalizedOracleProvider)
 	}
@@ -162,7 +168,7 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 	return []byte(val.String()), nil
 }
 
-func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := vms.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -180,7 +186,7 @@ func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1alp
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
@@ -226,7 +232,7 @@ func (vms *VaultManagementService) Validate() error {
 }
 
 func init() {
-	schema.Register(&VaultManagementService{}, &esv1alpha1.SecretStoreProvider{
-		Oracle: &esv1alpha1.OracleProvider{},
+	schema.Register(&VaultManagementService{}, &esv1beta1.SecretStoreProvider{
+		Oracle: &esv1beta1.OracleProvider{},
 	})
 }

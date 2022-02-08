@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
 )
 
@@ -31,7 +31,7 @@ type parameterstoreTestCase struct {
 	fakeClient     *fake.Client
 	apiInput       *ssm.GetParameterInput
 	apiOutput      *ssm.GetParameterOutput
-	remoteRef      *esv1alpha1.ExternalSecretDataRemoteRef
+	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -66,8 +66,8 @@ func makeValidAPIOutput() *ssm.GetParameterOutput {
 	}
 }
 
-func makeValidRemoteRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
+func makeValidRemoteRef() *esv1beta1.ExternalSecretDataRemoteRef {
+	return &esv1beta1.ExternalSecretDataRemoteRef{
 		Key: "/baz",
 	}
 }

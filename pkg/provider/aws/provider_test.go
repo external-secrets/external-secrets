@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
@@ -43,7 +43,7 @@ func TestProvider(t *testing.T) {
 
 	tbl := []struct {
 		test    string
-		store   esv1alpha1.GenericStore
+		store   esv1beta1.GenericStore
 		expType interface{}
 		expErr  bool
 	}{
@@ -55,16 +55,16 @@ func TestProvider(t *testing.T) {
 		{
 			test:   "should not create provider due to missing provider",
 			expErr: true,
-			store: &esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{},
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{},
 			},
 		},
 		{
 			test:   "should not create provider due to missing provider field",
 			expErr: true,
-			store: &esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{},
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{},
 				},
 			},
 		},
@@ -72,11 +72,11 @@ func TestProvider(t *testing.T) {
 			test:    "should create parameter store client",
 			expErr:  false,
 			expType: &parameterstore.ParameterStore{},
-			store: &esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						AWS: &esv1alpha1.AWSProvider{
-							Service: esv1alpha1.AWSServiceParameterStore,
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{
+							Service: esv1beta1.AWSServiceParameterStore,
 						},
 					},
 				},
@@ -86,11 +86,11 @@ func TestProvider(t *testing.T) {
 			test:    "should create secretsmanager client",
 			expErr:  false,
 			expType: &secretsmanager.SecretsManager{},
-			store: &esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						AWS: &esv1alpha1.AWSProvider{
-							Service: esv1alpha1.AWSServiceSecretsManager,
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{
+							Service: esv1beta1.AWSServiceSecretsManager,
 						},
 					},
 				},
@@ -99,10 +99,10 @@ func TestProvider(t *testing.T) {
 		{
 			test:   "invalid service should return an error",
 			expErr: true,
-			store: &esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						AWS: &esv1alpha1.AWSProvider{
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{
 							Service: "HIHIHIHHEHEHEHEHEHE",
 						},
 					},
@@ -112,13 +112,13 @@ func TestProvider(t *testing.T) {
 		{
 			test:   "newSession error should be returned",
 			expErr: true,
-			store: &esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						AWS: &esv1alpha1.AWSProvider{
-							Service: esv1alpha1.AWSServiceParameterStore,
-							Auth: esv1alpha1.AWSAuth{
-								SecretRef: &esv1alpha1.AWSAuthSecretRef{
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{
+							Service: esv1beta1.AWSServiceParameterStore,
+							Auth: esv1beta1.AWSAuth{
+								SecretRef: &esv1beta1.AWSAuthSecretRef{
 									AccessKeyID: esmeta.SecretKeySelector{
 										Name:      "foo",
 										Namespace: aws.String("NOOP"),

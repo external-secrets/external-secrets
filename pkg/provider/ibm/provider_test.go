@@ -27,7 +27,7 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/ibm/fake"
 )
@@ -36,7 +36,7 @@ type secretManagerTestCase struct {
 	mockClient     *fakesm.IBMMockClient
 	apiInput       *sm.GetSecretOptions
 	apiOutput      *sm.GetSecret
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	ref            *esv1beta1.ExternalSecretDataRemoteRef
 	serviceURL     *string
 	apiErr         error
 	expectError    string
@@ -61,8 +61,8 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	return &smtc
 }
 
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
+func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
+	return &esv1beta1.ExternalSecretDataRemoteRef{
 		Key:     "test-secret",
 		Version: "default",
 	}
@@ -382,12 +382,12 @@ func TestValidRetryInput(t *testing.T) {
 	invalid := "Invalid"
 	serviceURL := "http://fake-service-url.cool"
 
-	spec := &esv1alpha1.SecretStore{
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				IBM: &esv1alpha1.IBMProvider{
-					Auth: esv1alpha1.IBMAuth{
-						SecretRef: esv1alpha1.IBMAuthSecretRef{
+	spec := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				IBM: &esv1beta1.IBMProvider{
+					Auth: esv1beta1.IBMAuth{
+						SecretRef: esv1beta1.IBMAuthSecretRef{
 							SecretAPIKey: v1.SecretKeySelector{
 								Name: "fake-secret",
 								Key:  "fake-key",
@@ -397,7 +397,7 @@ func TestValidRetryInput(t *testing.T) {
 					ServiceURL: &serviceURL,
 				},
 			},
-			RetrySettings: &esv1alpha1.SecretStoreRetrySettings{
+			RetrySettings: &esv1beta1.SecretStoreRetrySettings{
 				RetryInterval: &invalid,
 			},
 		},

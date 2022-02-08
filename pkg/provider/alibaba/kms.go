@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -45,7 +45,7 @@ const (
 
 type Client struct {
 	kube      kclient.Client
-	store     *esv1alpha1.AlibabaProvider
+	store     *esv1beta1.AlibabaProvider
 	namespace string
 	storeKind string
 	regionID  string
@@ -74,7 +74,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.AccessKeyID.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
 		}
@@ -90,7 +90,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 		Name:      c.store.Auth.SecretRef.AccessKeySecret.Name,
 		Namespace: c.namespace,
 	}
-	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.AccessKeySecret.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
 		}
@@ -110,8 +110,14 @@ func (c *Client) setAuth(ctx context.Context) error {
 	return nil
 }
 
+// Empty GetAllSecrets.
+func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, fmt.Errorf("GetAllSecrets not implemented")
+}
+
 // GetSecret returns a single secret from the provider.
-func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(kms.Client) {
 		return nil, fmt.Errorf(errUninitalizedAlibabaProvider)
 	}
@@ -141,7 +147,7 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1alpha1.E
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := kms.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -159,7 +165,7 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1alpha
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 	iStore := &Client{
@@ -191,7 +197,7 @@ func (kms *KeyManagementService) Validate() error {
 }
 
 func init() {
-	schema.Register(&KeyManagementService{}, &esv1alpha1.SecretStoreProvider{
-		Alibaba: &esv1alpha1.AlibabaProvider{},
+	schema.Register(&KeyManagementService{}, &esv1beta1.SecretStoreProvider{
+		Alibaba: &esv1beta1.AlibabaProvider{},
 	})
 }
