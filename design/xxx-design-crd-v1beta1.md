@@ -126,7 +126,7 @@ ExternalSecrets now will have a different structure for `dataFrom`, which will a
 SecretStore and ClusterSecretStore do not have any changes from v1alpha1.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: example
