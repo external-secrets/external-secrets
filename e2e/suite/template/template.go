@@ -37,13 +37,13 @@ func useTemplateV1(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 		EngineVersion: esv1alpha1.TemplateEngineV1,
 		Data: map[string]string{
-			"my-data": "executed: {{ .singlefoo | toString }}|{{ .singlebaz | toString }}",
-			"other":   `{{ .foo | toString }}|{{ .bar | toString }}`,
+			"tplv1": "executed: {{ .singlefoo | toString }}|{{ .singlebaz | toString }}",
+			"other": `{{ .foo | toString }}|{{ .bar | toString }}`,
 		},
 	}
 	tc.ExpectedSecret.Data = map[string][]byte{
-		"my-data": []byte(`executed: bar|bang`),
-		"other":   []byte(`barmap|bangmap`),
+		"tplv1": []byte(`executed: bar|bang`),
+		"other": []byte(`barmap|bangmap`),
 	}
 }
 
@@ -52,14 +52,14 @@ func useTemplateV2(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
 		EngineVersion: esv1alpha1.TemplateEngineV2,
 		Data: map[string]string{
-			"my-data":   "executed: {{ .singlefoo }}|{{ .singlebaz }}",
+			"tplv2":     "executed: {{ .singlefoo }}|{{ .singlebaz }}",
 			"other":     `{{ .foo }}|{{ .bar }}`,
 			"sprig-str": `{{ .foo | upper }}`,
 			"json-ex":   `{{ $var := .singlejson | fromJson }}{{ $var.foo | toJson }}`,
 		},
 	}
 	tc.ExpectedSecret.Data = map[string][]byte{
-		"my-data":   []byte(`executed: bar|bang`),
+		"tplv2":     []byte(`executed: bar|bang`),
 		"other":     []byte(`barmap|bangmap`),
 		"sprig-str": []byte(`BARMAP`),
 		"json-ex":   []byte(`{"bar":"baz"}`),

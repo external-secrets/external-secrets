@@ -185,7 +185,7 @@ func TestExecute(t *testing.T) {
 		{
 			name: "use sprig functions",
 			tpl: map[string][]byte{
-				"foo": []byte(`{{ .path | ext }}`), // TODO: this is a breaking change
+				"foo": []byte(`{{ .path | ext }}`),
 			},
 			data: map[string][]byte{
 				"path": []byte(`foo/bar/baz.exe`),
