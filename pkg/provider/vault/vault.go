@@ -18,15 +18,18 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -165,15 +168,56 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if err != nil {
 		return nil, err
 	}
-	value, exists := data[ref.Property]
-	if !exists {
+
+	// return raw json if no property is defined
+	if ref.Property == "" {
+		return data, nil
+	}
+
+	val := gjson.Get(string(data), ref.Property)
+	if !val.Exists() {
 		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
 	}
-	return value, nil
+	return []byte(val.String()), nil
 }
 
 func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return v.readSecret(ctx, ref.Key, ref.Version)
+	data, err := v.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	var secretData map[string]interface{}
+	err = json.Unmarshal(data, &secretData)
+	if err != nil {
+		return nil, err
+	}
+	byteMap := make(map[string][]byte, len(secretData))
+	for k, v := range secretData {
+		switch t := v.(type) {
+		case string:
+			byteMap[k] = []byte(t)
+		case map[string]interface{}:
+			jsonData, err := json.Marshal(t)
+			if err != nil {
+				return nil, err
+			}
+			byteMap[k] = jsonData
+		case []byte:
+			byteMap[k] = t
+		// also covers int and float32 due to json.Marshal
+		case float64:
+			byteMap[k] = []byte(strconv.FormatFloat(t, 'f', -1, 64))
+		case bool:
+			byteMap[k] = []byte(strconv.FormatBool(t))
+		case nil:
+			byteMap[k] = []byte(nil)
+		default:
+			return nil, errors.New(errSecretFormat)
+		}
+	}
+
+	return byteMap, nil
 }
 
 func (v *client) Close(ctx context.Context) error {
@@ -224,7 +268,7 @@ func (v *client) buildPath(path string) string {
 	return returnPath
 }
 
-func (v *client) readSecret(ctx context.Context, path, version string) (map[string][]byte, error) {
+func (v *client) readSecret(ctx context.Context, path, version string) ([]byte, error) {
 	dataPath := v.buildPath(path)
 
 	// path formated according to vault docs for v1 and v2 API
@@ -260,21 +304,8 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		}
 	}
 
-	byteMap := make(map[string][]byte, len(secretData))
-	for k, v := range secretData {
-		switch t := v.(type) {
-		case string:
-			byteMap[k] = []byte(t)
-		case []byte:
-			byteMap[k] = t
-		case nil:
-			byteMap[k] = []byte(nil)
-		default:
-			return nil, errors.New(errSecretFormat)
-		}
-	}
-
-	return byteMap, nil
+	// return json string
+	return json.Marshal(secretData)
 }
 
 func (v *client) newConfig() (*vault.Config, error) {
