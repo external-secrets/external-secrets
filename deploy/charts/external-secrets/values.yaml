@@ -78,6 +78,10 @@ prometheus:
   service:
     port: 8080
 
+webhook:
+  enabled: true
+  secretName: secret-certificate
+
 nodeSelector: {}
 
 tolerations: []

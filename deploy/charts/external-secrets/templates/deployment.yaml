@@ -65,10 +65,18 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
+          {{- if .Values.webhook.enabled }}
+          volumeMounts:
+          - name: certs
+            mountPath: /tmp/k8s-webhook-server/serving-certs
+          {{- end }}
           ports:
             - containerPort: {{ .Values.prometheus.service.port }}
               protocol: TCP
               name: metrics
+            - containerPort: 9443
+              protocol: TCP
+              name: webhook
           {{- with .Values.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
@@ -77,6 +85,12 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      {{- if .Values.webhook.enabled }}
+      volumes:
+      - name: certs
+        secret:
+          secretName: {{ .Values.webhook.secretName }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
