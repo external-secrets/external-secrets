@@ -19,11 +19,11 @@ import (
 	"fmt"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,20 +36,13 @@ const (
 	errKubernetesCredSecretName            = "kubernetes credentials are empty"
 	errInvalidClusterStoreMissingNamespace = "invalid clusterStore missing Cert namespace"
 	errFetchCredentialsSecret              = "could not fetch Credentials secret: %w"
-	errMissingCredentials                  = "missing Credentials"
+	errMissingCredentials                  = "missing Credentials: %v"
 	errUninitalizedKubernetesProvider      = "provider kubernetes is not initialized"
 	errJSONSecretUnmarshal                 = "unable to unmarshal secret: %w"
 )
 
 type KubernetesClient interface {
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Secret, error)
-	// List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error
-	// Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
-	// Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error
-	// Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error
-	// DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error
-	// Status() client.StatusWriter
-	// Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error)
 }
 
 // ProviderKubernetes is a provider for Kubernetes.
@@ -165,47 +158,52 @@ func (k *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1alpha1.Ex
 }
 
 func (k *BaseClient) setAuth(ctx context.Context) error {
-	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := k.store.Auth.SecretRef.Certificate.Name
-	if credentialsSecretName == "" {
-		return fmt.Errorf(errKubernetesCredSecretName)
+	var err error
+	k.Certificate, err = k.helper(ctx, k.store.Auth.SecretRef.Certificate, "cert")
+	if err != nil {
+		return err
+	}
+	k.Key, err = k.helper(ctx, k.store.Auth.SecretRef.Key, "key")
+	if err != nil {
+		return err
+	}
+	k.CA, err = k.helper(ctx, k.store.Auth.SecretRef.CA, "ca")
+	if err != nil {
+		return err
+	}
+	k.BearerToken, err = k.helper(ctx, k.store.Auth.SecretRef.BearerToken, "bearerToken")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (k *BaseClient) helper(ctx context.Context, key esmeta.SecretKeySelector, component string) ([]byte, error) {
+	keySecret := &corev1.Secret{}
+	keySecretName := key.Name
+	if keySecretName == "" {
+		return nil, fmt.Errorf(errKubernetesCredSecretName)
 	}
 	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
+		Name:      keySecretName,
 		Namespace: k.namespace,
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if k.storeKind == esv1alpha1.ClusterSecretStoreKind {
-		if k.store.Auth.SecretRef.Certificate.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingNamespace)
+		if key.Namespace == nil {
+			return nil, fmt.Errorf(errInvalidClusterStoreMissingNamespace)
 		}
-		objectKey.Namespace = *k.store.Auth.SecretRef.Certificate.Namespace
+		objectKey.Namespace = *key.Namespace
 	}
 
-	err := k.kube.Get(ctx, objectKey, credentialsSecret)
+	err := k.kube.Get(ctx, objectKey, keySecret)
 	if err != nil {
-		return fmt.Errorf(errFetchCredentialsSecret, err)
+		return nil, fmt.Errorf(errFetchCredentialsSecret, err)
 	}
 
-	k.Certificate = credentialsSecret.Data[k.store.Auth.SecretRef.Certificate.Key]
-	if (k.Certificate == nil) || (len(k.Certificate) == 0) {
-		return fmt.Errorf(errMissingCredentials)
+	check := keySecret.Data[key.Key]
+	if (check == nil) || (len(check) == 0) {
+		return nil, fmt.Errorf(errMissingCredentials, component)
 	}
-
-	k.Key = credentialsSecret.Data[k.store.Auth.SecretRef.Key.Key]
-	if (k.Key == nil) || (len(k.Key) == 0) {
-		return fmt.Errorf(errMissingCredentials)
-	}
-
-	k.CA = credentialsSecret.Data[k.store.Auth.SecretRef.CA.Key]
-	if (k.CA == nil) || (len(k.CA) == 0) {
-		return fmt.Errorf(errMissingCredentials)
-	}
-
-	k.BearerToken = credentialsSecret.Data[k.store.Auth.SecretRef.BearerToken.Key]
-	if (k.BearerToken == nil) || (len(k.BearerToken) == 0) {
-		return fmt.Errorf(errMissingCredentials)
-	}
-
-	return nil
+	return check, nil
 }
