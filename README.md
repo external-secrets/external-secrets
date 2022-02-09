@@ -30,8 +30,8 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 | Provider                                                                 | Stability |                                        Contact |
 | ------------------------------------------------------------------------ | :-------: | ---------------------------------------------: |
-| [AWS SM](https://external-secrets.io/provider-aws-secrets-manager/)      |   beta   | [ESO Org](https://github.com/external-secrets) |
-| [AWS PS](https://external-secrets.io/provider-aws-parameter-store/)      |   beta   | [ESO Org](https://github.com/external-secrets) |
+| [AWS SM](https://external-secrets.io/provider-aws-secrets-manager/)      |   stable   | [ESO Org](https://github.com/external-secrets) |
+| [AWS PS](https://external-secrets.io/provider-aws-parameter-store/)      |   stable   | [ESO Org](https://github.com/external-secrets) |
 | [Hashicorp Vault](https://external-secrets.io/provider-hashicorp-vault/) |   stable   | [ESO Org](https://github.com/external-secrets) |
 | [GCP SM](https://external-secrets.io/provider-google-secrets-manager/)   |   stable | [ESO Org](https://github.com/external-secrets) |
 
@@ -39,7 +39,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 | Provider                                                            | Stability |                  Contact                   |
 | ------------------------------------------------------------------- | :-------: | :----------------------------------------: |
-| [Azure KV](https://external-secrets.io/provider-azure-key-vault/)   |   alpha   | [@ahmedmus-1A](https://github.com/ahmedmus-1A) [@asnowfix](https://github.com/asnowfix) [@ncourbet-1A](https://github.com/ncourbet-1A) [@1A-mj](https://github.com/1A-mj) |
+| [Azure KV](https://external-secrets.io/provider-azure-key-vault/)   |   beta   | [@ahmedmus-1A](https://github.com/ahmedmus-1A) [@asnowfix](https://github.com/asnowfix) [@ncourbet-1A](https://github.com/ncourbet-1A) [@1A-mj](https://github.com/1A-mj) |
 | [IBM SM](https://external-secrets.io/provider-ibm-secrets-manager/) |   alpha   |   [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta)  |
 | [Yandex Lockbox](https://external-secrets.io/provider-yandex-lockbox/) |   alpha   |   [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero)          |
 | [Gitlab Project Variables](https://external-secrets.io/provider-gitlab-project-variables/) |   alpha   |   [@Jabray5](https://github.com/Jabray5)          |
