@@ -11,16 +11,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package template_test
+package template
 
 import (
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
 const (
@@ -234,8 +234,8 @@ func TestExecute(t *testing.T) {
 		{
 			name: "base64 pkcs12 extract",
 			tpl: map[string][]byte{
-				"key":  []byte(`{{ .secret | b64dec | pkcs12key | pemPrivateKey }}`),
-				"cert": []byte(`{{ .secret | b64dec | pkcs12cert | pemCertificate }}`),
+				"key":  []byte(`{{ .secret | b64dec | pkcs12key }}`),
+				"cert": []byte(`{{ .secret | b64dec | pkcs12cert }}`),
 			},
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentNoPass),
@@ -248,8 +248,8 @@ func TestExecute(t *testing.T) {
 		{
 			name: "base64 pkcs12 extract with password",
 			tpl: map[string][]byte{
-				"key":  []byte(`{{ .secret | b64dec | pkcs12keyPass "123456" | pemPrivateKey }}`),
-				"cert": []byte(`{{ .secret | b64dec | pkcs12certPass "123456" | pemCertificate }}`),
+				"key":  []byte(`{{ .secret | b64dec | pkcs12keyPass "123456" }}`),
+				"cert": []byte(`{{ .secret | b64dec | pkcs12certPass "123456" }}`),
 			},
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentWithPass),
@@ -272,7 +272,7 @@ func TestExecute(t *testing.T) {
 		{
 			name: "pkcs12 key wrong password",
 			tpl: map[string][]byte{
-				"key": []byte(`{{ .secret | b64dec | pkcs12keyPass "wrong" | pemPrivateKey }}`),
+				"key": []byte(`{{ .secret | b64dec | pkcs12keyPass "wrong" }}`),
 			},
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentWithPass),
@@ -282,7 +282,7 @@ func TestExecute(t *testing.T) {
 		{
 			name: "pkcs12 cert wrong password",
 			tpl: map[string][]byte{
-				"cert": []byte(`{{ .secret | b64dec | pkcs12certPass "wrong" | pemCertificate }}`),
+				"cert": []byte(`{{ .secret | b64dec | pkcs12certPass "wrong" }}`),
 			},
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentWithPass),
@@ -361,7 +361,7 @@ func TestExecute(t *testing.T) {
 			sec := &corev1.Secret{
 				Data: make(map[string][]byte),
 			}
-			err := template.Execute(row.tpl, row.data, sec)
+			err := Execute(row.tpl, row.data, sec)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
@@ -381,4 +381,128 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestPkcs12certPass(t *testing.T) {
+	const (
+		leafCertPath         = "_testdata/foo.crt"
+		intermediateCertPath = "_testdata/intermediate-ca.crt"
+		rootCertPath         = "_testdata/root-ca.crt"
+		disjunctCertPath     = "_testdata/disjunct-root-ca.crt"
+	)
+	type args struct {
+		pass     string
+		filename string
+	}
+	type testCase struct {
+		name    string
+		args    args
+		want    []string
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			// this case expects the whole chain to be stored
+			// in a single bag.
+			// bag(1): leaf/root/intermediate cert
+			// bag(2): private key
+			name: "read file without password",
+			args: args{
+				pass:     "",
+				filename: "_testdata/foo-nopass.pfx",
+			},
+			want: []string{
+				// this order is important
+				leafCertPath,
+				intermediateCertPath,
+				rootCertPath,
+			},
+		},
+		{
+			// same as above but with password
+			name: "read file with password",
+			args: args{
+				pass:     "1234",
+				filename: "_testdata/foo-withpass-1234.pfx",
+			},
+			want: []string{
+				// this order is important
+				leafCertPath,
+				intermediateCertPath,
+				rootCertPath,
+			},
+		},
+		{
+			// cert chain may be stored in different bags
+			// this test case uses a pfx that has the following structure:
+			// bag(1): leaf certificate
+			// bag(2): root + intermediate cert
+			// bag(3): private key
+			name: "read multibag cert chain",
+			args: args{
+				pass:     "",
+				filename: "_testdata/foo-multibag-nopass.pfx",
+			},
+			want: []string{
+				// this order is important
+				leafCertPath,
+				intermediateCertPath,
+				rootCertPath,
+			},
+		},
+		{
+			// cert chain may contain a disjunct cert
+			// bag(1): leaf/root/intermediate/disjunct
+			// bag(2): private key
+			name: "read disjunct cert chain",
+			args: args{
+				pass:     "",
+				filename: "_testdata/foo-disjunct-nopass.pfx",
+			},
+			want: []string{
+				// this order is important
+				leafCertPath,
+				rootCertPath,
+				intermediateCertPath,
+				disjunctCertPath,
+			},
+		},
+		{
+			name: "read file wrong password",
+			args: args{
+				pass:     "wrongpass",
+				filename: "_testdata/foo-withpass-1234.pfx",
+			},
+			wantErr: true,
+		},
+	}
+
+	testFunc := func(t *testing.T, tc testCase) {
+		archive, err := os.ReadFile(tc.args.filename)
+		if err != nil {
+			t.Error(err)
+		}
+		var expOut []byte
+		for _, w := range tc.want {
+			c, err := os.ReadFile(w)
+			if err != nil {
+				t.Error(err)
+			}
+			expOut = append(expOut, c...)
+		}
+		got, err := pkcs12certPass(tc.args.pass, string(archive))
+		if (err != nil) != tc.wantErr {
+			t.Errorf("pkcs12certPass() error = %v, wantErr %v", err, tc.wantErr)
+			return
+		}
+		if diff := cmp.Diff(string(expOut), got); diff != "" {
+			t.Errorf("pkcs12certPass() = diff:\n%s", diff)
+		}
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testFunc(t, tt)
+		})
+	}
 }

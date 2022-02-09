@@ -22,7 +22,6 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/youmark/pkcs8"
 	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -32,9 +31,6 @@ var tplFuncs = tpl.FuncMap{
 	"pkcs12keyPass":  pkcs12keyPass,
 	"pkcs12cert":     pkcs12cert,
 	"pkcs12certPass": pkcs12certPass,
-
-	"pemPrivateKey":  pemPrivateKey,
-	"pemCertificate": pemCertificate,
 
 	"jwkPublicKeyPem":  jwkPublicKeyPem,
 	"jwkPrivateKeyPem": jwkPrivateKeyPem,
@@ -49,20 +45,18 @@ const (
 	errParse                = "unable to parse template at key %s: %s"
 	errExecute              = "unable to execute template at key %s: %s"
 	errDecodePKCS12WithPass = "unable to decode pkcs12 with password: %s"
-	errConvertPrivKey       = "unable to convert pkcs12 private key: %s"
 	errDecodeCertWithPass   = "unable to decode pkcs12 certificate with password: %s"
-	errEncodePEMKey         = "unable to encode pem private key: %s"
-	errEncodePEMCert        = "unable to encode pem certificate: %s"
+	errParsePrivKey         = "unable to parse private key type"
+
+	pemTypeCertificate = "CERTIFICATE"
 )
 
 func init() {
-	fmt.Printf("calling init in v2 pkg")
 	sprigFuncs := sprig.TxtFuncMap()
 	delete(sprigFuncs, "env")
 	delete(sprigFuncs, "expandenv")
 
 	for k, v := range sprigFuncs {
-		fmt.Printf("adding func %s\n", k)
 		tplFuncs[k] = v
 	}
 }
@@ -103,15 +97,49 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 }
 
 func pkcs12keyPass(pass, input string) (string, error) {
-	key, _, err := pkcs12.Decode([]byte(input), pass)
+	blocks, err := pkcs12.ToPEM([]byte(input), pass)
 	if err != nil {
 		return "", fmt.Errorf(errDecodePKCS12WithPass, err)
 	}
-	kb, err := pkcs8.ConvertPrivateKeyToPKCS8(key)
-	if err != nil {
-		return "", fmt.Errorf(errConvertPrivKey, err)
+
+	var pemData []byte
+	for _, block := range blocks {
+		// remove bag attributes like localKeyID, friendlyName
+		block.Headers = nil
+		if block.Type == pemTypeCertificate {
+			continue
+		}
+		key, err := parsePrivateKey(block.Bytes)
+		if err != nil {
+			return "", err
+		}
+		// we use pkcs8 because it supports more key types (ecdsa, ed25519), not just RSA
+		block.Bytes, err = x509.MarshalPKCS8PrivateKey(key)
+		if err != nil {
+			return "", err
+		}
+		// report error if encode fails
+		var buf bytes.Buffer
+		if err := pem.Encode(&buf, block); err != nil {
+			return "", err
+		}
+		pemData = append(pemData, buf.Bytes()...)
 	}
-	return string(kb), nil
+
+	return string(pemData), nil
+}
+
+func parsePrivateKey(block []byte) (interface{}, error) {
+	if k, err := x509.ParsePKCS1PrivateKey(block); err == nil {
+		return k, nil
+	}
+	if k, err := x509.ParsePKCS8PrivateKey(block); err == nil {
+		return k, nil
+	}
+	if k, err := x509.ParseECPrivateKey(block); err == nil {
+		return k, nil
+	}
+	return nil, fmt.Errorf(errParsePrivKey)
 }
 
 func pkcs12key(input string) (string, error) {
@@ -119,11 +147,35 @@ func pkcs12key(input string) (string, error) {
 }
 
 func pkcs12certPass(pass, input string) (string, error) {
-	_, cert, err := pkcs12.Decode([]byte(input), pass)
+	blocks, err := pkcs12.ToPEM([]byte(input), pass)
 	if err != nil {
 		return "", fmt.Errorf(errDecodeCertWithPass, err)
 	}
-	return string(cert.Raw), nil
+
+	var pemData []byte
+	for _, block := range blocks {
+		if block.Type != pemTypeCertificate {
+			continue
+		}
+		// remove bag attributes like localKeyID, friendlyName
+		block.Headers = nil
+		// report error if encode fails
+		var buf bytes.Buffer
+		if err := pem.Encode(&buf, block); err != nil {
+			return "", err
+		}
+		pemData = append(pemData, buf.Bytes()...)
+	}
+
+	// try to order certificate chain. If it fails we return
+	// the unordered raw pem data.
+	// This fails if multiple leaf or disjunct certs are provided.
+	ordered, err := fetchCertChains(pemData)
+	if err != nil {
+		return string(pemData), nil
+	}
+
+	return string(ordered), nil
 }
 
 func pkcs12cert(input string) (string, error) {
@@ -169,20 +221,4 @@ func pemEncode(thing, kind string) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: []byte(thing)})
 	return buf.String(), err
-}
-
-func pemPrivateKey(key string) (string, error) {
-	res, err := pemEncode(key, "PRIVATE KEY")
-	if err != nil {
-		return res, fmt.Errorf(errEncodePEMKey, err)
-	}
-	return res, nil
-}
-
-func pemCertificate(cert string) (string, error) {
-	res, err := pemEncode(cert, "CERTIFICATE")
-	if err != nil {
-		return res, fmt.Errorf(errEncodePEMCert, err)
-	}
-	return res, nil
 }
