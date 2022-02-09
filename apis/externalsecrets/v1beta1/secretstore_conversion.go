@@ -14,6 +14,10 @@ limitations under the License.
 
 package v1beta1
 
-func (*SecretStore) Hub() {}
+func (*SecretStore) Hub() {
+	// Hub() method to be compliant with the conversion Hub interface
+}
 
-func (*ClusterSecretStore) Hub() {}
+func (*ClusterSecretStore) Hub() {
+	// Hub() method to be compliant with the conversion Hub interface
+}

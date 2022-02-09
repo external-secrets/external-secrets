@@ -38,7 +38,10 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-const errCreateController = "unable to create controller"
+const (
+	errCreateController = "unable to create controller"
+	errCreateWebhook    = "unable to create webhook"
+)
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -121,27 +124,27 @@ func main() {
 	}
 
 	if err = (&esv1beta1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ExternalSecret-v1beta1")
+		setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1beta1")
 		os.Exit(1)
 	}
 	if err = (&esv1beta1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "SecretStore-v1beta1")
+		setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1beta1")
 		os.Exit(1)
 	}
 	if err = (&esv1beta1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSecretStore-v1beta1")
+		setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1beta1")
 		os.Exit(1)
 	}
 	if err = (&esv1alpha1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ExternalSecret-v1alpha1")
+		setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1alpha1")
 		os.Exit(1)
 	}
 	if err = (&esv1alpha1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "SecretStore-v1alpha1")
+		setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1alpha1")
 		os.Exit(1)
 	}
 	if err = (&esv1alpha1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSecretStore-v1alpha1")
+		setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1alpha1")
 		os.Exit(1)
 	}
 
