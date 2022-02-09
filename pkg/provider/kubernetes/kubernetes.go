@@ -18,18 +18,18 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -38,17 +38,15 @@ const (
 	errFetchCredentialsSecret              = "could not fetch Credentials secret: %w"
 	errMissingCredentials                  = "missing Credentials: %v"
 	errUninitalizedKubernetesProvider      = "provider kubernetes is not initialized"
-	errJSONSecretUnmarshal                 = "unable to unmarshal secret: %w"
 )
 
-type KubernetesClient interface {
+type KClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error)
 }
 
 // ProviderKubernetes is a provider for Kubernetes.
 type ProviderKubernetes struct {
-	projectID string
-	Client    KubernetesClient
+	Client KClient
 }
 
 var _ provider.SecretsClient = &ProviderKubernetes{}
@@ -80,7 +78,7 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1alpha1.Gen
 	}
 	storeSpecKubernetes := storeSpec.Provider.Kubernetes
 
-	kStore := BaseClient{
+	bStore := BaseClient{
 		kube:      kube,
 		store:     storeSpecKubernetes,
 		namespace: namespace,
@@ -89,18 +87,18 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1alpha1.Gen
 		User:      storeSpecKubernetes.User,
 	}
 
-	if err := kStore.setAuth(ctx); err != nil {
+	if err := bStore.setAuth(ctx); err != nil {
 		return nil, err
 	}
 
 	config := &rest.Config{
-		Host:        kStore.store.Server,
-		BearerToken: string(kStore.BearerToken),
+		Host:        bStore.store.Server,
+		BearerToken: string(bStore.BearerToken),
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: false,
-			CertData: kStore.Certificate,
-			KeyData:  kStore.Key,
-			CAData:   kStore.CA,
+			CertData: bStore.Certificate,
+			KeyData:  bStore.Key,
+			CAData:   bStore.CA,
 		},
 	}
 
@@ -109,10 +107,9 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1alpha1.Gen
 		return nil, fmt.Errorf("error configuring clientset: %w", err)
 	}
 
-	k.Client = kubeClientSet.CoreV1().Secrets(kStore.store.RemoteNamespace)
+	k.Client = kubeClientSet.CoreV1().Secrets(bStore.store.RemoteNamespace)
 
 	return k, nil
-
 }
 
 func (k *ProviderKubernetes) Close(ctx context.Context) error {
@@ -120,7 +117,6 @@ func (k *ProviderKubernetes) Close(ctx context.Context) error {
 }
 
 func (k *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
-
 	if ref.Property == "" {
 		return nil, fmt.Errorf("property field not found on extrenal secrets")
 	}

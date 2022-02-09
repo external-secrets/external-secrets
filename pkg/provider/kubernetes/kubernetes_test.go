@@ -21,26 +21,13 @@ import (
 	"strings"
 	"testing"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-)
 
-type secretManagerTestCase struct {
-	mockClient  *kclient.Client
-	ref         *esv1alpha1.ExternalSecretDataRemoteRef
-	namespace   string
-	storeKind   string
-	Server      string
-	User        string
-	Certificate []byte
-	Key         []byte
-	CA          []byte
-	BearerToken []byte
-}
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+)
 
 type fakeClient struct {
 	secretMap map[string]corev1.Secret
@@ -59,8 +46,6 @@ func (fk fakeClient) Create(ctx context.Context, name string, opts metav1.GetOpt
 	return nil, nil
 }
 
-// test the sm<->gcp interface
-// make sure correct values are passed and errors are handled accordingly.
 func TestKubernetesSecretManagerGetSecret(t *testing.T) {
 	expected := make(map[string][]byte)
 	value := "bar"
@@ -77,38 +62,37 @@ func TestKubernetesSecretManagerGetSecret(t *testing.T) {
 
 	output, _ := kp.GetSecret(ctx, ref)
 
-	if string(output) != "bar" {
+	if string(output) != value {
 		t.Error("missing match value of the secret")
 	}
 
 	ref = esv1alpha1.ExternalSecretDataRemoteRef{Key: "Key2", Property: "foo"}
-	output, err := kp.GetSecret(ctx, ref)
+	_, err := kp.GetSecret(ctx, ref)
 
 	if err.Error() != "Something went wrong" {
 		t.Error("test failed")
 	}
 
 	ref = esv1alpha1.ExternalSecretDataRemoteRef{Key: "Key", Property: "foo2"}
-	output, err = kp.GetSecret(ctx, ref)
-	expected_error := fmt.Sprintf("property %s does not exist in key %s", ref.Property, ref.Key)
-	if err.Error() != expected_error {
+	_, err = kp.GetSecret(ctx, ref)
+	expectedError := fmt.Sprintf("property %s does not exist in key %s", ref.Property, ref.Key)
+	if err.Error() != expectedError {
 		t.Error("test not existing property failed")
 	}
 
 	kp = ProviderKubernetes{Client: nil}
-	output, err = kp.GetSecret(ctx, ref)
+	_, err = kp.GetSecret(ctx, ref)
 
 	if err.Error() != errUninitalizedKubernetesProvider {
 		t.Error("test nil Client failed")
 	}
 
 	ref = esv1alpha1.ExternalSecretDataRemoteRef{Key: "Key", Property: ""}
-	output, err = kp.GetSecret(ctx, ref)
+	_, err = kp.GetSecret(ctx, ref)
 
 	if err.Error() != "property field not found on extrenal secrets" {
 		t.Error("test nil Property failed")
 	}
-
 }
 
 func TestKubernetesSecretManagerGetSecretMap(t *testing.T) {
@@ -139,20 +123,21 @@ func TestKubernetesSecretManagerGetSecretMap(t *testing.T) {
 func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 	kp := esv1alpha1.KubernetesProvider{}
 	fs := &corev1.Secret{}
-	fs.ObjectMeta.Name = "good-name"
-	secret_value := make(map[string][]byte)
-	secret_value["cert"] = []byte("secret-cert")
-	secret_value["ca"] = []byte("secret-ca")
-	secret_value["bearerToken"] = []byte("bearerToken")
+	secretName := "good-name"
+	fs.ObjectMeta.Name = secretName
+	secretValue := make(map[string][]byte)
+	secretValue["cert"] = []byte("secret-cert")
+	secretValue["ca"] = []byte("secret-ca")
+	secretValue["bearerToken"] = []byte("bearerToken")
 
 	fs2 := &corev1.Secret{}
 	fs2.ObjectMeta.Name = "secret-for-the-key"
-	secret_value2 := make(map[string][]byte)
-	secret_value2["key"] = []byte("secret-key")
+	secretValue2 := make(map[string][]byte)
+	secretValue2["key"] = []byte("secret-key")
 
-	fs.Data = secret_value
-	fs2.Data = secret_value2
-	fk := fclient.NewFakeClient(fs, fs2)
+	fs.Data = secretValue
+	fs2.Data = secretValue2
+	fk := fclient.NewClientBuilder().WithObjects(fs, fs2).Build()
 	bc := BaseClient{fk, &kp, "", "", "", "", nil, nil, nil, nil}
 
 	ctx := context.Background()
@@ -179,7 +164,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		fmt.Println(err.Error())
 		t.Error("test could not fetch Credentials secret failed")
 	}
-	kp.Auth.SecretRef.Certificate.Name = "good-name"
+	kp.Auth.SecretRef.Certificate.Name = secretName
 
 	err = bc.setAuth(ctx)
 
@@ -199,7 +184,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 	}
 
 	kp.Auth.SecretRef.Key.Key = "key"
-	kp.Auth.SecretRef.CA.Name = "good-name"
+	kp.Auth.SecretRef.CA.Name = secretName
 
 	err = bc.setAuth(ctx)
 
@@ -208,7 +193,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		t.Error("test could not fetch Credentials secret failed")
 	}
 	kp.Auth.SecretRef.CA.Key = "ca"
-	kp.Auth.SecretRef.BearerToken.Name = "good-name"
+	kp.Auth.SecretRef.BearerToken.Name = secretName
 
 	err = bc.setAuth(ctx)
 
@@ -218,15 +203,13 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 	}
 
 	kp.Auth.SecretRef.BearerToken.Key = "bearerToken"
-	
-	err = bc.setAuth(ctx)
 
+	err = bc.setAuth(ctx)
 
 	if err != nil {
 		fmt.Println(err.Error())
 		t.Error("test could not fetch Credentials secret failed")
 	}
-
 }
 
 func ErrorContains(out error, want string) bool {
