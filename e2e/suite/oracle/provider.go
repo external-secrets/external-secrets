@@ -21,8 +21,8 @@ import (
 
 	// nolint
 	. "github.com/onsi/gomega"
-	"github.com/oracle/oci-go-sdk/v45/common"
-	vault "github.com/oracle/oci-go-sdk/v45/vault"
+	"github.com/oracle/oci-go-sdk/v56/common"
+	vault "github.com/oracle/oci-go-sdk/v56/vault"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
@@ -113,7 +113,11 @@ func (p *oracleProvider) BeforeEach() {
 		Spec: esv1alpha1.SecretStoreSpec{
 			Provider: &esv1alpha1.SecretStoreProvider{
 				Oracle: &esv1alpha1.OracleProvider{
-					Auth: esv1alpha1.OracleAuth{
+					Region: p.region,
+					Vault:  "vaultOCID",
+					Auth: &esv1alpha1.OracleAuth{
+						Tenancy: p.tenancy,
+						User:    p.user,
 						SecretRef: esv1alpha1.OracleSecretRef{
 							Fingerprint: esmeta.SecretKeySelector{
 								Name: "vms-secret",

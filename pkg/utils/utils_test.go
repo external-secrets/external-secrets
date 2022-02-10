@@ -17,7 +17,7 @@ package utils
 import (
 	"testing"
 
-	vault "github.com/oracle/oci-go-sdk/v45/vault"
+	vault "github.com/oracle/oci-go-sdk/v56/vault"
 	v1 "k8s.io/api/core/v1"
 )
 
