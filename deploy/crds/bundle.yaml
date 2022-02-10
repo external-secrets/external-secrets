@@ -568,7 +568,8 @@ spec:
                     properties:
                       auth:
                         description: Auth configures how secret-manager authenticates
-                          with the Oracle Vault.
+                          with the Oracle Vault. If empty, use the instance principal,
+                          otherwise the user credentials specified in Auth.
                         properties:
                           secretRef:
                             description: SecretRef to pass through sensitive information.
@@ -615,25 +616,32 @@ spec:
                                       the referent.
                                     type: string
                                 type: object
+                            required:
+                            - fingerprint
+                            - privatekey
                             type: object
+                          tenancy:
+                            description: Tenancy is the tenancy OCID where user is
+                              located.
+                            type: string
+                          user:
+                            description: User is an access OCID specific to the account.
+                            type: string
                         required:
                         - secretRef
+                        - tenancy
+                        - user
                         type: object
                       region:
-                        description: Region is the region where secret is located.
-                        type: string
-                      tenancy:
-                        description: Tenancy is the tenancy OCID where secret is located.
-                        type: string
-                      user:
-                        description: User is an access OCID specific to the account.
+                        description: Region is the region where vault is located.
                         type: string
                       vault:
                         description: Vault is the vault's OCID of the specific vault
                           where secret is located.
                         type: string
                     required:
-                    - auth
+                    - region
+                    - vault
                     type: object
                   vault:
                     description: Vault configures this store to sync secrets using
@@ -1713,7 +1721,8 @@ spec:
                     properties:
                       auth:
                         description: Auth configures how secret-manager authenticates
-                          with the Oracle Vault.
+                          with the Oracle Vault. If empty, use the instance principal,
+                          otherwise the user credentials specified in Auth.
                         properties:
                           secretRef:
                             description: SecretRef to pass through sensitive information.
@@ -1760,25 +1769,32 @@ spec:
                                       the referent.
                                     type: string
                                 type: object
+                            required:
+                            - fingerprint
+                            - privatekey
                             type: object
+                          tenancy:
+                            description: Tenancy is the tenancy OCID where user is
+                              located.
+                            type: string
+                          user:
+                            description: User is an access OCID specific to the account.
+                            type: string
                         required:
                         - secretRef
+                        - tenancy
+                        - user
                         type: object
                       region:
-                        description: Region is the region where secret is located.
-                        type: string
-                      tenancy:
-                        description: Tenancy is the tenancy OCID where secret is located.
-                        type: string
-                      user:
-                        description: User is an access OCID specific to the account.
+                        description: Region is the region where vault is located.
                         type: string
                       vault:
                         description: Vault is the vault's OCID of the specific vault
                           where secret is located.
                         type: string
                     required:
-                    - auth
+                    - region
+                    - vault
                     type: object
                   vault:
                     description: Vault configures this store to sync secrets using
@@ -3415,7 +3431,8 @@ spec:
                     properties:
                       auth:
                         description: Auth configures how secret-manager authenticates
-                          with the Oracle Vault.
+                          with the Oracle Vault. If empty, use the instance principal,
+                          otherwise the user credentials specified in Auth.
                         properties:
                           secretRef:
                             description: SecretRef to pass through sensitive information.
@@ -3462,25 +3479,32 @@ spec:
                                       the referent.
                                     type: string
                                 type: object
+                            required:
+                            - fingerprint
+                            - privatekey
                             type: object
+                          tenancy:
+                            description: Tenancy is the tenancy OCID where user is
+                              located.
+                            type: string
+                          user:
+                            description: User is an access OCID specific to the account.
+                            type: string
                         required:
                         - secretRef
+                        - tenancy
+                        - user
                         type: object
                       region:
-                        description: Region is the region where secret is located.
-                        type: string
-                      tenancy:
-                        description: Tenancy is the tenancy OCID where secret is located.
-                        type: string
-                      user:
-                        description: User is an access OCID specific to the account.
+                        description: Region is the region where vault is located.
                         type: string
                       vault:
                         description: Vault is the vault's OCID of the specific vault
                           where secret is located.
                         type: string
                     required:
-                    - auth
+                    - region
+                    - vault
                     type: object
                   vault:
                     description: Vault configures this store to sync secrets using
@@ -4563,7 +4587,8 @@ spec:
                     properties:
                       auth:
                         description: Auth configures how secret-manager authenticates
-                          with the Oracle Vault.
+                          with the Oracle Vault. If empty, use the instance principal,
+                          otherwise the user credentials specified in Auth.
                         properties:
                           secretRef:
                             description: SecretRef to pass through sensitive information.
@@ -4610,25 +4635,32 @@ spec:
                                       the referent.
                                     type: string
                                 type: object
+                            required:
+                            - fingerprint
+                            - privatekey
                             type: object
+                          tenancy:
+                            description: Tenancy is the tenancy OCID where user is
+                              located.
+                            type: string
+                          user:
+                            description: User is an access OCID specific to the account.
+                            type: string
                         required:
                         - secretRef
+                        - tenancy
+                        - user
                         type: object
                       region:
-                        description: Region is the region where secret is located.
-                        type: string
-                      tenancy:
-                        description: Tenancy is the tenancy OCID where secret is located.
-                        type: string
-                      user:
-                        description: User is an access OCID specific to the account.
+                        description: Region is the region where vault is located.
                         type: string
                       vault:
                         description: Vault is the vault's OCID of the specific vault
                           where secret is located.
                         type: string
                     required:
-                    - auth
+                    - region
+                    - vault
                     type: object
                   vault:
                     description: Vault configures this store to sync secrets using

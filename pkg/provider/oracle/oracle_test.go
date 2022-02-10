@@ -19,7 +19,7 @@ import (
 	"strings"
 	"testing"
 
-	secrets "github.com/oracle/oci-go-sdk/v45/secrets"
+	secrets "github.com/oracle/oci-go-sdk/v56/secrets"
 	utilpointer "k8s.io/utils/pointer"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
