@@ -74,6 +74,46 @@ spec:
             - containerPort: {{ .Values.prometheus.service.port }}
               protocol: TCP
               name: metrics
+          {{- with .Values.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        - name: {{ .Chart.Name }}-webhook
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+          - --webhook=true
+          - --metrics-addr=:8081
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.concurrent) (.Values.extraArgs) }}
+          {{- if .Values.leaderElect }}
+          - --enable-leader-election=true
+          {{- end }}
+          {{- if .Values.scopedNamespace }}
+          - --namespace={{ .Values.scopedNamespace }}
+          {{- end }}
+          {{- if .Values.controllerClass }}
+          - --controller-class={{ .Values.controllerClass }}
+          {{- end }}
+          {{- if .Values.concurrent }}
+          - --concurrent={{ .Values.concurrent }}
+          {{- end }}
+          {{- range $key, $value := .Values.extraArgs }}
+            {{- if $value }}
+          - --{{ $key }}={{ $value }}
+            {{- else }}
+          - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
+          ports:
             - containerPort: 9443
               protocol: TCP
               name: webhook
