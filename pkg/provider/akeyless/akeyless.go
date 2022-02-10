@@ -103,6 +103,10 @@ func (a *Akeyless) Close(ctx context.Context) error {
 	return nil
 }
 
+func (a *Akeyless) Validate() error {
+	return nil
+}
+
 // Implements store.Client.GetSecret Interface.
 // Retrieves a secret with the secret name defined in ref.Name.
 func (a *Akeyless) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {

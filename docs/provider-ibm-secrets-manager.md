@@ -40,6 +40,7 @@ Be sure the `ibm` provider is listed in the `Kind=SecretStore`
 ```yaml
 {% include 'ibm-secret-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretApiKeySecretRef` with the namespace where the secret resides.
 
 To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" on the left.
 Note: Use the url without the `/api` suffix that is presented in the UI.

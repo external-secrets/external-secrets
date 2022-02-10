@@ -19,5 +19,4 @@ spec:
           username: "username"
           secretRef:
             name: "my-secret"
-            namespace: "secret-admin"
             key: "ldap-password"

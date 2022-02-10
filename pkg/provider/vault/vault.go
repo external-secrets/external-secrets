@@ -18,15 +18,18 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,19 +49,20 @@ var (
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
-	errVaultStore     = "received invalid Vault SecretStore resource: %w"
-	errVaultClient    = "cannot setup new vault client: %w"
-	errVaultCert      = "cannot set Vault CA certificate: %w"
-	errReadSecret     = "cannot read secret data from Vault: %w"
-	errAuthFormat     = "cannot initialize Vault client: no valid auth method specified: %w"
-	errDataField      = "failed to find data field"
-	errJSONUnmarshall = "failed to unmarshall JSON"
-	errSecretFormat   = "secret data not in expected format"
-	errVaultToken     = "cannot parse Vault authentication token: %w"
-	errVaultReqParams = "cannot set Vault request parameters: %w"
-	errVaultRequest   = "error from Vault request: %w"
-	errVaultResponse  = "cannot parse Vault response: %w"
-	errServiceAccount = "cannot read Kubernetes service account token from file system: %w"
+	errVaultStore         = "received invalid Vault SecretStore resource: %w"
+	errVaultClient        = "cannot setup new vault client: %w"
+	errVaultCert          = "cannot set Vault CA certificate: %w"
+	errReadSecret         = "cannot read secret data from Vault: %w"
+	errAuthFormat         = "cannot initialize Vault client: no valid auth method specified"
+	errInvalidCredentials = "invalid vault credentials: %w"
+	errDataField          = "failed to find data field"
+	errJSONUnmarshall     = "failed to unmarshall JSON"
+	errSecretFormat       = "secret data not in expected format"
+	errVaultToken         = "cannot parse Vault authentication token: %w"
+	errVaultReqParams     = "cannot set Vault request parameters: %w"
+	errVaultRequest       = "error from Vault request: %w"
+	errVaultResponse      = "cannot parse Vault response: %w"
+	errServiceAccount     = "cannot read Kubernetes service account token from file system: %w"
 
 	errGetKubeSA        = "cannot get Kubernetes service account %q: %w"
 	errGetKubeSASecrets = "cannot find secrets bound to service account: %q"
@@ -149,6 +153,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1alpha1.GenericStore
 	}
 
 	vStore.client = client
+
 	return vStore, nil
 }
 
@@ -157,15 +162,56 @@ func (v *client) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDat
 	if err != nil {
 		return nil, err
 	}
-	value, exists := data[ref.Property]
-	if !exists {
+
+	// return raw json if no property is defined
+	if ref.Property == "" {
+		return data, nil
+	}
+
+	val := gjson.Get(string(data), ref.Property)
+	if !val.Exists() {
 		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
 	}
-	return value, nil
+	return []byte(val.String()), nil
 }
 
 func (v *client) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return v.readSecret(ctx, ref.Key, ref.Version)
+	data, err := v.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	var secretData map[string]interface{}
+	err = json.Unmarshal(data, &secretData)
+	if err != nil {
+		return nil, err
+	}
+	byteMap := make(map[string][]byte, len(secretData))
+	for k, v := range secretData {
+		switch t := v.(type) {
+		case string:
+			byteMap[k] = []byte(t)
+		case map[string]interface{}:
+			jsonData, err := json.Marshal(t)
+			if err != nil {
+				return nil, err
+			}
+			byteMap[k] = jsonData
+		case []byte:
+			byteMap[k] = t
+		// also covers int and float32 due to json.Marshal
+		case float64:
+			byteMap[k] = []byte(strconv.FormatFloat(t, 'f', -1, 64))
+		case bool:
+			byteMap[k] = []byte(strconv.FormatBool(t))
+		case nil:
+			byteMap[k] = []byte(nil)
+		default:
+			return nil, errors.New(errSecretFormat)
+		}
+	}
+
+	return byteMap, nil
 }
 
 func (v *client) Close(ctx context.Context) error {
@@ -177,6 +223,14 @@ func (v *client) Close(ctx context.Context) error {
 			return fmt.Errorf(errVaultRevokeToken, err)
 		}
 		v.client.ClearToken()
+	}
+	return nil
+}
+
+func (v *client) Validate() error {
+	err := checkToken(context.Background(), v)
+	if err != nil {
+		return fmt.Errorf(errInvalidCredentials, err)
 	}
 	return nil
 }
@@ -208,7 +262,7 @@ func (v *client) buildPath(path string) string {
 	return returnPath
 }
 
-func (v *client) readSecret(ctx context.Context, path, version string) (map[string][]byte, error) {
+func (v *client) readSecret(ctx context.Context, path, version string) ([]byte, error) {
 	dataPath := v.buildPath(path)
 
 	// path formated according to vault docs for v1 and v2 API
@@ -244,21 +298,8 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		}
 	}
 
-	byteMap := make(map[string][]byte, len(secretData))
-	for k, v := range secretData {
-		switch t := v.(type) {
-		case string:
-			byteMap[k] = []byte(t)
-		case []byte:
-			byteMap[k] = t
-		case nil:
-			byteMap[k] = []byte(nil)
-		default:
-			return nil, errors.New(errSecretFormat)
-		}
-	}
-
-	return byteMap, nil
+	// return json string
+	return json.Marshal(secretData)
 }
 
 func (v *client) newConfig() (*vault.Config, error) {
@@ -526,6 +567,14 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	value := string(keyBytes)
 	valueStr := strings.TrimSpace(value)
 	return valueStr, nil
+}
+
+// checkToken does a lookup and checks if the provided token exists.
+func checkToken(ctx context.Context, vStore *client) error {
+	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
+	req := vStore.client.NewRequest("GET", "/v1/auth/token/lookup-self")
+	_, err := vStore.client.RawRequestWithContext(ctx, req)
+	return err
 }
 
 // appRoleParameters creates the required body for Vault AppRole Auth.

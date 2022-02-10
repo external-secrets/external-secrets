@@ -11,6 +11,7 @@ way users of the `SecretStore` can only access the secrets necessary.
 ``` yaml
 {% include 'aws-parameter-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
 
 !!! warning "API Pricing & Throttling"
     The SSM Parameter Store API is charged by throughput and

@@ -313,6 +313,10 @@ func (ibm *providerIBM) Close(ctx context.Context) error {
 	return nil
 }
 
+func (ibm *providerIBM) Validate() error {
+	return nil
+}
+
 func (ibm *providerIBM) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	ibmSpec := storeSpec.Provider.IBM

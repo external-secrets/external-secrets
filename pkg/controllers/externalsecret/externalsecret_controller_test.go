@@ -31,8 +31,8 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 var (

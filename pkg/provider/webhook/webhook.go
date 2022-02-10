@@ -377,6 +377,10 @@ func (w *WebHook) Close(ctx context.Context) error {
 	return nil
 }
 
+func (w *WebHook) Validate() error {
+	return nil
+}
+
 func executeTemplateString(tmpl string, data map[string]map[string]string) (string, error) {
 	result, err := executeTemplate(tmpl, data)
 	if err != nil {

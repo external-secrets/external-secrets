@@ -26,7 +26,6 @@ spec:
         # https://www.vaultproject.io/docs/auth/token
         tokenSecretRef:
           name: "vault-token"
-          namespace: "default"
           key: "token"
 ---
 apiVersion: v1
@@ -36,6 +35,7 @@ metadata:
 data:
   token: cm9vdA== # "root"
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `tokenSecretRef` with the namespace of the secret that we just created.
 
 Then create a simple k/v pair at path `secret/foo`:
 
@@ -71,9 +71,92 @@ data:
   foobar: czNjcjN0
 ```
 
-#### Limitations
+#### Fetching Raw Values
 
-Vault supports only simple key/value pairs - nested objects are not supported. Hence specifying `gjson` properties like other providers support it is not supported.
+You can fetch all key/value pairs for a given path If you leave the `remoteRef.property` empty. This returns the json-encoded secret value for that path.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  data:
+  - secretKey: foobar
+    remoteRef:
+      key: /dev/package.json
+```
+
+#### Nested Values
+
+Vault supports nested key/value pairs. You can specify a [gjson](https://github.com/tidwall/gjson) expression at `remoteRef.property` to get a nested value.
+
+Given the following secret - assume its path is `/dev/config`:
+```json
+{
+  "foo": {
+    "nested": {
+      "bar": "mysecret"
+    }
+  }
+}
+```
+
+You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  data:
+  - secretKey: foobar
+    remoteRef:
+      key: /dev/config
+      property: foo.nested.bar
+---
+# creates a secret with:
+# foobar=mysecret
+```
+
+If you would set the `remoteRef.property` to just `foo` then you would get the json-encoded value of that property: `{"nested":{"bar":"mysecret"}}`.
+
+#### Multiple nested Values
+
+You can extract multiple keys from a nested secret using `dataFrom`.
+
+Given the following secret - assume its path is `/dev/config`:
+```json
+{
+  "foo": {
+    "nested": {
+      "bar": "mysecret",
+      "baz": "bang"
+    }
+  }
+}
+```
+
+You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  dataFrom:
+  - key: /dev/config
+    property: foo.nested
+```
+
+That results in a secret with these values:
+```
+bar=mysecret
+baz=bang
+```
 
 ### Authentication
 
@@ -92,6 +175,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 ```yaml
 {% include 'vault-token-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `tokenSecretRef` with the namespace where the secret resides.
 
 #### AppRole authentication example
 
@@ -101,6 +185,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 ```yaml
 {% include 'vault-approle-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### Kubernetes authentication
 
@@ -115,6 +200,7 @@ options of optaining credentials for vault:
 ```yaml
 {% include 'vault-kubernetes-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `serviceAccountRef` or in `secretRef`, if used.
 
 #### LDAP authentication
 
@@ -126,6 +212,7 @@ in a `Kind=Secret` referenced by the `secretRef`.
 ```yaml
 {% include 'vault-ldap-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### JWT/OIDC authentication
 
@@ -137,6 +224,7 @@ or `Kind=ClusterSecretStore` resource.
 ```yaml
 {% include 'vault-jwt-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 ### Vault Enterprise and Eventual Consistency
 

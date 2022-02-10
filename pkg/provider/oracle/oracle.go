@@ -17,14 +17,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/oracle/oci-go-sdk/v45/common"
-	"github.com/oracle/oci-go-sdk/v45/secrets"
+	"github.com/oracle/oci-go-sdk/v56/common"
+	"github.com/oracle/oci-go-sdk/v56/common/auth"
+	"github.com/oracle/oci-go-sdk/v56/secrets"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -52,18 +54,6 @@ const (
 	errUnexpectedContent                     = "unexpected secret bundle content"
 )
 
-type client struct {
-	kube        kclient.Client
-	store       *esv1alpha1.OracleProvider
-	namespace   string
-	storeKind   string
-	tenancy     string
-	user        string
-	region      string
-	fingerprint string
-	privateKey  string
-}
-
 type VaultManagementService struct {
 	Client VMInterface
 	vault  string
@@ -71,58 +61,6 @@ type VaultManagementService struct {
 
 type VMInterface interface {
 	GetSecretBundleByName(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error)
-}
-
-func (c *client) setAuth(ctx context.Context) error {
-	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.PrivateKey.Name
-	if credentialsSecretName == "" {
-		return fmt.Errorf(errORACLECredSecretName)
-	}
-	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
-		Namespace: c.namespace,
-	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1alpha1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.PrivateKey.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
-		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.PrivateKey.Namespace
-	}
-
-	err := c.kube.Get(ctx, objectKey, credentialsSecret)
-	if err != nil {
-		return fmt.Errorf(errFetchSAKSecret, err)
-	}
-
-	c.privateKey = string(credentialsSecret.Data[c.store.Auth.SecretRef.PrivateKey.Key])
-	if c.privateKey == "" {
-		return fmt.Errorf(errMissingPK)
-	}
-
-	c.fingerprint = string(credentialsSecret.Data[c.store.Auth.SecretRef.Fingerprint.Key])
-	if c.fingerprint == "" {
-		return fmt.Errorf(errMissingFingerprint)
-	}
-
-	c.user = c.store.User
-	if c.user == "" {
-		return fmt.Errorf(errMissingUser)
-	}
-
-	c.tenancy = c.store.Tenancy
-	if c.tenancy == "" {
-		return fmt.Errorf(errMissingTenancy)
-	}
-
-	c.region = c.store.Region
-	if c.region == "" {
-		return fmt.Errorf(errMissingRegion)
-	}
-
-	return nil
 }
 
 func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -188,28 +126,29 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1alph
 		return nil, fmt.Errorf(errMissingVault)
 	}
 
-	oracleStore := &client{
-		kube:      kube,
-		store:     oracleSpec,
-		namespace: namespace,
-		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
-	}
-	if err := oracleStore.setAuth(ctx); err != nil {
-		return nil, err
+	if oracleSpec.Region == "" {
+		return nil, fmt.Errorf(errMissingRegion)
 	}
 
-	oracleTenancy := oracleStore.tenancy
-	oracleUser := oracleStore.user
-	oracleRegion := oracleStore.region
-	oracleFingerprint := oracleStore.fingerprint
-	oraclePrivateKey := oracleStore.privateKey
-
-	configurationProvider := common.NewRawConfigurationProvider(oracleTenancy, oracleUser, oracleRegion, oracleFingerprint, oraclePrivateKey, nil)
+	var (
+		err                   error
+		configurationProvider common.ConfigurationProvider
+	)
+	if oracleSpec.Auth == nil {
+		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
+	} else {
+		configurationProvider, err = getUserAuthConfigurationProvider(ctx, kube, oracleSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind, oracleSpec.Region)
+	}
+	if err != nil {
+		return nil, fmt.Errorf(errOracleClient, err)
+	}
 
 	secretManagementService, err := secrets.NewSecretsClientWithConfigurationProvider(configurationProvider)
 	if err != nil {
 		return nil, fmt.Errorf(errOracleClient, err)
 	}
+
+	secretManagementService.SetRegion(oracleSpec.Region)
 
 	return &VaultManagementService{
 		Client: secretManagementService,
@@ -217,7 +156,66 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1alph
 	}, nil
 }
 
+func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKind string, secretRef esmeta.SecretKeySelector) (string, error) {
+	if secretRef.Name == "" {
+		return "", fmt.Errorf(errORACLECredSecretName)
+	}
+
+	objectKey := types.NamespacedName{
+		Name:      secretRef.Name,
+		Namespace: namespace,
+	}
+
+	// only ClusterStore is allowed to set namespace (and then it's required)
+	if storeKind == esv1alpha1.ClusterSecretStoreKind {
+		if secretRef.Namespace == nil {
+			return "", fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
+		}
+		objectKey.Namespace = *secretRef.Namespace
+	}
+
+	secret := corev1.Secret{}
+	err := kube.Get(ctx, objectKey, &secret)
+	if err != nil {
+		return "", fmt.Errorf(errFetchSAKSecret, err)
+	}
+
+	return string(secret.Data[secretRef.Key]), nil
+}
+
+func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, store *esv1alpha1.OracleProvider, namespace, storeKind, region string) (common.ConfigurationProvider, error) {
+	privateKey, err := getSecretData(ctx, kube, namespace, storeKind, store.Auth.SecretRef.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	if privateKey == "" {
+		return nil, fmt.Errorf(errMissingPK)
+	}
+
+	fingerprint, err := getSecretData(ctx, kube, namespace, storeKind, store.Auth.SecretRef.Fingerprint)
+	if err != nil {
+		return nil, err
+	}
+	if fingerprint == "" {
+		return nil, fmt.Errorf(errMissingFingerprint)
+	}
+
+	if store.Auth.User == "" {
+		return nil, fmt.Errorf(errMissingUser)
+	}
+
+	if store.Auth.Tenancy == "" {
+		return nil, fmt.Errorf(errMissingTenancy)
+	}
+
+	return common.NewRawConfigurationProvider(store.Auth.Tenancy, store.Auth.User, region, fingerprint, privateKey, nil), nil
+}
+
 func (vms *VaultManagementService) Close(ctx context.Context) error {
+	return nil
+}
+
+func (vms *VaultManagementService) Validate() error {
 	return nil
 }
 

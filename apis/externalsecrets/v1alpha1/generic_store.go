@@ -33,8 +33,13 @@ type GenericStore interface {
 	metav1.Object
 
 	GetObjectMeta() *metav1.ObjectMeta
+	GetTypeMeta() *metav1.TypeMeta
+
 	GetSpec() *SecretStoreSpec
 	GetNamespacedName() string
+	GetStatus() SecretStoreStatus
+	SetStatus(status SecretStoreStatus)
+	Copy() GenericStore
 }
 
 // +kubebuilder:object:root:false
@@ -45,8 +50,20 @@ func (c *SecretStore) GetObjectMeta() *metav1.ObjectMeta {
 	return &c.ObjectMeta
 }
 
+func (c *SecretStore) GetTypeMeta() *metav1.TypeMeta {
+	return &c.TypeMeta
+}
+
 func (c *SecretStore) GetSpec() *SecretStoreSpec {
 	return &c.Spec
+}
+
+func (c *SecretStore) GetStatus() SecretStoreStatus {
+	return c.Status
+}
+
+func (c *SecretStore) SetStatus(status SecretStoreStatus) {
+	c.Status = status
 }
 
 func (c *SecretStore) GetNamespacedName() string {
@@ -65,12 +82,24 @@ func (c *ClusterSecretStore) GetObjectMeta() *metav1.ObjectMeta {
 	return &c.ObjectMeta
 }
 
+func (c *ClusterSecretStore) GetTypeMeta() *metav1.TypeMeta {
+	return &c.TypeMeta
+}
+
 func (c *ClusterSecretStore) GetSpec() *SecretStoreSpec {
 	return &c.Spec
 }
 
 func (c *ClusterSecretStore) Copy() GenericStore {
 	return c.DeepCopy()
+}
+
+func (c *ClusterSecretStore) GetStatus() SecretStoreStatus {
+	return c.Status
+}
+
+func (c *ClusterSecretStore) SetStatus(status SecretStoreStatus) {
+	c.Status = status
 }
 
 func (c *ClusterSecretStore) GetNamespacedName() string {

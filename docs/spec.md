@@ -1486,6 +1486,95 @@ map[string]string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.FakeProvider">FakeProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>FakeProvider configures a fake provider that returns static values.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.FakeProviderData">
+[]FakeProviderData
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.FakeProviderData">FakeProviderData
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.FakeProvider">FakeProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>valueMap</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.GCPSMAuth">GCPSMAuth
 </h3>
 <p>
@@ -2308,6 +2397,20 @@ WebhookProvider
 <td>
 <em>(Optional)</em>
 <p>Webhook configures this store to sync secrets using a generic templated webhook</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fake</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.FakeProvider">
+FakeProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Fake configures a store with static key/value pairs</p>
 </td>
 </tr>
 </tbody>

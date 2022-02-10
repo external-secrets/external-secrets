@@ -40,6 +40,7 @@ const (
 	defaultVersion    = "latest"
 
 	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
+	errUnableGetCredentials                   = "unable to get credentials: %w"
 	errClientClose                            = "unable to close SecretManager client: %w"
 	errMissingStoreSpec                       = "invalid: missing store spec"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid ClusterSecretStore: missing GCP SecretAccessKey Namespace"
@@ -153,6 +154,12 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericSt
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}
 
+	// check if we can get credentials
+	_, err = ts.Token()
+	if err != nil {
+		return nil, fmt.Errorf(errUnableGetCredentials, err)
+	}
+
 	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
@@ -235,6 +242,10 @@ func (sm *ProviderGCP) Close(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf(errClientClose, err)
 	}
+	return nil
+}
+
+func (sm *ProviderGCP) Validate() error {
 	return nil
 }
 
