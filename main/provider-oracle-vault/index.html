@@ -1321,7 +1321,9 @@
 <h2 id="oracle-vault">Oracle Vault</h2>
 <p>External Secrets Operator integrates with <a href="https://github.com/oracle/oci-go-sdk">OCI API</a> to sync secret on the Oracle Vault to secrets held on the Kubernetes cluster.</p>
 <h3 id="authentication">Authentication</h3>
-<p>The API requires a userOCID, tenancyOCID, fingerprint, key file and a region. The fingerprint and key file should be supplied in the secret with the rest being provided in the secret store.</p>
+<p>If <code>auth</code> is not specified, the operator uses the instance principal.</p>
+<p>For using a specific user credentials, userOCID, tenancyOCID, fingerprint and private key are required.
+The fingerprint and key file should be supplied in the secret with the rest being provided in the secret store.</p>
 <p>See url for what region you you are accessing.
 <img alt="userOCID-details" src="../pictures/screenshot_region.png" /></p>
 <p>Select tenancy in the top right to see your user OCID as shown below.
@@ -1352,19 +1354,31 @@ This will automatically generate a fingerprint.
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-instance-principal</span>
 <span class="nt">spec</span><span class="p">:</span>
   <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">oracle</span><span class="p">:</span> <span class="c1">#Needs to match value in secretstore_types.go</span>
+    <span class="nt">oracle</span><span class="p">:</span>
       <span class="nt">vault</span><span class="p">:</span> <span class="c1"># The vault OCID</span>
-      <span class="nt">user</span><span class="p">:</span>
-      <span class="nt">tenancy</span><span class="p">:</span>
-      <span class="nt">region</span><span class="p">:</span>
+      <span class="nt">region</span><span class="p">:</span> <span class="c1"># The vault region</span>
+
+<span class="nn">---</span>
+
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-auth</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">provider</span><span class="p">:</span>
+    <span class="nt">oracle</span><span class="p">:</span>
+      <span class="nt">vault</span><span class="p">:</span> <span class="c1"># The vault OCID</span>
+      <span class="nt">region</span><span class="p">:</span> <span class="c1"># The vault region</span>
       <span class="nt">auth</span><span class="p">:</span>
+        <span class="nt">user</span><span class="p">:</span> <span class="c1"># A user OCID</span>
+        <span class="nt">tenancy</span><span class="p">:</span> <span class="c1"># A user&#39;s tenancy</span>
         <span class="nt">secretRef</span><span class="p">:</span>
           <span class="nt">privatekey</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">privateKey</span> <span class="c1">#Needs to match stringData val in secret_oracle.yml</span>
+            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">privateKey</span>
           <span class="nt">fingerprint</span><span class="p">:</span>
             <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle-secret</span>
             <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">fingerprint</span>
