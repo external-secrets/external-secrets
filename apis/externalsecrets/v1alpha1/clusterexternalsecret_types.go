@@ -52,7 +52,7 @@ type ClusterExternalSecretStatus struct {
 	Status corev1.ConditionStatus             `json:"status"`
 
 	// +optional
-	ExternalSecretStatuses []ExternalSecretStatus `json:"externalSecretStatuses"`
+	FailedNamespaces []string `json:"failedNamespaces,omitempty"`
 }
 
 //+kubebuilder:object:root=true

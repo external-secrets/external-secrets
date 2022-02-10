@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -41,13 +42,14 @@ type Reconciler struct {
 }
 
 const (
-	errGetCES             = "could not get ClusterExternalSecret"
-	errPatchStatus        = "unable to patch status"
-	errLabelMap           = "unable to get map from labels"
-	errNamespaces         = "could not get namespaces from selector"
-	errGetExistingES      = "could not get existing ExternalSecret"
-	errCreatingOrUpdating = "could not create or update ExternalSecret"
-	errSetCtrlReference   = "could not set the controller owner reference"
+	errGetCES              = "could not get ClusterExternalSecret"
+	errPatchStatus         = "unable to patch status"
+	errLabelMap            = "unable to get map from labels"
+	errNamespaces          = "could not get namespaces from selector"
+	errGetExistingES       = "could not get existing ExternalSecret"
+	errCreatingOrUpdating  = "could not create or update ExternalSecret"
+	errSetCtrlReference    = "could not set the controller owner reference"
+	errSecretAlreadyExists = "secret already exists in namespace"
 )
 
 //+kubebuilder:rbac:groups=external-secrets.io,resources=clusterexternalsecrets,verbs=get;list;watch;create;update;patch;delete
@@ -100,6 +102,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
 
+	failedNamespaces := []string{}
+
 	for _, namespace := range namespaceList.Items {
 		var existingES esv1alpha1.ExternalSecret
 		err = r.Get(ctx, types.NamespacedName{
@@ -109,6 +113,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		if err != nil && !apierrors.IsNotFound(err) {
 			log.Error(err, errGetExistingES)
+		}
+
+		// No one owns this resource so error out
+		if len(existingES.ObjectMeta.OwnerReferences) == 0 {
+			log.Error(nil, errSecretAlreadyExists, "namespace", namespace)
+			failedNamespaces = append(failedNamespaces, namespace.Name)
+			continue
+		}
+
+		// this means the existing ES does not belong to us
+		if err = controllerutil.SetControllerReference(&clusterExternalSecret, &existingES, r.Scheme); err != nil {
+			log.Error(err, errSetCtrlReference, "namespace", namespace)
+			failedNamespaces = append(failedNamespaces, namespace.Name)
+			continue
 		}
 
 		externalSecret := esv1alpha1.ExternalSecret{
@@ -122,7 +140,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		err = controllerutil.SetControllerReference(&clusterExternalSecret, &externalSecret, r.Scheme)
 		if err != nil {
 			log.Error(err, errSetCtrlReference)
-			return ctrl.Result{RequeueAfter: refreshInt}, nil
+			failedNamespaces = append(failedNamespaces, namespace.Name)
+			continue
 		}
 
 		mutateFunc := func() error {
@@ -135,7 +154,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		if err != nil {
 			log.Error(err, errCreatingOrUpdating)
+			failedNamespaces = append(failedNamespaces, namespace.Name)
 		}
+	}
+
+	if len(failedNamespaces) > 0 {
+		clusterExternalSecret.Status.Status = v1.ConditionFalse
+		clusterExternalSecret.Status.FailedNamespaces = failedNamespaces
 	}
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
