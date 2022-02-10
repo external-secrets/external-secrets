@@ -154,10 +154,10 @@ manifests: helm.generate ## Generate manifests from helm chart
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience
-	kubectl apply -f $(CRD_DIR)
+	kubectl apply -f $(BUNDLE_DIR)
 
 crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
-	kubectl delete -f $(CRD_DIR)
+	kubectl delete -f $(BUNDLE_DIR)
 
 # ====================================================================================
 # Helm Chart
@@ -175,7 +175,7 @@ helm.build: helm.generate ## Build helm chart
 	@$(OK) helm package
 
 helm.generate: helm.docs ## Copy crds to helm chart directory
-	@cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/
+	@cp $(BUNDLE_DIR)/*.yaml $(HELM_DIR)/templates/crds/
 # Add helm if statement for controlling the install of CRDs
 	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
 		cp "$$i" "$$i.bkp" && \
