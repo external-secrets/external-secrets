@@ -65,11 +65,6 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
-          {{- if .Values.webhook.enabled }}
-          volumeMounts:
-          - name: certs
-            mountPath: {{ .Values.webhook.certDir }}
-          {{- end }}
           ports:
             - containerPort: {{ .Values.prometheus.service.port }}
               protocol: TCP
@@ -112,6 +107,11 @@ spec:
           - --{{ $key }}
             {{- end }}
           {{- end }}
+          {{- end }}
+          {{- if .Values.webhook.enabled }}
+          volumeMounts:
+          - name: certs
+            mountPath: {{ .Values.webhook.certDir }}
           {{- end }}
           ports:
             - containerPort: 9443
