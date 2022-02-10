@@ -80,8 +80,7 @@ prometheus:
 
 webhook:
   enabled: true
-  secretName: secret-certificate
-
+  certDir: /tmp/k8s-webhook-server/serving-certs
 nodeSelector: {}
 
 tolerations: []

@@ -16,7 +16,8 @@ all: $(addprefix build-,$(ARCH))
 # Image registry for build/push image targets
 export IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
-CRD_DIR     ?= deploy/crds
+BUNDLE_DIR     ?= deploy/crds
+CRD_DIR     ?= config/crds
 
 HELM_DIR    ?= deploy/charts/external-secrets
 TF_DIR ?= terraform
@@ -130,13 +131,14 @@ fmt: lint.check ## Ensure consistent code style
 
 generate: ## Generate code and crds
 	@go run sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	@go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths="./..." output:crd:artifacts:config=$(CRD_DIR)
+	@go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths="./..." output:crd:artifacts:config=$(CRD_DIR)/bases
 # Remove extra header lines in generated CRDs
-	@for i in $(CRD_DIR)/*.yaml; do \
+	@for i in $(CRD_DIR)/bases/*.yaml; do \
   		tail -n +2 <"$$i" >"$$i.bkp" && \
   		cp "$$i.bkp" "$$i" && \
   		rm "$$i.bkp"; \
   	done
+	@kubectl apply -k $(CRD_DIR) --dry-run=client -o yaml > $(BUNDLE_DIR)/bundle.yaml
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================

@@ -68,7 +68,7 @@ spec:
           {{- if .Values.webhook.enabled }}
           volumeMounts:
           - name: certs
-            mountPath: /tmp/k8s-webhook-server/serving-certs
+            mountPath: {{ .Values.webhook.certDir }}
           {{- end }}
           ports:
             - containerPort: {{ .Values.prometheus.service.port }}
@@ -89,7 +89,7 @@ spec:
       volumes:
       - name: certs
         secret:
-          secretName: {{ .Values.webhook.secretName }}
+          secretName: {{ include "external-secrets.fullname" . }}-webhook
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

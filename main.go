@@ -29,6 +29,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
@@ -89,6 +90,24 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
+	crds := &crds.Reconciler{
+		Client:                 mgr.GetClient(),
+		Log:                    ctrl.Log.WithName("controllers").WithName("CustomResourceDefinition"),
+		Scheme:                 mgr.GetScheme(),
+		SvcLabels:              map[string]string{"external-secrets.io/component": "webhook"},
+		SecretLabels:           map[string]string{"external-secrets.io/component": "webhook"},
+		CrdResources:           []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"},
+		CertDir:                "/tmp/k8s-webhook-server/serving-certs",
+		CAName:                 "external-secrets",
+		CAOrganization:         "external-secrets",
+		RestartOnSecretRefresh: true,
+	}
+	if err := crds.SetupWithManager(mgr, controller.Options{
+		MaxConcurrentReconciles: concurrent,
+	}); err != nil {
+		setupLog.Error(err, errCreateController, "controller", "CustomResourceDefinition")
+		os.Exit(1)
+	}
 
 	if err = (&secretstore.StoreReconciler{
 		Client:          mgr.GetClient(),
@@ -122,35 +141,36 @@ func main() {
 		setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 		os.Exit(1)
 	}
-
-	if err = (&esv1beta1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1beta1")
-		os.Exit(1)
+	if crtsReady := crds.EnsureCertsMounted(); crtsReady {
+		if err = (&esv1beta1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1beta1")
+			os.Exit(1)
+		}
+		if err = (&esv1beta1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1beta1")
+			os.Exit(1)
+		}
+		if err = (&esv1beta1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1beta1")
+			os.Exit(1)
+		}
+		if err = (&esv1alpha1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1alpha1")
+			os.Exit(1)
+		}
+		if err = (&esv1alpha1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1alpha1")
+			os.Exit(1)
+		}
+		if err = (&esv1alpha1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1alpha1")
+			os.Exit(1)
+		}
 	}
-	if err = (&esv1beta1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1beta1")
-		os.Exit(1)
-	}
-	if err = (&esv1beta1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1beta1")
-		os.Exit(1)
-	}
-	if err = (&esv1alpha1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1alpha1")
-		os.Exit(1)
-	}
-	if err = (&esv1alpha1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1alpha1")
-		os.Exit(1)
-	}
-	if err = (&esv1alpha1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1alpha1")
-		os.Exit(1)
-	}
-
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
 }
