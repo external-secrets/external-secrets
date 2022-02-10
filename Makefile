@@ -138,7 +138,7 @@ generate: ## Generate code and crds
   		cp "$$i.bkp" "$$i" && \
   		rm "$$i.bkp"; \
   	done
-	@kubectl apply -k $(CRD_DIR) --dry-run=client -o yaml > $(BUNDLE_DIR)/bundle.yaml
+	@kubectl create -k $(CRD_DIR) --dry-run=client -o yaml > $(BUNDLE_DIR)/bundle.yaml
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
