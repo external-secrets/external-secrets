@@ -6,7 +6,7 @@ With External Secrets Operator you can transform the data from the external secr
 
 You can use templates to inject your secrets into a configuration file that you mount into your pod:
 
-``` yaml
+```yaml
 {% include 'multiline-template-v2-external-secret.yaml' %}
 ```
 
@@ -18,18 +18,20 @@ You do not have to define your templates inline in an ExternalSecret but you can
 {% include 'template-v2-from-secret.yaml' %}
 ```
 
-
 ### Extract Keys and Certificates from PKCS#12 Archive
+
 You can use pre-defined functions to extract data from your secrets. Here: extract keys and certificates from a PKCS#12 archive and store it as PEM.
 
-``` yaml
+```yaml
 {% include 'pkcs12-template-v2-external-secret.yaml' %}
 ```
 
 ### Extract from JWK
+
 You can extract the public or private key parts of a JWK and use them as [PKCS#8](https://pkg.go.dev/crypto/x509#ParsePKCS8PrivateKey) private key or PEM-encoded [PKIX](https://pkg.go.dev/crypto/x509#MarshalPKIXPublicKey) public key.
 
 A JWK looks similar to this:
+
 ```json
 {
   "kty": "RSA",
@@ -43,8 +45,33 @@ A JWK looks similar to this:
 
 And what you want may be a PEM-encoded public or private key portion of it. Take a look at this example on how to transform it into the desired format:
 
-``` yaml
+```yaml
 {% include 'jwk-template-v2-external-secret.yaml' %}
+```
+
+### Filter PEM blocks
+
+Consider you have a secret that contains both a certificate and a private key encoded in PEM format and it is your goal to use only the certificate from that secret.
+
+```
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCvxGZOW4IXvGlh
+ . . .
+m8JCpbJXDfSSVxKHgK1Siw4K6pnTsIA2e/Z+Ha2fvtocERjq7VQMAJFaIZSTKo9Q
+JwwY+vj0yxWjyzHUzZB33tg=
+-----END PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIDMDCCAhigAwIBAgIQabPaXuZCQaCg+eQAVptGGDANBgkqhkiG9w0BAQsFADAV
+ . . .
+NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
+9YD3Wg==
+-----END CERTIFICATE-----
+
+```
+
+You can achieve that by using the `filterPEM` function to extract a specific type of PEM block from that secret. If multiple blocks of that type (here: `CERTIFICATE`) exist then all of them are returned in the order they are specified.
+```yaml
+{% include 'pem-filter-template-v2-external-secret.yaml' %}
 ```
 
 ## Helper functions
@@ -59,13 +86,15 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 
 <br/>
 
-| Function         | Description                                                                                                                                                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| pkcs12key        | Extracts all private keys from a PKCS#12 archive and encodes them in **PKCS#8 PEM** format.                                                                                                                                            |
-| pkcs12keyPass    | Same as `pkcs12key`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                                                   |
-| pkcs12cert       | Extracts all certificates from a PKCS#12 archive and orders them if possible. If disjunct or multiple leaf certs are provided they are returned as-is. <br/> Sort order: `leaf / intermediate(s) / root`.                     |
-| pkcs12certPass   | Same as `pkcs12cert`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                                                   |
-| jwkPublicKeyPem  | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details.                     |
+| Function       | Description                                                                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pkcs12key      | Extracts all private keys from a PKCS#12 archive and encodes them in **PKCS#8 PEM** format.                                                                                                               |
+| pkcs12keyPass  | Same as `pkcs12key`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                           |
+| pkcs12cert     | Extracts all certificates from a PKCS#12 archive and orders them if possible. If disjunct or multiple leaf certs are provided they are returned as-is. <br/> Sort order: `leaf / intermediate(s) / root`. |
+| pkcs12certPass | Same as `pkcs12cert`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                          |
+| filterPEM      | Filters PEM blocks with a specific type from a list of PEM blocks.                                                                                                                                        |
+
+| jwkPublicKeyPem | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details. |
 | jwkPrivateKeyPem | Takes an json-serialized JWK as `string` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey) for details. |
 
 ## Migrating from v1

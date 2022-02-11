@@ -353,6 +353,18 @@ func TestExecute(t *testing.T) {
 				"fn": []byte(jwkPrivECPKCS8),
 			},
 		},
+		{
+			name: "filter pem certificate",
+			tpl: map[string][]byte{
+				"fn": []byte(`{{ .secret | filterPEM "CERTIFICATE" }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(jwkPrivRSAPKCS8 + pkcs12Cert),
+			},
+			expetedData: map[string][]byte{
+				"fn": []byte(pkcs12Cert),
+			},
+		},
 	}
 
 	for i := range tbl {

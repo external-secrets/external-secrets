@@ -15,14 +15,10 @@ package template
 
 import (
 	"bytes"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	tpl "text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/lestrrat-go/jwx/jwk"
-	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -31,6 +27,8 @@ var tplFuncs = tpl.FuncMap{
 	"pkcs12keyPass":  pkcs12keyPass,
 	"pkcs12cert":     pkcs12cert,
 	"pkcs12certPass": pkcs12certPass,
+
+	"filterPEM": filterPEM,
 
 	"jwkPublicKeyPem":  jwkPublicKeyPem,
 	"jwkPrivateKeyPem": jwkPrivateKeyPem,
@@ -94,131 +92,4 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 		return nil, fmt.Errorf(errExecute, k, err)
 	}
 	return buf.Bytes(), nil
-}
-
-func pkcs12keyPass(pass, input string) (string, error) {
-	blocks, err := pkcs12.ToPEM([]byte(input), pass)
-	if err != nil {
-		return "", fmt.Errorf(errDecodePKCS12WithPass, err)
-	}
-
-	var pemData []byte
-	for _, block := range blocks {
-		// remove bag attributes like localKeyID, friendlyName
-		block.Headers = nil
-		if block.Type == pemTypeCertificate {
-			continue
-		}
-		key, err := parsePrivateKey(block.Bytes)
-		if err != nil {
-			return "", err
-		}
-		// we use pkcs8 because it supports more key types (ecdsa, ed25519), not just RSA
-		block.Bytes, err = x509.MarshalPKCS8PrivateKey(key)
-		if err != nil {
-			return "", err
-		}
-		// report error if encode fails
-		var buf bytes.Buffer
-		if err := pem.Encode(&buf, block); err != nil {
-			return "", err
-		}
-		pemData = append(pemData, buf.Bytes()...)
-	}
-
-	return string(pemData), nil
-}
-
-func parsePrivateKey(block []byte) (interface{}, error) {
-	if k, err := x509.ParsePKCS1PrivateKey(block); err == nil {
-		return k, nil
-	}
-	if k, err := x509.ParsePKCS8PrivateKey(block); err == nil {
-		return k, nil
-	}
-	if k, err := x509.ParseECPrivateKey(block); err == nil {
-		return k, nil
-	}
-	return nil, fmt.Errorf(errParsePrivKey)
-}
-
-func pkcs12key(input string) (string, error) {
-	return pkcs12keyPass("", input)
-}
-
-func pkcs12certPass(pass, input string) (string, error) {
-	blocks, err := pkcs12.ToPEM([]byte(input), pass)
-	if err != nil {
-		return "", fmt.Errorf(errDecodeCertWithPass, err)
-	}
-
-	var pemData []byte
-	for _, block := range blocks {
-		if block.Type != pemTypeCertificate {
-			continue
-		}
-		// remove bag attributes like localKeyID, friendlyName
-		block.Headers = nil
-		// report error if encode fails
-		var buf bytes.Buffer
-		if err := pem.Encode(&buf, block); err != nil {
-			return "", err
-		}
-		pemData = append(pemData, buf.Bytes()...)
-	}
-
-	// try to order certificate chain. If it fails we return
-	// the unordered raw pem data.
-	// This fails if multiple leaf or disjunct certs are provided.
-	ordered, err := fetchCertChains(pemData)
-	if err != nil {
-		return string(pemData), nil
-	}
-
-	return string(ordered), nil
-}
-
-func pkcs12cert(input string) (string, error) {
-	return pkcs12certPass("", input)
-}
-
-func jwkPublicKeyPem(jwkjson string) (string, error) {
-	k, err := jwk.ParseKey([]byte(jwkjson))
-	if err != nil {
-		return "", err
-	}
-	var rawkey interface{}
-	err = k.Raw(&rawkey)
-	if err != nil {
-		return "", err
-	}
-	mpk, err := x509.MarshalPKIXPublicKey(rawkey)
-	if err != nil {
-		return "", err
-	}
-	return pemEncode(string(mpk), "PUBLIC KEY")
-}
-
-func jwkPrivateKeyPem(jwkjson string) (string, error) {
-	k, err := jwk.ParseKey([]byte(jwkjson))
-	if err != nil {
-		return "", err
-	}
-	var mpk []byte
-	var pk interface{}
-	err = k.Raw(&pk)
-	if err != nil {
-		return "", err
-	}
-	mpk, err = x509.MarshalPKCS8PrivateKey(pk)
-	if err != nil {
-		return "", err
-	}
-	return pemEncode(string(mpk), "PRIVATE KEY")
-}
-
-func pemEncode(thing, kind string) (string, error) {
-	buf := bytes.NewBuffer(nil)
-	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: []byte(thing)})
-	return buf.String(), err
 }
