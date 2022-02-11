@@ -85,7 +85,10 @@ require (
 	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
 
-require cloud.google.com/go/iam v0.1.1
+require (
+	cloud.google.com/go/iam v0.1.1
+	k8s.io/apiextensions-apiserver v0.23.0
+)
 
 require (
 	cloud.google.com/go/compute v0.1.0 // indirect
@@ -206,7 +209,6 @@ require (
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiextensions-apiserver v0.23.0 // indirect
 	k8s.io/component-base v0.23.0 // indirect
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
 	k8s.io/klog v0.3.0 // indirect

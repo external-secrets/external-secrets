@@ -12,17 +12,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package externalsecret
+package crds
 
 import (
 	"context"
 	"path/filepath"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,11 +30,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
-
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var cfg *rest.Config
 var k8sClient client.Client
@@ -49,13 +44,12 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	log := zap.New(zap.WriteTo(GinkgoWriter), zap.Level(zapcore.DebugLevel))
-
+	log := zap.New(zap.WriteTo(GinkgoWriter))
 	logf.SetLogger(log)
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds", "bases")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "crds")},
 	}
 
 	var ctx context.Context
@@ -66,7 +60,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = esv1beta1.AddToScheme(scheme.Scheme)
+	err = esapi.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
@@ -75,20 +69,22 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	// do not use k8sManager.GetClient()
-	// see https://github.com/kubernetes-sigs/controller-runtime/issues/343#issuecomment-469435686
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(k8sClient).ToNot(BeNil())
 	Expect(err).ToNot(HaveOccurred())
+	Expect(k8sClient).ToNot(BeNil())
 
 	err = (&Reconciler{
-		Client:          k8sClient,
-		Scheme:          k8sManager.GetScheme(),
-		Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
-		RequeueInterval: time.Second,
-	}).SetupWithManager(k8sManager, controller.Options{
-		MaxConcurrentReconciles: 1,
-	})
+		Client:                 k8sClient,
+		Scheme:                 k8sManager.GetScheme(),
+		Log:                    ctrl.Log.WithName("controllers").WithName("CustomResourceDefinition"),
+		SvcLabels:              map[string]string{"foo": "bar"},
+		SecretLabels:           map[string]string{"foo": "bar"},
+		CrdResources:           []string{"externalsecrets.external-secrets.io", "secretstores.external-secrets.io", "clustersecretstores.external-secrets.io"},
+		CertDir:                "my/cert/dir",
+		CAName:                 "external-secrets",
+		CAOrganization:         "external-secrets",
+		RestartOnSecretRefresh: false,
+	}).SetupWithManager(k8sManager, controller.Options{})
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

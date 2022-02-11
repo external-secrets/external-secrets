@@ -100,6 +100,14 @@ func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client 
 	return v
 }
 
+// WithGetAllSecrets wraps the secret data map returned by this fake provider.
+func (v *Client) WithGetAllSecrets(secData map[string][]byte, err error) *Client {
+	v.GetAllSecretsFn = func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+		return secData, err
+	}
+	return v
+}
+
 // WithNew wraps the fake provider factory function.
 func (v *Client) WithNew(f func(context.Context, esv1beta1.GenericStore, client.Client,
 	string) (provider.SecretsClient, error)) *Client {

@@ -236,7 +236,6 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(secret.ObjectMeta.Name).To(Equal(ExternalSecretName))
 		}
 	}
-
 	// labels and annotations from the Kind=ExternalSecret
 	// should be copied over to the Kind=Secret
 	syncLabelsAnnotations := func(tc *testCase) {
@@ -789,6 +788,30 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	// with dataFrom.Find the change is on the called method GetAllSecrets
+	// all keys should be put into the secret
+	syncDataFromFind := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: esv1beta1.ExternalSecretFind{
+					Name: esv1beta1.FindName{
+						RegExp: "foobar",
+					},
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecrets(map[string][]byte{
+			"foo": []byte(FooValue),
+			"bar": []byte(BarValue),
+		}, nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["foo"])).To(Equal(FooValue))
+			Expect(string(secret.Data["bar"])).To(Equal(BarValue))
+		}
+	}
+
 	// with dataFrom and using a template
 	// should be put into the secret
 	syncWithDataFromTemplate := func(tc *testCase) {
@@ -1064,6 +1087,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should refresh secret map when provider secret changes when using a template", refreshSecretValueMapTemplate),
 		Entry("should not refresh secret value when provider secret changes but refreshInterval is zero", refreshintervalZero),
 		Entry("should fetch secret using dataFrom", syncWithDataFrom),
+		Entry("should fetch secret using dataFrom.find", syncDataFromFind),
 		Entry("should fetch secret using dataFrom and a template", syncWithDataFromTemplate),
 		Entry("should set error condition when provider errors", providerErrCondition),
 		Entry("should set an error condition when store does not exist", storeMissingErrCondition),
