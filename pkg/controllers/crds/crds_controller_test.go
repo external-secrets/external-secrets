@@ -161,11 +161,11 @@ func TestInjectCertToConversionWebhook(t *testing.T) {
 	certPEM := []byte("foobar")
 	crd := newCRD()
 	crdunmarshalled := make(map[string]interface{})
-	crdJson, err := json.Marshal(crd)
+	crdJSON, err := json.Marshal(crd)
 	if err != nil {
 		t.Fatal("Could not setup test")
 	}
-	err = json.Unmarshal(crdJson, &crdunmarshalled)
+	err = json.Unmarshal(crdJSON, &crdunmarshalled)
 	if err != nil {
 		t.Fatal("Could not setup test")
 	}
