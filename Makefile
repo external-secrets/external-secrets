@@ -138,7 +138,7 @@ generate: ## Generate code and crds
   		cp "$$i.bkp" "$$i" && \
   		rm "$$i.bkp"; \
   	done
-	@kubectl create -k $(CRD_DIR) --dry-run=client -o yaml > $(BUNDLE_DIR)/bundle.yaml
+	@go run github.com/mikefarah/yq/v4 e '.spec.conversion.strategy = "Webhook" | .spec.conversion.webhook.conversionReviewVersions = ["v1"] | .spec.conversion.webhook.clientConfig.caBundle = "Cg==" | .spec.conversion.webhook.clientConfig.service.name = "kubernetes" | .spec.conversion.webhook.clientConfig.service.namespace = "default" |	.spec.conversion.webhook.clientConfig.service.path = "/convert"' $(CRD_DIR)/bases/*  > $(BUNDLE_DIR)/bundle.yaml
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================

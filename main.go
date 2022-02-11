@@ -138,7 +138,6 @@ func main() {
 			}
 		}
 	} else {
-
 		if err = (&secretstore.StoreReconciler{
 			Client:          mgr.GetClient(),
 			Log:             ctrl.Log.WithName("contllers").WithName("SecretStore"),
@@ -177,5 +176,4 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-
 }

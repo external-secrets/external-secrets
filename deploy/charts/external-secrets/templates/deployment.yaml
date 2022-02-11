@@ -77,7 +77,7 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-        - name: {{ .Chart.Name }}-webhook
+        - name: webhook
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
@@ -117,6 +117,11 @@ spec:
             - containerPort: 9443
               protocol: TCP
               name: webhook
+          readinessProbe:
+            tcpSocket:
+              port: 9443
+            initialDelaySeconds: 20
+            periodSeconds: 5
           {{- with .Values.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}

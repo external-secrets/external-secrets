@@ -42,26 +42,20 @@ import (
 )
 
 const (
-	certName               = "tls.crt"
-	keyName                = "tls.key"
-	caCertName             = "ca.crt"
-	caKeyName              = "ca.key"
-	rotationCheckFrequency = 12 * time.Hour
-	certValidityDuration   = 10 * 365 * 24 * time.Hour
-	lookaheadInterval      = 90 * 24 * time.Hour
+	certName             = "tls.crt"
+	keyName              = "tls.key"
+	caCertName           = "ca.crt"
+	caKeyName            = "ca.key"
+	certValidityDuration = 10 * 365 * 24 * time.Hour
+	lookaheadInterval    = 90 * 24 * time.Hour
 )
 
 type WebhookType int
 
 const (
-	//ValidatingWebhook indicates the webhook is a ValidatingWebhook
 	Validating WebhookType = iota
-	//MutingWebhook indicates the webhook is a MutatingWebhook
 	Mutating
-	//CRDConversionWebhook indicates the webhook is a conversion webhook
 	CRDConversion
-	//APIServiceWebhook indicates the webhook is an extension API server
-	APIService
 )
 
 type Reconciler struct {
@@ -80,7 +74,6 @@ type Reconciler struct {
 }
 
 type WebhookInfo struct {
-	//Name is the name of the webhook for a validating or mutating webhook, or the CRD name in case of a CRD conversion webhook
 	Name string
 	Type WebhookType
 }
@@ -293,33 +286,23 @@ func (r *Reconciler) validCACert(cert, key []byte) bool {
 
 func (r *Reconciler) refreshCertIfNeeded(secret *corev1.Secret) (bool, error) {
 	if secret.Data == nil || !r.validCACert(secret.Data[caCertName], secret.Data[caKeyName]) {
-		//crLog.Info("refreshing CA and server certs")
 		if err := r.refreshCerts(true, secret); err != nil {
-			//crLog.Error(err, "could not refresh CA and server certs")
-			return false, nil
+			return false, err
 		}
-		//crLog.Info("server certs refreshed")
 		if r.RestartOnSecretRefresh {
-			//crLog.Info("Secrets have been updated; exiting so pod can be restarted (This behaviour can be changed with the option RestartOnSecretRefresh)")
 			os.Exit(0)
 		}
 		return true, nil
 	}
-	// make sure our reconciler is initialized on startup (either this or the above refreshCerts() will call this)
 	if !r.validServerCert(secret.Data[caCertName], secret.Data[certName], secret.Data[keyName]) {
-		//crLog.Info("refreshing server certs")
 		if err := r.refreshCerts(false, secret); err != nil {
-			//crLog.Error(err, "could not refresh server certs")
-			return false, nil
+			return false, err
 		}
-		//crLog.Info("server certs refreshed")
 		if r.RestartOnSecretRefresh {
-			//crLog.Info("Secrets have been updated; exiting so pod can be restarted (This behaviour can be changed with the option RestartOnSecretRefresh)")
 			os.Exit(0)
 		}
 		return true, nil
 	}
-	//crLog.Info("no cert refresh needed")
 	return true, nil
 }
 
