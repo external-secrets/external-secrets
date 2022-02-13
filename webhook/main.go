@@ -37,8 +37,7 @@ var (
 )
 
 const (
-	errCreateController = "unable to create controller"
-	errCreateWebhook    = "unable to create webhook"
+	errCreateWebhook = "unable to create webhook"
 )
 
 func init() {
@@ -86,7 +85,11 @@ func main() {
 	var enableLeaderElection bool
 	var loglevel string
 	var namespace string
+	var dnsName string
+	var certDir string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&dnsName, "dns-name", "localhost", "DNS name to validate certificates with")
+	flag.StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "path to check for certs")
 	flag.StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -100,7 +103,7 @@ func main() {
 		setupLog.Error(err, "error unmarshalling loglevel")
 		os.Exit(1)
 	}
-	go checkCerts("/tmp/k8s-webhook-server/serving-certs", "host.minikube.internal")
+	go checkCerts(certDir, dnsName)
 	logger := zap.New(zap.Level(lvl))
 	ctrl.SetLogger(logger)
 

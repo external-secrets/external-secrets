@@ -1,4 +1,3 @@
-{{- if .Values.webhook.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -13,6 +12,9 @@ spec:
       targetPort: 9443
       protocol: TCP
       name: webhook
+    - port: {{ .Values.webhook.prometheus.service.port}}
+      targetPort: {{ .Values.webhook.prometheus.service.port}}
+      protocol: TCP
+      name: metrics
   selector:
-    {{- include "external-secrets.selectorLabels" . | nindent 4 }}
-{{- end }}
+    {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}

@@ -40,7 +40,6 @@ var (
 
 const (
 	errCreateController = "unable to create controller"
-	errCreateWebhook    = "unable to create webhook"
 )
 
 func init() {

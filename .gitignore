@@ -1,5 +1,6 @@
 .DS_Store
-
+/webhook/bin
+/webhook/certcontroller/bin
 /bin
 /vendor
 cover.out

@@ -43,6 +43,8 @@ spec:
           {{- end }}
           image: "{{ .Values.webhook.image.repository }}:{{ .Values.webhook.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
+          args:
+          - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
           {{- range $key, $value := .Values.webhook.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
