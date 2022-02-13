@@ -23,8 +23,8 @@ test: e2e-image ## Run e2e tests against current kube context
 		BUILD_ARGS="${BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 	kind load docker-image --name="external-secrets" $(IMAGE_REGISTRY):$(VERSION)
 	kind load docker-image --name="external-secrets" $(E2E_IMAGE_REGISTRY):$(VERSION)
-	kind load docker-image --name="external-secrets-webhook" $(IMAGE_REGISTRY)-webhook:$(VERSION)
-	kind load docker-image --name="external-secrets-cert-controller" $(IMAGE_REGISTRY)-cert-controller:$(VERSION)
+	kind load docker-image --name="external-secrets" $(IMAGE_REGISTRY)-webhook:$(VERSION)
+	kind load docker-image --name="external-secrets" $(IMAGE_REGISTRY)-cert-controller:$(VERSION)
 	./run.sh
 
 test.managed: e2e-image ## Run e2e tests against current kube context

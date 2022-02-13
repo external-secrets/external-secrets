@@ -8,13 +8,13 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 443
-      targetPort: 9443
-      protocol: TCP
-      name: webhook
-    - port: {{ .Values.webhook.prometheus.service.port}}
-      targetPort: {{ .Values.webhook.prometheus.service.port}}
-      protocol: TCP
-      name: metrics
+  - port: 443
+    targetPort: 9443
+    protocol: TCP
+    name: webhook
+  - port: {{ .Values.webhook.prometheus.service.port}}
+    targetPort: {{ .Values.webhook.prometheus.service.port}}
+    protocol: TCP
+    name: metrics
   selector:
     {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}
