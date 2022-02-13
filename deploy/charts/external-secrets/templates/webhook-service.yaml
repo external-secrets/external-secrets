@@ -4,7 +4,7 @@ kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-webhook
   labels:
-    {{- include "external-secrets.labels" . | nindent 4 }}
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
     external-secrets.io/component : webhook
 spec:
   type: ClusterIP

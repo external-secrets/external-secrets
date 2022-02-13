@@ -103,6 +103,14 @@ build-%: generate ## Build binary for the specified arch
 	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
+	@$(INFO) go build $*
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
+		go build -o 'webhook/$(OUTPUT_DIR)/external-secrets-webhook-linux-$*' webhook/main.go
+	@$(OK) go build $*
+	@$(INFO) go build $*
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
+		go build -o 'webhook/certcontroller$(OUTPUT_DIR)/external-secrets-cert-controller-linux-$*' webhook/certcontroller/main.go
+	@$(OK) go build $*
 
 lint.check: ## Check install of golanci-lint
 	@if ! golangci-lint --version > /dev/null 2>&1; then \

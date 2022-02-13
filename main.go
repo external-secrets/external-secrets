@@ -29,7 +29,6 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
@@ -57,14 +56,12 @@ func main() {
 	var concurrent int
 	var loglevel string
 	var namespace string
-	var webhook bool
 	var storeRequeueInterval time.Duration
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&controllerClass, "controller-class", "default", "the controller is instantiated with a specific controller name and filters ES based on this property")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&webhook, "webhook", false, "Run as webhook") // Properly separate
 	flag.IntVar(&concurrent, "concurrent", 1, "The number of concurrent ExternalSecret reconciles.")
 	flag.StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	flag.StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
@@ -92,84 +89,37 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	if webhook {
-		crds := &crds.Reconciler{
-			Client:                 mgr.GetClient(),
-			Log:                    ctrl.Log.WithName("controllers").WithName("CustomResourceDefinition"),
-			Scheme:                 mgr.GetScheme(),
-			SvcLabels:              map[string]string{"external-secrets.io/component": "webhook"},
-			SecretLabels:           map[string]string{"external-secrets.io/component": "webhook"},
-			CrdResources:           []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"},
-			CertDir:                "/tmp/k8s-webhook-server/serving-certs",
-			CAName:                 "external-secrets",
-			CAOrganization:         "external-secrets",
-			RestartOnSecretRefresh: true,
-		}
-		if err := crds.SetupWithManager(mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-		}); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "CustomResourceDefinition")
-			os.Exit(1)
-		}
-		if crtsReady := crds.EnsureCertsMounted(); crtsReady {
-			if err = (&esv1beta1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1beta1")
-				os.Exit(1)
-			}
-			if err = (&esv1beta1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1beta1")
-				os.Exit(1)
-			}
-			if err = (&esv1beta1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1beta1")
-				os.Exit(1)
-			}
-			if err = (&esv1alpha1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1alpha1")
-				os.Exit(1)
-			}
-			if err = (&esv1alpha1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1alpha1")
-				os.Exit(1)
-			}
-			if err = (&esv1alpha1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1alpha1")
-				os.Exit(1)
-			}
-		}
-	} else {
-		if err = (&secretstore.StoreReconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("contllers").WithName("SecretStore"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: storeRequeueInterval,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "SecretStore")
-			os.Exit(1)
-		}
-		if err = (&secretstore.ClusterStoreReconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: storeRequeueInterval,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
-			os.Exit(1)
-		}
-		if err = (&externalsecret.Reconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: time.Hour,
-		}).SetupWithManager(mgr, controller.Options{
-			MaxConcurrentReconciles: concurrent,
-		}); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
-			os.Exit(1)
-		}
+	if err = (&secretstore.StoreReconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("contllers").WithName("SecretStore"),
+		Scheme:          mgr.GetScheme(),
+		ControllerClass: controllerClass,
+		RequeueInterval: storeRequeueInterval,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, errCreateController, "controller", "SecretStore")
+		os.Exit(1)
+	}
+	if err = (&secretstore.ClusterStoreReconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+		Scheme:          mgr.GetScheme(),
+		ControllerClass: controllerClass,
+		RequeueInterval: storeRequeueInterval,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
+		os.Exit(1)
+	}
+	if err = (&externalsecret.Reconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
+		Scheme:          mgr.GetScheme(),
+		ControllerClass: controllerClass,
+		RequeueInterval: time.Hour,
+	}).SetupWithManager(mgr, controller.Options{
+		MaxConcurrentReconciles: concurrent,
+	}); err != nil {
+		setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
+		os.Exit(1)
 	}
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

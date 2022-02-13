@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-webhook
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
+  {{- with .Values.webhook.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.webhook.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.webhook.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "external-secrets-webhook.selectorLabels" . | nindent 8 }}
+        {{- with .Values.webhook.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.webhook.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
+      {{- with .Values.webhook.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: webhook
+          {{- with .Values.webhook.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.webhook.image.repository }}:{{ .Values.webhook.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
+          {{- range $key, $value := .Values.webhook.extraArgs }}
+            {{- if $value }}
+          - --{{ $key }}={{ $value }}
+            {{- else }}
+          - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.webhook.prometheus.service.port }}
+              protocol: TCP
+              name: metrics
+            - containerPort: 9443
+              protocol: TCP
+              name: webhook
+          readinessProbe:
+            tcpSocket:
+              port: 9443
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          {{- with .Values.webhook.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.webhook.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+          - name: certs
+            mountPath: {{ .Values.webhook.certDir }}
+      volumes:
+      - name: certs
+        secret:
+          secretName: {{ include "external-secrets.fullname" . }}-webhook
+      {{- with .Values.webhook.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.webhook.priorityClassName }}
+      priorityClassName: {{ .Values.webhook.priorityClassName }}
+      {{- end }}
