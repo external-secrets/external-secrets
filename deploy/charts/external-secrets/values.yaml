@@ -118,9 +118,9 @@ webhook:
   priorityClassName: ""
   prometheus:
       # -- Specifies whether to expose Service resource for collecting Prometheus metrics
-      enabled: false
-      service:
-        port: 8080
+    enabled: false
+    service:
+      port: 8080
     ## -- Extra environment variables to add to container.
   extraEnv: []
 
@@ -179,9 +179,9 @@ certController:
   priorityClassName: ""
   prometheus:
       # -- Specifies whether to expose Service resource for collecting Prometheus metrics
-      enabled: false
-      service:
-        port: 8080
+    enabled: false
+    service:
+      port: 8080
     ## -- Extra environment variables to add to container.
   extraEnv: []
 

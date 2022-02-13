@@ -37,11 +37,11 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				},
 				{
 					Key:   "webhook.image.repository",
-					Value: os.Getenv("IMAGE_REGISTRY"),
+					Value: os.Getenv("IMAGE_REGISTRY") + "-webhook",
 				},
 				{
 					Key:   "certController.image.repository",
-					Value: os.Getenv("IMAGE_REGISTRY"),
+					Value: os.Getenv("IMAGE_REGISTRY") + "-cert-controller",
 				},
 				{
 					Key:   "webhook.image.tag",
