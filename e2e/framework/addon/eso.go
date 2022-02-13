@@ -48,7 +48,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("VERSION"),
 				},
 				{
-					Key:   "webhook.image.tag",
+					Key:   "certController.image.tag",
 					Value: os.Getenv("VERSION"),
 				},
 				{
