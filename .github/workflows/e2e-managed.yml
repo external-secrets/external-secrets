@@ -49,7 +49,7 @@ jobs:
     steps:
 
     # create new status check for this specific provider
-    - uses: actions/github-script@v1
+    - uses: actions/github-script@v6
       if: ${{ always() }}
       env:
         number: ${{ github.event.client_payload.pull_request.number }}
@@ -201,7 +201,7 @@ jobs:
         make tf.destroy.${PROVIDER}
 
     # set status=completed
-    - uses: actions/github-script@v1
+    - uses: actions/github-script@v6
       if: ${{ always() }}
       env:
         number: ${{ github.event.client_payload.pull_request.number }}
