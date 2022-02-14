@@ -53,6 +53,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
 | certController.prometheus.service.port | int | `8080` |  |
 | certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
+| certController.requeueInterval | string | `"5m"` |  |
 | certController.resources | object | `{}` |  |
 | certController.securityContext | object | `{}` |  |
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
@@ -89,7 +90,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | tolerations | list | `[]` |  |
 | webhook.affinity | object | `{}` |  |
-| webhook.certDir | string | `"/tmp/k8s-webhook-server/serving-certs"` |  |
+| webhook.certDir | string | `"/tmp/certs"` |  |
 | webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | webhook.extraArgs | object | `{}` |  |
 | webhook.extraEnv | list | `[]` |  |

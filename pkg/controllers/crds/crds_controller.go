@@ -73,6 +73,7 @@ type Reconciler struct {
 	CAName                 string
 	CAOrganization         string
 	RestartOnSecretRefresh bool
+	RequeueInterval        time.Duration
 }
 
 type CertInfo struct {
@@ -103,7 +104,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, err
 		}
 	}
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 }
 
 func (r *Reconciler) ConvertToWebhookInfo() []WebhookInfo {

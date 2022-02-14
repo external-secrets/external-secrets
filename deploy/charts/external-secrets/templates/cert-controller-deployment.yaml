@@ -44,6 +44,7 @@ spec:
           image: "{{ .Values.certController.image.repository }}:{{ .Values.certController.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.certController.image.pullPolicy }}
           args:
+          - --crd-requeue-interval={{ .Values.certController.requeueInterval }}
           - --service-name={{ include "external-secrets.fullname" . }}-webhook
           - --service-namespace={{ .Release.Namespace }}
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook

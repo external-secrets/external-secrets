@@ -17,6 +17,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,6 +55,7 @@ func main() {
 	var namespace string
 	var serviceName, serviceNamespace string
 	var secretName, secretNamespace string
+	var crdRequeueInterval time.Duration
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&serviceName, "service-name", "external-secrets-webhook", "Webhook service name")
 	flag.StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
@@ -63,6 +65,7 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
+	flag.DurationVar(&crdRequeueInterval, "crd-requeue-interval", time.Minute*5, "Time duration between reconciling CRDs for new certs")
 	flag.Parse()
 
 	var lvl zapcore.Level
@@ -94,6 +97,7 @@ func main() {
 		SvcNamespace:           serviceNamespace,
 		SecretName:             secretName,
 		SecretNamespace:        secretNamespace,
+		RequeueInterval:        crdRequeueInterval,
 		CrdResources:           []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"},
 		CAName:                 "external-secrets",
 		CAOrganization:         "external-secrets",

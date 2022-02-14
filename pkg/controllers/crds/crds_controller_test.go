@@ -174,7 +174,7 @@ func TestInjectSvcToConversionWebhook(t *testing.T) {
 }
 
 func TestInjectCertToConversionWebhook(t *testing.T) {
-	certPEM := []byte("certFooBar")
+	certPEM := []byte("foobar")
 	crd := newCRD()
 	crdunmarshalled := make(map[string]interface{})
 	crdJSON, err := json.Marshal(crd)

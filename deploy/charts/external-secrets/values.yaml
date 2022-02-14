@@ -153,6 +153,7 @@ webhook:
       #   memory: 32Mi
 
 certController:
+  requeueInterval: "5m"
   image:
     repository: ghcr.io/external-secrets/external-secrets-cert-controller
     pullPolicy: IfNotPresent
