@@ -31,6 +31,14 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	setupError              = "Could not setup test"
+	errorSearchingField     = "Error when searching for field"
+	failedCreateCaCerts     = "could not create ca certificates:%v"
+	failedCreateServerCerts = "could not create server certificates:%v"
+	invalidCerts            = "generated certificates are invalid:%v,%v"
+)
+
 func newReconciler() Reconciler {
 	return Reconciler{
 		CrdResources:    []string{"one", "two", "three"},
@@ -123,11 +131,11 @@ func TestInjectSvcToConversionWebhook(t *testing.T) {
 	crdunmarshalled := make(map[string]interface{})
 	crdJSON, err := json.Marshal(crd)
 	if err != nil {
-		t.Fatal("Could not setup test")
+		t.Fatal(setupError)
 	}
 	err = json.Unmarshal(crdJSON, &crdunmarshalled)
 	if err != nil {
-		t.Fatal("Could not setup test")
+		t.Fatal(setupError)
 	}
 	u := unstructured.Unstructured{
 		Object: crdunmarshalled,
@@ -142,10 +150,10 @@ func TestInjectSvcToConversionWebhook(t *testing.T) {
 	}
 	val, found, err := unstructured.NestedString(u.Object, "spec", "conversion", "webhook", "clientConfig", "service", "name")
 	if err != nil {
-		t.Error("Error when searching for field")
+		t.Error(errorSearchingField)
 	}
 	if !found {
-		t.Error("Field not found, mutation failed")
+		t.Error("fieldNotFound")
 	}
 	if val != "foo" {
 		t.Errorf("Wrong service name injected: %v", val)
@@ -153,10 +161,10 @@ func TestInjectSvcToConversionWebhook(t *testing.T) {
 
 	val, found, err = unstructured.NestedString(u.Object, "spec", "conversion", "webhook", "clientConfig", "service", "namespace")
 	if err != nil {
-		t.Error("Error when searching for field")
+		t.Error(errorSearchingField)
 	}
 	if !found {
-		t.Error("Field not found, mutation failed")
+		t.Error("fieldNotFound")
 	}
 	if val != "default" {
 		t.Errorf("Wrong service namespace injected: %v", val)
@@ -169,11 +177,11 @@ func TestInjectCertToConversionWebhook(t *testing.T) {
 	crdunmarshalled := make(map[string]interface{})
 	crdJSON, err := json.Marshal(crd)
 	if err != nil {
-		t.Fatal("Could not setup test")
+		t.Fatal(setupError)
 	}
 	err = json.Unmarshal(crdJSON, &crdunmarshalled)
 	if err != nil {
-		t.Fatal("Could not setup test")
+		t.Fatal(setupError)
 	}
 	u := unstructured.Unstructured{
 		Object: crdunmarshalled,
@@ -184,10 +192,10 @@ func TestInjectCertToConversionWebhook(t *testing.T) {
 	}
 	val, found, err := unstructured.NestedString(u.Object, "spec", "conversion", "webhook", "clientConfig", "caBundle")
 	if err != nil {
-		t.Error("Error when searching for field")
+		t.Error(errorSearchingField)
 	}
 	if !found {
-		t.Error("Field not found, mutation failed")
+		t.Error("fieldNotFound")
 	}
 	if val != "Zm9vYmFy" {
 		t.Errorf("Wrong certificate name injected: %v", val)
@@ -222,10 +230,10 @@ func TestCreateCACert(t *testing.T) {
 	rec := newReconciler()
 	caArtifacts, err := rec.CreateCACert(time.Now(), time.Now().AddDate(1, 0, 0))
 	if err != nil {
-		t.Errorf("could not create certificates:%v", err)
+		t.Errorf(failedCreateCaCerts, err)
 	}
 	if !rec.validCACert(caArtifacts.CertPEM, caArtifacts.KeyPEM) {
-		t.Errorf("generated certificates are invalid:%v", caArtifacts)
+		t.Errorf(invalidCerts, caArtifacts.CertPEM, caArtifacts.KeyPEM)
 	}
 }
 
@@ -233,14 +241,14 @@ func TestCreateCertPEM(t *testing.T) {
 	rec := newReconciler()
 	caArtifacts, err := rec.CreateCACert(time.Now(), time.Now().AddDate(1, 0, 0))
 	if err != nil {
-		t.Fatalf("could not create ca certificates:%v", err)
+		t.Fatalf(failedCreateCaCerts, err)
 	}
 	certPEM, keyPEM, err := rec.CreateCertPEM(caArtifacts, time.Now(), time.Now().AddDate(1, 0, 0))
 	if err != nil {
-		t.Errorf("could not create server certificates: %v", err)
+		t.Errorf(failedCreateServerCerts, err)
 	}
 	if !rec.validServerCert(caArtifacts.CertPEM, certPEM, keyPEM) {
-		t.Errorf("generated certificates are invalid:%v,%v", certPEM, keyPEM)
+		t.Errorf(invalidCerts, certPEM, keyPEM)
 	}
 }
 func TestValidCert(t *testing.T) {
@@ -248,11 +256,11 @@ func TestValidCert(t *testing.T) {
 	rec.dnsName = "foobar"
 	caArtifacts, err := rec.CreateCACert(time.Now(), time.Now().AddDate(1, 0, 0))
 	if err != nil {
-		t.Fatalf("could not create ca certificates:%v", err)
+		t.Fatalf(failedCreateCaCerts, err)
 	}
 	certPEM, keyPEM, err := rec.CreateCertPEM(caArtifacts, time.Now(), time.Now().AddDate(1, 0, 0))
 	if err != nil {
-		t.Errorf("could not create server certificates: %v", err)
+		t.Errorf(failedCreateServerCerts, err)
 	}
 	ok, err := ValidCert(caArtifacts.CertPEM, certPEM, keyPEM, "foobar", time.Now())
 	if err != nil {
@@ -271,11 +279,11 @@ func TestRefreshCertIfNeeded(t *testing.T) {
 	rec.dnsName = "foobar"
 	caArtifacts, err := rec.CreateCACert(time.Now().AddDate(-1, 0, 0), time.Now().AddDate(0, -1, 0))
 	if err != nil {
-		t.Fatalf("could not create ca certificates:%v", err)
+		t.Fatalf(failedCreateCaCerts, err)
 	}
 	certPEM, keyPEM, err := rec.CreateCertPEM(caArtifacts, time.Now(), time.Now().AddDate(1, 0, 0))
 	if err != nil {
-		t.Errorf("could not create server certificates: %v", err)
+		t.Errorf(failedCreateServerCerts, err)
 	}
 	populateSecret(certPEM, keyPEM, caArtifacts, &secret)
 	ok, err := rec.refreshCertIfNeeded(&secret)

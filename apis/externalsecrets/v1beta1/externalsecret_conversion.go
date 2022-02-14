@@ -14,4 +14,6 @@ limitations under the License.
 
 package v1beta1
 
-func (*ExternalSecret) Hub() {}
+func (*ExternalSecret) Hub() {
+	// This empty method defines the Hub convertible interface.
+}

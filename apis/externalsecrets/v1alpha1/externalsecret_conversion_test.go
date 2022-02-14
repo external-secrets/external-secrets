@@ -24,6 +24,10 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
+const (
+	keyName = "my-key"
+)
+
 func newExternalSecretV1Alpha1() *ExternalSecret {
 	return &ExternalSecret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -69,7 +73,7 @@ func newExternalSecretV1Alpha1() *ExternalSecret {
 								Name: "test-configmap",
 								Items: []TemplateRefItem{
 									{
-										Key: "my-key",
+										Key: keyName,
 									},
 								},
 							},
@@ -77,7 +81,7 @@ func newExternalSecretV1Alpha1() *ExternalSecret {
 								Name: "test-secret",
 								Items: []TemplateRefItem{
 									{
-										Key: "my-key",
+										Key: keyName,
 									},
 								},
 							},
@@ -87,7 +91,7 @@ func newExternalSecretV1Alpha1() *ExternalSecret {
 			},
 			Data: []ExternalSecretData{
 				{
-					SecretKey: "my-key",
+					SecretKey: keyName,
 					RemoteRef: ExternalSecretDataRemoteRef{
 						Key:      "datakey",
 						Property: "dataproperty",
@@ -151,7 +155,7 @@ func newExternalSecretV1Beta1() *esv1beta1.ExternalSecret {
 								Name: "test-configmap",
 								Items: []esv1beta1.TemplateRefItem{
 									{
-										Key: "my-key",
+										Key: keyName,
 									},
 								},
 							},
@@ -159,7 +163,7 @@ func newExternalSecretV1Beta1() *esv1beta1.ExternalSecret {
 								Name: "test-secret",
 								Items: []esv1beta1.TemplateRefItem{
 									{
-										Key: "my-key",
+										Key: keyName,
 									},
 								},
 							},
@@ -169,7 +173,7 @@ func newExternalSecretV1Beta1() *esv1beta1.ExternalSecret {
 			},
 			Data: []esv1beta1.ExternalSecretData{
 				{
-					SecretKey: "my-key",
+					SecretKey: keyName,
 					RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      "datakey",
 						Property: "dataproperty",

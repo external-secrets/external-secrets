@@ -25,19 +25,33 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+const (
+	storeName                = "secret-store"
+	storeNamespace           = "my-namespace"
+	storeReason              = "it's a mock, it's always ready"
+	storeMessage             = "...why wouldn't it be?"
+	storeAWSRegion           = "us-east-1"
+	storeAWSRole             = "arn:aws:iam::123456789012:role/my-role"
+	storeAccessName          = "my-access"
+	storeKey                 = "my-key"
+	storeSecretName          = "my-secret"
+	defaultErrorMessage      = "test failed with error: %v"
+	defaultComparisonMessage = "test failed, expected: %v, got: %v"
+)
+
 func newSecretStoreV1Alpha1() *SecretStore {
 	return &SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "secret-store",
-			Namespace: "my-namespace",
+			Name:      storeName,
+			Namespace: storeNamespace,
 		},
 		Status: SecretStoreStatus{
 			Conditions: []SecretStoreStatusCondition{
 				{
 					Type:    SecretStoreReady,
 					Status:  corev1.ConditionTrue,
-					Reason:  "it's a mock, it's always ready",
-					Message: "...why wouldn't it be?",
+					Reason:  storeReason,
+					Message: storeMessage,
 				},
 			},
 		},
@@ -46,17 +60,17 @@ func newSecretStoreV1Alpha1() *SecretStore {
 			Provider: &SecretStoreProvider{
 				AWS: &AWSProvider{
 					Service: AWSServiceSecretsManager,
-					Region:  "us-east-1",
-					Role:    "arn:aws:iam::123456789012:role/my-role",
+					Region:  storeAWSRegion,
+					Role:    storeAWSRole,
 					Auth: AWSAuth{
 						SecretRef: &AWSAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
-								Name: "my-access",
-								Key:  "my-key",
+								Name: storeAccessName,
+								Key:  storeKey,
 							},
 							SecretAccessKey: esmeta.SecretKeySelector{
-								Name: "my-secret",
-								Key:  "my-key",
+								Name: storeSecretName,
+								Key:  storeKey,
 							},
 						},
 					},
@@ -69,16 +83,16 @@ func newSecretStoreV1Alpha1() *SecretStore {
 func newSecretStoreV1Beta1() *esv1beta1.SecretStore {
 	return &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "secret-store",
-			Namespace: "my-namespace",
+			Name:      storeName,
+			Namespace: storeNamespace,
 		},
 		Status: esv1beta1.SecretStoreStatus{
 			Conditions: []esv1beta1.SecretStoreStatusCondition{
 				{
 					Type:    esv1beta1.SecretStoreReady,
 					Status:  corev1.ConditionTrue,
-					Reason:  "it's a mock, it's always ready",
-					Message: "...why wouldn't it be?",
+					Reason:  storeReason,
+					Message: storeMessage,
 				},
 			},
 		},
@@ -87,17 +101,17 @@ func newSecretStoreV1Beta1() *esv1beta1.SecretStore {
 			Provider: &esv1beta1.SecretStoreProvider{
 				AWS: &esv1beta1.AWSProvider{
 					Service: esv1beta1.AWSServiceSecretsManager,
-					Region:  "us-east-1",
-					Role:    "arn:aws:iam::123456789012:role/my-role",
+					Region:  storeAWSRegion,
+					Role:    storeAWSRole,
 					Auth: esv1beta1.AWSAuth{
 						SecretRef: &esv1beta1.AWSAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
-								Name: "my-access",
-								Key:  "my-key",
+								Name: storeAccessName,
+								Key:  storeKey,
 							},
 							SecretAccessKey: esmeta.SecretKeySelector{
-								Name: "my-secret",
-								Key:  "my-key",
+								Name: storeSecretName,
+								Key:  storeKey,
 							},
 						},
 					},
@@ -108,18 +122,18 @@ func newSecretStoreV1Beta1() *esv1beta1.SecretStore {
 }
 
 func newClusterSecretStoreV1Alpha1() *ClusterSecretStore {
-	ns := "my-namespace"
+	ns := storeNamespace
 	return &ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "secret-store",
+			Name: storeName,
 		},
 		Status: SecretStoreStatus{
 			Conditions: []SecretStoreStatusCondition{
 				{
 					Type:    SecretStoreReady,
 					Status:  corev1.ConditionTrue,
-					Reason:  "it's a mock, it's always ready",
-					Message: "...why wouldn't it be?",
+					Reason:  storeReason,
+					Message: storeMessage,
 				},
 			},
 		},
@@ -128,18 +142,18 @@ func newClusterSecretStoreV1Alpha1() *ClusterSecretStore {
 			Provider: &SecretStoreProvider{
 				AWS: &AWSProvider{
 					Service: AWSServiceSecretsManager,
-					Region:  "us-east-1",
-					Role:    "arn:aws:iam::123456789012:role/my-role",
+					Region:  storeAWSRegion,
+					Role:    storeAWSRole,
 					Auth: AWSAuth{
 						SecretRef: &AWSAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
-								Name:      "my-access",
-								Key:       "my-key",
+								Name:      storeAccessName,
+								Key:       storeKey,
 								Namespace: &ns,
 							},
 							SecretAccessKey: esmeta.SecretKeySelector{
-								Name:      "my-secret",
-								Key:       "my-key",
+								Name:      storeSecretName,
+								Key:       storeKey,
 								Namespace: &ns,
 							},
 						},
@@ -151,18 +165,18 @@ func newClusterSecretStoreV1Alpha1() *ClusterSecretStore {
 }
 
 func newClusterSecretStoreV1Beta1() *esv1beta1.ClusterSecretStore {
-	ns := "my-namespace"
+	ns := storeNamespace
 	return &esv1beta1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "secret-store",
+			Name: storeName,
 		},
 		Status: esv1beta1.SecretStoreStatus{
 			Conditions: []esv1beta1.SecretStoreStatusCondition{
 				{
 					Type:    esv1beta1.SecretStoreReady,
 					Status:  corev1.ConditionTrue,
-					Reason:  "it's a mock, it's always ready",
-					Message: "...why wouldn't it be?",
+					Reason:  storeReason,
+					Message: storeMessage,
 				},
 			},
 		},
@@ -171,18 +185,18 @@ func newClusterSecretStoreV1Beta1() *esv1beta1.ClusterSecretStore {
 			Provider: &esv1beta1.SecretStoreProvider{
 				AWS: &esv1beta1.AWSProvider{
 					Service: esv1beta1.AWSServiceSecretsManager,
-					Region:  "us-east-1",
-					Role:    "arn:aws:iam::123456789012:role/my-role",
+					Region:  storeAWSRegion,
+					Role:    storeAWSRole,
 					Auth: esv1beta1.AWSAuth{
 						SecretRef: &esv1beta1.AWSAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
-								Name:      "my-access",
-								Key:       "my-key",
+								Name:      storeAccessName,
+								Key:       storeKey,
 								Namespace: &ns,
 							},
 							SecretAccessKey: esmeta.SecretKeySelector{
-								Name:      "my-secret",
-								Key:       "my-key",
+								Name:      storeSecretName,
+								Key:       storeKey,
 								Namespace: &ns,
 							},
 						},
@@ -198,7 +212,7 @@ func TestSecretStoreConvertFrom(t *testing.T) {
 	got := &SecretStore{}
 	err := got.ConvertFrom(given)
 	if err != nil {
-		t.Errorf("test failed with error: %v", err)
+		t.Errorf(defaultErrorMessage, err)
 	}
 	if !assert.Equal(t, want, got) {
 		t.Errorf("test failed, expected: %v, got: %v", want, got)
@@ -211,10 +225,10 @@ func TestSecretStoreConvertTo(t *testing.T) {
 	got := &esv1beta1.SecretStore{}
 	err := given.ConvertTo(got)
 	if err != nil {
-		t.Errorf("test failed with error: %v", err)
+		t.Errorf(defaultErrorMessage, err)
 	}
 	if !assert.Equal(t, want, got) {
-		t.Errorf("test failed, expected: %v, got: %v", want, got)
+		t.Errorf(defaultComparisonMessage, want, got)
 	}
 }
 
@@ -224,10 +238,10 @@ func TestClusterSecretStoreConvertFrom(t *testing.T) {
 	got := &ClusterSecretStore{}
 	err := got.ConvertFrom(given)
 	if err != nil {
-		t.Errorf("test failed with error: %v", err)
+		t.Errorf(defaultErrorMessage, err)
 	}
 	if !assert.Equal(t, want, got) {
-		t.Errorf("test failed, expected: %v, got: %v", want, got)
+		t.Errorf(defaultComparisonMessage, want, got)
 	}
 }
 
@@ -237,9 +251,9 @@ func TestClusterSecretStoreConvertTo(t *testing.T) {
 	got := &esv1beta1.ClusterSecretStore{}
 	err := given.ConvertTo(got)
 	if err != nil {
-		t.Errorf("test failed with error: %v", err)
+		t.Errorf(defaultErrorMessage, err)
 	}
 	if !assert.Equal(t, want, got) {
-		t.Errorf("test failed, expected: %v, got: %v", want, got)
+		t.Errorf(defaultComparisonMessage, want, got)
 	}
 }

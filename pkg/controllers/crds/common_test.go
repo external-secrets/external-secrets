@@ -28,6 +28,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const (
+	crdGroup   = "apiextensions.k8s.io"
+	crdKind    = "CustomResourceDefinition"
+	crdVersion = "v1"
+)
+
 type testCase struct {
 	crd     unstructured.Unstructured
 	crd2    unstructured.Unstructured
@@ -44,6 +50,7 @@ var _ = Describe("CRD reconcile", func() {
 	})
 
 	AfterEach(func() {
+		// To improve later on with proper clean up.
 	})
 
 	// a invalid provider config should be reflected
@@ -52,7 +59,7 @@ var _ = Describe("CRD reconcile", func() {
 		tc.assert = func() {
 			Consistently(func() bool {
 				ss := unstructured.Unstructured{}
-				ss.SetGroupVersionKind(schema.GroupVersionKind{Kind: "CustomResourceDefinition", Version: "v1", Group: "apiextensions.k8s.io"})
+				ss.SetGroupVersionKind(schema.GroupVersionKind{Kind: crdKind, Version: crdVersion, Group: crdGroup})
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name: "secretstores.test.io",
 				}, &ss)
@@ -81,7 +88,7 @@ var _ = Describe("CRD reconcile", func() {
 		tc.assert = func() {
 			Consistently(func() bool {
 				ss := unstructured.Unstructured{}
-				ss.SetGroupVersionKind(schema.GroupVersionKind{Kind: "CustomResourceDefinition", Version: "v1", Group: "apiextensions.k8s.io"})
+				ss.SetGroupVersionKind(schema.GroupVersionKind{Kind: crdKind, Version: crdVersion, Group: crdGroup})
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name: "some-other.test.io",
 				}, &ss)
@@ -169,7 +176,7 @@ func makeUnstructuredCRD(plural, group string) unstructured.Unstructured {
 	u := unstructured.Unstructured{
 		Object: unmarshal,
 	}
-	u.SetGroupVersionKind(schema.GroupVersionKind{Kind: "CustomResourceDefinition", Version: "v1", Group: "apiextensions.k8s.io"})
+	u.SetGroupVersionKind(schema.GroupVersionKind{Kind: crdKind, Version: "v1", Group: crdGroup})
 	return u
 }
 
