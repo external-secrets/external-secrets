@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,10 +64,11 @@ type Reconciler struct {
 	Log                    logr.Logger
 	Scheme                 *runtime.Scheme
 	recorder               record.EventRecorder
-	SvcLabels              map[string]string
-	SecretLabels           map[string]string
+	SvcName                string
+	SvcNamespace           string
+	SecretName             string
+	SecretNamespace        string
 	CrdResources           []string
-	CertDir                string
 	dnsName                string
 	CAName                 string
 	CAOrganization         string
@@ -124,43 +126,34 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 	crdGVK := schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"}
 
-	svcList := corev1.ServiceList{}
-	err := r.List(context.Background(), &svcList, client.MatchingLabels(r.SvcLabels))
+	secret := corev1.Secret{}
+	secretName := types.NamespacedName{
+		Name:      r.SecretName,
+		Namespace: r.SecretNamespace,
+	}
+	err := r.Get(context.Background(), secretName, &secret)
 	if err != nil {
 		return err
-	}
-	if len(svcList.Items) == 0 {
-		return fmt.Errorf("no service matches the labels %v", r.SvcLabels)
-	}
-	if len(svcList.Items) > 1 {
-		return fmt.Errorf("multiple services match labels: %v", svcList.Items)
-	}
-	secretList := corev1.SecretList{}
-	err = r.List(context.Background(), &secretList, client.MatchingLabels(r.SecretLabels))
-	if err != nil {
-		return err
-	}
-	if len(secretList.Items) == 0 {
-		return fmt.Errorf("no secret matches the labels %v", r.SvcLabels)
-	}
-	if len(secretList.Items) > 1 {
-		return fmt.Errorf("multiple secrets match labels: %v", svcList.Items)
 	}
 	updatedResource := &unstructured.Unstructured{}
 	updatedResource.SetGroupVersionKind(crdGVK)
 	if err := r.Get(ctx, req.NamespacedName, updatedResource); err != nil {
 		return err
 	}
-	if err := injectSvcToConversionWebhook(updatedResource, &svcList.Items[0]); err != nil {
+	svc := types.NamespacedName{
+		Name:      r.SvcName,
+		Namespace: r.SvcNamespace,
+	}
+	if err := injectSvcToConversionWebhook(updatedResource, svc); err != nil {
 		return err
 	}
-	r.dnsName = fmt.Sprintf("%v.%v.svc", svcList.Items[0].Name, svcList.Items[0].Namespace)
-	need, err := r.refreshCertIfNeeded(&secretList.Items[0])
+	r.dnsName = fmt.Sprintf("%v.%v.svc", r.SvcName, r.SvcNamespace)
+	need, err := r.refreshCertIfNeeded(&secret)
 	if err != nil {
 		return err
 	}
 	if need {
-		artifacts, err := buildArtifactsFromSecret(&secretList.Items[0])
+		artifacts, err := buildArtifactsFromSecret(&secret)
 		if err != nil {
 			return err
 		}
@@ -174,13 +167,7 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 	return nil
 }
 
-func (r *Reconciler) EnsureCertsMounted() bool {
-	certFile := r.CertDir + "/" + certName
-	_, err := os.Stat(certFile)
-	return err == nil
-}
-
-func injectSvcToConversionWebhook(crd *unstructured.Unstructured, service *corev1.Service) error {
+func injectSvcToConversionWebhook(crd *unstructured.Unstructured, svc types.NamespacedName) error {
 	_, found, err := unstructured.NestedMap(crd.Object, "spec", "conversion", "webhook", "clientConfig")
 	if err != nil {
 		return err
@@ -188,10 +175,10 @@ func injectSvcToConversionWebhook(crd *unstructured.Unstructured, service *corev
 	if !found {
 		return errors.New("`conversion.webhook.clientConfig` field not found in CustomResourceDefinition")
 	}
-	if err := unstructured.SetNestedField(crd.Object, service.Name, "spec", "conversion", "webhook", "clientConfig", "service", "name"); err != nil {
+	if err := unstructured.SetNestedField(crd.Object, svc.Name, "spec", "conversion", "webhook", "clientConfig", "service", "name"); err != nil {
 		return err
 	}
-	if err := unstructured.SetNestedField(crd.Object, service.Namespace, "spec", "conversion", "webhook", "clientConfig", "service", "namespace"); err != nil {
+	if err := unstructured.SetNestedField(crd.Object, svc.Namespace, "spec", "conversion", "webhook", "clientConfig", "service", "namespace"); err != nil {
 		return err
 	}
 	return nil

@@ -45,6 +45,7 @@ spec:
           imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
           args:
           - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
+          - --cert-dir={{ .Values.webhook.certDir }}
           {{- range $key, $value := .Values.webhook.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
@@ -75,6 +76,7 @@ spec:
           volumeMounts:
           - name: certs
             mountPath: {{ .Values.webhook.certDir }}
+            readOnly: true
       volumes:
       - name: certs
         secret:

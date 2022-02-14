@@ -5,6 +5,12 @@ metadata:
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
     external-secrets.io/component : webhook
+  {{- if .Values.webhook.prometheus.enabled}}
+  annotations:
+    prometheus.io/path: "/metrics"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: {{ .Values.prometheus.service.port | quote }}
+  {{- end }}
 spec:
   type: ClusterIP
   ports:
@@ -12,9 +18,11 @@ spec:
     targetPort: 9443
     protocol: TCP
     name: webhook
+  {{- if .Values.webhook.prometheus.enabled}}
   - port: {{ .Values.webhook.prometheus.service.port}}
     targetPort: {{ .Values.webhook.prometheus.service.port}}
     protocol: TCP
     name: metrics
+  {{- end }}
   selector:
     {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}

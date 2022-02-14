@@ -88,6 +88,7 @@ affinity: {}
 priorityClassName: ""
 
 webhook:
+  replicaCount: 1
   certDir: /tmp/k8s-webhook-server/serving-certs
   image:
     repository: ghcr.io/external-secrets/external-secrets-webhook
@@ -155,6 +156,7 @@ certController:
   image:
     repository: ghcr.io/external-secrets/external-secrets-cert-controller
     pullPolicy: IfNotPresent
+    tag: ""
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""

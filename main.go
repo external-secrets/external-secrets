@@ -90,7 +90,7 @@ func main() {
 	}
 	if err = (&secretstore.StoreReconciler{
 		Client:          mgr.GetClient(),
-		Log:             ctrl.Log.WithName("contllers").WithName("SecretStore"),
+		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 		Scheme:          mgr.GetScheme(),
 		ControllerClass: controllerClass,
 		RequeueInterval: storeRequeueInterval,

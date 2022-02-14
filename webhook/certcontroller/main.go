@@ -52,7 +52,13 @@ func main() {
 	var concurrent int
 	var loglevel string
 	var namespace string
+	var serviceName, serviceNamespace string
+	var secretName, secretNamespace string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&serviceName, "service-name", "external-secrets-webhook", "Webhook service name")
+	flag.StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
+	flag.StringVar(&secretName, "secret-name", "external-secrets-webhook", "Secret to store certs for webhook")
+	flag.StringVar(&secretNamespace, "secret-namespace", "default", "namespace of the secret to store certs")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -84,10 +90,11 @@ func main() {
 		Client:                 mgr.GetClient(),
 		Log:                    ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
 		Scheme:                 mgr.GetScheme(),
-		SvcLabels:              map[string]string{"external-secrets.io/component": "webhook"},
-		SecretLabels:           map[string]string{"external-secrets.io/component": "webhook"},
+		SvcName:                serviceName,
+		SvcNamespace:           serviceNamespace,
+		SecretName:             secretName,
+		SecretNamespace:        secretNamespace,
 		CrdResources:           []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"},
-		CertDir:                "/tmp/k8s-webhook-server/serving-certs",
 		CAName:                 "external-secrets",
 		CAOrganization:         "external-secrets",
 		RestartOnSecretRefresh: false,

@@ -42,6 +42,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.fullnameOverride | string | `""` |  |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
 | certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets-cert-controller"` |  |
+| certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.nameOverride | string | `""` |  |
 | certController.nodeSelector | object | `{}` |  |
@@ -106,6 +107,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
 | webhook.prometheus.service.port | int | `8080` |  |
 | webhook.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
+| webhook.replicaCount | int | `1` |  |
 | webhook.resources | object | `{}` |  |
 | webhook.securityContext | object | `{}` |  |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |

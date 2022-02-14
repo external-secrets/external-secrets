@@ -33,9 +33,11 @@ import (
 
 func newReconciler() Reconciler {
 	return Reconciler{
-		CrdResources: []string{"one", "two", "three"},
-		SvcLabels:    map[string]string{"foo": "bar"},
-		SecretLabels: map[string]string{"foo": "bar"},
+		CrdResources:    []string{"one", "two", "three"},
+		SvcName:         "foo",
+		SvcNamespace:    "default",
+		SecretName:      "foo",
+		SecretNamespace: "default",
 	}
 }
 
@@ -130,7 +132,11 @@ func TestInjectSvcToConversionWebhook(t *testing.T) {
 	u := unstructured.Unstructured{
 		Object: crdunmarshalled,
 	}
-	err = injectSvcToConversionWebhook(&u, &svc)
+	name := types.NamespacedName{
+		Name:      svc.Name,
+		Namespace: svc.Namespace,
+	}
+	err = injectSvcToConversionWebhook(&u, name)
 	if err != nil {
 		t.Errorf("Failed: error when injecting: %v", err)
 	}

@@ -10,7 +10,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  replicas: {{ .Values.certController.replicaCount }}
+  replicas: 1
   selector:
     matchLabels:
       {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
@@ -43,6 +43,11 @@ spec:
           {{- end }}
           image: "{{ .Values.certController.image.repository }}:{{ .Values.certController.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.certController.image.pullPolicy }}
+          args:
+          - --service-name={{ include "external-secrets.fullname" . }}-webhook
+          - --service-namespace={{ .Release.Namespace }}
+          - --secret-name={{ include "external-secrets.fullname" . }}-webhook
+          - --secret-namespace={{ .Release.Namespace }}
           {{- range $key, $value := .Values.certController.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
@@ -62,18 +67,18 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.webhook.nodeSelector }}
+      {{- with .Values.certController.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.webhook.affinity }}
+      {{- with .Values.certController.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.webhook.tolerations }}
+      {{- with .Values.certController.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.webhook.priorityClassName }}
-      priorityClassName: {{ .Values.webhook.priorityClassName }}
+      {{- if .Values.certController.priorityClassName }}
+      priorityClassName: {{ .Values.certController.priorityClassName }}
       {{- end }}
