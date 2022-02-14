@@ -129,16 +129,22 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 	if err != nil {
 		return err
 	}
-	if len(svcList.Items) != 1 {
-		return errors.New("multiple services match labels")
+	if len(svcList.Items) == 0 {
+		return fmt.Errorf("no service matches the labels %v", r.SvcLabels)
+	}
+	if len(svcList.Items) > 1 {
+		return fmt.Errorf("multiple services match labels: %v", svcList.Items)
 	}
 	secretList := corev1.SecretList{}
 	err = r.List(context.Background(), &secretList, client.MatchingLabels(r.SecretLabels))
 	if err != nil {
 		return err
 	}
-	if len(secretList.Items) != 1 {
-		return errors.New("multiple secrets match labels")
+	if len(secretList.Items) == 0 {
+		return fmt.Errorf("no secret matches the labels %v", r.SvcLabels)
+	}
+	if len(secretList.Items) > 1 {
+		return fmt.Errorf("multiple secrets match labels: %v", svcList.Items)
 	}
 	updatedResource := &unstructured.Unstructured{}
 	updatedResource.SetGroupVersionKind(crdGVK)

@@ -79,7 +79,7 @@ var _ = BeforeSuite(func() {
 		Log:                    ctrl.Log.WithName("controllers").WithName("CustomResourceDefinition"),
 		SvcLabels:              map[string]string{"foo": "bar"},
 		SecretLabels:           map[string]string{"foo": "bar"},
-		CrdResources:           []string{"externalsecrets.external-secrets.io", "secretstores.external-secrets.io", "clustersecretstores.external-secrets.io"},
+		CrdResources:           []string{"externalsecrets.test.io", "secretstores.test.io", "clustersecretstores.test.io"},
 		CertDir:                "my/cert/dir",
 		CAName:                 "external-secrets",
 		CAOrganization:         "external-secrets",
