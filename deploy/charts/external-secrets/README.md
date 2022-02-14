@@ -35,6 +35,29 @@ The command removes all the Kubernetes components associated with the chart and 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
+| certController.affinity | object | `{}` |  |
+| certController.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
+| certController.extraArgs | object | `{}` |  |
+| certController.extraEnv | list | `[]` |  |
+| certController.fullnameOverride | string | `""` |  |
+| certController.image.pullPolicy | string | `"IfNotPresent"` |  |
+| certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets-cert-controller"` |  |
+| certController.imagePullSecrets | list | `[]` |  |
+| certController.nameOverride | string | `""` |  |
+| certController.nodeSelector | object | `{}` |  |
+| certController.podAnnotations | object | `{}` | Annotations to add to Pod |
+| certController.podLabels | object | `{}` |  |
+| certController.podSecurityContext | object | `{}` |  |
+| certController.priorityClassName | string | `""` | Pod priority class name. |
+| certController.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
+| certController.prometheus.service.port | int | `8080` |  |
+| certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
+| certController.resources | object | `{}` |  |
+| certController.securityContext | object | `{}` |  |
+| certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
+| certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
+| certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| certController.tolerations | list | `[]` |  |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
@@ -64,5 +87,28 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | tolerations | list | `[]` |  |
+| webhook.affinity | object | `{}` |  |
 | webhook.certDir | string | `"/tmp/k8s-webhook-server/serving-certs"` |  |
-| webhook.enabled | bool | `true` |  |
+| webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
+| webhook.extraArgs | object | `{}` |  |
+| webhook.extraEnv | list | `[]` |  |
+| webhook.fullnameOverride | string | `""` |  |
+| webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
+| webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets-webhook"` |  |
+| webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
+| webhook.imagePullSecrets | list | `[]` |  |
+| webhook.nameOverride | string | `""` |  |
+| webhook.nodeSelector | object | `{}` |  |
+| webhook.podAnnotations | object | `{}` | Annotations to add to Pod |
+| webhook.podLabels | object | `{}` |  |
+| webhook.podSecurityContext | object | `{}` |  |
+| webhook.priorityClassName | string | `""` | Pod priority class name. |
+| webhook.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
+| webhook.prometheus.service.port | int | `8080` |  |
+| webhook.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
+| webhook.resources | object | `{}` |  |
+| webhook.securityContext | object | `{}` |  |
+| webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
+| webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
+| webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| webhook.tolerations | list | `[]` |  |
