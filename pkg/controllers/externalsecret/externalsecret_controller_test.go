@@ -795,7 +795,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
 				Find: esv1beta1.ExternalSecretFind{
-					Name: esv1beta1.FindName{
+					Name: &esv1beta1.FindName{
 						RegExp: "foobar",
 					},
 				},

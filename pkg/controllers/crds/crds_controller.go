@@ -48,7 +48,7 @@ const (
 	caCertName           = "ca.crt"
 	caKeyName            = "ca.key"
 	certValidityDuration = 10 * 365 * 24 * time.Hour
-	lookaheadInterval    = 90 * 24 * time.Hour
+	LookaheadInterval    = 90 * 24 * time.Hour
 )
 
 type WebhookType int
@@ -75,6 +75,12 @@ type Reconciler struct {
 	RestartOnSecretRefresh bool
 }
 
+type CertInfo struct {
+	CertDir  string
+	CertName string
+	KeyName  string
+	CAName   string
+}
 type WebhookInfo struct {
 	Name string
 	Type WebhookType
@@ -258,7 +264,7 @@ func ValidCert(caCert, cert, key []byte, dnsName string, at time.Time) (bool, er
 }
 
 func lookaheadTime() time.Time {
-	return time.Now().Add(lookaheadInterval)
+	return time.Now().Add(LookaheadInterval)
 }
 
 func (r *Reconciler) validServerCert(caCert, cert, key []byte) bool {
@@ -441,4 +447,32 @@ func pemEncode(certificateDER []byte, key *rsa.PrivateKey) ([]byte, []byte, erro
 func (r *Reconciler) writeSecret(cert, key []byte, caArtifacts *KeyPairArtifacts, secret *corev1.Secret) error {
 	populateSecret(cert, key, caArtifacts, secret)
 	return r.Update(context.Background(), secret)
+}
+
+func CheckCerts(c CertInfo, dnsName string, at time.Time) error {
+	certFile := c.CertDir + "/" + c.CertName
+	_, err := os.Stat(certFile)
+	if err != nil {
+		return err
+	}
+	ca, err := os.ReadFile(c.CertDir + "/" + c.CAName)
+	if err != nil {
+		return err
+	}
+	cert, err := os.ReadFile(c.CertDir + "/" + c.CertName)
+	if err != nil {
+		return err
+	}
+	key, err := os.ReadFile(c.CertDir + "/" + c.KeyName)
+	if err != nil {
+		return err
+	}
+	ok, err := ValidCert(ca, cert, key, dnsName, at)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("certificate is not valid")
+	}
+	return nil
 }

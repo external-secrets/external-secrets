@@ -89,7 +89,7 @@ priorityClassName: ""
 
 webhook:
   replicaCount: 1
-  certDir: /tmp/k8s-webhook-server/serving-certs
+  certDir: /tmp/certs
   image:
     repository: ghcr.io/external-secrets/external-secrets-webhook
     pullPolicy: IfNotPresent

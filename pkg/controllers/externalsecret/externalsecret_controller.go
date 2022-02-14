@@ -398,7 +398,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 	for _, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
 		var err error
-		if len(remoteRef.Find.Tags) > 0 || len(remoteRef.Find.Name.RegExp) > 0 {
+		if len(remoteRef.Find.Tags) > 0 || remoteRef.Find.Name != nil {
 			secretMap, err = providerClient.GetAllSecrets(ctx, remoteRef.Find)
 			if err != nil {
 				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)

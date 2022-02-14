@@ -19,6 +19,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -37,6 +38,7 @@ const (
 	failedCreateCaCerts     = "could not create ca certificates:%v"
 	failedCreateServerCerts = "could not create server certificates:%v"
 	invalidCerts            = "generated certificates are invalid:%v,%v"
+	dnsName                 = "foobar"
 )
 
 func newReconciler() Reconciler {
@@ -172,7 +174,7 @@ func TestInjectSvcToConversionWebhook(t *testing.T) {
 }
 
 func TestInjectCertToConversionWebhook(t *testing.T) {
-	certPEM := []byte("foobar")
+	certPEM := []byte("certFooBar")
 	crd := newCRD()
 	crdunmarshalled := make(map[string]interface{})
 	crdJSON, err := json.Marshal(crd)
@@ -253,7 +255,7 @@ func TestCreateCertPEM(t *testing.T) {
 }
 func TestValidCert(t *testing.T) {
 	rec := newReconciler()
-	rec.dnsName = "foobar"
+	rec.dnsName = dnsName
 	caArtifacts, err := rec.CreateCACert(time.Now(), time.Now().AddDate(1, 0, 0))
 	if err != nil {
 		t.Fatalf(failedCreateCaCerts, err)
@@ -262,7 +264,7 @@ func TestValidCert(t *testing.T) {
 	if err != nil {
 		t.Errorf(failedCreateServerCerts, err)
 	}
-	ok, err := ValidCert(caArtifacts.CertPEM, certPEM, keyPEM, "foobar", time.Now())
+	ok, err := ValidCert(caArtifacts.CertPEM, certPEM, keyPEM, dnsName, time.Now())
 	if err != nil {
 		t.Errorf("error validating cert: %v", err)
 	}
@@ -276,7 +278,7 @@ func TestRefreshCertIfNeeded(t *testing.T) {
 	secret := newSecret()
 	c := client.NewClientBuilder().WithObjects(&secret).Build()
 	rec.Client = c
-	rec.dnsName = "foobar"
+	rec.dnsName = dnsName
 	caArtifacts, err := rec.CreateCACert(time.Now().AddDate(-1, 0, 0), time.Now().AddDate(0, -1, 0))
 	if err != nil {
 		t.Fatalf(failedCreateCaCerts, err)
@@ -299,5 +301,44 @@ func TestRefreshCertIfNeeded(t *testing.T) {
 	}
 	if !ok {
 		t.Error("expected refresh false. got true")
+	}
+}
+
+func TestCheckCerts(t *testing.T) {
+	rec := newReconciler()
+	rec.dnsName = dnsName
+	caArtifacts, err := rec.CreateCACert(time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2))
+	if err != nil {
+		t.Fatalf(failedCreateCaCerts, err)
+	}
+	certPEM, keyPEM, err := rec.CreateCertPEM(caArtifacts, time.Now(), time.Now().AddDate(0, 0, 1))
+	if err != nil {
+		t.Errorf(failedCreateServerCerts, err)
+	}
+	os.WriteFile("/tmp/ca", caArtifacts.CertPEM, 0644)
+	os.WriteFile("/tmp/tls", certPEM, 0644)
+	os.WriteFile("/tmp/key", keyPEM, 0644)
+	cert := CertInfo{
+		CertDir:  "/tmp",
+		CertName: "tls",
+		CAName:   "ca",
+		KeyName:  "key",
+	}
+	err = CheckCerts(cert, rec.dnsName, time.Now())
+	if err != nil {
+		t.Errorf("error checking valid cert: %v", err)
+	}
+	err = CheckCerts(cert, rec.dnsName, time.Now().AddDate(-1, 0, 0))
+	if err == nil {
+		t.Error("expected failure due to expired certificate, got success")
+	}
+	err = CheckCerts(cert, "wrong", time.Now())
+	if err == nil {
+		t.Error("expected failure due to dns name got, success")
+	}
+	cert.CAName = "wrong"
+	err = CheckCerts(cert, rec.dnsName, time.Now())
+	if err == nil {
+		t.Error("expected failure due to wrong certificate name, got success")
 	}
 }

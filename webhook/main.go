@@ -15,8 +15,11 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"go.uber.org/zap/zapcore"
@@ -46,40 +49,6 @@ func init() {
 	_ = esv1alpha1.AddToScheme(scheme)
 }
 
-func checkCerts(certDir, dnsName string) {
-	for {
-		setupLog.Info("Checking certs")
-		certFile := certDir + "/tls.crt"
-		_, err := os.Stat(certFile)
-		if err != nil {
-			setupLog.Error(err, "certs not found")
-			os.Exit(1)
-		}
-		ca, err := os.ReadFile(certDir + "/ca.crt")
-		if err != nil {
-			setupLog.Error(err, "error loading ca cert")
-			os.Exit(1)
-		}
-		cert, err := os.ReadFile(certDir + "/tls.crt")
-		if err != nil {
-			setupLog.Error(err, "error loading server cert")
-			os.Exit(1)
-		}
-		key, err := os.ReadFile(certDir + "/tls.key")
-		if err != nil {
-			setupLog.Error(err, "error loading server key")
-			os.Exit(1)
-		}
-		ok, err := crds.ValidCert(ca, cert, key, dnsName, time.Now())
-		if err != nil || !ok {
-			setupLog.Error(err, "certificates are not valid!")
-			os.Exit(1)
-		}
-		setupLog.Info("Certs valid")
-		time.Sleep(time.Hour * 24)
-	}
-}
-
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -103,14 +72,48 @@ func main() {
 		setupLog.Error(err, "error unmarshalling loglevel")
 		os.Exit(1)
 	}
-	go checkCerts(certDir, dnsName)
+	c := crds.CertInfo{
+		CertDir:  certDir,
+		CertName: "tls.crt",
+		KeyName:  "tls.key",
+		CAName:   "ca.crt",
+	}
+
 	logger := zap.New(zap.Level(lvl))
 	ctrl.SetLogger(logger)
+
+	setupLog.Info("validating certs")
+	err = crds.CheckCerts(c, dnsName, time.Now().Add(time.Hour))
+	if err != nil {
+		setupLog.Error(err, "error checking certs")
+		os.Exit(1)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func(c crds.CertInfo, dnsName string) {
+		// notify on sigterm and hour
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		ticker := time.NewTicker(time.Hour)
+		for {
+			select {
+			case <-sigs:
+				cancel()
+			case <-ticker.C:
+				setupLog.Info("validating certs")
+				err = crds.CheckCerts(c, dnsName, time.Now().Add(crds.LookaheadInterval+time.Minute))
+				if err != nil {
+					cancel()
+				}
+				setupLog.Info("certs are valid")
+			}
+		}
+	}(c, dnsName)
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
+		CertDir:            certDir,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "webhook-controller",
 		Namespace:          namespace,
@@ -144,7 +147,7 @@ func main() {
 		os.Exit(1)
 	}
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

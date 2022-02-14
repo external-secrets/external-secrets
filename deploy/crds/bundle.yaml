@@ -2013,7 +2013,7 @@ spec:
                   items:
                     properties:
                       extract:
-                        description: Used to select a specific version and property from the secret
+                        description: Used to extract multiple key/value pairs from one secret
                         properties:
                           key:
                             description: Key is the key used in the Provider, mandatory
@@ -2031,16 +2031,16 @@ spec:
                         description: Used to find secrets based on tags or regular expressions
                         properties:
                           name:
-                            description: Key is the key used in the Provider
+                            description: Finds secrets based on the name.
                             properties:
                               regexp:
-                                description: Used to select multiple secrets based on a regular expression of the name
+                                description: Finds secrets base
                                 type: string
                             type: object
                           tags:
                             additionalProperties:
                               type: string
-                            description: Used to select a specific version of the Provider value, if supported
+                            description: Find secrets based on tags.
                             type: object
                         type: object
                     type: object

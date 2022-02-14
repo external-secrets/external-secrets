@@ -131,7 +131,7 @@ type ExternalSecretDataRemoteRef struct {
 }
 
 type ExternalSecretDataFromRemoteRef struct {
-	// Used to select a specific version and property from the secret
+	// Used to extract multiple key/value pairs from one secret
 	// +optional
 	Extract ExternalSecretDataRemoteRef `json:"extract,omitempty"`
 	// Used to find secrets based on tags or regular expressions
@@ -140,17 +140,17 @@ type ExternalSecretDataFromRemoteRef struct {
 }
 
 type ExternalSecretFind struct {
-	// Key is the key used in the Provider
+	// Finds secrets based on the name.
 	// +optional
-	Name FindName `json:"name,omitempty"`
+	Name *FindName `json:"name,omitempty"`
 
-	// Used to select a specific version of the Provider value, if supported
+	// Find secrets based on tags.
 	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
 type FindName struct {
-	// Used to select multiple secrets based on a regular expression of the name
+	// Finds secrets base
 	// +optional
 	RegExp string `json:"regexp,omitempty"`
 }
