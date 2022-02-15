@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -37,6 +36,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -282,11 +282,12 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 
 func (v *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName, removeFromName string) (map[string][]byte, error) {
 	secrets := make(map[string][]byte)
+	matcher, err := find.New(ref)
+	if err != nil {
+		return nil, err
+	}
 	for _, name := range candidates {
-		ok, err := regexp.MatchString(ref.RegExp, name)
-		if err != nil {
-			return nil, err
-		}
+		ok := matcher.MatchName(name)
 		if ok {
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
 			if err != nil {
