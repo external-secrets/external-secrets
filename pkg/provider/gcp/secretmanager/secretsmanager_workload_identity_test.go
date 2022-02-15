@@ -357,6 +357,10 @@ func (f *fakeIAMClient) GenerateAccessToken(ctx context.Context, req *credential
 	return f.generateAccessTokenFunc(ctx, req, opts...)
 }
 
+func (f *fakeIAMClient) Close() error {
+	return nil
+}
+
 // fake SA Token Generator.
 type fakeSATokenGen struct {
 	GenerateFunc func(context.Context, string, string, string) (*authv1.TokenRequest, error)
