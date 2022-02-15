@@ -159,7 +159,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if len(failedNamespaces) > 0 {
-		clusterExternalSecret.Status.Status = v1.ConditionFalse
+		var conditionType esv1alpha1.ClusterExternalSecretConditionType
+
+		if len(failedNamespaces) < len(namespaceList.Items) {
+			conditionType = esv1alpha1.ClusterExternalSecretPartiallyReady
+		} else {
+			conditionType = esv1alpha1.ClusterExternalSecretNotReady
+		}
+
+		// TODO maybe make this more descriptive
+		conditionFailed := NewClusterExternalSecretCondition(conditionType, v1.ConditionFalse, "one or more namespaces failed")
+		SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionFailed)
 		clusterExternalSecret.Status.FailedNamespaces = failedNamespaces
 	}
 
