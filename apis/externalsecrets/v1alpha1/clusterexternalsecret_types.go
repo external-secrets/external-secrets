@@ -46,13 +46,21 @@ const (
 	ClusterExternalSecretNotReady       ClusterExternalSecretConditionType = "NotReady"
 )
 
-// ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.
-type ClusterExternalSecretStatus struct {
+type ClusterExternalSecretStatusCondition struct {
 	Type   ClusterExternalSecretConditionType `json:"type"`
 	Status corev1.ConditionStatus             `json:"status"`
 
 	// +optional
+	Message string `json:"message,omitempty"`
+}
+
+// ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.
+type ClusterExternalSecretStatus struct {
+	// +optional
 	FailedNamespaces []string `json:"failedNamespaces,omitempty"`
+
+	// +optional
+	Conditions []ClusterExternalSecretStatusCondition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
