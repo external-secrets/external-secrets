@@ -87,6 +87,7 @@ require (
 
 require (
 	cloud.google.com/go/iam v0.1.1
+	github.com/spf13/cobra v1.3.0
 	k8s.io/apiextensions-apiserver v0.23.0
 )
 
@@ -184,7 +185,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sony/gobreaker v0.4.2-0.20210216022020-dd874f9dd33b // indirect
-	github.com/spf13/cobra v1.3.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect

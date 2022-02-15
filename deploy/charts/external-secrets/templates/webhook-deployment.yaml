@@ -44,8 +44,10 @@ spec:
           image: "{{ .Values.webhook.image.repository }}:{{ .Values.webhook.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
           args:
+          - webhook
           - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
           - --cert-dir={{ .Values.webhook.certDir }}
+          - --check-interval={{ .Values.webhook.certCheckInterval }}
           {{- range $key, $value := .Values.webhook.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}

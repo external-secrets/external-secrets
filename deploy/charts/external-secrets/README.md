@@ -41,7 +41,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.extraEnv | list | `[]` |  |
 | certController.fullnameOverride | string | `""` |  |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
-| certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets-cert-controller"` |  |
+| certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.nameOverride | string | `""` |  |
@@ -90,13 +90,14 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | tolerations | list | `[]` |  |
 | webhook.affinity | object | `{}` |  |
+| webhook.certCheckInterval | string | `"5m"` |  |
 | webhook.certDir | string | `"/tmp/certs"` |  |
 | webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | webhook.extraArgs | object | `{}` |  |
 | webhook.extraEnv | list | `[]` |  |
 | webhook.fullnameOverride | string | `""` |  |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
-| webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets-webhook"` |  |
+| webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.nameOverride | string | `""` |  |

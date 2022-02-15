@@ -102,10 +102,6 @@ build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
 	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
-		go build -o 'webhook/$(OUTPUT_DIR)/external-secrets-webhook-linux-$*' webhook/main.go
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
-		go build -o 'webhook/certcontroller/$(OUTPUT_DIR)/external-secrets-cert-controller-linux-$*' webhook/certcontroller/main.go
 	@$(OK) go build $*
 
 lint.check: ## Check install of golanci-lint
@@ -212,15 +208,11 @@ build.all: docker.build helm.build ## Build all artifacts (docker image, helm ch
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
 	@docker build . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
-	@docker build webhook/ $(BUILD_ARGS) -t $(IMAGE_REGISTRY)-webhook:$(VERSION)
-	@docker build webhook/certcontroller $(BUILD_ARGS) -t $(IMAGE_REGISTRY)-cert-controller:$(VERSION)
 	@$(OK) docker build
 
 docker.push: ## Push the docker image to the registry
 	@$(INFO) docker push
 	@docker push $(IMAGE_REGISTRY):$(VERSION)
-	@docker push $(IMAGE_REGISTRY)-webhook:$(VERSION)
-	@docker push $(IMAGE_REGISTRY)-cert-controller:$(VERSION)
 	@$(OK) docker push
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden

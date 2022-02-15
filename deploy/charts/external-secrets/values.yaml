@@ -88,10 +88,11 @@ affinity: {}
 priorityClassName: ""
 
 webhook:
+  certCheckInterval: "5m"
   replicaCount: 1
   certDir: /tmp/certs
   image:
-    repository: ghcr.io/external-secrets/external-secrets-webhook
+    repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
     tag: ""
@@ -155,7 +156,7 @@ webhook:
 certController:
   requeueInterval: "5m"
   image:
-    repository: ghcr.io/external-secrets/external-secrets-cert-controller
+    repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
     tag: ""
   imagePullSecrets: []
