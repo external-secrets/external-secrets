@@ -58,7 +58,7 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const { data: pull } = await github.pulls.get({
+          const { data: pull } = await github.rest.pulls.get({
             ...context.repo,
             pull_number: process.env.number
           });
