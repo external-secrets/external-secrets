@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -386,10 +386,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1390,132 +1437,124 @@
 </ul>
 <h4 id="using-service-accounts-directly">Using Service Accounts directly</h4>
 <p>Let's assume you have created a service account correctly and attached a appropriate workload identity. It should roughly look like this:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-a</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-a</span>
-  <span class="nt">annotations</span><span class="p">:</span>
-    <span class="nt">iam.gke.io/gcp-service-account</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-team-a@my-project.iam.gserviceaccount.com</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-a</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-a</span><span class="w"></span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">iam.gke.io/gcp-service-account</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-team-a@my-project.iam.gserviceaccount.com</span><span class="w"></span>
 </code></pre></div>
-
 <p>You can reference this particular ServiceAccount in a <code>SecretStore</code> or <code>ClusterSecretStore</code>. It's important that you also set the <code>projectID</code>, <code>clusterLocation</code> and <code>clusterName</code>. The Namespace on the <code>serviceAccountRef</code> is ignored when using a <code>SecretStore</code> resource. This is needed to isolate the namespaces properly.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">gcpsm</span><span class="p">:</span>
-      <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-project</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="nt">workloadIdentity</span><span class="p">:</span>
-          <span class="c1"># name of the cluster region</span>
-          <span class="nt">clusterLocation</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">europe-central2</span>
-          <span class="c1"># name of the GKE cluster</span>
-          <span class="nt">clusterName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-workload-identity</span>
-          <span class="c1"># reference the sa from above</span>
-          <span class="nt">serviceAccountRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-a</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">team-a</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">workloadIdentity</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># name of the cluster region</span><span class="w"></span>
+<span class="w">          </span><span class="nt">clusterLocation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">europe-central2</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># name of the GKE cluster</span><span class="w"></span>
+<span class="w">          </span><span class="nt">clusterName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-workload-identity</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># reference the sa from above</span><span class="w"></span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-a</span><span class="w"></span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-a</span><span class="w"></span>
 </code></pre></div>
-
 <p><em>You need to give the Google service account the <code>roles/iam.serviceAccountTokenCreator</code> role so it can generate a service account token for you (not necessary in the Pod-based Workload Identity bellow)</em></p>
 <h4 id="using-pod-based-workload-identity">Using Pod-based Workload Identity</h4>
 <p>You can attach a Workload Identity directly to the ESO pod. ESO then has access to all the APIs defined in the attached service account policy. You attach the workload identity by (1) creating a service account with a attached workload identity (described above) and (2) using this particular service account in the pod's <code>serviceAccountName</code> field.</p>
 <p>For this example we will assume that you installed ESO using helm and that you named the chart installation <code>external-secrets</code> and the namespace where it lives <code>es</code> like:</p>
 <div class="highlight"><pre><span></span><code>helm install external-secrets external-secrets/external-secrets --namespace es
 </code></pre></div>
-
 <p>Then most of the resources would have this name, the important one here being the k8s service account attached to the external-secrets operator deployment:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># ...</span>
-      <span class="nt">containers</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ghcr.io/external-secrets/external-secrets:vVERSION</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-        <span class="nt">ports</span><span class="p">:</span>
-        <span class="p p-Indicator">-</span> <span class="nt">containerPort</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">8080</span>
-          <span class="nt">protocol</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">TCP</span>
-      <span class="nt">restartPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Always</span>
-      <span class="nt">schedulerName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">default-scheduler</span>
-      <span class="nt">serviceAccount</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-      <span class="nt">serviceAccountName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span> <span class="c1"># &lt;--- here</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># ...</span><span class="w"></span>
+<span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/external-secrets/external-secrets:vVERSION</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">        </span><span class="nt">ports</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span><span class="w"></span>
+<span class="w">          </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TCP</span><span class="w"></span>
+<span class="w">      </span><span class="nt">restartPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Always</span><span class="w"></span>
+<span class="w">      </span><span class="nt">schedulerName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default-scheduler</span><span class="w"></span>
+<span class="w">      </span><span class="nt">serviceAccount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">      </span><span class="nt">serviceAccountName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"> </span><span class="c1"># &lt;--- here</span><span class="w"></span>
 </code></pre></div>
-
 <p>The pod now has the identity. Now you need to configure the <code>SecretStore</code>.
 You just need to set the <code>projectID</code>, all other fields can be omitted.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">gcpsm</span><span class="p">:</span>
-      <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">pid</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pid</span><span class="w"></span>
 </code></pre></div>
-
 <h3 id="gcp-service-account-authentication">GCP Service Account authentication</h3>
 <p>You can use <a href="https://cloud.google.com/iam/docs/service-accounts">GCP Service Account</a> to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a <code>Kind=Secret</code>. ESO will use that Secret to authenticate with GCP. See here how you <a href="https://cloud.google.com/iam/docs/creating-managing-service-accounts">manage GCP Service Accounts</a>.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>
-  <span class="nt">labels</span><span class="p">:</span>
-    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm</span>
-<span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Opaque</span>
-<span class="nt">stringData</span><span class="p">:</span>
-  <span class="nt">secret-access-credentials</span><span class="p">:</span> <span class="p p-Indicator">|-</span>
-    <span class="no">{</span>
-      <span class="no">&quot;type&quot;: &quot;service_account&quot;,</span>
-      <span class="no">&quot;project_id&quot;: &quot;external-secrets-operator&quot;,</span>
-      <span class="no">&quot;private_key_id&quot;: &quot;&quot;,</span>
-      <span class="no">&quot;private_key&quot;: &quot;-----BEGIN PRIVATE KEY-----\nA key\n-----END PRIVATE KEY-----\n&quot;,</span>
-      <span class="no">&quot;client_email&quot;: &quot;test-service-account@external-secrets-operator.iam.gserviceaccount.com&quot;,</span>
-      <span class="no">&quot;client_id&quot;: &quot;client ID&quot;,</span>
-      <span class="no">&quot;auth_uri&quot;: &quot;https://accounts.google.com/o/oauth2/auth&quot;,</span>
-      <span class="no">&quot;token_uri&quot;: &quot;https://oauth2.googleapis.com/token&quot;,</span>
-      <span class="no">&quot;auth_provider_x509_cert_url&quot;: &quot;https://www.googleapis.com/oauth2/v1/certs&quot;,</span>
-      <span class="no">&quot;client_x509_cert_url&quot;: &quot;https://www.googleapis.com/robot/v1/metadata/x509/test-service-account%40external-secrets-operator.iam.gserviceaccount.com&quot;</span>
-    <span class="no">}</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span><span class="w"></span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcpsm</span><span class="w"></span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span><span class="w"></span>
+<span class="nt">stringData</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secret-access-credentials</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span><span class="w"></span>
+<span class="w">    </span><span class="no">{</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;type&quot;: &quot;service_account&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;project_id&quot;: &quot;external-secrets-operator&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;private_key_id&quot;: &quot;&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;private_key&quot;: &quot;-----BEGIN PRIVATE KEY-----\nA key\n-----END PRIVATE KEY-----\n&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;client_email&quot;: &quot;test-service-account@external-secrets-operator.iam.gserviceaccount.com&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;client_id&quot;: &quot;client ID&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;auth_uri&quot;: &quot;https://accounts.google.com/o/oauth2/auth&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;token_uri&quot;: &quot;https://oauth2.googleapis.com/token&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;auth_provider_x509_cert_url&quot;: &quot;https://www.googleapis.com/oauth2/v1/certs&quot;,</span><span class="w"></span>
+<span class="w">      </span><span class="no">&quot;client_x509_cert_url&quot;: &quot;https://www.googleapis.com/robot/v1/metadata/x509/test-service-account%40external-secrets-operator.iam.gserviceaccount.com&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="no">}</span><span class="w"></span>
 </code></pre></div>
-
 <h4 id="update-secret-store">Update secret store</h4>
 <p>Be sure the <code>gcpsm</code> provider is listed in the <code>Kind=SecretStore</code></p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-      <span class="nt">gcpsm</span><span class="p">:</span>                                  <span class="c1"># gcpsm provider</span>
-        <span class="nt">auth</span><span class="p">:</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
-              <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>              <span class="c1"># secret name containing SA key</span>
-              <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span>  <span class="c1"># key name containing SA key</span>
-        <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">myproject</span>                  <span class="c1"># name of Google Cloud project</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">gcpsm</span><span class="p">:</span><span class="w">                                  </span><span class="c1"># gcpsm provider</span><span class="w"></span>
+<span class="w">        </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">secretAccessKeySecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span><span class="w">              </span><span class="c1"># secret name containing SA key</span><span class="w"></span>
+<span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span><span class="w">  </span><span class="c1"># key name containing SA key</span><span class="w"></span>
+<span class="w">        </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myproject</span><span class="w">                  </span><span class="c1"># name of Google Cloud project</span><span class="w"></span>
 </code></pre></div>
-
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>SecretAccessKeyRef</code> with the namespace of the secret that we just created.</p>
 <h4 id="creating-external-secret">Creating external secret</h4>
 <p>To create a kubernetes secret from the GCP Secret Manager secret a <code>Kind=ExternalSecret</code> is needed.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>           <span class="c1"># rate SecretManager pulls GCPSM</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>               <span class="c1"># name of the SecretStore (or kind specified)</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>  <span class="c1"># name of the k8s Secret to be created</span>
-    <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>  <span class="c1"># name of the GCPSM secret key</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w">           </span><span class="c1"># rate SecretManager pulls GCPSM</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w">  </span><span class="c1"># name of the k8s Secret to be created</span><span class="w"></span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span><span class="w">  </span><span class="c1"># name of the GCPSM secret key</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span><span class="w"></span>
 </code></pre></div>
-
 <p>The operator will fetch the GCP Secret Manager secret and inject it as a <code>Kind=Secret</code>
 <div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
 </code></pre></div></p>
@@ -1584,10 +1623,10 @@ You just need to set the <code>projectID</code>, all other fields can be omitted
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

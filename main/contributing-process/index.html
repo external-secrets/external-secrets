@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -386,10 +386,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1391,7 +1438,6 @@ a period of time. Feel free to reopen if you want to get back on it.</p>
 Maintainers must trigger these kind of tests manually for PRs that come from forked repositories. These tests run inside a <code>kind</code> cluster in the GitHub Actions runner:</p>
 <div class="highlight"><pre><span></span><code>/ok-to-test sha=xxxxxx
 </code></pre></div>
-
 <h4 id="executing-e2e-tests-locally">Executing e2e tests locally</h4>
 <p>You have to prepare your shell environment with the necessary variables so the e2e test
 runner knows what credentials to use. See <code>e2e/run.sh</code> for the variables that are passed in.
@@ -1402,7 +1448,6 @@ you want to execute. You have to specify <code>!managed</code> to ensure that yo
 run managed tests.</p>
 <div class="highlight"><pre><span></span><code>make test.e2e GINKGO_LABELS=&#39;gcp&amp;&amp;!managed&#39;
 </code></pre></div>
-
 <h4 id="managed-kubernetes-e2e-tests">Managed Kubernetes e2e tests</h4>
 <p>There's another suite of e2e tests that integrate with managed Kuberentes offerings.
 They create real infrastructure at a cloud provider and deploy the controller
@@ -1416,7 +1461,6 @@ a maintainer when a particular provider or authentication mechanism was changed:
 # or
 /ok-to-test-managed sha=xxxxxx provider=gcp
 </code></pre></div>
-
 <p>Both tests can run in parallel. Once started they add a dynamic GitHub check <code>integration-managed-(gcp|aws)</code> to the PR that triggered the test.</p>
 <h3 id="executing-managed-kubernetes-e2e-tests-locally">Executing Managed Kubernetes e2e tests locally</h3>
 <p>You have to prepare your shell environment with the necessary variables so the e2e
@@ -1426,20 +1470,17 @@ sure set all variables containing <code>AWS_*</code> and <code>TF_VAR_AWS_*</cod
 <p>Then execute <code>tf.apply.aws</code> or <code>tf.apply.gcp</code> to create the infrastructure.</p>
 <div class="highlight"><pre><span></span><code>make tf.apply.aws
 </code></pre></div>
-
 <p>Then run the <code>managed</code> testsuite. You will need push permissions to the external-secrets ghcr repository. You can set <code>IMAGE_REGISTRY</code> to control which image registry is used to store the controller and e2e test images in.</p>
 <p>You also have to setup a proper Kubeconfig so the e2e test pod gets deployed into the managed cluster.</p>
 <div class="highlight"><pre><span></span><code>aws eks update-kubeconfig --name ${AWS_CLUSTER_NAME}
 or
 gcloud container clusters get-credentials ${GCP_GKE_CLUSTER} --region europe-west1-b
 </code></pre></div>
-
 <p>Use <a href="https://onsi.github.io/ginkgo/#spec-labels">ginkgo labels</a> to select the tests
 you want to execute.</p>
 <div class="highlight"><pre><span></span><code># you may have to set IMAGE_REGISTRY=docker.io/your-user/external-secrets
 make test.e2e.managed GINKGO_LABELS=&#39;gcp&#39;
 </code></pre></div>
-
 <h2 id="proposal-process">Proposal Process</h2>
 <p>Before we introduce significant changes to the project we want to gather feedback
 from the community to ensure that we progress in the right direction before we
@@ -1516,10 +1557,10 @@ and fill in your proposal. Open a pull request in draft mode and request feedbac
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

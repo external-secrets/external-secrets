@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -386,10 +386,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1409,151 +1456,144 @@ to be deployed before than the CRDs needed to recognize them.</p>
 </ul>
 <h2 id="create-the-main-kustomization">Create the main kustomization</h2>
 <p>To have a better view of things needed later, the first manifest to be created is the <code>kustomization.yaml</code></p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kustomize.config.k8s.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.config.k8s.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Kustomization</span><span class="w"></span>
 
-<span class="nt">resources</span><span class="p">:</span>
-<span class="c1"># Deploy the Vault access secret</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">namespace.yaml</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">secret-token.yaml</span>
+<span class="nt">resources</span><span class="p">:</span><span class="w"></span>
+<span class="c1"># Deploy the Vault access secret</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">namespace.yaml</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-token.yaml</span><span class="w"></span>
 
-<span class="c1"># Deploy the repositories</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">repositories.yaml</span>
+<span class="c1"># Deploy the repositories</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">repositories.yaml</span><span class="w"></span>
 
-<span class="c1"># Deploy the CRDs</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">deployment-crds.yaml</span>
+<span class="c1"># Deploy the CRDs</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deployment-crds.yaml</span><span class="w"></span>
 
-<span class="c1"># Deploy the operator</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">deployment.yaml</span>
+<span class="c1"># Deploy the operator</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deployment.yaml</span><span class="w"></span>
 
-<span class="c1"># Deploy default Custom Resources from &#39;crs&#39; directory</span>
-<span class="c1"># INFO: This depends on the CRDs deployment. Will happen after it</span>
-<span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">deployment-crs.yaml</span>
+<span class="c1"># Deploy default Custom Resources from &#39;crs&#39; directory</span><span class="w"></span>
+<span class="c1"># INFO: This depends on the CRDs deployment. Will happen after it</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deployment-crs.yaml</span><span class="w"></span>
 </code></pre></div>
-
 <h2 id="create-the-secret">Create the secret</h2>
 <p>To access your secret manager, External Secrets needs some credentials. They are stored inside a Secret, which is intended
 to be deployed by automation as a good practise. This time, a placeholder called <code>secret-token.yaml</code> is show as an example:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># The namespace.yaml first</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Namespace</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># The namespace.yaml first</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Namespace</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
 </code></pre></div>
-
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-token-global</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="nt">stringData</span><span class="p">:</span>
-  <span class="c1"># This token must be patched by overlays. Not here for security reasons</span>
-  <span class="nt">token</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">change-me-placeholder</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-token-global</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="nt">stringData</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># This token must be patched by overlays. Not here for security reasons</span><span class="w"></span>
+<span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">change-me-placeholder</span><span class="w"></span>
 </code></pre></div>
-
 <h2 id="creating-the-references-to-repositories">Creating the references to repositories</h2>
 <p>Create a manifest called <code>repositories.yaml</code> to store the references to external repositories for Flux</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Reference to Helm repository</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">HelmRepository</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
-  <span class="nt">url</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">https://charts.external-secrets.io</span>
-<span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
-  <span class="nt">ref</span><span class="p">:</span>
-    <span class="nt">branch</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">main</span>
-  <span class="nt">url</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">http://github.com/external-secrets/external-secrets</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># Reference to Helm repository</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HelmRepository</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://charts.external-secrets.io</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitRepository</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ref</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">branch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">main</span><span class="w"></span>
+<span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://github.com/external-secrets/external-secrets</span><span class="w"></span>
 </code></pre></div>
-
 <h2 id="deploy-the-crds">Deploy the CRDs</h2>
 <p>As mentioned, CRDs can be deployed using the official Helm package, but to solve the race condition, they will be deployed
 from our git repository using a Kustomization manifest called <code>deployment-crds.yaml</code> as follows:</p>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1beta2</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
-  <span class="nt">path</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">./deploy/crds</span>
-  <span class="nt">prune</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="nt">sourceRef</span><span class="p">:</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1beta2</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Kustomization</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./deploy/crds</span><span class="w"></span>
+<span class="w">  </span><span class="nt">prune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">  </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitRepository</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
 </code></pre></div>
-
 <h2 id="deploy-the-operator">Deploy the operator</h2>
 <p>The operator is deployed using a HelmRelease manifest to deploy the Helm package, but due to the special race condition,
 the deployment must be disabled in the <code>values</code> of the manifest called <code>deployment.yaml</code>, as follows:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># How to manage values files. Ref: https://fluxcd.io/docs/guides/helmreleases/#refer-to-values-inside-the-chart</span>
-<span class="c1"># How to inject values: https://fluxcd.io/docs/guides/helmreleases/#cloud-storage</span>
-<span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">helm.toolkit.fluxcd.io/v2beta1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">HelmRelease</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="c1"># Override Release name to avoid the pattern Namespace-Release</span>
-  <span class="c1"># Ref: https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io/v2beta1.HelmRelease</span>
-  <span class="nt">releaseName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-  <span class="nt">targetNamespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
-  <span class="nt">chart</span><span class="p">:</span>
-    <span class="nt">spec</span><span class="p">:</span>
-      <span class="nt">chart</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.3.9</span>
-      <span class="nt">sourceRef</span><span class="p">:</span>
-        <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">HelmRepository</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-        <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
-  <span class="nt">values</span><span class="p">:</span>
-    <span class="nt">installCRDs</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># How to manage values files. Ref: https://fluxcd.io/docs/guides/helmreleases/#refer-to-values-inside-the-chart</span><span class="w"></span>
+<span class="c1"># How to inject values: https://fluxcd.io/docs/guides/helmreleases/#cloud-storage</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">helm.toolkit.fluxcd.io/v2beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HelmRelease</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Override Release name to avoid the pattern Namespace-Release</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Ref: https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io/v2beta1.HelmRelease</span><span class="w"></span>
+<span class="w">  </span><span class="nt">releaseName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">targetNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">chart</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">chart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.3.9</span><span class="w"></span>
+<span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HelmRepository</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">        </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span><span class="w"></span>
+<span class="w">  </span><span class="nt">values</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">installCRDs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"></span>
 
-  <span class="c1"># Ref: https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io/v2beta1.Install</span>
-  <span class="nt">install</span><span class="p">:</span>
-    <span class="nt">createNamespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="c1"># Ref: https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io/v2beta1.Install</span><span class="w"></span>
+<span class="w">  </span><span class="nt">install</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">createNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
 </code></pre></div>
-
 <h2 id="deploy-the-crs">Deploy the CRs</h2>
 <p>Now, be ready for the arcane magic. Create a Kustomization manifest called <code>deployment-crs.yaml</code> with the following content:</p>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1beta2</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets-crs</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">dependsOn</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span>
-  <span class="nt">interval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10m</span>
-  <span class="nt">path</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/crs</span>
-  <span class="nt">prune</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-  <span class="nt">sourceRef</span><span class="p">:</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1beta2</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Kustomization</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-crs</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dependsOn</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span><span class="w"></span>
+<span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/crs</span><span class="w"></span>
+<span class="w">  </span><span class="nt">prune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">  </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitRepository</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span><span class="w"></span>
 </code></pre></div>
-
 <p>There are several interesting details to see here, that finally solves the race condition:</p>
 <ol>
 <li>First one is the field <code>dependsOn</code>, which points to a previous Kustomization called <code>external-secrets-crds</code>. This
    dependency forces this deployment to wait for the other to be ready, before start being deployed.</li>
 <li>The reference to the place where to find the CRs
-   <div class="highlight"><pre><span></span><code><span class="nt">path</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/crs</span>
-<span class="nt">sourceRef</span><span class="p">:</span>
- <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
- <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+   <div class="highlight"><pre><span></span><code><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/crs</span><span class="w"></span>
+<span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w"> </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitRepository</span><span class="w"></span>
+<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span><span class="w"></span>
 </code></pre></div>
    Custom Resources will be searched in the relative path <code>./infrastructure/external-secrets/crs</code> of the GitRepository
    called <code>flux-system</code>, which is a reference to the same repository that FluxCD watches to synchronize the cluster.
@@ -1561,25 +1601,24 @@ the deployment must be disabled in the <code>values</code> of the manifest calle
 </ol>
 <p>Of course, allocate inside the mentioned path <code>./infrastructure/external-secrets/crs</code>, all the desired CRs to be deployed,
 for example, a manifest <code>clusterSecretStore.yaml</code> to reach your Hashicorp Vault as follows:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend-global</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.your-domain.com&quot;</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v2</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># points to a secret that contains a vault token</span>
-        <span class="c1"># https://www.vaultproject.io/docs/auth/token</span>
-        <span class="nt">tokenSecretRef</span><span class="p">:</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;vault-token-global&quot;</span>
-          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;token&quot;</span>
-          <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend-global</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.your-domain.com&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># points to a secret that contains a vault token</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/token</span><span class="w"></span>
+<span class="w">        </span><span class="nt">tokenSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-token-global&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;token&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
 </code></pre></div>
-
 <h2 id="results">Results</h2>
 <p>At the end, the required files tree is shown in the following picture:</p>
 <p><img alt="FluxCD files tree" src="../pictures/screenshot_gitops_final_directory_tree.png" /></p>
@@ -1648,10 +1687,10 @@ for example, a manifest <code>clusterSecretStore.yaml</code> to reach your Hashi
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

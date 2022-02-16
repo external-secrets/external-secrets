@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -386,10 +386,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1459,125 +1506,122 @@ management. Vault itself implements lots of different secret engines, as of now 
 <a href="https://www.vaultproject.io/docs/secrets/kv">KV Secrets Engine</a>.</p>
 <h3 id="example">Example</h3>
 <p>First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token <code>root</code>:</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;http://my.vault.server:8200&quot;</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># points to a secret that contains a vault token</span>
-        <span class="c1"># https://www.vaultproject.io/docs/auth/token</span>
-        <span class="nt">tokenSecretRef</span><span class="p">:</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
-          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;token&quot;</span>
-<span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-token</span>
-<span class="nt">data</span><span class="p">:</span>
-  <span class="nt">token</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cm9vdA==</span> <span class="c1"># &quot;root&quot;</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://my.vault.server:8200&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># points to a secret that contains a vault token</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/token</span><span class="w"></span>
+<span class="w">        </span><span class="nt">tokenSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-token&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;token&quot;</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-token</span><span class="w"></span>
+<span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cm9vdA==</span><span class="w"> </span><span class="c1"># &quot;root&quot;</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>tokenSecretRef</code> with the namespace of the secret that we just created.</p>
 <p>Then create a simple k/v pair at path <code>secret/foo</code>:</p>
 <div class="highlight"><pre><span></span><code>vault kv put secret/foo my-value=s3cr3t
 </code></pre></div>
-
 <p>Now create a ExternalSecret that uses the above SecretStore:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="s">&quot;15s&quot;</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-sync</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foobar</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret/foo</span>
-      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-value</span>
-<span class="nn">---</span>
-<span class="c1"># will create a secret with:</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-sync</span>
-<span class="nt">data</span><span class="p">:</span>
-  <span class="nt">foobar</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">czNjcjN0</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15s&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foobar</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret/foo</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-value</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="c1"># will create a secret with:</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span><span class="w"></span>
+<span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">foobar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">czNjcjN0</span><span class="w"></span>
 </code></pre></div>
-
 <h4 id="fetching-raw-values">Fetching Raw Values</h4>
 <p>You can fetch all key/value pairs for a given path If you leave the <code>remoteRef.property</code> empty. This returns the json-encoded secret value for that path.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="c1"># ...</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foobar</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/dev/package.json</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># ...</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foobar</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/dev/package.json</span><span class="w"></span>
 </code></pre></div>
-
 <h4 id="nested-values">Nested Values</h4>
 <p>Vault supports nested key/value pairs. You can specify a <a href="https://github.com/tidwall/gjson">gjson</a> expression at <code>remoteRef.property</code> to get a nested value.</p>
 <p>Given the following secret - assume its path is <code>/dev/config</code>:
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;foo&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;nested&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;bar&quot;</span><span class="p">:</span> <span class="s2">&quot;mysecret&quot;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;foo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;nested&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;bar&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mysecret&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </code></pre></div></p>
 <p>You can set the <code>remoteRef.property</code> to point to the nested key using a <a href="https://github.com/tidwall/gjson">gjson</a> expression.
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="c1"># ...</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foobar</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/dev/config</span>
-      <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foo.nested.bar</span>
-<span class="nn">---</span>
-<span class="c1"># creates a secret with:</span>
-<span class="c1"># foobar=mysecret</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># ...</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foobar</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/dev/config</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foo.nested.bar</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="c1"># creates a secret with:</span><span class="w"></span>
+<span class="c1"># foobar=mysecret</span><span class="w"></span>
 </code></pre></div></p>
 <p>If you would set the <code>remoteRef.property</code> to just <code>foo</code> then you would get the json-encoded value of that property: <code>{"nested":{"bar":"mysecret"}}</code>.</p>
 <h4 id="multiple-nested-values">Multiple nested Values</h4>
 <p>You can extract multiple keys from a nested secret using <code>dataFrom</code>.</p>
 <p>Given the following secret - assume its path is <code>/dev/config</code>:
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="nt">&quot;foo&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;nested&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;bar&quot;</span><span class="p">:</span> <span class="s2">&quot;mysecret&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;baz&quot;</span><span class="p">:</span> <span class="s2">&quot;bang&quot;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;foo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;nested&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;bar&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mysecret&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;baz&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bang&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </code></pre></div></p>
 <p>You can set the <code>remoteRef.property</code> to point to the nested key using a <a href="https://github.com/tidwall/gjson">gjson</a> expression.
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="c1"># ...</span>
-  <span class="nt">dataFrom</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/dev/config</span>
-    <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foo.nested</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># ...</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/dev/config</span><span class="w"></span>
+<span class="w">    </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foo.nested</span><span class="w"></span>
 </code></pre></div></p>
 <p>That results in a secret with these values:
 <div class="highlight"><pre><span></span><code>bar=mysecret
@@ -1593,52 +1637,52 @@ baz=bang
 trade-offs. Depending on the authentication method you need to adapt your environment.</p>
 <h4 id="token-based-authentication">Token-based authentication</h4>
 <p>A static token is stored in a <code>Kind=Secret</code> and is used to authenticate with vault.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># points to a secret that contains a vault token</span>
-        <span class="c1"># https://www.vaultproject.io/docs/auth/token</span>
-        <span class="nt">tokenSecretRef</span><span class="p">:</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># points to a secret that contains a vault token</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/token</span><span class="w"></span>
+<span class="w">        </span><span class="nt">tokenSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-token&quot;</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>tokenSecretRef</code> with the namespace where the secret resides.</p>
 <h4 id="approle-authentication-example">AppRole authentication example</h4>
 <p><a href="https://www.vaultproject.io/docs/auth/approle">AppRole authentication</a> reads the secret id from a
 <code>Kind=Secret</code> and uses the specified <code>roleId</code> to aquire a temporary token to fetch secrets.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># VaultAppRole authenticates with Vault using the</span>
-        <span class="c1"># App Role auth mechanism</span>
-        <span class="c1"># https://www.vaultproject.io/docs/auth/approle</span>
-        <span class="nt">appRole</span><span class="p">:</span>
-          <span class="c1"># Path where the App Role authentication backend is mounted</span>
-          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;approle&quot;</span>
-          <span class="c1"># RoleID configured in the App Role authentication backend</span>
-          <span class="nt">roleId</span><span class="p">:</span> <span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span>
-          <span class="c1"># Reference to a key in a K8 Secret that contains the App Role SecretId</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;secret-id&quot;</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># VaultAppRole authenticates with Vault using the</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># App Role auth mechanism</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/approle</span><span class="w"></span>
+<span class="w">        </span><span class="nt">appRole</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Path where the App Role authentication backend is mounted</span><span class="w"></span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;approle&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># RoleID configured in the App Role authentication backend</span><span class="w"></span>
+<span class="w">          </span><span class="nt">roleId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Reference to a key in a K8 Secret that contains the App Role SecretId</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-id&quot;</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h4 id="kubernetes-authentication">Kubernetes authentication</h4>
@@ -1650,35 +1694,35 @@ options of optaining credentials for vault:</p>
 <li>by using transient credentials from the mounted service account token within the
     external-secrets operator</li>
 </ol>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># Authenticate against Vault using a Kubernetes ServiceAccount</span>
-        <span class="c1"># token stored in a Secret.</span>
-        <span class="c1"># https://www.vaultproject.io/docs/auth/kubernetes</span>
-        <span class="nt">kubernetes</span><span class="p">:</span>
-          <span class="c1"># Path where the Kubernetes authentication backend is mounted in Vault</span>
-          <span class="nt">mountPath</span><span class="p">:</span> <span class="s">&quot;kubernetes&quot;</span>
-          <span class="c1"># A required field containing the Vault Role to assume.</span>
-          <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;demo&quot;</span>
-          <span class="c1"># Optional service account field containing the name</span>
-          <span class="c1"># of a kubernetes ServiceAccount</span>
-          <span class="nt">serviceAccountRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-sa&quot;</span>
-          <span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span>
-          <span class="c1">#  used for authenticating with Vault</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault&quot;</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># Authenticate against Vault using a Kubernetes ServiceAccount</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># token stored in a Secret.</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/kubernetes</span><span class="w"></span>
+<span class="w">        </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Path where the Kubernetes authentication backend is mounted in Vault</span><span class="w"></span>
+<span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kubernetes&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># A required field containing the Vault Role to assume.</span><span class="w"></span>
+<span class="w">          </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;demo&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Optional service account field containing the name</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># of a kubernetes ServiceAccount</span><span class="w"></span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-sa&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span><span class="w"></span>
+<span class="w">          </span><span class="c1">#  used for authenticating with Vault</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault&quot;</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>serviceAccountRef</code> or in <code>secretRef</code>, if used.</p>
 <h4 id="ldap-authentication">LDAP authentication</h4>
@@ -1686,28 +1730,28 @@ options of optaining credentials for vault:</p>
 username/password pair to get an access token. Username is stored directly in
 a <code>Kind=SecretStore</code> or <code>Kind=ClusterSecretStore</code> resource, password is stored
 in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># VaultLdap authenticates with Vault using the LDAP auth mechanism</span>
-        <span class="c1"># https://www.vaultproject.io/docs/auth/ldap</span>
-        <span class="nt">ldap</span><span class="p">:</span>
-          <span class="c1"># Path where the LDAP authentication backend is mounted</span>
-          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;ldap&quot;</span>
-          <span class="c1"># LDAP username</span>
-          <span class="nt">username</span><span class="p">:</span> <span class="s">&quot;username&quot;</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;ldap-password&quot;</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># VaultLdap authenticates with Vault using the LDAP auth mechanism</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/ldap</span><span class="w"></span>
+<span class="w">        </span><span class="nt">ldap</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Path where the LDAP authentication backend is mounted</span><span class="w"></span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ldap&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># LDAP username</span><span class="w"></span>
+<span class="w">          </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;username&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ldap-password&quot;</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h4 id="jwtoidc-authentication">JWT/OIDC authentication</h4>
@@ -1715,28 +1759,28 @@ in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
 <a href="https://jwt.io/">JWT</a> token stored in a <code>Kind=Secret</code> and referenced by the
 <code>secretRef</code>. Optionally a <code>role</code> field can be defined in a <code>Kind=SecretStore</code>
 or <code>Kind=ClusterSecretStore</code> resource.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># VaultJwt authenticates with Vault using the JWT/OIDC auth mechanism</span>
-        <span class="c1"># https://www.vaultproject.io/docs/auth/jwt</span>
-        <span class="nt">jwt</span><span class="p">:</span>
-          <span class="c1"># Path where the JWT authentication backend is mounted</span>
-          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;jwt&quot;</span>
-          <span class="c1"># JWT role configured in a Vault server, optional.</span>
-          <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;vault-jwt-role&quot;</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;jwt-token&quot;</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># VaultJwt authenticates with Vault using the JWT/OIDC auth mechanism</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/jwt</span><span class="w"></span>
+<span class="w">        </span><span class="nt">jwt</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Path where the JWT authentication backend is mounted</span><span class="w"></span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;jwt&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># JWT role configured in a Vault server, optional.</span><span class="w"></span>
+<span class="w">          </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-jwt-role&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;jwt-token&quot;</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h3 id="vault-enterprise-and-eventual-consistency">Vault Enterprise and Eventual Consistency</h3>
@@ -1825,10 +1869,10 @@ be explicitly enabled in the server's <a href="https://www.vaultproject.io/docs/
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

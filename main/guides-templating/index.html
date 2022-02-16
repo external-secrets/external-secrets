@@ -9,15 +9,15 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
-        <title>Advanced Templating - External Secrets Operator</title>
+        <title>v2 - External Secrets Operator</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#examples" class="md-skip">
+        <a href="#macro-rendering-error" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Advanced Templating
+              v2
             
           </span>
         </div>
@@ -390,65 +390,67 @@
     
   
   
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" checked>
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+    
+  
+  
     <li class="md-nav__item md-nav__item--active">
       
       <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
       
       
+        
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Advanced Templating
-          <span class="md-nav__icon md-icon"></span>
-        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Advanced Templating
+        v2
       </a>
       
-        
+    </li>
+  
 
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+            
+          
+            
+              
   
   
   
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    Examples
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#templatefrom" class="md-nav__link">
-    TemplateFrom
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#helper-functions" class="md-nav__link">
-    Helper functions
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1209,41 +1211,8 @@
   
   
   
+    
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    Examples
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#templatefrom" class="md-nav__link">
-    TemplateFrom
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#helper-functions" class="md-nav__link">
-    Helper functions
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1260,222 +1229,20 @@
 </a>
 
 
-  <h1>Advanced Templating</h1>
-
-<p>With External Secrets Operator you can transform the data from the external secret provider before it is stored as <code>Kind=Secret</code>. You can do this with the <code>Spec.Target.Template</code>. Each data value is interpreted as a <a href="https://golang.org/pkg/text/template/">golang template</a>.</p>
-<h2 id="examples">Examples</h2>
-<p>You can use templates to inject your secrets into a configuration file that you mount into your pod:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">template</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-    <span class="c1"># this is how the Kind=Secret will look like</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kubernetes.io/tls</span>
-      <span class="nt">data</span><span class="p">:</span>
-        <span class="c1"># multiline string</span>
-        <span class="nt">config</span><span class="p">:</span> <span class="p p-Indicator">|</span>
-          <span class="no">datasources:</span>
-          <span class="no">- name: Graphite</span>
-            <span class="no">type: graphite</span>
-            <span class="no">access: proxy</span>
-            <span class="no">url: http://localhost:8080</span>
-            <span class="no">password: &quot;{{ .password | toString }}&quot; # &lt;-- convert []byte to string</span>
-            <span class="no">user: &quot;{{ .user | toString }}&quot;         # &lt;-- convert []byte to string</span>
-
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">user</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/grafana/user</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/grafana/password</span>
-</code></pre></div></p>
-<p>You can also use pre-defined functions to extract data from your secrets. Here: extract key/cert from a pkcs12 archive and store it as PEM.
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">template</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-    <span class="c1"># this is how the Kind=Secret will look like</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">kubernetes.io/tls</span>
-      <span class="nt">data</span><span class="p">:</span>
-        <span class="nt">tls.crt</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12cert</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemCertificate</span><span class="nv"> </span><span class="s">}}&quot;</span>
-        <span class="nt">tls.key</span><span class="p">:</span> <span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12key</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemPrivateKey</span><span class="nv"> </span><span class="s">}}&quot;</span>
-
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="c1"># this is a pkcs12 archive that contains</span>
-  <span class="c1"># a cert and a private key</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mysecret</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-</code></pre></div></p>
-<h3 id="templatefrom">TemplateFrom</h3>
-<p>You do not have to define your templates inline in an ExternalSecret but you can pull <code>ConfigMaps</code> or other Secrets that contain a template. Consider the following example:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># define your template in a config map</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">grafana-config-tpl</span>
-<span class="nt">data</span><span class="p">:</span>
-  <span class="nt">config.yaml</span><span class="p">:</span> <span class="p p-Indicator">|</span>
-    <span class="no">datasources:</span>
-      <span class="no">- name: Graphite</span>
-        <span class="no">type: graphite</span>
-        <span class="no">access: proxy</span>
-        <span class="no">url: http://localhost:8080</span>
-        <span class="no">password: &quot;{{ .password | toString }}&quot; # &lt;-- convert []byte to string</span>
-        <span class="no">user: &quot;{{ .user | toString }}&quot;         # &lt;-- convert []byte to string</span>
-<span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-template-example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="c1"># ...</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">templateFrom</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="nt">configMap</span><span class="p">:</span>
-          <span class="c1"># name of the configmap to pull in</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">grafana-config-tpl</span>
-          <span class="c1"># here you define the keys that should be used as template</span>
-          <span class="nt">items</span><span class="p">:</span>
-          <span class="p p-Indicator">-</span> <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">config.yaml</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">user</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/grafana/user</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/grafana/password</span>
+<h1 id="macro-rendering-error"><em>Macro Rendering Error</em></h1>
+<p><strong>TemplateNotFound</strong>: pem-filter-template-v2-external-secret.yaml</p>
+<div class="highlight"><pre><span></span><code>Traceback (most recent call last):
+  File &quot;/usr/lib/python3.8/site-packages/mkdocs_macros/plugin.py&quot;, line 473, in render
+    return md_template.render(**page_variables)
+  File &quot;/usr/lib/python3.8/site-packages/jinja2/environment.py&quot;, line 1291, in render
+    self.environment.handle_exception()
+  File &quot;/usr/lib/python3.8/site-packages/jinja2/environment.py&quot;, line 925, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File &quot;&lt;template&gt;&quot;, line 74, in top-level template code
+  File &quot;/usr/lib/python3.8/site-packages/jinja2/loaders.py&quot;, line 214, in get_source
+    raise TemplateNotFound(template)
+jinja2.exceptions.TemplateNotFound: pem-filter-template-v2-external-secret.yaml
 </code></pre></div>
-
-<h2 id="helper-functions">Helper functions</h2>
-<p>We provide a bunch of convenience functions that help you transform your secrets. A secret value is a <code>[]byte</code>.</p>
-<table>
-<thead>
-<tr>
-<th>Function</th>
-<th>Description</th>
-<th>Input</th>
-<th>Output</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>pkcs12key</td>
-<td>extracts the private key from a pkcs12 archive</td>
-<td><code>[]byte</code></td>
-<td><code>[]byte</code></td>
-</tr>
-<tr>
-<td>pkcs12keyPass</td>
-<td>extracts the private key from a pkcs12 archive using the provided password</td>
-<td>password <code>string</code>, data <code>[]byte</code></td>
-<td><code>[]byte</code></td>
-</tr>
-<tr>
-<td>pkcs12cert</td>
-<td>extracts the certificate from a pkcs12 archive</td>
-<td><code>[]byte</code></td>
-<td><code>[]byte</code></td>
-</tr>
-<tr>
-<td>pkcs12certPass</td>
-<td>extracts the certificate from a pkcs12 archive using the provided password</td>
-<td>password <code>string</code>, data <code>[]byte</code></td>
-<td><code>[]byte</code></td>
-</tr>
-<tr>
-<td>pemPrivateKey</td>
-<td>PEM encodes the provided bytes as private key</td>
-<td><code>[]byte</code></td>
-<td><code>string</code></td>
-</tr>
-<tr>
-<td>pemCertificate</td>
-<td>PEM encodes the provided bytes as certificate</td>
-<td><code>[]byte</code></td>
-<td><code>string</code></td>
-</tr>
-<tr>
-<td>jwkPublicKeyPem</td>
-<td>takes an json-serialized JWK as <code>[]byte</code> and returns an PEM block of type <code>PUBLIC KEY</code> that contains the public key (<a href="https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey">see here</a>) for details</td>
-<td><code>[]byte</code></td>
-<td><code>string</code></td>
-</tr>
-<tr>
-<td>jwkPrivateKeyPem</td>
-<td>takes an json-serialized JWK as <code>[]byte</code> and returns an PEM block of type <code>PRIVATE KEY</code> that contains the private key in PKCS #8 format (<a href="https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey">see here</a>) for details</td>
-<td><code>[]byte</code></td>
-<td><code>string</code></td>
-</tr>
-<tr>
-<td>base64decode</td>
-<td>decodes the provided bytes as base64</td>
-<td><code>[]byte</code></td>
-<td><code>[]byte</code></td>
-</tr>
-<tr>
-<td>base64encode</td>
-<td>encodes the provided bytes as base64</td>
-<td><code>[]byte</code></td>
-<td><code>[]byte</code></td>
-</tr>
-<tr>
-<td>fromJSON</td>
-<td>parses the bytes as JSON so you can access individual properties</td>
-<td><code>[]byte</code></td>
-<td><code>interface{}</code></td>
-</tr>
-<tr>
-<td>toJSON</td>
-<td>encodes the provided object as json string</td>
-<td><code>interface{}</code></td>
-<td><code>string</code></td>
-</tr>
-<tr>
-<td>toString</td>
-<td>converts bytes to string</td>
-<td><code>[]byte</code></td>
-<td><code>string</code></td>
-</tr>
-<tr>
-<td>toBytes</td>
-<td>converts string to bytes</td>
-<td><code>string</code></td>
-<td><code>[]byte</code></td>
-</tr>
-<tr>
-<td>upper</td>
-<td>converts all characters to their upper case</td>
-<td><code>string</code></td>
-<td><code>string</code></td>
-</tr>
-<tr>
-<td>lower</td>
-<td>converts all character to their lower case</td>
-<td><code>string</code></td>
-<td><code>string</code></td>
-</tr>
-</tbody>
-</table>
 
               
             </article>
@@ -1505,13 +1272,13 @@
       
       
         
-        <a href="../guides-controller-class/" class="md-footer__link md-footer__link--next" aria-label="Next: Controller Classes" rel="next">
+        <a href="../guides-templating-v1/" class="md-footer__link md-footer__link--next" aria-label="Next: v1" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Controller Classes
+              v1
             </div>
           </div>
           <div class="md-footer__button md-icon">
@@ -1541,10 +1308,10 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

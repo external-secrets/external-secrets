@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -386,10 +386,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1306,60 +1353,58 @@
 <p>External Secrets Operator can integrate with simple web apis by specifying the endpoint</p>
 <h3 id="example">Example</h3>
 <p>First, create a SecretStore with a webhook backend.  We'll use a static user/password <code>root</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-backend</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">webhook</span><span class="p">:</span>
-      <span class="nt">url</span><span class="p">:</span> <span class="s">&quot;http://httpbin.org/get?parameter={{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
-      <span class="nt">result</span><span class="p">:</span>
-        <span class="nt">jsonPath</span><span class="p">:</span> <span class="s">&quot;$.args.parameter&quot;</span>
-      <span class="nt">headers</span><span class="p">:</span>
-        <span class="nt">Content-Type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">application/json</span>
-        <span class="nt">Authorization</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Basic {{ print .auth.username &quot;:&quot; .auth.password | b64enc }}</span>
-      <span class="nt">secrets</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">auth</span>
-        <span class="nt">secretRef</span><span class="p">:</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span>
-<span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span>
-<span class="nt">data</span><span class="p">:</span>
-  <span class="nt">username</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span> <span class="c1"># &quot;test&quot;</span>
-  <span class="nt">password</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span> <span class="c1"># &quot;test&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-backend</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://httpbin.org/get?parameter={{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">result</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.args.parameter&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">headers</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span><span class="w"></span>
+<span class="w">        </span><span class="nt">Authorization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Basic {{ print .auth.username &quot;:&quot; .auth.password | b64enc }}</span><span class="w"></span>
+<span class="w">      </span><span class="nt">secrets</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth</span><span class="w"></span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span><span class="w"></span>
+<span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span><span class="w"> </span><span class="c1"># &quot;test&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span><span class="w"> </span><span class="c1"># &quot;test&quot;</span><span class="w"></span>
 </code></pre></div>
-
 <p>NB: This is obviously not practical because it just returns the key as the result, but it shows how it works</p>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in all <code>secrets</code> references with the namespaces where the secrets reside.</p>
 <p>Now create an ExternalSecret that uses the above SecretStore:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-example</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="s">&quot;15s&quot;</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">webhook-backend</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-sync</span>
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foobar</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret</span>
-<span class="nn">---</span>
-<span class="c1"># will create a secret with:</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-sync</span>
-<span class="nt">data</span><span class="p">:</span>
-  <span class="nt">foobar</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">c2VjcmV0</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15s&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-backend</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foobar</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="c1"># will create a secret with:</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span><span class="w"></span>
+<span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">foobar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">c2VjcmV0</span><span class="w"></span>
 </code></pre></div>
-
 <h4 id="limitations">Limitations</h4>
 <p>Webhook does not support authorization, other than what can be sent by generating http headers</p>
 <h3 id="templating">Templating</h3>
@@ -1368,41 +1413,41 @@
 <p>In addition, secrets can be added as named objects, for example to use in authorization headers.
 Each secret has a <code>name</code> property which determines the name of the object in the templating engine.</p>
 <h3 id="all-parameters">All Parameters</h3>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">statervault</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="nt">webhook</span><span class="p">:</span>
-      <span class="c1"># Url to call.  Use templating engine to fill in the request parameters</span>
-      <span class="nt">url</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;url&gt;</span>
-      <span class="c1"># http method, defaults to GET</span>
-      <span class="nt">method</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;method&gt;</span>
-      <span class="c1"># Timeout in duration (1s, 1m, etc)</span>
-      <span class="nt">timeout</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1s</span>
-      <span class="nt">result</span><span class="p">:</span>
-        <span class="c1"># [jsonPath](https://jsonpath.com) syntax, which also can be templated</span>
-        <span class="nt">jsonPath</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;jsonPath&gt;</span>
-      <span class="c1"># Map of headers, can be templated</span>
-      <span class="nt">headers</span><span class="p">:</span>
-        <span class="nt">&lt;Header-Name&gt;</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;header contents&gt;</span>
-      <span class="c1"># Body to sent as request, can be templated (optional)</span>
-      <span class="nt">body</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;body&gt;</span>
-      <span class="c1"># List of secrets to expose to the templating engine</span>
-      <span class="nt">secrets</span><span class="p">:</span>
-      <span class="c1"># Use this name to refer to this secret in templating, above</span>
-      <span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span>
-        <span class="nt">secretRef</span><span class="p">:</span>
-          <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span> <span class="c1"># Only used in ClusterSecretStores</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span>
-      <span class="c1"># Add CAs here for the TLS handshake</span>
-      <span class="nt">caBundle</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;base64 encoded cabundle&gt;</span>
-      <span class="nt">caProvider</span><span class="p">:</span>
-        <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret or COnfigMap</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;name of secret or configmap&gt;</span>
-        <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span> <span class="c1"># Only used in ClusterSecretStores</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">&lt;key inside secret&gt;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">statervault</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Url to call.  Use templating engine to fill in the request parameters</span><span class="w"></span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;url&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># http method, defaults to GET</span><span class="w"></span>
+<span class="w">      </span><span class="nt">method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;method&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Timeout in duration (1s, 1m, etc)</span><span class="w"></span>
+<span class="w">      </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1s</span><span class="w"></span>
+<span class="w">      </span><span class="nt">result</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># [jsonPath](https://jsonpath.com) syntax, which also can be templated</span><span class="w"></span>
+<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;jsonPath&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Map of headers, can be templated</span><span class="w"></span>
+<span class="w">      </span><span class="nt">headers</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&lt;Header-Name&gt;</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;header contents&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Body to sent as request, can be templated (optional)</span><span class="w"></span>
+<span class="w">      </span><span class="nt">body</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;body&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># List of secrets to expose to the templating engine</span><span class="w"></span>
+<span class="w">      </span><span class="nt">secrets</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Use this name to refer to this secret in templating, above</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span><span class="w"> </span><span class="c1"># Only used in ClusterSecretStores</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Add CAs here for the TLS handshake</span><span class="w"></span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;base64 encoded cabundle&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">caProvider</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret or COnfigMap</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;name of secret or configmap&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span><span class="w"> </span><span class="c1"># Only used in ClusterSecretStores</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;key inside secret&gt;</span><span class="w"></span>
 </code></pre></div>
 
               
@@ -1469,10 +1514,10 @@ Each secret has a <code>name</code> property which determines the name of the ob
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

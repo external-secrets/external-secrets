@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -391,10 +391,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1160,124 +1207,124 @@
 <p><img alt="SecretStore" src="../pictures/diagrams-high-level-ns-detail.png" /></p>
 <p>The <code>SecretStore</code> is namespaced and specifies how to access the external API.
 The SecretStore maps to exactly one instance of an external API.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-ns</span>
-<span class="nt">spec</span><span class="p">:</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-ns</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
 
-  <span class="c1"># Used to select the correct ESO controller (think: ingress.ingressClassName)</span>
-  <span class="c1"># The ESO controller is instantiated with a specific controller name</span>
-  <span class="c1"># and filters ES based on this property</span>
-  <span class="c1"># Optional</span>
-  <span class="nt">controller</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev</span>
+<span class="w">  </span><span class="c1"># Used to select the correct ESO controller (think: ingress.ingressClassName)</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># The ESO controller is instantiated with a specific controller name</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># and filters ES based on this property</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Optional</span><span class="w"></span>
+<span class="w">  </span><span class="nt">controller</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span><span class="w"></span>
 
-  <span class="c1"># You can specify retry settings for the http connection</span>
-  <span class="c1"># these fields allow you to set a maxRetries before failure, and</span>
-  <span class="c1"># an interval between the retries.</span>
-  <span class="c1"># Current supported providers: IBM</span>
-  <span class="nt">retrySettings</span><span class="p">:</span>
-    <span class="nt">maxRetries</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5</span>
-    <span class="nt">retryInterval</span><span class="p">:</span> <span class="s">&quot;10s&quot;</span>
+<span class="w">  </span><span class="c1"># You can specify retry settings for the http connection</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># these fields allow you to set a maxRetries before failure, and</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># an interval between the retries.</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Current supported providers: IBM</span><span class="w"></span>
+<span class="w">  </span><span class="nt">retrySettings</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">maxRetries</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w"></span>
+<span class="w">    </span><span class="nt">retryInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;10s&quot;</span><span class="w"></span>
 
-  <span class="c1"># provider field contains the configuration to access the provider</span>
-  <span class="c1"># which contains the secret exactly one provider must be configured.</span>
-  <span class="nt">provider</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># provider field contains the configuration to access the provider</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># which contains the secret exactly one provider must be configured.</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
 
-    <span class="c1"># (1): AWS Secrets Manager</span>
-    <span class="c1"># aws configures this store to sync secrets using AWS Secret Manager provider</span>
-    <span class="nt">aws</span><span class="p">:</span>
-      <span class="nt">service</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
-      <span class="c1"># Role is a Role ARN which the SecretManager provider will assume</span>
-      <span class="nt">role</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">iam-role</span>
-      <span class="c1"># AWS Region to be used for the provider</span>
-      <span class="nt">region</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
-      <span class="c1"># Auth defines the information necessary to authenticate against AWS by</span>
-      <span class="c1"># getting the accessKeyID and secretAccessKey from an already created Kubernetes Secret</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="nt">secretRef</span><span class="p">:</span>
-          <span class="nt">accessKeyID</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">access-key</span>
-          <span class="nt">secretAccessKey</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
+<span class="w">    </span><span class="c1"># (1): AWS Secrets Manager</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># aws configures this store to sync secrets using AWS Secret Manager provider</span><span class="w"></span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Role is a Role ARN which the SecretManager provider will assume</span><span class="w"></span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iam-role</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># AWS Region to be used for the provider</span><span class="w"></span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-central-1</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Auth defines the information necessary to authenticate against AWS by</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># getting the accessKeyID and secretAccessKey from an already created Kubernetes Secret</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">accessKeyID</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">awssm-secret</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">access-key</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretAccessKey</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">awssm-secret</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-key</span><span class="w"></span>
 
-    <span class="nt">vault</span><span class="p">:</span>
-      <span class="nt">server</span><span class="p">:</span> <span class="s">&quot;https://vault.acme.org&quot;</span>
-      <span class="c1"># Path is the mount path of the Vault KV backend endpoint</span>
-      <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;secret&quot;</span>
-      <span class="c1"># Version is the Vault KV secret engine version.</span>
-      <span class="c1"># This can be either &quot;v1&quot; or &quot;v2&quot;, defaults to &quot;v2&quot;</span>
-      <span class="nt">version</span><span class="p">:</span> <span class="s">&quot;v2&quot;</span>
-      <span class="c1"># vault enterprise namespace: https://www.vaultproject.io/docs/enterprise/namespaces</span>
-      <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;a-team&quot;</span>
-      <span class="c1"># base64 encoded string of certificate</span>
-      <span class="nt">caBundle</span><span class="p">:</span> <span class="s">&quot;...&quot;</span>
-      <span class="c1"># Instead of caBundle you can also specify a caProvider</span>
-      <span class="c1"># this will retrieve the cert from a Secret or ConfigMap</span>
-      <span class="nt">caProvider</span><span class="p">:</span>
-        <span class="c1"># Can be Secret or ConfigMap</span>
-        <span class="nt">type</span><span class="p">:</span> <span class="s">&quot;Secret&quot;</span>
-        <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-cert-secret&quot;</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;cert-key&quot;</span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Path is the mount path of the Vault KV backend endpoint</span><span class="w"></span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Version is the Vault KV secret engine version.</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># This can be either &quot;v1&quot; or &quot;v2&quot;, defaults to &quot;v2&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># vault enterprise namespace: https://www.vaultproject.io/docs/enterprise/namespaces</span><span class="w"></span>
+<span class="w">      </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;a-team&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># base64 encoded string of certificate</span><span class="w"></span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;...&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Instead of caBundle you can also specify a caProvider</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># this will retrieve the cert from a Secret or ConfigMap</span><span class="w"></span>
+<span class="w">      </span><span class="nt">caProvider</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># Can be Secret or ConfigMap</span><span class="w"></span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Secret&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-cert-secret&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cert-key&quot;</span><span class="w"></span>
 
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="c1"># static token: https://www.vaultproject.io/docs/auth/token</span>
-        <span class="nt">tokenSecretRef</span><span class="p">:</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-          <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-          <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># static token: https://www.vaultproject.io/docs/auth/token</span><span class="w"></span>
+<span class="w">        </span><span class="nt">tokenSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-admin&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-token&quot;</span><span class="w"></span>
 
-        <span class="c1"># AppRole auth: https://www.vaultproject.io/docs/auth/approle</span>
-        <span class="nt">appRole</span><span class="p">:</span>
-          <span class="nt">path</span><span class="p">:</span> <span class="s">&quot;approle&quot;</span>
-          <span class="nt">roleId</span><span class="p">:</span> <span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault-token&quot;</span>
+<span class="w">        </span><span class="c1"># AppRole auth: https://www.vaultproject.io/docs/auth/approle</span><span class="w"></span>
+<span class="w">        </span><span class="nt">appRole</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;approle&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">roleId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-admin&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-token&quot;</span><span class="w"></span>
 
-        <span class="c1"># Kubernetes auth: https://www.vaultproject.io/docs/auth/kubernetes</span>
-        <span class="nt">kubernetes</span><span class="p">:</span>
-          <span class="nt">mountPath</span><span class="p">:</span> <span class="s">&quot;kubernetes&quot;</span>
-          <span class="nt">role</span><span class="p">:</span> <span class="s">&quot;demo&quot;</span>
-          <span class="c1"># Optional service account reference</span>
-          <span class="nt">serviceAccountRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-sa&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-          <span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span>
-          <span class="c1"># used for authenticating with Vault</span>
-          <span class="nt">secretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="s">&quot;my-secret&quot;</span>
-            <span class="nt">namespace</span><span class="p">:</span> <span class="s">&quot;secret-admin&quot;</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="s">&quot;vault&quot;</span>
+<span class="w">        </span><span class="c1"># Kubernetes auth: https://www.vaultproject.io/docs/auth/kubernetes</span><span class="w"></span>
+<span class="w">        </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kubernetes&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;demo&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Optional service account reference</span><span class="w"></span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-sa&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-admin&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># used for authenticating with Vault</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-admin&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault&quot;</span><span class="w"></span>
 
-    <span class="c1"># (2): GCP Secret Manager</span>
-    <span class="nt">gcpsm</span><span class="p">:</span>
-      <span class="c1"># Auth defines the information necessary to authenticate against GCP by getting</span>
-      <span class="c1"># the credentials from an already created Kubernetes Secret.</span>
-      <span class="nt">auth</span><span class="p">:</span>
-        <span class="nt">secretRef</span><span class="p">:</span>
-          <span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
-            <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>
-            <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span>
-      <span class="nt">projectID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">myproject</span>
-    <span class="c1"># (TODO): add more provider examples here</span>
+<span class="w">    </span><span class="c1"># (2): GCP Secret Manager</span><span class="w"></span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Auth defines the information necessary to authenticate against GCP by getting</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># the credentials from an already created Kubernetes Secret.</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretAccessKeySecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span><span class="w"></span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myproject</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># (TODO): add more provider examples here</span><span class="w"></span>
 
-<span class="nt">status</span><span class="p">:</span>
-  <span class="c1"># Standard condition schema</span>
-  <span class="nt">conditions</span><span class="p">:</span>
-  <span class="c1"># SecretStore ready condition indicates the given store is in ready</span>
-  <span class="c1"># state and able to referenced by ExternalSecrets</span>
-  <span class="c1"># If the `status` of this condition is `False`, ExternalSecret controllers</span>
-  <span class="c1"># should prevent attempts to fetch secrets</span>
-  <span class="p p-Indicator">-</span> <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ready</span>
-    <span class="nt">status</span><span class="p">:</span> <span class="s">&quot;False&quot;</span>
-    <span class="nt">reason</span><span class="p">:</span> <span class="s">&quot;ConfigError&quot;</span>
-    <span class="nt">message</span><span class="p">:</span> <span class="s">&quot;SecretStore</span><span class="nv"> </span><span class="s">validation</span><span class="nv"> </span><span class="s">failed&quot;</span>
-    <span class="nt">lastTransitionTime</span><span class="p">:</span> <span class="s">&quot;2019-08-12T12:33:02Z&quot;</span>
+<span class="nt">status</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Standard condition schema</span><span class="w"></span>
+<span class="w">  </span><span class="nt">conditions</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># SecretStore ready condition indicates the given store is in ready</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># state and able to referenced by ExternalSecrets</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># If the `status` of this condition is `False`, ExternalSecret controllers</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># should prevent attempts to fetch secrets</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ready</span><span class="w"></span>
+<span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;False&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ConfigError&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SecretStore</span><span class="nv"> </span><span class="s">validation</span><span class="nv"> </span><span class="s">failed&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2019-08-12T12:33:02Z&quot;</span><span class="w"></span>
 </code></pre></div>
 
               
@@ -1344,10 +1391,10 @@ The SecretStore maps to exactly one instance of an external API.</p>
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

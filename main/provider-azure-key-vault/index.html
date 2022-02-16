@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -386,10 +386,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1343,57 +1390,55 @@
 <h4 id="managed-identity-authentication">Managed Identity authentication</h4>
 <p>A Managed Identity should be created in Azure, and that Identity should have proper rights to the keyvault to be managed by the operator.</p>
 <p>If there are multiple Managed Identitites for different keyvaults, the operator should have been assigned all identities via <a href="https://azure.github.io/aad-pod-identity/docs/">aad-pod-identity</a>, then the SecretStore configuration should include the Id of the idenetity to be used via the <code>identityId</code> field.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
-<span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Opaque</span>
-<span class="nt">data</span><span class="p">:</span>
-  <span class="nt">ClientID</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">bXktc2VydmljZS1wcmluY2lwbGUtY2xpZW50LWlkCg==</span>  <span class="c1">#service-principal-ID</span>
-  <span class="nt">ClientSecret</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">bXktc2VydmljZS1wcmluY2lwbGUtY2xpZW50LXNlY3JldAo=</span> <span class="c1">#service-principal-secret</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span><span class="w"></span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span><span class="w"></span>
+<span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ClientID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bXktc2VydmljZS1wcmluY2lwbGUtY2xpZW50LWlkCg==</span><span class="w">  </span><span class="c1">#service-principal-ID</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ClientSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bXktc2VydmljZS1wcmluY2lwbGUtY2xpZW50LXNlY3JldAo=</span><span class="w"> </span><span class="c1">#service-principal-secret</span><span class="w"></span>
 </code></pre></div>
-
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>azurekv</code> provider is listed in the <code>Kind=SecretStore</code></p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="c1"># provider type: azure keyvault</span>
-    <span class="nt">azurekv</span><span class="p">:</span>
-      <span class="c1"># azure tenant ID, see: https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-how-to-find-tenant</span>
-      <span class="nt">tenantId</span><span class="p">:</span> <span class="s">&quot;d3bc2180-xxxx-xxxx-xxxx-154105743342&quot;</span>
-      <span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span>
-      <span class="nt">vaultUrl</span><span class="p">:</span> <span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span>
-      <span class="nt">authSecretRef</span><span class="p">:</span>
-        <span class="c1"># points to the secret that contains</span>
-        <span class="c1"># the azure service principal credentials</span>
-        <span class="nt">clientId</span><span class="p">:</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
-          <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientID</span>
-        <span class="nt">clientSecret</span><span class="p">:</span>
-          <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span>
-          <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClientSecret</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret-store</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># provider type: azure keyvault</span><span class="w"></span>
+<span class="w">    </span><span class="nt">azurekv</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># azure tenant ID, see: https://docs.microsoft.com/en-us/azure/active-directory/fundamentals/active-directory-how-to-find-tenant</span><span class="w"></span>
+<span class="w">      </span><span class="nt">tenantId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;d3bc2180-xxxx-xxxx-xxxx-154105743342&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span><span class="w"></span>
+<span class="w">      </span><span class="nt">vaultUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">authSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># points to the secret that contains</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># the azure service principal credentials</span><span class="w"></span>
+<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClientID</span><span class="w"></span>
+<span class="w">        </span><span class="nt">clientSecret</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-secret-sp</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClientSecret</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>clientId</code> and <code>clientSecret</code>  with the namespaces where the secrets reside.</p>
 <p>Or in case of Managed Idenetity authentication:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">provider</span><span class="p">:</span>
-    <span class="c1"># provider type: azure keyvault</span>
-    <span class="nt">azurekv</span><span class="p">:</span>
-      <span class="nt">authType</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ManagedIdentity</span>
-      <span class="c1"># Optionally set the Id of the Managed Identity, if multiple identities are assigned to external-secrets operator</span>
-      <span class="nt">identityId</span><span class="p">:</span> <span class="s">&quot;&lt;MI_clientId&gt;&quot;</span>
-      <span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span>
-      <span class="nt">vaultUrl</span><span class="p">:</span> <span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret-store</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># provider type: azure keyvault</span><span class="w"></span>
+<span class="w">    </span><span class="nt">azurekv</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">authType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ManagedIdentity</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Optionally set the Id of the Managed Identity, if multiple identities are assigned to external-secrets operator</span><span class="w"></span>
+<span class="w">      </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;MI_clientId&gt;&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># URL of your vault instance, see: https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates</span><span class="w"></span>
+<span class="w">      </span><span class="nt">vaultUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://my-keyvault-name.vault.azure.net&quot;</span><span class="w"></span>
 </code></pre></div>
-
 <h3 id="object-types">Object Types</h3>
 <p>Azure KeyVault manages different <a href="https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types">object types</a>, we support <code>keys</code>, <code>secrets</code> and <code>certificates</code>. Simply prefix the key with <code>key</code>, <code>secret</code> or <code>cert</code> to retrieve the desired type (defaults to secret).</p>
 <table>
@@ -1422,44 +1467,43 @@
 <p>To create a kubernetes secret from the Azure Key vault secret a <code>Kind=ExternalSecret</code> is needed.</p>
 <p>You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name , the default type is a <code>secret</code>. other supported values are <code>cert</code> and <code>key</code></p>
 <p>to select all secrets inside the key vault , you can use the <code>dataFrom</code> directive</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-external-secret</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1h</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">example-secret-store</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-external-secret</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret-store</span><span class="w"></span>
 
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-    <span class="nt">creationPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
 
-  <span class="nt">data</span><span class="p">:</span>
-  <span class="c1"># name of the SECRET in the Azure KV (no prefix is by default a SECRET)</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># name of the SECRET in the Azure KV (no prefix is by default a SECRET)</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev-secret-test</span><span class="w"></span>
 
-  <span class="c1"># explicit type and name of secret in the Azure KV</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-another-secret-test</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">secret/dev-secret-test</span>
+<span class="w">  </span><span class="c1"># explicit type and name of secret in the Azure KV</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev-another-secret-test</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret/dev-secret-test</span><span class="w"></span>
 
-  <span class="c1"># type/name of certificate in the Azure KV</span>
-  <span class="c1"># raw value will be returned, use templating features for data processing</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-cert-test</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cert/dev-cert-test</span>
+<span class="w">  </span><span class="c1"># type/name of certificate in the Azure KV</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># raw value will be returned, use templating features for data processing</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev-cert-test</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cert/dev-cert-test</span><span class="w"></span>
 
-  <span class="c1"># type/name of the public key in the Azure KV</span>
-  <span class="c1"># the key is returned PEM encoded</span>
-  <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dev-key-test</span>
-    <span class="nt">remoteRef</span><span class="p">:</span>
-      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">key/dev-key-test</span>
+<span class="w">  </span><span class="c1"># type/name of the public key in the Azure KV</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># the key is returned PEM encoded</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev-key-test</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key/dev-key-test</span><span class="w"></span>
 </code></pre></div>
-
 <p>The operator will fetch the Azure Key vault secret and inject it as a <code>Kind=Secret</code>
 <div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
 </code></pre></div></p>
@@ -1528,10 +1572,10 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

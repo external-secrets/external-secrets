@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -386,10 +386,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1270,7 +1317,6 @@ then clone the repo:</p>
 <div class="highlight"><pre><span></span><code>git clone https://github.com/external-secrets/external-secrets.git
 <span class="nb">cd</span> external-secrets
 </code></pre></div>
-
 <p>If you want to run controller tests you also need to install kubebuilder's <code>envtest</code>.</p>
 <p>The recommended way to do so is to install <a href="https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest">setup-envtest</a></p>
 <p>Here is an example on how to set it up:</p>
@@ -1285,7 +1331,6 @@ setup-envtest use -p path 1.20.2
 #To set environment variables
 source &lt;(setup-envtest use 1.20.2 -p env --os $(go env GOOS) --arch $(go env GOARCH))
 </code></pre></div>
-
 <p>for more information, please see <a href="https://github.com/kubernetes-sigs/controller-runtime/tree/master/tools/setup-envtest">setup-envtest docs</a></p>
 <h2 id="building-testing">Building &amp; Testing</h2>
 <p>The project uses the <code>make</code> build system. It'll run code generators, tests and
@@ -1294,7 +1339,6 @@ static code analysis.</p>
 <div class="highlight"><pre><span></span><code>make build
 make docker.build <span class="nv">IMG</span><span class="o">=</span>external-secrets:latest
 </code></pre></div>
-
 <p>Run tests and lint the code:
 <div class="highlight"><pre><span></span><code>make <span class="nb">test</span>
 make lint
@@ -1308,16 +1352,13 @@ make lint
 helm repo update
 helm install external-secrets external-secrets/external-secrets
 </code></pre></div>
-
 <p>You can alternatively run the controller on your host system for development purposes:</p>
 <div class="highlight"><pre><span></span><code>make crds.install
 make run
 </code></pre></div>
-
 <p>To remove the CRDs run:</p>
 <div class="highlight"><pre><span></span><code>make crds.uninstall
 </code></pre></div>
-
 <p>If you need to test some other k8s integrations and need the operator to be deployed to the actuall cluster while developing, you can use the following workflow:</p>
 <div class="highlight"><pre><span></span><code>kind create cluster --name external-secrets
 
@@ -1336,7 +1377,6 @@ docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=
 make helm.generate
 helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
 </code></pre></div>
-
 <div class="admonition note">
 <p class="admonition-title">Contributing Flow</p>
 <p>The HOW TO guide for contributing is at the <a href="../contributing-process/">Contributing Process</a> page.</p>
@@ -1347,12 +1387,10 @@ documentation. See <code>/docs</code> for the source code and <code>/hack/api-do
 <p>When writing documentation it is advised to run the mkdocs server with livereload:</p>
 <div class="highlight"><pre><span></span><code>make serve-docs
 </code></pre></div>
-
 <p>Run the following command to run a complete build. The rendered assets are available under <code>/site</code>.</p>
 <div class="highlight"><pre><span></span><code>make docs
 make serve-docs
 </code></pre></div>
-
 <p>Open <code>http://localhost:8000</code> in your browser.</p>
 <p>Since mike uses a branch to create/update documentation, any docs operation will create a diff on your local <code>gh-pages</code> branch.</p>
 <p>When finished writing/reviewing the docs, clean up your local docs branch changes with <code>git branch -D gh-pages</code></p>
@@ -1421,10 +1459,10 @@ make serve-docs
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

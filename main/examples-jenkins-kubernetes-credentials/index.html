@@ -9,7 +9,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.9">
+      <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
@@ -17,7 +17,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.2b4465f4.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
@@ -386,10 +386,57 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4_3" type="checkbox" id="__nav_4_3" >
+      
+      
+      
+      
+        <label class="md-nav__link" for="__nav_4_3">
+          Advanced Templating
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Advanced Templating" data-md-level="2">
+        <label class="md-nav__title" for="__nav_4_3">
+          <span class="md-nav__icon md-icon"></span>
+          Advanced Templating
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
     <li class="md-nav__item">
       <a href="../guides-templating/" class="md-nav__link">
-        Advanced Templating
+        v2
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-templating-v1/" class="md-nav__link">
+        v1
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1408,192 +1455,187 @@
 <h3 id="secrettext">SecretText</h3>
 <p>Here are some examples of SecretText with the Hashicorp Vault and AWS External Secrets providers:</p>
 <h4 id="hashicorp-vault">Hashicorp Vault</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ci</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1m</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">metadata</span><span class="p">:</span>
-        <span class="nt">labels</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;secretText&quot;</span>
-        <span class="nt">annotations</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;sonarqube</span><span class="nv"> </span><span class="s">api</span><span class="nv"> </span><span class="s">token&quot;</span>
-      <span class="nt">data</span><span class="p">:</span>
-        <span class="nt">text</span><span class="p">:</span> <span class="p p-Indicator">&gt;-</span>
-          <span class="no">{{ printf &quot;{{ .password | toString }}&quot; }}</span>
-  <span class="nt">data</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">jenkins-credentials</span>
-        <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;secretText&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;sonarqube</span><span class="nv"> </span><span class="s">api</span><span class="nv"> </span><span class="s">token&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ printf &quot;{{ .password | toString }}&quot; }}</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jenkins-credentials</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
 </code></pre></div>
-
 <h4 id="aws-secrets-manager">AWS Secrets Manager</h4>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ci</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1m</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cluster-secrets-store</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">metadata</span><span class="p">:</span>
-        <span class="nt">labels</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;secretText&quot;</span>
-        <span class="nt">annotations</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;Sonar</span><span class="nv"> </span><span class="s">API</span><span class="nv"> </span><span class="s">token&quot;</span>
-  <span class="nt">data</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">text</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">service/sonarqube/apiToken</span>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets-store</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;secretText&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;Sonar</span><span class="nv"> </span><span class="s">API</span><span class="nv"> </span><span class="s">token&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service/sonarqube/apiToken</span><span class="w"></span>
 </code></pre></div>
-
 <h3 id="usernamepassword">UsernamePassword</h3>
 <p>Here are some examples of UsernamePassword credentials with the Hashicorp Vault and AWS External Secrets providers:</p>
 <h4 id="hashicorp-vault_1">Hashicorp Vault</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ci</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1m</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">metadata</span><span class="p">:</span>
-        <span class="nt">labels</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;usernamePassword&quot;</span>
-        <span class="nt">annotations</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;harbor</span><span class="nv"> </span><span class="s">chart</span><span class="nv"> </span><span class="s">robot&quot;</span>
-      <span class="nt">data</span><span class="p">:</span>
-        <span class="nt">username</span><span class="p">:</span> <span class="p p-Indicator">&gt;-</span>
-          <span class="no">{{ printf &quot;{{ .username | toString }}&quot; }}</span>
-        <span class="nt">password</span><span class="p">:</span> <span class="p p-Indicator">&gt;-</span>
-          <span class="no">{{ printf &quot;{{ .password | toString }}&quot; }}</span>
-  <span class="nt">data</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">username</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-kv</span>
-        <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot-username</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-kv</span>
-        <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot-token</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;usernamePassword&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;harbor</span><span class="nv"> </span><span class="s">chart</span><span class="nv"> </span><span class="s">robot&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ printf &quot;{{ .username | toString }}&quot; }}</span><span class="w"></span>
+<span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ printf &quot;{{ .password | toString }}&quot; }}</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-kv</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot-username</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-kv</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot-token</span><span class="w"></span>
 </code></pre></div>
-
 <h4 id="aws-secrets-manager_1">AWS Secrets Manager</h4>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ci</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1m</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cluster-secrets-store</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">metadata</span><span class="p">:</span>
-        <span class="nt">labels</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;usernamePassword&quot;</span>
-        <span class="nt">annotations</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;harbor</span><span class="nv"> </span><span class="s">chart</span><span class="nv"> </span><span class="s">robot</span><span class="nv"> </span><span class="s">access&quot;</span>
-  <span class="nt">data</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">service/harbor/chartRobot</span>
-        <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">password</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">username</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">service/harbor/chartRobot</span>
-        <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">username</span>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets-store</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;usernamePassword&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;harbor</span><span class="nv"> </span><span class="s">chart</span><span class="nv"> </span><span class="s">robot</span><span class="nv"> </span><span class="s">access&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service/harbor/chartRobot</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service/harbor/chartRobot</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
 </code></pre></div>
-
 <h3 id="basicsshuserprivatekey">basicSSHUserPrivateKey</h3>
 <p>Here are some examples of basicSSHUserPrivateKey credentials with the Hashicorp Vault and AWS External Secrets providers:</p>
 <h4 id="hashicorp-vault_2">Hashicorp Vault</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ci</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1m</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">metadata</span><span class="p">:</span>
-        <span class="nt">labels</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;basicSSHUserPrivateKey&quot;</span>
-        <span class="nt">annotations</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;github-ssh-access</span><span class="nv"> </span><span class="s">key&quot;</span>
-      <span class="nt">data</span><span class="p">:</span>
-        <span class="nt">username</span><span class="p">:</span> <span class="p p-Indicator">&gt;-</span>
-          <span class="no">{{ printf &quot;{{ .username | toString }}&quot; }}</span>
-        <span class="nt">privateKey</span><span class="p">:</span> <span class="p p-Indicator">&gt;-</span>
-          <span class="no">{{ printf &quot;{{ .privateKey | toString }}&quot; }}</span>
-  <span class="nt">data</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">username</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-kv</span>
-        <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">github-ssh-access-username</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">privateKey</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-kv</span>
-        <span class="nt">property</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">github-ssh-access-private-key</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;basicSSHUserPrivateKey&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;github-ssh-access</span><span class="nv"> </span><span class="s">key&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ printf &quot;{{ .username | toString }}&quot; }}</span><span class="w"></span>
+<span class="w">        </span><span class="nt">privateKey</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ printf &quot;{{ .privateKey | toString }}&quot; }}</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-kv</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access-username</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-kv</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access-private-key</span><span class="w"></span>
 </code></pre></div>
-
 <h4 id="aws-secrets-manager_2">AWS Secrets Manager</h4>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span>
-  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ci</span>
-<span class="nt">spec</span><span class="p">:</span>
-  <span class="nt">refreshInterval</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1m</span>
-  <span class="nt">secretStoreRef</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cluster-parameter-store</span>
-    <span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-  <span class="nt">target</span><span class="p">:</span>
-    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span>
-    <span class="nt">template</span><span class="p">:</span>
-      <span class="nt">metadata</span><span class="p">:</span>
-        <span class="nt">labels</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;basicSSHUserPrivateKey&quot;</span>
-        <span class="nt">annotations</span><span class="p">:</span>
-          <span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span> <span class="s">&quot;github-ssh-access</span><span class="nv"> </span><span class="s">key&quot;</span>
-  <span class="nt">data</span><span class="p">:</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">username</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/service/github/sshUserPrivateKeyUserName</span>
-    <span class="p p-Indicator">-</span> <span class="nt">secretKey</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">privateKey</span>
-      <span class="nt">remoteRef</span><span class="p">:</span>
-        <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">/service/github/sshUserPrivateKey</span>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-parameter-store</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;basicSSHUserPrivateKey&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;github-ssh-access</span><span class="nv"> </span><span class="s">key&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/service/github/sshUserPrivateKeyUserName</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/service/github/sshUserPrivateKey</span><span class="w"></span>
 </code></pre></div>
 
               
@@ -1660,10 +1702,10 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.22074ed6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.960e086b.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>
