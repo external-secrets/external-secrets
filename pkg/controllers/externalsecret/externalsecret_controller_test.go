@@ -433,6 +433,9 @@ var _ = Describe("ExternalSecret controller", func() {
 					"hihi": "ga",
 				},
 			},
+			// We do not specify the engine version
+			// it should default to v1 for alpha1
+			// EngineVersion: esv1alpha1.TemplateEngineV1,
 			Type: v1.SecretTypeOpaque,
 			Data: map[string]string{
 				targetProp:   targetPropObj,
@@ -450,6 +453,23 @@ var _ = Describe("ExternalSecret controller", func() {
 			for k, v := range es.Spec.Target.Template.Metadata.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
 			}
+		}
+	}
+
+	// when using a v2 template it should use the v2 engine version
+	syncWithTemplateV2 := func(tc *testCase) {
+		const secretVal = "someValue"
+		tc.externalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+			Type:          v1.SecretTypeOpaque,
+			EngineVersion: esv1alpha1.TemplateEngineV2,
+			Data: map[string]string{
+				targetProp: "{{ .targetProperty | upper }} was templated",
+			},
+		}
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1alpha1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data[targetProp])).To(Equal(expectedSecretVal))
 		}
 	}
 
@@ -1046,6 +1066,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should sync with template", syncWithTemplate),
+		Entry("should sync with template engine v2", syncWithTemplateV2),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should refresh secret from template", refreshWithTemplate),
 		Entry("should be able to use only metadata from template", onlyMetadataFromTemplate),

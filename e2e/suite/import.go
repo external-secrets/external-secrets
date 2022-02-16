@@ -20,5 +20,6 @@ import (
 	_ "github.com/external-secrets/external-secrets/e2e/suite/aws/secretsmanager"
 	_ "github.com/external-secrets/external-secrets/e2e/suite/azure"
 	_ "github.com/external-secrets/external-secrets/e2e/suite/gcp"
+	_ "github.com/external-secrets/external-secrets/e2e/suite/template"
 	_ "github.com/external-secrets/external-secrets/e2e/suite/vault"
 )
