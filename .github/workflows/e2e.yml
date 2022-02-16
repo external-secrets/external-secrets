@@ -156,7 +156,7 @@ jobs:
         make test.e2e
 
     # Update check run called "integration-fork"
-    - uses: actions/github-script@v1
+    - uses: actions/github-script@v6
       id: update-check-run
       if: ${{ always() }}
       env:
@@ -167,13 +167,13 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const { data: pull } = await github.pulls.get({
+          const { data: pull } = await github.rest.pulls.get({
             ...context.repo,
             pull_number: process.env.number
           });
           const ref = pull.head.sha;
           console.log("\n\nPR sha: " + ref)
-          const { data: checks } = await github.checks.listForRef({
+          const { data: checks } = await github.rest.checks.listForRef({
             ...context.repo,
             ref
           });
@@ -181,7 +181,7 @@ jobs:
           const check = checks.check_runs.filter(c => c.name === process.env.job);
           console.log("\n\nPR Filtered CHECK: " + check)
           console.log(check)
-          const { data: result } = await github.checks.update({
+          const { data: result } = await github.rest.checks.update({
             ...context.repo,
             check_run_id: check[0].id,
             status: 'completed',

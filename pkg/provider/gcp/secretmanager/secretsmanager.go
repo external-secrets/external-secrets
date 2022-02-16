@@ -63,6 +63,7 @@ type GoogleSecretManagerClient interface {
 type ProviderGCP struct {
 	projectID           string
 	SecretManagerClient GoogleSecretManagerClient
+	gClient             *gClient
 }
 
 type gClient struct {
@@ -84,6 +85,10 @@ func (c *gClient) getTokenSource(ctx context.Context, store esv1beta1.GenericSto
 	}
 
 	return google.DefaultTokenSource(ctx, CloudPlatformRole)
+}
+
+func (c *gClient) Close() error {
+	return c.workloadIdentity.Close()
 }
 
 func serviceAccountTokenSource(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
@@ -146,6 +151,13 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 		storeKind:        store.GetObjectKind().GroupVersionKind().Kind,
 		workloadIdentity: wi,
 	}
+	sm.gClient = &cliStore
+	defer func() {
+		// closes IAMClient to prevent gRPC connection leak in case of an error.
+		if sm.SecretManagerClient == nil {
+			_ = sm.gClient.Close()
+		}
+	}()
 
 	sm.projectID = cliStore.store.ProjectID
 
@@ -245,6 +257,9 @@ func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalS
 
 func (sm *ProviderGCP) Close(ctx context.Context) error {
 	err := sm.SecretManagerClient.Close()
+	if sm.gClient != nil {
+		err = sm.gClient.Close()
+	}
 	if err != nil {
 		return fmt.Errorf(errClientClose, err)
 	}

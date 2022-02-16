@@ -62,6 +62,7 @@ type workloadIdentity struct {
 // interface to GCP IAM API.
 type IamClient interface {
 	GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
+	Close() error
 }
 
 // interface to securetoken/identitybindingtoken API.
@@ -152,6 +153,10 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.Gene
 	return oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: gcpSAResp.GetAccessToken(),
 	}), nil
+}
+
+func (w *workloadIdentity) Close() error {
+	return w.iamClient.Close()
 }
 
 func newIAMClient(ctx context.Context) (IamClient, error) {

@@ -56,7 +56,11 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	}
 	r.Log.V(1).Info("found template data", "tpl_data", tplMap)
 
-	err = template.Execute(tplMap, dataMap, secret)
+	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
+	if err != nil {
+		return err
+	}
+	err = execute(tplMap, dataMap, secret)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}

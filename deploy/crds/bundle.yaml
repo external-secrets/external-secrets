@@ -1859,6 +1859,10 @@ spec:
                           additionalProperties:
                             type: string
                           type: object
+                        engineVersion:
+                          default: v1
+                          description: EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+                          type: string
                         metadata:
                           description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
                           properties:
@@ -2068,6 +2072,10 @@ spec:
                       default: Owner
                       description: CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
                       type: string
+                    deletionPolicy:
+                      default: None
+                      description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'None'
+                      type: string
                     immutable:
                       description: Immutable defines if the final secret will be immutable
                       type: boolean
@@ -2081,6 +2089,9 @@ spec:
                           additionalProperties:
                             type: string
                           type: object
+                        engineVersion:
+                          default: v2
+                          type: string
                         metadata:
                           description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
                           properties:

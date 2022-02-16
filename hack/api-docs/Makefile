@@ -53,8 +53,7 @@ build: image generate $(SOURCES)
 		--rm \
 		--user $(UID):$(GID) \
 		$(MKDOCS_IMAGE) \
-		/bin/bash -c "cd /repo && git config user.email "docs@external-secrets.io" && git config user.name "Docs" && $(MIKE) deploy --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
-
+		/bin/bash -c "cd /repo && git config user.email "docs@external-secrets.io" && git config user.name "Docs" && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish
 build.publish: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
@@ -65,7 +64,6 @@ build.publish: image generate $(SOURCES)
 		--user $(UID):$(GID) \
 		$(MKDOCS_IMAGE) \
 		/bin/bash -c "cd /repo && git config user.email "docs@external-secrets.io" && git config user.name "Docs" && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
-
 .PHONY: generate
 generate:
 	./generate.sh $(SRCDIR)/spec.md
@@ -86,4 +84,4 @@ serve:
 		-p $(SERVE_BIND_ADDRESS):8000:8000 \
 		--rm \
 		$(MKDOCS_IMAGE) \
-		/bin/bash -c "cd /repo && $(MIKE) serve -F hack/api-docs/mkdocs.yml -a 0.0.0.0:8000"
+		/bin/bash -c "cd /repo && mkdocs serve -f hack/api-docs/mkdocs.yml -a 0.0.0.0:8000"

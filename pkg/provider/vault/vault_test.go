@@ -565,8 +565,10 @@ func TestGetSecret(t *testing.T) {
 	secretWithNestedVal := map[string]interface{}{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
+		"nested.bar":    "something different",
 		"nested": map[string]string{
 			"foo": "oke",
+			"bar": "also ok?",
 		},
 	}
 
@@ -660,6 +662,26 @@ func TestGetSecret(t *testing.T) {
 			want: want{
 				err: nil,
 				val: []byte("oke"),
+			},
+		},
+		"ReadSecretWithNestedValueFromData": {
+			reason: "Should return a nested property",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					//
+					Property: "nested.bar",
+				},
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(secretWithNestedVal), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte("something different"),
 			},
 		},
 		"NonexistentProperty": {

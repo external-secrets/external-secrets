@@ -44,6 +44,20 @@ const (
 	None ExternalSecretCreationPolicy = "None"
 )
 
+// ExternalSecretDeletionPolicy defines rules on how to delete the resulting Secret.
+type ExternalSecretDeletionPolicy string
+
+const (
+	// Owner creates the Secret and sets .metadata.ownerReferences to the ExternalSecret resource.
+	DeletionOwner ExternalSecretDeletionPolicy = "Owner"
+
+	// Merge does not create the Secret, but merges the data fields to the Secret.
+	DeletionMerge ExternalSecretDeletionPolicy = "Merge"
+
+	// None does not create a Secret (future use with injector).
+	DeletionNone ExternalSecretDeletionPolicy = "None"
+)
+
 // ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
 type ExternalSecretTemplateMetadata struct {
 	// +optional
@@ -59,6 +73,12 @@ type ExternalSecretTemplate struct {
 	// +optional
 	Type corev1.SecretType `json:"type,omitempty"`
 
+	// EngineVersion specifies the template engine version
+	// that should be used to compile/execute the
+	// template specified in .data and .templateFrom[].
+	// +kubebuilder:default="v2"
+
+	EngineVersion TemplateEngineVersion `json:"engineVersion,omitempty"`
 	// +optional
 	Metadata ExternalSecretTemplateMetadata `json:"metadata,omitempty"`
 
@@ -68,6 +88,13 @@ type ExternalSecretTemplate struct {
 	// +optional
 	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
 }
+
+type TemplateEngineVersion string
+
+const (
+	TemplateEngineV1 TemplateEngineVersion = "v1"
+	TemplateEngineV2 TemplateEngineVersion = "v2"
+)
 
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
@@ -99,7 +126,11 @@ type ExternalSecretTarget struct {
 	// +optional
 	// +kubebuilder:default="Owner"
 	CreationPolicy ExternalSecretCreationPolicy `json:"creationPolicy,omitempty"`
-
+	// DeletionPolicy defines rules on how to delete the resulting Secret
+	// Defaults to 'None'
+	// +optional
+	// +kubebuilder:default="None"
+	DeletionPolicy ExternalSecretDeletionPolicy `json:"deletionPolicy,omitempty"`
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
 	Template *ExternalSecretTemplate `json:"template,omitempty"`

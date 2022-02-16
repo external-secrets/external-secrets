@@ -58,6 +58,7 @@ const (
 	errDataField          = "failed to find data field"
 	errJSONUnmarshall     = "failed to unmarshall JSON"
 	errSecretFormat       = "secret data not in expected format"
+	errUnexpectedKey      = "unexpected key in data: %s"
 	errVaultToken         = "cannot parse Vault authentication token: %w"
 	errVaultReqParams     = "cannot set Vault request parameters: %w"
 	errVaultRequest       = "error from Vault request: %w"
@@ -163,24 +164,43 @@ func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
+// GetSecret supports two types:
+// 1. get the full secret as json-encoded value
+//    by leaving the ref.Property empty.
+// 2. get a key from the secret.
+//    Nested values are supported by specifying a gjson expression
 func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	data, err := v.readSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
 		return nil, err
 	}
-
-	// return raw json if no property is defined
+	jsonStr, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	// (1): return raw json if no property is defined
 	if ref.Property == "" {
-		return data, nil
+		return jsonStr, nil
 	}
 
-	val := gjson.Get(string(data), ref.Property)
+	// For backwards compatibility we want the
+	// actual keys to take precedence over gjson syntax
+	// (2): extract key from secret with property
+	if _, ok := data[ref.Property]; ok {
+		return getTypedKey(data, ref.Property)
+	}
+
+	// (3): extract key from secret using gjson
+	val := gjson.Get(string(jsonStr), ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
 	}
 	return []byte(val.String()), nil
 }
 
+// GetSecretMap supports two modes of operation:
+// 1. get the full secret from the vault data payload (by leaving .property empty).
+// 2. extract key/value pairs from a (nested) object.
 func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := v.GetSecret(ctx, ref)
 	if err != nil {
@@ -193,31 +213,38 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 		return nil, err
 	}
 	byteMap := make(map[string][]byte, len(secretData))
-	for k, v := range secretData {
-		switch t := v.(type) {
-		case string:
-			byteMap[k] = []byte(t)
-		case map[string]interface{}:
-			jsonData, err := json.Marshal(t)
-			if err != nil {
-				return nil, err
-			}
-			byteMap[k] = jsonData
-		case []byte:
-			byteMap[k] = t
-		// also covers int and float32 due to json.Marshal
-		case float64:
-			byteMap[k] = []byte(strconv.FormatFloat(t, 'f', -1, 64))
-		case bool:
-			byteMap[k] = []byte(strconv.FormatBool(t))
-		case nil:
-			byteMap[k] = []byte(nil)
-		default:
-			return nil, errors.New(errSecretFormat)
+	for k := range secretData {
+		byteMap[k], err = getTypedKey(secretData, k)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return byteMap, nil
+}
+
+func getTypedKey(data map[string]interface{}, key string) ([]byte, error) {
+	v, ok := data[key]
+	if !ok {
+		return nil, fmt.Errorf(errUnexpectedKey, key)
+	}
+	switch t := v.(type) {
+	case string:
+		return []byte(t), nil
+	case map[string]interface{}:
+		return json.Marshal(t)
+	case []byte:
+		return t, nil
+	// also covers int and float32 due to json.Marshal
+	case float64:
+		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
+	case bool:
+		return []byte(strconv.FormatBool(t)), nil
+	case nil:
+		return []byte(nil), nil
+	default:
+		return nil, errors.New(errSecretFormat)
+	}
 }
 
 func (v *client) Close(ctx context.Context) error {
@@ -268,7 +295,7 @@ func (v *client) buildPath(path string) string {
 	return returnPath
 }
 
-func (v *client) readSecret(ctx context.Context, path, version string) ([]byte, error) {
+func (v *client) readSecret(ctx context.Context, path, version string) (map[string]interface{}, error) {
 	dataPath := v.buildPath(path)
 
 	// path formated according to vault docs for v1 and v2 API
@@ -304,8 +331,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) ([]byte, 
 		}
 	}
 
-	// return json string
-	return json.Marshal(secretData)
+	return secretData, nil
 }
 
 func (v *client) newConfig() (*vault.Config, error) {
