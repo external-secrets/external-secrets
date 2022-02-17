@@ -24,6 +24,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -130,7 +131,7 @@ func TestNewClientNoCreds(t *testing.T) {
 	tassert.Nil(t, err, "the return err should be nil")
 	k8sClient := clientfake.NewClientBuilder().Build()
 	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "missing clientID/clientSecret in store config")
+	tassert.EqualError(t, err, "missing secretRef in provider config")
 
 	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1beta1.AzureKVAuth{}
 	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
@@ -263,7 +264,9 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badSecretType),
 	}
 
-	sm := Azure{}
+	sm := Azure{
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr("noop")},
+	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecret(context.Background(), *v.ref)
@@ -357,7 +360,9 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badSecretType),
 	}
 
-	sm := Azure{}
+	sm := Azure{
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr("noop")},
+	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
