@@ -22,17 +22,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework/log"
 )
 
-var TargetSecretName = "target-secret"
+var DefaultTargetSecretName = "target-secret"
+
+const DefaultExternalSecretName = "e2e-es"
 
 // TestCase contains the test infra to run a table driven test.
 type TestCase struct {
-	Framework      *Framework
-	ExternalSecret *esv1alpha1.ExternalSecret
-	Secrets        map[string]string
-	ExpectedSecret *v1.Secret
+	Framework          *Framework
+	ExternalSecret     *esv1alpha1.ExternalSecret
+	BetaExternalSecret *esv1beta1.ExternalSecret
+	Secrets            map[string]string
+	ExpectedSecret     *v1.Secret
 }
 
 // SecretStoreProvider is a interface that must be implemented
@@ -64,16 +68,26 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 		}
 
 		// create external secret
-		err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
-		Expect(err).ToNot(HaveOccurred())
+		if tc.ExternalSecret != nil {
+			err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
+			Expect(err).ToNot(HaveOccurred())
+		}
 
-		// in case target name is empty
-		if tc.ExternalSecret.Spec.Target.Name == "" {
-			TargetSecretName = tc.ExternalSecret.ObjectMeta.Name
+		if tc.BetaExternalSecret != nil {
+			err = tc.Framework.CRClient.Create(context.Background(), tc.BetaExternalSecret)
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		secName := DefaultExternalSecretName
+		if tc.ExternalSecret != nil && tc.ExternalSecret.Spec.Target.Name != "" {
+			secName = tc.ExternalSecret.Spec.Target.Name
+		}
+		if tc.BetaExternalSecret != nil && tc.BetaExternalSecret.Spec.Target.Name != "" {
+			secName = tc.BetaExternalSecret.Spec.Target.Name
 		}
 
 		// wait for Kind=Secret to have the expected data
-		secret, err := tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, TargetSecretName, tc.ExpectedSecret)
+		secret, err := tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, secName, tc.ExpectedSecret)
 		if err != nil {
 			log.Logf("Did not match. Expected: %+v, Got: %+v", tc.ExpectedSecret, secret)
 		}
@@ -87,7 +101,7 @@ func makeDefaultTestCase(f *Framework) *TestCase {
 		Framework: f,
 		ExternalSecret: &esv1alpha1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "e2e-es",
+				Name:      DefaultExternalSecretName,
 				Namespace: f.Namespace.Name,
 			},
 			Spec: esv1alpha1.ExternalSecretSpec{
@@ -95,8 +109,25 @@ func makeDefaultTestCase(f *Framework) *TestCase {
 					Name: f.Namespace.Name,
 				},
 				Target: esv1alpha1.ExternalSecretTarget{
-					Name: TargetSecretName,
+					Name: DefaultTargetSecretName,
 				},
+			},
+		},
+	}
+}
+
+func DefaultBetaExternalSecret(f *Framework) *esv1beta1.ExternalSecret {
+	return &esv1beta1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      DefaultExternalSecretName,
+			Namespace: f.Namespace.Name,
+		},
+		Spec: esv1beta1.ExternalSecretSpec{
+			SecretStoreRef: esv1beta1.SecretStoreRef{
+				Name: f.Namespace.Name,
+			},
+			Target: esv1beta1.ExternalSecretTarget{
+				Name: DefaultTargetSecretName,
 			},
 		},
 	}

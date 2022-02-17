@@ -17,7 +17,11 @@ package secretsmanager
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"regexp"
+
+	utilpointer "k8s.io/utils/pointer"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -25,6 +29,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
@@ -39,7 +44,13 @@ type SecretsManager struct {
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/secretsmanager/secretsmanageriface/
 type SMInterface interface {
 	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error)
 }
+
+const (
+	errUnexpectedFindOperator = "unexpected find operator"
+	errDuplicateKey           = "duplicate key mapping at %s"
+)
 
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
@@ -78,8 +89,126 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 
 // Empty GetAllSecrets.
 func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	if ref.Name != nil {
+		return sm.findByName(ctx, ref)
+	}
+	if len(ref.Tags) > 0 {
+		return sm.findByTags(ctx, ref)
+	}
+	return nil, errors.New(errUnexpectedFindOperator)
+}
+
+func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
+	}
+	data := make(map[string][]byte)
+	var nextToken *string
+
+	for {
+		ctrl.Log.Info("aws sm findByName", "nextToken", nextToken)
+		it, err := sm.client.ListSecrets(&awssm.ListSecretsInput{
+			NextToken: nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+		ctrl.Log.Info("aws sm findByName found", "secrets", len(it.SecretList))
+		for _, secret := range it.SecretList {
+			if !matcher.MatchName(*secret.Name) {
+				continue
+			}
+			ctrl.Log.Info("aws sm findByName matches", "name", *secret.Name)
+			err = sm.fetchAndSet(ctx, data, *secret.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		nextToken = it.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+	return data, nil
+}
+
+func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	filters := make([]*awssm.Filter, len(ref.Tags)*2)
+	for k, v := range ref.Tags {
+		filters = append(filters, &awssm.Filter{
+			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeTagKey),
+			Values: []*string{
+				utilpointer.StringPtr(k),
+			},
+		}, &awssm.Filter{
+			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeTagValue),
+			Values: []*string{
+				utilpointer.StringPtr(v),
+			},
+		})
+	}
+
+	data := make(map[string][]byte)
+	var nextToken *string
+	for {
+		ctrl.Log.Info("aws sm findByTag", "nextToken", nextToken)
+		it, err := sm.client.ListSecrets(&awssm.ListSecretsInput{
+			Filters:   filters,
+			NextToken: nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+		ctrl.Log.Info("aws sm findByTag found", "secrets", len(it.SecretList))
+		for _, secret := range it.SecretList {
+			err = sm.fetchAndSet(ctx, data, *secret.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		nextToken = it.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+	return data, nil
+}
+
+func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
+	ctrl.Log.Info("aws sm fetchAndSet fetch", "name", name)
+	sec, err := sm.fetch(ctx, esv1beta1.ExternalSecretDataRemoteRef{
+		Key: name,
+		// Right now we only support AWSCURRENT as version
+		// There is no intent to support specific versions
+		// or specific aliases like AWSPREVIOUS or AWSPENDING
+		Version: "AWSCURRENT",
+	})
+	if err != nil {
+		return err
+	}
+
+	// Note: multiple key names can collide:
+	//       foo/bar and foo$bar would result in the same key
+	//       foo_bar being mapped.
+	key := mapSecretKey(name)
+	if _, exist := data[key]; exist {
+		return fmt.Errorf(errDuplicateKey, key)
+	}
+
+	if sec.SecretString != nil {
+		data[key] = []byte(*sec.SecretString)
+	}
+	if sec.SecretBinary != nil {
+		data[key] = sec.SecretBinary
+	}
+	return nil
+}
+
+var keyChars = regexp.MustCompile(`[^A-Za-z0-9_\-.]+`)
+
+func mapSecretKey(key string) string {
+	return keyChars.ReplaceAllString(key, "_")
 }
 
 // GetSecret returns a single secret from the provider.

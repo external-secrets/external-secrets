@@ -22,10 +22,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/google/go-cmp/cmp"
-
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
+	"github.com/google/go-cmp/cmp"
 )
 
 type secretsManagerTestCase struct {
@@ -297,4 +296,44 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func Test_mapSecretKey(t *testing.T) {
+	type args struct {
+		key string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "replace special chars",
+			args: args{
+				key: "/foo/bar/baz",
+			},
+			want: "_foo_bar_baz",
+		},
+		{
+			name: "keep alphanumeric as-is",
+			args: args{
+				key: "my_special_value",
+			},
+			want: "my_special_value",
+		},
+		{
+			name: "keep alphanumeric as-is",
+			args: args{
+				key: `my_special_value_$1_$2`,
+			},
+			want: "my_special_value__1__2",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := mapSecretKey(tt.args.key); got != tt.want {
+				t.Errorf("mapSecretKey() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
