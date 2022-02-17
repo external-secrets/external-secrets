@@ -1,10 +1,12 @@
 site_name: External Secrets Operator
 repo_url: https://github.com/external-secrets/external-secrets
 repo_name: External Secrets Operator
-site_dir: site
-docs_dir: docs
+site_dir: ../../site
+docs_dir: ../../docs
+remote_branch: gh-pages
 theme:
   name: material
+  custom_dir: ../../overrides
 markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
@@ -17,6 +19,8 @@ plugins:
   - macros:
       include_dir: docs/snippets
 extra:
+  version:
+    provider: mike
   analytics:
     provider: google
     property: G-QP38TD8K7V
@@ -30,13 +34,15 @@ nav:
   - Guides:
     - Introduction: guides-introduction.md
     - Getting started: guides-getting-started.md
-    - Advanced Templating: guides-templating.md
+    - Advanced Templating:
+        v2: guides-templating.md
+        v1: guides-templating-v1.md
+    - Controller Classes: guides-controller-class.md
     - All keys, One secret: guides-all-keys-one-secret.md
     - Common K8S Secret Types: guides-common-k8s-secret-types.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md
     - Using Latest Image: guides-using-latest-image.md
-    - GitOps using FluxCD: guides-gitops-using-fluxcd.md
   - Provider:
     - AWS:
       - Secrets Manager: provider-aws-secrets-manager.md
@@ -44,7 +50,7 @@ nav:
     - Azure:
       - Key Vault: provider-azure-key-vault.md
     - Google:
-      - Secrets Manager: provider-google-secrets-manager.md
+      - Secret Manager: provider-google-secrets-manager.md
     - IBM:
       - Secrets Manager: provider-ibm-secrets-manager.md
     - Akeyless: provider-akeyless.md
@@ -56,6 +62,11 @@ nav:
     - Oracle:
       - Oracle Vault: provider-oracle-vault.md
     - Webhook: provider-webhook.md
+    - Fake: provider-fake.md
+  - Examples:
+    - FluxCD: examples-gitops-using-fluxcd.md
+    - Anchore Engine: examples-anchore-engine-credentials.md
+    - Jenkins: examples-jenkins-kubernetes-credentials.md
   - References:
     - API specification: spec.md
   - Contributing:

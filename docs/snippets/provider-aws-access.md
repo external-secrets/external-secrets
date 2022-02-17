@@ -50,6 +50,7 @@ spec:
             name: awssm-secret
             key: secret-access-key
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef`, `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
 
 ### EKS Service Account credentials
 
@@ -86,3 +87,4 @@ spec:
           serviceAccountRef:
             name: my-serviceaccount
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.

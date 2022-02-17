@@ -86,7 +86,7 @@ func WithServiceAccount(saName string) MutationFunc {
 			},
 			{
 				Key:   "serviceAccount.name",
-				Value: "eso-e2e-test",
+				Value: saName,
 			},
 		}...)
 	}

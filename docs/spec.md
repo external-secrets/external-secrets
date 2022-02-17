@@ -1408,6 +1408,21 @@ Kubernetes core/v1.SecretType
 </tr>
 <tr>
 <td>
+<code>engineVersion</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.TemplateEngineVersion">
+TemplateEngineVersion
+</a>
+</em>
+</td>
+<td>
+<p>EngineVersion specifies the template engine version
+that should be used to compile/execute the
+template specified in .data and .templateFrom[].</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>metadata</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.ExternalSecretTemplateMetadata">
@@ -1482,6 +1497,95 @@ map[string]string
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.FakeProvider">FakeProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>FakeProvider configures a fake provider that returns static values.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.FakeProviderData">
+[]FakeProviderData
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.FakeProviderData">FakeProviderData
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.FakeProvider">FakeProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>valueMap</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -2310,6 +2414,20 @@ WebhookProvider
 <p>Webhook configures this store to sync secrets using a generic templated webhook</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>fake</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.FakeProvider">
+FakeProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Fake configures a store with static key/value pairs</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.SecretStoreRef">SecretStoreRef
@@ -2562,6 +2680,27 @@ Kubernetes meta/v1.Time
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.TemplateEngineVersion">TemplateEngineVersion
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretTemplate">ExternalSecretTemplate</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;v1&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;v2&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.TemplateFrom">TemplateFrom
 </h3>

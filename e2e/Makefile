@@ -2,7 +2,7 @@ MAKEFLAGS   += --warn-undefined-variables
 SHELL       := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 
-KIND_IMG       = "kindest/node:v1.21.1@sha256:69860bda5563ac81e3c0057d654b5253219618a22ec3a346306239bba8cfa1a6"
+KIND_IMG       = "kindest/node:v1.23.3@sha256:0df8215895129c0d3221cda19847d1296c4f29ec93487339149333bd9d899e5a"
 BUILD_ARGS     ?=
 
 export E2E_IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets-e2e

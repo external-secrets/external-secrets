@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"github.com/googleapis/gax-go"
+	"github.com/googleapis/gax-go/v2"
 	"github.com/tidwall/gjson"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -40,6 +40,7 @@ const (
 	defaultVersion    = "latest"
 
 	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
+	errUnableGetCredentials                   = "unable to get credentials: %w"
 	errClientClose                            = "unable to close SecretManager client: %w"
 	errMissingStoreSpec                       = "invalid: missing store spec"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid ClusterSecretStore: missing GCP SecretAccessKey Namespace"
@@ -62,6 +63,7 @@ type GoogleSecretManagerClient interface {
 type ProviderGCP struct {
 	projectID           string
 	SecretManagerClient GoogleSecretManagerClient
+	gClient             *gClient
 }
 
 type gClient struct {
@@ -83,6 +85,10 @@ func (c *gClient) getTokenSource(ctx context.Context, store esv1alpha1.GenericSt
 	}
 
 	return google.DefaultTokenSource(ctx, CloudPlatformRole)
+}
+
+func (c *gClient) Close() error {
+	return c.workloadIdentity.Close()
 }
 
 func serviceAccountTokenSource(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
@@ -145,12 +151,25 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1alpha1.GenericSt
 		storeKind:        store.GetObjectKind().GroupVersionKind().Kind,
 		workloadIdentity: wi,
 	}
+	sm.gClient = &cliStore
+	defer func() {
+		// closes IAMClient to prevent gRPC connection leak in case of an error.
+		if sm.SecretManagerClient == nil {
+			_ = sm.gClient.Close()
+		}
+	}()
 
 	sm.projectID = cliStore.store.ProjectID
 
 	ts, err := cliStore.getTokenSource(ctx, store, kube, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+	}
+
+	// check if we can get credentials
+	_, err = ts.Token()
+	if err != nil {
+		return nil, fmt.Errorf(errUnableGetCredentials, err)
 	}
 
 	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
@@ -232,9 +251,16 @@ func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1alpha1.External
 
 func (sm *ProviderGCP) Close(ctx context.Context) error {
 	err := sm.SecretManagerClient.Close()
+	if sm.gClient != nil {
+		err = sm.gClient.Close()
+	}
 	if err != nil {
 		return fmt.Errorf(errClientClose, err)
 	}
+	return nil
+}
+
+func (sm *ProviderGCP) Validate() error {
 	return nil
 }
 

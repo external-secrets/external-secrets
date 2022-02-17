@@ -22,6 +22,12 @@ rules:
     - "externalsecrets"
     - "externalsecrets/status"
     - "externalsecrets/finalizers"
+    - "secretstores"
+    - "secretstores/status"
+    - "secretstores/finalizers"
+    - "clustersecretstores"
+    - "clustersecretstores/status"
+    - "clustersecretstores/finalizers"
     verbs:
     - "update"
     - "patch"

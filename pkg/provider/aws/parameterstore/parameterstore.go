@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,6 +30,7 @@ import (
 
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
+	sess   *session.Session
 	client PMInterface
 }
 
@@ -42,8 +43,9 @@ type PMInterface interface {
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("parameterstore")
 
 // New constructs a ParameterStore Provider that is specific to a store.
-func New(sess client.ConfigProvider) (*ParameterStore, error) {
+func New(sess *session.Session) (*ParameterStore, error) {
 	return &ParameterStore{
+		sess:   sess,
 		client: ssm.New(sess),
 	}, nil
 }
@@ -92,4 +94,9 @@ func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 
 func (pm *ParameterStore) Close(ctx context.Context) error {
 	return nil
+}
+
+func (pm *ParameterStore) Validate() error {
+	_, err := pm.sess.Config.Credentials.Get()
+	return err
 }

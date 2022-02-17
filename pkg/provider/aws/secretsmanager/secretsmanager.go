@@ -19,7 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/tidwall/gjson"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,6 +30,7 @@ import (
 
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
+	sess   *session.Session
 	client SMInterface
 	cache  map[string]*awssm.GetSecretValueOutput
 }
@@ -43,8 +44,9 @@ type SMInterface interface {
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(sess client.ConfigProvider) (*SecretsManager, error) {
+func New(sess *session.Session) (*SecretsManager, error) {
 	return &SecretsManager{
+		sess:   sess,
 		client: awssm.New(sess),
 		cache:  make(map[string]*awssm.GetSecretValueOutput),
 	}, nil
@@ -131,4 +133,9 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1alpha1.Exter
 
 func (sm *SecretsManager) Close(ctx context.Context) error {
 	return nil
+}
+
+func (sm *SecretsManager) Validate() error {
+	_, err := sm.sess.Config.Credentials.Get()
+	return err
 }

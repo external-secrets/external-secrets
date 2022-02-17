@@ -21,7 +21,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/googleapis/gax-go"
+	"github.com/googleapis/gax-go/v2"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 	credentialspb "google.golang.org/genproto/googleapis/iam/credentials/v1"
@@ -355,6 +355,10 @@ type fakeIAMClient struct {
 
 func (f *fakeIAMClient) GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error) {
 	return f.generateAccessTokenFunc(ctx, req, opts...)
+}
+
+func (f *fakeIAMClient) Close() error {
+	return nil
 }
 
 // fake SA Token Generator.

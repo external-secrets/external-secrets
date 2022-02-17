@@ -22,10 +22,8 @@ spec:
           # of a kubernetes ServiceAccount
           serviceAccountRef:
             name: "my-sa"
-            namespace: "secret-admin"
           # Optional secret field containing a Kubernetes ServiceAccount JWT
           #  used for authenticating with Vault
           secretRef:
             name: "my-secret"
-            namespace: "secret-admin"
             key: "vault"

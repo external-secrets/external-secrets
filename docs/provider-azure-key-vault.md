@@ -31,6 +31,7 @@ Be sure the `azurekv` provider is listed in the `Kind=SecretStore`
 ```yaml
 {% include 'azkv-secret-store.yaml' %}
 ```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `clientId` and `clientSecret`  with the namespaces where the secrets reside.
 
 Or in case of Managed Idenetity authentication:
 

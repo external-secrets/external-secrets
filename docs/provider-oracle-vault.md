@@ -4,7 +4,10 @@ External Secrets Operator integrates with [OCI API](https://github.com/oracle/oc
 
 ### Authentication
 
-The API requires a userOCID, tenancyOCID, fingerprint, key file and a region. The fingerprint and key file should be supplied in the secret with the rest being provided in the secret store.
+If `auth` is not specified, the operator uses the instance principal.
+
+For using a specific user credentials, userOCID, tenancyOCID, fingerprint and private key are required.
+The fingerprint and key file should be supplied in the secret with the rest being provided in the secret store.
 
 See url for what region you you are accessing.
 ![userOCID-details](./pictures/screenshot_region.png)
@@ -38,6 +41,7 @@ Be sure the `oracle` provider is listed in the `Kind=SecretStore`.
 {% include 'oracle-secret-store.yaml' %}
 ```
 
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `privatekey` and `fingerprint` with the namespaces where the secrets reside.
 ### Creating external secret
 
 To create a kubernetes secret from the Oracle Cloud Interface secret a`Kind=ExternalSecret` is needed.

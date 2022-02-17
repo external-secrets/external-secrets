@@ -8,9 +8,11 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
 limitations under the License.
 */
-package azure
+
+package aws
 
 import (
 
@@ -21,11 +23,13 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
 
-var _ = Describe("[azure]", Label("azure", "keyvault"), func() {
-	f := framework.New("eso-azure")
-	prov := newFromEnv(f)
+var _ = Describe("[aws] ", Label("aws", "parameterstore"), func() {
+	f := framework.New("eso-aws-ps")
+	prov := NewFromEnv(f)
 
-	DescribeTable("sync secrets", framework.TableFunc(f, prov),
+	DescribeTable("sync secrets",
+		framework.TableFunc(f,
+			prov),
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.NestedJSONWithGJSON(f)),
 		Entry(common.JSONDataFromSync(f)),

@@ -56,7 +56,11 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1alpha1.ExternalS
 	}
 	r.Log.V(1).Info("found template data", "tpl_data", tplMap)
 
-	err = template.Execute(tplMap, dataMap, secret)
+	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
+	if err != nil {
+		return err
+	}
+	err = execute(tplMap, dataMap, secret)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
@@ -64,9 +68,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1alpha1.ExternalS
 	// if no data was provided by template fallback
 	// to value from the provider
 	if len(es.Spec.Target.Template.Data) == 0 {
-		for k, v := range dataMap {
-			secret.Data[k] = v
-		}
+		secret.Data = dataMap
 	}
 	secret.Annotations[esv1alpha1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 

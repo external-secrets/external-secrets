@@ -27,12 +27,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 
 	// Loading registered providers.
@@ -45,7 +48,7 @@ const (
 	requeueAfter = time.Second * 30
 
 	errGetES                 = "could not get ExternalSecret"
-	errReconcileES           = "could not reconcile ExternalSecret"
+	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
 	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
@@ -75,6 +78,7 @@ type Reconciler struct {
 	Scheme          *runtime.Scheme
 	ControllerClass string
 	RequeueInterval time.Duration
+	recorder        record.EventRecorder
 }
 
 // Reconcile implements the main reconciliation loop
@@ -116,7 +120,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	store, err := r.getStore(ctx, &externalSecret)
 	if err != nil {
 		log.Error(err, errStoreRef)
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1alpha1.ReasonInvalidStoreRef, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, errStoreRef)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
@@ -125,7 +130,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log = log.WithValues("SecretStore", store.GetNamespacedName())
 
 	// check if store should be handled by this controller instance
-	if !shouldProcessStore(store, r.ControllerClass) {
+	if !secretstore.ShouldProcessStore(store, r.ControllerClass) {
 		log.Info("skipping unmanaged store")
 		return ctrl.Result{}, nil
 	}
@@ -140,8 +145,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
 	if err != nil {
 		log.Error(err, errStoreClient)
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, errStoreClient)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1alpha1.ReasonProviderClientConfig, err.Error())
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
@@ -232,13 +238,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if err != nil {
-		log.Error(err, errReconcileES)
-		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, err.Error())
+		log.Error(err, errUpdateSecret)
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1alpha1.ReasonUpdateFailed, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionFalse, esv1alpha1.ConditionReasonSecretSyncedError, errUpdateSecret)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
+	r.recorder.Event(&externalSecret, v1.EventTypeNormal, esv1alpha1.ReasonUpdated, "Updated Secret")
 	conditionSynced := NewExternalSecretCondition(esv1alpha1.ExternalSecretReady, v1.ConditionTrue, esv1alpha1.ConditionReasonSecretSynced, "Secret was synced")
 	currCond := GetExternalSecretCondition(externalSecret.Status, esv1alpha1.ExternalSecretReady)
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
@@ -295,14 +303,6 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 		return fmt.Errorf(errPolicyMergePatch, secret.Name, err)
 	}
 	return nil
-}
-
-// shouldProcessStore returns true if the store should be processed.
-func shouldProcessStore(store esv1alpha1.GenericStore, class string) bool {
-	if store.GetSpec().Controller == "" || store.GetSpec().Controller == class {
-		return true
-	}
-	return false
 }
 
 func getResourceVersion(es esv1alpha1.ExternalSecret) string {
@@ -419,9 +419,11 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient p
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+	r.recorder = mgr.GetEventRecorderFor("external-secrets")
+
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1alpha1.ExternalSecret{}).
-		Owns(&v1.Secret{}).
+		Owns(&v1.Secret{}, builder.OnlyMetadata).
 		Complete(r)
 }

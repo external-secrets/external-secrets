@@ -13,10 +13,13 @@ limitations under the License.
 package vault
 
 import (
+	"fmt"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+	v1 "k8s.io/api/core/v1"
 
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
@@ -72,6 +75,11 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withK8s, f, common.JSONDataWithTemplate, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.DataPropertyDockerconfigJSON, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataWithoutTargetName, useKubernetesProvider),
+		// vault-specific test cases
+		Entry("secret value via data without property should return json-encoded string", Label("json"), testJSONWithoutProperty),
+		Entry("secret value via data with property should return json-encoded string", Label("json"), testJSONWithProperty),
+		Entry("dataFrom without property should extract key/value pairs", Label("json"), testDataFromJSONWithoutProperty),
+		Entry("dataFrom with property should extract key/value pairs", Label("json"), testDataFromJSONWithProperty),
 	)
 })
 
@@ -97,4 +105,93 @@ func useJWTProvider(tc *framework.TestCase) {
 
 func useKubernetesProvider(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = kubernetesProviderName
+}
+
+const jsonVal = `{"foo":{"nested":{"bar":"mysecret","baz":"bang"}}}`
+
+// when no property is set it should return the json-encoded at path.
+func testJSONWithoutProperty(tc *framework.TestCase) {
+	secretKey := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "json")
+	tc.Secrets = map[string]string{
+		secretKey: jsonVal,
+	}
+	tc.ExpectedSecret = &v1.Secret{
+		Type: v1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			secretKey: []byte(jsonVal),
+		},
+	}
+	tc.ExternalSecret.Spec.Data = []esapi.ExternalSecretData{
+		{
+			SecretKey: secretKey,
+			RemoteRef: esapi.ExternalSecretDataRemoteRef{
+				Key: secretKey,
+			},
+		},
+	}
+}
+
+// when property is set it should return the json-encoded at path.
+func testJSONWithProperty(tc *framework.TestCase) {
+	secretKey := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "json")
+	expectedVal := `{"bar":"mysecret","baz":"bang"}`
+	tc.Secrets = map[string]string{
+		secretKey: jsonVal,
+	}
+	tc.ExpectedSecret = &v1.Secret{
+		Type: v1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			secretKey: []byte(expectedVal),
+		},
+	}
+	tc.ExternalSecret.Spec.Data = []esapi.ExternalSecretData{
+		{
+			SecretKey: secretKey,
+			RemoteRef: esapi.ExternalSecretDataRemoteRef{
+				Key:      secretKey,
+				Property: "foo.nested",
+			},
+		},
+	}
+}
+
+// when no property is set it should extract the key/value pairs at the given path
+// note: it should json-encode if a value contains nested data
+func testDataFromJSONWithoutProperty(tc *framework.TestCase) {
+	secretKey := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "json")
+	tc.Secrets = map[string]string{
+		secretKey: jsonVal,
+	}
+	tc.ExpectedSecret = &v1.Secret{
+		Type: v1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"foo": []byte(`{"nested":{"bar":"mysecret","baz":"bang"}}`),
+		},
+	}
+	tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataRemoteRef{
+		{
+			Key: secretKey,
+		},
+	}
+}
+
+// when property is set it should extract values with dataFrom at the given path.
+func testDataFromJSONWithProperty(tc *framework.TestCase) {
+	secretKey := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "json")
+	tc.Secrets = map[string]string{
+		secretKey: jsonVal,
+	}
+	tc.ExpectedSecret = &v1.Secret{
+		Type: v1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"bar": []byte(`mysecret`),
+			"baz": []byte(`bang`),
+		},
+	}
+	tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataRemoteRef{
+		{
+			Key:      secretKey,
+			Property: "foo.nested",
+		},
+	}
 }

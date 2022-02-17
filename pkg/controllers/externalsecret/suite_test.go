@@ -15,6 +15,7 @@ limitations under the License.
 package externalsecret
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
@@ -40,6 +41,7 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
+var cancel context.CancelFunc
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -56,6 +58,9 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "crds")},
 	}
 
+	var ctx context.Context
+	ctx, cancel = context.WithCancel(context.Background())
+
 	var err error
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
@@ -65,7 +70,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: scheme.Scheme,
+		Scheme:             scheme.Scheme,
+		MetricsBindAddress: "0", // avoid port collision when testing
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -87,12 +93,13 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		defer GinkgoRecover()
-		Expect(k8sManager.Start(ctrl.SetupSignalHandler())).ToNot(HaveOccurred())
+		Expect(k8sManager.Start(ctx)).ToNot(HaveOccurred())
 	}()
 })
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	cancel() // stop manager
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })

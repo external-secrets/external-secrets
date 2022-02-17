@@ -24,7 +24,7 @@ import (
 
 	iam "cloud.google.com/go/iam/credentials/apiv1"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"github.com/googleapis/gax-go"
+	"github.com/googleapis/gax-go/v2"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 	credentialspb "google.golang.org/genproto/googleapis/iam/credentials/v1"
@@ -62,6 +62,7 @@ type workloadIdentity struct {
 // interface to GCP IAM API.
 type IamClient interface {
 	GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
+	Close() error
 }
 
 // interface to securetoken/identitybindingtoken API.
@@ -152,6 +153,10 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1alpha1.Gen
 	return oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: gcpSAResp.GetAccessToken(),
 	}), nil
+}
+
+func (w *workloadIdentity) Close() error {
+	return w.iamClient.Close()
 }
 
 func newIAMClient(ctx context.Context) (IamClient, error) {

@@ -21,5 +21,4 @@ spec:
           # Reference to a key in a K8 Secret that contains the App Role SecretId
           secretRef:
             name: "my-secret"
-            namespace: "secret-admin"
             key: "secret-id"

@@ -276,6 +276,10 @@ func (c *lockboxSecretsClient) Close(ctx context.Context) error {
 	return nil
 }
 
+func (c *lockboxSecretsClient) Validate() error {
+	return nil
+}
+
 func getValueAsIs(entry *lockbox.Payload_Entry) (interface{}, error) {
 	switch entry.Value.(type) {
 	case *lockbox.Payload_Entry_TextValue:
