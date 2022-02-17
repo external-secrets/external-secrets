@@ -15,28 +15,22 @@ package crds
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-const (
-	crdGroup   = "apiextensions.k8s.io"
-	crdKind    = "CustomResourceDefinition"
-	crdVersion = "v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type testCase struct {
-	crd     unstructured.Unstructured
-	crd2    unstructured.Unstructured
+	crd     *apiextensions.CustomResourceDefinition
+	crd2    *apiextensions.CustomResourceDefinition
 	service corev1.Service
 	secret  corev1.Secret
 	assert  func()
@@ -50,31 +44,27 @@ var _ = Describe("CRD reconcile", func() {
 	})
 
 	AfterEach(func() {
-		// To improve later on with proper clean up.
+		ctx := context.Background()
+		k8sClient.Delete(ctx, &test.secret)
+		k8sClient.Delete(ctx, &test.service)
+		deleteCRD(test.crd)
+		deleteCRD(test.crd2)
 	})
 
 	// a invalid provider config should be reflected
 	// in the store status condition
 	PatchesCRD := func(tc *testCase) {
 		tc.assert = func() {
-			Consistently(func() bool {
-				ss := unstructured.Unstructured{}
-				ss.SetGroupVersionKind(schema.GroupVersionKind{Kind: crdKind, Version: crdVersion, Group: crdGroup})
+			Eventually(func() bool {
+				crd := &apiextensions.CustomResourceDefinition{}
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name: "secretstores.test.io",
-				}, &ss)
+				}, crd)
 				if err != nil {
 					return false
 				}
-				val, ok, err := unstructured.NestedString(ss.Object, "spec", "conversion", "webhook", "clientConfig", "service", "name")
-				if err != nil || !ok {
-					return false
-				}
-				want, ok, err := unstructured.NestedString(tc.crd.Object, "spec", "conversion", "webhook", "clientConfig", "service", "name")
-				if err != nil || !ok {
-					return false
-				}
-				return want != val
+				return crd.Spec.Conversion.Webhook.ClientConfig.Service.Name !=
+					tc.crd.Spec.Conversion.Webhook.ClientConfig.Service.Name
 			}).
 				WithTimeout(time.Second * 10).
 				WithPolling(time.Second).
@@ -87,23 +77,15 @@ var _ = Describe("CRD reconcile", func() {
 	ignoreNonTargetCRDs := func(tc *testCase) {
 		tc.assert = func() {
 			Consistently(func() bool {
-				ss := unstructured.Unstructured{}
-				ss.SetGroupVersionKind(schema.GroupVersionKind{Kind: crdKind, Version: crdVersion, Group: crdGroup})
+				crd := &apiextensions.CustomResourceDefinition{}
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name: "some-other.test.io",
-				}, &ss)
+				}, crd)
 				if err != nil {
 					return false
 				}
-				got, ok, err := unstructured.NestedString(ss.Object, "spec", "conversion", "webhook", "clientConfig", "service", "name")
-				if !ok || err != nil {
-					return false
-				}
-				want, ok, err := unstructured.NestedString(tc.crd2.Object, "spec", "conversion", "webhook", "clientConfig", "service", "name")
-				if !ok || err != nil {
-					return false
-				}
-				return got == want
+				return crd.Spec.Conversion.Webhook.ClientConfig.Service.Name ==
+					tc.crd2.Spec.Conversion.Webhook.ClientConfig.Service.Name
 			}).
 				WithTimeout(time.Second * 3).
 				WithPolling(time.Millisecond * 500).
@@ -116,21 +98,47 @@ var _ = Describe("CRD reconcile", func() {
 			mut(test)
 		}
 		ctx := context.Background()
-		k8sClient.Create(ctx, &test.secret)
-		k8sClient.Create(ctx, &test.service)
-		k8sClient.Create(ctx, &test.crd)
-		k8sClient.Create(ctx, &test.crd2)
+		err := k8sClient.Create(ctx, &test.secret)
+		Expect(err).ToNot(HaveOccurred())
+		err = k8sClient.Create(ctx, &test.service)
+		Expect(err).ToNot(HaveOccurred())
+		err = k8sClient.Create(ctx, test.crd)
+		Expect(err).ToNot(HaveOccurred())
+		err = k8sClient.Create(ctx, test.crd2)
+		Expect(err).ToNot(HaveOccurred())
 		test.assert()
 	},
-
 		Entry("[namespace] Ignore non Target CRDs", ignoreNonTargetCRDs),
 		Entry("[namespace] Patch target CRDs", PatchesCRD),
 	)
 
 })
 
-func makeUnstructuredCRD(plural, group string) unstructured.Unstructured {
-	crd := apiextensions.CustomResourceDefinition{
+func deleteCRD(crd *apiextensions.CustomResourceDefinition) {
+	err := k8sClient.Delete(context.Background(), crd, client.GracePeriodSeconds(0))
+	if err != nil && !apierrors.IsNotFound(err) {
+		Fail("unable to delete crd " + crd.Name)
+		return
+	}
+	Eventually(func() bool {
+		err := k8sClient.Get(context.Background(), types.NamespacedName{
+			Name: crd.Name,
+		}, crd)
+		if err == nil {
+			// force delete by removing finalizers
+			// note: we can not delete a CRD with an invalid caBundle field
+			cpy := crd.DeepCopy()
+			controllerutil.RemoveFinalizer(cpy, "customresourcecleanup.apiextensions.k8s.io")
+			p := client.MergeFrom(crd)
+			k8sClient.Patch(context.Background(), cpy, p)
+			return false
+		}
+		return apierrors.IsNotFound(err)
+	}).WithTimeout(time.Second * 5).WithPolling(time.Second).Should(BeTrue())
+}
+
+func makeCRD(plural, group string) *apiextensions.CustomResourceDefinition {
+	return &apiextensions.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: plural + "." + group,
 		},
@@ -160,7 +168,7 @@ func makeUnstructuredCRD(plural, group string) unstructured.Unstructured {
 				Webhook: &apiextensions.WebhookConversion{
 					ConversionReviewVersions: []string{"v1"},
 					ClientConfig: &apiextensions.WebhookClientConfig{
-						CABundle: []byte("foobar"),
+						CABundle: []byte(`Cg==`),
 						Service: &apiextensions.ServiceReference{
 							Name:      "webhook",
 							Namespace: "default",
@@ -170,14 +178,6 @@ func makeUnstructuredCRD(plural, group string) unstructured.Unstructured {
 			},
 		},
 	}
-	marshal, _ := json.Marshal(crd)
-	unmarshal := make(map[string]interface{})
-	json.Unmarshal(marshal, &unmarshal)
-	u := unstructured.Unstructured{
-		Object: unmarshal,
-	}
-	u.SetGroupVersionKind(schema.GroupVersionKind{Kind: crdKind, Version: "v1", Group: crdGroup})
-	return u
 }
 
 func makeSecret() corev1.Secret {
@@ -217,8 +217,8 @@ func makeDefaultTestcase() *testCase {
 		assert: func() {
 			// this is a noop by default
 		},
-		crd:     makeUnstructuredCRD("secretstores", "test.io"),
-		crd2:    makeUnstructuredCRD("some-other", "test.io"),
+		crd:     makeCRD("secretstores", "test.io"),
+		crd2:    makeCRD("some-other", "test.io"),
 		secret:  makeSecret(),
 		service: makeService(),
 	}

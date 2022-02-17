@@ -42,6 +42,10 @@ func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecre
 	return nil, fmt.Errorf("test case not found")
 }
 
+func (sm *Client) ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error) {
+	return nil, nil
+}
+
 func (sm *Client) cacheKeyForInput(in *awssm.GetSecretValueInput) string {
 	var secretID, versionID string
 	if in.SecretId != nil {

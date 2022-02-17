@@ -161,15 +161,19 @@ type ExternalSecretDataRemoteRef struct {
 	Property string `json:"property,omitempty"`
 }
 
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type ExternalSecretDataFromRemoteRef struct {
 	// Used to extract multiple key/value pairs from one secret
 	// +optional
-	Extract ExternalSecretDataRemoteRef `json:"extract,omitempty"`
+	Extract *ExternalSecretDataRemoteRef `json:"extract,omitempty"`
 	// Used to find secrets based on tags or regular expressions
 	// +optional
-	Find ExternalSecretFind `json:"find,omitempty"`
+	Find *ExternalSecretFind `json:"find,omitempty"`
 }
 
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type ExternalSecretFind struct {
 	// Finds secrets based on the name.
 	// +optional

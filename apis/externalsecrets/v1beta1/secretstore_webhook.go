@@ -21,11 +21,13 @@ import (
 func (c *SecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(c).
+		WithValidator(&GenericStoreValidator{}).
 		Complete()
 }
 
 func (c *ClusterSecretStore) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(c).
+		WithValidator(&GenericStoreValidator{}).
 		Complete()
 }

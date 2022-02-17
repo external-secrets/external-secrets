@@ -30,8 +30,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -52,6 +51,13 @@ const (
 	errMissingClientIDSecret = "missing accessKeyID/secretAccessKey in store config"
 	errFindSecret            = "could not find secret %s/%s: %w"
 	errFindDataKey           = "no data for %q in secret '%s/%s'"
+
+	errInvalidStore              = "invalid store"
+	errInvalidStoreSpec          = "invalid store spec"
+	errInvalidStoreProv          = "invalid store provider"
+	errInvalidAzureProv          = "invalid azure keyvault provider"
+	errInvalidSecRefClientID     = "invalid AuthSecretRef.ClientID: %w"
+	errInvalidSecRefClientSecret = "invalid AuthSecretRef.ClientSecret: %w"
 )
 
 // interface to keyvault.BaseClient.
@@ -71,17 +77,17 @@ type Azure struct {
 }
 
 func init() {
-	schema.Register(&Azure{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Azure{}, &esv1beta1.SecretStoreProvider{
 		AzureKV: &esv1beta1.AzureKVProvider{},
 	})
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (a *Azure) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (a *Azure) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace)
 }
 
-func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	provider, err := getProvider(store)
 	if err != nil {
 		return nil, err
@@ -113,6 +119,36 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.AzureKVProvider, erro
 	}
 
 	return spc.Provider.AzureKV, nil
+}
+
+func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
+	if store == nil {
+		return fmt.Errorf(errInvalidStore)
+	}
+	spc := store.GetSpec()
+	if spc == nil {
+		return fmt.Errorf(errInvalidStoreSpec)
+	}
+	if spc.Provider == nil {
+		return fmt.Errorf(errInvalidStoreProv)
+	}
+	p := spc.Provider.AzureKV
+	if p == nil {
+		return fmt.Errorf(errInvalidAzureProv)
+	}
+	if p.AuthSecretRef != nil {
+		if p.AuthSecretRef.ClientID != nil {
+			if err := utils.ValidateSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
+				return fmt.Errorf(errInvalidSecRefClientID, err)
+			}
+		}
+		if p.AuthSecretRef.ClientSecret != nil {
+			if err := utils.ValidateSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
+				return fmt.Errorf(errInvalidSecRefClientSecret, err)
+			}
+		}
+	}
+	return nil
 }
 
 // Empty GetAllSecrets.

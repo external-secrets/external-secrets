@@ -21,8 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
 var (
@@ -35,7 +33,7 @@ type Provider struct {
 	config *esv1beta1.FakeProvider
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	cfg, err := getProvider(store)
 	if err != nil {
 		return nil, err
@@ -99,8 +97,12 @@ func (p *Provider) Validate() error {
 	return nil
 }
 
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	return nil
+}
+
 func init() {
-	schema.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Fake: &esv1beta1.FakeProvider{},
 	})
 }

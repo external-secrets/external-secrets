@@ -21,8 +21,10 @@ import (
 	"testing"
 
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	"k8s.io/utils/pointer"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
 )
 
@@ -209,4 +211,66 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestValidateStore(t *testing.T) {
+	type args struct {
+		auth esv1beta1.GCPSMAuth
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "empty auth",
+			wantErr: false,
+		},
+		{
+			name:    "invalid secret ref",
+			wantErr: true,
+			args: args{
+				auth: esv1beta1.GCPSMAuth{
+					SecretRef: &esv1beta1.GCPSMAuthSecretRef{
+						SecretAccessKey: v1.SecretKeySelector{
+							Name:      "foo",
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid wi sa ref",
+			wantErr: true,
+			args: args{
+				auth: esv1beta1.GCPSMAuth{
+					WorkloadIdentity: &esv1beta1.GCPWorkloadIdentity{
+						ServiceAccountRef: v1.ServiceAccountSelector{
+							Name:      "foo",
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &ProviderGCP{}
+			store := &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						GCPSM: &esv1beta1.GCPSMProvider{
+							Auth: tt.args.auth,
+						},
+					},
+				},
+			}
+			if err := sm.ValidateStore(store); (err != nil) != tt.wantErr {
+				t.Errorf("ProviderGCP.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
