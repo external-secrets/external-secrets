@@ -20,10 +20,12 @@ import (
 	"time"
 
 	"go.uber.org/zap/zapcore"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -78,7 +80,17 @@ func main() {
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "external-secrets-controller",
-		Namespace:          namespace,
+		ClientDisableCacheFor: []client.Object{
+			// the client creates a ListWatch for all resource kinds that
+			// are requested with .Get().
+			// We want to avoid to cache all secrets or configmaps in memory.
+			// The ES controller uses v1.PartialObjectMetadata for the secrets
+			// that he owns.
+			// see #721
+			&v1.Secret{},
+			&v1.ConfigMap{},
+		},
+		Namespace: namespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
