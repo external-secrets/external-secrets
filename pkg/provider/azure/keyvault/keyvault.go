@@ -17,6 +17,7 @@ package keyvault
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -35,7 +36,22 @@ import (
 
 const (
 	defaultObjType = "secret"
+	objectTypeCert = "cert"
+	objectTypeKey  = "key"
 	vaultResource  = "https://vault.azure.net"
+
+	errUnexpectedStoreSpec   = "unexpected store spec"
+	errMissingAuthType       = "cannot initialize Azure Client: no valid authType was specified"
+	errPropNotExist          = "property %s does not exist in key %s"
+	errUnknownObjectType     = "unknown Azure Keyvault object Type for %s"
+	errUnmarshalJSONData     = "error unmarshalling json data: %w"
+	errDataFromCert          = "cannot get use dataFrom to get certificate secret"
+	errDataFromKey           = "cannot get use dataFrom to get key secret"
+	errMissingTenant         = "missing tenantID in store config"
+	errMissingSecretRef      = "missing secretRef in provider config"
+	errMissingClientIDSecret = "missing accessKeyID/secretAccessKey in store config"
+	errFindSecret            = "could not find secret %s/%s: %w"
+	errFindDataKey           = "no data for %q in secret '%s/%s'"
 )
 
 // interface to keyvault.BaseClient.
@@ -49,8 +65,8 @@ type SecretClient interface {
 type Azure struct {
 	kube       client.Client
 	store      esv1alpha1.GenericStore
+	provider   *esv1alpha1.AzureKVProvider
 	baseClient SecretClient
-	vaultURL   string
 	namespace  string
 }
 
@@ -66,23 +82,37 @@ func (a *Azure) NewClient(ctx context.Context, store esv1alpha1.GenericStore, ku
 }
 
 func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
-	anAzure := &Azure{
+	provider, err := getProvider(store)
+	if err != nil {
+		return nil, err
+	}
+	az := &Azure{
 		kube:      kube,
 		store:     store,
 		namespace: namespace,
+		provider:  provider,
 	}
 
-	clientSet, err := anAzure.setAzureClientWithManagedIdentity()
-	if clientSet {
-		return anAzure, err
+	ok, err := az.setAzureClientWithManagedIdentity()
+	if ok {
+		return az, err
 	}
 
-	clientSet, err = anAzure.setAzureClientWithServicePrincipal(ctx)
-	if clientSet {
-		return anAzure, err
+	ok, err = az.setAzureClientWithServicePrincipal(ctx)
+	if ok {
+		return az, err
 	}
 
-	return nil, fmt.Errorf("cannot initialize Azure Client: no valid authType was specified")
+	return nil, fmt.Errorf(errMissingAuthType)
+}
+
+func getProvider(store esv1alpha1.GenericStore) (*esv1alpha1.AzureKVProvider, error) {
+	spc := store.GetSpec()
+	if spc == nil || spc.Provider.AzureKV == nil {
+		return nil, errors.New(errUnexpectedStoreSpec)
+	}
+
+	return spc.Provider.AzureKV, nil
 }
 
 // Implements store.Client.GetSecret Interface.
@@ -90,7 +120,6 @@ func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.C
 // The Object Type is defined as a prefix in the ref.Name , if no prefix is defined , we assume a secret is required.
 func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	version := ""
-	basicClient := a.baseClient
 	objectType, secretName := getObjType(ref)
 
 	if ref.Version != "" {
@@ -101,7 +130,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 	case defaultObjType:
 		// returns a SecretBundle with the secret value
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
-		secretResp, err := basicClient.GetSecret(context.Background(), a.vaultURL, secretName, version)
+		secretResp, err := a.baseClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, version)
 		if err != nil {
 			return nil, err
 		}
@@ -110,29 +139,29 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 		}
 		res := gjson.Get(*secretResp.Value, ref.Property)
 		if !res.Exists() {
-			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+			return nil, fmt.Errorf(errPropNotExist, ref.Property, ref.Key)
 		}
 		return []byte(res.String()), err
-	case "cert":
+	case objectTypeCert:
 		// returns a CertBundle. We return CER contents of x509 certificate
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle
-		secretResp, err := basicClient.GetCertificate(context.Background(), a.vaultURL, secretName, version)
+		secretResp, err := a.baseClient.GetCertificate(context.Background(), *a.provider.VaultURL, secretName, version)
 		if err != nil {
 			return nil, err
 		}
 		return *secretResp.Cer, nil
-	case "key":
+	case objectTypeKey:
 		// returns a KeyBundle that contains a jwk
 		// azure kv returns only public keys
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
-		keyResp, err := basicClient.GetKey(context.Background(), a.vaultURL, secretName, version)
+		keyResp, err := a.baseClient.GetKey(context.Background(), *a.provider.VaultURL, secretName, version)
 		if err != nil {
 			return nil, err
 		}
 		return json.Marshal(keyResp.Key)
 	}
 
-	return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
+	return nil, fmt.Errorf(errUnknownObjectType, secretName)
 }
 
 // Implements store.Client.GetSecretMap Interface.
@@ -150,7 +179,7 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 		kv := make(map[string]string)
 		err = json.Unmarshal(data, &kv)
 		if err != nil {
-			return nil, fmt.Errorf("error unmarshalling json data: %w", err)
+			return nil, fmt.Errorf(errUnmarshalJSONData, err)
 		}
 
 		secretData := make(map[string][]byte)
@@ -159,83 +188,73 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 		}
 
 		return secretData, nil
-	case "cert":
-		return nil, fmt.Errorf("cannot get use dataFrom to get certificate secret")
-	case "key":
-		return nil, fmt.Errorf("cannot get use dataFrom to get key secret")
+	case objectTypeCert:
+		return nil, fmt.Errorf(errDataFromCert)
+	case objectTypeKey:
+		return nil, fmt.Errorf(errDataFromKey)
 	}
 
-	return nil, fmt.Errorf("unknown Azure Keyvault object Type for %s", secretName)
+	return nil, fmt.Errorf(errUnknownObjectType, secretName)
 }
 
 func (a *Azure) setAzureClientWithManagedIdentity() (bool, error) {
-	spec := *a.store.GetSpec().Provider.AzureKV
-
-	if *spec.AuthType != esv1alpha1.ManagedIdentity {
+	if *a.provider.AuthType != esv1alpha1.ManagedIdentity {
 		return false, nil
 	}
 
 	msiConfig := kvauth.NewMSIConfig()
 	msiConfig.Resource = vaultResource
-	if spec.IdentityID != nil {
-		msiConfig.ClientID = *spec.IdentityID
+	if a.provider.IdentityID != nil {
+		msiConfig.ClientID = *a.provider.IdentityID
 	}
 	authorizer, err := msiConfig.Authorizer()
 	if err != nil {
 		return true, err
 	}
 
-	basicClient := keyvault.New()
-	basicClient.Authorizer = authorizer
-
-	a.baseClient = basicClient
-	a.vaultURL = *spec.VaultURL
-
+	cl := keyvault.New()
+	cl.Authorizer = authorizer
+	a.baseClient = &cl
 	return true, nil
 }
 
 func (a *Azure) setAzureClientWithServicePrincipal(ctx context.Context) (bool, error) {
-	spec := *a.store.GetSpec().Provider.AzureKV
-
-	if *spec.AuthType != esv1alpha1.ServicePrincipal {
+	if *a.provider.AuthType != esv1alpha1.ServicePrincipal {
 		return false, nil
 	}
 
-	if spec.TenantID == nil {
-		return true, fmt.Errorf("missing tenantID in store config")
+	if a.provider.TenantID == nil {
+		return true, fmt.Errorf(errMissingTenant)
 	}
-	if spec.AuthSecretRef == nil {
-		return true, fmt.Errorf("missing clientID/clientSecret in store config")
+	if a.provider.AuthSecretRef == nil {
+		return true, fmt.Errorf(errMissingSecretRef)
 	}
-	if spec.AuthSecretRef.ClientID == nil || spec.AuthSecretRef.ClientSecret == nil {
-		return true, fmt.Errorf("missing accessKeyID/secretAccessKey in store config")
+	if a.provider.AuthSecretRef.ClientID == nil || a.provider.AuthSecretRef.ClientSecret == nil {
+		return true, fmt.Errorf(errMissingClientIDSecret)
 	}
 	clusterScoped := false
 	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
 		clusterScoped = true
 	}
-	cid, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *spec.AuthSecretRef.ClientID, clusterScoped)
+	cid, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *a.provider.AuthSecretRef.ClientID, clusterScoped)
 	if err != nil {
 		return true, err
 	}
-	csec, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *spec.AuthSecretRef.ClientSecret, clusterScoped)
+	csec, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *a.provider.AuthSecretRef.ClientSecret, clusterScoped)
 	if err != nil {
 		return true, err
 	}
 
-	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, *spec.TenantID)
+	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, *a.provider.TenantID)
 	clientCredentialsConfig.Resource = vaultResource
 	authorizer, err := clientCredentialsConfig.Authorizer()
 	if err != nil {
 		return true, err
 	}
 
-	basicClient := keyvault.New()
-	basicClient.Authorizer = authorizer
-
-	a.baseClient = &basicClient
-	a.vaultURL = *spec.VaultURL
-
+	cl := keyvault.New()
+	cl.Authorizer = authorizer
+	a.baseClient = &cl
 	return true, nil
 }
 
@@ -250,11 +269,11 @@ func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef sm
 	}
 	err := a.kube.Get(ctx, ref, &secret)
 	if err != nil {
-		return "", fmt.Errorf("could not find secret %s/%s: %w", ref.Namespace, ref.Name, err)
+		return "", fmt.Errorf(errFindSecret, ref.Namespace, ref.Name, err)
 	}
 	keyBytes, ok := secret.Data[secretRef.Key]
 	if !ok {
-		return "", fmt.Errorf("no data for %q in secret '%s/%s'", secretRef.Key, secretRef.Name, namespace)
+		return "", fmt.Errorf(errFindDataKey, secretRef.Key, secretRef.Name, namespace)
 	}
 	value := strings.TrimSpace(string(keyBytes))
 	return value, nil
