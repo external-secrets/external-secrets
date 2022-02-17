@@ -33,11 +33,13 @@ import (
 )
 
 const (
+	errPropertyNotFound                    = "property field not found on extrenal secrets"
 	errKubernetesCredSecretName            = "kubernetes credentials are empty"
 	errInvalidClusterStoreMissingNamespace = "invalid clusterStore missing Cert namespace"
 	errFetchCredentialsSecret              = "could not fetch Credentials secret: %w"
 	errMissingCredentials                  = "missing Credentials: %v"
 	errUninitalizedKubernetesProvider      = "provider kubernetes is not initialized"
+	errEmptyKey                            = "key %s found but empty"
 )
 
 type KClient interface {
@@ -56,8 +58,6 @@ type BaseClient struct {
 	store       *esv1alpha1.KubernetesProvider
 	namespace   string
 	storeKind   string
-	Server      string
-	User        string
 	Certificate []byte
 	Key         []byte
 	CA          []byte
@@ -83,8 +83,6 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1alpha1.Gen
 		store:     storeSpecKubernetes,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
-		Server:    storeSpecKubernetes.Server,
-		User:      storeSpecKubernetes.User,
 	}
 
 	if err := bStore.setAuth(ctx); err != nil {
@@ -92,7 +90,7 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1alpha1.Gen
 	}
 
 	config := &rest.Config{
-		Host:        bStore.store.Server,
+		Host:        bStore.store.Server.URL,
 		BearerToken: string(bStore.BearerToken),
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: false,
@@ -118,7 +116,7 @@ func (k *ProviderKubernetes) Close(ctx context.Context) error {
 
 func (k *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Property == "" {
-		return nil, fmt.Errorf("property field not found on extrenal secrets")
+		return nil, fmt.Errorf(errPropertyNotFound)
 	}
 
 	payload, err := k.GetSecretMap(ctx, ref)
@@ -155,26 +153,46 @@ func (k *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1alpha1.Ex
 
 func (k *BaseClient) setAuth(ctx context.Context) error {
 	var err error
-	k.Certificate, err = k.helper(ctx, k.store.Auth.SecretRef.Certificate, "cert")
-	if err != nil {
-		return err
+	if len(k.store.Server.CABundle) > 0 {
+		k.CA = k.store.Server.CABundle
+	} else if k.store.Server.CAProvider != nil {
+		keySelector := esmeta.SecretKeySelector{
+			Name:      k.store.Server.CAProvider.Name,
+			Namespace: k.store.Server.CAProvider.Namespace,
+			Key:       k.store.Server.CAProvider.Key,
+		}
+		k.CA, err = k.fetchSecretKey(ctx, keySelector, "CA")
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("no Certificate Authority provided")
 	}
-	k.Key, err = k.helper(ctx, k.store.Auth.SecretRef.Key, "key")
-	if err != nil {
-		return err
+
+	if k.store.Auth.Token != nil {
+		k.BearerToken, err = k.fetchSecretKey(ctx, k.store.Auth.Token.BearerToken, "bearerToken")
+		if err != nil {
+			return err
+		}
+	} else if k.store.Auth.ServiceAccount != nil {
+		return fmt.Errorf("not implemented yet")
+	} else if k.store.Auth.Cert != nil {
+		k.Certificate, err = k.fetchSecretKey(ctx, k.store.Auth.Cert.ClientCert, "cert")
+		if err != nil {
+			return err
+		}
+		k.Key, err = k.fetchSecretKey(ctx, k.store.Auth.Cert.ClientKey, "key")
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("no credentials provided")
 	}
-	k.CA, err = k.helper(ctx, k.store.Auth.SecretRef.CA, "ca")
-	if err != nil {
-		return err
-	}
-	k.BearerToken, err = k.helper(ctx, k.store.Auth.SecretRef.BearerToken, "bearerToken")
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
-func (k *BaseClient) helper(ctx context.Context, key esmeta.SecretKeySelector, component string) ([]byte, error) {
+func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySelector, component string) ([]byte, error) {
 	keySecret := &corev1.Secret{}
 	keySecretName := key.Name
 	if keySecretName == "" {
@@ -197,9 +215,13 @@ func (k *BaseClient) helper(ctx context.Context, key esmeta.SecretKeySelector, c
 		return nil, fmt.Errorf(errFetchCredentialsSecret, err)
 	}
 
-	check := keySecret.Data[key.Key]
-	if (check == nil) || (len(check) == 0) {
+	val, ok := keySecret.Data[key.Key]
+	if !ok {
 		return nil, fmt.Errorf(errMissingCredentials, component)
 	}
-	return check, nil
+
+	if len(val) == 0 {
+		return nil, fmt.Errorf(errEmptyKey, component)
+	}
+	return val, nil
 }

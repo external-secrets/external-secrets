@@ -18,35 +18,70 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+type KubernetesServer struct {
+
+	// configures the Kubernetes server Address.
+	// +kubebuilder:default=kubernetes.default
+	// +optional
+	URL string `json:"url,omitempty"`
+
+	// CABundle is a base64-encoded CA certificate
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
+
+	// there's still room for impersonation or proxy settings:
+	// Impersonate-User
+	// Impersonate-Group
+	// Impersonate-Extra-( extra name )
+	// Impersonate-Uid
+	// Proxy Settings
+}
+
 // Configures a store to sync secrets with a Kubernetes instance.
 type KubernetesProvider struct {
 	// configures the Kubernetes server Address.
 	// +kubebuilder:default= kubernetes.default
 	// +optional
-	Server string `json:"server,omitempty"`
+	Server KubernetesServer `json:"server,omitempty"`
 
 	// Auth configures how secret-manager authenticates with a Kubernetes instance.
-	// +optional
 	Auth KubernetesAuth `json:"auth"`
 
-	// +optional
-	User string `json:"user"`
-
-	//Remote namespace to fetch the secrets from
+	// Remote namespace to fetch the secrets from
 	// +kubebuilder:default= default
 	// +optional
 	RemoteNamespace string `json:"remoteNamespace"`
 }
 
 type KubernetesAuth struct {
-	SecretRef KubernetesSecretRef `json:"secretRef"`
+	// has both clientCert and clientKey as secretKeySelector
+	// +optional
+	Cert *CertAuth `json:"cert,omitempty"`
+
+	// use static token to authenticate with
+	// +optional
+	Token *TokenAuth `json:"token,omitempty"`
+
+	// points to a service account that should be used for authentication
+	// +optional
+	ServiceAccount *ServiceAccountAuth `json:"serviceAccount,omitempty"`
+
+	// possibly exec or webhook
 }
 
-type KubernetesSecretRef struct {
-	// +optional
-	Certificate esmeta.SecretKeySelector `json:"certificate,omitempty"`
-	// +optional
-	Key         esmeta.SecretKeySelector `json:"key,omitempty"`
-	CA          esmeta.SecretKeySelector `json:"ca,omitempty"`
+type CertAuth struct {
+	ClientCert esmeta.SecretKeySelector `json:"cert,omitempty"`
+	ClientKey  esmeta.SecretKeySelector `json:"key,omitempty"`
+}
+
+type TokenAuth struct {
 	BearerToken esmeta.SecretKeySelector `json:"bearerToken,omitempty"`
+}
+
+type ServiceAccountAuth struct {
+	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccount,omitempty"`
 }

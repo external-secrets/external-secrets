@@ -26,7 +26,12 @@ import (
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+)
+
+const (
+	errTestFetchCredentialsSecret = "test could not fetch Credentials secret failed"
+	errTestAuthValue              = "test failed key didn't match expected value"
 )
 
 type fakeClient struct {
@@ -40,10 +45,6 @@ func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOption
 		return nil, errors.New("Something went wrong")
 	}
 	return &secret, nil
-}
-
-func (fk fakeClient) Create(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error) {
-	return nil, nil
 }
 
 func TestKubernetesSecretManagerGetSecret(t *testing.T) {
@@ -121,94 +122,128 @@ func TestKubernetesSecretManagerGetSecretMap(t *testing.T) {
 }
 
 func TestKubernetesSecretManagerSetAuth(t *testing.T) {
-	kp := esv1alpha1.KubernetesProvider{}
-	fs := &corev1.Secret{}
-	secretName := "good-name"
-	fs.ObjectMeta.Name = secretName
-	secretValue := make(map[string][]byte)
-	secretValue["cert"] = []byte("secret-cert")
-	secretValue["ca"] = []byte("secret-ca")
-	secretValue["bearerToken"] = []byte("bearerToken")
+	kp := esv1alpha1.KubernetesProvider{Server: esv1alpha1.KubernetesServer{}}
 
-	fs2 := &corev1.Secret{}
-	fs2.ObjectMeta.Name = "secret-for-the-key"
-	secretValue2 := make(map[string][]byte)
-	secretValue2["key"] = []byte("secret-key")
+	fs := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "good-name"},
+		Data:       make(map[string][]byte),
+	}
+	fs.Data["cert"] = []byte("secret-cert")
+	fs.Data["ca"] = []byte("secret-ca")
+	fs.Data["bearerToken"] = []byte("bearerToken")
 
-	fs.Data = secretValue
-	fs2.Data = secretValue2
+	fs2 := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "secret-for-the-key"},
+		Data:       make(map[string][]byte),
+	}
+	fs2.Data["key"] = []byte("secret-key")
+
 	fk := fclient.NewClientBuilder().WithObjects(fs, fs2).Build()
-	bc := BaseClient{fk, &kp, "", "", "", "", nil, nil, nil, nil}
+	bc := BaseClient{fk, &kp, "", "", nil, nil, nil, nil}
 
 	ctx := context.Background()
 
 	err := bc.setAuth(ctx)
 
-	if err.Error() != "kubernetes credentials are empty" {
+	if err.Error() != "no Certificate Authority provided" {
+		fmt.Println(err.Error())
+		t.Error("test no Certificate Authority provided failed")
+	}
+
+	kp.Server.CAProvider = &esv1alpha1.CAProvider{
+		Type:      esv1alpha1.CAProviderTypeConfigMap,
+		Name:      fs.ObjectMeta.Name,
+		Namespace: &fs.ObjectMeta.Namespace,
+		Key:       "ca",
+	}
+
+	bc.setAuth(ctx)
+
+	if string(bc.CA) != "secret-ca" {
+		t.Error("failed to set CA provider")
+	}
+
+	kp.Server.CABundle = []byte("ca-bundle")
+
+	err = bc.setAuth(ctx)
+
+	if err.Error() != "no credentials provided" {
+		fmt.Println(err.Error())
 		t.Error("test kubernetes credentials not empty failed")
+	}
+
+	if string(bc.CA) != "ca-bundle" {
+		t.Error("failed to set CA provider")
 	}
 
 	kp = esv1alpha1.KubernetesProvider{
 		Auth: esv1alpha1.KubernetesAuth{
-			SecretRef: esv1alpha1.KubernetesSecretRef{
-				Certificate: esmeta.SecretKeySelector{
+			Cert: &esv1alpha1.CertAuth{
+				ClientCert: v1.SecretKeySelector{
 					Name: "fake-name",
 				},
 			},
 		},
 	}
+	kp.Server.CABundle = []byte("ca-bundle")
 
 	err = bc.setAuth(ctx)
 
 	if err.Error() != "could not fetch Credentials secret: secrets \"fake-name\" not found" {
 		fmt.Println(err.Error())
-		t.Error("test could not fetch Credentials secret failed")
+		t.Error(errTestFetchCredentialsSecret)
 	}
-	kp.Auth.SecretRef.Certificate.Name = secretName
+
+	kp.Auth.Cert.ClientCert.Name = fs.ObjectMeta.Name
 
 	err = bc.setAuth(ctx)
 
-	if err.Error() != "missing Credentials: cert" {
+	if err.Error() != fmt.Errorf(errMissingCredentials, "cert").Error() {
 		fmt.Println(err.Error())
-		t.Error("test could not fetch Credentials secret failed")
+		t.Error(errTestFetchCredentialsSecret)
 	}
 
-	kp.Auth.SecretRef.Certificate.Key = "cert"
-	kp.Auth.SecretRef.Key.Name = "secret-for-the-key"
+	kp.Auth.Cert.ClientCert.Key = "cert"
+	kp.Auth.Cert.ClientKey.Name = "secret-for-the-key"
 
 	err = bc.setAuth(ctx)
 
-	if err.Error() != "missing Credentials: key" {
+	if err.Error() != fmt.Errorf(errMissingCredentials, "key").Error() {
 		fmt.Println(err.Error())
-		t.Error("test could not fetch Credentials secret failed")
+		t.Error(errTestFetchCredentialsSecret)
 	}
+	kp.Auth.Cert.ClientKey.Key = "key"
 
-	kp.Auth.SecretRef.Key.Key = "key"
-	kp.Auth.SecretRef.CA.Name = secretName
+	bc.setAuth(ctx)
+
+	kp.Auth.Token = &esv1alpha1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: "good-name"}}
 
 	err = bc.setAuth(ctx)
 
-	if err.Error() != "missing Credentials: ca" {
+	if err.Error() != fmt.Errorf(errMissingCredentials, "bearerToken").Error() {
 		fmt.Println(err.Error())
-		t.Error("test could not fetch Credentials secret failed")
-	}
-	kp.Auth.SecretRef.CA.Key = "ca"
-	kp.Auth.SecretRef.BearerToken.Name = secretName
-
-	err = bc.setAuth(ctx)
-
-	if err.Error() != "missing Credentials: bearerToken" {
-		fmt.Println(err.Error())
-		t.Error("test could not fetch Credentials secret failed")
+		t.Error(errTestFetchCredentialsSecret)
 	}
 
-	kp.Auth.SecretRef.BearerToken.Key = "bearerToken"
+	kp.Auth.Token = &esv1alpha1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: "good-name", Key: "bearerToken"}}
 
 	err = bc.setAuth(ctx)
 
 	if err != nil {
 		fmt.Println(err.Error())
-		t.Error("test could not fetch Credentials secret failed")
+		t.Error(errTestFetchCredentialsSecret)
+	}
+	if string(bc.CA) != "ca-bundle" {
+		t.Error(errTestAuthValue)
+	}
+	if string(bc.Certificate) != "secret-cert" {
+		t.Error(errTestAuthValue)
+	}
+	if string(bc.Key) != "secret-key" {
+		t.Errorf(errTestAuthValue)
+	}
+	if string(bc.BearerToken) != "bearerToken" {
+		t.Error(errTestAuthValue)
 	}
 }
 
