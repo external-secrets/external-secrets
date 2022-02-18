@@ -7,7 +7,7 @@ External Secrets Operator integrates with [Azure Key vault](https://azure.micros
 
 ### Authentication
 
-We support Service Principals and Managed Identity [authentication](https://docs.microsoft.com/en-us/azure/key-vault/general/authentication).
+We support Service Principals, Managed Identity and Workload Identity authentication.
 
 To use Managed Identity authentication, you should use [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/) to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use `podLabels` in your values.yaml in case of Helm installation of external-secrets.
 
@@ -23,6 +23,36 @@ If there are multiple Managed Identitites for different keyvaults, the operator 
 
 ```yaml
 {% include 'azkv-credentials-secret.yaml' %}
+```
+
+#### Workload Identity
+
+You can use [Azure AD Workload Identity Federation](https://docs.microsoft.com/en-us/azure/active-directory/develop/workload-identity-federation) to access Azure managed services like Key Vault **without needing to manage secrets**. You need to configure a trust relationship between your Kubernetes Cluster and Azure AD. This can be done in various ways, for instance using `terraform`, the Azure Portal or the `az` cli. We found the [azwi](https://azure.github.io/azure-workload-identity/docs/installation/azwi.html) cli very helpful. The Azure [Workload Identity Quick Start Guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html) is also good place to get started.
+
+This is basically a two step process:
+
+1. Create a Kubernetes Service Account ([guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html#5-create-a-kubernetes-service-account))
+
+```sh
+azwi serviceaccount create phase sa \
+  --aad-application-name "${APPLICATION_NAME}" \
+  --service-account-namespace "${SERVICE_ACCOUNT_NAMESPACE}" \
+  --service-account-name "${SERVICE_ACCOUNT_NAME}"
+```
+2. Configure the trust relationship between Azure AD and Kubernetes ([guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html#6-establish-federated-identity-credential-between-the-aad-application-and-the-service-account-issuer--subject))
+
+```sh
+azwi serviceaccount create phase federated-identity \
+  --aad-application-name "${APPLICATION_NAME}" \
+  --service-account-namespace "${SERVICE_ACCOUNT_NAMESPACE}" \
+  --service-account-name "${SERVICE_ACCOUNT_NAME}" \
+  --service-account-issuer-url "${SERVICE_ACCOUNT_ISSUER}"
+```
+
+With these prerequisites met you can configure a `SecretStore` to use that service account.
+
+```yaml
+{% include 'azkv-workload-identity.yaml' %}
 ```
 
 ### Update secret store

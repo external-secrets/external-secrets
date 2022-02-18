@@ -37,7 +37,10 @@ require (
 	cloud.google.com/go/iam v0.3.0
 	cloud.google.com/go/secretmanager v1.3.0
 	github.com/Azure/azure-sdk-for-go v62.2.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.11.24
+	github.com/Azure/go-autorest/autorest/adal v0.9.18
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
+	github.com/AzureAD/microsoft-authentication-library-for-go v0.4.0
 	github.com/IBM/go-sdk-core/v5 v5.9.3
 	github.com/IBM/secrets-manager-go-sdk v1.0.37
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -90,8 +93,6 @@ require (
 require (
 	cloud.google.com/go/compute v1.5.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.11.24 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.18 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.5 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
@@ -123,6 +124,7 @@ require (
 	github.com/gobuffalo/flect v0.2.3 // indirect
 	github.com/goccy/go-json v0.9.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -152,6 +154,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.0 // indirect
