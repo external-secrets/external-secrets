@@ -34,7 +34,7 @@ replace (
 
 require (
 	cloud.google.com/go v0.100.2 // indirect
-	cloud.google.com/go/secretmanager v1.0.0
+	cloud.google.com/go/secretmanager v1.2.0
 	github.com/Azure/azure-sdk-for-go v61.5.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/IBM/go-sdk-core/v5 v5.9.2
