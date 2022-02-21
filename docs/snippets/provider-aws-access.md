@@ -25,6 +25,7 @@ spec:
 ```
 
 ### Access Key ID & Secret Access Key
+
 ![SecretRef](./pictures/diagrams-provider-aws-auth-secret-ref.png)
 
 You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
@@ -50,7 +51,8 @@ spec:
             name: awssm-secret
             key: secret-access-key
 ```
-**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef`, `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
+
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef`, `secretAccessKeySecretRef` with the namespaces where the secrets reside.
 
 ### EKS Service Account credentials
 
@@ -72,6 +74,7 @@ metadata:
 ```
 
 Reference the service account from above in the Secret Store:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: SecretStore
@@ -87,4 +90,17 @@ spec:
           serviceAccountRef:
             name: my-serviceaccount
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
+
+## Custom Endpoints
+
+You can define custom AWS endpoints if you want to use regional, vpc or custom endpoints. See List of endpoints for [Secrets Manager](https://docs.aws.amazon.com/general/latest/gr/asm.html), [Secure Systems Manager](https://docs.aws.amazon.com/general/latest/gr/ssm.html) and [Security Token Service](https://docs.aws.amazon.com/general/latest/gr/sts.html).
+
+Use the following environment variables to point the controller to your custom endpoints. Note: All resources managed by this controller are affected.
+
+| ENV VAR                     | DESCRIPTION                                                                                                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AWS_SECRETSMANAGER_ENDPOINT | Endpoint for the Secrets Manager Service. The controller uses this endpoint to fetch secrets from AWS Secrets Manager.                                               |
+| AWS_SSM_ENDPOINT            | Endpoint for the AWS Secure Systems Manager. The controller uses this endpoint to fetch secrets from SSM Parameter Store.                                            |
+| AWS_STS_ENDPOINT            | Endpoint for the Security Token Service. The controller uses this endpoint when creating a session and when doing `assumeRole` or `assumeRoleWithWebIdentity` calls. |
