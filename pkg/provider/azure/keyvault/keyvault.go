@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
@@ -71,8 +72,9 @@ const (
 	errInvalidSecRefClientSecret = "invalid AuthSecretRef.ClientSecret: %w"
 	errInvalidSARef              = "invalid ServiceAccountRef: %w"
 
-	errMissingServiceAccRef = "missing serviceAccountRef"
-	errMissingSAAnnotation  = "missing service account annotation: %s"
+	errMissingWorkloadEnvVars = "missing environment variables. AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE must be set"
+	errReadTokenFile          = "unable to read token file %s: %w"
+	errMissingSAAnnotation    = "missing service account annotation: %s"
 )
 
 // interface to keyvault.BaseClient.
@@ -276,8 +278,25 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 }
 
 func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider tokenProviderFunc) (autorest.Authorizer, error) {
+	// if no serviceAccountRef was provided
+	// we expect certain env vars to be present.
+	// They are set by the azure workload identity webhook.
 	if a.provider.ServiceAccountRef == nil {
-		return nil, fmt.Errorf(errMissingServiceAccRef)
+		clientID := os.Getenv("AZURE_CLIENT_ID")
+		tenantID := os.Getenv("AZURE_TENANT_ID")
+		tokenFilePath := os.Getenv("AZURE_FEDERATED_TOKEN_FILE")
+		if clientID == "" || tenantID == "" || tokenFilePath == "" {
+			return nil, errors.New(errMissingWorkloadEnvVars)
+		}
+		token, err := os.ReadFile(tokenFilePath)
+		if err != nil {
+			return nil, fmt.Errorf(errReadTokenFile, tokenFilePath, err)
+		}
+		tp, err := tokenProvider(ctx, string(token), clientID, tenantID)
+		if err != nil {
+			return nil, err
+		}
+		return autorest.NewBearerAuthorizer(tp), nil
 	}
 	ns := a.namespace
 	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
@@ -335,6 +354,9 @@ func newTokenProvider(ctx context.Context, token, clientID, tenantID string) (ad
 	if err != nil {
 		return nil, err
 	}
+
+	// AZURE_AUTHORITY_HOST
+
 	cClient, err := confidential.New(clientID, cred, confidential.WithAuthority(
 		fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/token", tenantID),
 	))

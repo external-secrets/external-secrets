@@ -49,7 +49,17 @@ azwi serviceaccount create phase federated-identity \
   --service-account-issuer-url "${SERVICE_ACCOUNT_ISSUER}"
 ```
 
-With these prerequisites met you can configure a `SecretStore` to use that service account.
+With these prerequisites met you can configure `ESO` to use that Service Account. You have two options:
+
+##### Mounted Service Account
+You run the controller and mount that particular service account into the pod. That grants _everyone_ who is able to create a secret store or reference a correctly configured one the ability to read secrets. **This approach is usually not recommended**. But may make sense when you want to share an identity with multiple namespaces. Also see our [Multi-Tenancy Guide](guides-multi-tenancy.md) for design considerations.
+
+```yaml
+{% include 'azkv-workload-identity-mounted.yaml' %}
+```
+
+##### Referenced Service Account
+You run the controller without service account (effectively without azure permissions). Now you have to configure the SecretStore and set the `serviceAccountRef` and point to the service account you have just created. **This is usually the recommended approach**. It makes sense for everyone who wants to run the controller withour Azure permissions and delegate authentication via service accounts in particular namespaces. Also see our [Multi-Tenancy Guide] for design considerations.
 
 ```yaml
 {% include 'azkv-workload-identity.yaml' %}
