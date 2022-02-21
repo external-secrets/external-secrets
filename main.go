@@ -47,14 +47,14 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
+	var metricsPort string
 	var controllerClass string
 	var enableLeaderElection bool
 	var concurrent int
 	var loglevel string
 	var namespace string
 	var storeRequeueInterval time.Duration
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&metricsPort, "metrics-port", "8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&controllerClass, "controller-class", "default", "the controller is instantiated with a specific controller name and filters ES based on this property")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -65,6 +65,7 @@ func main() {
 	flag.DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Time duration between reconciling (Cluster)SecretStores")
 	flag.Parse()
 
+	metricsAddr := ":" + metricsPort
 	var lvl zapcore.Level
 	err := lvl.UnmarshalText([]byte(loglevel))
 	if err != nil {

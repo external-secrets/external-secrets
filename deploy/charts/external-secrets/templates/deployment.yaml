@@ -43,7 +43,7 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.concurrent) (.Values.extraArgs) }}
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.concurrent) (.Values.extraArgs) (.Values.prometheus.enabled)}}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
@@ -57,6 +57,9 @@ spec:
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
+          {{- if .Values.prometheus.enabled}}
+          - --metrics-port={{ .Values.prometheus.service.targetPort }}
+          {{- end }}
           {{- range $key, $value := .Values.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
@@ -66,7 +69,7 @@ spec:
           {{- end }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.prometheus.service.port }}
+            - containerPort: {{ .Values.prometheus.service.targetPort }}
               protocol: TCP
               name: metrics
           {{- with .Values.extraEnv }}
