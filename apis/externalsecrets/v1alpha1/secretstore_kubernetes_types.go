@@ -55,6 +55,8 @@ type KubernetesProvider struct {
 	RemoteNamespace string `json:"remoteNamespace"`
 }
 
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type KubernetesAuth struct {
 	// has both clientCert and clientKey as secretKeySelector
 	// +optional
