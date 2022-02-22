@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -228,11 +227,5 @@ func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySel
 }
 
 func (k *ProviderKubernetes) Validate() error {
-	ctx := context.Background()
-	_, err := k.Client.Get(ctx, "test", metav1.GetOptions{})
-
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
-	}
 	return nil
 }
