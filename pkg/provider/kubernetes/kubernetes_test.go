@@ -122,10 +122,12 @@ func TestKubernetesSecretManagerGetSecretMap(t *testing.T) {
 }
 
 func TestKubernetesSecretManagerSetAuth(t *testing.T) {
+	secretName := "good-name"
+	CABundle := "CABundle"
 	kp := esv1alpha1.KubernetesProvider{Server: esv1alpha1.KubernetesServer{}}
 
 	fs := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "good-name"},
+		ObjectMeta: metav1.ObjectMeta{Name: secretName},
 		Data:       make(map[string][]byte),
 	}
 	fs.Data["cert"] = []byte("secret-cert")
@@ -163,7 +165,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		t.Error("failed to set CA provider")
 	}
 
-	kp.Server.CABundle = []byte("ca-bundle")
+	kp.Server.CABundle = []byte(CABundle)
 
 	err = bc.setAuth(ctx)
 
@@ -172,7 +174,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		t.Error("test kubernetes credentials not empty failed")
 	}
 
-	if string(bc.CA) != "ca-bundle" {
+	if string(bc.CA) != CABundle {
 		t.Error("failed to set CA provider")
 	}
 
@@ -185,7 +187,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 			},
 		},
 	}
-	kp.Server.CABundle = []byte("ca-bundle")
+	kp.Server.CABundle = []byte(CABundle)
 
 	err = bc.setAuth(ctx)
 
@@ -216,7 +218,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 
 	bc.setAuth(ctx)
 
-	kp.Auth.Token = &esv1alpha1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: "good-name"}}
+	kp.Auth.Token = &esv1alpha1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: secretName}}
 
 	err = bc.setAuth(ctx)
 
@@ -225,7 +227,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		t.Error(errTestFetchCredentialsSecret)
 	}
 
-	kp.Auth.Token = &esv1alpha1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: "good-name", Key: "bearerToken"}}
+	kp.Auth.Token = &esv1alpha1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: secretName, Key: "bearerToken"}}
 
 	err = bc.setAuth(ctx)
 
@@ -233,7 +235,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		fmt.Println(err.Error())
 		t.Error(errTestFetchCredentialsSecret)
 	}
-	if string(bc.CA) != "ca-bundle" {
+	if string(bc.CA) != CABundle {
 		t.Error(errTestAuthValue)
 	}
 	if string(bc.Certificate) != "secret-cert" {
