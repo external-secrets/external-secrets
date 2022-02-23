@@ -13,7 +13,7 @@
     
     
       
-        <title>Common K8S Secret Types - External Secrets Operator</title>
+        <title>Release Process - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#a-few-common-k8s-secret-types-examples" class="md-skip">
+        <a href="#release-eso" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Common K8S Secret Types
+              Release Process
             
           </span>
         </div>
@@ -331,14 +331,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
       
       
       
@@ -476,73 +474,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Common K8S Secret Types
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../guides-common-k8s-secret-types/" class="md-nav__link">
         Common K8S Secret Types
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#dockerconfigjson-example" class="md-nav__link">
-    Dockerconfigjson example
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tls-cert-example" class="md-nav__link">
-    TLS Cert example
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#ssh-auth-example" class="md-nav__link">
-    SSH Auth example
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#more-examples" class="md-nav__link">
-    More examples
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1159,12 +1095,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_8" type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_8" type="checkbox" id="__nav_8" checked>
       
       
       
@@ -1213,11 +1151,62 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../contributing-release/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Release Process
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Release Process
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#release-eso" class="md-nav__link">
+    Release ESO
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-helm-chart" class="md-nav__link">
+    Release Helm Chart
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-olm-bundle" class="md-nav__link">
+    Release OLM Bundle
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1275,8 +1264,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1285,29 +1272,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#dockerconfigjson-example" class="md-nav__link">
-    Dockerconfigjson example
+  <a href="#release-eso" class="md-nav__link">
+    Release ESO
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#tls-cert-example" class="md-nav__link">
-    TLS Cert example
+  <a href="#release-helm-chart" class="md-nav__link">
+    Release Helm Chart
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#ssh-auth-example" class="md-nav__link">
-    SSH Auth example
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#more-examples" class="md-nav__link">
-    More examples
+  <a href="#release-olm-bundle" class="md-nav__link">
+    Release OLM Bundle
   </a>
   
 </li>
@@ -1324,115 +1304,53 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-common-k8s-secret-types.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/contributing-release.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-<h1 id="a-few-common-k8s-secret-types-examples">A few common k8s secret types examples</h1>
-<p>Here we will give some examples of how to work with a few common k8s secret types. We will give this examples here with the gcp provider (should work with other providers in the same way). Please also check the guides on <a href="../guides-templating/">Advanced Templating</a> to understand the details.</p>
-<p>Please follow the authentication and SecretStore steps of the <a href="../provider-google-secrets-manager/">Google Cloud Secrets Manager guide</a> to setup access to your google cloud account first.</p>
-<h2 id="dockerconfigjson-example">Dockerconfigjson example</h2>
-<p>First create a secret in Google Cloud Secrets Manager containing your docker config:</p>
-<p><img alt="iam" src="../pictures/screenshot_docker_config_json_example.png" /></p>
-<p>Let's call this secret docker-config-example on Google Cloud.</p>
-<p>Then create a ExternalSecret resource taking advantage of templating to populate the generated secret:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dk-cfg-example</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span><span class="w"></span>
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">.dockerconfigjson</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysecret</span><span class="w"></span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docker-config-example</span><span class="w"></span>
-</code></pre></div>
-<p>This will generate a valid dockerconfigjson secret for you to use!</p>
-<p>You can get the final value with:</p>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data\.dockerconfigjson}&quot;</span> <span class="p">|</span> base64 -d
-</code></pre></div>
-<h2 id="tls-cert-example">TLS Cert example</h2>
-<p>We are assuming here that you already have valid certificates, maybe generated with letsencrypt or any other CA. So to simplify you can use openssl to generate a single secret pkcs12 cert based on your cert.pem and privkey.pen files.</p>
-<div class="highlight"><pre><span></span><code>openssl pkcs12 -export -out certificate.p12 -inkey privkey.pem -in cert.pem
-</code></pre></div>
-<p>With a certificate.p12 you can upload it to Google Cloud Secrets Manager:</p>
-<p><img alt="p12" src="../pictures/screenshot_ssl_certificate_p12_example.png" /></p>
-<p>And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type tls with pem values.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">template-tls-example</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
-<span class="w">    </span><span class="c1"># this is how the Kind=Secret will look like</span><span class="w"></span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/tls</span><span class="w"></span>
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">tls.crt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12cert</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemCertificate</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">tls.key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12key</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemPrivateKey</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
+  <h1>Release Process</h1>
 
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># this is a pkcs12 archive that contains</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># a cert and a private key</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysecret</span><span class="w"></span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssl-certificate-p12-example</span><span class="w"></span>
+<p>ESO and the ESO Helm Chart have two distinct lifecycles and can be released independently. Helm Chart releases are named <code>external-secrets-x.y.z</code>.</p>
+<p>The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release.</p>
+<h2 id="release-eso">Release ESO</h2>
+<ol>
+<li>Run <code>Create Release</code> Action to create a new release, pass in the desired version number to release.</li>
+<li>GitHub Release, Changelog will be created by the <code>release.yml</code> workflow which also promotes the container image.</li>
+<li>update Helm Chart, see below</li>
+<li>update OLM bundle, see <a href="https://github.com/external-secrets/external-secrets-helm-operator/blob/main/docs/release.md#operatorhubio">helm-operator docs</a></li>
+<li>Announce the new release in the <code>#external-secrets</code> Kubernetes Slack</li>
+</ol>
+<h2 id="release-helm-chart">Release Helm Chart</h2>
+<ol>
+<li>Update <code>version</code> and/or <code>appVersion</code> in <code>Chart.yaml</code></li>
+<li>push and merge PR</li>
+<li>CI picks up the new chart version and creates a new GitHub Release for it</li>
+</ol>
+<h2 id="release-olm-bundle">Release OLM Bundle</h2>
+<p>In order to make the latest release available to <a href="https://operatorhub.io/">OperatorHub.io</a> we need to create a bundle and open a PR in the <a href="https://github.com/k8s-operatorhub/community-operators/">community-operators</a> repository.</p>
+<p>To create a bundle first increment the <code>VERSION</code> in the Makefile as described above. Then run the following commands in the root of the repository:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># clone repo</span>
+git clone https://github.com/external-secrets/external-secrets-helm-operator
+<span class="nb">cd</span> external-secrets-helm-operator
+
+<span class="c1"># bump version</span>
+<span class="nb">export</span> <span class="nv">VERSION</span><span class="o">=</span>x.y.z
+sed -i <span class="s2">&quot;s/^VERSION ?= .*/VERSION ?= </span><span class="si">${</span><span class="nv">VERSION</span><span class="si">}</span><span class="s2">/&quot;</span> Makefile
+
+<span class="c1"># prep release</span>
+make prepare-stable-release
 </code></pre></div>
-<p>You can get their values with:</p>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.tls\.crt}&quot;</span> <span class="p">|</span> base64 -d
-kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.tls\.key}&quot;</span> <span class="p">|</span> base64 -d
+<p>Check the generated files in the <code>bundle/</code> directory. If they look good add &amp; commit them, open a PR against this repository. You can always use the <a href="https://operatorhub.io/preview">OperatorHub.io/preview</a> page to preview the generated CSV.</p>
+<div class="highlight"><pre><span></span><code>git status
+git add .
+git commit -s -m <span class="s2">&quot;chore: bump version xyz&quot;</span>
+git push
 </code></pre></div>
-<h2 id="ssh-auth-example">SSH Auth example</h2>
-<p>Add the ssh privkey to a new Google Cloud Secrets Manager secret:</p>
-<p><img alt="ssh" src="../pictures/screenshot_ssh_privkey_example.png" /></p>
-<p>And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type ssh-auth with the privatekey value.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh-auth-example</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/ssh-auth</span><span class="w"></span>
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">ssh-privatekey</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysecret</span><span class="w"></span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh-priv-key-example</span><span class="w"></span>
-</code></pre></div>
-<p>You can get the privkey value with:</p>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.ssh-privatekey}&quot;</span> <span class="p">|</span> base64 -d
-</code></pre></div>
-<h2 id="more-examples">More examples</h2>
-<div class="admonition note">
-<p class="admonition-title">We need more examples here</p>
-<p>Feel free to contribute with our docs and add more examples here!</p>
-</div>
+<p>Once the PR is merged we need create a pull request against both community-operators repositories. There's a make target that does the heavy lifting for you:
+<div class="highlight"><pre><span></span><code>make bundle-operatorhub
+</code></pre></div></p>
+<p>This command will add/commit/push and open pull requests in the respective repositories.</p>
 
               
             </article>
@@ -1446,7 +1364,7 @@ kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../guides-all-keys-one-secret/" class="md-footer__link md-footer__link--prev" aria-label="Previous: All keys, One secret" rel="prev">
+        <a href="../contributing-process/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Contributing Process" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1455,20 +1373,20 @@ kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</
               <span class="md-footer__direction">
                 Previous
               </span>
-              All keys, One secret
+              Contributing Process
             </div>
           </div>
         </a>
       
       
         
-        <a href="../guides-multi-tenancy/" class="md-footer__link md-footer__link--next" aria-label="Next: Multi Tenancy" rel="next">
+        <a href="../contributing-coc/" class="md-footer__link md-footer__link--next" aria-label="Next: Code of Conduct" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Multi Tenancy
+              Code of Conduct
             </div>
           </div>
           <div class="md-footer__button md-icon">
