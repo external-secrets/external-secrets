@@ -67,7 +67,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 
 	// if no data was provided by template fallback
 	// to value from the provider
-	if len(es.Spec.Target.Template.Data) == 0 {
+	if len(es.Spec.Target.Template.Data) == 0 && len(es.Spec.Target.Template.TemplateFrom) == 0 {
 		secret.Data = dataMap
 	}
 	secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
