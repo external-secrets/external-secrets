@@ -983,6 +983,234 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
+func TestGetAllSecrets(t *testing.T) {
+	errBoom := errors.New("boom")
+	secret := map[string]interface{}{
+		"access_key":    "access_key",
+		"access_secret": "access_secret",
+	}
+	secondSecret := map[string]interface{}{
+		"access_key":    "access_key2",
+		"access_secret": "access_secret2",
+		"token":         nil,
+	}
+
+	type args struct {
+		store   *esv1beta1.VaultProvider
+		kube    kclient.Client
+		vClient Client
+		ns      string
+		data    esv1beta1.ExternalSecretDataRemoteRef
+	}
+
+	type want struct {
+		err error
+		val map[string][]byte
+	}
+
+	cases := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"ReadSecretKV2": {
+			reason: "Should Map the Secret with DataFrom.Find.Name",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(secret), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_key":    []byte("access_key"),
+					"access_secret": []byte("access_secret"),
+				},
+			},
+		},
+		"ReadSecretKV2": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secret,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_key":    []byte("access_key"),
+					"access_secret": []byte("access_secret"),
+				},
+			},
+		},
+		"ReadSecretWithNilValueKV1": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(secretWithNilVal), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_key":    []byte("access_key"),
+					"access_secret": []byte("access_secret"),
+					"token":         []byte(nil),
+				},
+			},
+		},
+		"ReadSecretWithNilValueKV2": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secretWithNilVal,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_key":    []byte("access_key"),
+					"access_secret": []byte("access_secret"),
+					"token":         []byte(nil),
+				},
+			},
+		},
+		"ReadSecretWithTypesKV2": {
+			reason: "Should map the secret even if it has other types",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secretWithTypes,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_secret": []byte("access_secret"),
+					"f32":           []byte("2.12"),
+					"f64":           []byte("2.1234534153423423"),
+					"int":           []byte("42"),
+					"bool":          []byte("true"),
+					"bt":            []byte("Zm9vYmFy"), // base64
+				},
+			},
+		},
+		"ReadNestedSecret": {
+			reason: "Should map the secret for deeply nested property",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					Property: "nested",
+				},
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secretWithNestedVal,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"foo": []byte(`{"mhkeih":"yada yada","oke":"yup"}`),
+				},
+			},
+		},
+		"ReadDeeplyNestedSecret": {
+			reason: "Should map the secret for deeply nested property",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					Property: "nested.foo",
+				},
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(
+						newVaultResponseWithData(
+							map[string]interface{}{
+								"data": secretWithNestedVal,
+							},
+						), nil,
+					),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"oke":    []byte("yup"),
+					"mhkeih": []byte("yada yada"),
+				},
+			},
+		},
+		"ReadSecretError": {
+			reason: "Should return error if vault client fails to read secret.",
+			args: args{
+				store: makeSecretStore().Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest:            fake.NewMockNewRequestFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestWithContextFn(nil, errBoom),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errReadSecret, errBoom),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			vStore := &client{
+				kube:      tc.args.kube,
+				client:    tc.args.vClient,
+				store:     tc.args.store,
+				namespace: tc.args.ns,
+			}
+			val, err := vStore.GetSecretMap(context.Background(), tc.args.data)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\n%s\nvault.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
+			}
+			if diff := cmp.Diff(tc.want.val, val); diff != "" {
+				t.Errorf("\n%s\nvault.GetSecretMap(...): -want val, +got val:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
 func TestGetSecretPath(t *testing.T) {
 	storeV2 := makeValidSecretStore()
 	storeV2NoPath := storeV2.DeepCopy()

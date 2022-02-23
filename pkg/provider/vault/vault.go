@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -229,9 +230,129 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 // Empty GetAllSecrets.
+// GetAllSecrets
+// First load all secrets from secretStore path configuration
+// Then, gets secrets from a matching name or matching custom_metadata
 func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	potentialSecrets, err := v.listSecrets(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	if ref.Name != nil {
+		return v.findSecretsFromName(ctx, potentialSecrets, *ref.Name)
+	}
+	return v.findSecretsFromTags(ctx, potentialSecrets, ref.Tags)
+}
+
+func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, tags map[string]string) (map[string][]byte, error) {
+	secrets := make(map[string][]byte)
+	for _, name := range candidates {
+		match := true
+		metadata, err := v.readSecretMetadata(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		for tk, tv := range tags {
+			p, ok := metadata[tk]
+			if !ok || p != tv {
+				match = false
+				break
+			}
+		}
+		if match {
+			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if err != nil {
+				return nil, err
+			}
+			newName := strings.ReplaceAll(name, "/", "-")
+			secrets[newName] = secret
+		}
+	}
+	return secrets, nil
+}
+
+func (v *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName) (map[string][]byte, error) {
+	secrets := make(map[string][]byte)
+	for _, name := range candidates {
+		ok, err := regexp.MatchString(ref.RegExp, name)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if err != nil {
+				return nil, err
+			}
+			newName := strings.ReplaceAll(name, "/", "-")
+			secrets[newName] = secret
+		}
+	}
+	return secrets, nil
+}
+
+func (v *client) listSecrets(ctx context.Context, path string) ([]string, error) {
+	secrets := make([]string, 0)
+	url := "/v1/" + *v.store.Path + "/metadata/" + path
+	r := v.client.NewRequest(http.MethodGet, url)
+	r.Params.Set("list", "true")
+	resp, err := v.client.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return nil, fmt.Errorf(errReadSecret, err)
+	}
+	secret, parseErr := vault.ParseSecret(resp.Body)
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	t, ok := secret.Data["keys"]
+	if !ok {
+		return nil, nil
+	}
+	paths := t.([]interface{})
+	for _, p := range paths {
+		strPath := p.(string)
+		fullPath := path + strPath // because path always ends with a /
+		if path == "" {
+			fullPath = strPath
+		}
+		// Recurrently find secrets
+		if strings.HasSuffix(p.(string), "/") {
+			var partial = make([]string, 0)
+			partial, err = v.listSecrets(ctx, fullPath)
+			if err != nil {
+				return nil, err
+			}
+			secrets = append(secrets, partial...)
+		} else {
+			secrets = append(secrets, fullPath)
+		}
+	}
+	return secrets, nil
+}
+
+func (v *client) readSecretMetadata(ctx context.Context, path string) (map[string]string, error) {
+	metadata := make(map[string]string)
+	url := "/v1/" + *v.store.Path + "/metadata/" + path
+	r := v.client.NewRequest(http.MethodGet, url)
+	resp, err := v.client.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return nil, fmt.Errorf(errReadSecret, err)
+	}
+	secret, parseErr := vault.ParseSecret(resp.Body)
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	t, ok := secret.Data["custom_metadata"]
+	if !ok {
+		return nil, nil
+	}
+	d, ok := t.(map[string]interface{})
+	if !ok {
+		return metadata, nil
+	}
+	for k, v := range d {
+		metadata[k] = v.(string)
+	}
+	return metadata, nil
 }
 
 // GetSecret supports two types:
