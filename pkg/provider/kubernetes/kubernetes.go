@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -55,7 +55,7 @@ var _ provider.SecretsClient = &ProviderKubernetes{}
 
 type BaseClient struct {
 	kube        kclient.Client
-	store       *esv1alpha1.KubernetesProvider
+	store       *esv1beta1.KubernetesProvider
 	namespace   string
 	storeKind   string
 	Certificate []byte
@@ -65,13 +65,13 @@ type BaseClient struct {
 }
 
 func init() {
-	schema.Register(&ProviderKubernetes{}, &esv1alpha1.SecretStoreProvider{
-		Kubernetes: &esv1alpha1.KubernetesProvider{},
+	schema.Register(&ProviderKubernetes{}, &esv1beta1.SecretStoreProvider{
+		Kubernetes: &esv1beta1.KubernetesProvider{},
 	})
 }
 
 // NewClient constructs a Kubernetes Provider.
-func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Kubernetes == nil {
 		return nil, fmt.Errorf("no store type or wrong store type")
@@ -114,7 +114,7 @@ func (k *ProviderKubernetes) Close(ctx context.Context) error {
 	return nil
 }
 
-func (k *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (k *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Property == "" {
 		return nil, fmt.Errorf(errPropertyNotFound)
 	}
@@ -132,7 +132,7 @@ func (k *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1alpha1.Exter
 	return val, nil
 }
 
-func (k *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (k *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(k.Client) {
 		return nil, fmt.Errorf(errUninitalizedKubernetesProvider)
 	}
@@ -149,6 +149,10 @@ func (k *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1alpha1.Ex
 	}
 
 	return payload, nil
+}
+
+func (k *ProviderKubernetes) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (k *BaseClient) setAuth(ctx context.Context) error {
@@ -203,7 +207,7 @@ func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySel
 		Namespace: k.namespace,
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if k.storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if k.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if key.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingNamespace)
 		}

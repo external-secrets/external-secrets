@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
@@ -63,7 +63,13 @@ type VMInterface interface {
 	GetSecretBundleByName(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error)
 }
 
-func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+// Empty GetAllSecrets.
+func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, fmt.Errorf("GetAllSecrets not implemented")
+}
+
+func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(vms.Client) {
 		return nil, fmt.Errorf(errUninitalizedOracleProvider)
 	}
@@ -100,7 +106,7 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1alpha1
 	return []byte(val.String()), nil
 }
 
-func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := vms.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -118,7 +124,7 @@ func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1alp
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
@@ -167,7 +173,7 @@ func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKin
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if storeKind == esv1beta1.ClusterSecretStoreKind {
 		if secretRef.Namespace == nil {
 			return "", fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
 		}
@@ -183,7 +189,7 @@ func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKin
 	return string(secret.Data[secretRef.Key]), nil
 }
 
-func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, store *esv1alpha1.OracleProvider, namespace, storeKind, region string) (common.ConfigurationProvider, error) {
+func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, store *esv1beta1.OracleProvider, namespace, storeKind, region string) (common.ConfigurationProvider, error) {
 	privateKey, err := getSecretData(ctx, kube, namespace, storeKind, store.Auth.SecretRef.PrivateKey)
 	if err != nil {
 		return nil, err
@@ -220,7 +226,7 @@ func (vms *VaultManagementService) Validate() error {
 }
 
 func init() {
-	schema.Register(&VaultManagementService{}, &esv1alpha1.SecretStoreProvider{
-		Oracle: &esv1alpha1.OracleProvider{},
+	schema.Register(&VaultManagementService{}, &esv1beta1.SecretStoreProvider{
+		Oracle: &esv1beta1.OracleProvider{},
 	})
 }

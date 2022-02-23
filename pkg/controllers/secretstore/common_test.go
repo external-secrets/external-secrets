@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 type testCase struct {

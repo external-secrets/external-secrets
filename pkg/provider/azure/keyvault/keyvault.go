@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -64,24 +64,24 @@ type SecretClient interface {
 
 type Azure struct {
 	kube       client.Client
-	store      esv1alpha1.GenericStore
-	provider   *esv1alpha1.AzureKVProvider
+	store      esv1beta1.GenericStore
+	provider   *esv1beta1.AzureKVProvider
 	baseClient SecretClient
 	namespace  string
 }
 
 func init() {
-	schema.Register(&Azure{}, &esv1alpha1.SecretStoreProvider{
-		AzureKV: &esv1alpha1.AzureKVProvider{},
+	schema.Register(&Azure{}, &esv1beta1.SecretStoreProvider{
+		AzureKV: &esv1beta1.AzureKVProvider{},
 	})
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (a *Azure) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (a *Azure) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace)
 }
 
-func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	provider, err := getProvider(store)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.C
 	return nil, fmt.Errorf(errMissingAuthType)
 }
 
-func getProvider(store esv1alpha1.GenericStore) (*esv1alpha1.AzureKVProvider, error) {
+func getProvider(store esv1beta1.GenericStore) (*esv1beta1.AzureKVProvider, error) {
 	spc := store.GetSpec()
 	if spc == nil || spc.Provider.AzureKV == nil {
 		return nil, errors.New(errUnexpectedStoreSpec)
@@ -115,10 +115,16 @@ func getProvider(store esv1alpha1.GenericStore) (*esv1alpha1.AzureKVProvider, er
 	return spc.Provider.AzureKV, nil
 }
 
+// Empty GetAllSecrets.
+func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, fmt.Errorf("GetAllSecrets not implemented")
+}
+
 // Implements store.Client.GetSecret Interface.
 // Retrieves a secret/Key/Certificate with the secret name defined in ref.Name
 // The Object Type is defined as a prefix in the ref.Name , if no prefix is defined , we assume a secret is required.
-func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	version := ""
 	objectType, secretName := getObjType(ref)
 
@@ -166,7 +172,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretData
 
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
-func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	objectType, secretName := getObjType(ref)
 
 	switch objectType {
@@ -198,7 +204,7 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretD
 }
 
 func (a *Azure) setAzureClientWithManagedIdentity() (bool, error) {
-	if *a.provider.AuthType != esv1alpha1.ManagedIdentity {
+	if *a.provider.AuthType != esv1beta1.ManagedIdentity {
 		return false, nil
 	}
 
@@ -219,7 +225,7 @@ func (a *Azure) setAzureClientWithManagedIdentity() (bool, error) {
 }
 
 func (a *Azure) setAzureClientWithServicePrincipal(ctx context.Context) (bool, error) {
-	if *a.provider.AuthType != esv1alpha1.ServicePrincipal {
+	if *a.provider.AuthType != esv1beta1.ServicePrincipal {
 		return false, nil
 	}
 
@@ -233,7 +239,7 @@ func (a *Azure) setAzureClientWithServicePrincipal(ctx context.Context) (bool, e
 		return true, fmt.Errorf(errMissingClientIDSecret)
 	}
 	clusterScoped := false
-	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 		clusterScoped = true
 	}
 	cid, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *a.provider.AuthSecretRef.ClientID, clusterScoped)
@@ -287,7 +293,7 @@ func (a *Azure) Validate() error {
 	return nil
 }
 
-func getObjType(ref esv1alpha1.ExternalSecretDataRemoteRef) (string, string) {
+func getObjType(ref esv1beta1.ExternalSecretDataRemoteRef) (string, string) {
 	objectType := defaultObjType
 
 	secretName := ref.Key

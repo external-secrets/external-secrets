@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -58,7 +58,7 @@ func TestKubernetesSecretManagerGetSecret(t *testing.T) {
 	fk := fakeClient{secretMap: mysecretmap}
 	kp := ProviderKubernetes{Client: fk}
 
-	ref := esv1alpha1.ExternalSecretDataRemoteRef{Key: "Key", Property: "foo"}
+	ref := esv1beta1.ExternalSecretDataRemoteRef{Key: "Key", Property: "foo"}
 	ctx := context.Background()
 
 	output, _ := kp.GetSecret(ctx, ref)
@@ -67,14 +67,14 @@ func TestKubernetesSecretManagerGetSecret(t *testing.T) {
 		t.Error("missing match value of the secret")
 	}
 
-	ref = esv1alpha1.ExternalSecretDataRemoteRef{Key: "Key2", Property: "foo"}
+	ref = esv1beta1.ExternalSecretDataRemoteRef{Key: "Key2", Property: "foo"}
 	_, err := kp.GetSecret(ctx, ref)
 
 	if err.Error() != "Something went wrong" {
 		t.Error("test failed")
 	}
 
-	ref = esv1alpha1.ExternalSecretDataRemoteRef{Key: "Key", Property: "foo2"}
+	ref = esv1beta1.ExternalSecretDataRemoteRef{Key: "Key", Property: "foo2"}
 	_, err = kp.GetSecret(ctx, ref)
 	expectedError := fmt.Sprintf("property %s does not exist in key %s", ref.Property, ref.Key)
 	if err.Error() != expectedError {
@@ -88,7 +88,7 @@ func TestKubernetesSecretManagerGetSecret(t *testing.T) {
 		t.Error("test nil Client failed")
 	}
 
-	ref = esv1alpha1.ExternalSecretDataRemoteRef{Key: "Key", Property: ""}
+	ref = esv1beta1.ExternalSecretDataRemoteRef{Key: "Key", Property: ""}
 	_, err = kp.GetSecret(ctx, ref)
 
 	if err.Error() != "property field not found on extrenal secrets" {
@@ -108,7 +108,7 @@ func TestKubernetesSecretManagerGetSecretMap(t *testing.T) {
 	fk := fakeClient{secretMap: mysecretmap}
 	kp := ProviderKubernetes{Client: fk}
 
-	ref := esv1alpha1.ExternalSecretDataRemoteRef{Key: "Key", Property: ""}
+	ref := esv1beta1.ExternalSecretDataRemoteRef{Key: "Key", Property: ""}
 	ctx := context.Background()
 
 	output, err := kp.GetSecretMap(ctx, ref)
@@ -124,7 +124,7 @@ func TestKubernetesSecretManagerGetSecretMap(t *testing.T) {
 func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 	secretName := "good-name"
 	CABundle := "CABundle"
-	kp := esv1alpha1.KubernetesProvider{Server: esv1alpha1.KubernetesServer{}}
+	kp := esv1beta1.KubernetesProvider{Server: esv1beta1.KubernetesServer{}}
 
 	fs := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: secretName},
@@ -152,8 +152,8 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		t.Error("test no Certificate Authority provided failed")
 	}
 
-	kp.Server.CAProvider = &esv1alpha1.CAProvider{
-		Type:      esv1alpha1.CAProviderTypeConfigMap,
+	kp.Server.CAProvider = &esv1beta1.CAProvider{
+		Type:      esv1beta1.CAProviderTypeConfigMap,
 		Name:      fs.ObjectMeta.Name,
 		Namespace: &fs.ObjectMeta.Namespace,
 		Key:       "ca",
@@ -178,9 +178,9 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		t.Error("failed to set CA provider")
 	}
 
-	kp = esv1alpha1.KubernetesProvider{
-		Auth: esv1alpha1.KubernetesAuth{
-			Cert: &esv1alpha1.CertAuth{
+	kp = esv1beta1.KubernetesProvider{
+		Auth: esv1beta1.KubernetesAuth{
+			Cert: &esv1beta1.CertAuth{
 				ClientCert: v1.SecretKeySelector{
 					Name: "fake-name",
 				},
@@ -218,7 +218,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 
 	bc.setAuth(ctx)
 
-	kp.Auth.Token = &esv1alpha1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: secretName}}
+	kp.Auth.Token = &esv1beta1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: secretName}}
 
 	err = bc.setAuth(ctx)
 
@@ -227,7 +227,7 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		t.Error(errTestFetchCredentialsSecret)
 	}
 
-	kp.Auth.Token = &esv1alpha1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: secretName, Key: "bearerToken"}}
+	kp.Auth.Token = &esv1beta1.TokenAuth{BearerToken: v1.SecretKeySelector{Name: secretName, Key: "bearerToken"}}
 
 	err = bc.setAuth(ctx)
 

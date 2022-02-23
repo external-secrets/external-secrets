@@ -15,7 +15,7 @@ package template
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/pkg/template/v1"
 	v2 "github.com/external-secrets/external-secrets/pkg/template/v2"
 )

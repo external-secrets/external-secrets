@@ -22,7 +22,7 @@ import (
 
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
 )
 
@@ -30,7 +30,7 @@ type secretManagerTestCase struct {
 	mockClient     *fakesm.MockSMClient
 	apiInput       *secretmanagerpb.AccessSecretVersionRequest
 	apiOutput      *secretmanagerpb.AccessSecretVersionResponse
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	ref            *esv1beta1.ExternalSecretDataRemoteRef
 	projectID      string
 	apiErr         error
 	expectError    string
@@ -56,8 +56,8 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	return &smtc
 }
 
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
+func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
+	return &esv1beta1.ExternalSecretDataRemoteRef{
 		Key:     "/baz",
 		Version: "default",
 	}
@@ -110,7 +110,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 
 	// good case: ref with
 	setCustomRef := func(smtc *secretManagerTestCase) {
-		smtc.ref = &esv1alpha1.ExternalSecretDataRemoteRef{
+		smtc.ref = &esv1beta1.ExternalSecretDataRemoteRef{
 			Key:      "/baz",
 			Version:  "default",
 			Property: "name.first",

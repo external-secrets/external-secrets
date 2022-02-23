@@ -34,6 +34,7 @@ replace (
 
 require (
 	cloud.google.com/go v0.100.2 // indirect
+	cloud.google.com/go/iam v0.2.0
 	cloud.google.com/go/secretmanager v1.2.0
 	github.com/Azure/azure-sdk-for-go v61.5.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
@@ -61,6 +62,7 @@ require (
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/client_model v0.2.0
+	github.com/spf13/cobra v1.3.0
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.14.0
 	github.com/xanzy/go-gitlab v0.54.3
@@ -76,6 +78,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.23.0
+	k8s.io/apiextensions-apiserver v0.23.0
 	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v0.23.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
@@ -83,8 +86,6 @@ require (
 	sigs.k8s.io/controller-tools v0.8.0
 	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
-
-require cloud.google.com/go/iam v0.2.0
 
 require (
 	cloud.google.com/go/compute v1.2.0 // indirect
@@ -177,13 +178,11 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/russross/blackfriday/v2 v2.0.1 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sony/gobreaker v0.4.2-0.20210216022020-dd874f9dd33b // indirect
-	github.com/spf13/cast v1.3.1 // indirect
-	github.com/spf13/cobra v1.2.1 // indirect
+	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -192,7 +191,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/mod v0.4.2 // indirect
+	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20220114011407-0dd24b26b47d // indirect
 	golang.org/x/sys v0.0.0-20220204135822-1c1b9b1eba6a // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
@@ -208,7 +207,6 @@ require (
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiextensions-apiserver v0.23.0 // indirect
 	k8s.io/component-base v0.23.0 // indirect
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
 	k8s.io/klog v0.3.0 // indirect

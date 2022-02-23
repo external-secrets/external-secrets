@@ -86,3 +86,132 @@ affinity: {}
 
 # -- Pod priority class name.
 priorityClassName: ""
+
+webhook:
+  certCheckInterval: "5m"
+  replicaCount: 1
+  certDir: /tmp/certs
+  image:
+    repository: ghcr.io/external-secrets/external-secrets
+    pullPolicy: IfNotPresent
+  # -- The image tag to use. The default is the chart appVersion.
+    tag: ""
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  rbac:
+  # -- Specifies whether role and rolebinding resources should be created.
+    create: true
+  serviceAccount:
+    # -- Specifies whether a service account should be created.
+    create: true
+    # -- Annotations to add to the service account.
+    annotations: {}
+    # -- The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template.
+    name: ""
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+    # -- Pod priority class name.
+  priorityClassName: ""
+  prometheus:
+      # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+    enabled: false
+    service:
+      port: 8080
+    ## -- Extra environment variables to add to container.
+  extraEnv: []
+
+    ## -- Map of extra arguments to pass to container.
+  extraArgs: {}
+
+    # -- Annotations to add to Deployment
+  deploymentAnnotations: {}
+
+    # -- Annotations to add to Pod
+  podAnnotations: {}
+
+  podLabels: {}
+
+  podSecurityContext: {}
+      # fsGroup: 2000
+
+  securityContext: {}
+      # capabilities:
+      #   drop:
+      #   - ALL
+      # readOnlyRootFilesystem: true
+      # runAsNonRoot: true
+      # runAsUser: 1000
+
+  resources: {}
+      # requests:
+      #   cpu: 10m
+      #   memory: 32Mi
+
+certController:
+  requeueInterval: "5m"
+  image:
+    repository: ghcr.io/external-secrets/external-secrets
+    pullPolicy: IfNotPresent
+    tag: ""
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  rbac:
+  # -- Specifies whether role and rolebinding resources should be created.
+    create: true
+  serviceAccount:
+    # -- Specifies whether a service account should be created.
+    create: true
+    # -- Annotations to add to the service account.
+    annotations: {}
+    # -- The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template.
+    name: ""
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+    # -- Pod priority class name.
+  priorityClassName: ""
+  prometheus:
+      # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+    enabled: false
+    service:
+      port: 8080
+    ## -- Extra environment variables to add to container.
+  extraEnv: []
+
+    ## -- Map of extra arguments to pass to container.
+  extraArgs: {}
+
+    # -- Annotations to add to Deployment
+  deploymentAnnotations: {}
+
+    # -- Annotations to add to Pod
+  podAnnotations: {}
+
+  podLabels: {}
+
+  podSecurityContext: {}
+      # fsGroup: 2000
+
+  securityContext: {}
+      # capabilities:
+      #   drop:
+      #   - ALL
+      # readOnlyRootFilesystem: true
+      # runAsNonRoot: true
+      # runAsUser: 1000
+
+  resources: {}
+      # requests:
+      #   cpu: 10m
+      #   memory: 32Mi

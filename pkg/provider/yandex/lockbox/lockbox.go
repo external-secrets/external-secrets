@@ -29,7 +29,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
@@ -66,7 +66,7 @@ func newLockboxProvider(yandexCloudCreator client.YandexCloudCreator) *lockboxPr
 }
 
 // NewClient constructs a Yandex Lockbox Provider.
-func (p *lockboxProvider) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (p *lockboxProvider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexLockbox == nil {
 		return nil, fmt.Errorf("received invalid Yandex Lockbox SecretStore resource")
@@ -83,7 +83,7 @@ func (p *lockboxProvider) NewClient(ctx context.Context, store esv1alpha1.Generi
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 		if storeSpecYandexLockbox.Auth.AuthorizedKey.Namespace == nil {
 			return nil, fmt.Errorf("invalid ClusterSecretStore: missing AuthorizedKey Namespace")
 		}
@@ -115,7 +115,7 @@ func (p *lockboxProvider) NewClient(ctx context.Context, store esv1alpha1.Generi
 			Namespace: namespace,
 		}
 
-		if store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+		if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 			if storeSpecYandexLockbox.CAProvider.Certificate.Namespace == nil {
 				return nil, fmt.Errorf("invalid ClusterSecretStore: missing CA certificate Namespace")
 			}
@@ -224,8 +224,14 @@ type lockboxSecretsClient struct {
 	iamToken      string
 }
 
+// Empty GetAllSecrets.
+func (c *lockboxSecretsClient) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// TO be implemented
+	return nil, fmt.Errorf("GetAllSecrets not implemented")
+}
+
 // GetSecret returns a single secret from the provider.
-func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Key, ref.Version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret: %w", err)
@@ -255,7 +261,7 @@ func (c *lockboxSecretsClient) GetSecret(ctx context.Context, ref esv1alpha1.Ext
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (c *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1alpha1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *lockboxSecretsClient) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	entries, err := c.lockboxClient.GetPayloadEntries(ctx, c.iamToken, ref.Key, ref.Version)
 	if err != nil {
 		return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
@@ -323,8 +329,8 @@ func init() {
 
 	schema.Register(
 		lockboxProvider,
-		&esv1alpha1.SecretStoreProvider{
-			YandexLockbox: &esv1alpha1.YandexLockboxProvider{},
+		&esv1beta1.SecretStoreProvider{
+			YandexLockbox: &esv1beta1.YandexLockboxProvider{},
 		},
 	)
 }

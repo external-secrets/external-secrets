@@ -40,7 +40,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -91,7 +91,7 @@ func newWorkloadIdentity(ctx context.Context) (*workloadIdentity, error) {
 	}, nil
 }
 
-func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1alpha1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	spec := store.GetSpec()
 	if spec == nil || spec.Provider == nil || spec.Provider.GCPSM == nil {
 		return nil, fmt.Errorf(errMissingStoreSpec)
@@ -107,7 +107,7 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1alpha1.Gen
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if storeKind == esv1alpha1.ClusterSecretStoreKind {
+	if storeKind == esv1beta1.ClusterSecretStoreKind {
 		if wi.ServiceAccountRef.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingSANamespace)
 		}

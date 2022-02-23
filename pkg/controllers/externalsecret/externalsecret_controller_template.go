@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
@@ -34,13 +34,13 @@ import (
 // * template.Data (highest precedence)
 // * template.templateFrom
 // * secret via es.data or es.dataFrom.
-func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1alpha1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
+func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
 	mergeMetadata(secret, es)
 
 	// no template: copy data and return
 	if es.Spec.Target.Template == nil {
 		secret.Data = dataMap
-		secret.Annotations[esv1alpha1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
+		secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 		return nil
 	}
 
@@ -70,14 +70,14 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1alpha1.ExternalS
 	if len(es.Spec.Target.Template.Data) == 0 {
 		secret.Data = dataMap
 	}
-	secret.Annotations[esv1alpha1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
+	secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 
 	return nil
 }
 
 // we do not want to force-override the label/annotations
 // and only copy the necessary key/value pairs.
-func mergeMetadata(secret *v1.Secret, externalSecret *esv1alpha1.ExternalSecret) {
+func mergeMetadata(secret *v1.Secret, externalSecret *esv1beta1.ExternalSecret) {
 	if secret.ObjectMeta.Labels == nil {
 		secret.ObjectMeta.Labels = make(map[string]string)
 	}
@@ -95,7 +95,7 @@ func mergeMetadata(secret *v1.Secret, externalSecret *esv1alpha1.ExternalSecret)
 	utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
 }
 
-func (r *Reconciler) getTemplateData(ctx context.Context, externalSecret *esv1alpha1.ExternalSecret) (map[string][]byte, error) {
+func (r *Reconciler) getTemplateData(ctx context.Context, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
 	out := make(map[string][]byte)
 	if externalSecret.Spec.Target.Template == nil {
 		return out, nil
@@ -113,7 +113,7 @@ func (r *Reconciler) getTemplateData(ctx context.Context, externalSecret *esv1al
 	return out, nil
 }
 
-func mergeConfigMap(ctx context.Context, k8sClient client.Client, es *esv1alpha1.ExternalSecret, tpl esv1alpha1.TemplateFrom, out map[string][]byte) error {
+func mergeConfigMap(ctx context.Context, k8sClient client.Client, es *esv1beta1.ExternalSecret, tpl esv1beta1.TemplateFrom, out map[string][]byte) error {
 	if tpl.ConfigMap == nil {
 		return nil
 	}
@@ -136,7 +136,7 @@ func mergeConfigMap(ctx context.Context, k8sClient client.Client, es *esv1alpha1
 	return nil
 }
 
-func mergeSecret(ctx context.Context, k8sClient client.Client, es *esv1alpha1.ExternalSecret, tpl esv1alpha1.TemplateFrom, out map[string][]byte) error {
+func mergeSecret(ctx context.Context, k8sClient client.Client, es *esv1beta1.ExternalSecret, tpl esv1beta1.TemplateFrom, out map[string][]byte) error {
 	if tpl.Secret == nil {
 		return nil
 	}

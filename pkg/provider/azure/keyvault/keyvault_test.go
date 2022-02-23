@@ -27,7 +27,7 @@ import (
 	"k8s.io/utils/pointer"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/schema"
@@ -39,7 +39,7 @@ type secretManagerTestCase struct {
 	secretName     string
 	secretVersion  string
 	serviceURL     string
-	ref            *esv1alpha1.ExternalSecretDataRemoteRef
+	ref            *esv1beta1.ExternalSecretDataRemoteRef
 	apiErr         error
 	secretOutput   keyvault.SecretBundle
 	keyOutput      keyvault.KeyBundle
@@ -87,12 +87,12 @@ func TestNewClientManagedIdentityNoNeedForCredentials(t *testing.T) {
 	namespace := "internal"
 	vaultURL := "https://local.vault.url"
 	identityID := "1234"
-	authType := esv1alpha1.ManagedIdentity
-	store := esv1alpha1.SecretStore{
+	authType := esv1beta1.ManagedIdentity
+	store := esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
+		Spec: esv1beta1.SecretStoreSpec{Provider: &esv1beta1.SecretStoreProvider{AzureKV: &esv1beta1.AzureKVProvider{
 			AuthType:   &authType,
 			IdentityID: &identityID,
 			VaultURL:   &vaultURL,
@@ -116,12 +116,12 @@ func TestNewClientNoCreds(t *testing.T) {
 	namespace := "internal"
 	vaultURL := "https://local.vault.url"
 	tenantID := "1234"
-	authType := esv1alpha1.ServicePrincipal
-	store := esv1alpha1.SecretStore{
+	authType := esv1beta1.ServicePrincipal
+	store := esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{Provider: &esv1alpha1.SecretStoreProvider{AzureKV: &esv1alpha1.AzureKVProvider{
+		Spec: esv1beta1.SecretStoreSpec{Provider: &esv1beta1.SecretStoreProvider{AzureKV: &esv1beta1.AzureKVProvider{
 			AuthType: &authType,
 			VaultURL: &vaultURL,
 			TenantID: &tenantID,
@@ -133,7 +133,7 @@ func TestNewClientNoCreds(t *testing.T) {
 	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "missing secretRef in provider config")
 
-	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1alpha1.AzureKVAuth{}
+	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1beta1.AzureKVAuth{}
 	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
 
@@ -144,8 +144,8 @@ func TestNewClientNoCreds(t *testing.T) {
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret = &v1.SecretKeySelector{Name: "password"}
 	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
 	tassert.EqualError(t, err, "could not find secret internal/user: secrets \"user\" not found")
-	store.TypeMeta.Kind = esv1alpha1.ClusterSecretStoreKind
-	store.TypeMeta.APIVersion = esv1alpha1.ClusterSecretStoreKindAPIVersion
+	store.TypeMeta.Kind = esv1beta1.ClusterSecretStoreKind
+	store.TypeMeta.APIVersion = esv1beta1.ClusterSecretStoreKindAPIVersion
 	ns := "default"
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID.Namespace = &ns
 	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret.Namespace = &ns
@@ -265,7 +265,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1alpha1.AzureKVProvider{VaultURL: pointer.StringPtr("noop")},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr("noop")},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -361,7 +361,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1alpha1.AzureKVProvider{VaultURL: pointer.StringPtr("noop")},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr("noop")},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -375,8 +375,8 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 }
 
-func makeValidRef() *esv1alpha1.ExternalSecretDataRemoteRef {
-	return &esv1alpha1.ExternalSecretDataRemoteRef{
+func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
+	return &esv1beta1.ExternalSecretDataRemoteRef{
 		Key:     "test-secret",
 		Version: "default",
 	}
