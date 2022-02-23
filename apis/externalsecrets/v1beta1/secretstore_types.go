@@ -82,6 +82,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Webhook *WebhookProvider `json:"webhook,omitempty"`
 
+	// Kubernetes configures this store to sync secrets using a Kubernetes cluster provider
+	// +optional
+	Kubernetes *KubernetesProvider `json:"kubernetes,omitempty"`
+
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`

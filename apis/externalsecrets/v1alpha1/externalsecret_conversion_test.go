@@ -65,7 +65,7 @@ func newExternalSecretV1Alpha1() *ExternalSecret {
 						},
 					},
 					Data: map[string]string{
-						"my-key": "{{.data | toString}}",
+						keyName: "{{.data | toString}}",
 					},
 					TemplateFrom: []TemplateFrom{
 						{
@@ -147,7 +147,7 @@ func newExternalSecretV1Beta1() *esv1beta1.ExternalSecret {
 						},
 					},
 					Data: map[string]string{
-						"my-key": "{{.data | toString}}",
+						keyName: "{{.data | toString}}",
 					},
 					TemplateFrom: []esv1beta1.TemplateFrom{
 						{

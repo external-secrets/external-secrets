@@ -1997,6 +1997,28 @@ string
 <tbody>
 <tr>
 <td>
+<code>tenancy</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Tenancy is the tenancy OCID where user is located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>user</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>User is an access OCID specific to the account.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>secretRef</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.OracleSecretRef">
@@ -2030,48 +2052,13 @@ backend.</p>
 <tbody>
 <tr>
 <td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1alpha1.OracleAuth">
-OracleAuth
-</a>
-</em>
-</td>
-<td>
-<p>Auth configures how secret-manager authenticates with the Oracle Vault.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>user</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>User is an access OCID specific to the account.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tenancy</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Tenancy is the tenancy OCID where secret is located.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>region</code></br>
 <em>
 string
 </em>
 </td>
 <td>
-<p>Region is the region where secret is located.</p>
+<p>Region is the region where vault is located.</p>
 </td>
 </tr>
 <tr>
@@ -2083,6 +2070,21 @@ string
 </td>
 <td>
 <p>Vault is the vault&rsquo;s OCID of the specific vault where secret is located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleAuth">
+OracleAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth configures how secret-manager authenticates with the Oracle Vault.
+If empty, use the instance principal, otherwise the user credentials specified in Auth.</p>
 </td>
 </tr>
 </tbody>
