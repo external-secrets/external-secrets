@@ -1,14 +1,5 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-kubeadmConfigPatches:
-- |
-  kind: ClusterConfiguration
-  apiServer:
-    extraArgs:
-      api-audiences: "sts.amazonaws.com"
-      service-account-key-file: "/etc/kubernetes/pki/sa.pub"
-      service-account-signing-key-file: "/etc/kubernetes/pki/sa.key"
-      service-account-issuer: "https://s3-XXXXXXXXXX.amazonaws.com/XXXXXXXXXXXXXXXXXXXXX"
 nodes:
 - role: control-plane
 - role: worker

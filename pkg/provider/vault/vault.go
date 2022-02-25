@@ -29,10 +29,15 @@ import (
 	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/tidwall/gjson"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -64,10 +69,13 @@ const (
 	errVaultRequest         = "error from Vault request: %w"
 	errVaultResponse        = "cannot parse Vault response: %w"
 	errServiceAccount       = "cannot read Kubernetes service account token from file system: %w"
+	errJwtNoTokenSource     = "neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication"
 	errUnsupportedKvVersion = "cannot perform find operations with kv version v1"
-	errGetKubeSA            = "cannot get Kubernetes service account %q: %w"
-	errGetKubeSASecrets     = "cannot find secrets bound to service account: %q"
-	errGetKubeSANoToken     = "cannot find token in secrets bound to service account: %q"
+
+	errGetKubeSA             = "cannot get Kubernetes service account %q: %w"
+	errGetKubeSASecrets      = "cannot find secrets bound to service account: %q"
+	errGetKubeSANoToken      = "cannot find token in secrets bound to service account: %q"
+	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
@@ -106,6 +114,7 @@ type Client interface {
 
 type client struct {
 	kube      kclient.Client
+	corev1    typedcorev1.CoreV1Interface
 	store     *esv1beta1.VaultProvider
 	log       logr.Logger
 	client    Client
@@ -130,6 +139,21 @@ type connector struct {
 }
 
 func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	// controller-runtime/client does not support TokenRequest or other subresource APIs
+	// so we need to construct our own client and use it to fetch tokens
+	// (for Kubernetes service account token auth)
+	restCfg, err := ctrlcfg.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return nil, err
+	}
+	return c.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
+}
+
+func (c *connector) newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {
 		return nil, errors.New(errVaultStore)
@@ -138,6 +162,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore,
 
 	vStore := &client{
 		kube:      kube,
+		corev1:    corev1,
 		store:     vaultSpec,
 		log:       ctrl.Log.WithName("provider").WithName("vault"),
 		namespace: namespace,
@@ -200,8 +225,16 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 		}
 	}
 	if p.Auth.Jwt != nil {
-		if err := utils.ValidateSecretSelector(store, p.Auth.Jwt.SecretRef); err != nil {
-			return fmt.Errorf(errInvalidJwtSec, err)
+		if p.Auth.Jwt.SecretRef != nil {
+			if err := utils.ValidateSecretSelector(store, *p.Auth.Jwt.SecretRef); err != nil {
+				return fmt.Errorf(errInvalidJwtSec, err)
+			}
+		} else if p.Auth.Jwt.KubernetesServiceAccountToken != nil {
+			if err := utils.ValidateServiceAccountSelector(store, p.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef); err != nil {
+				return fmt.Errorf(errInvalidJwtSec, err)
+			}
+		} else {
+			return fmt.Errorf(errJwtNoTokenSource)
 		}
 	}
 	if p.Auth.Kubernetes != nil {
@@ -822,6 +855,27 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	return valueStr, nil
 }
 
+func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, audiences []string, expirationSeconds int64) (string, error) {
+	tokenRequest := &authenticationv1.TokenRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: v.namespace,
+		},
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}
+	if (v.storeKind == esv1beta1.ClusterSecretStoreKind) &&
+		(serviceAccountRef.Namespace != nil) {
+		tokenRequest.Namespace = *serviceAccountRef.Namespace
+	}
+	tokenResponse, err := v.corev1.ServiceAccounts(tokenRequest.Namespace).CreateToken(ctx, serviceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf(errGetKubeSATokenRequest, serviceAccountRef.Name, err)
+	}
+	return tokenResponse.Status.Token, nil
+}
+
 // checkToken does a lookup and checks if the provided token exists.
 func checkToken(ctx context.Context, vStore *client) error {
 	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
@@ -995,7 +1049,24 @@ func (v *client) requestTokenWithLdapAuth(ctx context.Context, client Client, ld
 func (v *client) requestTokenWithJwtAuth(ctx context.Context, client Client, jwtAuth *esv1beta1.VaultJwtAuth) (string, error) {
 	role := strings.TrimSpace(jwtAuth.Role)
 
-	jwt, err := v.secretKeyRef(ctx, &jwtAuth.SecretRef)
+	var jwt string
+	var err error
+	if jwtAuth.SecretRef != nil {
+		jwt, err = v.secretKeyRef(ctx, jwtAuth.SecretRef)
+	} else if k8sServiceAccountToken := jwtAuth.KubernetesServiceAccountToken; k8sServiceAccountToken != nil {
+		audiences := k8sServiceAccountToken.Audiences
+		if audiences == nil {
+			audiences = &[]string{"vault"}
+		}
+		expirationSeconds := k8sServiceAccountToken.ExpirationSeconds
+		if expirationSeconds == nil {
+			tmp := int64(600)
+			expirationSeconds = &tmp
+		}
+		jwt, err = v.serviceAccountToken(ctx, k8sServiceAccountToken.ServiceAccountRef, *audiences, *expirationSeconds)
+	} else {
+		err = fmt.Errorf(errJwtNoTokenSource)
+	}
 	if err != nil {
 		return "", err
 	}

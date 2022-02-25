@@ -69,6 +69,21 @@ vault write auth/myjwt/role/external-secrets-operator \
     policies=external-secrets-operator \
     ttl=1h
 
+vault auth enable -path=myjwtk8s jwt
+
+vault write auth/myjwtk8s/config \
+   oidc_discovery_url=https://kubernetes.default.svc.cluster.local \
+   oidc_discovery_ca_pem=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+   bound_issuer="https://kubernetes.default.svc.cluster.local" \
+   default_role="external-secrets-operator"
+
+vault write auth/myjwtk8s/role/external-secrets-operator \
+    role_type="jwt" \
+    bound_audiences="vault.client" \
+    user_claim="sub" \
+    policies=external-secrets-operator \
+    ttl=1h
+
 # ------------------
 #   Kubernetes AUTH
 #   https://www.vaultproject.io/docs/auth/kubernetes

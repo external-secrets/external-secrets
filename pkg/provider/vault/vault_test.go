@@ -564,7 +564,7 @@ func vaultTest(t *testing.T, name string, tc testCase) {
 	if tc.args.newClientFunc == nil {
 		conn.newVaultClient = newVaultClient
 	}
-	_, err := conn.NewClient(context.Background(), tc.args.store, tc.args.kube, tc.args.ns)
+	_, err := conn.newClient(context.Background(), tc.args.store, tc.args.kube, nil, tc.args.ns)
 	if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}
@@ -1361,7 +1361,7 @@ func TestValidateStore(t *testing.T) {
 			args: args{
 				auth: esv1beta1.VaultAuth{
 					Jwt: &esv1beta1.VaultJwtAuth{
-						SecretRef: esmeta.SecretKeySelector{
+						SecretRef: &esmeta.SecretKeySelector{
 							Namespace: pointer.StringPtr("invalid"),
 						},
 					},

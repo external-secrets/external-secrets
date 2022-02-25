@@ -295,9 +295,9 @@ in a `Kind=Secret` referenced by the `secretRef`.
 
 #### JWT/OIDC authentication
 
-[JWT/OIDC](https://www.vaultproject.io/docs/auth/jwt) uses a
+[JWT/OIDC](https://www.vaultproject.io/docs/auth/jwt) uses either a
 [JWT](https://jwt.io/) token stored in a `Kind=Secret` and referenced by the
-`secretRef`. Optionally a `role` field can be defined in a `Kind=SecretStore`
+`secretRef` or a temporary Kubernetes service account token retrieved via the `TokenRequest` API. Optionally a `role` field can be defined in a `Kind=SecretStore`
 or `Kind=ClusterSecretStore` resource.
 
 ```yaml

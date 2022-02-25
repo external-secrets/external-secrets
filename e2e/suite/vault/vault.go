@@ -30,6 +30,7 @@ const (
 	withApprole   = "with approle auth"
 	withV1        = "with v1 provider"
 	withJWT       = "with jwt provider"
+	withJWTK8s    = "with jwt k8s provider"
 	withK8s       = "with kubernetes provider"
 )
 
@@ -73,6 +74,12 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withJWT, f, common.JSONDataWithTemplate, useJWTProvider),
 		framework.Compose(withJWT, f, common.DataPropertyDockerconfigJSON, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithoutTargetName, useJWTProvider),
+		// use jwt k8s provider
+		framework.Compose(withJWTK8s, f, common.JSONDataFromSync, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.JSONDataWithProperty, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.JSONDataWithTemplate, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.DataPropertyDockerconfigJSON, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.JSONDataWithoutTargetName, useJWTK8sProvider),
 		// use kubernetes provider
 		framework.Compose(withK8s, f, common.FindByName, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataFromSync, useKubernetesProvider),
@@ -106,6 +113,10 @@ func useV1Provider(tc *framework.TestCase) {
 
 func useJWTProvider(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtProviderName
+}
+
+func useJWTK8sProvider(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtK8sProviderName
 }
 
 func useKubernetesProvider(tc *framework.TestCase) {
