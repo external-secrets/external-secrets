@@ -1,20 +1,16 @@
-{{- if .Values.prometheus.enabled }}
+{{- if .Values.serviceMonitor.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-metrics
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
-  annotations:
-    prometheus.io/path: "/metrics"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: {{ .Values.prometheus.service.port | quote }}
 spec:
   type: ClusterIP
   ports:
-    - port: {{ .Values.prometheus.service.port }}
+    - port: 8080
       protocol: TCP
-      name: metrics
+      name: prometheus
   selector:
     {{- include "external-secrets.selectorLabels" . | nindent 4 }}
 {{- end }}

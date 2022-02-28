@@ -72,11 +72,9 @@ resources: {}
   #   cpu: 10m
   #   memory: 32Mi
 
-prometheus:
-  # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+serviceMonitor:
   enabled: false
-  service:
-    port: 8080
+  interval: "30s"
 
 nodeSelector: {}
 

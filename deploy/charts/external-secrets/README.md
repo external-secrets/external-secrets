@@ -78,8 +78,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | podLabels | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | priorityClassName | string | `""` | Pod priority class name. |
-| prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
-| prometheus.service.port | int | `8080` |  |
+| serviceMonitor.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
+| serviceMonitor.interval | string | `"30s"` |  |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
