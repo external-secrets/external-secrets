@@ -44,10 +44,10 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.2
+	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.15.25
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1473
-	github.com/aws/aws-sdk-go v1.38.6
+	github.com/aws/aws-sdk-go v1.41.13
 	github.com/crossplane/crossplane-runtime v0.15.1
 	github.com/go-logr/logr v1.2.2
 	github.com/golang-jwt/jwt/v4 v4.2.0
@@ -103,7 +103,6 @@ require (
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
-	github.com/aws/aws-sdk-go-v2 v0.23.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
