@@ -9,7 +9,7 @@ metadata:
   annotations:
     prometheus.io/path: "/metrics"
     prometheus.io/scrape: "true"
-    prometheus.io/port: {{ .Values.prometheus.service.port | quote }}
+    prometheus.io/port: {{ .Values.webhook.prometheus.service.port | quote }}
   {{- end }}
 spec:
   type: ClusterIP
