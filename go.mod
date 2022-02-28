@@ -52,7 +52,7 @@ require (
 	github.com/go-logr/logr v1.2.2
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/google/go-cmp v0.5.7
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/googleapis/gax-go/v2 v2.1.1
 	github.com/hashicorp/vault/api v1.3.1
 	github.com/huandu/xstrings v1.3.2 // indirect
