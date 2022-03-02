@@ -126,7 +126,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			continue
 		}
 
-		if err = r.resolveExternalSecret(log, ctx, clusterExternalSecret, existingES, namespace, esName); err != nil {
+		if err = r.resolveExternalSecret(log, ctx, &clusterExternalSecret, &existingES, &namespace, esName); err != nil {
 			failedNamespaces = append(failedNamespaces, namespace.Name)
 		}
 	}
@@ -142,9 +142,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) resolveExternalSecret(log logr.Logger, ctx context.Context, clusterExternalSecret esv1alpha1.ClusterExternalSecret, existingES esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) error {
+func (r *Reconciler) resolveExternalSecret(log logr.Logger, ctx context.Context, clusterExternalSecret *esv1alpha1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace *v1.Namespace, esName string) error {
 	// this means the existing ES does not belong to us
-	if err := controllerutil.SetControllerReference(&clusterExternalSecret, &existingES, r.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(clusterExternalSecret, existingES, r.Scheme); err != nil {
 		log.Error(err, errSetCtrlReference, "namespace", namespace)
 		return err
 	}
@@ -157,7 +157,7 @@ func (r *Reconciler) resolveExternalSecret(log logr.Logger, ctx context.Context,
 		Spec: clusterExternalSecret.Spec.ExternalSecretSpec,
 	}
 
-	if err := controllerutil.SetControllerReference(&clusterExternalSecret, &externalSecret, r.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(clusterExternalSecret, &externalSecret, r.Scheme); err != nil {
 		log.Error(err, errSetCtrlReference)
 		return err
 	}
@@ -179,9 +179,9 @@ func (r *Reconciler) resolveExternalSecret(log logr.Logger, ctx context.Context,
 func getConditionType(namespaces []string, namespaceList *v1.NamespaceList) esv1alpha1.ClusterExternalSecretConditionType {
 	if len(namespaces) < len(namespaceList.Items) {
 		return esv1alpha1.ClusterExternalSecretPartiallyReady
-	} else {
-		return esv1alpha1.ClusterExternalSecretNotReady
 	}
+
+	return esv1alpha1.ClusterExternalSecretNotReady
 }
 
 // SetupWithManager sets up the controller with the Manager.
