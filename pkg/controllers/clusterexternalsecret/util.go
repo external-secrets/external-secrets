@@ -17,11 +17,11 @@ package clusterexternalsecret
 import (
 	v1 "k8s.io/api/core/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-func NewClusterExternalSecretCondition(condType esv1alpha1.ClusterExternalSecretConditionType, status v1.ConditionStatus, message string) *esv1alpha1.ClusterExternalSecretStatusCondition {
-	return &esv1alpha1.ClusterExternalSecretStatusCondition{
+func NewClusterExternalSecretCondition(condType esv1beta1.ClusterExternalSecretConditionType, status v1.ConditionStatus, message string) *esv1beta1.ClusterExternalSecretStatusCondition {
+	return &esv1beta1.ClusterExternalSecretStatusCondition{
 		Type:    condType,
 		Status:  status,
 		Message: message,
@@ -29,7 +29,7 @@ func NewClusterExternalSecretCondition(condType esv1alpha1.ClusterExternalSecret
 }
 
 // GetExternalSecretCondition returns the condition with the provided type.
-func GetClusterExternalSecretCondition(status esv1alpha1.ClusterExternalSecretStatus, condType esv1alpha1.ClusterExternalSecretConditionType) *esv1alpha1.ClusterExternalSecretStatusCondition {
+func GetClusterExternalSecretCondition(status esv1beta1.ClusterExternalSecretStatus, condType esv1beta1.ClusterExternalSecretConditionType) *esv1beta1.ClusterExternalSecretStatusCondition {
 	for i := range status.Conditions {
 		c := status.Conditions[i]
 		if c.Type == condType {
@@ -39,13 +39,13 @@ func GetClusterExternalSecretCondition(status esv1alpha1.ClusterExternalSecretSt
 	return nil
 }
 
-func SetClusterExternalSecretCondition(ces *esv1alpha1.ClusterExternalSecret, condition esv1alpha1.ClusterExternalSecretStatusCondition) {
+func SetClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, condition esv1beta1.ClusterExternalSecretStatusCondition) {
 	ces.Status.Conditions = append(filterOutCondition(ces.Status.Conditions, condition.Type), condition)
 }
 
 // filterOutCondition returns an empty set of conditions with the provided type.
-func filterOutCondition(conditions []esv1alpha1.ClusterExternalSecretStatusCondition, condType esv1alpha1.ClusterExternalSecretConditionType) []esv1alpha1.ClusterExternalSecretStatusCondition {
-	newConditions := make([]esv1alpha1.ClusterExternalSecretStatusCondition, 0, len(conditions))
+func filterOutCondition(conditions []esv1beta1.ClusterExternalSecretStatusCondition, condType esv1beta1.ClusterExternalSecretConditionType) []esv1beta1.ClusterExternalSecretStatusCondition {
+	newConditions := make([]esv1beta1.ClusterExternalSecretStatusCondition, 0, len(conditions))
 	for _, c := range conditions {
 		if c.Type == condType {
 			continue

@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
@@ -62,7 +61,7 @@ const (
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterExternalSecret", req.NamespacedName)
 
-	var clusterExternalSecret esv1alpha1.ClusterExternalSecret
+	var clusterExternalSecret esv1beta1.ClusterExternalSecret
 
 	err := r.Get(ctx, req.NamespacedName, &clusterExternalSecret)
 	if apierrors.IsNotFound(err) {
@@ -132,14 +131,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1alpha1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) error {
+func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) error {
 	// this means the existing ES does not belong to us
 	if err := controllerutil.SetControllerReference(clusterExternalSecret, existingES, r.Scheme); err != nil {
 		log.Error(err, errSetCtrlReference, "namespace", namespace)
 		return err
 	}
 
-	externalSecret := esv1alpha1.ExternalSecret{
+	externalSecret := esv1beta1.ExternalSecret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      esName,
 			Namespace: namespace.Name,
@@ -166,7 +165,7 @@ func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1alpha1.ClusterExternalSecret, p client.Patch) {
+func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1beta1.ClusterExternalSecret, p client.Patch) {
 	if err := r.Status().Patch(ctx, clusterExternalSecret, p); err != nil {
 		log.Error(err, errPatchStatus)
 	}
@@ -185,19 +184,19 @@ func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string 
 	return ""
 }
 
-func getConditionType(namespaces []string, namespaceList *v1.NamespaceList) esv1alpha1.ClusterExternalSecretConditionType {
+func getConditionType(namespaces []string, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
 	if len(namespaces) < len(namespaceList.Items) {
-		return esv1alpha1.ClusterExternalSecretPartiallyReady
+		return esv1beta1.ClusterExternalSecretPartiallyReady
 	}
 
-	return esv1alpha1.ClusterExternalSecretNotReady
+	return esv1beta1.ClusterExternalSecretNotReady
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
-		For(&esv1alpha1.ClusterExternalSecret{}).
-		Owns(&esv1alpha1.ExternalSecret{}, builder.OnlyMetadata).
+		For(&esv1beta1.ClusterExternalSecret{}).
+		Owns(&esv1beta1.ExternalSecret{}, builder.OnlyMetadata).
 		Complete(r)
 }

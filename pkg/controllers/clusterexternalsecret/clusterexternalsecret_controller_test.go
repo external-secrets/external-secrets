@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 )
 
@@ -35,20 +35,20 @@ var (
 )
 
 type testCase struct {
-	secretStore           *esv1alpha1.SecretStore
-	clusterExternalSecret *esv1alpha1.ClusterExternalSecret
+	secretStore           *esv1beta1.SecretStore
+	clusterExternalSecret *esv1beta1.ClusterExternalSecret
 
 	// checkCondition should return true if the externalSecret
 	// has the expected condition
-	checkCondition func(*esv1alpha1.ClusterExternalSecret) bool
+	checkCondition func(*esv1beta1.ClusterExternalSecret) bool
 
 	// checkExternalSecret is called after the condition has been verified
 	// use this to verify the externalSecret
-	checkClusterExternalSecret func(*esv1alpha1.ClusterExternalSecret)
+	checkClusterExternalSecret func(*esv1beta1.ClusterExternalSecret)
 
 	// checkExternalSecret is called after the condition has been verified
 	// use this to verify the externalSecret
-	checkExternalSecret func(*esv1alpha1.ClusterExternalSecret, *esv1alpha1.ExternalSecret)
+	checkExternalSecret func(*esv1beta1.ClusterExternalSecret, *esv1beta1.ExternalSecret)
 }
 
 type testTweaks func(*testCase)
@@ -85,7 +85,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				Name: ClusterExternalSecretNamespace,
 			},
 		}, client.PropagationPolicy(metav1.DeletePropagationBackground)), client.GracePeriodSeconds(0)).To(Succeed())
-		Expect(k8sClient.Delete(context.Background(), &esv1alpha1.SecretStore{
+		Expect(k8sClient.Delete(context.Background(), &esv1beta1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      ExternalSecretStore,
 				Namespace: ClusterExternalSecretNamespace,
@@ -99,49 +99,49 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 	makeDefaultTestCase := func() *testCase {
 		return &testCase{
-			checkCondition: func(ces *esv1alpha1.ClusterExternalSecret) bool {
-				cond := GetClusterExternalSecretCondition(ces.Status, esv1alpha1.ClusterExternalSecretReady)
+			checkCondition: func(ces *esv1beta1.ClusterExternalSecret) bool {
+				cond := GetClusterExternalSecretCondition(ces.Status, esv1beta1.ClusterExternalSecretReady)
 				if cond == nil || cond.Status != v1.ConditionTrue {
 					return false
 				}
 				return true
 			},
-			checkClusterExternalSecret: func(es *esv1alpha1.ClusterExternalSecret) {},
-			checkExternalSecret:        func(*esv1alpha1.ClusterExternalSecret, *esv1alpha1.ExternalSecret) {},
-			secretStore: &esv1alpha1.SecretStore{
+			checkClusterExternalSecret: func(es *esv1beta1.ClusterExternalSecret) {},
+			checkExternalSecret:        func(*esv1beta1.ClusterExternalSecret, *esv1beta1.ExternalSecret) {},
+			secretStore: &esv1beta1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ExternalSecretStore,
 					Namespace: ExternalSecretNamespaceTarget,
 				},
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						AWS: &esv1alpha1.AWSProvider{
-							Service: esv1alpha1.AWSServiceSecretsManager,
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{
+							Service: esv1beta1.AWSServiceSecretsManager,
 						},
 					},
 				},
 			},
-			clusterExternalSecret: &esv1alpha1.ClusterExternalSecret{
+			clusterExternalSecret: &esv1beta1.ClusterExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ClusterExternalSecretName,
 					Namespace: ClusterExternalSecretNamespace,
 				},
-				Spec: esv1alpha1.ClusterExternalSecretSpec{
+				Spec: esv1beta1.ClusterExternalSecretSpec{
 					NamespaceSelector: metav1.LabelSelector{
 						MatchLabels: NamespaceLabels,
 					},
 					ExternalSecretName: ExternalSecretName,
-					ExternalSecretSpec: esv1alpha1.ExternalSecretSpec{
-						SecretStoreRef: esv1alpha1.SecretStoreRef{
+					ExternalSecretSpec: esv1beta1.ExternalSecretSpec{
+						SecretStoreRef: esv1beta1.SecretStoreRef{
 							Name: ExternalSecretStore,
 						},
-						Target: esv1alpha1.ExternalSecretTarget{
+						Target: esv1beta1.ExternalSecretTarget{
 							Name: ExternalSecretTargetSecretName,
 						},
-						Data: []esv1alpha1.ExternalSecretData{
+						Data: []esv1beta1.ExternalSecretData{
 							{
 								SecretKey: targetProp,
-								RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+								RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 									Key:      remoteKey,
 									Property: remoteProperty,
 								},
@@ -155,7 +155,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 	syncWithoutESName := func(tc *testCase) {
 		tc.clusterExternalSecret.Spec.ExternalSecretName = ""
-		tc.checkExternalSecret = func(ces *esv1alpha1.ClusterExternalSecret, es *esv1alpha1.ExternalSecret) {
+		tc.checkExternalSecret = func(ces *esv1beta1.ClusterExternalSecret, es *esv1beta1.ExternalSecret) {
 			Expect(es.ObjectMeta.Name).To(Equal(ClusterExternalSecretName))
 		}
 	}
@@ -171,7 +171,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
 			Expect(k8sClient.Create(ctx, tc.clusterExternalSecret)).Should(Succeed())
 			cesKey := types.NamespacedName{Name: ClusterExternalSecretName, Namespace: ClusterExternalSecretNamespace}
-			createdCES := &esv1alpha1.ClusterExternalSecret{}
+			createdCES := &esv1beta1.ClusterExternalSecret{}
 			By("checking the ces condition")
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, cesKey, createdCES)
@@ -184,7 +184,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 			if tc.checkExternalSecret != nil {
 				for _, namespace := range ExternalSecretNamespaces {
-					es := &esv1alpha1.ExternalSecret{}
+					es := &esv1beta1.ExternalSecret{}
 					esLookupKey := types.NamespacedName{
 						Name:      createdCES.Spec.ExternalSecretName,
 						Namespace: namespace,
