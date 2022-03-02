@@ -351,7 +351,6 @@ spec:
                               required:
                                 - clusterLocation
                                 - clusterName
-                                - clusterProjectID
                                 - serviceAccountRef
                               type: object
                           type: object
@@ -2794,7 +2793,6 @@ spec:
                               required:
                                 - clusterLocation
                                 - clusterName
-                                - clusterProjectID
                                 - serviceAccountRef
                               type: object
                           type: object
