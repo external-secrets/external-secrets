@@ -44,6 +44,14 @@ var (
 	ExtSecretGroupVersionKind = SchemeGroupVersion.WithKind(ExtSecretKind)
 )
 
+// ClusterExternalSecret type metadata.
+var (
+	ClusterExtSecretKind             = reflect.TypeOf(ClusterExternalSecret{}).Name()
+	ClusterExtSecretGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterExtSecretKind}.String()
+	ClusterExtSecretKindAPIVersion   = ClusterExtSecretKind + "." + SchemeGroupVersion.String()
+	ClusterExtSecretGroupVersionKind = SchemeGroupVersion.WithKind(ClusterExtSecretKind)
+)
+
 // SecretStore type metadata.
 var (
 	SecretStoreKind             = reflect.TypeOf(SecretStore{}).Name()
@@ -62,6 +70,7 @@ var (
 
 func init() {
 	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
+	SchemeBuilder.Register(&ClusterExternalSecret{}, &ClusterExternalSecretList{})
 	SchemeBuilder.Register(&SecretStore{}, &SecretStoreList{})
 	SchemeBuilder.Register(&ClusterSecretStore{}, &ClusterSecretStoreList{})
 }
