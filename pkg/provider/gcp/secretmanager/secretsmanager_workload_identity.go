@@ -114,6 +114,14 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.Gene
 		saKey.Namespace = *wi.ServiceAccountRef.Namespace
 	}
 
+	// get clusterProjectID from workload identity spec but default to Provider.GCPSM.ProjectID
+	var clusterProjectID string
+	if wi.ClusterProjectID != "" {
+		clusterProjectID = wi.ClusterProjectID
+	} else {
+		clusterProjectID = spec.Provider.GCPSM.ProjectID
+	}
+
 	sa := &v1.ServiceAccount{}
 	err := kube.Get(ctx, saKey, sa)
 	if err != nil {
@@ -121,10 +129,10 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.Gene
 	}
 
 	idProvider := fmt.Sprintf("https://container.googleapis.com/v1/projects/%s/locations/%s/clusters/%s",
-		spec.Provider.GCPSM.ProjectID,
+		clusterProjectID,
 		wi.ClusterLocation,
 		wi.ClusterName)
-	idPool := fmt.Sprintf("%s.svc.id.goog", spec.Provider.GCPSM.ProjectID)
+	idPool := fmt.Sprintf("%s.svc.id.goog", clusterProjectID)
 	gcpSA := sa.Annotations[gcpSAAnnotation]
 
 	resp, err := w.saTokenGenerator.Generate(ctx, idPool, saKey.Name, saKey.Namespace)

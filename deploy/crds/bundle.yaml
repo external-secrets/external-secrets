@@ -334,6 +334,8 @@ spec:
                                   type: string
                                 clusterName:
                                   type: string
+                                clusterProjectID:
+                                  type: string
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
@@ -349,6 +351,7 @@ spec:
                               required:
                                 - clusterLocation
                                 - clusterName
+                                - clusterProjectID
                                 - serviceAccountRef
                               type: object
                           type: object
@@ -1295,6 +1298,8 @@ spec:
                                   type: string
                                 clusterName:
                                   type: string
+                                clusterProjectID:
+                                  type: string
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
@@ -1310,6 +1315,7 @@ spec:
                               required:
                                 - clusterLocation
                                 - clusterName
+                                - clusterProjectID
                                 - serviceAccountRef
                               type: object
                           type: object
@@ -2771,6 +2777,8 @@ spec:
                                   type: string
                                 clusterName:
                                   type: string
+                                clusterProjectID:
+                                  type: string
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
@@ -2786,6 +2794,7 @@ spec:
                               required:
                                 - clusterLocation
                                 - clusterName
+                                - clusterProjectID
                                 - serviceAccountRef
                               type: object
                           type: object
@@ -3735,6 +3744,8 @@ spec:
                                   type: string
                                 clusterName:
                                   type: string
+                                clusterProjectID:
+                                  type: string
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
@@ -3750,6 +3761,7 @@ spec:
                               required:
                                 - clusterLocation
                                 - clusterName
+                                - clusterProjectID
                                 - serviceAccountRef
                               type: object
                           type: object
