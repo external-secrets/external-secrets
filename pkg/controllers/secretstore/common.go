@@ -25,7 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
 const (
@@ -77,7 +76,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 // if it fails sets a condition and writes events.
 func validateStore(ctx context.Context, namespace string, store esapi.GenericStore,
 	client client.Client, recorder record.EventRecorder) error {
-	storeProvider, err := schema.GetProvider(store)
+	storeProvider, err := esapi.GetProvider(store)
 	if err != nil {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidStore, errUnableGetProvider)
 		SetExternalSecretCondition(store, *cond)

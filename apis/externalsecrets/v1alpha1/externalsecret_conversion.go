@@ -28,7 +28,7 @@ func (alpha *ExternalSecret) ConvertTo(betaRaw conversion.Hub) error {
 	v1beta1DataFrom := make([]esv1beta1.ExternalSecretDataFromRemoteRef, 0)
 	for _, v1alpha1RemoteRef := range alpha.Spec.DataFrom {
 		v1beta1RemoteRef := esv1beta1.ExternalSecretDataFromRemoteRef{
-			Extract: esv1beta1.ExternalSecretDataRemoteRef{
+			Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 				Key:      v1alpha1RemoteRef.Key,
 				Property: v1alpha1RemoteRef.Property,
 				Version:  v1alpha1RemoteRef.Version,

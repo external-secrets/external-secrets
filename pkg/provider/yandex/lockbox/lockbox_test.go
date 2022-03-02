@@ -34,7 +34,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/fake"
 )
 
@@ -58,7 +57,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 	}
-	provider, err := schema.GetProvider(store)
+	provider, err := esv1beta1.GetProvider(store)
 	tassert.Nil(t, err)
 
 	k8sClient := clientfake.NewClientBuilder().Build()

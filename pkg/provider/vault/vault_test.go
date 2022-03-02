@@ -29,6 +29,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -1066,6 +1067,145 @@ func TestGetSecretPath(t *testing.T) {
 			want := vStore.buildPath(tc.args.path)
 			if diff := cmp.Diff(want, tc.args.expected); diff != "" {
 				t.Errorf("\n%s\nvault.buildPath(...): -want expected, +got error:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestValidateStore(t *testing.T) {
+	type args struct {
+		auth esv1beta1.VaultAuth
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "empty auth",
+			args: args{},
+		},
+
+		{
+			name: "invalid approle with namespace",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					AppRole: &esv1beta1.VaultAppRole{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid clientcert",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Cert: &esv1beta1.VaultCertAuth{
+						ClientCert: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid cert secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Cert: &esv1beta1.VaultCertAuth{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid jwt secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Jwt: &esv1beta1.VaultJwtAuth{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid kubernetes sa",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Kubernetes: &esv1beta1.VaultKubernetesAuth{
+						ServiceAccountRef: &esmeta.ServiceAccountSelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid kubernetes secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Kubernetes: &esv1beta1.VaultKubernetesAuth{
+						SecretRef: &esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid ldap secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Ldap: &esv1beta1.VaultLdapAuth{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid token secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					TokenSecretRef: &esmeta.SecretKeySelector{
+						Namespace: pointer.StringPtr("invalid"),
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &connector{
+				newVaultClient: nil,
+			}
+			store := &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Vault: &esv1beta1.VaultProvider{
+							Auth: tt.args.auth,
+						},
+					},
+				},
+			}
+			if err := c.ValidateStore(store); (err != nil) != tt.wantErr {
+				t.Errorf("connector.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

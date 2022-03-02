@@ -26,9 +26,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -165,7 +163,7 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 	iStore := &Client{
@@ -196,8 +194,12 @@ func (kms *KeyManagementService) Validate() error {
 	return nil
 }
 
+func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+	return nil
+}
+
 func init() {
-	schema.Register(&KeyManagementService{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&KeyManagementService{}, &esv1beta1.SecretStoreProvider{
 		Alibaba: &esv1beta1.AlibabaProvider{},
 	})
 }

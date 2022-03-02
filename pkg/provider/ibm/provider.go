@@ -27,8 +27,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -323,7 +321,11 @@ func (ibm *providerIBM) Validate() error {
 	return nil
 }
 
-func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
+	return nil
+}
+
+func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	ibmSpec := storeSpec.Provider.IBM
 
@@ -376,7 +378,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericSt
 }
 
 func init() {
-	schema.Register(&providerIBM{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&providerIBM{}, &esv1beta1.SecretStoreProvider{
 		IBM: &esv1beta1.IBMProvider{},
 	})
 }

@@ -22,19 +22,20 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
+	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,31 +50,49 @@ const (
 	caKeyName            = "ca.key"
 	certValidityDuration = 10 * 365 * 24 * time.Hour
 	LookaheadInterval    = 90 * 24 * time.Hour
-)
 
-type WebhookType int
-
-const (
-	Validating WebhookType = iota
-	Mutating
-	CRDConversion
+	errResNotReady       = "resource not ready: %s"
+	errSubsetsNotReady   = "subsets not ready"
+	errAddressesNotReady = "addresses not ready"
 )
 
 type Reconciler struct {
 	client.Client
-	Log                    logr.Logger
-	Scheme                 *runtime.Scheme
-	recorder               record.EventRecorder
-	SvcName                string
-	SvcNamespace           string
-	SecretName             string
-	SecretNamespace        string
-	CrdResources           []string
-	dnsName                string
-	CAName                 string
-	CAOrganization         string
-	RestartOnSecretRefresh bool
-	RequeueInterval        time.Duration
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	recorder        record.EventRecorder
+	SvcName         string
+	SvcNamespace    string
+	SecretName      string
+	SecretNamespace string
+	CrdResources    []string
+	dnsName         string
+	CAName          string
+	CAOrganization  string
+	RequeueInterval time.Duration
+
+	// the controller is ready when all crds are injected
+	rdyMu          *sync.Mutex
+	readyStatusMap map[string]bool
+}
+
+func New(k8sClient client.Client, scheme *runtime.Scheme, logger logr.Logger,
+	interval time.Duration, svcName, svcNamespace, secretName, secretNamespace string, resources []string) *Reconciler {
+	return &Reconciler{
+		Client:          k8sClient,
+		Log:             logger,
+		Scheme:          scheme,
+		SvcName:         svcName,
+		SvcNamespace:    svcNamespace,
+		SecretName:      secretName,
+		SecretNamespace: secretNamespace,
+		RequeueInterval: interval,
+		CrdResources:    resources,
+		CAName:          "external-secrets",
+		CAOrganization:  "external-secrets",
+		rdyMu:           &sync.Mutex{},
+		readyStatusMap:  map[string]bool{},
+	}
 }
 
 type CertInfo struct {
@@ -81,10 +100,6 @@ type CertInfo struct {
 	CertName string
 	KeyName  string
 	CAName   string
-}
-type WebhookInfo struct {
-	Name string
-	Type WebhookType
 }
 
 func contains(s []string, e string) bool {
@@ -95,44 +110,62 @@ func contains(s []string, e string) bool {
 	}
 	return false
 }
+
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("CustomResourceDefinition", req.NamespacedName)
 	if contains(r.CrdResources, req.NamespacedName.Name) {
 		err := r.updateCRD(ctx, req)
 		if err != nil {
 			log.Error(err, "failed to inject conversion webhook")
+			r.rdyMu.Lock()
+			r.readyStatusMap[req.NamespacedName.Name] = false
+			r.rdyMu.Unlock()
 			return ctrl.Result{}, err
 		}
+		r.rdyMu.Lock()
+		r.readyStatusMap[req.NamespacedName.Name] = true
+		r.rdyMu.Unlock()
 	}
 	return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
 }
 
-func (r *Reconciler) ConvertToWebhookInfo() []WebhookInfo {
-	info := make([]WebhookInfo, len(r.CrdResources))
-	for p, v := range r.CrdResources {
-		r := WebhookInfo{
-			Name: v,
-			Type: CRDConversion,
+// ReadyCheck reviews if all webhook configs have been injected into the CRDs
+// and if the referenced webhook service is ready.
+func (r *Reconciler) ReadyCheck(_ *http.Request) error {
+	for _, res := range r.CrdResources {
+		r.rdyMu.Lock()
+		rdy := r.readyStatusMap[res]
+		r.rdyMu.Unlock()
+		if !rdy {
+			return fmt.Errorf(errResNotReady, res)
 		}
-		info[p] = r
 	}
-	return info
+	var eps corev1.Endpoints
+	err := r.Get(context.TODO(), types.NamespacedName{
+		Name:      r.SvcName,
+		Namespace: r.SvcNamespace,
+	}, &eps)
+	if err != nil {
+		return err
+	}
+	if len(eps.Subsets) == 0 {
+		return fmt.Errorf(errSubsetsNotReady)
+	}
+	if len(eps.Subsets[0].Addresses) == 0 {
+		return fmt.Errorf(errAddressesNotReady)
+	}
+	return nil
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
-	crdGVK := schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"}
-	res := &unstructured.Unstructured{}
-	res.SetGroupVersionKind(crdGVK)
 	r.recorder = mgr.GetEventRecorderFor("custom-resource-definition")
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
-		For(res).
+		For(&apiext.CustomResourceDefinition{}).
 		Complete(r)
 }
 
 func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
-	crdGVK := schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"}
-
 	secret := corev1.Secret{}
 	secretName := types.NamespacedName{
 		Name:      r.SecretName,
@@ -142,16 +175,15 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 	if err != nil {
 		return err
 	}
-	updatedResource := &unstructured.Unstructured{}
-	updatedResource.SetGroupVersionKind(crdGVK)
-	if err := r.Get(ctx, req.NamespacedName, updatedResource); err != nil {
+	var updatedResource apiext.CustomResourceDefinition
+	if err := r.Get(ctx, req.NamespacedName, &updatedResource); err != nil {
 		return err
 	}
 	svc := types.NamespacedName{
 		Name:      r.SvcName,
 		Namespace: r.SvcNamespace,
 	}
-	if err := injectSvcToConversionWebhook(updatedResource, svc); err != nil {
+	if err := injectService(&updatedResource, svc); err != nil {
 		return err
 	}
 	r.dnsName = fmt.Sprintf("%v.%v.svc", r.SvcName, r.SvcNamespace)
@@ -164,45 +196,35 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 		if err != nil {
 			return err
 		}
-		if err := injectCertToConversionWebhook(updatedResource, artifacts.CertPEM); err != nil {
+		if err := injectCert(&updatedResource, artifacts.CertPEM); err != nil {
 			return err
 		}
 	}
-	if err := r.Update(ctx, updatedResource); err != nil {
+	if err := r.Update(ctx, &updatedResource); err != nil {
 		return err
 	}
 	return nil
 }
 
-func injectSvcToConversionWebhook(crd *unstructured.Unstructured, svc types.NamespacedName) error {
-	_, found, err := unstructured.NestedMap(crd.Object, "spec", "conversion", "webhook", "clientConfig")
-	if err != nil {
-		return err
+func injectService(crd *apiext.CustomResourceDefinition, svc types.NamespacedName) error {
+	if crd.Spec.Conversion == nil ||
+		crd.Spec.Conversion.Webhook == nil ||
+		crd.Spec.Conversion.Webhook.ClientConfig == nil ||
+		crd.Spec.Conversion.Webhook.ClientConfig.Service == nil {
+		return fmt.Errorf("unexpected crd conversion webhook config")
 	}
-	if !found {
-		return errors.New("`conversion.webhook.clientConfig` field not found in CustomResourceDefinition")
-	}
-	if err := unstructured.SetNestedField(crd.Object, svc.Name, "spec", "conversion", "webhook", "clientConfig", "service", "name"); err != nil {
-		return err
-	}
-	if err := unstructured.SetNestedField(crd.Object, svc.Namespace, "spec", "conversion", "webhook", "clientConfig", "service", "namespace"); err != nil {
-		return err
-	}
+	crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = svc.Namespace
+	crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = svc.Name
 	return nil
 }
 
-func injectCertToConversionWebhook(crd *unstructured.Unstructured, certPem []byte) error {
-	_, found, err := unstructured.NestedMap(crd.Object, "spec", "conversion", "webhook", "clientConfig")
-	if err != nil {
-		return err
+func injectCert(crd *apiext.CustomResourceDefinition, certPem []byte) error {
+	if crd.Spec.Conversion == nil ||
+		crd.Spec.Conversion.Webhook == nil ||
+		crd.Spec.Conversion.Webhook.ClientConfig == nil {
+		return fmt.Errorf("unexpected crd conversion webhook config")
 	}
-	if !found {
-		return errors.New("`conversion.webhook.clientConfig` field not found in CustomResourceDefinition")
-	}
-	if err := unstructured.SetNestedField(crd.Object, base64.StdEncoding.EncodeToString(certPem), "spec", "conversion", "webhook", "clientConfig", "caBundle"); err != nil {
-		return err
-	}
-
+	crd.Spec.Conversion.Webhook.ClientConfig.CABundle = certPem
 	return nil
 }
 
@@ -289,17 +311,11 @@ func (r *Reconciler) refreshCertIfNeeded(secret *corev1.Secret) (bool, error) {
 		if err := r.refreshCerts(true, secret); err != nil {
 			return false, err
 		}
-		if r.RestartOnSecretRefresh {
-			os.Exit(0)
-		}
 		return true, nil
 	}
 	if !r.validServerCert(secret.Data[caCertName], secret.Data[certName], secret.Data[keyName]) {
 		if err := r.refreshCerts(false, secret); err != nil {
 			return false, err
-		}
-		if r.RestartOnSecretRefresh {
-			os.Exit(0)
 		}
 		return true, nil
 	}
@@ -450,21 +466,23 @@ func (r *Reconciler) writeSecret(cert, key []byte, caArtifacts *KeyPairArtifacts
 	return r.Update(context.Background(), secret)
 }
 
+// CheckCerts verifies that certificates exist in a given fs location
+// and if they're valid.
 func CheckCerts(c CertInfo, dnsName string, at time.Time) error {
-	certFile := c.CertDir + "/" + c.CertName
+	certFile := filepath.Join(c.CertDir, c.CertName)
 	_, err := os.Stat(certFile)
 	if err != nil {
 		return err
 	}
-	ca, err := os.ReadFile(c.CertDir + "/" + c.CAName)
+	ca, err := os.ReadFile(filepath.Join(c.CertDir, c.CAName))
 	if err != nil {
 		return err
 	}
-	cert, err := os.ReadFile(c.CertDir + "/" + c.CertName)
+	cert, err := os.ReadFile(filepath.Join(c.CertDir, c.CertName))
 	if err != nil {
 		return err
 	}
-	key, err := os.ReadFile(c.CertDir + "/" + c.KeyName)
+	key, err := os.ReadFile(filepath.Join(c.CertDir, c.KeyName))
 	if err != nil {
 		return err
 	}

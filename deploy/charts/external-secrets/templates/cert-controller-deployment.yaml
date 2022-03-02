@@ -61,6 +61,12 @@ spec:
             - containerPort: {{ .Values.certController.prometheus.service.port }}
               protocol: TCP
               name: metrics
+          readinessProbe:
+            httpGet:
+              port: 8081
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5
           {{- with .Values.certController.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}

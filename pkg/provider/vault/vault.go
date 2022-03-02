@@ -37,13 +37,12 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
-	_ provider.Provider      = &connector{}
-	_ provider.SecretsClient = &client{}
+	_ esv1beta1.Provider      = &connector{}
+	_ esv1beta1.SecretsClient = &client{}
 )
 
 const (
@@ -79,6 +78,19 @@ const (
 
 	errUnknownCAProvider = "unknown caProvider type given"
 	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
+
+	errInvalidStore      = "invalid store"
+	errInvalidStoreSpec  = "invalid store spec"
+	errInvalidStoreProv  = "invalid store provider"
+	errInvalidVaultProv  = "invalid vault provider"
+	errInvalidAppRoleSec = "invalid Auth.AppRole.SecretRef: %w"
+	errInvalidClientCert = "invalid Auth.Cert.ClientCert: %w"
+	errInvalidCertSec    = "invalid Auth.Cert.SecretRef: %w"
+	errInvalidJwtSec     = "invalid Auth.Jwt.SecretRef: %w"
+	errInvalidKubeSA     = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
+	errInvalidKubeSec    = "invalid Auth.Kubernetes.SecretRef: %w"
+	errInvalidLdapSec    = "invalid Auth.Ldap.SecretRef: %w"
+	errInvalidTokenRef   = "invalid Auth.TokenSecretRef: %w"
 )
 
 type Client interface {
@@ -101,7 +113,7 @@ type client struct {
 }
 
 func init() {
-	schema.Register(&connector{
+	esv1beta1.Register(&connector{
 		newVaultClient: newVaultClient,
 	}, &esv1beta1.SecretStoreProvider{
 		Vault: &esv1beta1.VaultProvider{},
@@ -116,7 +128,7 @@ type connector struct {
 	newVaultClient func(c *vault.Config) (Client, error)
 }
 
-func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {
 		return nil, errors.New(errVaultStore)
@@ -156,6 +168,64 @@ func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore,
 	vStore.client = client
 
 	return vStore, nil
+}
+
+func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
+	if store == nil {
+		return fmt.Errorf(errInvalidStore)
+	}
+	spc := store.GetSpec()
+	if spc == nil {
+		return fmt.Errorf(errInvalidStoreSpec)
+	}
+	if spc.Provider == nil {
+		return fmt.Errorf(errInvalidStoreProv)
+	}
+	p := spc.Provider.Vault
+	if p == nil {
+		return fmt.Errorf(errInvalidVaultProv)
+	}
+	if p.Auth.AppRole != nil {
+		if err := utils.ValidateSecretSelector(store, p.Auth.AppRole.SecretRef); err != nil {
+			return fmt.Errorf(errInvalidAppRoleSec, err)
+		}
+	}
+	if p.Auth.Cert != nil {
+		if err := utils.ValidateSecretSelector(store, p.Auth.Cert.ClientCert); err != nil {
+			return fmt.Errorf(errInvalidClientCert, err)
+		}
+		if err := utils.ValidateSecretSelector(store, p.Auth.Cert.SecretRef); err != nil {
+			return fmt.Errorf(errInvalidCertSec, err)
+		}
+	}
+	if p.Auth.Jwt != nil {
+		if err := utils.ValidateSecretSelector(store, p.Auth.Jwt.SecretRef); err != nil {
+			return fmt.Errorf(errInvalidJwtSec, err)
+		}
+	}
+	if p.Auth.Kubernetes != nil {
+		if p.Auth.Kubernetes.ServiceAccountRef != nil {
+			if err := utils.ValidateServiceAccountSelector(store, *p.Auth.Kubernetes.ServiceAccountRef); err != nil {
+				return fmt.Errorf(errInvalidKubeSA, err)
+			}
+		}
+		if p.Auth.Kubernetes.SecretRef != nil {
+			if err := utils.ValidateSecretSelector(store, *p.Auth.Kubernetes.SecretRef); err != nil {
+				return fmt.Errorf(errInvalidKubeSec, err)
+			}
+		}
+	}
+	if p.Auth.Ldap != nil {
+		if err := utils.ValidateSecretSelector(store, p.Auth.Ldap.SecretRef); err != nil {
+			return fmt.Errorf(errInvalidLdapSec, err)
+		}
+	}
+	if p.Auth.TokenSecretRef != nil {
+		if err := utils.ValidateSecretSelector(store, *p.Auth.TokenSecretRef); err != nil {
+			return fmt.Errorf(errInvalidTokenRef, err)
+		}
+	}
+	return nil
 }
 
 // Empty GetAllSecrets.

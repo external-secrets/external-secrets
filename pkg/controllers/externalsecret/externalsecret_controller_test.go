@@ -30,8 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
@@ -187,7 +185,9 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				return true
 			},
-			checkExternalSecret: func(es *esv1beta1.ExternalSecret) {},
+			checkExternalSecret: func(es *esv1beta1.ExternalSecret) {
+				// noop by default
+			},
 			secretStore: &esv1beta1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ExternalSecretStore,
@@ -540,7 +540,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				Extract: esv1beta1.ExternalSecretDataRemoteRef{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "datamap",
 				},
 			},
@@ -684,7 +684,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.externalSecret.Spec.Data = []esv1beta1.ExternalSecretData{}
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				Extract: esv1beta1.ExternalSecretDataRemoteRef{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: remoteKey,
 				},
 			},
@@ -726,7 +726,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.externalSecret.Spec.Data = []esv1beta1.ExternalSecretData{}
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				Extract: esv1beta1.ExternalSecretDataRemoteRef{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: remoteKey,
 				},
 			},
@@ -791,7 +791,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.externalSecret.Spec.Data = nil
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				Extract: esv1beta1.ExternalSecretDataRemoteRef{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: remoteKey,
 				},
 			},
@@ -813,7 +813,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.externalSecret.Spec.Data = nil
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				Find: esv1beta1.ExternalSecretFind{
+				Find: &esv1beta1.ExternalSecretFind{
 					Name: &esv1beta1.FindName{
 						RegExp: "foobar",
 					},
@@ -844,7 +844,7 @@ var _ = Describe("ExternalSecret controller", func() {
 
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				Extract: esv1beta1.ExternalSecretDataRemoteRef{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: remoteKey,
 				},
 			},
@@ -925,7 +925,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	// a SecretSyncedError status condition must be set
 	storeConstructErrCondition := func(tc *testCase) {
 		fakeProvider.WithNew(func(context.Context, esv1beta1.GenericStore, client.Client,
-			string) (provider.SecretsClient, error) {
+			string) (esv1beta1.SecretsClient, error) {
 			return nil, fmt.Errorf("artificial constructor error")
 		})
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
@@ -1392,7 +1392,7 @@ func externalSecretConditionShouldBe(name, ns string, ct esv1beta1.ExternalSecre
 
 func init() {
 	fakeProvider = fake.New()
-	schema.ForceRegister(fakeProvider, &esv1beta1.SecretStoreProvider{
+	esv1beta1.ForceRegister(fakeProvider, &esv1beta1.SecretStoreProvider{
 		AWS: &esv1beta1.AWSProvider{
 			Service: esv1beta1.AWSServiceSecretsManager,
 		},
