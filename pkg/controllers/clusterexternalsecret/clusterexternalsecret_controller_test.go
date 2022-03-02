@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 )
 
@@ -36,7 +35,7 @@ var (
 )
 
 type testCase struct {
-	secretStore           *esv1beta1.SecretStore
+	secretStore           *esv1alpha1.SecretStore
 	clusterExternalSecret *esv1alpha1.ClusterExternalSecret
 
 	// checkCondition should return true if the externalSecret
@@ -49,7 +48,7 @@ type testCase struct {
 
 	// checkExternalSecret is called after the condition has been verified
 	// use this to verify the externalSecret
-	checkExternalSecret func(*esv1alpha1.ClusterExternalSecret, *esv1beta1.ExternalSecret)
+	checkExternalSecret func(*esv1alpha1.ClusterExternalSecret, *esv1alpha1.ExternalSecret)
 }
 
 type testTweaks func(*testCase)
@@ -108,16 +107,16 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				return true
 			},
 			checkClusterExternalSecret: func(es *esv1alpha1.ClusterExternalSecret) {},
-			checkExternalSecret:        func(*esv1alpha1.ClusterExternalSecret, *esv1beta1.ExternalSecret) {},
-			secretStore: &esv1beta1.SecretStore{
+			checkExternalSecret:        func(*esv1alpha1.ClusterExternalSecret, *esv1alpha1.ExternalSecret) {},
+			secretStore: &esv1alpha1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ExternalSecretStore,
 					Namespace: ExternalSecretNamespaceTarget,
 				},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						AWS: &esv1beta1.AWSProvider{
-							Service: esv1beta1.AWSServiceSecretsManager,
+				Spec: esv1alpha1.SecretStoreSpec{
+					Provider: &esv1alpha1.SecretStoreProvider{
+						AWS: &esv1alpha1.AWSProvider{
+							Service: esv1alpha1.AWSServiceSecretsManager,
 						},
 					},
 				},
@@ -156,7 +155,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 	syncWithoutESName := func(tc *testCase) {
 		tc.clusterExternalSecret.Spec.ExternalSecretName = ""
-		tc.checkExternalSecret = func(ces *esv1alpha1.ClusterExternalSecret, es *esv1beta1.ExternalSecret) {
+		tc.checkExternalSecret = func(ces *esv1alpha1.ClusterExternalSecret, es *esv1alpha1.ExternalSecret) {
 			Expect(es.ObjectMeta.Name).To(Equal(ClusterExternalSecretName))
 		}
 	}
@@ -185,7 +184,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 			if tc.checkExternalSecret != nil {
 				for _, namespace := range ExternalSecretNamespaces {
-					es := &esv1beta1.ExternalSecret{}
+					es := &esv1alpha1.ExternalSecret{}
 					esLookupKey := types.NamespacedName{
 						Name:      createdCES.Spec.ExternalSecretName,
 						Namespace: namespace,
