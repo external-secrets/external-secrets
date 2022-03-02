@@ -116,7 +116,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		// No one owns this resource so error out
-		if len(existingES.ObjectMeta.OwnerReferences) == 0 {
+		if !apierrors.IsNotFound(err) && len(existingES.ObjectMeta.OwnerReferences) == 0 {
 			log.Error(nil, errSecretAlreadyExists, "namespace", namespace)
 			failedNamespaces = append(failedNamespaces, namespace.Name)
 			continue
