@@ -138,7 +138,12 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 			os.Exit(1)
 		}
-		if err = (&clusterexternalsecret.Reconciler{}).SetupWithManager(mgr, controller.Options{
+		if err = (&clusterexternalsecret.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecret"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: time.Hour,
+		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ClusterExternalSecret")
