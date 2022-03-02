@@ -88,7 +88,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	labelMap, err := metav1.LabelSelectorAsMap(&clusterExternalSecret.Spec.NamespaceSelector)
 	if err != nil {
 		log.Error(err, errLabelMap)
-		return ctrl.Result{RequeueAfter: refreshInt}, nil
+		return ctrl.Result{RequeueAfter: refreshInt}, err
 	}
 
 	namespaceList, err := namespaces.List(ctx, metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap).String()})
