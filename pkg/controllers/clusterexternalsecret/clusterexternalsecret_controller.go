@@ -16,6 +16,7 @@ package clusterexternalsecret
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -27,7 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -171,16 +174,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		conditionFailed := NewClusterExternalSecretCondition(conditionType, v1.ConditionFalse, "one or more namespaces failed")
 		SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionFailed)
 		clusterExternalSecret.Status.FailedNamespaces = failedNamespaces
-		return ctrl.Result{RequeueAfter: refreshInt}, fmt.Errorf("failed to sync to the following namespaces:%v",failedNamespaces)
+		return ctrl.Result{RequeueAfter: refreshInt}, fmt.Errorf("failed to sync to the following namespaces:%v", failedNamespaces)
 	}
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&esv1alpha1.ClusterExternalSecret{}).
-		Owns(&esv1alpha1.ExternalSecret{}).
+		Owns(&esv1alpha1.ExternalSecret{}, builder.OnlyMetadata).
 		Complete(r)
 }
