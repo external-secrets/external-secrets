@@ -84,7 +84,3 @@ type ClusterExternalSecretList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClusterExternalSecret `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ClusterExternalSecret{}, &ClusterExternalSecretList{})
-}
