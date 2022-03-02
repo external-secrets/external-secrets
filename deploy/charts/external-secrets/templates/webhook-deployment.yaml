@@ -63,8 +63,9 @@ spec:
               protocol: TCP
               name: webhook
           readinessProbe:
-            tcpSocket:
-              port: 9443
+            httpGet:
+              port: 8081
+              path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
           {{- with .Values.webhook.extraEnv }}

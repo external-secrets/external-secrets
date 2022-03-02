@@ -22,11 +22,12 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
 	// To allow using gcp auth.
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -45,6 +46,7 @@ var (
 	dnsName                       string
 	certDir                       string
 	metricsAddr                   string
+	healthzAddr                   string
 	controllerClass               string
 	enableLeaderElection          bool
 	concurrent                    int
@@ -65,6 +67,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = esv1beta1.AddToScheme(scheme)
 	_ = esv1alpha1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
 }
 
 var rootCmd = &cobra.Command{

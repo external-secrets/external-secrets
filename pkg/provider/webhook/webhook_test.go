@@ -28,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
 )
 
 type testCase struct {
@@ -268,7 +267,7 @@ func runTestCase(tc testCase, t *testing.T) {
 	}
 }
 
-func testGetSecretMap(tc testCase, t *testing.T, client provider.SecretsClient) {
+func testGetSecretMap(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
 	testRef := esv1beta1.ExternalSecretDataRemoteRef{
 		Key:     tc.Args.Key,
 		Version: tc.Args.Version,
@@ -293,7 +292,7 @@ func testGetSecretMap(tc testCase, t *testing.T, client provider.SecretsClient) 
 	}
 }
 
-func testGetSecret(tc testCase, t *testing.T, client provider.SecretsClient) {
+func testGetSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
 	testRef := esv1beta1.ExternalSecretDataRemoteRef{
 		Key:     tc.Args.Key,
 		Version: tc.Args.Version,

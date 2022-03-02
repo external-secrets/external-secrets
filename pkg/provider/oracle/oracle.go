@@ -27,9 +27,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -124,7 +122,7 @@ func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1bet
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
@@ -225,8 +223,12 @@ func (vms *VaultManagementService) Validate() error {
 	return nil
 }
 
+func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+	return nil
+}
+
 func init() {
-	schema.Register(&VaultManagementService{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&VaultManagementService{}, &esv1beta1.SecretStoreProvider{
 		Oracle: &esv1beta1.OracleProvider{},
 	})
 }

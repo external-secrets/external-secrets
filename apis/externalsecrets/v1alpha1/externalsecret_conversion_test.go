@@ -183,7 +183,7 @@ func newExternalSecretV1Beta1() *esv1beta1.ExternalSecret {
 			},
 			DataFrom: []esv1beta1.ExternalSecretDataFromRemoteRef{
 				{
-					Extract: esv1beta1.ExternalSecretDataRemoteRef{
+					Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      "key",
 						Property: "property",
 						Version:  "version",
