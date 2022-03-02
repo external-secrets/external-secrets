@@ -94,7 +94,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	namespaceList, err := namespaces.List(ctx, metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap).String()})
 	if err != nil {
 		log.Error(err, errNamespaces)
-		return ctrl.Result{RequeueAfter: refreshInt}, nil
+		return ctrl.Result{RequeueAfter: refreshInt}, err
 	}
 
 	esName := clusterExternalSecret.Spec.ExternalSecretName
