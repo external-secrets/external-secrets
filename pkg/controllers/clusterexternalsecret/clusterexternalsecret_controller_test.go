@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 )
 
@@ -48,7 +49,7 @@ type testCase struct {
 
 	// checkExternalSecret is called after the condition has been verified
 	// use this to verify the externalSecret
-	checkExternalSecret func(*esv1alpha1.ClusterExternalSecret, *esv1alpha1.ExternalSecret)
+	checkExternalSecret func(*esv1alpha1.ClusterExternalSecret, *esv1beta1.ExternalSecret)
 }
 
 type testTweaks func(*testCase)
@@ -107,7 +108,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				return true
 			},
 			checkClusterExternalSecret: func(es *esv1alpha1.ClusterExternalSecret) {},
-			checkExternalSecret:        func(*esv1alpha1.ClusterExternalSecret, *esv1alpha1.ExternalSecret) {},
+			checkExternalSecret:        func(*esv1alpha1.ClusterExternalSecret, *esv1beta1.ExternalSecret) {},
 			secretStore: &esv1alpha1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ExternalSecretStore,
@@ -153,41 +154,51 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		}
 	}
 
-	DescribeTable("When reconciling a ClusterExternal Secret", func(tweaks ...testTweaks) {
-		tc := makeDefaultTestCase()
-		for _, tweak := range tweaks {
-			tweak(tc)
+	syncWithoutESName := func(tc *testCase) {
+		tc.clusterExternalSecret.Spec.ExternalSecretName = ""
+		tc.checkExternalSecret = func(ces *esv1alpha1.ClusterExternalSecret, es *esv1beta1.ExternalSecret) {
+			Expect(es.ObjectMeta.Name).To(Equal(ClusterExternalSecretName))
 		}
-		ctx := context.Background()
-		By("creating a secret store and external secret")
-		Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
-		Expect(k8sClient.Create(ctx, tc.clusterExternalSecret)).Should(Succeed())
-		cesKey := types.NamespacedName{Name: ClusterExternalSecretName, Namespace: ClusterExternalSecretNamespace}
-		createdCES := &esv1alpha1.ClusterExternalSecret{}
-		By("checking the ces condition")
-		Eventually(func() bool {
-			err := k8sClient.Get(ctx, cesKey, createdCES)
-			if err != nil {
-				return false
-			}
-			return tc.checkCondition(createdCES)
-		}, timeout, interval).Should(BeTrue())
-		tc.checkClusterExternalSecret(createdCES)
+	}
 
-		if tc.checkExternalSecret != nil {
-			for _, namespace := range ExternalSecretNamespaces {
-				es := &esv1alpha1.ExternalSecret{}
-				esLookupKey := types.NamespacedName{
-					Name:      createdCES.Spec.ExternalSecretName,
-					Namespace: namespace,
+	DescribeTable("When reconciling a ClusterExternal Secret",
+		func(tweaks ...testTweaks) {
+			tc := makeDefaultTestCase()
+			for _, tweak := range tweaks {
+				tweak(tc)
+			}
+			ctx := context.Background()
+			By("creating a secret store and external secret")
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.clusterExternalSecret)).Should(Succeed())
+			cesKey := types.NamespacedName{Name: ClusterExternalSecretName, Namespace: ClusterExternalSecretNamespace}
+			createdCES := &esv1alpha1.ClusterExternalSecret{}
+			By("checking the ces condition")
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, cesKey, createdCES)
+				if err != nil {
+					return false
 				}
+				return tc.checkCondition(createdCES)
+			}, timeout, interval).Should(BeTrue())
+			tc.checkClusterExternalSecret(createdCES)
 
-				Eventually(func() bool {
-					err := k8sClient.Get(ctx, esLookupKey, es)
-					return err == nil
-				}, timeout, interval).Should(BeTrue())
-				tc.checkExternalSecret(createdCES, es)
+			if tc.checkExternalSecret != nil {
+				for _, namespace := range ExternalSecretNamespaces {
+					es := &esv1beta1.ExternalSecret{}
+					esLookupKey := types.NamespacedName{
+						Name:      createdCES.Spec.ExternalSecretName,
+						Namespace: namespace,
+					}
+
+					Eventually(func() bool {
+						err := k8sClient.Get(ctx, esLookupKey, es)
+						return err == nil
+					}, timeout, interval).Should(BeTrue())
+					tc.checkExternalSecret(createdCES, es)
+				}
 			}
-		}
-	})
+		},
+
+		Entry("Should use cluster external secret name if external secret name isn't defined", syncWithoutESName))
 })
