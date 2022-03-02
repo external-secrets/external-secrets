@@ -36,7 +36,7 @@ var (
 )
 
 type testCase struct {
-	secretStore           *esv1alpha1.SecretStore
+	secretStore           *esv1beta1.SecretStore
 	clusterExternalSecret *esv1alpha1.ClusterExternalSecret
 
 	// checkCondition should return true if the externalSecret
@@ -109,15 +109,15 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			},
 			checkClusterExternalSecret: func(es *esv1alpha1.ClusterExternalSecret) {},
 			checkExternalSecret:        func(*esv1alpha1.ClusterExternalSecret, *esv1beta1.ExternalSecret) {},
-			secretStore: &esv1alpha1.SecretStore{
+			secretStore: &esv1beta1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ExternalSecretStore,
 					Namespace: ExternalSecretNamespaceTarget,
 				},
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						AWS: &esv1alpha1.AWSProvider{
-							Service: esv1alpha1.AWSServiceSecretsManager,
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{
+							Service: esv1beta1.AWSServiceSecretsManager,
 						},
 					},
 				},
