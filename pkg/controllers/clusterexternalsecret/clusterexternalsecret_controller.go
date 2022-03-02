@@ -73,12 +73,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	p := client.MergeFrom(clusterExternalSecret.DeepCopy())
-	defer func() {
-		err = r.Status().Patch(ctx, &clusterExternalSecret, p)
-		if err != nil {
-			log.Error(err, errPatchStatus)
-		}
-	}()
+	defer r.deferPatch(ctx, log, &clusterExternalSecret, p)
 
 	// Fetch Namespaces to grab ExternalSecrets
 	genClient := kubernetes.NewForConfigOrDie(ctrl.GetConfigOrDie())
@@ -115,18 +110,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Namespace: namespace.Name,
 		}, &existingES)
 
-		if err != nil && !apierrors.IsNotFound(err) {
-			log.Error(err, errGetExistingES)
-		}
-
-		// No one owns this resource so error out
-		if !apierrors.IsNotFound(err) && len(existingES.ObjectMeta.OwnerReferences) == 0 {
-			log.Error(nil, errSecretAlreadyExists, "namespace", namespace)
+		if result := checkForError(err, &existingES); result != "" {
+			log.Error(err, result)
 			failedNamespaces = append(failedNamespaces, namespace.Name)
 			continue
 		}
 
-		if err = r.resolveExternalSecret(log, ctx, &clusterExternalSecret, &existingES, &namespace, esName); err != nil {
+		if err = r.resolveExternalSecret(ctx, log, &clusterExternalSecret, &existingES, namespace, esName); err != nil {
 			failedNamespaces = append(failedNamespaces, namespace.Name)
 		}
 	}
@@ -142,7 +132,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) resolveExternalSecret(log logr.Logger, ctx context.Context, clusterExternalSecret *esv1alpha1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace *v1.Namespace, esName string) error {
+func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1alpha1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) error {
 	// this means the existing ES does not belong to us
 	if err := controllerutil.SetControllerReference(clusterExternalSecret, existingES, r.Scheme); err != nil {
 		log.Error(err, errSetCtrlReference, "namespace", namespace)
@@ -174,6 +164,25 @@ func (r *Reconciler) resolveExternalSecret(log logr.Logger, ctx context.Context,
 	}
 
 	return nil
+}
+
+func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1alpha1.ClusterExternalSecret, p client.Patch) {
+	if err := r.Status().Patch(ctx, clusterExternalSecret, p); err != nil {
+		log.Error(err, errPatchStatus)
+	}
+}
+
+func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string {
+	if getError != nil && !apierrors.IsNotFound(getError) {
+		return errGetExistingES
+	}
+
+	// No one owns this resource so error out
+	if !apierrors.IsNotFound(getError) && len(existingES.ObjectMeta.OwnerReferences) == 0 {
+		return errSecretAlreadyExists
+	}
+
+	return ""
 }
 
 func getConditionType(namespaces []string, namespaceList *v1.NamespaceList) esv1alpha1.ClusterExternalSecretConditionType {
