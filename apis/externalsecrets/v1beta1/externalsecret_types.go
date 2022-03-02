@@ -175,6 +175,9 @@ type ExternalSecretDataFromRemoteRef struct {
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type ExternalSecretFind struct {
+	// A root path to start the find operations.
+	// +optional
+	Path *string `json:"path,omitempty"`
 	// Finds secrets based on the name.
 	// +optional
 	Name *FindName `json:"name,omitempty"`

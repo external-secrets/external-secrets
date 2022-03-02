@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"strings"
 
+	"unicode"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
@@ -32,6 +34,25 @@ func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
 		dst[k] = v
 	}
 	return dst
+}
+
+// ConvertName converts a string into a secret-key compatible string.
+// Replaces any non-alphanumeric characters with its unicode code.
+func ConvertName(in string) string {
+	out := make([]string, len(in))
+	rs := []rune(in)
+	for k, r := range rs {
+		if !unicode.IsNumber(r) &&
+			!unicode.IsLetter(r) &&
+			r != '-' &&
+			r != '.' &&
+			r != '_' {
+			out[k] = fmt.Sprintf("_U%04x_", r)
+		} else {
+			out[k] = string(r)
+		}
+	}
+	return strings.Join(out, "")
 }
 
 // MergeStringMap performs a deep clone from src to dest.
