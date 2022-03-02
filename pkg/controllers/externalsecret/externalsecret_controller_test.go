@@ -30,8 +30,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
