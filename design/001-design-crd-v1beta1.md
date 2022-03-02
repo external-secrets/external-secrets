@@ -4,7 +4,7 @@ title: External Secrets CRD promotion
 version: v1beta1
 authors: all of us
 creation-date: 2022-feb-08
-status: draft
+status: approved
 ---
 ```
 
@@ -12,12 +12,23 @@ status: draft
 
 ## Table of Contents
 
-<!-- toc -->
-<!-- /toc -->
+- [External Secrets Operator CRD](#external-secrets-operator-crd)
+  - [Table of Contents](#table-of-contents)
+  - [Summary](#summary)
+  - [Motivation](#motivation)
+    - [Goals](#goals)
+    - [Non-Goals](#non-goals)
+  - [Terminology](#terminology)
+    - [User Definitions](#user-definitions)
+    - [User Stories](#user-stories)
+  - [Proposal](#proposal)
+    - [External Secret](#external-secret)
+      - [Behavior](#behavior)
+    - [Secret Store](#secret-store)
 
 ## Summary
 
-This is a proposal to design the Promoted ExternalSecrets CRD.
+This is a proposal to design the Promoted ExternalSecrets CRD. This proposal was approved in 16-feb-2022 during our Community Meeting.
 
 ## Motivation
 
@@ -75,6 +86,7 @@ spec:
   target:
     name: my-secret
     creationPolicy: 'Merge'
+    deletionPolicy: 'None' #Possible values are None, Merge, Delete - TBC during implementation.
     template:
       engineVersion: v2 #Defaults to v2 in v1beta1
       type: kubernetes.io/dockerconfigjson 

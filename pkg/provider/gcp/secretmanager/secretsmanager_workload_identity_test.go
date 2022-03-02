@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -44,7 +44,7 @@ type workloadIdentityTest struct {
 	genAccessToken func(context.Context, *credentialspb.GenerateAccessTokenRequest, ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
 	genIDBindToken func(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error)
 	genSAToken     func(c context.Context, s1, s2, s3 string) (*authv1.TokenRequest, error)
-	store          esv1alpha1.GenericStore
+	store          esv1beta1.GenericStore
 	kubeObjects    []client.Object
 }
 
@@ -54,14 +54,14 @@ func TestWorkloadIdentity(t *testing.T) {
 		composeTestcase(
 			defaultTestCase("missing store spec should result in error"),
 			withErr("invalid: missing store spec"),
-			withStore(&esv1alpha1.SecretStore{}),
+			withStore(&esv1beta1.SecretStore{}),
 		),
 		composeTestcase(
 			defaultTestCase("should skip when no workload identity is configured: TokenSource and error must be nil"),
-			withStore(&esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						GCPSM: &esv1alpha1.GCPSMProvider{},
+			withStore(&esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						GCPSM: &esv1beta1.GCPSMProvider{},
 					},
 				},
 			}),
@@ -210,7 +210,7 @@ func withErr(err string) testCaseMutator {
 	}
 }
 
-func withStore(store esv1alpha1.GenericStore) testCaseMutator {
+func withStore(store esv1beta1.GenericStore) testCaseMutator {
 	return func(tc *workloadIdentityTest) {
 		tc.store = store
 	}
@@ -282,8 +282,8 @@ func defaultTestCase(name string) *workloadIdentityTest {
 	}
 }
 
-func defaultStore() *esv1alpha1.SecretStore {
-	return &esv1alpha1.SecretStore{
+func defaultStore() *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foobar",
 			Namespace: "default",
@@ -292,10 +292,10 @@ func defaultStore() *esv1alpha1.SecretStore {
 	}
 }
 
-func defaultClusterStore() *esv1alpha1.ClusterSecretStore {
-	return &esv1alpha1.ClusterSecretStore{
+func defaultClusterStore() *esv1beta1.ClusterSecretStore {
+	return &esv1beta1.ClusterSecretStore{
 		TypeMeta: metav1.TypeMeta{
-			Kind: esv1alpha1.ClusterSecretStoreKind,
+			Kind: esv1beta1.ClusterSecretStoreKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foobar",
@@ -304,12 +304,12 @@ func defaultClusterStore() *esv1alpha1.ClusterSecretStore {
 	}
 }
 
-func defaultStoreSpec() esv1alpha1.SecretStoreSpec {
-	return esv1alpha1.SecretStoreSpec{
-		Provider: &esv1alpha1.SecretStoreProvider{
-			GCPSM: &esv1alpha1.GCPSMProvider{
-				Auth: esv1alpha1.GCPSMAuth{
-					WorkloadIdentity: &esv1alpha1.GCPWorkloadIdentity{
+func defaultStoreSpec() esv1beta1.SecretStoreSpec {
+	return esv1beta1.SecretStoreSpec{
+		Provider: &esv1beta1.SecretStoreProvider{
+			GCPSM: &esv1beta1.GCPSMProvider{
+				Auth: esv1beta1.GCPSMAuth{
+					WorkloadIdentity: &esv1beta1.GCPWorkloadIdentity{
 						ServiceAccountRef: esmeta.ServiceAccountSelector{
 							Name: "example",
 						},
@@ -323,9 +323,9 @@ func defaultStoreSpec() esv1alpha1.SecretStoreSpec {
 	}
 }
 
-type storeMutator func(spc esv1alpha1.GenericStore)
+type storeMutator func(spc esv1beta1.GenericStore)
 
-func composeStore(store esv1alpha1.GenericStore, mutators ...storeMutator) esv1alpha1.GenericStore {
+func composeStore(store esv1beta1.GenericStore, mutators ...storeMutator) esv1beta1.GenericStore {
 	for _, m := range mutators {
 		m(store)
 	}
@@ -333,7 +333,7 @@ func composeStore(store esv1alpha1.GenericStore, mutators ...storeMutator) esv1a
 }
 
 func withSANamespace(namespace string) storeMutator {
-	return func(store esv1alpha1.GenericStore) {
+	return func(store esv1beta1.GenericStore) {
 		spc := store.GetSpec()
 		spc.Provider.GCPSM.Auth.WorkloadIdentity.ServiceAccountRef.Namespace = &namespace
 	}
@@ -355,6 +355,10 @@ type fakeIAMClient struct {
 
 func (f *fakeIAMClient) GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error) {
 	return f.generateAccessTokenFunc(ctx, req, opts...)
+}
+
+func (f *fakeIAMClient) Close() error {
+	return nil
 }
 
 // fake SA Token Generator.

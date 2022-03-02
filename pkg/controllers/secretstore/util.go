@@ -18,7 +18,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 // NewSecretStoreCondition a set of default options for creating an External Secret Condition.

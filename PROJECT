@@ -3,6 +3,9 @@ multigroup: true
 repo: github.com/external-secrets/external-secrets
 resources:
 - group: external-secrets
+  kind: ClusterSecretStore
+  version: v1alpha1
+- group: external-secrets
   kind: SecretStore
   version: v1alpha1
 - group: external-secrets
@@ -12,3 +15,12 @@ resources:
   kind: ClusterExternalSecret
   version: v1alpha1
 version: "2"
+  kind: ClusterSecretStore
+  version: v1beta1
+- group: external-secrets
+  kind: SecretStore
+  version: v1beta1
+- group: external-secrets
+  kind: ExternalSecret
+  version: v1beta1
+version: "3"

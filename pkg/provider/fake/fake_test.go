@@ -19,7 +19,7 @@ import (
 
 	"github.com/onsi/gomega"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 func TestNewClient(t *testing.T) {
@@ -31,7 +31,7 @@ func TestNewClient(t *testing.T) {
 	gomega.Expect(err).To(gomega.HaveOccurred())
 
 	// missing provider
-	_, err = p.NewClient(context.Background(), &esv1alpha1.SecretStore{}, nil, "")
+	_, err = p.NewClient(context.Background(), &esv1beta1.SecretStore{}, nil, "")
 	gomega.Expect(err).To(gomega.HaveOccurred())
 }
 
@@ -44,8 +44,8 @@ func TestClose(t *testing.T) {
 
 type testCase struct {
 	name     string
-	input    []esv1alpha1.FakeProviderData
-	request  esv1alpha1.ExternalSecretDataRemoteRef
+	input    []esv1beta1.FakeProviderData
+	request  esv1beta1.ExternalSecretDataRemoteRef
 	expValue string
 	expErr   string
 }
@@ -56,8 +56,8 @@ func TestGetSecret(t *testing.T) {
 	tbl := []testCase{
 		{
 			name:  "return err when not found",
-			input: []esv1alpha1.FakeProviderData{},
-			request: esv1alpha1.ExternalSecretDataRemoteRef{
+			input: []esv1beta1.FakeProviderData{},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "/foo",
 				Version: "v2",
 			},
@@ -65,7 +65,7 @@ func TestGetSecret(t *testing.T) {
 		},
 		{
 			name: "get correct value from multiple versions",
-			input: []esv1alpha1.FakeProviderData{
+			input: []esv1beta1.FakeProviderData{
 				{
 					Key:     "/foo",
 					Value:   "bar2",
@@ -81,7 +81,7 @@ func TestGetSecret(t *testing.T) {
 					Version: "v1",
 				},
 			},
-			request: esv1alpha1.ExternalSecretDataRemoteRef{
+			request: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "/foo",
 				Version: "v2",
 			},
@@ -91,10 +91,10 @@ func TestGetSecret(t *testing.T) {
 
 	for _, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
-			cl, err := p.NewClient(context.Background(), &esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						Fake: &esv1alpha1.FakeProvider{
+			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Fake: &esv1beta1.FakeProvider{
 							Data: row.input,
 						},
 					},
@@ -114,8 +114,8 @@ func TestGetSecret(t *testing.T) {
 
 type testMapCase struct {
 	name     string
-	input    []esv1alpha1.FakeProviderData
-	request  esv1alpha1.ExternalSecretDataRemoteRef
+	input    []esv1beta1.FakeProviderData
+	request  esv1beta1.ExternalSecretDataRemoteRef
 	expValue map[string][]byte
 	expErr   string
 }
@@ -126,8 +126,8 @@ func TestGetSecretMap(t *testing.T) {
 	tbl := []testMapCase{
 		{
 			name:  "return err when not found",
-			input: []esv1alpha1.FakeProviderData{},
-			request: esv1alpha1.ExternalSecretDataRemoteRef{
+			input: []esv1beta1.FakeProviderData{},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "/foo",
 				Version: "v2",
 			},
@@ -135,7 +135,7 @@ func TestGetSecretMap(t *testing.T) {
 		},
 		{
 			name: "get correct value from multiple versions",
-			input: []esv1alpha1.FakeProviderData{
+			input: []esv1beta1.FakeProviderData{
 				{
 					Key: "junk",
 					ValueMap: map[string]string{
@@ -159,7 +159,7 @@ func TestGetSecretMap(t *testing.T) {
 					Version: "v2",
 				},
 			},
-			request: esv1alpha1.ExternalSecretDataRemoteRef{
+			request: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "/foo",
 				Version: "v2",
 			},
@@ -172,10 +172,10 @@ func TestGetSecretMap(t *testing.T) {
 
 	for _, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
-			cl, err := p.NewClient(context.Background(), &esv1alpha1.SecretStore{
-				Spec: esv1alpha1.SecretStoreSpec{
-					Provider: &esv1alpha1.SecretStoreProvider{
-						Fake: &esv1alpha1.FakeProvider{
+			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Fake: &esv1beta1.FakeProvider{
 							Data: row.input,
 						},
 					},

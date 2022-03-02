@@ -34,7 +34,9 @@ nav:
   - Guides:
     - Introduction: guides-introduction.md
     - Getting started: guides-getting-started.md
-    - Advanced Templating: guides-templating.md
+    - Advanced Templating:
+        v2: guides-templating.md
+        v1: guides-templating-v1.md
     - Controller Classes: guides-controller-class.md
     - All keys, One secret: guides-all-keys-one-secret.md
     - Common K8S Secret Types: guides-common-k8s-secret-types.md
@@ -70,5 +72,6 @@ nav:
   - Contributing:
     - Developer guide: contributing-devguide.md
     - Contributing Process: contributing-process.md
+    - Release Process: contributing-release.md
     - Code of Conduct: contributing-coc.md
   - Deprecation Policy: deprecation-policy.md

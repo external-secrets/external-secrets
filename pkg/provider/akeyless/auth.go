@@ -21,7 +21,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -44,7 +44,7 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		Namespace: a.namespace, // default to ExternalSecret namespace
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 		if prov.Auth.SecretRef.AccessID.Namespace == nil {
 			return "", fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
 		}
@@ -60,7 +60,7 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		Namespace: a.namespace, // default to ExternalSecret namespace
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 		if prov.Auth.SecretRef.AccessType.Namespace == nil {
 			return "", fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		}
@@ -77,7 +77,7 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		Namespace: a.namespace, // default to ExternalSecret namespace
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1alpha1.ClusterSecretStoreKind {
+	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
 		if prov.Auth.SecretRef.AccessType.Namespace == nil {
 			return "", fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		}

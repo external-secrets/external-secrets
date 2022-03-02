@@ -16,7 +16,8 @@ all: $(addprefix build-,$(ARCH))
 # Image registry for build/push image targets
 export IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
-CRD_DIR     ?= deploy/crds
+BUNDLE_DIR     ?= deploy/crds
+CRD_DIR     ?= config/crds
 
 HELM_DIR    ?= deploy/charts/external-secrets
 TF_DIR ?= terraform
@@ -130,13 +131,14 @@ fmt: lint.check ## Ensure consistent code style
 
 generate: ## Generate code and crds
 	@go run sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	@go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths="./..." output:crd:artifacts:config=$(CRD_DIR)
+	@go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths="./..." output:crd:artifacts:config=$(CRD_DIR)/bases
 # Remove extra header lines in generated CRDs
-	@for i in $(CRD_DIR)/*.yaml; do \
+	@for i in $(CRD_DIR)/bases/*.yaml; do \
   		tail -n +2 <"$$i" >"$$i.bkp" && \
   		cp "$$i.bkp" "$$i" && \
   		rm "$$i.bkp"; \
   	done
+	@yq e '.spec.conversion.strategy = "Webhook" | .spec.conversion.webhook.conversionReviewVersions = ["v1"] | .spec.conversion.webhook.clientConfig.caBundle = "Cg==" | .spec.conversion.webhook.clientConfig.service.name = "kubernetes" | .spec.conversion.webhook.clientConfig.service.namespace = "default" |	.spec.conversion.webhook.clientConfig.service.path = "/convert"' $(CRD_DIR)/bases/*  > $(BUNDLE_DIR)/bundle.yaml
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
@@ -152,10 +154,10 @@ manifests: helm.generate ## Generate manifests from helm chart
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience
-	kubectl apply -f $(CRD_DIR)
+	kubectl apply -f $(BUNDLE_DIR)
 
 crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
-	kubectl delete -f $(CRD_DIR)
+	kubectl delete -f $(BUNDLE_DIR)
 
 # ====================================================================================
 # Helm Chart
@@ -173,7 +175,7 @@ helm.build: helm.generate ## Build helm chart
 	@$(OK) helm package
 
 helm.generate: helm.docs ## Copy crds to helm chart directory
-	@cp $(CRD_DIR)/*.yaml $(HELM_DIR)/templates/crds/
+	@cp $(BUNDLE_DIR)/*.yaml $(HELM_DIR)/templates/crds/
 # Add helm if statement for controlling the install of CRDs
 	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
 		cp "$$i" "$$i.bkp" && \
@@ -194,8 +196,8 @@ docs: generate ## Generate docs
 docs.publish: generate ## Generate and deploys docs
 	$(MAKE) -C ./hack/api-docs build.publish
 
-.PHONY: serve-docs
-serve-docs: ## Serve docs
+.PHONY: docs.serve
+docs.serve: ## Serve docs
 	$(MAKE) -C ./hack/api-docs serve
 
 # ====================================================================================

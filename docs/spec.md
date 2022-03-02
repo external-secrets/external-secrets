@@ -1408,6 +1408,21 @@ Kubernetes core/v1.SecretType
 </tr>
 <tr>
 <td>
+<code>engineVersion</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.TemplateEngineVersion">
+TemplateEngineVersion
+</a>
+</em>
+</td>
+<td>
+<p>EngineVersion specifies the template engine version
+that should be used to compile/execute the
+template specified in .data and .templateFrom[].</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>metadata</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.ExternalSecretTemplateMetadata">
@@ -1982,6 +1997,28 @@ string
 <tbody>
 <tr>
 <td>
+<code>tenancy</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Tenancy is the tenancy OCID where user is located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>user</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>User is an access OCID specific to the account.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>secretRef</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.OracleSecretRef">
@@ -2015,48 +2052,13 @@ backend.</p>
 <tbody>
 <tr>
 <td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1alpha1.OracleAuth">
-OracleAuth
-</a>
-</em>
-</td>
-<td>
-<p>Auth configures how secret-manager authenticates with the Oracle Vault.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>user</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>User is an access OCID specific to the account.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tenancy</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Tenancy is the tenancy OCID where secret is located.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>region</code></br>
 <em>
 string
 </em>
 </td>
 <td>
-<p>Region is the region where secret is located.</p>
+<p>Region is the region where vault is located.</p>
 </td>
 </tr>
 <tr>
@@ -2068,6 +2070,21 @@ string
 </td>
 <td>
 <p>Vault is the vault&rsquo;s OCID of the specific vault where secret is located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleAuth">
+OracleAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth configures how secret-manager authenticates with the Oracle Vault.
+If empty, use the instance principal, otherwise the user credentials specified in Auth.</p>
 </td>
 </tr>
 </tbody>
@@ -2665,6 +2682,27 @@ Kubernetes meta/v1.Time
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.TemplateEngineVersion">TemplateEngineVersion
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretTemplate">ExternalSecretTemplate</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;v1&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;v2&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.TemplateFrom">TemplateFrom
 </h3>

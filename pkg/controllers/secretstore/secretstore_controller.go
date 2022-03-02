@@ -25,7 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"

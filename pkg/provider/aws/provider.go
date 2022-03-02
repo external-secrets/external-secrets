@@ -20,7 +20,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
@@ -38,11 +38,11 @@ const (
 )
 
 // NewClient constructs a new secrets client based on the provided store.
-func (p *Provider) NewClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace, awsauth.DefaultSTSProvider)
 }
 
-func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (provider.SecretsClient, error) {
+func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (provider.SecretsClient, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
@@ -54,16 +54,16 @@ func newClient(ctx context.Context, store esv1alpha1.GenericStore, kube client.C
 	}
 
 	switch prov.Service {
-	case esv1alpha1.AWSServiceSecretsManager:
+	case esv1beta1.AWSServiceSecretsManager:
 		return secretsmanager.New(sess)
-	case esv1alpha1.AWSServiceParameterStore:
+	case esv1beta1.AWSServiceParameterStore:
 		return parameterstore.New(sess)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
 
 func init() {
-	schema.Register(&Provider{}, &esv1alpha1.SecretStoreProvider{
-		AWS: &esv1alpha1.AWSProvider{},
+	schema.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
+		AWS: &esv1beta1.AWSProvider{},
 	})
 }

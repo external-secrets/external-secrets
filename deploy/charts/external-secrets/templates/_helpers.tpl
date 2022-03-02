@@ -42,6 +42,24 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
+{{- define "external-secrets-webhook.labels" -}}
+helm.sh/chart: {{ include "external-secrets.chart" . }}
+{{ include "external-secrets-webhook.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{- define "external-secrets-cert-controller.labels" -}}
+helm.sh/chart: {{ include "external-secrets.chart" . }}
+{{ include "external-secrets-cert-controller.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
 {{/*
 Selector labels
 */}}
@@ -49,7 +67,14 @@ Selector labels
 app.kubernetes.io/name: {{ include "external-secrets.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
-
+{{- define "external-secrets-webhook.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "external-secrets.name" . }}-webhook
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+{{- define "external-secrets-cert-controller.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "external-secrets.name" . }}-cert-controller
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
 {{/*
 Create the name of the service account to use
 */}}
@@ -60,3 +85,26 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "external-secrets-webhook.serviceAccountName" -}}
+{{- if .Values.webhook.serviceAccount.create }}
+{{- default "external-secrets-webhook" .Values.webhook.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.webhook.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "external-secrets-cert-controller.serviceAccountName" -}}
+{{- if .Values.certController.serviceAccount.create }}
+{{- default "external-secrets-cert-controller" .Values.certController.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.certController.serviceAccount.name }}
+{{- end }}
+{{- end }}
+

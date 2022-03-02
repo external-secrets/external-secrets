@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+  {{- with .Values.certController.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.certController.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 8 }}
+        {{- with .Values.certController.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.certController.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
+      {{- with .Values.certController.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: cert-controller
+          {{- with .Values.certController.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.certController.image.repository }}:{{ .Values.certController.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.certController.image.pullPolicy }}
+          args:
+          - certcontroller
+          - --crd-requeue-interval={{ .Values.certController.requeueInterval }}
+          - --service-name={{ include "external-secrets.fullname" . }}-webhook
+          - --service-namespace={{ .Release.Namespace }}
+          - --secret-name={{ include "external-secrets.fullname" . }}-webhook
+          - --secret-namespace={{ .Release.Namespace }}
+          {{- range $key, $value := .Values.certController.extraArgs }}
+            {{- if $value }}
+          - --{{ $key }}={{ $value }}
+            {{- else }}
+          - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.certController.prometheus.service.port }}
+              protocol: TCP
+              name: metrics
+          {{- with .Values.certController.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.certController.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.certController.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.certController.priorityClassName }}
+      priorityClassName: {{ .Values.certController.priorityClassName }}
+      {{- end }}

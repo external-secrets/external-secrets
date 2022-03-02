@@ -59,6 +59,12 @@ type ExternalSecretTemplate struct {
 	// +optional
 	Type corev1.SecretType `json:"type,omitempty"`
 
+	// EngineVersion specifies the template engine version
+	// that should be used to compile/execute the
+	// template specified in .data and .templateFrom[].
+	// +kubebuilder:default="v1"
+	EngineVersion TemplateEngineVersion `json:"engineVersion,omitempty"`
+
 	// +optional
 	Metadata ExternalSecretTemplateMetadata `json:"metadata,omitempty"`
 
@@ -68,6 +74,13 @@ type ExternalSecretTemplate struct {
 	// +optional
 	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
 }
+
+type TemplateEngineVersion string
+
+const (
+	TemplateEngineV1 TemplateEngineVersion = "v1"
+	TemplateEngineV2 TemplateEngineVersion = "v2"
+)
 
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1

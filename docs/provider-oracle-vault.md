@@ -13,7 +13,7 @@ See url for what region you you are accessing.
 ![userOCID-details](./pictures/screenshot_region.png)
 
 Select tenancy in the top right to see your user OCID as shown below.
-![tenancyOCID-details](./pictures/tenancy.png)
+![tenancyOCID-details](./pictures/screenshot_tenancy_OCID.png)
 
 Select your user in the top right to see your user OCID as shown below.
 ![region-details](./pictures/screenshot_user_OCID.png)
