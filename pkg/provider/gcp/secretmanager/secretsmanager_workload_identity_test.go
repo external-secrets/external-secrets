@@ -44,6 +44,7 @@ type workloadIdentityTest struct {
 	genAccessToken func(context.Context, *credentialspb.GenerateAccessTokenRequest, ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
 	genIDBindToken func(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error)
 	genSAToken     func(c context.Context, s1, s2, s3 string) (*authv1.TokenRequest, error)
+	genClusterID   func(context.Context, *esv1beta1.SecretStore) (*oauth2.Token, error)
 	store          esv1beta1.GenericStore
 	kubeObjects    []client.Object
 }
@@ -266,6 +267,11 @@ func defaultTestCase(name string) *workloadIdentityTest {
 				Status: authv1.TokenRequestStatus{
 					Token: defaultSAToken,
 				},
+			}, nil
+		},
+		genClusterID: func(context.Context, *esv1beta1.SecretStore) (*oauth2.Token, error) {
+			return &oauth2.Token{
+				AccessToken: defaultGenAccessToken,
 			}, nil
 		},
 		kubeObjects: []client.Object{
