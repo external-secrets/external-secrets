@@ -8,7 +8,7 @@ A list of talks given by people at conferences and events. Feel free to let us k
 
 ## CNCF Community Groups Canada
 
-https://community.cncf.io/events/details/cncf-cloud-native-canada-presents-end-of-year-meetup-external-secrets-operator/
+[![CNCF Community Groups Canada](https://img.youtube.com/vi/CsJgfHQA0SQ/0.jpg)](https://www.youtube.com/watch?v=CsJgfHQA0SQ)
 
 ## Container Days Hamburg
 
