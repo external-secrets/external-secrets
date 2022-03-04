@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 )
 
 var (
@@ -34,9 +33,16 @@ var (
 	interval = time.Millisecond * 250
 )
 
+type testNamespace struct {
+	namespace  v1.Namespace
+	containsES bool
+}
+
 type testCase struct {
-	secretStore           *esv1beta1.SecretStore
 	clusterExternalSecret *esv1beta1.ClusterExternalSecret
+
+	// These are the namespaces that are being tested
+	externalSecretNamespaces []testNamespace
 
 	// checkCondition should return true if the externalSecret
 	// has the expected condition
@@ -59,38 +65,76 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		ExternalSecretName             = "test-es"
 		ExternalSecretStore            = "test-store"
 		ExternalSecretTargetSecretName = "test-secret"
+		ClusterSecretStoreNamespace    = "css-test-ns"
 		FakeManager                    = "fake.manager"
 		FooValue                       = "map-foo-value"
 		BarValue                       = "map-bar-value"
 	)
 
-	var ClusterExternalSecretNamespace string
-	var ExternalSecretNamespaceTarget string
-
-	var ExternalSecretNamespaces = [...]string{}
 	var NamespaceLabels = map[string]string{FooValue: BarValue}
 
-	BeforeEach(func() {
-		var err error
-		ClusterExternalSecretNamespace, err = ctest.CreateNamespace("test-cesns", k8sClient)
-		Expect(err).ToNot(HaveOccurred())
+	var ExternalSecretNamespaceTargets = []testNamespace{
+		{
+			namespace: v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "test-namespace-1",
+					Labels: NamespaceLabels,
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Namespace",
+					APIVersion: "v1",
+				},
+			},
+			containsES: true,
+		},
+		{
+			namespace: v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "test-namespace-2",
+					Labels: NamespaceLabels,
+				},
+			},
+			containsES: true,
+		},
+		{
+			namespace: v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "test-namespace-3",
+					Labels: NamespaceLabels,
+				},
+			},
+			containsES: true,
+		},
+		{
+			namespace: v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-namespace-4",
+				},
+			},
+			containsES: false,
+		},
+		{
+			namespace: v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-namespace-5",
+				},
+			},
+			containsES: false,
+		},
+	}
 
-		ExternalSecretNamespaceTarget, err = ctest.CreateNamespaceWithLabels("test-esns", k8sClient, NamespaceLabels)
-		Expect(err).ToNot(HaveOccurred())
+	BeforeEach(func() {
+		for _, testNamespace := range ExternalSecretNamespaceTargets {
+			err := k8sClient.Create(context.Background(), &testNamespace.namespace)
+			Expect(err).ToNot(HaveOccurred())
+		}
 	})
 
 	AfterEach(func() {
-		Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ClusterExternalSecretNamespace,
-			},
-		}, client.PropagationPolicy(metav1.DeletePropagationBackground)), client.GracePeriodSeconds(0)).To(Succeed())
-		Expect(k8sClient.Delete(context.Background(), &esv1beta1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretStore,
-				Namespace: ClusterExternalSecretNamespace,
-			},
-		}, client.PropagationPolicy(metav1.DeletePropagationBackground)), client.GracePeriodSeconds(0)).To(Succeed())
+		for _, testNamespace := range ExternalSecretNamespaceTargets {
+			Expect(k8sClient.Delete(context.Background(), &testNamespace.namespace), client.PropagationPolicy(metav1.DeletePropagationBackground),
+				client.GracePeriodSeconds(0)).To(Succeed())
+		}
 	})
 
 	const targetProp = "targetProperty"
@@ -108,23 +152,10 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			},
 			checkClusterExternalSecret: func(es *esv1beta1.ClusterExternalSecret) {},
 			checkExternalSecret:        func(*esv1beta1.ClusterExternalSecret, *esv1beta1.ExternalSecret) {},
-			secretStore: &esv1beta1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ExternalSecretStore,
-					Namespace: ExternalSecretNamespaceTarget,
-				},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						AWS: &esv1beta1.AWSProvider{
-							Service: esv1beta1.AWSServiceSecretsManager,
-						},
-					},
-				},
-			},
+			externalSecretNamespaces:   ExternalSecretNamespaceTargets,
 			clusterExternalSecret: &esv1beta1.ClusterExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      ClusterExternalSecretName,
-					Namespace: ClusterExternalSecretNamespace,
+					Name: ClusterExternalSecretName,
 				},
 				Spec: esv1beta1.ClusterExternalSecretSpec{
 					NamespaceSelector: metav1.LabelSelector{
@@ -167,11 +198,15 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				tweak(tc)
 			}
 			ctx := context.Background()
-			By("creating a secret store and external secret")
-			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			By("creating namespaces and cluster external secret")
 			Expect(k8sClient.Create(ctx, tc.clusterExternalSecret)).Should(Succeed())
-			cesKey := types.NamespacedName{Name: ClusterExternalSecretName, Namespace: ClusterExternalSecretNamespace}
+			cesKey := types.NamespacedName{Name: ClusterExternalSecretName}
 			createdCES := &esv1beta1.ClusterExternalSecret{}
+
+			namespaceList := &v1.NamespaceList{}
+
+			k8sClient.List(ctx, namespaceList, &client.ListOptions{})
+
 			By("checking the ces condition")
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, cesKey, createdCES)
@@ -183,11 +218,22 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			tc.checkClusterExternalSecret(createdCES)
 
 			if tc.checkExternalSecret != nil {
-				for _, namespace := range ExternalSecretNamespaces {
+				for _, testNamespace := range tc.externalSecretNamespaces {
+
+					if !testNamespace.containsES {
+						continue
+					}
+
 					es := &esv1beta1.ExternalSecret{}
+
+					esName := createdCES.Spec.ExternalSecretName
+					if esName == "" {
+						esName = createdCES.ObjectMeta.Name
+					}
+
 					esLookupKey := types.NamespacedName{
-						Name:      createdCES.Spec.ExternalSecretName,
-						Namespace: namespace,
+						Name:      esName,
+						Namespace: testNamespace.namespace.Name,
 					}
 
 					Eventually(func() bool {

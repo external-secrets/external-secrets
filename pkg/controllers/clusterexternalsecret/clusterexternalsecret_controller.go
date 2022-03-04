@@ -126,6 +126,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionFailed)
 		clusterExternalSecret.Status.FailedNamespaces = failedNamespaces
 		return ctrl.Result{RequeueAfter: refreshInt}, fmt.Errorf("failed to sync to the following namespaces:%v", failedNamespaces)
+	} else {
+		conditionReady := NewClusterExternalSecretCondition(esv1beta1.ClusterExternalSecretReady, v1.ConditionTrue, "ClusterExternalSecret Synced")
+		SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionReady)
 	}
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
