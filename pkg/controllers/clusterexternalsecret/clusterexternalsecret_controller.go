@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -74,10 +73,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	p := client.MergeFrom(clusterExternalSecret.DeepCopy())
 	defer r.deferPatch(ctx, log, &clusterExternalSecret, p)
 
-	// Fetch Namespaces to grab ExternalSecrets
-	genClient := kubernetes.NewForConfigOrDie(ctrl.GetConfigOrDie())
-	namespaces := genClient.CoreV1().Namespaces()
-
 	refreshInt := r.RequeueInterval
 	if clusterExternalSecret.Spec.RefreshInterval != nil {
 		refreshInt = clusterExternalSecret.Spec.RefreshInterval.Duration
@@ -89,7 +84,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: refreshInt}, err
 	}
 
-	namespaceList, err := namespaces.List(ctx, metav1.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap).String()})
+	namespaceList := v1.NamespaceList{}
+
+	err = r.List(ctx, &namespaceList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap)})
 	if err != nil {
 		log.Error(err, errNamespaces)
 		return ctrl.Result{RequeueAfter: refreshInt}, err
@@ -121,15 +118,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if len(failedNamespaces) > 0 {
-		conditionType := getConditionType(failedNamespaces, namespaceList)
+		conditionType := getConditionType(failedNamespaces, &namespaceList)
 		conditionFailed := NewClusterExternalSecretCondition(conditionType, v1.ConditionFalse, "one or more namespaces failed")
 		SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionFailed)
 		clusterExternalSecret.Status.FailedNamespaces = failedNamespaces
 		return ctrl.Result{RequeueAfter: refreshInt}, fmt.Errorf("failed to sync to the following namespaces:%v", failedNamespaces)
-	} else {
-		conditionReady := NewClusterExternalSecretCondition(esv1beta1.ClusterExternalSecretReady, v1.ConditionTrue, "ClusterExternalSecret Synced")
-		SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionReady)
 	}
+
+	conditionReady := NewClusterExternalSecretCondition(esv1beta1.ClusterExternalSecretReady, v1.ConditionTrue, "ClusterExternalSecret Synced")
+	SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionReady)
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }

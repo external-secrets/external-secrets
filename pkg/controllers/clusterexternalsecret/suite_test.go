@@ -84,7 +84,7 @@ var _ = BeforeSuite(func() {
 	err = (&Reconciler{
 		Client:          k8sClient,
 		Scheme:          k8sManager.GetScheme(),
-		Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
+		Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecrets"),
 		RequeueInterval: time.Second,
 	}).SetupWithManager(k8sManager, controller.Options{
 		MaxConcurrentReconciles: 1,

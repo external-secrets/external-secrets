@@ -80,10 +80,6 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					Name:   "test-namespace-1",
 					Labels: NamespaceLabels,
 				},
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Namespace",
-					APIVersion: "v1",
-				},
 			},
 			containsES: true,
 		},
@@ -132,8 +128,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 	AfterEach(func() {
 		for _, testNamespace := range ExternalSecretNamespaceTargets {
-			Expect(k8sClient.Delete(context.Background(), &testNamespace.namespace), client.PropagationPolicy(metav1.DeletePropagationBackground),
-				client.GracePeriodSeconds(0)).To(Succeed())
+			err := k8sClient.Delete(context.Background(), &testNamespace.namespace)
+			Expect(err).ToNot(HaveOccurred())
 		}
 	})
 
