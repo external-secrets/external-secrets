@@ -631,6 +631,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1alpha1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -713,6 +714,44 @@ string
 </tr><tr><td><p>&#34;Secret&#34;</p></td>
 <td></td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.CertAuth">CertAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.KubernetesAuth">KubernetesAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientCert</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientKey</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.ClusterSecretStore">ClusterSecretStore
 </h3>
@@ -1979,6 +2018,179 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.KubernetesAuth">KubernetesAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.KubernetesProvider">KubernetesProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>cert</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.CertAuth">
+CertAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>has both clientCert and clientKey as secretKeySelector</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.TokenAuth">
+TokenAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>use static token to authenticate with</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccount</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ServiceAccountAuth">
+ServiceAccountAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>points to a service account that should be used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.KubernetesProvider">KubernetesProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures a store to sync secrets with a Kubernetes instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.KubernetesServer">
+KubernetesServer
+</a>
+</em>
+</td>
+<td>
+<p>configures the Kubernetes server Address.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.KubernetesAuth">
+KubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with a Kubernetes instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>remoteNamespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Remote namespace to fetch the secrets from</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.KubernetesServer">KubernetesServer
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.KubernetesProvider">KubernetesProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>configures the Kubernetes server Address.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CABundle is a base64-encoded CA certificate</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>see: <a href="https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.OracleAuth">OracleAuth
 </h3>
 <p>
@@ -2418,6 +2630,20 @@ WebhookProvider
 </tr>
 <tr>
 <td>
+<code>kubernetes</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.KubernetesProvider">
+KubernetesProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubernetes configures this store to sync secrets using a Kubernetes cluster provider</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>fake</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.FakeProvider">
@@ -2683,6 +2909,34 @@ Kubernetes meta/v1.Time
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.ServiceAccountAuth">ServiceAccountAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.KubernetesAuth">KubernetesAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccount</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.TemplateEngineVersion">TemplateEngineVersion
 (<code>string</code> alias)</p></h3>
 <p>
@@ -2807,6 +3061,34 @@ string
 <code>key</code></br>
 <em>
 string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.TokenAuth">TokenAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.KubernetesAuth">KubernetesAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>bearerToken</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
