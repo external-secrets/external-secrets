@@ -86,6 +86,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
 | scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
+| scopedRBAC | bool | `false` | If true, disable ClusterSecretStore. If scopedNamespace is provided, create scoped RBAC roles under the scoped namespace. |
 | securityContext | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |

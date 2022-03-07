@@ -28,6 +28,10 @@ scopedNamespace: ""
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
 
+# -- If true, disable ClusterSecretStore.
+# If scopedNamespace is provided, create scoped RBAC roles under the scoped namespace.
+scopedRBAC: false
+
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1

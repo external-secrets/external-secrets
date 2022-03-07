@@ -52,6 +52,10 @@ spec:
           {{- if .Values.scopedNamespace }}
           - --namespace={{ .Values.scopedNamespace }}
           {{- end }}
+          {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+          # when scoped RBAC is enabled. cluster scoped resources are no longer supported.
+          - --enable-cluster-store-reconciler=false
+          {{- end }}
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}
           {{- end }}

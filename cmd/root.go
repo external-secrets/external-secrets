@@ -52,6 +52,7 @@ var (
 	concurrent                    int
 	loglevel                      string
 	namespace                     string
+	enableClusterStoreReconciler  bool
 	storeRequeueInterval          time.Duration
 	serviceName, serviceNamespace string
 	secretName, secretNamespace   string
@@ -116,15 +117,17 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, errCreateController, "controller", "SecretStore")
 			os.Exit(1)
 		}
-		if err = (&secretstore.ClusterStoreReconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: storeRequeueInterval,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
-			os.Exit(1)
+		if enableClusterStoreReconciler {
+			if err = (&secretstore.ClusterStoreReconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+				Scheme:          mgr.GetScheme(),
+				ControllerClass: controllerClass,
+				RequeueInterval: storeRequeueInterval,
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
+				os.Exit(1)
+			}
 		}
 		if err = (&externalsecret.Reconciler{
 			Client:          mgr.GetClient(),
@@ -171,5 +174,6 @@ func init() {
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent ExternalSecret reconciles.")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
+	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Time duration between reconciling (Cluster)SecretStores")
 }
