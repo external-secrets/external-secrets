@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package crds
+package webhookconfig
 
 import (
 	"context"
@@ -38,6 +38,14 @@ var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 var cancel context.CancelFunc
+var reconciler *Reconciler
+
+const (
+	ctrlSvcName         = "foo"
+	ctrlSvcNamespace    = "default"
+	ctrlSecretName      = "foo"
+	ctrlSecretNamespace = "default"
+)
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -74,11 +82,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
-	rec := New(k8sClient, k8sManager.GetScheme(), log, time.Second*1,
-		"foo", "default", "foo", "default", []string{
-			"secretstores.test.io",
-		})
-	rec.SetupWithManager(k8sManager, controller.Options{})
+	reconciler = New(k8sClient, k8sManager.GetScheme(), ctrl.Log, ctrlSvcName, ctrlSvcNamespace, ctrlSecretName, ctrlSecretNamespace, time.Second)
+	reconciler.SetupWithManager(k8sManager, controller.Options{})
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

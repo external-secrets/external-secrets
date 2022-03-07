@@ -30,8 +30,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/grpc"
 )
@@ -66,7 +64,7 @@ func newLockboxProvider(yandexCloudCreator client.YandexCloudCreator) *lockboxPr
 }
 
 // NewClient constructs a Yandex Lockbox Provider.
-func (p *lockboxProvider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (p *lockboxProvider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexLockbox == nil {
 		return nil, fmt.Errorf("received invalid Yandex Lockbox SecretStore resource")
@@ -218,6 +216,10 @@ func (p *lockboxProvider) cleanUpIamTokenMap() {
 	}
 }
 
+func (p *lockboxProvider) ValidateStore(store esv1beta1.GenericStore) error {
+	return nil
+}
+
 // lockboxSecretsClient is a secrets client for Yandex Lockbox.
 type lockboxSecretsClient struct {
 	lockboxClient client.LockboxClient
@@ -327,7 +329,7 @@ func init() {
 		}
 	}()
 
-	schema.Register(
+	esv1beta1.Register(
 		lockboxProvider,
 		&esv1beta1.SecretStoreProvider{
 			YandexLockbox: &esv1beta1.YandexLockboxProvider{},

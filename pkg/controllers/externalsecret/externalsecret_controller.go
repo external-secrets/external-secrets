@@ -36,11 +36,9 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
-	"github.com/external-secrets/external-secrets/pkg/provider"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -135,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	storeProvider, err := schema.GetProvider(store)
+	storeProvider, err := esv1beta1.GetProvider(store)
 	if err != nil {
 		log.Error(err, errStoreProvider)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
@@ -393,19 +391,19 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 }
 
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
-func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
+func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient esv1beta1.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
 
 	for _, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
 		var err error
-		if len(remoteRef.Find.Tags) > 0 || remoteRef.Find.Name != nil {
-			secretMap, err = providerClient.GetAllSecrets(ctx, remoteRef.Find)
+		if remoteRef.Find != nil {
+			secretMap, err = providerClient.GetAllSecrets(ctx, *remoteRef.Find)
 			if err != nil {
 				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
 			}
-		} else if remoteRef.Extract.Key != "" {
-			secretMap, err = providerClient.GetSecretMap(ctx, remoteRef.Extract)
+		} else if remoteRef.Extract != nil {
+			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
 			if err != nil {
 				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
 			}

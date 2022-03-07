@@ -21,6 +21,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -142,6 +144,201 @@ func TestProvider(t *testing.T) {
 				assert.Nil(t, err)
 				assert.NotNil(t, sc)
 				assert.IsType(t, row.expType, sc)
+			}
+		})
+	}
+}
+
+const validRegion = "eu-central-1"
+
+func TestValidateStore(t *testing.T) {
+	type args struct {
+		store esv1beta1.GenericStore
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "invalid region",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region: "noop.",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid region",
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region: validRegion,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid static creds auth / AccessKeyID",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region: validRegion,
+								Auth: esv1beta1.AWSAuth{
+									SecretRef: &esv1beta1.AWSAuthSecretRef{
+										AccessKeyID: esmeta.SecretKeySelector{
+											Name:      "foobar",
+											Namespace: pointer.StringPtr("unacceptable"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid static creds auth / SecretAccessKey",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region: validRegion,
+								Auth: esv1beta1.AWSAuth{
+									SecretRef: &esv1beta1.AWSAuthSecretRef{
+										SecretAccessKey: esmeta.SecretKeySelector{
+											Name:      "foobar",
+											Namespace: pointer.StringPtr("unacceptable"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid static creds auth / SecretAccessKey missing namespace",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.ClusterSecretStore{
+					TypeMeta: v1.TypeMeta{
+						Kind: esv1beta1.ClusterSecretStoreKind,
+					},
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region: validRegion,
+								Auth: esv1beta1.AWSAuth{
+									SecretRef: &esv1beta1.AWSAuthSecretRef{
+										SecretAccessKey: esmeta.SecretKeySelector{
+											Name: "foobar",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid static creds auth / AccessKeyID missing namespace",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.ClusterSecretStore{
+					TypeMeta: v1.TypeMeta{
+						Kind: esv1beta1.ClusterSecretStoreKind,
+					},
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region: validRegion,
+								Auth: esv1beta1.AWSAuth{
+									SecretRef: &esv1beta1.AWSAuthSecretRef{
+										AccessKeyID: esmeta.SecretKeySelector{
+											Name: "foobar",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid jwt auth: missing sa selector namespace",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.ClusterSecretStore{
+					TypeMeta: v1.TypeMeta{
+						Kind: esv1beta1.ClusterSecretStoreKind,
+					},
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region: validRegion,
+								Auth: esv1beta1.AWSAuth{
+									JWTAuth: &esv1beta1.AWSJWTAuth{
+										ServiceAccountRef: &esmeta.ServiceAccountSelector{
+											Name: "foobar",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid jwt auth: not allowed sa selector namespace",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region: validRegion,
+								Auth: esv1beta1.AWSAuth{
+									JWTAuth: &esv1beta1.AWSJWTAuth{
+										ServiceAccountRef: &esmeta.ServiceAccountSelector{
+											Name:      "foobar",
+											Namespace: pointer.StringPtr("unacceptable"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &Provider{}
+			if err := p.ValidateStore(tt.args.store); (err != nil) != tt.wantErr {
+				t.Errorf("Provider.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -67,6 +67,10 @@ nav:
     - FluxCD: examples-gitops-using-fluxcd.md
     - Anchore Engine: examples-anchore-engine-credentials.md
     - Jenkins: examples-jenkins-kubernetes-credentials.md
+  - External Resources:
+    - Talks: eso-talks.md
+    - Demos: eso-demos.md
+    - Blogs: eso-blogs.md
   - References:
     - API specification: spec.md
   - Contributing:

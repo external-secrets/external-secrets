@@ -34,8 +34,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
@@ -51,12 +49,12 @@ type WebHook struct {
 }
 
 func init() {
-	schema.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Webhook: &esv1beta1.WebhookProvider{},
 	})
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	whClient := &WebHook{
 		kube:      kube,
 		store:     store,
@@ -72,6 +70,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 	return whClient, nil
+}
+
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	return nil
 }
 
 func getProvider(store esv1beta1.GenericStore) (*esv1beta1.WebhookProvider, error) {

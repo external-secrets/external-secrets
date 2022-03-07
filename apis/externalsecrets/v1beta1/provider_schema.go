@@ -12,27 +12,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package schema
+package v1beta1
 
 import (
 	"encoding/json"
 	"fmt"
 	"sync"
-
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
 )
 
-var builder map[string]provider.Provider
+var builder map[string]Provider
 var buildlock sync.RWMutex
 
 func init() {
-	builder = make(map[string]provider.Provider)
+	builder = make(map[string]Provider)
 }
 
 // Register a store backend type. Register panics if a
 // backend with the same store is already registered.
-func Register(s provider.Provider, storeSpec *esv1beta1.SecretStoreProvider) {
+func Register(s Provider, storeSpec *SecretStoreProvider) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
@@ -50,7 +47,7 @@ func Register(s provider.Provider, storeSpec *esv1beta1.SecretStoreProvider) {
 
 // ForceRegister adds to store schema, overwriting a store if
 // already registered. Should only be used for testing.
-func ForceRegister(s provider.Provider, storeSpec *esv1beta1.SecretStoreProvider) {
+func ForceRegister(s Provider, storeSpec *SecretStoreProvider) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
@@ -62,7 +59,7 @@ func ForceRegister(s provider.Provider, storeSpec *esv1beta1.SecretStoreProvider
 }
 
 // GetProviderByName returns the provider implementation by name.
-func GetProviderByName(name string) (provider.Provider, bool) {
+func GetProviderByName(name string) (Provider, bool) {
 	buildlock.RLock()
 	f, ok := builder[name]
 	buildlock.RUnlock()
@@ -70,8 +67,11 @@ func GetProviderByName(name string) (provider.Provider, bool) {
 }
 
 // GetProvider returns the provider from the generic store.
-func GetProvider(s esv1beta1.GenericStore) (provider.Provider, error) {
+func GetProvider(s GenericStore) (Provider, error) {
 	spec := s.GetSpec()
+	if spec == nil {
+		return nil, fmt.Errorf("no spec found in %#v", s)
+	}
 	storeName, err := getProviderName(spec.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("store error for %s: %w", s.GetName(), err)
@@ -90,7 +90,7 @@ func GetProvider(s esv1beta1.GenericStore) (provider.Provider, error) {
 
 // getProviderName returns the name of the configured provider
 // or an error if the provider is not configured.
-func getProviderName(storeSpec *esv1beta1.SecretStoreProvider) (string, error) {
+func getProviderName(storeSpec *SecretStoreProvider) (string, error) {
 	storeBytes, err := json.Marshal(storeSpec)
 	if err != nil || storeBytes == nil {
 		return "", fmt.Errorf("failed to marshal store spec: %w", err)

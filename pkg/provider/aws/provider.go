@@ -18,15 +18,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Provider satisfies the provider interface.
@@ -35,14 +35,62 @@ type Provider struct{}
 const (
 	errUnableCreateSession    = "unable to create session: %w"
 	errUnknownProviderService = "unknown AWS Provider Service: %s"
+	errRegionNotFound         = "region not found: %s"
 )
 
 // NewClient constructs a new secrets client based on the provided store.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace, awsauth.DefaultSTSProvider)
 }
 
-func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (provider.SecretsClient, error) {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	prov, err := util.GetAWSProvider(store)
+	if err != nil {
+		return err
+	}
+	err = validateRegion(prov)
+	if err != nil {
+		return err
+	}
+
+	// case: static credentials
+	if prov.Auth.SecretRef != nil {
+		if err := utils.ValidateSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
+			return fmt.Errorf("invalid Auth.SecretRef.AccessKeyID: %w", err)
+		}
+		if err := utils.ValidateSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
+			return fmt.Errorf("invalid Auth.SecretRef.SecretAccessKey: %w", err)
+		}
+	}
+
+	// case: jwt credentials
+	if prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.ServiceAccountRef != nil {
+		if err := utils.ValidateServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
+			return fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func validateRegion(prov *esv1beta1.AWSProvider) error {
+	resolver := endpoints.DefaultResolver()
+	partitions := resolver.(endpoints.EnumPartitions).Partitions()
+	found := false
+	for _, p := range partitions {
+		for id := range p.Regions() {
+			if id == prov.Region {
+				found = true
+			}
+		}
+	}
+	if !found {
+		return fmt.Errorf(errRegionNotFound, prov.Region)
+	}
+	return nil
+}
+
+func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
@@ -63,7 +111,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 }
 
 func init() {
-	schema.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		AWS: &esv1beta1.AWSProvider{},
 	})
 }
