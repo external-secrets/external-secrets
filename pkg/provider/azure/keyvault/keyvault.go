@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
+	"regexp"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
@@ -115,10 +117,41 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.AzureKVProvider, erro
 	return spc.Provider.AzureKV, nil
 }
 
-// Empty GetAllSecrets.
+// Implements store.Client.GetAllSecrets Interface.
+// Retrieves a map[string][]byte with the secret names as key and the secret itself as the calue.
 func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	basicClient := a.baseClient
+	secretsMap := make(map[string][]byte)
+	checkTags := len(ref.Tags) > 0
+	checkName := ref.Name != nil && len(ref.Name.RegExp) > 0
+
+	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), *a.provider.VaultURL, nil)
+
+	if err != nil {
+		return nil, err
+	}
+	for secretListIter.NotDone() {
+		secretList := secretListIter.Response().Value
+		for _, secret := range *secretList {
+			ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
+			if !ok {
+				continue
+			}
+
+			secretResp, err := basicClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, "")
+			secretValue := *secretResp.Value
+
+			if err != nil {
+				return nil, err
+			}
+			secretsMap[secretName] = []byte(secretValue)
+		}
+		err = secretListIter.Next()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return secretsMap, nil
 }
 
 // Implements store.Client.GetSecret Interface.
@@ -305,4 +338,37 @@ func getObjType(ref esv1beta1.ExternalSecretDataRemoteRef) (string, string) {
 		// TODO: later tokens can be used to read the secret tags
 	}
 	return objectType, secretName
+}
+
+func isValidSecret(checkTags, checkName bool, ref esv1beta1.ExternalSecretFind, secret keyvault.SecretItem) (bool, string) {
+	if secret.ID == nil || !*secret.Attributes.Enabled {
+		return false, ""
+	}
+
+	if checkTags && !okByTags(ref, secret) {
+		return false, ""
+	}
+
+	secretName := path.Base(*secret.ID)
+	if checkName && !okByName(ref, secretName) {
+		return false, ""
+	}
+
+	return true, secretName
+}
+
+func okByName(ref esv1beta1.ExternalSecretFind, secretName string) bool {
+	matches, _ := regexp.MatchString(ref.Name.RegExp, secretName)
+	return matches
+}
+
+func okByTags(ref esv1beta1.ExternalSecretFind, secret keyvault.SecretItem) bool {
+	tagsFound := true
+	for k, v := range ref.Tags {
+		if val, ok := secret.Tags[k]; !ok || *val != v {
+			tagsFound = false
+			break
+		}
+	}
+	return tagsFound
 }
