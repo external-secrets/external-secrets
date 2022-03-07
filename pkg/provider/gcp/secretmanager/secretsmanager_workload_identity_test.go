@@ -160,6 +160,15 @@ func TestWorkloadIdentity(t *testing.T) {
 	}
 }
 
+func TestClusterProjectID(t *testing.T) {
+	clusterID, err := clusterProjectID(defaultStore())
+	assert.Nil(t, err)
+	assert.Equal(t, clusterID, "1234")
+	externalClusterID, err := clusterProjectID(defaultExternalStore())
+	assert.Nil(t, err)
+	assert.Equal(t, externalClusterID, "5678")
+}
+
 func TestSATokenGen(t *testing.T) {
 	corev1 := &fakeK8sV1{}
 	g := &k8sSATokenGenerator{
@@ -298,6 +307,16 @@ func defaultStore() *esv1beta1.SecretStore {
 	}
 }
 
+func defaultExternalStore() *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foobar",
+			Namespace: "default",
+		},
+		Spec: defaultExternalStoreSpec(),
+	}
+}
+
 func defaultClusterStore() *esv1beta1.ClusterSecretStore {
 	return &esv1beta1.ClusterSecretStore{
 		TypeMeta: metav1.TypeMeta{
@@ -321,6 +340,26 @@ func defaultStoreSpec() esv1beta1.SecretStoreSpec {
 						},
 						ClusterLocation: "example",
 						ClusterName:     "foobar",
+					},
+				},
+				ProjectID: "1234",
+			},
+		},
+	}
+}
+
+func defaultExternalStoreSpec() esv1beta1.SecretStoreSpec {
+	return esv1beta1.SecretStoreSpec{
+		Provider: &esv1beta1.SecretStoreProvider{
+			GCPSM: &esv1beta1.GCPSMProvider{
+				Auth: esv1beta1.GCPSMAuth{
+					WorkloadIdentity: &esv1beta1.GCPWorkloadIdentity{
+						ServiceAccountRef: esmeta.ServiceAccountSelector{
+							Name: "example",
+						},
+						ClusterLocation:  "example",
+						ClusterName:      "foobar",
+						ClusterProjectID: "5678",
 					},
 				},
 				ProjectID: "1234",

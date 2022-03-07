@@ -49,6 +49,7 @@ const (
 	errFetchPodToken  = "unable to fetch pod token: %w"
 	errFetchIBToken   = "unable to fetch identitybindingtoken: %w"
 	errGenAccessToken = "unable to generate gcp access token: %w"
+	errNoProjectID    = "unable to find ProjectID in storeSpec"
 )
 
 // workloadIdentity holds all clients and generators needed
@@ -114,16 +115,12 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.Gene
 		saKey.Namespace = *wi.ServiceAccountRef.Namespace
 	}
 
-	// get clusterProjectID from workload identity spec but default to Provider.GCPSM.ProjectID
-	var clusterProjectID string
-	if wi.ClusterProjectID != "" {
-		clusterProjectID = wi.ClusterProjectID
-	} else {
-		clusterProjectID = spec.Provider.GCPSM.ProjectID
+	clusterProjectID, err := clusterProjectID(store)
+	if err != nil {
+		return nil, err
 	}
-
 	sa := &v1.ServiceAccount{}
-	err := kube.Get(ctx, saKey, sa)
+	err = kube.Get(ctx, saKey, sa)
 	if err != nil {
 		return nil, err
 	}
@@ -264,4 +261,15 @@ func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Cli
 		return nil, err
 	}
 	return idBindToken, nil
+}
+
+func clusterProjectID(store esv1beta1.GenericStore) (string, error) {
+	spec := store.GetSpec()
+	if spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID != "" {
+		return spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID, nil
+	} else if spec.Provider.GCPSM.ProjectID != "" {
+		return spec.Provider.GCPSM.ProjectID, nil
+	} else {
+		return "", fmt.Errorf(errNoProjectID)
+	}
 }
