@@ -92,7 +92,7 @@ jobs:
 
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 

@@ -38,7 +38,7 @@ jobs:
     steps:
 
     - name: Branch based PR checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     # <insert integration tests needing secrets>
 
@@ -101,7 +101,7 @@ jobs:
 
     # Check out merge commit
     - name: Fork based /ok-to-test checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 
