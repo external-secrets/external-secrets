@@ -34,7 +34,7 @@ replace (
 
 require (
 	cloud.google.com/go v0.100.2 // indirect
-	cloud.google.com/go/iam v0.2.0
+	cloud.google.com/go/iam v0.3.0
 	cloud.google.com/go/secretmanager v1.2.0
 	github.com/Azure/azure-sdk-for-go v61.5.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
@@ -73,7 +73,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	google.golang.org/api v0.70.0
-	google.golang.org/genproto v0.0.0-20220218161850-94dd64e39d7c
+	google.golang.org/genproto v0.0.0-20220222213610-43724f9ea8cf
 	google.golang.org/grpc v1.44.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
