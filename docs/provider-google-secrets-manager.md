@@ -29,8 +29,8 @@ Let's assume you have created a service account correctly and attached a appropr
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: team-a
-  namespace: team-a
+  name: external-secrets
+  namespace: es
   annotations:
     iam.gke.io/gcp-service-account: example-team-a@my-project.iam.gserviceaccount.com
 ```
