@@ -64,7 +64,6 @@ const (
 	errVaultReqParams       = "cannot set Vault request parameters: %w"
 	errVaultRequest         = "error from Vault request: %w"
 	errVaultResponse        = "cannot parse Vault response: %w"
-	errDuplicateSecret      = "duplicate secret found: %s"
 	errServiceAccount       = "cannot read Kubernetes service account token from file system: %w"
 	errUnsupportedKvVersion = "cannot perform find operations with kv version v1"
 	errGetKubeSA            = "cannot get Kubernetes service account %q: %w"
