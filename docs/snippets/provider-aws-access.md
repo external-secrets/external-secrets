@@ -4,6 +4,8 @@
 
 ![Pod Identity Authentication](./pictures/diagrams-provider-aws-auth-pod-identity.png)
 
+Note: If you are using Paramater Store replace `service: SecretsManager` with `service: ParamaterStore` in all examples below.
+
 This is basicially a zero-configuration authentication method that inherits the credentials from the runtime environment using the [aws sdk default credential chain](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default).
 
 You can attach a role to the pod using [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html), [kiam](https://github.com/uswitch/kiam) or [kube2iam](https://github.com/jtblin/kube2iam). When no other authentication method is configured in the `Kind=Secretstore` this role is used to make all API calls against AWS Secrets Manager or SSM Parameter Store.
