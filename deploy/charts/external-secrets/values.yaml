@@ -215,3 +215,16 @@ certController:
       # requests:
       #   cpu: 10m
       #   memory: 32Mi
+
+# Create a dynamic manifests via values:
+extraObjects: []
+  # - apiVersion: external-secrets.io/v1alpha1
+  #   kind: ClusterSecretStore
+  #   metadata:
+  #     name: cluster-secret-store
+  #     namespace: external-secrets
+  #   spec:
+  #     provider:
+  #       gcpsm:
+  #         projectID: sample-project
+
