@@ -160,10 +160,10 @@ func TestWorkloadIdentity(t *testing.T) {
 }
 
 func TestClusterProjectID(t *testing.T) {
-	clusterID, err := clusterProjectID(defaultStore())
+	clusterID, err := clusterProjectID(esv1beta1.GenericStore.GetSpec(defaultStore()))
 	assert.Nil(t, err)
 	assert.Equal(t, clusterID, "1234")
-	externalClusterID, err := clusterProjectID(defaultExternalStore())
+	externalClusterID, err := clusterProjectID(esv1beta1.GenericStore.GetSpec(defaultExternalStore()))
 	assert.Nil(t, err)
 	assert.Equal(t, externalClusterID, "5678")
 }

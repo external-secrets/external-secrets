@@ -115,7 +115,7 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.Gene
 		saKey.Namespace = *wi.ServiceAccountRef.Namespace
 	}
 
-	clusterProjectID, err := clusterProjectID(store)
+	clusterProjectID, err := clusterProjectID(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -263,8 +263,7 @@ func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Cli
 	return idBindToken, nil
 }
 
-func clusterProjectID(store esv1beta1.GenericStore) (string, error) {
-	spec := store.GetSpec()
+func clusterProjectID(spec *esv1beta1.SecretStoreSpec) (string, error) {
 	if spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID != "" {
 		return spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID, nil
 	} else if spec.Provider.GCPSM.ProjectID != "" {
