@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
@@ -55,10 +55,10 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "key"), func() {
 					secretKey: keyBytes,
 				},
 			}
-			tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+			tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
 				{
 					SecretKey: secretKey,
-					RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+					RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 						Key: "key/" + keyName,
 					},
 				},

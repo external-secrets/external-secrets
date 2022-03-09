@@ -24,7 +24,7 @@ import (
 	p12 "software.sslmate.com/src/go-pkcs12"
 
 	// nolint
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
 )
@@ -134,16 +134,16 @@ x6HaRh+EUwU51von6M9lEF9/p5Q=
 		},
 	}
 
-	tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+	tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
 		{
 			SecretKey: "mysecret",
-			RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+			RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: cloudSecretName,
 			},
 		},
 	}
 
-	tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
+	tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
 		Type: v1.SecretTypeTLS,
 		Data: map[string]string{
 			"tls.crt": "{{ .mysecret | pkcs12cert | pemCertificate }}",
