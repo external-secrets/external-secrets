@@ -1516,12 +1516,13 @@
 <p>Your Google Kubernetes Engine (GKE) applications can consume GCP services like Secrets Manager without using static, long-lived authentication tokens. This is our recommended approach of handling credentials in GCP. ESO offers two options for integrating with GKE workload identity: <strong>pod-based workload identity</strong> and <strong>using service accounts directly</strong>. Before using either way you need to create a service account - this is covered below.</p>
 <h4 id="creating-workload-identity-service-accounts">Creating Workload Identity Service Accounts</h4>
 <p>You can find the documentation for Workload Identity <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">here</a>. We will walk you through how to navigate it here.</p>
-<p>Search <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">the documment</a> for this editable values and change them to your values:</p>
+<p>Search <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">the document</a> for this editable values and change them to your values:<br />
+<em>Note: If you have installed ESO, a serviceaccount has already been created. You can either patch the existing <code>external-secrets</code> SA or create a new one that fits your needs.</em></p>
 <ul>
 <li><code>CLUSTER_NAME</code>: The name of your cluster</li>
 <li><code>PROJECT_ID</code>: Your project ID (not your Project number nor your Project name)</li>
-<li><code>K8S_NAMESPACE</code>: For us folowing these steps here it will be <code>es</code>, but this will be the namespace where you deployed the external-secrets operator</li>
-<li><code>KSA_NAME</code>: external-secrets (if you are not creating a new one to attach to the deployemnt)</li>
+<li><code>K8S_NAMESPACE</code>: For us following these steps here it will be <code>es</code>, but this will be the namespace where you deployed the external-secrets operator</li>
+<li><code>KSA_NAME</code>: external-secrets (if you are not creating a new one to attach to the deployment)</li>
 <li><code>GSA_NAME</code>: external-secrets for simplicity, or something else if you have to follow different naming convetions for cloud resources</li>
 <li><code>ROLE_NAME</code>: should be <code>roles/secretmanager.secretAccessor</code> - so you make the pod only be able to access secrets on Secret Manager</li>
 </ul>
@@ -1530,8 +1531,8 @@
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-a</span><span class="w"></span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-a</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">es</span><span class="w"></span>
 <span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
 <span class="w">    </span><span class="nt">iam.gke.io/gcp-service-account</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-team-a@my-project.iam.gserviceaccount.com</span><span class="w"></span>
 </code></pre></div>
