@@ -60,7 +60,11 @@ func ConvertKeys(strategy esv1beta1.ExternalSecretConversionStrategy, in map[str
 				newName[rk] = string(rv)
 			}
 		}
-		out[strings.Join(newName, "")] = v
+		key := strings.Join(newName, "")
+		if _, exists := out[key]; exists {
+			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
+		}
+		out[key] = v
 	}
 	return out, nil
 }
