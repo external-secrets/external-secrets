@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-
 	"unicode"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -36,23 +35,34 @@ func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
 	return dst
 }
 
-// ConvertName converts a string into a secret-key compatible string.
-// Replaces any non-alphanumeric characters with its unicode code.
-func ConvertName(in string) string {
-	out := make([]string, len(in))
-	rs := []rune(in)
-	for k, r := range rs {
-		if !unicode.IsNumber(r) &&
-			!unicode.IsLetter(r) &&
-			r != '-' &&
-			r != '.' &&
-			r != '_' {
-			out[k] = fmt.Sprintf("_U%04x_", r)
-		} else {
-			out[k] = string(r)
+// ConvertKeys converts a secret map into a valid key.
+// Replaces any non-alphanumeric characters depending on convert strategy.
+func ConvertKeys(strategy esv1beta1.ExternalSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	for k, v := range in {
+		rs := []rune(k)
+		newName := make([]string, len(rs))
+		for rk, rv := range rs {
+			if !unicode.IsNumber(rv) &&
+				!unicode.IsLetter(rv) &&
+				rv != '-' &&
+				rv != '.' &&
+				rv != '_' {
+				switch strategy {
+				case esv1beta1.ExternalSecretConversionDefault:
+					newName[rk] = "_"
+				case esv1beta1.ExternalSecretConversionUnicode:
+					newName[rk] = fmt.Sprintf("_U%04x_", rv)
+				default:
+					return nil, fmt.Errorf("unknown conversion strategy: %s", strategy)
+				}
+			} else {
+				newName[rk] = string(rv)
+			}
 		}
+		out[strings.Join(newName, "")] = v
 	}
-	return strings.Join(out, "")
+	return out, nil
 }
 
 // MergeStringMap performs a deep clone from src to dest.

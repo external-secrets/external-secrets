@@ -276,11 +276,10 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 			if removeFromName != "" {
 				name = strings.TrimPrefix(name, removeFromName)
 			}
-			newName := utils.ConvertName(name)
-			if _, exists := secrets[newName]; exists {
-				return nil, fmt.Errorf(errDuplicateSecret, newName)
+			if _, exists := secrets[name]; exists {
+				return nil, fmt.Errorf(errDuplicateSecret, name)
 			}
-			secrets[newName] = secret
+			secrets[name] = secret
 		}
 	}
 	return secrets, nil
@@ -301,11 +300,10 @@ func (v *client) findSecretsFromName(ctx context.Context, candidates []string, r
 			if removeFromName != "" {
 				name = strings.TrimPrefix(name, removeFromName)
 			}
-			newName := utils.ConvertName(name)
-			if _, exists := secrets[newName]; exists {
-				return nil, fmt.Errorf(errDuplicateSecret, newName)
+			if _, exists := secrets[name]; exists {
+				return nil, fmt.Errorf(errDuplicateSecret, name)
 			}
-			secrets[newName] = secret
+			secrets[name] = secret
 		}
 	}
 	return secrets, nil

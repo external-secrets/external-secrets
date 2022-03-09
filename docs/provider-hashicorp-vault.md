@@ -11,7 +11,7 @@ management. Vault itself implements lots of different secret engines, as of now 
 First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token `root`:
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: vault-backend
@@ -46,7 +46,7 @@ vault kv put secret/foo my-value=s3cr3t
 Now create a ExternalSecret that uses the above SecretStore:
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -76,7 +76,7 @@ data:
 You can fetch all key/value pairs for a given path If you leave the `remoteRef.property` empty. This returns the json-encoded secret value for that path.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -105,7 +105,7 @@ Given the following secret - assume its path is `/dev/config`:
 
 You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -141,15 +141,16 @@ Given the following secret - assume its path is `/dev/config`:
 
 You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: vault-example
 spec:
   # ...
   dataFrom:
-  - key: /dev/config
-    property: foo.nested
+  - extract:
+      key: /dev/config
+      property: foo.nested
 ```
 
 That results in a secret with these values:
@@ -158,6 +159,80 @@ bar=mysecret
 baz=bang
 ```
 
+#### Getting multiple secrets
+
+You can extract multiple secrets from Hashicorp vault by using `dataFrom.Find`
+
+Currently, `dataFrom.Find` allows users to fetch secret names that match a given regexp pattern, or fetch secrets whose `custom_metadata` tags match a predefined set.
+
+Given the following secret - assume its path is `/dev/config`:
+```json
+{
+  "foo": {
+    "nested": {
+      "bar": "mysecret",
+      "baz": "bang"
+    }
+  }
+}
+```
+
+Also consider the following secret has the following `custom_metadata`:
+```json
+{
+  "environment": "dev",
+  "component": "app-1"
+}
+```
+
+It is possible to find this secret by all the following possibilities:
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  dataFrom: 
+  - find: #will return every secret with 'dev' in it (including paths) 
+      name: 
+        regexp: dev
+  - find: #will return every secret matching environment:dev tags from dev/ folder and beyond 
+      tags: 
+        environment: dev
+```
+will generate a secret with: 
+```json
+{
+  "dev_config":"{\"foo\": {\"nested\": {\"bar\": \"mysecret\",\"baz\": \"bang\"}}}"
+}
+```
+
+Currently, `Find` operations are recursive throughout a given vault folder, starting on `provider.Path` definition. It is recommended to narrow down the scope of search by setting a `find.path` variable. This is also useful to automatically reduce the resulting secret key names:
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  dataFrom: 
+  - find: #will return every secret from dev/ folder 
+      path: dev
+      name: 
+        regexp: ".*"
+  - find: #will return every secret matching environment:dev tags from dev/ folder
+      path: dev
+      tags: 
+        environment: dev
+```
+Will generate a secret with:
+```json
+{
+  "config":"{\"foo\": {\"nested\": {\"bar\": \"mysecret\",\"baz\": \"bang\"}}}"
+}
+
+```
 ### Authentication
 
 We support five different modes for authentication:
