@@ -996,6 +996,27 @@ ExternalSecretStatus
 <td></td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.ExternalSecretConversionStrategy">ExternalSecretConversionStrategy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Default&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Unicode&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.ExternalSecretCreationPolicy">ExternalSecretCreationPolicy
 (<code>string</code> alias)</p></h3>
 <p>
@@ -1115,6 +1136,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>Used to select a specific property of the Provider value (if a map), if supported</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conversionStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretConversionStrategy">
+ExternalSecretConversionStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a conversion Strategy</p>
 </td>
 </tr>
 </tbody>
@@ -1786,6 +1821,16 @@ string
 <tr>
 <td>
 <code>clusterName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterProjectID</code></br>
 <em>
 string
 </em>

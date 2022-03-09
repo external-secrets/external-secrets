@@ -165,6 +165,10 @@ You can extract multiple secrets from Hashicorp vault by using `dataFrom.Find`
 
 Currently, `dataFrom.Find` allows users to fetch secret names that match a given regexp pattern, or fetch secrets whose `custom_metadata` tags match a predefined set.
 
+
+!!! warning
+    The way hashicorp Vault currently allows LIST operations is through the existence of a secret metadata. If you delete the secret, you will also need to delete the secret's metadata or this will currently make Find operations fail.
+
 Given the following secret - assume its path is `/dev/config`:
 ```json
 {
@@ -204,7 +208,7 @@ spec:
 will generate a secret with: 
 ```json
 {
-  "dev_config":"{\"foo\": {\"nested\": {\"bar\": \"mysecret\",\"baz\": \"bang\"}}}"
+  "dev_config":"{\"foo\":{\"nested\":{\"bar\":\"mysecret\",\"baz\":\"bang\"}}}"
 }
 ```
 
