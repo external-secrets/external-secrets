@@ -32,87 +32,88 @@ The command removes all the Kubernetes components associated with the chart and 
 
 ## Values
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| affinity | object | `{}` |  |
-| certController.affinity | object | `{}` |  |
-| certController.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
-| certController.extraArgs | object | `{}` |  |
-| certController.extraEnv | list | `[]` |  |
-| certController.fullnameOverride | string | `""` |  |
-| certController.image.pullPolicy | string | `"IfNotPresent"` |  |
-| certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
-| certController.image.tag | string | `""` |  |
-| certController.imagePullSecrets | list | `[]` |  |
-| certController.nameOverride | string | `""` |  |
-| certController.nodeSelector | object | `{}` |  |
-| certController.podAnnotations | object | `{}` | Annotations to add to Pod |
-| certController.podLabels | object | `{}` |  |
-| certController.podSecurityContext | object | `{}` |  |
-| certController.priorityClassName | string | `""` | Pod priority class name. |
-| certController.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
-| certController.prometheus.service.port | int | `8080` |  |
-| certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
-| certController.requeueInterval | string | `"5m"` |  |
-| certController.resources | object | `{}` |  |
-| certController.securityContext | object | `{}` |  |
-| certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
-| certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
-| certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
-| certController.tolerations | list | `[]` |  |
-| concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
-| controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
-| deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
-| extraArgs | object | `{}` |  |
-| extraEnv | list | `[]` |  |
-| fullnameOverride | string | `""` |  |
-| image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
-| image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
-| imagePullSecrets | list | `[]` |  |
-| installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
-| leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
-| nameOverride | string | `""` |  |
-| nodeSelector | object | `{}` |  |
-| podAnnotations | object | `{}` | Annotations to add to Pod |
-| podLabels | object | `{}` |  |
-| podSecurityContext | object | `{}` |  |
-| priorityClassName | string | `""` | Pod priority class name. |
-| prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
-| prometheus.service.port | int | `8080` |  |
-| rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
-| replicaCount | int | `1` |  |
-| resources | object | `{}` |  |
-| scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
-| securityContext | object | `{}` |  |
-| serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
-| serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
-| serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
-| tolerations | list | `[]` |  |
-| webhook.affinity | object | `{}` |  |
-| webhook.certCheckInterval | string | `"5m"` |  |
-| webhook.certDir | string | `"/tmp/certs"` |  |
-| webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
-| webhook.extraArgs | object | `{}` |  |
-| webhook.extraEnv | list | `[]` |  |
-| webhook.fullnameOverride | string | `""` |  |
-| webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
-| webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
-| webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
-| webhook.imagePullSecrets | list | `[]` |  |
-| webhook.nameOverride | string | `""` |  |
-| webhook.nodeSelector | object | `{}` |  |
-| webhook.podAnnotations | object | `{}` | Annotations to add to Pod |
-| webhook.podLabels | object | `{}` |  |
-| webhook.podSecurityContext | object | `{}` |  |
-| webhook.priorityClassName | string | `""` | Pod priority class name. |
-| webhook.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
-| webhook.prometheus.service.port | int | `8080` |  |
-| webhook.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
-| webhook.replicaCount | int | `1` |  |
-| webhook.resources | object | `{}` |  |
-| webhook.securityContext | object | `{}` |  |
-| webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
-| webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
-| webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
-| webhook.tolerations | list | `[]` |  |
+| Key                                       | Type   | Default                                       | Description                                                                                                                                          |
+| ----------------------------------------- | ------ | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| affinity                                  | object | `{}`                                          |                                                                                                                                                      |
+| certController.affinity                   | object | `{}`                                          |                                                                                                                                                      |
+| certController.deploymentAnnotations      | object | `{}`                                          | Annotations to add to Deployment                                                                                                                     |
+| certController.extraArgs                  | object | `{}`                                          |                                                                                                                                                      |
+| certController.extraEnv                   | list   | `[]`                                          |                                                                                                                                                      |
+| certController.fullnameOverride           | string | `""`                                          |                                                                                                                                                      |
+| certController.image.pullPolicy           | string | `"IfNotPresent"`                              |                                                                                                                                                      |
+| certController.image.repository           | string | `"ghcr.io/external-secrets/external-secrets"` |                                                                                                                                                      |
+| certController.image.tag                  | string | `""`                                          |                                                                                                                                                      |
+| certController.imagePullSecrets           | list   | `[]`                                          |                                                                                                                                                      |
+| certController.nameOverride               | string | `""`                                          |                                                                                                                                                      |
+| certController.nodeSelector               | object | `{}`                                          |                                                                                                                                                      |
+| certController.podAnnotations             | object | `{}`                                          | Annotations to add to Pod                                                                                                                            |
+| certController.podLabels                  | object | `{}`                                          |                                                                                                                                                      |
+| certController.podSecurityContext         | object | `{}`                                          |                                                                                                                                                      |
+| certController.priorityClassName          | string | `""`                                          | Pod priority class name.                                                                                                                             |
+| certController.prometheus.enabled         | bool   | `false`                                       | Specifies whether to expose Service resource for collecting Prometheus metrics                                                                       |
+| certController.prometheus.service.port    | int    | `8080`                                        |                                                                                                                                                      |
+| certController.rbac.create                | bool   | `true`                                        | Specifies whether role and rolebinding resources should be created.                                                                                  |
+| certController.requeueInterval            | string | `"5m"`                                        |                                                                                                                                                      |
+| certController.resources                  | object | `{}`                                          |                                                                                                                                                      |
+| certController.securityContext            | object | `{}`                                          |                                                                                                                                                      |
+| certController.serviceAccount.annotations | object | `{}`                                          | Annotations to add to the service account.                                                                                                           |
+| certController.serviceAccount.create      | bool   | `true`                                        | Specifies whether a service account should be created.                                                                                               |
+| certController.serviceAccount.name        | string | `""`                                          | The name of the service account to use. If not set and create is true, a name is generated using the fullname template.                              |
+| certController.tolerations                | list   | `[]`                                          |                                                                                                                                                      |
+| concurrent                                | int    | `1`                                           | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time.                                                     |
+| controllerClass                           | string | `""`                                          | If set external secrets will filter matching Secret Stores with the appropriate controller values.                                                   |
+| deploymentAnnotations                     | object | `{}`                                          | Annotations to add to Deployment                                                                                                                     |
+| extraArgs                                 | object | `{}`                                          |                                                                                                                                                      |
+| extraEnv                                  | list   | `[]`                                          |                                                                                                                                                      |
+| extraObjects                              | list   | `[]`                                          |                                                                                                                                                      |
+| fullnameOverride                          | string | `""`                                          |                                                                                                                                                      |
+| image.pullPolicy                          | string | `"IfNotPresent"`                              |                                                                                                                                                      |
+| image.repository                          | string | `"ghcr.io/external-secrets/external-secrets"` |                                                                                                                                                      |
+| image.tag                                 | string | `""`                                          | The image tag to use. The default is the chart appVersion.                                                                                           |
+| imagePullSecrets                          | list   | `[]`                                          |                                                                                                                                                      |
+| installCRDs                               | bool   | `true`                                        | If set, install and upgrade CRDs through helm chart.                                                                                                 |
+| leaderElect                               | bool   | `false`                                       | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
+| nameOverride                              | string | `""`                                          |                                                                                                                                                      |
+| nodeSelector                              | object | `{}`                                          |                                                                                                                                                      |
+| podAnnotations                            | object | `{}`                                          | Annotations to add to Pod                                                                                                                            |
+| podLabels                                 | object | `{}`                                          |                                                                                                                                                      |
+| podSecurityContext                        | object | `{}`                                          |                                                                                                                                                      |
+| priorityClassName                         | string | `""`                                          | Pod priority class name.                                                                                                                             |
+| prometheus.enabled                        | bool   | `false`                                       | Specifies whether to expose Service resource for collecting Prometheus metrics                                                                       |
+| prometheus.service.port                   | int    | `8080`                                        |                                                                                                                                                      |
+| rbac.create                               | bool   | `true`                                        | Specifies whether role and rolebinding resources should be created.                                                                                  |
+| replicaCount                              | int    | `1`                                           |                                                                                                                                                      |
+| resources                                 | object | `{}`                                          |                                                                                                                                                      |
+| scopedNamespace                           | string | `""`                                          | If set external secrets are only reconciled in the provided namespace                                                                                |
+| securityContext                           | object | `{}`                                          |                                                                                                                                                      |
+| serviceAccount.annotations                | object | `{}`                                          | Annotations to add to the service account.                                                                                                           |
+| serviceAccount.create                     | bool   | `true`                                        | Specifies whether a service account should be created.                                                                                               |
+| serviceAccount.name                       | string | `""`                                          | The name of the service account to use. If not set and create is true, a name is generated using the fullname template.                              |
+| tolerations                               | list   | `[]`                                          |                                                                                                                                                      |
+| webhook.affinity                          | object | `{}`                                          |                                                                                                                                                      |
+| webhook.certCheckInterval                 | string | `"5m"`                                        |                                                                                                                                                      |
+| webhook.certDir                           | string | `"/tmp/certs"`                                |                                                                                                                                                      |
+| webhook.deploymentAnnotations             | object | `{}`                                          | Annotations to add to Deployment                                                                                                                     |
+| webhook.extraArgs                         | object | `{}`                                          |                                                                                                                                                      |
+| webhook.extraEnv                          | list   | `[]`                                          |                                                                                                                                                      |
+| webhook.fullnameOverride                  | string | `""`                                          |                                                                                                                                                      |
+| webhook.image.pullPolicy                  | string | `"IfNotPresent"`                              |                                                                                                                                                      |
+| webhook.image.repository                  | string | `"ghcr.io/external-secrets/external-secrets"` |                                                                                                                                                      |
+| webhook.image.tag                         | string | `""`                                          | The image tag to use. The default is the chart appVersion.                                                                                           |
+| webhook.imagePullSecrets                  | list   | `[]`                                          |                                                                                                                                                      |
+| webhook.nameOverride                      | string | `""`                                          |                                                                                                                                                      |
+| webhook.nodeSelector                      | object | `{}`                                          |                                                                                                                                                      |
+| webhook.podAnnotations                    | object | `{}`                                          | Annotations to add to Pod                                                                                                                            |
+| webhook.podLabels                         | object | `{}`                                          |                                                                                                                                                      |
+| webhook.podSecurityContext                | object | `{}`                                          |                                                                                                                                                      |
+| webhook.priorityClassName                 | string | `""`                                          | Pod priority class name.                                                                                                                             |
+| webhook.prometheus.enabled                | bool   | `false`                                       | Specifies whether to expose Service resource for collecting Prometheus metrics                                                                       |
+| webhook.prometheus.service.port           | int    | `8080`                                        |                                                                                                                                                      |
+| webhook.rbac.create                       | bool   | `true`                                        | Specifies whether role and rolebinding resources should be created.                                                                                  |
+| webhook.replicaCount                      | int    | `1`                                           |                                                                                                                                                      |
+| webhook.resources                         | object | `{}`                                          |                                                                                                                                                      |
+| webhook.securityContext                   | object | `{}`                                          |                                                                                                                                                      |
+| webhook.serviceAccount.annotations        | object | `{}`                                          | Annotations to add to the service account.                                                                                                           |
+| webhook.serviceAccount.create             | bool   | `true`                                        | Specifies whether a service account should be created.                                                                                               |
+| webhook.serviceAccount.name               | string | `""`                                          | The name of the service account to use. If not set and create is true, a name is generated using the fullname template.                              |
+| webhook.tolerations                       | list   | `[]`                                          |                                                                                                                                                      |
