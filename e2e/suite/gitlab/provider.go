@@ -88,7 +88,7 @@ func (s *gitlabProvider) DeleteSecret(key string) {
 	// Open a client**
 
 	// Delete the secret
-	_, err = client.ProjectVariables.RemoveVariable(s.projectID, strings.ReplaceAll(key, "-", "_"))
+	_, err = client.ProjectVariables.RemoveVariable(s.projectID, strings.ReplaceAll(key, "-", "_"), &gitlab.RemoveProjectVariableOptions{})
 	Expect(err).ToNot(HaveOccurred())
 }
 
