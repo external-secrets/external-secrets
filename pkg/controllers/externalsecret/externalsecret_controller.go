@@ -74,11 +74,12 @@ const (
 // Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	ControllerClass string
-	RequeueInterval time.Duration
-	recorder        record.EventRecorder
+	Log                       logr.Logger
+	Scheme                    *runtime.Scheme
+	ControllerClass           string
+	RequeueInterval           time.Duration
+	ClusterSecretStoreEnabled bool
+	recorder                  record.EventRecorder
 }
 
 // Reconcile implements the main reconciliation loop
@@ -105,6 +106,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	} else if err != nil {
 		log.Error(err, errGetES)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
+		return ctrl.Result{}, nil
+	}
+
+	if !r.ClusterSecretStoreEnabled && externalSecret.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind {
+		log.Info("skipping cluster secret store as it is disabled")
 		return ctrl.Result{}, nil
 	}
 

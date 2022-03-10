@@ -130,11 +130,12 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		if err = (&externalsecret.Reconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: time.Hour,
+			Client:                    mgr.GetClient(),
+			Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
+			Scheme:                    mgr.GetScheme(),
+			ControllerClass:           controllerClass,
+			RequeueInterval:           time.Hour,
+			ClusterSecretStoreEnabled: enableClusterStoreReconciler,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
