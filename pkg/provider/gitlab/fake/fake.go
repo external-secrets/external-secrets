@@ -21,7 +21,7 @@ type GitlabMockClient struct {
 	getVariable func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
-func (mc *GitlabMockClient) GetVariable(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
+func (mc *GitlabMockClient) GetVariable(pid interface{}, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
 	return mc.getVariable(pid, key, nil)
 }
 
