@@ -59,10 +59,6 @@ type testCase struct {
 	// The labels to be used for the namespaces
 	namespaceLabels map[string]string
 
-	// The namespaces made for this test
-	// This is normally set in the preTest
-	namespaces []testNamespace
-
 	// This is a setup function called for each test much like BeforeEach but with knowledge of the test case
 	// This is used by default to create namespaces and random labels
 	setup func(*testCase)

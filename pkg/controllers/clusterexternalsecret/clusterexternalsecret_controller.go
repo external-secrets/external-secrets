@@ -109,7 +109,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			continue
 		}
 
-		if result, err := r.resolveExternalSecret(ctx, log, &clusterExternalSecret, &existingES, namespace, esName); err != nil {
+		if result, err := r.resolveExternalSecret(ctx, &clusterExternalSecret, &existingES, namespace, esName); err != nil {
 			log.Error(err, result)
 			failedNamespaces[namespace.Name] = result
 		}
@@ -129,7 +129,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) (string, error) {
+func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) (string, error) {
 	// this means the existing ES does not belong to us
 	if err := controllerutil.SetControllerReference(clusterExternalSecret, existingES, r.Scheme); err != nil {
 		return errSetCtrlReference, err

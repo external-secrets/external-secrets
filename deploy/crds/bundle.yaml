@@ -268,7 +268,7 @@ spec:
                   type: array
                 failedNamespaces:
                   items:
-                    description: ClusterExternalSecretNamespaceFailure represents a failed namespace deployment and it's reason
+                    description: ClusterExternalSecretNamespaceFailure represents a failed namespace deployment and it's reason.
                     properties:
                       namespace:
                         type: string
