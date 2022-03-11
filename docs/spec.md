@@ -1793,6 +1793,16 @@ string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>clusterProjectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.GenericStore">GenericStore

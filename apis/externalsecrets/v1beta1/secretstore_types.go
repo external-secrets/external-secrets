@@ -89,6 +89,10 @@ type SecretStoreProvider struct {
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`
+
+	// Senhasegura configures this store to sync secrets using senhasegura provider
+	// +optional
+	Senhasegura *SenhaseguraProvider `json:"senhasegura,omitempty"`
 }
 
 type SecretStoreRetrySettings struct {

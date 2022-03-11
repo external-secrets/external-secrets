@@ -1,0 +1,20 @@
+---
+apiVersion: external-secrets.io/v1alpha1
+kind: SecretStore
+metadata:
+  name: senhasegura
+spec:
+  provider:
+    senhasegura:
+      module: DSM # Select senhasegura module to sync secrets
+      auth:
+        isoSecretRef: # senhasegura ISO authentication parameters
+          urlSecretRef:
+            name: senhasegura-auth-secret
+            key: URL
+          clientIdSecretRef:
+            name: senhasegura-auth-secret
+            key: CLIENT_ID
+          clientSecretSecretRef:
+            name: senhasegura-auth-secret
+            key: CLIENT_SECRET
