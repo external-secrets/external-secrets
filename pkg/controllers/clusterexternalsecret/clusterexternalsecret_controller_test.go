@@ -16,6 +16,7 @@ package clusterexternalsecret
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -26,12 +27,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 )
 
 var (
 	timeout  = time.Second * 10
 	interval = time.Millisecond * 250
 )
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
+
+func RandString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
 
 type testNamespace struct {
 	namespace  v1.Namespace
@@ -43,6 +55,20 @@ type testCase struct {
 
 	// These are the namespaces that are being tested
 	externalSecretNamespaces []testNamespace
+
+	// The labels to be used for the namespaces
+	namespaceLabels map[string]string
+
+	// The namespaces made for this test
+	// This is normally set in the preTest
+	namespaces []testNamespace
+
+	// This is a setup function called for each test much like BeforeEach but with knowledge of the test case
+	// This is used by default to create namespaces and random labels
+	setup func(*testCase)
+
+	// A function to do any work needed before a test is ran
+	preTest func()
 
 	// checkCondition should return true if the externalSecret
 	// has the expected condition
@@ -71,14 +97,11 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		BarValue                       = "map-bar-value"
 	)
 
-	var NamespaceLabels = map[string]string{FooValue: BarValue}
-
 	var ExternalSecretNamespaceTargets = []testNamespace{
 		{
 			namespace: v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "test-namespace-1",
-					Labels: NamespaceLabels,
+					Name: "test-ns-1",
 				},
 			},
 			containsES: true,
@@ -86,8 +109,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		{
 			namespace: v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "test-namespace-2",
-					Labels: NamespaceLabels,
+					Name: "test-ns-2",
 				},
 			},
 			containsES: true,
@@ -95,43 +117,12 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		{
 			namespace: v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:   "test-namespace-3",
-					Labels: NamespaceLabels,
-				},
-			},
-			containsES: true,
-		},
-		{
-			namespace: v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-namespace-4",
-				},
-			},
-			containsES: false,
-		},
-		{
-			namespace: v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-namespace-5",
+					Name: "test-ns-5",
 				},
 			},
 			containsES: false,
 		},
 	}
-
-	BeforeEach(func() {
-		for _, testNamespace := range ExternalSecretNamespaceTargets {
-			err := k8sClient.Create(context.Background(), &testNamespace.namespace)
-			Expect(err).ToNot(HaveOccurred())
-		}
-	})
-
-	AfterEach(func() {
-		for _, testNamespace := range ExternalSecretNamespaceTargets {
-			err := k8sClient.Delete(context.Background(), &testNamespace.namespace)
-			Expect(err).ToNot(HaveOccurred())
-		}
-	})
 
 	const targetProp = "targetProperty"
 	const remoteKey = "barz"
@@ -146,17 +137,18 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				}
 				return true
 			},
-			checkClusterExternalSecret: func(es *esv1beta1.ClusterExternalSecret) {},
-			checkExternalSecret:        func(*esv1beta1.ClusterExternalSecret, *esv1beta1.ExternalSecret) {},
-			externalSecretNamespaces:   ExternalSecretNamespaceTargets,
+			checkClusterExternalSecret: func(es *esv1beta1.ClusterExternalSecret) {
+				// To be implemented by the tests
+			},
+			checkExternalSecret: func(*esv1beta1.ClusterExternalSecret, *esv1beta1.ExternalSecret) {
+				// To be implemented by the tests
+			},
 			clusterExternalSecret: &esv1beta1.ClusterExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: ClusterExternalSecretName,
+					GenerateName: ClusterExternalSecretName,
 				},
 				Spec: esv1beta1.ClusterExternalSecretSpec{
-					NamespaceSelector: metav1.LabelSelector{
-						MatchLabels: NamespaceLabels,
-					},
+					NamespaceSelector:  metav1.LabelSelector{},
 					ExternalSecretName: ExternalSecretName,
 					ExternalSecretSpec: esv1beta1.ExternalSecretSpec{
 						SecretStoreRef: esv1beta1.SecretStoreRef{
@@ -177,13 +169,60 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 				},
 			},
+			setup: func(tc *testCase) {
+				// Generate a random label since we don't want to match previous ones.
+				tc.namespaceLabels = map[string]string{
+					RandString(5): RandString(5),
+				}
+
+				namespaces := []testNamespace{}
+				for _, ns := range ExternalSecretNamespaceTargets {
+					name, err := ctest.CreateNamespaceWithLabels(ns.namespace.Name, k8sClient, tc.namespaceLabels)
+					Expect(err).ToNot(HaveOccurred())
+
+					newNs := ns
+					newNs.namespace.ObjectMeta.Name = name
+					namespaces = append(namespaces, newNs)
+				}
+
+				tc.externalSecretNamespaces = namespaces
+
+				tc.clusterExternalSecret.Spec.NamespaceSelector.MatchLabels = tc.namespaceLabels
+			},
 		}
 	}
 
+	// If the ES does noes not have a name specified then it should use the CES name
 	syncWithoutESName := func(tc *testCase) {
 		tc.clusterExternalSecret.Spec.ExternalSecretName = ""
 		tc.checkExternalSecret = func(ces *esv1beta1.ClusterExternalSecret, es *esv1beta1.ExternalSecret) {
-			Expect(es.ObjectMeta.Name).To(Equal(ClusterExternalSecretName))
+			Expect(es.ObjectMeta.Name).To(Equal(ces.ObjectMeta.Name))
+		}
+	}
+
+	doNotOverwriteExistingES := func(tc *testCase) {
+		tc.preTest = func() {
+			es := &esv1beta1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretName,
+					Namespace: tc.externalSecretNamespaces[0].namespace.Name,
+				},
+			}
+
+			err := k8sClient.Create(context.Background(), es, &client.CreateOptions{})
+			Expect(err).ShouldNot(HaveOccurred())
+		}
+		tc.checkCondition = func(ces *esv1beta1.ClusterExternalSecret) bool {
+			cond := GetClusterExternalSecretCondition(ces.Status, esv1beta1.ClusterExternalSecretPartiallyReady)
+			return cond != nil
+		}
+		tc.checkClusterExternalSecret = func(ces *esv1beta1.ClusterExternalSecret) {
+			Expect(len(ces.Status.FailedNamespaces)).Should(Equal(1))
+
+			failure := ces.Status.FailedNamespaces[0]
+
+			Expect(failure.Namespace).Should(Equal(tc.externalSecretNamespaces[0].namespace.Name))
+			Expect(failure.Reason).Should(Equal(errSecretAlreadyExists))
 		}
 	}
 
@@ -193,15 +232,20 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			for _, tweak := range tweaks {
 				tweak(tc)
 			}
+
+			// Run test setup
+			tc.setup(tc)
+
+			if tc.preTest != nil {
+				By("running pre-test")
+				tc.preTest()
+			}
 			ctx := context.Background()
 			By("creating namespaces and cluster external secret")
-			Expect(k8sClient.Create(ctx, tc.clusterExternalSecret)).Should(Succeed())
-			cesKey := types.NamespacedName{Name: ClusterExternalSecretName}
+			err := k8sClient.Create(ctx, tc.clusterExternalSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			cesKey := types.NamespacedName{Name: tc.clusterExternalSecret.Name}
 			createdCES := &esv1beta1.ClusterExternalSecret{}
-
-			namespaceList := &v1.NamespaceList{}
-
-			k8sClient.List(ctx, namespaceList, &client.ListOptions{})
 
 			By("checking the ces condition")
 			Eventually(func() bool {
@@ -214,9 +258,9 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			tc.checkClusterExternalSecret(createdCES)
 
 			if tc.checkExternalSecret != nil {
-				for _, testNamespace := range tc.externalSecretNamespaces {
+				for _, ns := range tc.externalSecretNamespaces {
 
-					if !testNamespace.containsES {
+					if !ns.containsES {
 						continue
 					}
 
@@ -229,7 +273,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 					esLookupKey := types.NamespacedName{
 						Name:      esName,
-						Namespace: testNamespace.namespace.Name,
+						Namespace: ns.namespace.Name,
 					}
 
 					Eventually(func() bool {
@@ -241,5 +285,6 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			}
 		},
 
-		Entry("Should use cluster external secret name if external secret name isn't defined", syncWithoutESName))
+		Entry("Should use cluster external secret name if external secret name isn't defined", syncWithoutESName),
+		Entry("Should not overwrite existing external secrets and error out if one is present", doNotOverwriteExistingES))
 })
