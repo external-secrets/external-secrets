@@ -54,9 +54,6 @@ const (
 	errNamespacesFailed    = "one or more namespaces failed"
 )
 
-//+kubebuilder:rbac:groups=external-secrets.io,resources=clusterexternalsecrets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=external-secrets.io,resources=clusterexternalsecrets/status,verbs=get;update;patch
-
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterExternalSecret", req.NamespacedName)
 

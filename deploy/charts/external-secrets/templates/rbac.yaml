@@ -12,6 +12,7 @@ rules:
     - "secretstores"
     - "clustersecretstores"
     - "externalsecrets"
+    - "clusterexternalsecrets"
     verbs:
     - "get"
     - "list"
@@ -35,6 +36,7 @@ rules:
     - ""
     resources:
     - "serviceaccounts"
+    - "namespaces"
     verbs:
     - "get"
     - "list"
@@ -72,6 +74,13 @@ rules:
     verbs:
     - "create"
     - "patch"
+  - apiGroups:
+    - "external-secrets.io"
+    resources:
+    - "externalsecrets"
+    verbs:
+    - "create"
+    - "update"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
