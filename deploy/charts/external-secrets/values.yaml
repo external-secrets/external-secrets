@@ -25,6 +25,9 @@ controllerClass: ""
 # provided namespace
 scopedNamespace: ""
 
+# -- Specifies whether an external secret operator deployment be created.
+createOperator: true
+
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
@@ -88,6 +91,8 @@ affinity: {}
 priorityClassName: ""
 
 webhook:
+  # -- Specifies whether a webhook deployment be created.
+  create: true
   certCheckInterval: "5m"
   replicaCount: 1
   certDir: /tmp/certs
@@ -154,6 +159,8 @@ webhook:
       #   memory: 32Mi
 
 certController:
+  # -- Specifies whether a certificate controller deployment be created.
+  create: true
   requeueInterval: "5m"
   image:
     repository: ghcr.io/external-secrets/external-secrets

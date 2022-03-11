@@ -36,6 +36,7 @@ The command removes all the Kubernetes components associated with the chart and 
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
 | certController.affinity | object | `{}` |  |
+| certController.create | bool | `true` | Specifies whether a certificate controller deployment be created. |
 | certController.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | certController.extraArgs | object | `{}` |  |
 | certController.extraEnv | list | `[]` |  |
@@ -62,6 +63,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.tolerations | list | `[]` |  |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
+| createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | extraArgs | object | `{}` |  |
 | extraEnv | list | `[]` |  |
@@ -92,6 +94,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.affinity | object | `{}` |  |
 | webhook.certCheckInterval | string | `"5m"` |  |
 | webhook.certDir | string | `"/tmp/certs"` |  |
+| webhook.create | bool | `true` | Specifies whether a webhook deployment be created. |
 | webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | webhook.extraArgs | object | `{}` |  |
 | webhook.extraEnv | list | `[]` |  |

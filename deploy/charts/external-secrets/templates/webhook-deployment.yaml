@@ -1,3 +1,4 @@
+{{- if .Values.webhook.create }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -99,3 +100,4 @@ spec:
       {{- if .Values.webhook.priorityClassName }}
       priorityClassName: {{ .Values.webhook.priorityClassName }}
       {{- end }}
+{{- end }}
