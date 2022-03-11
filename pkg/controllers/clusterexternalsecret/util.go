@@ -20,11 +20,10 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-func NewClusterExternalSecretCondition(condType esv1beta1.ClusterExternalSecretConditionType, status v1.ConditionStatus, message string) *esv1beta1.ClusterExternalSecretStatusCondition {
+func NewClusterExternalSecretCondition(condType esv1beta1.ClusterExternalSecretConditionType, status v1.ConditionStatus) *esv1beta1.ClusterExternalSecretStatusCondition {
 	return &esv1beta1.ClusterExternalSecretStatusCondition{
-		Type:    condType,
-		Status:  status,
-		Message: message,
+		Type:   condType,
+		Status: status,
 	}
 }
 

@@ -16,7 +16,6 @@ package clusterexternalsecret
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -51,7 +50,8 @@ const (
 	errGetExistingES       = "could not get existing ExternalSecret"
 	errCreatingOrUpdating  = "could not create or update ExternalSecret"
 	errSetCtrlReference    = "could not set the controller owner reference"
-	errSecretAlreadyExists = "secret already exists in namespace"
+	errSecretAlreadyExists = "external secret already exists in namespace"
+	errNamespacesFailed    = "one or more namespaces failed"
 )
 
 //+kubebuilder:rbac:groups=external-secrets.io,resources=clusterexternalsecrets,verbs=get;list;watch;create;update;patch;delete
@@ -97,7 +97,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
 
-	failedNamespaces := []string{}
+	failedNamespaces := map[string]string{}
 
 	for _, namespace := range namespaceList.Items {
 		var existingES esv1beta1.ExternalSecret
@@ -108,34 +108,34 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		if result := checkForError(err, &existingES); result != "" {
 			log.Error(err, result)
-			failedNamespaces = append(failedNamespaces, namespace.Name)
+			failedNamespaces[namespace.Name] = result
 			continue
 		}
 
-		if err = r.resolveExternalSecret(ctx, log, &clusterExternalSecret, &existingES, namespace, esName); err != nil {
-			failedNamespaces = append(failedNamespaces, namespace.Name)
+		if result, err := r.resolveExternalSecret(ctx, log, &clusterExternalSecret, &existingES, namespace, esName); err != nil {
+			log.Error(err, result)
+			failedNamespaces[namespace.Name] = result
 		}
 	}
 
-	if len(failedNamespaces) > 0 {
-		conditionType := getConditionType(failedNamespaces, &namespaceList)
-		conditionFailed := NewClusterExternalSecretCondition(conditionType, v1.ConditionFalse, "one or more namespaces failed")
-		SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionFailed)
-		clusterExternalSecret.Status.FailedNamespaces = failedNamespaces
-		return ctrl.Result{RequeueAfter: refreshInt}, fmt.Errorf("failed to sync to the following namespaces:%v", failedNamespaces)
+	conditionType := getCondition(failedNamespaces, &namespaceList)
+
+	condition := NewClusterExternalSecretCondition(conditionType, v1.ConditionTrue)
+
+	if conditionType != esv1beta1.ClusterExternalSecretReady {
+		condition.Message = errNamespacesFailed
 	}
 
-	conditionReady := NewClusterExternalSecretCondition(esv1beta1.ClusterExternalSecretReady, v1.ConditionTrue, "ClusterExternalSecret Synced")
-	SetClusterExternalSecretCondition(&clusterExternalSecret, *conditionReady)
+	SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
+	setFailedNamespaces(&clusterExternalSecret, failedNamespaces)
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) error {
+func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) (string, error) {
 	// this means the existing ES does not belong to us
 	if err := controllerutil.SetControllerReference(clusterExternalSecret, existingES, r.Scheme); err != nil {
-		log.Error(err, errSetCtrlReference, "namespace", namespace)
-		return err
+		return errSetCtrlReference, err
 	}
 
 	externalSecret := esv1beta1.ExternalSecret{
@@ -147,8 +147,7 @@ func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger,
 	}
 
 	if err := controllerutil.SetControllerReference(clusterExternalSecret, &externalSecret, r.Scheme); err != nil {
-		log.Error(err, errSetCtrlReference)
-		return err
+		return errSetCtrlReference, err
 	}
 
 	mutateFunc := func() error {
@@ -158,11 +157,10 @@ func (r *Reconciler) resolveExternalSecret(ctx context.Context, log logr.Logger,
 
 	// An empty mutate func as nothing needs to happen currently
 	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &externalSecret, mutateFunc); err != nil {
-		log.Error(err, errCreatingOrUpdating)
-		return err
+		return errCreatingOrUpdating, err
 	}
 
-	return nil
+	return "", nil
 }
 
 func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1beta1.ClusterExternalSecret, p client.Patch) {
@@ -184,12 +182,31 @@ func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string 
 	return ""
 }
 
-func getConditionType(namespaces []string, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
+func getCondition(namespaces map[string]string, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
+	if len(namespaces) == 0 {
+		return esv1beta1.ClusterExternalSecretReady
+	}
+
 	if len(namespaces) < len(namespaceList.Items) {
 		return esv1beta1.ClusterExternalSecretPartiallyReady
 	}
 
 	return esv1beta1.ClusterExternalSecretNotReady
+}
+
+func setFailedNamespaces(ces *esv1beta1.ClusterExternalSecret, failedNamespaces map[string]string) {
+	if len(failedNamespaces) == 0 {
+		return
+	}
+
+	ces.Status.FailedNamespaces = []esv1beta1.ClusterExternalSecretNamespaceFailure{}
+
+	for namespace, message := range failedNamespaces {
+		ces.Status.FailedNamespaces = append(ces.Status.FailedNamespaces, esv1beta1.ClusterExternalSecretNamespaceFailure{
+			Namespace: namespace,
+			Reason:    message,
+		})
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

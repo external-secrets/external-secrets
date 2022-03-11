@@ -27,16 +27,21 @@ import (
 
 // CreateNamespace creates a new namespace in the cluster.
 func CreateNamespace(baseName string, c client.Client) (string, error) {
-	return CreateNamespaceWithLabels(baseName, c, map[string]string{})
+	return CreateNamespaceWithLabels(baseName, c, map[string]string{}, true)
 }
 
-func CreateNamespaceWithLabels(baseName string, c client.Client, labels map[string]string) (string, error) {
+func CreateNamespaceWithLabels(baseName string, c client.Client, labels map[string]string, generateName bool) (string, error) {
 	genName := fmt.Sprintf("ctrl-test-%v", baseName)
 	ns := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: genName,
-			Labels:       labels,
+			Labels: labels,
 		},
+	}
+
+	if generateName {
+		ns.GenerateName = genName
+	} else {
+		ns.Name = baseName
 	}
 	var err error
 	err = wait.Poll(time.Second, 10*time.Second, func() (bool, error) {
