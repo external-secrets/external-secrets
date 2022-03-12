@@ -1438,7 +1438,7 @@ for secret management.</p>
 <div class="highlight"><pre><span></span><code>kubectl create secret generic yc-auth --from-file<span class="o">=</span>authorized-key<span class="o">=</span>authorized-key.json
 </code></pre></div></li>
 <li>Create a <a href="../api-secretstore/">SecretStore</a> pointing to <code>yc-auth</code> k8s secret:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store</span><span class="w"></span>
@@ -1471,7 +1471,7 @@ Run the following command to ensure that the correct access binding has been add
 <div class="highlight"><pre><span></span><code>yc lockbox secret list-access-bindings --name lockbox-secret
 </code></pre></div></li>
 <li>Create an <a href="../api-externalsecret/">ExternalSecret</a> pointing to <code>secret-store</code> and <code>lockbox-secret</code>:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secret</span><span class="w"></span>
