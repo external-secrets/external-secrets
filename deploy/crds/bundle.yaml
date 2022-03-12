@@ -145,8 +145,8 @@ spec:
                           description: CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
                           type: string
                         deletionPolicy:
-                          default: None
-                          description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'None'
+                          default: Retain
+                          description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'Retain'
                           type: string
                         immutable:
                           description: Immutable defines if the final secret will be immutable
@@ -2678,8 +2678,8 @@ spec:
                       description: CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
                       type: string
                     deletionPolicy:
-                      default: None
-                      description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'None'
+                      default: Retain
+                      description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'Retain'
                       type: string
                     immutable:
                       description: Immutable defines if the final secret will be immutable

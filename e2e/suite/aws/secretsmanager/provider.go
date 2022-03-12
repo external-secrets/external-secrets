@@ -16,6 +16,7 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"os"
 	"time"
 
@@ -136,6 +137,10 @@ func (s *Provider) DeleteSecret(key string) {
 		SecretId:                   aws.String(key),
 		ForceDeleteWithoutRecovery: aws.Bool(true),
 	})
+	var nf *secretsmanager.ResourceNotFoundException
+	if errors.As(err, &nf) {
+		return
+	}
 	Expect(err).ToNot(HaveOccurred())
 }
 

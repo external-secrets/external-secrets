@@ -95,7 +95,7 @@ func TestGetSecret(t *testing.T) {
 				Key:     "/foo",
 				Version: "v2",
 			},
-			expErr: "secret value not found",
+			expErr: esv1beta1.NoSecretErr.Error(),
 		},
 		{
 			name: "get correct value from multiple versions",
@@ -165,7 +165,7 @@ func TestGetSecretMap(t *testing.T) {
 				Key:     "/foo",
 				Version: "v2",
 			},
-			expErr: "secret value not found",
+			expErr: esv1beta1.NoSecretErr.Error(),
 		},
 		{
 			name: "get correct value from multiple versions",

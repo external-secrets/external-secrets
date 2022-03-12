@@ -16,6 +16,7 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -118,6 +119,10 @@ func (s *Provider) DeleteSecret(key string) {
 	_, err := s.client.DeleteParameter(&ssm.DeleteParameterInput{
 		Name: aws.String(key),
 	})
+	var nf *ssm.ParameterNotFound
+	if errors.As(err, &nf) {
+		return
+	}
 	Expect(err).ToNot(HaveOccurred())
 }
 

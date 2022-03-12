@@ -125,3 +125,10 @@ func (v *Client) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 	}
 	return c, nil
 }
+
+func (v *Client) Reset() {
+	v.WithNew(func(context.Context, esv1beta1.GenericStore, client.Client,
+		string) (esv1beta1.SecretsClient, error) {
+		return v, nil
+	})
+}
