@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
@@ -34,8 +34,8 @@ var _ = Describe("[template]", Label("template"), func() {
 
 // useTemplateV1 specifies a test case which uses the template engine v1.
 func useTemplateV1(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
-		EngineVersion: esv1alpha1.TemplateEngineV1,
+	tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+		EngineVersion: esv1beta1.TemplateEngineV1,
 		Data: map[string]string{
 			"tplv1": "executed: {{ .singlefoo | toString }}|{{ .singlebaz | toString }}",
 			"other": `{{ .foo | toString }}|{{ .bar | toString }}`,
@@ -49,8 +49,8 @@ func useTemplateV1(tc *framework.TestCase) {
 
 // useTemplateV2 specifies a test case which uses the template engine v2.
 func useTemplateV2(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.Target.Template = &esv1alpha1.ExternalSecretTemplate{
-		EngineVersion: esv1alpha1.TemplateEngineV2,
+	tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+		EngineVersion: esv1beta1.TemplateEngineV2,
 		Data: map[string]string{
 			"tplv2":     "executed: {{ .singlefoo }}|{{ .singlebaz }}",
 			"other":     `{{ .foo }}|{{ .bar }}`,
@@ -72,29 +72,31 @@ func genericTemplate(f *framework.Framework) (string, func(*framework.TestCase))
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 		}
-		tc.ExternalSecret.Spec.Data = []esv1alpha1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
 			{
 				SecretKey: "singlefoo",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "foo",
 				},
 			},
 			{
 				SecretKey: "singlebaz",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "baz",
 				},
 			},
 			{
 				SecretKey: "singlejson",
-				RemoteRef: esv1alpha1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "json",
 				},
 			},
 		}
-		tc.ExternalSecret.Spec.DataFrom = []esv1alpha1.ExternalSecretDataRemoteRef{
+		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				Key: "map",
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: "map",
+				},
 			},
 		}
 	}

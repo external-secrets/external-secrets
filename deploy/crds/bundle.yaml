@@ -2019,6 +2019,10 @@ spec:
                       remoteRef:
                         description: ExternalSecretDataRemoteRef defines Provider data location.
                         properties:
+                          conversionStrategy:
+                            default: Default
+                            description: Used to define a conversion Strategy
+                            type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -2043,6 +2047,10 @@ spec:
                   items:
                     description: ExternalSecretDataRemoteRef defines Provider data location.
                     properties:
+                      conversionStrategy:
+                        default: Default
+                        description: Used to define a conversion Strategy
+                        type: string
                       key:
                         description: Key is the key used in the Provider, mandatory
                         type: string
@@ -2226,6 +2234,10 @@ spec:
                       remoteRef:
                         description: ExternalSecretDataRemoteRef defines Provider data location.
                         properties:
+                          conversionStrategy:
+                            default: Default
+                            description: Used to define a conversion Strategy
+                            type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -2254,6 +2266,10 @@ spec:
                       extract:
                         description: Used to extract multiple key/value pairs from one secret
                         properties:
+                          conversionStrategy:
+                            default: Default
+                            description: Used to define a conversion Strategy
+                            type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -2268,9 +2284,11 @@ spec:
                         type: object
                       find:
                         description: Used to find secrets based on tags or regular expressions
-                        maxProperties: 1
-                        minProperties: 1
                         properties:
+                          conversionStrategy:
+                            default: Default
+                            description: Used to define a conversion Strategy
+                            type: string
                           name:
                             description: Finds secrets based on the name.
                             properties:
@@ -2278,6 +2296,9 @@ spec:
                                 description: Finds secrets base
                                 type: string
                             type: object
+                          path:
+                            description: A root path to start the find operations.
+                            type: string
                           tags:
                             additionalProperties:
                               type: string
