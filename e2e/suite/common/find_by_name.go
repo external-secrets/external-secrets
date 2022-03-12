@@ -25,7 +25,7 @@ import (
 // Not supported by: vault.
 func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should find secrets by name using .DataFrom[]", func(tc *framework.TestCase) {
-		const namePrefix = "e2e/find/name/%s/%s"
+		const namePrefix = "/e2e/find/name/%s/%s"
 		secretKeyOne := fmt.Sprintf(namePrefix, f.Namespace.Name, "one")
 		secretKeyTwo := fmt.Sprintf(namePrefix, f.Namespace.Name, "two")
 		secretKeyThree := fmt.Sprintf(namePrefix, f.Namespace.Name, "three")
@@ -38,16 +38,16 @@ func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				fmt.Sprintf("e2e_find_name_%s_one", f.Namespace.Name):   []byte(secretValue),
-				fmt.Sprintf("e2e_find_name_%s_two", f.Namespace.Name):   []byte(secretValue),
-				fmt.Sprintf("e2e_find_name_%s_three", f.Namespace.Name): []byte(secretValue),
+				fmt.Sprintf("_e2e_find_name_%s_one", f.Namespace.Name):   []byte(secretValue),
+				fmt.Sprintf("_e2e_find_name_%s_two", f.Namespace.Name):   []byte(secretValue),
+				fmt.Sprintf("_e2e_find_name_%s_three", f.Namespace.Name): []byte(secretValue),
 			},
 		}
 		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
 			{
 				Find: &esapi.ExternalSecretFind{
 					Name: &esapi.FindName{
-						RegExp: fmt.Sprintf("e2e/find/name/%s.+", f.Namespace.Name),
+						RegExp: fmt.Sprintf("/e2e/find/name/%s.+", f.Namespace.Name),
 					},
 				},
 			},
