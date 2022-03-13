@@ -109,7 +109,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	if !r.ClusterSecretStoreEnabled && externalSecret.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind {
+	if shouldSkipClusterSecretStore(r, externalSecret) {
 		log.Info("skipping cluster secret store as it is disabled")
 		return ctrl.Result{}, nil
 	}
@@ -324,6 +324,10 @@ func hashMeta(m metav1.ObjectMeta) string {
 		annotations: m.Annotations,
 		labels:      m.Labels,
 	})
+}
+
+func shouldSkipClusterSecretStore(r *Reconciler, es esv1beta1.ExternalSecret) bool {
+	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
 }
 
 func shouldRefresh(es esv1beta1.ExternalSecret) bool {
