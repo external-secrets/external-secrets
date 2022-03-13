@@ -44,7 +44,7 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.concurrent) (.Values.extraArgs) }}
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.scopedRBAC) (.Values.concurrent) (.Values.extraArgs) }}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
@@ -52,8 +52,7 @@ spec:
           {{- if .Values.scopedNamespace }}
           - --namespace={{ .Values.scopedNamespace }}
           {{- end }}
-          {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
-          # when scoped RBAC is enabled. cluster scoped resources are no longer supported.
+          {{- if .Values.scopedRBAC }}
           - --enable-cluster-store-reconciler=false
           {{- end }}
           {{- if .Values.controllerClass }}
