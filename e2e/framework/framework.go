@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/rest"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework/addon"
 	"github.com/external-secrets/external-secrets/e2e/framework/log"
 	"github.com/external-secrets/external-secrets/e2e/framework/util"
@@ -34,7 +34,7 @@ import (
 
 func init() {
 	_ = kscheme.AddToScheme(util.Scheme)
-	_ = esv1alpha1.AddToScheme(util.Scheme)
+	_ = esv1beta1.AddToScheme(util.Scheme)
 }
 
 type Framework struct {

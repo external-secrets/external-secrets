@@ -33,7 +33,7 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
@@ -145,16 +145,16 @@ func (s *GcpProvider) DeleteSecret(key string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func makeStore(s *GcpProvider) *esv1alpha1.SecretStore {
-	return &esv1alpha1.SecretStore{
+func makeStore(s *GcpProvider) *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
+		Spec: esv1beta1.SecretStoreSpec{
 			Controller: s.controllerClass,
-			Provider: &esv1alpha1.SecretStoreProvider{
-				GCPSM: &esv1alpha1.GCPSMProvider{
+			Provider: &esv1beta1.SecretStoreProvider{
+				GCPSM: &esv1beta1.GCPSMProvider{
 					ProjectID: s.projectID,
 				},
 			},
@@ -178,8 +178,8 @@ func (s *GcpProvider) CreateSAKeyStore(ns string) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 	secretStore := makeStore(s)
-	secretStore.Spec.Provider.GCPSM.Auth = esv1alpha1.GCPSMAuth{
-		SecretRef: &esv1alpha1.GCPSMAuthSecretRef{
+	secretStore.Spec.Provider.GCPSM.Auth = esv1beta1.GCPSMAuth{
+		SecretRef: &esv1beta1.GCPSMAuthSecretRef{
 			SecretAccessKey: esmeta.SecretKeySelector{
 				Name: staticCredentialsSecretName,
 				Key:  "secret-access-credentials",
@@ -202,18 +202,18 @@ func (s *GcpProvider) SAClusterSecretStoreName() string {
 }
 
 func (s *GcpProvider) CreateSpecifcSASecretStore(ns string) {
-	clusterSecretStore := &esv1alpha1.ClusterSecretStore{
+	clusterSecretStore := &esv1beta1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.SAClusterSecretStoreName(),
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(context.Background(), s.framework.CRClient, clusterSecretStore, func() error {
 		clusterSecretStore.Spec.Controller = s.controllerClass
-		clusterSecretStore.Spec.Provider = &esv1alpha1.SecretStoreProvider{
-			GCPSM: &esv1alpha1.GCPSMProvider{
+		clusterSecretStore.Spec.Provider = &esv1beta1.SecretStoreProvider{
+			GCPSM: &esv1beta1.GCPSMProvider{
 				ProjectID: s.projectID,
-				Auth: esv1alpha1.GCPSMAuth{
-					WorkloadIdentity: &esv1alpha1.GCPWorkloadIdentity{
+				Auth: esv1beta1.GCPSMAuth{
+					WorkloadIdentity: &esv1beta1.GCPWorkloadIdentity{
 						ClusterLocation: s.clusterLocation,
 						ClusterName:     s.clusterName,
 						ServiceAccountRef: esmeta.ServiceAccountSelector{
@@ -232,7 +232,7 @@ func (s *GcpProvider) CreateSpecifcSASecretStore(ns string) {
 // Cleanup removes global resources that may have been
 // created by this provider.
 func (s *GcpProvider) DeleteSpecifcSASecretStore() {
-	err := s.framework.CRClient.Delete(context.Background(), &esv1alpha1.ClusterSecretStore{
+	err := s.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.SAClusterSecretStoreName(),
 		},
