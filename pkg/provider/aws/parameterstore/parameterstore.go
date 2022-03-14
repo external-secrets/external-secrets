@@ -72,11 +72,19 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 	if err != nil {
 		return nil, err
 	}
+	pathFilter := make([]*ssm.ParameterStringFilter, 0)
+	if ref.Path != nil {
+		pathFilter = append(pathFilter, &ssm.ParameterStringFilter{
+			Key:    aws.String("Path"),
+			Values: []*string{ref.Path},
+		})
+	}
 	data := make(map[string][]byte)
 	var nextToken *string
 	for {
 		it, err := pm.client.DescribeParameters(&ssm.DescribeParametersInput{
-			NextToken: nextToken,
+			NextToken:        nextToken,
+			ParameterFilters: pathFilter,
 		})
 		if err != nil {
 			return nil, err
@@ -106,6 +114,13 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 			Key:    utilpointer.StringPtr(fmt.Sprintf("tag:%s", k)),
 			Values: []*string{utilpointer.StringPtr(v)},
 			Option: utilpointer.StringPtr("Equals"),
+		})
+	}
+
+	if ref.Path != nil {
+		filters = append(filters, &ssm.ParameterStringFilter{
+			Key:    aws.String("Path"),
+			Values: []*string{ref.Path},
 		})
 	}
 

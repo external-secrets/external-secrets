@@ -22,31 +22,42 @@ import (
 )
 
 // This case creates multiple secrets with simple key/value pairs and syncs them using multiple .Spec.Data blocks.
-func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[common] should find secrets by name using .DataFrom[]", func(tc *framework.TestCase) {
-		const namePrefix = "e2e_find_name_%s_%s"
+func FindByTag(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should find secrets by tags using .DataFrom[]", func(tc *framework.TestCase) {
+		const namePrefix = "e2e-find-name-%s-%s"
 		secretKeyOne := fmt.Sprintf(namePrefix, f.Namespace.Name, "one")
 		secretKeyTwo := fmt.Sprintf(namePrefix, f.Namespace.Name, "two")
 		secretKeyThree := fmt.Sprintf(namePrefix, f.Namespace.Name, "three")
-		secretValue := "{\"foo1\":\"foo1-val\"}"
 		tc.Secrets = map[string]framework.SecretEntry{
-			secretKeyOne:   {Value: secretValue},
-			secretKeyTwo:   {Value: secretValue},
-			secretKeyThree: {Value: secretValue},
+			secretKeyOne: {
+				Value: secretValue1,
+				Tags: map[string]string{
+					"test": f.Namespace.Name,
+				}},
+			secretKeyTwo: {
+				Value: secretValue1,
+				Tags: map[string]string{
+					"test": f.Namespace.Name,
+				}},
+			secretKeyThree: {
+				Value: secretValue1,
+				Tags: map[string]string{
+					"test": f.Namespace.Name,
+				}},
 		}
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				secretKeyOne:   []byte(secretValue),
-				secretKeyTwo:   []byte(secretValue),
-				secretKeyThree: []byte(secretValue),
+				fmt.Sprintf("e2e-find-name-%s-one", f.Namespace.Name):   []byte(secretValue1),
+				fmt.Sprintf("e2e-find-name-%s-two", f.Namespace.Name):   []byte(secretValue1),
+				fmt.Sprintf("e2e-find-name-%s-three", f.Namespace.Name): []byte(secretValue1),
 			},
 		}
 		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
 			{
 				Find: &esapi.ExternalSecretFind{
-					Name: &esapi.FindName{
-						RegExp: fmt.Sprintf("e2e_find_name_%s.+", f.Namespace.Name),
+					Tags: map[string]string{
+						"test": f.Namespace.Name,
 					},
 				},
 			},

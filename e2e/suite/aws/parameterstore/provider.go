@@ -95,12 +95,20 @@ func NewFromEnv(f *framework.Framework) *Provider {
 }
 
 // CreateSecret creates a secret at the provider.
-func (s *Provider) CreateSecret(key, val string) {
+func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
+	pmTags := make([]*ssm.Tag, 0)
+	for k, v := range val.Tags {
+		pmTags = append(pmTags, &ssm.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
 	_, err := s.client.PutParameter(&ssm.PutParameterInput{
 		Name:     aws.String(key),
-		Value:    aws.String(val),
+		Value:    aws.String(val.Value),
 		DataType: aws.String("text"),
 		Type:     aws.String("String"),
+		Tags:     pmTags,
 	})
 	Expect(err).ToNot(HaveOccurred())
 }

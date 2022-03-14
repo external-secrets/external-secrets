@@ -63,7 +63,7 @@ func newFromEnv(f *framework.Framework) *alibabaProvider {
 }
 
 // CreateSecret creates a secret in both kv v1 and v2 provider.
-func (s *alibabaProvider) CreateSecret(key, val string) {
+func (s *alibabaProvider) CreateSecret(key string, val framework.SecretEntry) {
 	client, err := kms.NewClientWithAccessKey(s.regionID, s.accessKeyID, s.accessKeySecret)
 	Expect(err).ToNot(HaveOccurred())
 	kmssecretrequest := kms.CreateCreateSecretRequest()

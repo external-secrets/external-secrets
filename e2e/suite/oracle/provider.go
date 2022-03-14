@@ -68,7 +68,7 @@ func newFromEnv(f *framework.Framework) *oracleProvider {
 	return newOracleProvider(f, tenancy, user, region, fingerprint, privateKey)
 }
 
-func (p *oracleProvider) CreateSecret(key, val string) {
+func (p *oracleProvider) CreateSecret(key string, val framework.SecretEntry) {
 	configurationProvider := common.NewRawConfigurationProvider(p.tenancy, p.user, p.region, p.fingerprint, p.privateKey, nil)
 	client, err := vault.NewVaultsClientWithConfigurationProvider(configurationProvider)
 	Expect(err).ToNot(HaveOccurred())
@@ -76,7 +76,7 @@ func (p *oracleProvider) CreateSecret(key, val string) {
 	vmssecretrequest.SecretName = utilpointer.StringPtr(secretName)
 	vmssecretrequest.SecretContent = vault.Base64SecretContentDetails{
 		Name:    utilpointer.StringPtr(key),
-		Content: utilpointer.StringPtr(val),
+		Content: utilpointer.StringPtr(val.Value),
 	}
 	_, err = client.CreateSecret(p.ctx, vmssecretrequest)
 	Expect(err).ToNot(HaveOccurred())

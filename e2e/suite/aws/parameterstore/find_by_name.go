@@ -10,7 +10,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 limitations under the License.
 */
-package common
+package aws
 
 import (
 	"fmt"
@@ -22,9 +22,10 @@ import (
 )
 
 // This case creates multiple secrets with simple key/value pairs and syncs them using multiple .Spec.Data blocks.
+// this is special because parameter store requires a leading "/" in the name.
 func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should find secrets by name using .DataFrom[]", func(tc *framework.TestCase) {
-		const namePrefix = "e2e_find_name_%s_%s"
+		const namePrefix = "/e2e/find/name/%s/%s"
 		secretKeyOne := fmt.Sprintf(namePrefix, f.Namespace.Name, "one")
 		secretKeyTwo := fmt.Sprintf(namePrefix, f.Namespace.Name, "two")
 		secretKeyThree := fmt.Sprintf(namePrefix, f.Namespace.Name, "three")
@@ -34,19 +35,20 @@ func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
 			secretKeyTwo:   {Value: secretValue},
 			secretKeyThree: {Value: secretValue},
 		}
+		const secNamePrefix = "_e2e_find_name_%s_%s"
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				secretKeyOne:   []byte(secretValue),
-				secretKeyTwo:   []byte(secretValue),
-				secretKeyThree: []byte(secretValue),
+				fmt.Sprintf(secNamePrefix, f.Namespace.Name, "one"):   []byte(secretValue),
+				fmt.Sprintf(secNamePrefix, f.Namespace.Name, "two"):   []byte(secretValue),
+				fmt.Sprintf(secNamePrefix, f.Namespace.Name, "three"): []byte(secretValue),
 			},
 		}
 		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
 			{
 				Find: &esapi.ExternalSecretFind{
 					Name: &esapi.FindName{
-						RegExp: fmt.Sprintf("e2e_find_name_%s.+", f.Namespace.Name),
+						RegExp: fmt.Sprintf("/e2e/find/name/%s.+", f.Namespace.Name),
 					},
 				},
 			},

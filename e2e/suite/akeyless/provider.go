@@ -83,14 +83,14 @@ func newFromEnv(f *framework.Framework) *akeylessProvider {
 }
 
 // CreateSecret creates a secret.
-func (a *akeylessProvider) CreateSecret(key, val string) {
+func (a *akeylessProvider) CreateSecret(key string, val framework.SecretEntry) {
 	token, err := a.GetToken()
 	Expect(err).ToNot(HaveOccurred())
 
 	ctx := context.Background()
 	gsvBody := akeyless.CreateSecret{
 		Name:  key,
-		Value: val,
+		Value: val.Value,
 		Token: &token,
 	}
 

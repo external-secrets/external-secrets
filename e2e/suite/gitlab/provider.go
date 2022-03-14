@@ -54,7 +54,7 @@ func newFromEnv(f *framework.Framework) *gitlabProvider {
 	return newGitlabProvider(f, credentials, projectID)
 }
 
-func (s *gitlabProvider) CreateSecret(key, val string) {
+func (s *gitlabProvider) CreateSecret(key string, val framework.SecretEntry) {
 	// **Open the client
 	client, err := gitlab.NewClient(s.credentials)
 	Expect(err).ToNot(HaveOccurred())
@@ -66,7 +66,7 @@ func (s *gitlabProvider) CreateSecret(key, val string) {
 
 	opt := gitlab.CreateProjectVariableOptions{
 		Key:              &variableKey,
-		Value:            &variableValue,
+		Value:            &variableValue.Value,
 		VariableType:     nil,
 		Protected:        nil,
 		Masked:           nil,

@@ -47,6 +47,8 @@ var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws"
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.SSHKeySyncDataProperty, awscommon.UseClusterSecretStore),
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.SyncWithoutTargetName, awscommon.UseClusterSecretStore),
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.JSONDataWithoutTargetName, awscommon.UseClusterSecretStore),
+		framework.Compose(awscommon.WithReferencedIRSA, f, common.FindByName, awscommon.UseClusterSecretStore),
+		framework.Compose(awscommon.WithReferencedIRSA, f, common.FindByTag, awscommon.UseClusterSecretStore),
 	)
 })
 
@@ -81,5 +83,7 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "secretsmanager"
 		framework.Compose(awscommon.WithMountedIRSA, f, common.SSHKeySyncDataProperty, awscommon.UseMountedIRSAStore),
 		framework.Compose(awscommon.WithMountedIRSA, f, common.SyncWithoutTargetName, awscommon.UseMountedIRSAStore),
 		framework.Compose(awscommon.WithMountedIRSA, f, common.JSONDataWithoutTargetName, awscommon.UseMountedIRSAStore),
+		framework.Compose(awscommon.WithMountedIRSA, f, common.FindByName, awscommon.UseMountedIRSAStore),
+		framework.Compose(awscommon.WithMountedIRSA, f, common.FindByTag, awscommon.UseMountedIRSAStore),
 	)
 })
