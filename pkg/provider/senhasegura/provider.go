@@ -18,22 +18,19 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/senhasegura/dsm"
 	"github.com/external-secrets/external-secrets/pkg/provider/senhasegura/utils"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Provider struct that satisfier ESO interface
+// Provider struct that satisfier ESO interface.
 type Provider struct{}
 
 const (
 	errUnknownProviderService = "unknown senhasegura Provider Service: %s"
-	errNilStore               = "nil store found"
-	errMissingStoreSpec       = "store is missing spec"
-	errMissingProvider        = "storeSpec is missing provider"
-	errInvalidProvider        = "invalid provider spec. Missing senhasegura field in store %s"
 )
 
 /*
@@ -50,13 +47,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	switch provider.Module {
-	case esv1beta1.SenhaseguraModuleDSM:
+	if provider.Module == esv1beta1.SenhaseguraModuleDSM {
 		return dsm.New(isoSession)
 	}
 
 	return nil, fmt.Errorf(errUnknownProviderService, provider.Module)
-
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {

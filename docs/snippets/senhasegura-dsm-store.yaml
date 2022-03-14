@@ -1,5 +1,5 @@
 ---
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: senhasegura
@@ -18,3 +18,4 @@ spec:
           clientSecretSecretRef:
             name: senhasegura-auth-secret
             key: CLIENT_SECRET
+      ignoreSslCertificate: false # Optional

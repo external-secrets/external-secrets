@@ -25,16 +25,18 @@ import (
 	"strconv"
 	"strings"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 /*
 	SenhaseguraIsoSession contains information about senhasegura ISO API for any request
 */
 type SenhaseguraIsoSession struct {
-	Url   string
-	Token string
+	URL                  string
+	Token                string
+	IgnoreSslCertificate bool
 }
 
 /*
@@ -47,11 +49,11 @@ type isoGetTokenResponse struct {
 }
 
 var (
-	errCannotCreateRequest  = errors.New("Cannot create request to senhasegura resource /iso/oauth2/token")
-	errCannotDoRequest      = errors.New("Cannot do request in senhasegura, SSL certificate is valid ?")
-	errInvalidResponseBody  = errors.New("Invalid HTTP response body received from senhasegura")
-	errInvalidHttpCode      = errors.New("Received invalid HTTP code from senhasegura")
-	errRequiredIsoSecretRef = errors.New("Required auth.isoSecretRef not found")
+	errCannotCreateRequest  = errors.New("cannot create request to senhasegura resource /iso/oauth2/token")
+	errCannotDoRequest      = errors.New("cannot do request in senhasegura, SSL certificate is valid ?")
+	errInvalidResponseBody  = errors.New("invalid HTTP response body received from senhasegura")
+	errInvalidHTTPCode      = errors.New("received invalid HTTP code from senhasegura")
+	errRequiredIsoSecretRef = errors.New("required auth.isoSecretRef not found")
 )
 
 /*
@@ -64,18 +66,15 @@ func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *e
 			return nil, err
 		}
 		return isoSession, nil
-	} else {
-		return &SenhaseguraIsoSession{}, errRequiredIsoSecretRef
 	}
-
+	return &SenhaseguraIsoSession{}, errRequiredIsoSecretRef
 }
 
 /*
 	isoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters
 */
 func isoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
-
-	clientId, err := getKubernetesSecret(ctx, provider.Auth.IsoSecretRef.ClientId, store, kube, namespace)
+	clientID, err := getKubernetesSecret(ctx, provider.Auth.IsoSecretRef.ClientID, store, kube, namespace)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
@@ -83,38 +82,38 @@ func isoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.Senhasegur
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
-	systemUrl, err := getKubernetesSecret(ctx, provider.Auth.IsoSecretRef.Url, store, kube, namespace)
+	systemURL, err := getKubernetesSecret(ctx, provider.Auth.IsoSecretRef.URL, store, kube, namespace)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
 
-	isoToken, err := getIsoToken(ctx, clientId, clientSecret, systemUrl)
+	isoToken, err := getIsoToken(clientID, clientSecret, systemURL, provider.IgnoreSslCertificate)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
 
 	return &SenhaseguraIsoSession{
-		Url:   systemUrl,
-		Token: isoToken,
+		URL:                  systemURL,
+		Token:                isoToken,
+		IgnoreSslCertificate: provider.IgnoreSslCertificate,
 	}, nil
-
 }
 
 /*
 	getIsoToken calls senhasegura OAuth2 endpoint to get a token
 */
-func getIsoToken(ctx context.Context, clientId, clientSecret, systemUrl string) (token string, err error) {
-
+func getIsoToken(clientID, clientSecret, systemURL string, ignoreSslCertificate bool) (token string, err error) {
 	data := url.Values{}
 	data.Set("grant_type", "client_credentials")
-	data.Set("client_id", clientId)
+	data.Set("client_id", clientID)
 	data.Set("client_secret", clientSecret)
 
-	u, _ := url.ParseRequestURI(systemUrl)
+	u, _ := url.ParseRequestURI(systemURL)
 	u.Path = "/iso/oauth2/token"
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
+		// nolint
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: ignoreSslCertificate},
 	}
 
 	client := &http.Client{Transport: tr}
@@ -131,9 +130,10 @@ func getIsoToken(ctx context.Context, clientId, clientSecret, systemUrl string) 
 	if err != nil {
 		return "", errCannotDoRequest
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", errInvalidHttpCode
+		return "", errInvalidHTTPCode
 	}
 
 	respData, err := ioutil.ReadAll(resp.Body)

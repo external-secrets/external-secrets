@@ -1566,7 +1566,7 @@ spec:
                           description: Auth defines parameters to authenticate in senhasegura
                           properties:
                             isoSecretRef:
-                              description: SenhaseguraIsoAuth holds secrets referentes for senhasegura authentication parameters
+                              description: SenhaseguraIsoAuth holds secrets references for senhasegura authentication parameters
                               properties:
                                 clientIdSecretRef:
                                   description: The Client ID is used for authentication
@@ -1615,6 +1615,10 @@ spec:
                           required:
                             - isoSecretRef
                           type: object
+                        ignoreSslCertificate:
+                          default: false
+                          description: IgnoreSslCertificate defines if SSL certificate must be ignored
+                          type: boolean
                         module:
                           description: Module defines which senhasegura module should be used to get secrets
                           type: string
@@ -4098,7 +4102,7 @@ spec:
                           description: Auth defines parameters to authenticate in senhasegura
                           properties:
                             isoSecretRef:
-                              description: SenhaseguraIsoAuth holds secrets referentes for senhasegura authentication parameters
+                              description: SenhaseguraIsoAuth holds secrets references for senhasegura authentication parameters
                               properties:
                                 clientIdSecretRef:
                                   description: The Client ID is used for authentication
@@ -4147,6 +4151,10 @@ spec:
                           required:
                             - isoSecretRef
                           type: object
+                        ignoreSslCertificate:
+                          default: false
+                          description: IgnoreSslCertificate defines if SSL certificate must be ignored
+                          type: boolean
                         module:
                           description: Module defines which senhasegura module should be used to get secrets
                           type: string

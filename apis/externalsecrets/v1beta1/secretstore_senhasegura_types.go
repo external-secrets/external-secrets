@@ -24,14 +24,14 @@ type SenhaseguraAuth struct {
 }
 
 /*
-	SenhaseguraIsoAuth holds secrets referentes for senhasegura authentication parameters
+	SenhaseguraIsoAuth holds secrets references for senhasegura authentication parameters
 */
 type SenhaseguraIsoAuth struct {
 	/* The URL is used for authentication */
-	Url esmeta.SecretKeySelector `json:"urlSecretRef"`
+	URL esmeta.SecretKeySelector `json:"urlSecretRef"`
 
 	/* The Client ID is used for authentication */
-	ClientId esmeta.SecretKeySelector `json:"clientIdSecretRef"`
+	ClientID esmeta.SecretKeySelector `json:"clientIdSecretRef"`
 
 	/* The Client Secret is used for authentication */
 	ClientSecret esmeta.SecretKeySelector `json:"clientSecretSecretRef"`
@@ -60,4 +60,8 @@ type SenhaseguraProvider struct {
 
 	/* Auth defines parameters to authenticate in senhasegura */
 	Auth SenhaseguraAuth `json:"auth"`
+
+	// IgnoreSslCertificate defines if SSL certificate must be ignored
+	// +kubebuilder:default=false
+	IgnoreSslCertificate bool `json:"ignoreSslCertificate,omitempty"`
 }
