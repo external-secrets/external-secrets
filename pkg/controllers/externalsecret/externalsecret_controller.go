@@ -46,6 +46,8 @@ const (
 	requeueAfter = time.Second * 30
 
 	errGetES                 = "could not get ExternalSecret"
+	errConvert               = "could not apply conversion strategy to keys: %v"
+	errFindSecretKey         = "could not find secret %v: %v"
 	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
@@ -400,12 +402,20 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 		if remoteRef.Find != nil {
 			secretMap, err = providerClient.GetAllSecrets(ctx, *remoteRef.Find)
 			if err != nil {
-				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
+				return nil, fmt.Errorf(errFindSecretKey, externalSecret.Name, err)
+			}
+			secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
+			if err != nil {
+				return nil, fmt.Errorf(errConvert, err)
 			}
 		} else if remoteRef.Extract != nil {
 			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
 			if err != nil {
 				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
+			}
+			secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
+			if err != nil {
+				return nil, fmt.Errorf(errConvert, err)
 			}
 		}
 

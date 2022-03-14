@@ -16,6 +16,8 @@ package fake
 
 import (
 	"context"
+	"net/url"
+	"strings"
 
 	vault "github.com/hashicorp/vault/api"
 )
@@ -40,6 +42,17 @@ func NewMockNewRequestFn(req *vault.Request) MockNewRequestFn {
 	}
 }
 
+func NewMockNewRequestListFn(req *vault.Request) MockNewRequestFn {
+	return func(method, requestPath string) *vault.Request {
+		urlPath := url.URL{
+			Path: requestPath,
+		}
+		req.URL = &urlPath
+		req.Params = make(url.Values)
+		return req
+	}
+}
+
 // An RequestFn operates on the supplied Request. You might use an RequestFn to
 // test or update the contents of an Request.
 type RequestFn func(req *vault.Request) error
@@ -52,6 +65,27 @@ func NewMockRawRequestWithContextFn(res *vault.Response, err error, ofn ...Reque
 			}
 		}
 		return res, err
+	}
+}
+
+type VaultListResponse struct {
+	Metadata *vault.Response
+	Data     *vault.Response
+}
+
+func NewMockRawRequestListWithContextFn(res map[string]VaultListResponse, err error) MockRawRequestWithContextFn {
+	return func(_ context.Context, r *vault.Request) (*vault.Response, error) {
+		pathList := strings.Split(r.URL.Path, "/")
+		path := "default"
+		if pathList[4] != "" {
+			path = strings.Join(pathList[4:], "/")
+		}
+		if strings.Contains(r.URL.Path, "metadata") {
+			resp := res[path].Metadata
+			return resp, err
+		}
+		resp := res[path].Data
+		return resp, err
 	}
 }
 

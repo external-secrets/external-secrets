@@ -13,7 +13,7 @@ You can attach a role to the pod using [IRSA](https://docs.aws.amazon.com/eks/la
 Based on the Pod's identity you can do a `sts:assumeRole` before fetching the secrets to limit access to certain keys in your provider. This is optional.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: team-b-store
@@ -33,7 +33,7 @@ spec:
 You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: team-b-store
@@ -78,7 +78,7 @@ metadata:
 Reference the service account from above in the Secret Store:
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: secretstore-sample

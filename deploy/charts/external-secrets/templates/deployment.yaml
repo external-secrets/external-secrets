@@ -1,3 +1,4 @@
+{{- if .Values.createOperator }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -92,3 +93,4 @@ spec:
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
+{{- end }}
