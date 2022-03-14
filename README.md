@@ -23,6 +23,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 - [Alibaba Cloud KMS](https://www.alibabacloud.com/product/kms) (Docs still missing, PRs welcomed!)
 - [Oracle Vault](https://external-secrets.io/provider-oracle-vault)
 - [Generic Webhook](https://external-secrets.io/provider-webhook)
+- [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/provider-senhasegura-dsm/)
 
 ## Stability and Support Level
 
@@ -47,6 +48,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 | [Oracle Vault]( https://external-secrets.io/provider-oracle-vault)  |   alpha  | [@KianTigger](https://github.com/KianTigger) [@EladGabay](https://github.com/EladGabay) |
 | [Akeyless]( https://external-secrets.io/provider-akeyless)  |   alpha  | [@renanaAkeyless](https://github.com/renanaAkeyless)                                 |
 | [Generic Webhook](https://external-secrets.io/provider-webhook)  |  alpha  | [@willemm](https://github.com/willemm) |
+| [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/provider-senhasegura-dsm/)  |  alpha  | [@lfraga](https://github.com/lfraga) |
 
 ## Documentation
 
