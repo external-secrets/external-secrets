@@ -63,6 +63,7 @@ nav:
       - Oracle Vault: provider-oracle-vault.md
     - Webhook: provider-webhook.md
     - Fake: provider-fake.md
+    - Kubernetes: provider-kubernetes.md
     - senhasegura:
       - DevOps Secrets Management (DSM): provider-senhasegura-dsm.md
   - Examples:
