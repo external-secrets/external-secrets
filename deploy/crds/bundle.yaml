@@ -267,16 +267,24 @@ spec:
                     type: object
                   type: array
                 failedNamespaces:
+                  description: Failed namespaces are the namespaces that failed to apply an ExternalSecret
                   items:
                     description: ClusterExternalSecretNamespaceFailure represents a failed namespace deployment and it's reason.
                     properties:
                       namespace:
+                        description: Namespace is the namespace that failed when trying to apply an ExternalSecret
                         type: string
                       reason:
+                        description: Reason is why the ExternalSecret failed to apply to the namespace
                         type: string
                     required:
                       - namespace
                     type: object
+                  type: array
+                provisionedNamespaces:
+                  description: ProvisionedNamespaces are the namespaces where the ClusterExternalSecret has secrets
+                  items:
+                    type: string
                   type: array
               type: object
           type: object

@@ -421,6 +421,11 @@ func (in *ClusterExternalSecretStatus) DeepCopyInto(out *ClusterExternalSecretSt
 		*out = make([]ClusterExternalSecretNamespaceFailure, len(*in))
 		copy(*out, *in)
 	}
+	if in.ProvisionedNamespaces != nil {
+		in, out := &in.ProvisionedNamespaces, &out.ProvisionedNamespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]ClusterExternalSecretStatusCondition, len(*in))

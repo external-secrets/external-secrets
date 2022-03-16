@@ -53,16 +53,25 @@ type ClusterExternalSecretStatusCondition struct {
 
 // ClusterExternalSecretNamespaceFailure represents a failed namespace deployment and it's reason.
 type ClusterExternalSecretNamespaceFailure struct {
+
+	// Namespace is the namespace that failed when trying to apply an ExternalSecret
 	Namespace string `json:"namespace"`
 
+	// Reason is why the ExternalSecret failed to apply to the namespace
 	// +optional
 	Reason string `json:"reason,omitempty"`
 }
 
 // ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.
 type ClusterExternalSecretStatus struct {
+	// Failed namespaces are the namespaces that failed to apply an ExternalSecret
 	// +optional
 	FailedNamespaces []ClusterExternalSecretNamespaceFailure `json:"failedNamespaces,omitempty"`
+
+	// ProvisionedNamespaces are the namespaces where the ClusterExternalSecret has secrets
+	// +optional
+	ProvisionedNamespaces []string `json:"provisionedNamespaces,omitempty"`
+
 	// +optional
 	Conditions []ClusterExternalSecretStatusCondition `json:"conditions,omitempty"`
 }

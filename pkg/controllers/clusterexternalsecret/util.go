@@ -53,3 +53,13 @@ func filterOutCondition(conditions []esv1beta1.ClusterExternalSecretStatusCondit
 	}
 	return newConditions
 }
+
+func ContainsNamespace(namespaces v1.NamespaceList, namespace string) bool {
+	for _, ns := range namespaces.Items {
+		if ns.ObjectMeta.Name == namespace {
+			return true
+		}
+	}
+
+	return false
+}

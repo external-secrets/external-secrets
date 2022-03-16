@@ -222,6 +222,18 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		}
 	}
 
+	populatedProvisionedNamespaces := func(tc *testCase) {
+		tc.checkClusterExternalSecret = func(ces *esv1beta1.ClusterExternalSecret) {
+			for _, namespace := range tc.externalSecretNamespaces {
+				if !namespace.containsES {
+					continue
+				}
+
+				Expect(sliceContainsString(namespace.namespace.Name, ces.Status.ProvisionedNamespaces)).To(BeTrue())
+			}
+		}
+	}
+
 	DescribeTable("When reconciling a ClusterExternal Secret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestCase()
@@ -282,5 +294,16 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		},
 
 		Entry("Should use cluster external secret name if external secret name isn't defined", syncWithoutESName),
-		Entry("Should not overwrite existing external secrets and error out if one is present", doNotOverwriteExistingES))
+		Entry("Should not overwrite existing external secrets and error out if one is present", doNotOverwriteExistingES),
+		Entry("Should have list of all provisioned namespaces", populatedProvisionedNamespaces))
 })
+
+func sliceContainsString(toFind string, collection []string) bool {
+	for _, val := range collection {
+		if val == toFind {
+			return true
+		}
+	}
+
+	return false
+}
