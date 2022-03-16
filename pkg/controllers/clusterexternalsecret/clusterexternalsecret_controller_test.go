@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,6 +49,7 @@ func RandString(n int) string {
 type testNamespace struct {
 	namespace  v1.Namespace
 	containsES bool
+	deletedES  bool
 }
 
 type testCase struct {
@@ -62,6 +64,9 @@ type testCase struct {
 	// This is a setup function called for each test much like BeforeEach but with knowledge of the test case
 	// This is used by default to create namespaces and random labels
 	setup func(*testCase)
+
+	// Is a method that's ran after everything has been created, but before the check methods are called
+	beforeCheck func(*testCase)
 
 	// A function to do any work needed before a test is ran
 	preTest func()
@@ -234,6 +239,20 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		}
 	}
 
+	deleteESInNonMatchingNS := func(tc *testCase) {
+		tc.beforeCheck = func(tc *testCase) {
+			ns := tc.externalSecretNamespaces[0]
+
+			// Remove the labels, but leave the should contain ES so we can still check it
+			ns.namespace.ObjectMeta.Labels = map[string]string{}
+			tc.externalSecretNamespaces[0].deletedES = true
+
+			err := k8sClient.Update(context.Background(), &ns.namespace, &client.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			time.Sleep(time.Second) // Sleep to make sure the controller gets it.
+		}
+	}
+
 	DescribeTable("When reconciling a ClusterExternal Secret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestCase()
@@ -263,6 +282,12 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				}
 				return tc.checkCondition(createdCES)
 			}, timeout, interval).Should(BeTrue())
+
+			// Run before check
+			if tc.beforeCheck != nil {
+				tc.beforeCheck(tc)
+			}
+
 			tc.checkClusterExternalSecret(createdCES)
 
 			if tc.checkExternalSecret != nil {
@@ -286,6 +311,11 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 					Eventually(func() bool {
 						err := k8sClient.Get(ctx, esLookupKey, es)
+
+						if ns.deletedES && apierrors.IsNotFound(err) {
+							return true
+						}
+
 						return err == nil
 					}, timeout, interval).Should(BeTrue())
 					tc.checkExternalSecret(createdCES, es)
@@ -295,7 +325,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 
 		Entry("Should use cluster external secret name if external secret name isn't defined", syncWithoutESName),
 		Entry("Should not overwrite existing external secrets and error out if one is present", doNotOverwriteExistingES),
-		Entry("Should have list of all provisioned namespaces", populatedProvisionedNamespaces))
+		Entry("Should have list of all provisioned namespaces", populatedProvisionedNamespaces),
+		Entry("Should delete external secrets when namespaces no longer match", deleteESInNonMatchingNS))
 })
 
 func sliceContainsString(toFind string, collection []string) bool {
