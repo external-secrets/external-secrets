@@ -40,15 +40,11 @@ func (lb *YandexCloudCreator) CreateLockboxClient(ctx context.Context, apiEndpoi
 	if err != nil {
 		return nil, err
 	}
+	defer closeSDK(ctx, sdk)
 
 	payloadAPIEndpoint, err := sdk.ApiEndpoint().ApiEndpoint().Get(ctx, &endpoint.GetApiEndpointRequest{
 		ApiEndpointId: "lockbox-payload", // the ID from https://api.cloud.yandex.net/endpoints
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	err = closeSDK(ctx, sdk)
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +81,9 @@ func (lb *YandexCloudCreator) CreateIamToken(ctx context.Context, apiEndpoint st
 	if err != nil {
 		return nil, err
 	}
+	defer closeSDK(ctx, sdk)
 
 	iamToken, err := sdk.CreateIAMToken(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	err = closeSDK(ctx, sdk)
 	if err != nil {
 		return nil, err
 	}
