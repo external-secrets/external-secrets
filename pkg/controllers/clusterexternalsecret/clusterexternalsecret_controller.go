@@ -95,20 +95,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
 
-	failedNamespaces := map[string]string{}
+	failedNamespaces := r.removeOldNamespaces(ctx, namespaceList, esName, clusterExternalSecret.Status.ProvisionedNamespaces)
 	provisionedNamespaces := []string{}
-
-	// Loop through existing namespaces first to make sure they still have our labels
-	for _, namespace := range clusterExternalSecret.Status.ProvisionedNamespaces {
-		if ContainsNamespace(namespaceList, namespace) {
-			continue
-		}
-
-		if result, err := r.removeExternalSecret(ctx, esName, namespace); result != "" {
-			log.Error(err, result)
-			failedNamespaces[namespace] = result
-		}
-	}
 
 	for _, namespace := range namespaceList.Items {
 		var existingES esv1beta1.ExternalSecret
@@ -213,6 +201,18 @@ func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExt
 	}
 }
 
+func (r *Reconciler) removeOldNamespaces(ctx context.Context, namespaceList v1.NamespaceList, esName string, provisionedNamespaces []string) map[string]string {
+	failedNamespaces := map[string]string{}
+	// Loop through existing namespaces first to make sure they still have our labels
+	for _, namespace := range getRemovedNamespaces(namespaceList, provisionedNamespaces) {
+		if result, _ := r.removeExternalSecret(ctx, esName, namespace); result != "" {
+			failedNamespaces[namespace] = result
+		}
+	}
+
+	return failedNamespaces
+}
+
 func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string {
 	if getError != nil && !apierrors.IsNotFound(getError) {
 		return errGetExistingES
@@ -236,6 +236,18 @@ func getCondition(namespaces map[string]string, namespaceList *v1.NamespaceList)
 	}
 
 	return esv1beta1.ClusterExternalSecretNotReady
+}
+
+func getRemovedNamespaces(nsList v1.NamespaceList, provisionedNs []string) []string {
+	result := []string{}
+
+	for _, ns := range provisionedNs {
+		if !ContainsNamespace(nsList, ns) {
+			result = append(result, ns)
+		}
+	}
+
+	return result
 }
 
 func setFailedNamespaces(ces *esv1beta1.ClusterExternalSecret, failedNamespaces map[string]string) {
