@@ -29,6 +29,9 @@ rules:
     - "clustersecretstores"
     - "clustersecretstores/status"
     - "clustersecretstores/finalizers"
+    - "clusterexternalsecrets"
+    - "clusterexternalsecrets/status"
+    - "clusterexternalsecrets/finalizers"
     verbs:
     - "update"
     - "patch"
