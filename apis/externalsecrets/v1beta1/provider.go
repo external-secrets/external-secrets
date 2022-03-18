@@ -32,6 +32,8 @@ type Provider interface {
 
 	// ValidateStore checks if the provided store is valid
 	ValidateStore(store GenericStore) error
+	// Checks if provider supports concurrency
+	SupportsConcurrency() bool
 }
 
 // +kubebuilder:object:root=false

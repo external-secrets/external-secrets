@@ -16,6 +16,7 @@ package secretstore
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -39,6 +40,7 @@ type StoreReconciler struct {
 	recorder        record.EventRecorder
 	RequeueInterval time.Duration
 	ControllerClass string
+	RdyMu           *sync.Mutex
 }
 
 func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -52,7 +54,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &ss, r.Client, log, r.ControllerClass, r.recorder, r.RequeueInterval)
+	return reconcile(ctx, req, &ss, r.Client, log, r.ControllerClass, r.recorder, r.RequeueInterval, r.RdyMu)
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

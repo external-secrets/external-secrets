@@ -68,6 +68,10 @@ func init() {
 	})
 }
 
+func (k *ProviderKubernetes) SupportsConcurrency() bool {
+	return true
+}
+
 // NewClient constructs a Kubernetes Provider.
 func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()

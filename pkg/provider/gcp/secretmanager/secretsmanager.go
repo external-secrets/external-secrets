@@ -136,6 +136,10 @@ func serviceAccountTokenSource(ctx context.Context, store esv1beta1.GenericStore
 	return config.TokenSource(ctx), nil
 }
 
+func (sm *ProviderGCP) SupportsConcurrency() bool {
+	return false
+}
+
 // NewClient constructs a GCP Provider.
 func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()

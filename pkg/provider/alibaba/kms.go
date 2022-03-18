@@ -162,6 +162,10 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1
 	return secretData, nil
 }
 
+func (kms *KeyManagementService) SupportsConcurrency() bool {
+	return true
+}
+
 // NewClient constructs a new secrets client based on the provided store.
 func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()

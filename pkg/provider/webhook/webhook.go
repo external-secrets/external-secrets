@@ -54,6 +54,10 @@ func init() {
 	})
 }
 
+func (p *Provider) SupportsConcurrency() bool {
+	return true
+}
+
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	whClient := &WebHook{
 		kube:      kube,

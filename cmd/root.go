@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"os"
+	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -82,7 +83,7 @@ var rootCmd = &cobra.Command{
 		}
 		logger := zap.New(zap.Level(lvl))
 		ctrl.SetLogger(logger)
-
+		mu := sync.Mutex{}
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:             scheme,
 			MetricsBindAddress: metricsAddr,
@@ -110,6 +111,7 @@ var rootCmd = &cobra.Command{
 			Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 			Scheme:          mgr.GetScheme(),
 			ControllerClass: controllerClass,
+			RdyMu:           &mu,
 			RequeueInterval: storeRequeueInterval,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "SecretStore")
@@ -120,6 +122,7 @@ var rootCmd = &cobra.Command{
 			Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
 			Scheme:          mgr.GetScheme(),
 			ControllerClass: controllerClass,
+			RdyMu:           &mu,
 			RequeueInterval: storeRequeueInterval,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
@@ -130,6 +133,7 @@ var rootCmd = &cobra.Command{
 			Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
 			Scheme:          mgr.GetScheme(),
 			ControllerClass: controllerClass,
+			RdyMu:           &mu,
 			RequeueInterval: time.Hour,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,

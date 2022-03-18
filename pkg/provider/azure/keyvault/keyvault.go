@@ -82,6 +82,10 @@ func init() {
 	})
 }
 
+func (a *Azure) SupportsConcurrency() bool {
+	return true
+}
+
 // NewClient constructs a new secrets client based on the provided store.
 func (a *Azure) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace)

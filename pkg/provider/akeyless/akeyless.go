@@ -58,6 +58,9 @@ func init() {
 		Akeyless: &esv1beta1.AkeylessProvider{},
 	})
 }
+func (p *Provider) SupportsConcurrency() bool {
+	return true
+}
 
 // NewClient constructs a new secrets client based on the provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {

@@ -17,6 +17,7 @@ package externalsecret
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -79,6 +80,7 @@ type Reconciler struct {
 	ControllerClass string
 	RequeueInterval time.Duration
 	recorder        record.EventRecorder
+	RdyMu           *sync.Mutex
 }
 
 // Reconcile implements the main reconciliation loop
@@ -141,7 +143,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		syncCallsError.With(syncCallsMetricLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
-
+	if !storeProvider.SupportsConcurrency() {
+		r.RdyMu.Lock()
+	}
 	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
 	if err != nil {
 		log.Error(err, errStoreClient)
@@ -156,6 +160,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		err = secretClient.Close(ctx)
 		if err != nil {
 			log.Error(err, errCloseStoreClient)
+		}
+		if !storeProvider.SupportsConcurrency() {
+			r.RdyMu.Unlock()
 		}
 	}()
 

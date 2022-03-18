@@ -16,6 +16,7 @@ package secretstore
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -40,7 +41,7 @@ const (
 )
 
 func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client,
-	log logr.Logger, controllerClass string, recorder record.EventRecorder, requeueInterval time.Duration) (ctrl.Result, error) {
+	log logr.Logger, controllerClass string, recorder record.EventRecorder, requeueInterval time.Duration, mu *sync.Mutex) (ctrl.Result, error) {
 	if !ShouldProcessStore(ss, controllerClass) {
 		log.V(1).Info("skip store")
 		return ctrl.Result{}, nil
@@ -58,7 +59,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	// validateStore modifies the store conditions
 	// we have to patch the status
 	log.V(1).Info("validating")
-	err := validateStore(ctx, req.Namespace, ss, cl, recorder)
+	err := validateStore(ctx, req.Namespace, ss, cl, recorder, mu)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -75,7 +76,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 // validateStore tries to construct a new client
 // if it fails sets a condition and writes events.
 func validateStore(ctx context.Context, namespace string, store esapi.GenericStore,
-	client client.Client, recorder record.EventRecorder) error {
+	client client.Client, recorder record.EventRecorder, mu *sync.Mutex) error {
 	storeProvider, err := esapi.GetProvider(store)
 	if err != nil {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidStore, errUnableGetProvider)
@@ -84,6 +85,9 @@ func validateStore(ctx context.Context, namespace string, store esapi.GenericSto
 		return fmt.Errorf(errStoreProvider, err)
 	}
 
+	if !storeProvider.SupportsConcurrency() {
+		mu.Lock()
+	}
 	cl, err := storeProvider.NewClient(ctx, store, client, namespace)
 	if err != nil {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
@@ -91,7 +95,12 @@ func validateStore(ctx context.Context, namespace string, store esapi.GenericSto
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
 		return fmt.Errorf(errStoreClient, err)
 	}
-
+	defer func() {
+		cl.Close(ctx)
+		if !storeProvider.SupportsConcurrency() {
+			mu.Unlock()
+		}
+	}()
 	err = cl.Validate()
 	if err != nil {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, errUnableValidateStore)

@@ -38,6 +38,10 @@ const (
 	errRegionNotFound         = "region not found: %s"
 )
 
+func (p *Provider) SupportsConcurrency() bool {
+	return true
+}
+
 // NewClient constructs a new secrets client based on the provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace, awsauth.DefaultSTSProvider)

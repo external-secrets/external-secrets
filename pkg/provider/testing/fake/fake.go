@@ -116,6 +116,9 @@ func (v *Client) WithNew(f func(context.Context, esv1beta1.GenericStore, client.
 	v.NewFn = f
 	return v
 }
+func (v *Client) SupportsConcurrency() bool {
+	return true
+}
 
 // NewClient returns a new fake provider.
 func (v *Client) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {

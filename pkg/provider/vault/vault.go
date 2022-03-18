@@ -130,6 +130,10 @@ type connector struct {
 	newVaultClient func(c *vault.Config) (Client, error)
 }
 
+func (c *connector) SupportsConcurrency() bool {
+	return true
+}
+
 func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {

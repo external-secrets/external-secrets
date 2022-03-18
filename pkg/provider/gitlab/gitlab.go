@@ -105,6 +105,10 @@ func NewGitlabProvider() *Gitlab {
 	return &Gitlab{}
 }
 
+func (g *Gitlab) SupportsConcurrency() bool {
+	return true
+}
+
 // Method on Gitlab Provider to set up client with credentials and populate projectID.
 func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()

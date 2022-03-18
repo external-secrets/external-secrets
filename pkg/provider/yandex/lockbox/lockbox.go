@@ -63,6 +63,10 @@ func newLockboxProvider(yandexCloudCreator client.YandexCloudCreator) *lockboxPr
 	}
 }
 
+func (p *lockboxProvider) SupportsConcurrency() bool {
+	return true
+}
+
 // NewClient constructs a Yandex Lockbox Provider.
 func (p *lockboxProvider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
