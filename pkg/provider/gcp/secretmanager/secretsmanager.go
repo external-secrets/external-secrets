@@ -79,6 +79,9 @@ type gClient struct {
 	workloadIdentity *workloadIdentity
 }
 
+var commonWI *workloadIdentity
+var commonSM GoogleSecretManagerClient
+
 func (c *gClient) getTokenSource(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	ts, err := serviceAccountTokenSource(ctx, store, kube, namespace)
 	if ts != nil || err != nil {
@@ -143,18 +146,19 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 		return nil, fmt.Errorf(errGCPSMStore)
 	}
 	storeSpecGCPSM := storeSpec.Provider.GCPSM
-
-	wi, err := newWorkloadIdentity(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize workload identity")
+	var err error
+	if commonWI == nil {
+		commonWI, err = newWorkloadIdentity(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("unable to initialize workload identity")
+		}
 	}
-
 	cliStore := gClient{
 		kube:             kube,
 		store:            storeSpecGCPSM,
 		namespace:        namespace,
 		storeKind:        store.GetObjectKind().GroupVersionKind().Kind,
-		workloadIdentity: wi,
+		workloadIdentity: commonWI,
 	}
 	sm.gClient = &cliStore
 	defer func() {
@@ -176,12 +180,14 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 	if err != nil {
 		return nil, fmt.Errorf(errUnableGetCredentials, err)
 	}
-
-	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
-	if err != nil {
-		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+	if commonSM == nil {
+		clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
+		if err != nil {
+			return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+		}
+		commonSM = clientGCPSM
 	}
-	sm.SecretManagerClient = clientGCPSM
+	sm.SecretManagerClient = commonSM
 	return sm, nil
 }
 
