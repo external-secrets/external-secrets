@@ -53,3 +53,34 @@ func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
 		}
 	}
 }
+
+func FindByNameWithPath(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should find secrets by name with path", func(tc *framework.TestCase) {
+		secretKeyOne := fmt.Sprintf("e2e-find-name-%s-one", f.Namespace.Name)
+		secretKeyTwo := fmt.Sprintf("%s-two", f.Namespace.Name)
+		secretKeythree := fmt.Sprintf("%s-three", f.Namespace.Name)
+		secretValue := "{\"foo1\":\"foo1-val\"}"
+		tc.Secrets = map[string]framework.SecretEntry{
+			secretKeyOne:   {Value: secretValue},
+			secretKeyTwo:   {Value: secretValue},
+			secretKeythree: {Value: secretValue},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				fmt.Sprintf("%s-two", f.Namespace.Name):   []byte(secretValue),
+				fmt.Sprintf("%s-three", f.Namespace.Name): []byte(secretValue),
+			},
+		}
+		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esapi.ExternalSecretFind{
+					Path: &f.Namespace.Name,
+					Name: &esapi.FindName{
+						RegExp: ".+",
+					},
+				},
+			},
+		}
+	}
+}
