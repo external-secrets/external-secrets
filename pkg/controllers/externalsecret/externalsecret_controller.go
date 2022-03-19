@@ -148,6 +148,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
 	if err != nil {
+		if !storeProvider.SupportsConcurrency() {
+			r.RdyMu.Unlock()
+		}
 		log.Error(err, errStoreClient)
 		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errStoreClient)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)

@@ -90,6 +90,9 @@ func validateStore(ctx context.Context, namespace string, store esapi.GenericSto
 	}
 	cl, err := storeProvider.NewClient(ctx, store, client, namespace)
 	if err != nil {
+		if !storeProvider.SupportsConcurrency() {
+			mu.Unlock()
+		}
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
 		SetExternalSecretCondition(store, *cond)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())

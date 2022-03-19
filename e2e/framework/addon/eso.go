@@ -93,6 +93,24 @@ func WithNamespaceScope(namespace string) MutationFunc {
 	}
 }
 
+func WithoutWebhook() MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "webhook.create",
+			Value: "false",
+		})
+	}
+}
+
+func WithoutCertController() MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "certController.create",
+			Value: "false",
+		})
+	}
+}
+
 func WithServiceAccount(saName string) MutationFunc {
 	return func(eso *ESO) {
 		eso.HelmChart.Vars = append(eso.HelmChart.Vars, []StringTuple{
