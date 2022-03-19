@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
@@ -143,7 +144,7 @@ func (lb *LockboxBackend) getEntries(iamToken, secretID, versionID string) ([]*l
 	if lb.tokenMap[tokenKey{iamToken}].expiresAt.Before(lb.now) {
 		return nil, fmt.Errorf("iam token expired")
 	}
-	if !cmp.Equal(lb.tokenMap[tokenKey{iamToken}].authorizedKey, lb.secretMap[secretKey{secretID}].expectedAuthorizedKey) {
+	if !cmp.Equal(lb.tokenMap[tokenKey{iamToken}].authorizedKey, lb.secretMap[secretKey{secretID}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
 		return nil, fmt.Errorf("permission denied")
 	}
 
