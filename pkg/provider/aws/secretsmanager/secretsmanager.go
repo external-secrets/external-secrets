@@ -101,11 +101,23 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 	if err != nil {
 		return nil, err
 	}
+
+	filters := make([]*awssm.Filter, 0)
+	if ref.Path != nil {
+		filters = append(filters, &awssm.Filter{
+			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeName),
+			Values: []*string{
+				ref.Path,
+			},
+		})
+	}
+
 	data := make(map[string][]byte)
 	var nextToken *string
 
 	for {
 		it, err := sm.client.ListSecrets(&awssm.ListSecretsInput{
+			Filters:   filters,
 			NextToken: nextToken,
 		})
 		if err != nil {
@@ -146,6 +158,15 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 		})
 	}
 
+	if ref.Path != nil {
+		filters = append(filters, &awssm.Filter{
+			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeName),
+			Values: []*string{
+				ref.Path,
+			},
+		})
+	}
+
 	data := make(map[string][]byte)
 	var nextToken *string
 	for {
@@ -175,10 +196,6 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
 	sec, err := sm.fetch(ctx, esv1beta1.ExternalSecretDataRemoteRef{
 		Key: name,
-		// Right now we only support AWSCURRENT as version
-		// There is no intent to support specific versions
-		// or specific aliases like AWSPREVIOUS or AWSPENDING
-		Version: "AWSCURRENT",
 	})
 	if err != nil {
 		return err
