@@ -15,7 +15,6 @@ package azure
 import (
 	"context"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
@@ -43,31 +42,26 @@ type azureProvider struct {
 	framework    *framework.Framework
 }
 
-var once sync.Once
-
 func newazureProvider(f *framework.Framework, clientID, clientSecret, tenantID, vaultURL string) *azureProvider {
+	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
+	clientCredentialsConfig.Resource = "https://vault.azure.net"
+	authorizer, err := clientCredentialsConfig.Authorizer()
+	if err != nil {
+		Fail(err.Error())
+	}
+	basicClient := keyvault.New()
+	basicClient.Authorizer = authorizer
+
 	prov := &azureProvider{
 		framework:    f,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		tenantID:     tenantID,
 		vaultURL:     vaultURL,
+		client:       &basicClient,
 	}
 
 	BeforeEach(func() {
-		// we can not initialize the client above
-		// because it will fail if no credentials are defined
-		once.Do(func() {
-			clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
-			clientCredentialsConfig.Resource = "https://vault.azure.net"
-			authorizer, err := clientCredentialsConfig.Authorizer()
-			if err != nil {
-				Fail(err.Error())
-			}
-			basicClient := keyvault.New()
-			basicClient.Authorizer = authorizer
-			prov.client = &basicClient
-		})
 		prov.CreateSecretStore()
 	})
 
