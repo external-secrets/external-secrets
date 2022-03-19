@@ -131,7 +131,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 }
 
 func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	filters := make([]*awssm.Filter, len(ref.Tags)*2)
+	filters := make([]*awssm.Filter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &awssm.Filter{
 			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeTagKey),
