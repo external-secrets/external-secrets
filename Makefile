@@ -231,6 +231,12 @@ docker.promote: ## Promote the docker image to the registry
 	docker manifest push $(IMAGE_REGISTRY):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
 
+docker.sign: ## Sign
+	@$(INFO) signing $(IMAGE_REGISTRY):$(RELEASE_TAG)
+	crane digest $(IMAGE_REGISTRY):$(RELEASE_TAG) > .digest
+	cosign sign $(IMAGE_REGISTRY)@$$(cat .digest)
+	@$(OK) cosign sign $(IMAGE_REGISTRY):$(RELEASE_TAG)
+
 # ====================================================================================
 # Terraform
 

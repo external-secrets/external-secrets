@@ -16,6 +16,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -68,6 +69,10 @@ jobs:
   promote:
     name: Promote Container Image
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -85,6 +90,17 @@ jobs:
       - name: Promote Container Image
         if: env.GHCR_USERNAME != ''
         run: make docker.promote
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.version }}
+          SOURCE_TAG: main
+
+      - name: Set up crane
+        if: env.GHCR_USERNAME != ''
+        run: go install github.com/google/go-containerregistry/cmd/crane@v0.8.0
+
+      - name: Sign Container Image
+        if: env.GHCR_USERNAME != ''
+        run: make docker.sign
         env:
           RELEASE_TAG: ${{ github.event.inputs.version }}
           SOURCE_TAG: main
