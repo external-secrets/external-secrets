@@ -44,6 +44,8 @@ var _ = Describe("[aws] ", Label("aws", "parameterstore"), func() {
 
 		// These are specific to parameterstore
 		Entry(FindByName(f)),
+		Entry(FindByNameWithPath(f)),
 		Entry(FindByTag(f)),
+		Entry(FindByTagWithPath(f)),
 	)
 })

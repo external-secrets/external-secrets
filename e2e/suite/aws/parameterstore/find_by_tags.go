@@ -66,3 +66,50 @@ func FindByTag(f *framework.Framework) (string, func(*framework.TestCase)) {
 		}
 	}
 }
+
+// This case creates multiple secrets with simple key/value pairs
+// this is special because parameter store requires a leading "/" in the name.
+func FindByTagWithPath(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should find secrets by tags with path prefix", func(tc *framework.TestCase) {
+		const namePrefix = "/e2e/find/name/%s/%s"
+		pathPrefix := "/foobar"
+		secretKeyOne := fmt.Sprintf(namePrefix, f.Namespace.Name, "one")
+		secretKeyTwo := fmt.Sprintf("%s/%s/%s", pathPrefix, f.Namespace.Name, "two")
+		secretKeyThree := fmt.Sprintf("%s/%s/%s", pathPrefix, f.Namespace.Name, "three")
+		secretValue := "{\"foo1\":\"foo1-val\",\"bar1\":\"bar1-val\"}"
+		tc.Secrets = map[string]framework.SecretEntry{
+			secretKeyOne: {
+				Value: secretValue,
+				Tags: map[string]string{
+					"test": f.Namespace.Name,
+				}},
+			secretKeyTwo: {
+				Value: secretValue,
+				Tags: map[string]string{
+					"test": f.Namespace.Name,
+				}},
+			secretKeyThree: {
+				Value: secretValue,
+				Tags: map[string]string{
+					"test": f.Namespace.Name,
+				}},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				fmt.Sprintf("_foobar_%s_two", f.Namespace.Name):   []byte(secretValue),
+				fmt.Sprintf("_foobar_%s_three", f.Namespace.Name): []byte(secretValue),
+			},
+		}
+		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esapi.ExternalSecretFind{
+					Path: &pathPrefix,
+					Tags: map[string]string{
+						"test": f.Namespace.Name,
+					},
+				},
+			},
+		}
+	}
+}

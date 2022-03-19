@@ -21,7 +21,7 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
-// This case creates multiple secrets with simple key/value pairs and syncs them using multiple .Spec.Data blocks.
+// This case creates multiple secrets with simple key/value pairs
 // this is special because parameter store requires a leading "/" in the name.
 func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should find secrets by name using .DataFrom[]", func(tc *framework.TestCase) {
@@ -49,6 +49,40 @@ func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
 				Find: &esapi.ExternalSecretFind{
 					Name: &esapi.FindName{
 						RegExp: fmt.Sprintf("/e2e/find/name/%s.+", f.Namespace.Name),
+					},
+				},
+			},
+		}
+	}
+}
+
+// This case creates multiple secrets with simple key/value pairs
+// this is special because parameter store requires a leading "/" in the name.
+func FindByNameWithPath(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should find secrets by name using .DataFrom[]", func(tc *framework.TestCase) {
+		secretKeyOne := fmt.Sprintf("/e2e/find/name/%s/one", f.Namespace.Name)
+		secretKeyTwo := fmt.Sprintf("/%s/two", f.Namespace.Name)
+		secretKeythree := fmt.Sprintf("/%s/three", f.Namespace.Name)
+		secretValue := "{\"foo1\":\"foo1-val\"}"
+		tc.Secrets = map[string]framework.SecretEntry{
+			secretKeyOne:   {Value: secretValue},
+			secretKeyTwo:   {Value: secretValue},
+			secretKeythree: {Value: secretValue},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				fmt.Sprintf("_%s_two", f.Namespace.Name):   []byte(secretValue),
+				fmt.Sprintf("_%s_three", f.Namespace.Name): []byte(secretValue),
+			},
+		}
+		pathPrefix := fmt.Sprintf("/%s", f.Namespace.Name)
+		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esapi.ExternalSecretFind{
+					Path: &pathPrefix,
+					Name: &esapi.FindName{
+						RegExp: ".+",
 					},
 				},
 			},

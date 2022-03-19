@@ -76,6 +76,7 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 	if ref.Path != nil {
 		pathFilter = append(pathFilter, &ssm.ParameterStringFilter{
 			Key:    aws.String("Path"),
+			Option: aws.String("Recursive"),
 			Values: []*string{ref.Path},
 		})
 	}
@@ -108,7 +109,7 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 }
 
 func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	filters := make([]*ssm.ParameterStringFilter, len(ref.Tags))
+	filters := make([]*ssm.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &ssm.ParameterStringFilter{
 			Key:    utilpointer.StringPtr(fmt.Sprintf("tag:%s", k)),
@@ -120,6 +121,7 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 	if ref.Path != nil {
 		filters = append(filters, &ssm.ParameterStringFilter{
 			Key:    aws.String("Path"),
+			Option: aws.String("Recursive"),
 			Values: []*string{ref.Path},
 		})
 	}
