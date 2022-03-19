@@ -14,8 +14,10 @@ package common
 
 import (
 	"fmt"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
@@ -53,6 +55,9 @@ func FindByTag(f *framework.Framework) (string, func(*framework.TestCase)) {
 				fmt.Sprintf("e2e-find-name-%s-three", f.Namespace.Name): []byte(secretValue1),
 			},
 		}
+		// AWS Secrets Manager is eventually consistent
+		// specifying a low refresh interval avoids flaky tests
+		tc.ExternalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second * 5}
 		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
 			{
 				Find: &esapi.ExternalSecretFind{
@@ -98,6 +103,9 @@ func FindByTagWithPath(f *framework.Framework) (string, func(*framework.TestCase
 				fmt.Sprintf("foobar-%s-three", f.Namespace.Name): []byte(secretValue),
 			},
 		}
+		// AWS Secrets Manager is eventually consistent
+		// specifying a low refresh interval avoids flaky tests
+		tc.ExternalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second * 5}
 		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
 			{
 				Find: &esapi.ExternalSecretFind{
