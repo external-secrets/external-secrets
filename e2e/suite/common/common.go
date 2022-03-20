@@ -258,7 +258,7 @@ func JSONDataFromSync(f *framework.Framework) (string, func(*framework.TestCase)
 		targetSecretValue1 := "great-name"
 		targetSecretKey2 := "surname"
 		targetSecretValue2 := "great-surname"
-		secretValue := fmt.Sprintf("{ \"%s\": \"%s\", \"%s\": \"%s\" }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
+		secretValue := fmt.Sprintf("{ %q: %q, %q: %q }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
 		tc.Secrets = map[string]string{
 			secretKey1: secretValue,
 		}
@@ -519,7 +519,7 @@ func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.Tes
 		PKDc8xGEXdd4A6jnwJBifJs+UpPrHAh0c63KfjO3rryDycvmxeWRnyU1yRCUjIuH31vi+L
 		OkcGfqTaOoz2KVAAAAFGtpYW5AREVTS1RPUC1TNFI5S1JQAQIDBAUG
 		-----END OPENSSH PRIVATE KEY-----`
-		cloudSecretValue := fmt.Sprintf(`{"ssh-auth": "%s"}`, SSHKey)
+		cloudSecretValue := fmt.Sprintf(`{"ssh-auth": %q}`, SSHKey)
 		tc.Secrets = map[string]string{
 			cloudSecretName: cloudSecretValue,
 		}

@@ -35,6 +35,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
@@ -135,6 +136,17 @@ var rootCmd = &cobra.Command{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
+			os.Exit(1)
+		}
+		if err = (&clusterexternalsecret.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecret"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: time.Hour,
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "ClusterExternalSecret")
 			os.Exit(1)
 		}
 		setupLog.Info("starting manager")

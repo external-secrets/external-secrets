@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -945,7 +944,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.Vaul
 		if _, err := os.Stat(serviceAccTokenPath); err != nil {
 			return "", fmt.Errorf(errServiceAccount, err)
 		}
-		jwtByte, err := ioutil.ReadFile(serviceAccTokenPath)
+		jwtByte, err := os.ReadFile(serviceAccTokenPath)
 		if err != nil {
 			return "", fmt.Errorf(errServiceAccount, err)
 		}

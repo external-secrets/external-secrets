@@ -209,7 +209,7 @@ func TestWebhookGetSecret(t *testing.T) {
 		var tc testCase
 		if err := ydec.Decode(&tc); err != nil {
 			if !errors.Is(err, io.EOF) {
-				t.Errorf("testcase decode error %w", err)
+				t.Errorf("testcase decode error %v", err)
 			}
 			break
 		}

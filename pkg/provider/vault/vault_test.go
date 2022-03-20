@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -175,7 +175,7 @@ func newVaultResponse(data *vault.Secret) *vault.Response {
 	jsonData, _ := json.Marshal(data)
 	return &vault.Response{
 		Response: &http.Response{
-			Body: ioutil.NopCloser(bytes.NewReader(jsonData)),
+			Body: io.NopCloser(bytes.NewReader(jsonData)),
 		},
 	}
 }
