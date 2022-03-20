@@ -13,7 +13,7 @@
     
     
       
-        <title>Kubernetes - External Secrets Operator</title>
+        <title>ClusterExternalSecret - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#authentication" class="md-skip">
+        <a href="#example" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Kubernetes
+              ClusterExternalSecret
             
           </span>
         </div>
@@ -255,12 +255,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" checked>
       
       
       
@@ -323,11 +325,48 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../api-clusterexternalsecret/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          ClusterExternalSecret
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         ClusterExternalSecret
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -552,14 +591,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
       
       
       
@@ -979,88 +1016,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Kubernetes
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../provider-kubernetes/" class="md-nav__link">
         Kubernetes
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
-  </a>
-  
-    <nav class="md-nav" aria-label="Example">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#k8s-cluster-secret" class="md-nav__link">
-    K8s Cluster Secret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#secretstore" class="md-nav__link">
-    SecretStore
-  </a>
-  
-    <nav class="md-nav" aria-label="SecretStore">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#externalsecret" class="md-nav__link">
-    ExternalSecret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1402,49 +1362,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     Example
   </a>
-  
-    <nav class="md-nav" aria-label="Example">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#k8s-cluster-secret" class="md-nav__link">
-    K8s Cluster Secret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#secretstore" class="md-nav__link">
-    SecretStore
-  </a>
-  
-    <nav class="md-nav" aria-label="SecretStore">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#externalsecret" class="md-nav__link">
-    ExternalSecret
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1460,93 +1380,93 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-kubernetes.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/api-clusterexternalsecret.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-  <h1>Kubernetes</h1>
+  <h1>ClusterExternalSecret</h1>
 
-<p>External Secrets Operator allows to retrieve in-cluster secrets or from a remote Kubernetes Cluster.</p>
-<h3 id="authentication">Authentication</h3>
-<p>It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or a service account (not implemented yet). The operator enforces that exactly one authentication method is used.</p>
+<p>The <code>ClusterExternalSecret</code> is a cluster scoped resource that can be used to push an <code>ExternalSecret</code> to specific namespaces.</p>
+<p>Using the <code>namespaceSelector</code> you can select namespaces, and any matching namespaces will have the <code>ExternalSecret</code> specified in the <code>externalSecretSpec</code> created in it.</p>
 <h2 id="example">Example</h2>
-<h3 id="k8s-cluster-secret">K8s Cluster Secret</h3>
-<div class="highlight"><pre><span></span><code>apiVersion: v1
-kind: Secret
-metadata:
-  name: cluster-secrets
-data:
-  # Fill with your encoded base64 CA
-  ca: Cg==
-  # Fill with your encoded base64 Certificate
-  certificate: Cg==
-  # Fill with your encoded base64 Key
-  key: Cg==
-stringData:
-  # Fill with your a string Token
-  bearerToken: &quot;my-token&quot;
-</code></pre></div>
-<h2 id="secretstore">SecretStore</h2>
-<p>The <code>Server</code> section specifies the url of the Kubernetes API and the location to fetch the CA. The <code>auth</code> section indicates the type of authentication to use, <code>cert</code>, <code>token</code> or <code>serviceAccount</code> and includes the path to fetch the certificates or the token.</p>
-<div class="highlight"><pre><span></span><code>apiVersion: external-secrets.io/v1beta1
-kind: SecretStore
-metadata:
-  name: example
-spec:
-  provider:
-      kubernetes:
-        # If not remoteNamesapce is provided, default namespace is used
-        remoteNamespace: default  
-        server: 
-          url:  https://127.0.0.1:36473
-          # Add your encoded base64 to caBundle or a referenced caProvider
-          # if both are provided caProvider will be ignored
-          caBundle: Cg==
-          caProvider: 
-            type: Secret
-            name : cluster-secrets
-            key: ca
-        auth:
-          # Add a referenced bearerToken or client certificates, 
-          # if both are provided client certificates will be ignored
-          token:
-            bearerToken:
-              name: cluster-secrets
-              key: bearerToken
-          cert:
-            clientCert: 
-                name: cluster-secrets
-                key: certificate
-            clientKey: 
-                name: cluster-secrets
-                key: key
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: secret-example
-data:
-  extra: YmFyCg==
-</code></pre></div>
-<h3 id="externalsecret">ExternalSecret</h3>
-<div class="highlight"><pre><span></span><code>apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: example
-spec:
-  refreshInterval: 1h           
-  secretStoreRef:
-    kind: SecretStore
-    name: example               # name of the SecretStore (or kind specified)
-  target:
-    name: secret-to-be-created  # name of the k8s Secret to be created
-    creationPolicy: Owner
-  data:
-  - secretKey: extra
-    remoteRef:
-      key: secret-example
-      property: extra
+<p>Below is an example of the <code>ClusterExternalSecret</code> in use.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;hello-world&quot;</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># The name to be used on the ExternalSecrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">externalSecretName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;hello-world-es&quot;</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># This is a basic label selector to select the namespaces to deploy ExternalSecrets to.</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># you can read more about them here https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespaceSelector</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">cool</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">label</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># How often the ClusterExternalSecret should reconcile itself</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># This will decide how often to check and make sure that the ExternalSecrets exist in the matching namespaces</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1m&quot;</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># This is the spec of the ExternalSecrets to be created</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># The content of this was taken from our ExternalSecret example</span><span class="w"></span>
+<span class="w">  </span><span class="nt">externalSecretSpec</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store-name</span><span class="w"></span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+
+<span class="w">    </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret</span><span class="w"></span>
+<span class="w">      </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;Merge&#39;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span><span class="w"></span>
+
+<span class="w">        </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span><span class="w"></span>
+<span class="w">          </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span><span class="w"></span>
+<span class="w">        </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">config.yml</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="w"></span>
+<span class="w">            </span><span class="no">endpoints:</span><span class="w"></span>
+<span class="w">            </span><span class="no">- https://{{ .data.user }}:{{ .data.password }}@api.exmaple.com</span><span class="w"></span>
+<span class="w">        </span><span class="nt">templateFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">configMap</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alertmanager</span><span class="w"></span>
+<span class="w">            </span><span class="nt">items</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alertmanager.yaml</span><span class="w"></span>
+<span class="w">    </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-key-to-be-managed</span><span class="w"></span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key</span><span class="w"></span>
+<span class="w">          </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-version</span><span class="w"></span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-property</span><span class="w"></span>
+<span class="w">    </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-version</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-property</span><span class="w"></span>
+
+<span class="nt">status</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># This will list any namespaces where the creation of the ExternalSecret failed</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># This will not list any issues with the ExternalSecrets, you will have to check the</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># ExternalSecrets to see any issues with them.</span><span class="w"></span>
+<span class="w">  </span><span class="nt">failedNamespaces</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;matching-ns-1&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># This is one of the possible messages, and likely the most common</span><span class="w"></span>
+<span class="w">      </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;external</span><span class="nv"> </span><span class="s">secret</span><span class="nv"> </span><span class="s">already</span><span class="nv"> </span><span class="s">exists</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">namespace&quot;</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># You can find all matching and successfully deployed namespaces here</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provisionedNamespaces</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;matching-ns-3&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;matching-ns-2&quot;</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># The condition can be Ready, PartiallyReady, or NotReady </span><span class="w"></span>
+<span class="w">  </span><span class="c1"># PartiallyReady would indicate an error in 1 or more namespaces</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># NotReady would indicate errors in all namespaces meaning all ExternalSecrets resulted in errors</span><span class="w"></span>
+<span class="w">  </span><span class="nt">conditions</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PartiallyReady</span><span class="w"></span>
+<span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2022-01-12T12:33:02Z&quot;</span><span class="w"></span>
 </code></pre></div>
 
               
@@ -1561,7 +1481,7 @@ spec:
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../provider-fake/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Fake" rel="prev">
+        <a href="../api-clustersecretstore/" class="md-footer__link md-footer__link--prev" aria-label="Previous: ClusterSecretStore" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1570,20 +1490,20 @@ spec:
               <span class="md-footer__direction">
                 Previous
               </span>
-              Fake
+              ClusterSecretStore
             </div>
           </div>
         </a>
       
       
         
-        <a href="../examples-gitops-using-fluxcd/" class="md-footer__link md-footer__link--next" aria-label="Next: FluxCD" rel="next">
+        <a href="../guides-introduction/" class="md-footer__link md-footer__link--next" aria-label="Next: Introduction" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              FluxCD
+              Introduction
             </div>
           </div>
           <div class="md-footer__button md-icon">
