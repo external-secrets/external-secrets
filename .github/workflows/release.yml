@@ -72,6 +72,7 @@ jobs:
 
     permissions:
       id-token: write
+      contents: read
 
     steps:
       - name: Checkout
@@ -98,9 +99,16 @@ jobs:
         if: env.GHCR_USERNAME != ''
         run: go install github.com/google/go-containerregistry/cmd/crane@v0.8.0
 
+      - name: Install cosign
+        if: env.GHCR_USERNAME != ''
+        uses: sigstore/cosign-installer@main
+        with:
+          cosign-release: 'v1.6.0'
+
       - name: Sign Container Image
         if: env.GHCR_USERNAME != ''
         run: make docker.sign
         env:
           RELEASE_TAG: ${{ github.event.inputs.version }}
           SOURCE_TAG: main
+          COSIGN_EXPERIMENTAL: 1
