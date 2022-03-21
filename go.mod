@@ -38,7 +38,7 @@ require (
 	cloud.google.com/go/secretmanager v1.3.0
 	github.com/Azure/azure-sdk-for-go v62.2.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
-	github.com/IBM/go-sdk-core/v5 v5.9.2
+	github.com/IBM/go-sdk-core/v5 v5.9.3
 	github.com/IBM/secrets-manager-go-sdk v1.0.36
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2
