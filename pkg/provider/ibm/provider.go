@@ -215,7 +215,6 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 }
 
 func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-
 	secret, err := getSecretByType(ibm, secretName, sm.CreateSecretOptionsSecretTypeKvConst)
 	if err != nil {
 		return nil, err
@@ -232,7 +231,6 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 
 	// returns only the value of the requested key, otherwise the entire payload
 	if ref.Property != "" {
-
 		if val, ok := kv[ref.Property]; ok {
 			return []byte(val.(string)), nil
 		}
@@ -243,7 +241,6 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 }
 
 func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*sm.SecretResource, error) {
-
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(secretType),
