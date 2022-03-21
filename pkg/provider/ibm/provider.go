@@ -216,7 +216,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 
 func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 
-	secret, err := getSecretByType(ibm, secretName, sm.CreateSecretOptionsSecretTypeKvConst, ref)
+	secret, err := getSecretByType(ibm, secretName, sm.CreateSecretOptionsSecretTypeKvConst)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 	return []byte(secretPayload), nil
 }
 
-func getSecretByType(ibm *providerIBM, secretName *string, secretType string, ref esv1beta1.ExternalSecretDataRemoteRef) (*sm.SecretResource, error) {
+func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*sm.SecretResource, error) {
 
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
@@ -350,7 +350,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		return secretMap, nil
 
 	case sm.CreateSecretOptionsSecretTypeKvConst:
-		secret, err := getSecretByType(ibm, &secretName, sm.CreateSecretOptionsSecretTypeKvConst, ref)
+		secret, err := getSecretByType(ibm, &secretName, sm.CreateSecretOptionsSecretTypeKvConst)
 		if err != nil {
 			return nil, err
 		}
