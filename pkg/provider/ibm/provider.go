@@ -134,6 +134,11 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 		}
 
 		return getImportCertSecret(ibm, &secretName, ref)
+
+	case sm.CreateSecretOptionsSecretTypeKvConst:
+
+		return getKVSecret(ibm, &secretName, ref)
+
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
@@ -207,6 +212,50 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 		return []byte(val.(string)), nil
 	}
 	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+}
+
+func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+
+	secret, err := getSecretByType(ibm, secretName, sm.CreateSecretOptionsSecretTypeKvConst, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	secretData := secret.SecretData.(map[string]interface{})
+	secretPayload := secretData["payload"].(string)
+
+	kv := make(map[string]interface{})
+	err = json.Unmarshal([]byte(secretPayload), &kv)
+	if err != nil {
+		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+	}
+
+	// returns only the value of the requested key, otherwise the entire payload
+	if ref.Property != "" {
+
+		if val, ok := kv[ref.Property]; ok {
+			return []byte(val.(string)), nil
+		}
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	}
+
+	return []byte(secretPayload), nil
+}
+
+func getSecretByType(ibm *providerIBM, secretName *string, secretType string, ref esv1beta1.ExternalSecretDataRemoteRef) (*sm.SecretResource, error) {
+
+	response, _, err := ibm.IBMClient.GetSecret(
+		&sm.GetSecretOptions{
+			SecretType: core.StringPtr(secretType),
+			ID:         secretName,
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	secret := response.Resources[0].(*sm.SecretResource)
+
+	return secret, nil
 }
 
 func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -297,6 +346,25 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		secretData := secret.SecretData.(map[string]interface{})
 
 		secretMap := byteArrayMap(secretData)
+
+		return secretMap, nil
+
+	case sm.CreateSecretOptionsSecretTypeKvConst:
+		secret, err := getSecretByType(ibm, &secretName, sm.CreateSecretOptionsSecretTypeKvConst, ref)
+		if err != nil {
+			return nil, err
+		}
+
+		secretData := secret.SecretData.(map[string]interface{})
+		secretPayload := secretData["payload"].(string)
+
+		kv := make(map[string]interface{})
+		err = json.Unmarshal([]byte(secretPayload), &kv)
+		if err != nil {
+			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		}
+
+		secretMap := byteArrayMap(kv)
 
 		return secretMap, nil
 

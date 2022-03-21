@@ -18,3 +18,6 @@ spec:
   - secretKey: baz
     remoteRef:
       key: imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: bakv
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz

@@ -49,7 +49,15 @@ See here for a list of [publicly available endpoints](https://cloud.ibm.com/apid
 ![iam-create-success](./pictures/screenshot_service_url.png)
 
 ### Secret Types
-We support all secret types of [IBM Secrets Manager](https://cloud.ibm.com/apidocs/secrets-manager): `arbitrary`, `username_password`, `iam_credentials` and `imported_cert`. To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to `arbitrary`:
+We support the following secret types of [IBM Secrets Manager](https://cloud.ibm.com/apidocs/secrets-manager):
+
+* `arbitrary`, 
+* `username_password`, 
+* `iam_credentials`
+* `imported_cert`
+* and `kv`. 
+
+To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to `arbitrary`:
 
 ```yaml
 {% include 'ibm-es-types.yaml' %}
@@ -74,6 +82,10 @@ The behavior for the different secret types is as following:
 #### imported_cert
 * `remoteRef` requires a `property` to be set for either `certificate`, `private_key` or `intermediate` to retrieve respective fields from the secrets manager secret and set in specified `secretKey`
 * `dataFrom` retrieves all `certificate`, `private_key` and `intermediate` fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret
+
+#### kv
+* `remoteRef` could has a `property` to select requested key from the KV secret
+* `dataFrom` retrieves a string from secrets manager and tries to parse it as JSON object and setting all key:value pairs or only the requested key in the resulting Kubernetes secret if successful
 
 
 ### Creating external secret
