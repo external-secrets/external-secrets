@@ -245,6 +245,9 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 	if ok {
 		var payloadJSONByte []byte
 		payloadJSONByte, err = json.Marshal(payloadJSONMap)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling payload from secret failed. %w", err)
+		}
 		payloadJSON = string(payloadJSONByte)
 	}
 
