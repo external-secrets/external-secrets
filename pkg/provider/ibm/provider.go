@@ -239,28 +239,24 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 		return nil, fmt.Errorf("no payload returned for secret %s", ref.Key)
 	}
 
-	var payloadJson string
+	payloadJSON := payload
 
-	switch payload.(type) {
-	case string:
-		payloadJson = payload.(string)
-	case map[string]interface{}:
-		var payloadJsonByte []byte
-		payloadJsonByte, err = json.Marshal(payload.(map[string]interface{}))
-		payloadJson = string(payloadJsonByte)
-	default:
-		return nil, fmt.Errorf("payload type %T not supported yet for secret %s", payload, ref.Key)
+	payloadJSONMap, ok := payloadJSON.(map[string]interface{})
+	if ok {
+		var payloadJSONByte []byte
+		payloadJSONByte, err = json.Marshal(payloadJSONMap)
+		payloadJSON = string(payloadJSONByte)
 	}
 
 	if ref.Property != "" {
-		val := gjson.Get(payloadJson, ref.Property)
+		val := gjson.Get(payloadJSON.(string), ref.Property)
 		if !val.Exists() {
 			return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 		}
 		return []byte(val.String()), nil
-	} else {
-		return nil, fmt.Errorf("no property provided for secret %s", ref.Key)
 	}
+
+	return nil, fmt.Errorf("no property provided for secret %s", ref.Key)
 }
 
 func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*sm.SecretResource, error) {
