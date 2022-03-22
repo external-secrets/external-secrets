@@ -7,3 +7,9 @@ A list of demos given by people going through simple setups with ESO. Feel free 
 This was an old demo going through an old version of ESO. Most of it is still valid, but beware of CRD and breaking change differences.
 
 [![GCP SM + AWS SM + Azure Key Vault Demo](https://img.youtube.com/vi/L6tn1YdMkF8/0.jpg)](https://www.youtube.com/watch?v=L6tn1YdMkF8)
+
+## How to manage secrets in OpenShift using Vault and External Secrets Operator
+
+Balkrishna Pandey shows us here how to use ClusterSecretStore and how to integrate ESO with Hashicorp Vault on Openshift.
+
+[![How to manage secrets in OpenShift using Vault and External Secrets Operator](https://img.youtube.com/vi/PgiXKBTel1E/0.jpg)](https://www.youtube.com/watch?v=PgiXKBTel1E)
