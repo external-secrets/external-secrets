@@ -49,7 +49,7 @@ See here for a list of [publicly available endpoints](https://cloud.ibm.com/apid
 ![iam-create-success](./pictures/screenshot_service_url.png)
 
 ### Secret Types
-We support the following secret types of [IBM Secrets Manager](https://cloud.ibm.com/apidocs/secrets-manager): `arbitrary`, `username_password`, `iam_credentials`, `public_cret` and `imported_cert`. To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to `arbitrary`:
+We support the following secret types of [IBM Secrets Manager](https://cloud.ibm.com/apidocs/secrets-manager): `arbitrary`, `username_password`, `iam_credentials`, `public_cert` and `imported_cert`. To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to `arbitrary`:
 
 ```yaml
 {% include 'ibm-es-types.yaml' %}
