@@ -89,8 +89,10 @@ func validateStore(ctx context.Context, namespace string, store esapi.GenericSto
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
 		SetExternalSecretCondition(store, *cond)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
+		cl.Close(ctx)
 		return fmt.Errorf(errStoreClient, err)
 	}
+	defer cl.Close(ctx)
 
 	err = cl.Validate()
 	if err != nil {
