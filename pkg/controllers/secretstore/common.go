@@ -91,6 +91,7 @@ func validateStore(ctx context.Context, namespace string, store esapi.GenericSto
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
 		return fmt.Errorf(errStoreClient, err)
 	}
+	defer cl.Close(ctx)
 
 	err = cl.Validate()
 	if err != nil {

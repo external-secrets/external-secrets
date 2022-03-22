@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go/v2"
@@ -63,6 +64,15 @@ type GoogleSecretManagerClient interface {
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	Close() error
 }
+
+/*
+ Currently, GCPSM client has a limitation around how concurrent connections work
+ This limitation causes memory leaks due to random disconnects from living clients
+ and also payload switches when sending a call (such as using a credential from one
+ thread to ask secrets from another thread).
+ A Mutex was implemented to make sure only one connection can be in place at a time.
+*/
+var useMu = sync.Mutex{}
 
 // ProviderGCP is a provider for GCP Secret Manager.
 type ProviderGCP struct {
@@ -144,8 +154,10 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 	}
 	storeSpecGCPSM := storeSpec.Provider.GCPSM
 
+	useMu.Lock()
 	wi, err := newWorkloadIdentity(ctx)
 	if err != nil {
+		useMu.Unlock()
 		return nil, fmt.Errorf("unable to initialize workload identity")
 	}
 
@@ -168,17 +180,20 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 
 	ts, err := cliStore.getTokenSource(ctx, store, kube, namespace)
 	if err != nil {
+		useMu.Unlock()
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}
 
 	// check if we can get credentials
 	_, err = ts.Token()
 	if err != nil {
+		useMu.Unlock()
 		return nil, fmt.Errorf(errUnableGetCredentials, err)
 	}
 
 	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
 	if err != nil {
+		useMu.Unlock()
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}
 	sm.SecretManagerClient = clientGCPSM
@@ -265,6 +280,7 @@ func (sm *ProviderGCP) Close(ctx context.Context) error {
 	if sm.gClient != nil {
 		err = sm.gClient.Close()
 	}
+	useMu.Unlock()
 	if err != nil {
 		return fmt.Errorf(errClientClose, err)
 	}

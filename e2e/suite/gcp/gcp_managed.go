@@ -44,6 +44,8 @@ var _ = Describe("[gcpmanaged] with pod identity", Label("gcp", "secretsmanager"
 			addon.WithServiceAccount(prov.ServiceAccountName),
 			addon.WithReleaseName(f.Namespace.Name),
 			addon.WithNamespace("default"),
+			addon.WithoutWebhook(),
+			addon.WithoutCertController(),
 		))
 	})
 
@@ -78,6 +80,8 @@ var _ = Describe("[gcpmanaged] with service account", Label("gcp", "secretsmanag
 			addon.WithControllerClass(f.BaseName),
 			addon.WithReleaseName(f.Namespace.Name),
 			addon.WithNamespace(f.Namespace.Name),
+			addon.WithoutWebhook(),
+			addon.WithoutCertController(),
 		))
 	})
 
