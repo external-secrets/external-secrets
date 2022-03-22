@@ -730,6 +730,33 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#workload-identity" class="md-nav__link">
+    Workload Identity
+  </a>
+  
+    <nav class="md-nav" aria-label="Workload Identity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mounted-service-account" class="md-nav__link">
+    Mounted Service Account
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referenced-service-account" class="md-nav__link">
+    Referenced Service Account
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1447,6 +1474,33 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#workload-identity" class="md-nav__link">
+    Workload Identity
+  </a>
+  
+    <nav class="md-nav" aria-label="Workload Identity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mounted-service-account" class="md-nav__link">
+    Mounted Service Account
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referenced-service-account" class="md-nav__link">
+    Referenced Service Account
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1501,7 +1555,7 @@
 <h2 id="azure-key-vault">Azure Key vault</h2>
 <p>External Secrets Operator integrates with <a href="https://azure.microsoft.com/en-us/services/key-vault/">Azure Key vault</a> for secrets, certificates and Keys management.</p>
 <h3 id="authentication">Authentication</h3>
-<p>We support Service Principals and Managed Identity <a href="https://docs.microsoft.com/en-us/azure/key-vault/general/authentication">authentication</a>.</p>
+<p>We support Service Principals, Managed Identity and Workload Identity authentication.</p>
 <p>To use Managed Identity authentication, you should use <a href="https://azure.github.io/aad-pod-identity/docs/">aad-pod-identity</a> to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use <code>podLabels</code> in your values.yaml in case of Helm installation of external-secrets.</p>
 <h4 id="service-principal-key-authentication">Service Principal key authentication</h4>
 <p>A service Principal client and Secret is created and the JSON keyfile is stored in a <code>Kind=Secret</code>. The <code>ClientID</code> and <code>ClientSecret</code> should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator</p>
@@ -1516,6 +1570,70 @@
 <span class="nt">data</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">ClientID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bXktc2VydmljZS1wcmluY2lwbGUtY2xpZW50LWlkCg==</span><span class="w">  </span><span class="c1">#service-principal-ID</span><span class="w"></span>
 <span class="w">  </span><span class="nt">ClientSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bXktc2VydmljZS1wcmluY2lwbGUtY2xpZW50LXNlY3JldAo=</span><span class="w"> </span><span class="c1">#service-principal-secret</span><span class="w"></span>
+</code></pre></div>
+<h4 id="workload-identity">Workload Identity</h4>
+<p>You can use <a href="https://docs.microsoft.com/en-us/azure/active-directory/develop/workload-identity-federation">Azure AD Workload Identity Federation</a> to access Azure managed services like Key Vault <strong>without needing to manage secrets</strong>. You need to configure a trust relationship between your Kubernetes Cluster and Azure AD. This can be done in various ways, for instance using <code>terraform</code>, the Azure Portal or the <code>az</code> cli. We found the <a href="https://azure.github.io/azure-workload-identity/docs/installation/azwi.html">azwi</a> cli very helpful. The Azure <a href="https://azure.github.io/azure-workload-identity/docs/quick-start.html">Workload Identity Quick Start Guide</a> is also good place to get started.</p>
+<p>This is basically a two step process:</p>
+<ol>
+<li>Create a Kubernetes Service Account (<a href="https://azure.github.io/azure-workload-identity/docs/quick-start.html#5-create-a-kubernetes-service-account">guide</a>)</li>
+</ol>
+<p><div class="highlight"><pre><span></span><code>azwi serviceaccount create phase sa <span class="se">\</span>
+  --aad-application-name <span class="s2">&quot;</span><span class="si">${</span><span class="nv">APPLICATION_NAME</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+  --service-account-namespace <span class="s2">&quot;</span><span class="si">${</span><span class="nv">SERVICE_ACCOUNT_NAMESPACE</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+  --service-account-name <span class="s2">&quot;</span><span class="si">${</span><span class="nv">SERVICE_ACCOUNT_NAME</span><span class="si">}</span><span class="s2">&quot;</span>
+</code></pre></div>
+2. Configure the trust relationship between Azure AD and Kubernetes (<a href="https://azure.github.io/azure-workload-identity/docs/quick-start.html#6-establish-federated-identity-credential-between-the-aad-application-and-the-service-account-issuer--subject">guide</a>)</p>
+<div class="highlight"><pre><span></span><code>azwi serviceaccount create phase federated-identity <span class="se">\</span>
+  --aad-application-name <span class="s2">&quot;</span><span class="si">${</span><span class="nv">APPLICATION_NAME</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+  --service-account-namespace <span class="s2">&quot;</span><span class="si">${</span><span class="nv">SERVICE_ACCOUNT_NAMESPACE</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+  --service-account-name <span class="s2">&quot;</span><span class="si">${</span><span class="nv">SERVICE_ACCOUNT_NAME</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+  --service-account-issuer-url <span class="s2">&quot;</span><span class="si">${</span><span class="nv">SERVICE_ACCOUNT_ISSUER</span><span class="si">}</span><span class="s2">&quot;</span>
+</code></pre></div>
+<p>With these prerequisites met you can configure <code>ESO</code> to use that Service Account. You have two options:</p>
+<h5 id="mounted-service-account">Mounted Service Account</h5>
+<p>You run the controller and mount that particular service account into the pod. That grants <em>everyone</em> who is able to create a secret store or reference a correctly configured one the ability to read secrets. <strong>This approach is usually not recommended</strong>. But may make sense when you want to share an identity with multiple namespaces. Also see our <a href="../guides-multi-tenancy/">Multi-Tenancy Guide</a> for design considerations.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># this service account was created by azwi</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-identity-sa</span><span class="w"></span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">azure.workload.identity/client-id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7d8cdf74-xxxx-xxxx-xxxx-274d963d358b</span><span class="w"></span>
+<span class="w">    </span><span class="nt">azure.workload.identity/tenant-id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5a02a20e-xxxx-xxxx-xxxx-0ad5b634c5d8</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret-store</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">azurekv</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">authType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WorkloadIdentity</span><span class="w"></span>
+<span class="w">      </span><span class="nt">vaultUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://xx-xxxx-xx.vault.azure.net&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># note: no serviceAccountRef was provided</span><span class="w"></span>
+</code></pre></div>
+<h5 id="referenced-service-account">Referenced Service Account</h5>
+<p>You run the controller without service account (effectively without azure permissions). Now you have to configure the SecretStore and set the <code>serviceAccountRef</code> and point to the service account you have just created. <strong>This is usually the recommended approach</strong>. It makes sense for everyone who wants to run the controller withour Azure permissions and delegate authentication via service accounts in particular namespaces. Also see our [Multi-Tenancy Guide] for design considerations.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># this service account was created by azwi</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-identity-sa</span><span class="w"></span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">azure.workload.identity/client-id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7d8cdf74-xxxx-xxxx-xxxx-274d963d358b</span><span class="w"></span>
+<span class="w">    </span><span class="nt">azure.workload.identity/tenant-id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5a02a20e-xxxx-xxxx-xxxx-0ad5b634c5d8</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret-store</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">azurekv</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">authType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WorkloadIdentity</span><span class="w"></span>
+<span class="w">      </span><span class="nt">vaultUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://xx-xxxx-xx.vault.azure.net&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-identity-sa</span><span class="w"></span>
 </code></pre></div>
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>azurekv</code> provider is listed in the <code>Kind=SecretStore</code></p>
