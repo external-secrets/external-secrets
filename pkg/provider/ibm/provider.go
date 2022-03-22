@@ -224,7 +224,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
-// Returns a secret of type kv and supports json path
+// Returns a secret of type kv and supports json path.
 func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := getSecretByType(ibm, secretName, sm.CreateSecretOptionsSecretTypeKvConst)
 	if err != nil {
