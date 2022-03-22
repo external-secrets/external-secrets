@@ -585,9 +585,6 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         authType:
                           default: ServicePrincipal
@@ -595,10 +592,23 @@ spec:
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
+                            - WorkloadIdentity
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
                           type: string
@@ -1548,9 +1558,6 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         authType:
                           default: ServicePrincipal
@@ -1558,10 +1565,23 @@ spec:
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
+                            - WorkloadIdentity
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
                           type: string
@@ -3051,9 +3071,6 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         authType:
                           default: ServicePrincipal
@@ -3061,10 +3078,23 @@ spec:
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
+                            - WorkloadIdentity
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
                           type: string
@@ -4017,9 +4047,6 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         authType:
                           default: ServicePrincipal
@@ -4027,10 +4054,23 @@ spec:
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
+                            - WorkloadIdentity
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
                           type: string

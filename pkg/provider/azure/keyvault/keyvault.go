@@ -19,14 +19,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
+	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/tidwall/gjson"
+	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -34,10 +43,13 @@ import (
 )
 
 const (
-	defaultObjType = "secret"
-	objectTypeCert = "cert"
-	objectTypeKey  = "key"
-	vaultResource  = "https://vault.azure.net"
+	defaultObjType       = "secret"
+	objectTypeCert       = "cert"
+	objectTypeKey        = "key"
+	vaultResource        = "https://vault.azure.net"
+	azureDefaultAudience = "api://AzureADTokenExchange"
+	annotationClientID   = "azure.workload.identity/client-id"
+	annotationTenantID   = "azure.workload.identity/tenant-id"
 
 	errUnexpectedStoreSpec   = "unexpected store spec"
 	errMissingAuthType       = "cannot initialize Azure Client: no valid authType was specified"
@@ -58,6 +70,11 @@ const (
 	errInvalidAzureProv          = "invalid azure keyvault provider"
 	errInvalidSecRefClientID     = "invalid AuthSecretRef.ClientID: %w"
 	errInvalidSecRefClientSecret = "invalid AuthSecretRef.ClientSecret: %w"
+	errInvalidSARef              = "invalid ServiceAccountRef: %w"
+
+	errMissingWorkloadEnvVars = "missing environment variables. AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE must be set"
+	errReadTokenFile          = "unable to read token file %s: %w"
+	errMissingSAAnnotation    = "missing service account annotation: %s"
 )
 
 // interface to keyvault.BaseClient.
@@ -69,7 +86,8 @@ type SecretClient interface {
 }
 
 type Azure struct {
-	kube       client.Client
+	crClient   client.Client
+	kubeClient kcorev1.CoreV1Interface
 	store      esv1beta1.GenericStore
 	provider   *esv1beta1.AzureKVProvider
 	baseClient SecretClient
@@ -92,24 +110,39 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	if err != nil {
 		return nil, err
 	}
+	cfg, err := ctrlcfg.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	kubeClient, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
 	az := &Azure{
-		kube:      kube,
-		store:     store,
-		namespace: namespace,
-		provider:  provider,
+		crClient:   kube,
+		kubeClient: kubeClient.CoreV1(),
+		store:      store,
+		namespace:  namespace,
+		provider:   provider,
 	}
 
-	ok, err := az.setAzureClientWithManagedIdentity()
-	if ok {
-		return az, err
+	var authorizer autorest.Authorizer
+	switch *provider.AuthType {
+	case esv1beta1.AzureManagedIdentity:
+		authorizer, err = az.authorizerForManagedIdentity()
+	case esv1beta1.AzureServicePrincipal:
+		authorizer, err = az.authorizerForServicePrincipal(ctx)
+	case esv1beta1.AzureWorkloadIdentity:
+		authorizer, err = az.authorizerForWorkloadIdentity(ctx, newTokenProvider)
+	default:
+		err = fmt.Errorf(errMissingAuthType)
 	}
 
-	ok, err = az.setAzureClientWithServicePrincipal(ctx)
-	if ok {
-		return az, err
-	}
+	cl := keyvault.New()
+	cl.Authorizer = authorizer
+	az.baseClient = &cl
 
-	return nil, fmt.Errorf(errMissingAuthType)
+	return az, err
 }
 
 func getProvider(store esv1beta1.GenericStore) (*esv1beta1.AzureKVProvider, error) {
@@ -146,6 +179,11 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 			if err := utils.ValidateSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
 				return fmt.Errorf(errInvalidSecRefClientSecret, err)
 			}
+		}
+	}
+	if p.ServiceAccountRef != nil {
+		if err := utils.ValidateServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
+			return fmt.Errorf(errInvalidSARef, err)
 		}
 	}
 	return nil
@@ -239,40 +277,126 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	return nil, fmt.Errorf(errUnknownObjectType, secretName)
 }
 
-func (a *Azure) setAzureClientWithManagedIdentity() (bool, error) {
-	if *a.provider.AuthType != esv1beta1.ManagedIdentity {
-		return false, nil
+func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider tokenProviderFunc) (autorest.Authorizer, error) {
+	// if no serviceAccountRef was provided
+	// we expect certain env vars to be present.
+	// They are set by the azure workload identity webhook.
+	if a.provider.ServiceAccountRef == nil {
+		clientID := os.Getenv("AZURE_CLIENT_ID")
+		tenantID := os.Getenv("AZURE_TENANT_ID")
+		tokenFilePath := os.Getenv("AZURE_FEDERATED_TOKEN_FILE")
+		if clientID == "" || tenantID == "" || tokenFilePath == "" {
+			return nil, errors.New(errMissingWorkloadEnvVars)
+		}
+		token, err := os.ReadFile(tokenFilePath)
+		if err != nil {
+			return nil, fmt.Errorf(errReadTokenFile, tokenFilePath, err)
+		}
+		tp, err := tokenProvider(ctx, string(token), clientID, tenantID)
+		if err != nil {
+			return nil, err
+		}
+		return autorest.NewBearerAuthorizer(tp), nil
+	}
+	ns := a.namespace
+	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
+		ns = *a.provider.ServiceAccountRef.Namespace
+	}
+	var sa corev1.ServiceAccount
+	err := a.crClient.Get(ctx, types.NamespacedName{
+		Name:      a.provider.ServiceAccountRef.Name,
+		Namespace: ns,
+	}, &sa)
+	if err != nil {
+		return nil, err
+	}
+	clientID, ok := sa.ObjectMeta.Annotations[annotationClientID]
+	if !ok {
+		return nil, fmt.Errorf(errMissingSAAnnotation, annotationClientID)
+	}
+	tenantID, ok := sa.ObjectMeta.Annotations[annotationTenantID]
+	if !ok {
+		return nil, fmt.Errorf(errMissingSAAnnotation, annotationTenantID)
+	}
+	token, err := fetchSAToken(ctx, ns, a.provider.ServiceAccountRef.Name, a.kubeClient)
+	if err != nil {
+		return nil, err
+	}
+	tp, err := tokenProvider(ctx, token, clientID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	return autorest.NewBearerAuthorizer(tp), nil
+}
+
+func fetchSAToken(ctx context.Context, ns, name string, kubeClient kcorev1.CoreV1Interface) (string, error) {
+	token, err := kubeClient.ServiceAccounts(ns).CreateToken(ctx, name, &authv1.TokenRequest{
+		Spec: authv1.TokenRequestSpec{
+			Audiences: []string{azureDefaultAudience},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return "", err
+	}
+	return token.Status.Token, nil
+}
+
+// tokenProvider satisfies the adal.OAuthTokenProvider interface.
+type tokenProvider struct {
+	accessToken string
+}
+
+type tokenProviderFunc func(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error)
+
+func newTokenProvider(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error) {
+	// exchange token with Azure AccessToken
+	cred, err := confidential.NewCredFromAssertion(token)
+	if err != nil {
+		return nil, err
 	}
 
+	// AZURE_AUTHORITY_HOST
+
+	cClient, err := confidential.New(clientID, cred, confidential.WithAuthority(
+		fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/token", tenantID),
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	authRes, err := cClient.AcquireTokenByCredential(ctx, []string{
+		"https://vault.azure.net/.default",
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &tokenProvider{
+		accessToken: authRes.AccessToken,
+	}, nil
+}
+
+func (t *tokenProvider) OAuthToken() string {
+	return t.accessToken
+}
+
+func (a *Azure) authorizerForManagedIdentity() (autorest.Authorizer, error) {
 	msiConfig := kvauth.NewMSIConfig()
 	msiConfig.Resource = vaultResource
 	if a.provider.IdentityID != nil {
 		msiConfig.ClientID = *a.provider.IdentityID
 	}
-	authorizer, err := msiConfig.Authorizer()
-	if err != nil {
-		return true, err
-	}
-
-	cl := keyvault.New()
-	cl.Authorizer = authorizer
-	a.baseClient = &cl
-	return true, nil
+	return msiConfig.Authorizer()
 }
 
-func (a *Azure) setAzureClientWithServicePrincipal(ctx context.Context) (bool, error) {
-	if *a.provider.AuthType != esv1beta1.ServicePrincipal {
-		return false, nil
-	}
-
+func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Authorizer, error) {
 	if a.provider.TenantID == nil {
-		return true, fmt.Errorf(errMissingTenant)
+		return nil, fmt.Errorf(errMissingTenant)
 	}
 	if a.provider.AuthSecretRef == nil {
-		return true, fmt.Errorf(errMissingSecretRef)
+		return nil, fmt.Errorf(errMissingSecretRef)
 	}
 	if a.provider.AuthSecretRef.ClientID == nil || a.provider.AuthSecretRef.ClientSecret == nil {
-		return true, fmt.Errorf(errMissingClientIDSecret)
+		return nil, fmt.Errorf(errMissingClientIDSecret)
 	}
 	clusterScoped := false
 	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
@@ -280,26 +404,19 @@ func (a *Azure) setAzureClientWithServicePrincipal(ctx context.Context) (bool, e
 	}
 	cid, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *a.provider.AuthSecretRef.ClientID, clusterScoped)
 	if err != nil {
-		return true, err
+		return nil, err
 	}
 	csec, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *a.provider.AuthSecretRef.ClientSecret, clusterScoped)
 	if err != nil {
-		return true, err
+		return nil, err
 	}
 
 	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, *a.provider.TenantID)
 	clientCredentialsConfig.Resource = vaultResource
-	authorizer, err := clientCredentialsConfig.Authorizer()
-	if err != nil {
-		return true, err
-	}
-
-	cl := keyvault.New()
-	cl.Authorizer = authorizer
-	a.baseClient = &cl
-	return true, nil
+	return clientCredentialsConfig.Authorizer()
 }
 
+// secretKeyRef fetch a secret key.
 func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef smmeta.SecretKeySelector, clusterScoped bool) (string, error) {
 	var secret corev1.Secret
 	ref := types.NamespacedName{
@@ -309,7 +426,7 @@ func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef sm
 	if clusterScoped && secretRef.Namespace != nil {
 		ref.Namespace = *secretRef.Namespace
 	}
-	err := a.kube.Get(ctx, ref, &secret)
+	err := a.crClient.Get(ctx, ref, &secret)
 	if err != nil {
 		return "", fmt.Errorf(errFindSecret, ref.Namespace, ref.Name, err)
 	}
