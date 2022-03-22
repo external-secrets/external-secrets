@@ -21,3 +21,8 @@ spec:
   - secretKey: bakv
     remoteRef:
       key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: 'keyid'
+  - secretKey: key_with_path
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: 'key.path'

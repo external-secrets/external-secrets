@@ -28,6 +28,10 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/tidwall/gjson"
 )
 
 const (
@@ -59,6 +63,8 @@ type client struct {
 	storeKind   string
 	credentials []byte
 }
+
+var log = ctrl.Log.WithName("provider").WithName("ibm").WithName("secretsmanager")
 
 func (c *client) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
@@ -137,6 +143,10 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 
 	case sm.CreateSecretOptionsSecretTypeKvConst:
 
+		if ref.Property == "" {
+			return nil, fmt.Errorf("remoteRef.property required for secret type kv")
+		}
+
 		return getKVSecret(ibm, &secretName, ref)
 
 	default:
@@ -214,30 +224,43 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
+// Returns a secret of type kv and supports json path
 func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := getSecretByType(ibm, secretName, sm.CreateSecretOptionsSecretTypeKvConst)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Info("getKVSecret", "secretName", secretName)
 	secretData := secret.SecretData.(map[string]interface{})
-	secretPayload := secretData["payload"].(string)
 
-	kv := make(map[string]interface{})
-	err = json.Unmarshal([]byte(secretPayload), &kv)
-	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+	payload, ok := secretData["payload"]
+	if !ok {
+		return nil, fmt.Errorf("no payload returned for secret %s", ref.Key)
 	}
 
-	// returns only the value of the requested key, otherwise the entire payload
+	var payloadJson string
+
+	switch payload.(type) {
+	case string:
+		payloadJson = payload.(string)
+	case map[string]interface{}:
+		var payloadJsonByte []byte
+		payloadJsonByte, err = json.Marshal(payload.(map[string]interface{}))
+		payloadJson = string(payloadJsonByte)
+	default:
+		return nil, fmt.Errorf("payload type %T not supported yet for secret %s", payload, ref.Key)
+	}
+
 	if ref.Property != "" {
-		if val, ok := kv[ref.Property]; ok {
-			return []byte(val.(string)), nil
+		val := gjson.Get(payloadJson, ref.Property)
+		if !val.Exists() {
+			return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 		}
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return []byte(val.String()), nil
+	} else {
+		return nil, fmt.Errorf("no property provided for secret %s", ref.Key)
 	}
-
-	return []byte(secretPayload), nil
 }
 
 func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*sm.SecretResource, error) {
