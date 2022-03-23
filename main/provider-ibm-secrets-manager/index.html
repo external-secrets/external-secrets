@@ -859,8 +859,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#imported_cert" class="md-nav__link">
-    imported_cert
+  <a href="#imported_cert-and-public_cert" class="md-nav__link">
+    imported_cert and public_cert
   </a>
   
 </li>
@@ -1516,8 +1516,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#imported_cert" class="md-nav__link">
-    imported_cert
+  <a href="#imported_cert-and-public_cert" class="md-nav__link">
+    imported_cert and public_cert
   </a>
   
 </li>
@@ -1604,7 +1604,7 @@ Note: Use the url without the <code>/api</code> suffix that is presented in the 
 See here for a list of <a href="https://cloud.ibm.com/apidocs/secrets-manager#getting-started-endpoints">publicly available endpoints</a>.</p>
 <p><img alt="iam-create-success" src="../pictures/screenshot_service_url.png" /></p>
 <h3 id="secret-types">Secret Types</h3>
-<p>We support all secret types of <a href="https://cloud.ibm.com/apidocs/secrets-manager">IBM Secrets Manager</a>: <code>arbitrary</code>, <code>username_password</code>, <code>iam_credentials</code> and <code>imported_cert</code>. To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to <code>arbitrary</code>:</p>
+<p>We support the following secret types of <a href="https://cloud.ibm.com/apidocs/secrets-manager">IBM Secrets Manager</a>: <code>arbitrary</code>, <code>username_password</code>, <code>iam_credentials</code>, <code>public_cert</code> and <code>imported_cert</code>. To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to <code>arbitrary</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
@@ -1619,12 +1619,18 @@ See here for a list of <a href="https://cloud.ibm.com/apidocs/secrets-manager#ge
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foo</span><span class="w"></span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username_password/yyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bar</span><span class="w"></span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iam_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">baz</span><span class="w"></span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">certificate</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bap</span><span class="w"></span>
+<span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">remoteRef</span><span class="p p-Indicator">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">certificate</span><span class="w"></span>
 </code></pre></div>
 <p>The behavior for the different secret types is as following:</p>
 <h4 id="arbitrary">arbitrary</h4>
@@ -1642,7 +1648,7 @@ See here for a list of <a href="https://cloud.ibm.com/apidocs/secrets-manager#ge
 <li><code>remoteRef</code> retrieves an apikey from secrets manager and sets it for specified <code>secretKey</code></li>
 <li><code>dataFrom</code> retrieves an apikey from secrets manager and sets it for the <code>apikey</code> Kubernetes secret key</li>
 </ul>
-<h4 id="imported_cert">imported_cert</h4>
+<h4 id="imported_cert-and-public_cert">imported_cert and public_cert</h4>
 <ul>
 <li><code>remoteRef</code> requires a <code>property</code> to be set for either <code>certificate</code>, <code>private_key</code> or <code>intermediate</code> to retrieve respective fields from the secrets manager secret and set in specified <code>secretKey</code></li>
 <li><code>dataFrom</code> retrieves all <code>certificate</code>, <code>private_key</code> and <code>intermediate</code> fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret</li>
