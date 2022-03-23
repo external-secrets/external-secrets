@@ -164,7 +164,7 @@ jobs:
 
     - name: Setup gcloud CLI
       if: github.event.client_payload.slash_command.args.named.provider == 'gcp'
-      uses: google-github-actions/setup-gcloud@main
+      uses: google-github-actions/setup-gcloud@v0
       with:
         service_account_key: ${{ env.GCP_SM_SA_GKE_JSON }}
         project_id: ${{ env.GCP_PROJECT_ID }}
