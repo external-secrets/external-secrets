@@ -136,7 +136,7 @@ func TestValidateStore(t *testing.T) {
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
-	} else if err.Error() != "secret name is required" {
+	} else if err.Error() != "secretAPIKey.name cannot be empty" {
 		t.Errorf("KeySelector test failed: expected secret name is required, got %v", err)
 	}
 	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Name = "foo"

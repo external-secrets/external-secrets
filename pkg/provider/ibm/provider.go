@@ -332,6 +332,12 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 	if err != nil {
 		return err
 	}
+	if secretRef.Name == "" {
+		return fmt.Errorf("secretAPIKey.name cannot be empty")
+	}
+	if secretRef.Key == "" {
+		return fmt.Errorf("secretAPIKey.key cannot be empty")
+	}
 	return nil
 }
 
