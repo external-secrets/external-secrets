@@ -22,13 +22,14 @@ import (
 
 	core "github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/secretsmanagerv1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	utils "github.com/external-secrets/external-secrets/pkg/utils"
 	gjson "github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
