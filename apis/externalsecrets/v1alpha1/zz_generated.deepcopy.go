@@ -245,7 +245,7 @@ func (in *AzureKVProvider) DeepCopyInto(out *AzureKVProvider) {
 	*out = *in
 	if in.AuthType != nil {
 		in, out := &in.AuthType, &out.AuthType
-		*out = new(AuthType)
+		*out = new(AzureAuthType)
 		**out = **in
 	}
 	if in.VaultURL != nil {
@@ -261,6 +261,11 @@ func (in *AzureKVProvider) DeepCopyInto(out *AzureKVProvider) {
 	if in.AuthSecretRef != nil {
 		in, out := &in.AuthSecretRef, &out.AuthSecretRef
 		*out = new(AzureKVAuth)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.ServiceAccountRef != nil {
+		in, out := &in.ServiceAccountRef, &out.ServiceAccountRef
+		*out = new(metav1.ServiceAccountSelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.IdentityID != nil {

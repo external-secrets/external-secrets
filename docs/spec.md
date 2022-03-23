@@ -474,7 +474,7 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1alpha1.AuthType">AuthType
+<h3 id="external-secrets.io/v1alpha1.AzureAuthType">AzureAuthType
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
@@ -494,10 +494,13 @@ is ServicePrincipal.</p>
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;ManagedIdentity&#34;</p></td>
-<td><p>Using Managed Identity to authenticate. Used with aad-pod-identity instelled in the clister.</p>
+<td><p>Using Managed Identity to authenticate. Used with aad-pod-identity installed in the clister.</p>
 </td>
 </tr><tr><td><p>&#34;ServicePrincipal&#34;</p></td>
 <td><p>Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.</p>
+</td>
+</tr><tr><td><p>&#34;WorkloadIdentity&#34;</p></td>
+<td><p>Using Workload Identity service accounts to authenticate.</p>
 </td>
 </tr></tbody>
 </table>
@@ -526,6 +529,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The Azure clientId of the service principle used for authentication.</p>
 </td>
 </tr>
@@ -537,6 +541,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The Azure ClientSecret of the service principle used for authentication.</p>
 </td>
 </tr>
@@ -563,8 +568,8 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>authType</code></br>
 <em>
-<a href="#external-secrets.io/v1alpha1.AuthType">
-AuthType
+<a href="#external-secrets.io/v1alpha1.AzureAuthType">
+AzureAuthType
 </a>
 </em>
 </td>
@@ -611,6 +616,19 @@ AzureKVAuth
 <td>
 <em>(Optional)</em>
 <p>Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specified the service account
+that should be used when authenticating with WorkloadIdentity.</p>
 </td>
 </tr>
 <tr>
@@ -996,6 +1014,27 @@ ExternalSecretStatus
 <td></td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1alpha1.ExternalSecretConversionStrategy">ExternalSecretConversionStrategy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Default&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Unicode&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1alpha1.ExternalSecretCreationPolicy">ExternalSecretCreationPolicy
 (<code>string</code> alias)</p></h3>
 <p>
@@ -1115,6 +1154,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>Used to select a specific property of the Provider value (if a map), if supported</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conversionStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.ExternalSecretConversionStrategy">
+ExternalSecretConversionStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a conversion Strategy</p>
 </td>
 </tr>
 </tbody>
@@ -1786,6 +1839,16 @@ string
 <tr>
 <td>
 <code>clusterName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterProjectID</code></br>
 <em>
 string
 </em>

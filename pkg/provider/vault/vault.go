@@ -21,9 +21,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -48,25 +48,26 @@ var (
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
-	errVaultStore         = "received invalid Vault SecretStore resource: %w"
-	errVaultClient        = "cannot setup new vault client: %w"
-	errVaultCert          = "cannot set Vault CA certificate: %w"
-	errReadSecret         = "cannot read secret data from Vault: %w"
-	errAuthFormat         = "cannot initialize Vault client: no valid auth method specified"
-	errInvalidCredentials = "invalid vault credentials: %w"
-	errDataField          = "failed to find data field"
-	errJSONUnmarshall     = "failed to unmarshall JSON"
-	errSecretFormat       = "secret data not in expected format"
-	errUnexpectedKey      = "unexpected key in data: %s"
-	errVaultToken         = "cannot parse Vault authentication token: %w"
-	errVaultReqParams     = "cannot set Vault request parameters: %w"
-	errVaultRequest       = "error from Vault request: %w"
-	errVaultResponse      = "cannot parse Vault response: %w"
-	errServiceAccount     = "cannot read Kubernetes service account token from file system: %w"
-
-	errGetKubeSA        = "cannot get Kubernetes service account %q: %w"
-	errGetKubeSASecrets = "cannot find secrets bound to service account: %q"
-	errGetKubeSANoToken = "cannot find token in secrets bound to service account: %q"
+	errVaultStore           = "received invalid Vault SecretStore resource: %w"
+	errVaultClient          = "cannot setup new vault client: %w"
+	errVaultCert            = "cannot set Vault CA certificate: %w"
+	errReadSecret           = "cannot read secret data from Vault: %w"
+	errAuthFormat           = "cannot initialize Vault client: no valid auth method specified"
+	errInvalidCredentials   = "invalid vault credentials: %w"
+	errDataField            = "failed to find data field"
+	errJSONUnmarshall       = "failed to unmarshall JSON"
+	errPathInvalid          = "provided Path isn't a valid kv v2 path"
+	errSecretFormat         = "secret data not in expected format"
+	errUnexpectedKey        = "unexpected key in data: %s"
+	errVaultToken           = "cannot parse Vault authentication token: %w"
+	errVaultReqParams       = "cannot set Vault request parameters: %w"
+	errVaultRequest         = "error from Vault request: %w"
+	errVaultResponse        = "cannot parse Vault response: %w"
+	errServiceAccount       = "cannot read Kubernetes service account token from file system: %w"
+	errUnsupportedKvVersion = "cannot perform find operations with kv version v1"
+	errGetKubeSA            = "cannot get Kubernetes service account %q: %w"
+	errGetKubeSASecrets     = "cannot find secrets bound to service account: %q"
+	errGetKubeSANoToken     = "cannot find token in secrets bound to service account: %q"
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
@@ -229,9 +230,145 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 // Empty GetAllSecrets.
+// GetAllSecrets
+// First load all secrets from secretStore path configuration.
+// Then, gets secrets from a matching name or matching custom_metadata.
 func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	if v.store.Version == esv1beta1.VaultKVStoreV1 {
+		return nil, errors.New(errUnsupportedKvVersion)
+	}
+	searchPath := ""
+	if ref.Path != nil {
+		searchPath = *ref.Path + "/"
+	}
+	potentialSecrets, err := v.listSecrets(ctx, searchPath)
+	if err != nil {
+		return nil, err
+	}
+	if ref.Name != nil {
+		return v.findSecretsFromName(ctx, potentialSecrets, *ref.Name, searchPath)
+	}
+	return v.findSecretsFromTags(ctx, potentialSecrets, ref.Tags, searchPath)
+}
+
+func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, tags map[string]string, removeFromName string) (map[string][]byte, error) {
+	secrets := make(map[string][]byte)
+	for _, name := range candidates {
+		match := true
+		metadata, err := v.readSecretMetadata(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		for tk, tv := range tags {
+			p, ok := metadata[tk]
+			if !ok || p != tv {
+				match = false
+				break
+			}
+		}
+		if match {
+			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if err != nil {
+				return nil, err
+			}
+			if removeFromName != "" {
+				name = strings.TrimPrefix(name, removeFromName)
+			}
+			secrets[name] = secret
+		}
+	}
+	return secrets, nil
+}
+
+func (v *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName, removeFromName string) (map[string][]byte, error) {
+	secrets := make(map[string][]byte)
+	for _, name := range candidates {
+		ok, err := regexp.MatchString(ref.RegExp, name)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if err != nil {
+				return nil, err
+			}
+			if removeFromName != "" {
+				name = strings.TrimPrefix(name, removeFromName)
+			}
+			secrets[name] = secret
+		}
+	}
+	return secrets, nil
+}
+
+func (v *client) listSecrets(ctx context.Context, path string) ([]string, error) {
+	secrets := make([]string, 0)
+	url, err := v.buildMetadataPath(path)
+	if err != nil {
+		return nil, err
+	}
+	r := v.client.NewRequest(http.MethodGet, url)
+	r.Params.Set("list", "true")
+	resp, err := v.client.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return nil, fmt.Errorf(errReadSecret, err)
+	}
+	secret, parseErr := vault.ParseSecret(resp.Body)
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	t, ok := secret.Data["keys"]
+	if !ok {
+		return nil, nil
+	}
+	paths := t.([]interface{})
+	for _, p := range paths {
+		strPath := p.(string)
+		fullPath := path + strPath // because path always ends with a /
+		if path == "" {
+			fullPath = strPath
+		}
+		// Recurrently find secrets
+		if !strings.HasSuffix(p.(string), "/") {
+			secrets = append(secrets, fullPath)
+		} else {
+			partial, err := v.listSecrets(ctx, fullPath)
+			if err != nil {
+				return nil, err
+			}
+			secrets = append(secrets, partial...)
+		}
+	}
+	return secrets, nil
+}
+
+func (v *client) readSecretMetadata(ctx context.Context, path string) (map[string]string, error) {
+	metadata := make(map[string]string)
+	url, err := v.buildMetadataPath(path)
+	if err != nil {
+		return nil, err
+	}
+	r := v.client.NewRequest(http.MethodGet, url)
+	resp, err := v.client.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return nil, fmt.Errorf(errReadSecret, err)
+	}
+	secret, parseErr := vault.ParseSecret(resp.Body)
+	if parseErr != nil {
+		return nil, parseErr
+	}
+	t, ok := secret.Data["custom_metadata"]
+	if !ok {
+		return nil, nil
+	}
+	d, ok := t.(map[string]interface{})
+	if !ok {
+		return metadata, nil
+	}
+	for k, v := range d {
+		metadata[k] = v.(string)
+	}
+	return metadata, nil
 }
 
 // GetSecret supports two types:
@@ -338,6 +475,19 @@ func (v *client) Validate() error {
 	return nil
 }
 
+func (v *client) buildMetadataPath(path string) (string, error) {
+	var url string
+	if v.store.Path == nil && !strings.Contains(path, "data") {
+		return "", fmt.Errorf(errPathInvalid)
+	}
+	if v.store.Path == nil {
+		path = strings.Replace(path, "data", "metadata", 1)
+		url = fmt.Sprintf("/v1/%s", path)
+	} else {
+		url = fmt.Sprintf("/v1/%s/metadata/%s", *v.store.Path, path)
+	}
+	return url, nil
+}
 func (v *client) buildPath(path string) string {
 	optionalMount := v.store.Path
 	origPath := strings.Split(path, "/")
@@ -794,7 +944,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.Vaul
 		if _, err := os.Stat(serviceAccTokenPath); err != nil {
 			return "", fmt.Errorf(errServiceAccount, err)
 		}
-		jwtByte, err := ioutil.ReadFile(serviceAccTokenPath)
+		jwtByte, err := os.ReadFile(serviceAccTokenPath)
 		if err != nil {
 			return "", fmt.Errorf(errServiceAccount, err)
 		}

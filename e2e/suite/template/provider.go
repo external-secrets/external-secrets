@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
@@ -50,15 +50,15 @@ func (s *templateProvider) DeleteSecret(key string) {
 func (s *templateProvider) BeforeEach() {
 	// Create a secret store - change these values to match YAML
 	By("creating a secret store for credentials")
-	secretStore := &esv1alpha1.SecretStore{
+	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				Fake: &esv1alpha1.FakeProvider{
-					Data: []esv1alpha1.FakeProviderData{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Fake: &esv1beta1.FakeProvider{
+					Data: []esv1beta1.FakeProviderData{
 						{
 							Key:   "foo",
 							Value: "bar",

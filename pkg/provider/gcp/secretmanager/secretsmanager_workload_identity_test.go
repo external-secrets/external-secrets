@@ -16,7 +16,7 @@ package secretmanager
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -182,7 +182,7 @@ func TestSATokenGen(t *testing.T) {
 func TestIDBTokenGen(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		payload := make(map[string]string)
-		rb, err := ioutil.ReadAll(r.Body)
+		rb, err := io.ReadAll(r.Body)
 		assert.Nil(t, err)
 		err = json.Unmarshal(rb, &payload)
 		assert.Nil(t, err)

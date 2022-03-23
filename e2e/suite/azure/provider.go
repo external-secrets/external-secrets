@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
@@ -190,17 +190,17 @@ func (s *azureProvider) CreateSecretStore() {
 	err := s.framework.CRClient.Create(context.Background(), azureCreds)
 	Expect(err).ToNot(HaveOccurred())
 
-	secretStore := &esv1alpha1.SecretStore{
+	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				AzureKV: &esv1alpha1.AzureKVProvider{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				AzureKV: &esv1beta1.AzureKVProvider{
 					TenantID: &s.tenantID,
 					VaultURL: &s.vaultURL,
-					AuthSecretRef: &esv1alpha1.AzureKVAuth{
+					AuthSecretRef: &esv1beta1.AzureKVAuth{
 						ClientID: &esmeta.SecretKeySelector{
 							Name: "provider-secret",
 							Key:  "client-id",

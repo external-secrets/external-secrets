@@ -15,6 +15,7 @@ limitations under the License.
 package crds
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
@@ -151,16 +152,16 @@ func TestPopulateSecret(t *testing.T) {
 	cert := []byte("foobarcert")
 	key := []byte("foobarkey")
 	populateSecret(cert, key, &caArtifacts, &secret)
-	if string(secret.Data["tls.crt"]) != string(cert) {
+	if !bytes.Equal(secret.Data["tls.crt"], cert) {
 		t.Errorf("secret value for tls.crt is wrong:%v", cert)
 	}
-	if string(secret.Data["tls.key"]) != string(key) {
+	if !bytes.Equal(secret.Data["tls.key"], key) {
 		t.Errorf("secret value for tls.key is wrong:%v", cert)
 	}
-	if string(secret.Data["ca.crt"]) != string(caArtifacts.CertPEM) {
+	if !bytes.Equal(secret.Data["ca.crt"], caArtifacts.CertPEM) {
 		t.Errorf("secret value for ca.crt is wrong:%v", cert)
 	}
-	if string(secret.Data["ca.key"]) != string(caArtifacts.KeyPEM) {
+	if !bytes.Equal(secret.Data["ca.key"], caArtifacts.KeyPEM) {
 		t.Errorf("secret value for ca.key is wrong:%v", cert)
 	}
 }

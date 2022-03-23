@@ -15,7 +15,7 @@ package akeyless
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -79,7 +79,7 @@ func getV2Url(path string) string {
 }
 
 func sendReq(url string) string {
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequest("POST", url, http.NoBody)
 	if err != nil {
 		return ""
 	}
@@ -94,6 +94,6 @@ func sendReq(url string) string {
 	}
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	return string(body)
 }

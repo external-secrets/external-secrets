@@ -139,6 +139,14 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 
 		return getImportCertSecret(ibm, &secretName, ref)
 
+	case sm.CreateSecretOptionsSecretTypePublicCertConst:
+
+		if ref.Property == "" {
+			return nil, fmt.Errorf("remoteRef.property required for secret type public_cert")
+		}
+
+		return getPublicCertSecret(ibm, &secretName, ref)
+
 	case sm.CreateSecretOptionsSecretTypeKvConst:
 
 		if ref.Property == "" {
@@ -172,6 +180,25 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+			ID:         secretName,
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	secret := response.Resources[0].(*sm.SecretResource)
+	secretData := secret.SecretData.(map[string]interface{})
+
+	if val, ok := secretData[ref.Property]; ok {
+		return []byte(val.(string)), nil
+	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+}
+
+func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	response, _, err := ibm.IBMClient.GetSecret(
+		&sm.GetSecretOptions{
+			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
 			ID:         secretName,
 		})
 	if err != nil {
@@ -353,6 +380,23 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		response, _, err := ibm.IBMClient.GetSecret(
 			&sm.GetSecretOptions{
 				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+
+		secretMap := byteArrayMap(secretData)
+
+		return secretMap, nil
+
+	case sm.CreateSecretOptionsSecretTypePublicCertConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
 				ID:         &secretName,
 			})
 		if err != nil {

@@ -96,7 +96,7 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 
 ## Migrating from v1
 
-You have to opt-in to use the new engine version by specifying `template.engineVersion=v2`:
+If you are still using `v1alpha1`, You have to opt-in to use the new engine version by specifying `template.engineVersion=v2`:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
