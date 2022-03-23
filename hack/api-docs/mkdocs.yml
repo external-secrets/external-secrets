@@ -35,6 +35,7 @@ nav:
   - Guides:
     - Introduction: guides-introduction.md
     - Getting started: guides-getting-started.md
+    - Upgrading to v1beta1: guides-v1beta1.md
     - Advanced Templating:
         v2: guides-templating.md
         v1: guides-templating-v1.md

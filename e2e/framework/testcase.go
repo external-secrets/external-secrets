@@ -21,6 +21,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework/log"
 )
@@ -29,10 +30,11 @@ var TargetSecretName = "target-secret"
 
 // TestCase contains the test infra to run a table driven test.
 type TestCase struct {
-	Framework      *Framework
-	ExternalSecret *esv1beta1.ExternalSecret
-	Secrets        map[string]SecretEntry
-	ExpectedSecret *v1.Secret
+	Framework              *Framework
+	ExternalSecret         *esv1beta1.ExternalSecret
+	ExternalSecretV1Alpha1 *esv1alpha1.ExternalSecret
+	Secrets                map[string]SecretEntry
+	ExpectedSecret         *v1.Secret
 }
 
 type SecretEntry struct {
@@ -68,9 +70,16 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 			}()
 		}
 
-		// create external secret
-		err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
-		Expect(err).ToNot(HaveOccurred())
+		// create v1alpha1 external secret, if provided
+		if tc.ExternalSecretV1Alpha1 != nil {
+			err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecretV1Alpha1)
+			Expect(err).ToNot(HaveOccurred())
+		} else {
+			// create v1beta1 external secret otherwise
+			err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
+			Expect(err).ToNot(HaveOccurred())
+
+		}
 
 		// in case target name is empty
 		if tc.ExternalSecret.Spec.Target.Name == "" {
