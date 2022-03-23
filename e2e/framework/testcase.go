@@ -78,7 +78,6 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 			// create v1beta1 external secret otherwise
 			err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
 			Expect(err).ToNot(HaveOccurred())
-
 		}
 
 		// in case target name is empty

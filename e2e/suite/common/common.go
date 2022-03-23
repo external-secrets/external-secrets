@@ -38,13 +38,13 @@ const (
 func SyncV1Alpha1(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync secrets from v1alpha1 spec", func(tc *framework.TestCase) {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
-		targetSecretKey1 := "name"
-		targetSecretValue1 := "great-name"
-		targetSecretKey2 := "surname"
-		targetSecretValue2 := "great-surname"
+		targetSecretKey1 := "alpha-name"
+		targetSecretValue1 := "alpha-great-name"
+		targetSecretKey2 := "alpha-surname"
+		targetSecretValue2 := "alpha-great-surname"
 		secretValue := fmt.Sprintf("{ %q: %q, %q: %q }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
-		tc.Secrets = map[string]string{
-			secretKey1: secretValue,
+		tc.Secrets = map[string]framework.SecretEntry{
+			secretKey1: {Value: secretValue},
 		}
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,

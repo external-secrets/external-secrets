@@ -28,12 +28,10 @@ spec:
             app: web
 ```
 
-## Upgrading between versions
+## Upgrading
 
-If you already have an installation of ESO using `v1alpha1`, we recommend you to upgrade to `v1beta1`. If you do not use `dataFrom` in your ExternalSecrets, or if you deploy the CRDs using official the official Helm charts, the upgrade can be done with no risk of losing data. 
+If you already have an installation of ESO using `v1alpha1`, we recommend you to upgrade to `v1beta1`. If you do not use `dataFrom` in your ExternalSecrets, or if you deploy the CRDs using the official Helm charts, the upgrade can be done with no risk of losing data. 
 
-If you are installing CRDs manually, you will need to deploy the bundle CRD file available at `deploys/crds/bundle.yaml`. This bundle file contains `v1beta1` definition and a conversion webhook configuration. This configuration will ensure that new requests to handle any CRD object will only be valid after the upgrade is successfully complete - so there are no risks of losing data due to an incomplete upgrade.
+If you are installing CRDs manually, you will need to deploy the bundle CRD file available at `deploys/crds/bundle.yaml`. This bundle file contains `v1beta1` definition and a conversion webhook configuration. This configuration will ensure that new requests to handle any CRD object will only be valid after the upgrade is successfully complete - so there are no risks of losing data due to an incomplete upgrade. Once the new CRDs are applied, you can proceed to upgrade the controller version.
 
-Once the configuration is finished, at each reconcile, any `ExternalSecret`, `SecretStore`,  and `ClusterSecretStore` stored in etcd in `v1alpha1` will be automatically converted to `v1beta1`. 
-
-Since `v1alpha1` is now deprecated, be sure to upgrade any resources you have to `v1beta1`.
+Once the upgrade is finished, at each reconcile, any `ExternalSecret`, `SecretStore`,  and `ClusterSecretStore` stored in `v1alpha1` will be automatically converted to `v1beta1`. 
