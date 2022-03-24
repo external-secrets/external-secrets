@@ -61,14 +61,14 @@ func newVaultProvider(f *framework.Framework) *vaultProvider {
 }
 
 // CreateSecret creates a secret in both kv v1 and v2 provider.
-func (s *vaultProvider) CreateSecret(key, val string) {
+func (s *vaultProvider) CreateSecret(key string, val framework.SecretEntry) {
 	req := s.client.NewRequest(http.MethodPost, fmt.Sprintf("/v1/secret/data/%s", key))
-	req.BodyBytes = []byte(fmt.Sprintf(`{"data": %s}`, val))
+	req.BodyBytes = []byte(fmt.Sprintf(`{"data": %s}`, val.Value))
 	_, err := s.client.RawRequestWithContext(context.Background(), req)
 	Expect(err).ToNot(HaveOccurred())
 
 	req = s.client.NewRequest(http.MethodPost, fmt.Sprintf("/v1/secret_v1/%s", key))
-	req.BodyBytes = []byte(val)
+	req.BodyBytes = []byte(val.Value)
 	_, err = s.client.RawRequestWithContext(context.Background(), req)
 	Expect(err).ToNot(HaveOccurred())
 }

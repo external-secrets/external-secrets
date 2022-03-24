@@ -31,14 +31,19 @@ var TargetSecretName = "target-secret"
 type TestCase struct {
 	Framework      *Framework
 	ExternalSecret *esv1beta1.ExternalSecret
-	Secrets        map[string]string
+	Secrets        map[string]SecretEntry
 	ExpectedSecret *v1.Secret
+}
+
+type SecretEntry struct {
+	Value string
+	Tags  map[string]string
 }
 
 // SecretStoreProvider is a interface that must be implemented
 // by a provider that runs the e2e test.
 type SecretStoreProvider interface {
-	CreateSecret(key string, val string)
+	CreateSecret(key string, val SecretEntry)
 	DeleteSecret(key string)
 }
 

@@ -38,35 +38,37 @@ func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
 // ConvertKeys converts a secret map into a valid key.
 // Replaces any non-alphanumeric characters depending on convert strategy.
 func ConvertKeys(strategy esv1beta1.ExternalSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
-	out := make(map[string][]byte)
+	out := make(map[string][]byte, len(in))
 	for k, v := range in {
-		rs := []rune(k)
-		newName := make([]string, len(rs))
-		for rk, rv := range rs {
-			if !unicode.IsNumber(rv) &&
-				!unicode.IsLetter(rv) &&
-				rv != '-' &&
-				rv != '.' &&
-				rv != '_' {
-				switch strategy {
-				case esv1beta1.ExternalSecretConversionDefault:
-					newName[rk] = "_"
-				case esv1beta1.ExternalSecretConversionUnicode:
-					newName[rk] = fmt.Sprintf("_U%04x_", rv)
-				default:
-					return nil, fmt.Errorf("unknown conversion strategy: %s", strategy)
-				}
-			} else {
-				newName[rk] = string(rv)
-			}
-		}
-		key := strings.Join(newName, "")
+		key := convert(strategy, k)
 		if _, exists := out[key]; exists {
 			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
 		}
 		out[key] = v
 	}
 	return out, nil
+}
+
+func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) string {
+	rs := []rune(str)
+	newName := make([]string, len(rs))
+	for rk, rv := range rs {
+		if !unicode.IsNumber(rv) &&
+			!unicode.IsLetter(rv) &&
+			rv != '-' &&
+			rv != '.' &&
+			rv != '_' {
+			switch strategy {
+			case esv1beta1.ExternalSecretConversionDefault:
+				newName[rk] = "_"
+			case esv1beta1.ExternalSecretConversionUnicode:
+				newName[rk] = fmt.Sprintf("_U%04x_", rv)
+			}
+		} else {
+			newName[rk] = string(rv)
+		}
+	}
+	return strings.Join(newName, "")
 }
 
 // MergeStringMap performs a deep clone from src to dest.

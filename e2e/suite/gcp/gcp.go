@@ -122,8 +122,8 @@ x6HaRh+EUwU51von6M9lEF9/p5Q=
 	emptyCACerts := []*x509.Certificate{}
 	p12Cert, _ := p12.Encode(rand.Reader, privkey, cert, emptyCACerts, "")
 
-	tc.Secrets = map[string]string{
-		cloudSecretName: string(p12Cert),
+	tc.Secrets = map[string]framework.SecretEntry{
+		cloudSecretName: {Value: string(p12Cert)},
 	}
 
 	tc.ExpectedSecret = &v1.Secret{

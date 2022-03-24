@@ -76,13 +76,13 @@ func newFromEnv(f *framework.Framework) *azureProvider {
 	return newazureProvider(f, clientID, clientSecret, tenantID, vaultURL)
 }
 
-func (s *azureProvider) CreateSecret(key, val string) {
+func (s *azureProvider) CreateSecret(key string, val framework.SecretEntry) {
 	_, err := s.client.SetSecret(
 		context.Background(),
 		s.vaultURL,
 		key,
 		keyvault.SecretSetParameters{
-			Value: &val,
+			Value: &val.Value,
 			SecretAttributes: &keyvault.SecretAttributes{
 				RecoveryLevel: keyvault.Purgeable,
 				Enabled:       utilpointer.BoolPtr(true),

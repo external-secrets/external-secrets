@@ -29,6 +29,10 @@ func (sm *Client) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutp
 	return sm.valFn(in)
 }
 
+func (sm *Client) DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error) {
+	return nil, nil
+}
+
 func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutput, err error) {
 	sm.valFn = func(paramIn *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 		if !cmp.Equal(paramIn, in) {

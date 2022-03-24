@@ -103,7 +103,7 @@ func (s *GcpProvider) getClient(ctx context.Context) (client *secretmanager.Clie
 	return client, err
 }
 
-func (s *GcpProvider) CreateSecret(key, val string) {
+func (s *GcpProvider) CreateSecret(key string, val framework.SecretEntry) {
 	ctx := context.Background()
 	client, err := s.getClient(ctx)
 	Expect(err).ToNot(HaveOccurred())
@@ -125,7 +125,7 @@ func (s *GcpProvider) CreateSecret(key, val string) {
 	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
 		Parent: secret.Name,
 		Payload: &secretmanagerpb.SecretPayload{
-			Data: []byte(val),
+			Data: []byte(val.Value),
 		},
 	}
 	_, err = client.AddSecretVersion(ctx, addSecretVersionReq)

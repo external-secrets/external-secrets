@@ -96,7 +96,15 @@ func NewFromEnv(f *framework.Framework) *Provider {
 }
 
 // CreateSecret creates a secret at the provider.
-func (s *Provider) CreateSecret(key, val string) {
+func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
+	smTags := make([]*secretsmanager.Tag, 0)
+	for k, v := range val.Tags {
+		smTags = append(smTags, &secretsmanager.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
+
 	// we re-use some secret names throughout our test suite
 	// due to the fact that there is a short delay before the secret is actually deleted
 	// we have to retry creating the secret
@@ -105,7 +113,8 @@ func (s *Provider) CreateSecret(key, val string) {
 		log.Logf("creating secret %s / attempts left: %d", key, attempts)
 		_, err := s.client.CreateSecret(&secretsmanager.CreateSecretInput{
 			Name:         aws.String(key),
-			SecretString: aws.String(val),
+			SecretString: aws.String(val.Value),
+			Tags:         smTags,
 		})
 		if err == nil {
 			return
