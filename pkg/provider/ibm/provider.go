@@ -149,11 +149,6 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 
 	case sm.CreateSecretOptionsSecretTypeKvConst:
 
-		/*
-			if ref.Property == "" {
-				return nil, fmt.Errorf("remoteRef.property required for secret type kv")
-			}
-		*/
 		return getKVSecret(ibm, &secretName, ref)
 
 	default:
@@ -287,7 +282,6 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 	// a) "." is part of the key name
 	// b) "." is symbole for JSON path
 	if ref.Property != "" {
-
 		refProperty := ref.Property
 
 		// a) "." is part the key name
