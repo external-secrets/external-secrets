@@ -149,10 +149,11 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 
 	case sm.CreateSecretOptionsSecretTypeKvConst:
 
-		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type kv")
-		}
-
+		/*
+			if ref.Property == "" {
+				return nil, fmt.Errorf("remoteRef.property required for secret type kv")
+			}
+		*/
 		return getKVSecret(ibm, &secretName, ref)
 
 	default:
@@ -276,7 +277,33 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 		payloadJSON = string(payloadJSONByte)
 	}
 
+	// no property requested, return the entire payload
+	if ref.Property == "" {
+		return []byte(payloadJSON.(string)), nil
+	}
+
+	// returns the requested key
+	// consider that the key contains a ".". this could be one of 2 options
+	// a) "." is part of the key name
+	// b) "." is symbole for JSON path
 	if ref.Property != "" {
+
+		refProperty := ref.Property
+
+		// a) "." is part the key name
+		// escape "."
+		idx := strings.Index(refProperty, ".")
+		if idx > 0 {
+			refProperty = strings.ReplaceAll(refProperty, ".", "\\.")
+
+			val := gjson.Get(payloadJSON.(string), refProperty)
+			if val.Exists() {
+				return []byte(val.String()), nil
+			}
+		}
+
+		// b) "." is symbole for JSON path
+		// try to get value for this path
 		val := gjson.Get(payloadJSON.(string), ref.Property)
 		if !val.Exists() {
 			return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)

@@ -85,7 +85,7 @@ The behavior for the different secret types is as following:
 * `dataFrom` retrieves all `certificate`, `private_key` and `intermediate` fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret
 
 #### kv
-* `remoteRef` requires a `property` to select requested key from the KV secret
+* `remoteRef` could has a `property` to select requested key from the KV secret, otherwise the entire secret will be returned
 * `dataFrom` retrieves a string from secrets manager and tries to parse it as JSON object and determining the key (using gjson path) in resulting Kubernetes secret if successful
 
 ```json
@@ -95,7 +95,8 @@ The behavior for the different secret types is as following:
   "key3": {
     "keyA": "valA",
     "keyB": "valB"
-  }
+  },
+  "special.key": "special-content"
 }
 ```
 
@@ -104,9 +105,16 @@ The behavior for the different secret types is as following:
   remoteRef:
     key: 'kv/aaaaa-bbbb-cccc-dddd-eeeeee'
     property: 'key3.keyB'
+- secretKey: special_key
+  remoteRef:
+    key: 'kv/aaaaa-bbbb-cccc-dddd-eeeeee'
+    property: 'special.key'
+- secretKey: key_all
+  remoteRef:
+    key: 'kv/aaaaa-bbbb-cccc-dddd-eeeeee'
 ```
 
-results in `key3_keyB: valB`
+results in `key3_keyB: valB` and `special_key: special-content` and the `key_all` will contain the **entire** payload of the secret `{"key1":"val1","key2":"val2", ..."special.key":"special-content"}`.
 
 ### Creating external secret
 
