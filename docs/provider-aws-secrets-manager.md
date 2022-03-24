@@ -29,7 +29,7 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`.
         "secretsmanager:ListSecretVersionIds"
       ],
       "Resource": [
-        "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*",
+        "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
       ]
     }
   ]
