@@ -366,7 +366,6 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
 		smtc.apiOutput.Resources = resources
 		smtc.ref.Key = secretKV
-		//smtc.ref.Property = "NO-PROPERTY"
 		smtc.expectedSecret = secretKVComplex
 	}
 
