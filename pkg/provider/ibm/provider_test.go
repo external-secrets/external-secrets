@@ -32,6 +32,10 @@ import (
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/ibm/fake"
 )
 
+const (
+	errExpectedErr = "wanted error got nil"
+)
+
 type secretManagerTestCase struct {
 	mockClient     *fakesm.IBMMockClient
 	apiInput       *sm.GetSecretOptions
@@ -109,6 +113,42 @@ var setAPIErr = func(smtc *secretManagerTestCase) {
 var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.mockClient = nil
 	smtc.expectError = errUninitalizedIBMProvider
+}
+
+// simple tests for Validate Store.
+func TestValidateStore(t *testing.T) {
+	p := providerIBM{}
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				IBM: &esv1beta1.IBMProvider{},
+			},
+		},
+	}
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "serviceURL is required" {
+		t.Errorf("service URL test failed")
+	}
+	url := "my-url"
+	store.Spec.Provider.IBM.ServiceURL = &url
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "secretAPIKey.name cannot be empty" {
+		t.Errorf("KeySelector test failed: expected secret name is required, got %v", err)
+	}
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Name = "foo"
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Key = "bar"
+	ns := "ns-one"
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Namespace = &ns
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
+		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
+	}
 }
 
 // test the sm<->gcp interface

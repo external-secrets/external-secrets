@@ -367,6 +367,22 @@ func (ibm *providerIBM) Validate() error {
 }
 
 func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	ibmSpec := storeSpec.Provider.IBM
+	if ibmSpec.ServiceURL == nil {
+		return fmt.Errorf("serviceURL is required")
+	}
+	secretRef := ibmSpec.Auth.SecretRef.SecretAPIKey
+	err := utils.ValidateSecretSelector(store, secretRef)
+	if err != nil {
+		return err
+	}
+	if secretRef.Name == "" {
+		return fmt.Errorf("secretAPIKey.name cannot be empty")
+	}
+	if secretRef.Key == "" {
+		return fmt.Errorf("secretAPIKey.key cannot be empty")
+	}
 	return nil
 }
 

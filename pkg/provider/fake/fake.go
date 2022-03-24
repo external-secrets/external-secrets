@@ -27,6 +27,8 @@ var (
 	errNotFound            = fmt.Errorf("secret value not found")
 	errMissingStore        = fmt.Errorf("missing store provider")
 	errMissingFakeProvider = fmt.Errorf("missing store provider fake")
+	errMissingKeyField     = "key must be set in data %v"
+	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
 )
 
 type Provider struct {
@@ -98,6 +100,18 @@ func (p *Provider) Validate() error {
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	prov := store.GetSpec().Provider.Fake
+	if prov == nil {
+		return nil
+	}
+	for pos, data := range prov.Data {
+		if data.Key == "" {
+			return fmt.Errorf(errMissingKeyField, pos)
+		}
+		if data.Value == "" && data.ValueMap == nil {
+			return fmt.Errorf(errMissingValueField, pos)
+		}
+	}
 	return nil
 }
 
