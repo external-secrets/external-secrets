@@ -25,12 +25,18 @@ controllerClass: ""
 # provided namespace
 scopedNamespace: ""
 
+# -- Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace
+# and implicitly disable cluster stores and cluster external secrets
+scopedRBAC: false
+
+# -- if true, the operator will process cluster external secret. Else, it will ignore them.
+processClusterExternalSecret: true
+
+# -- if true, the operator will process cluster store. Else, it will ignore them.
+processClusterStore: true
+
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
-
-# -- If true, disable ClusterSecretStore.
-# If scopedNamespace is provided, create scoped RBAC roles under the scoped namespace.
-scopedRBAC: false
 
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
