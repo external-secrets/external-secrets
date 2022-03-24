@@ -63,6 +63,8 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "parameterstore"
 			addon.WithServiceAccount(prov.ServiceAccountName),
 			addon.WithReleaseName(f.Namespace.Name),
 			addon.WithNamespace("default"),
+			addon.WithoutWebhook(),
+			addon.WithoutCertController(),
 		))
 	})
 
