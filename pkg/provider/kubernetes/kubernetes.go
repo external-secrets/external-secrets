@@ -240,7 +240,6 @@ func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySel
 }
 
 func (k *ProviderKubernetes) Validate() error {
-
 	ctx := context.Background()
 
 	authReview, err := k.ReviewClient.Create(ctx, &authv1.SelfSubjectAccessReview{

@@ -52,7 +52,7 @@ type fakeReviewClient struct {
 	authReview *authv1.SelfSubjectAccessReview
 }
 
-func (fk fakeReviewClient) Create(ctx context.Context, SelfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error) {
+func (fk fakeReviewClient) Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error) {
 	if fk.authReview == nil {
 		return nil, errors.New("Something went wrong")
 	}
