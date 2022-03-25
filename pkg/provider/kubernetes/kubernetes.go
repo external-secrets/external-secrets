@@ -262,5 +262,28 @@ func (k *ProviderKubernetes) Validate() error {
 }
 
 func (k *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	k8sSpec := storeSpec.Provider.Kubernetes
+	if k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
+		return fmt.Errorf("a CABundle or CAProvider is required")
+	}
+
+	if k8sSpec.Auth.Cert != nil {
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
+			return fmt.Errorf("invalid Auth.Cert.ClientCert: %w", err)
+		}
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientKey); err != nil {
+			return fmt.Errorf("invalid Auth.Cert.ClientKey: %w", err)
+		}
+	} else if k8sSpec.Auth.Token != nil {
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
+			return fmt.Errorf("invalid Auth.Token.BearerToken: %w", err)
+		}
+	}
+
+	if k8sSpec.Auth.Cert != nil && k8sSpec.Auth.Token != nil {
+		return fmt.Errorf("Only one authentication method is allowed")
+	}
+
 	return nil
 }
