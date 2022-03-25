@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -45,6 +46,17 @@ func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOption
 		return nil, errors.New("Something went wrong")
 	}
 	return &secret, nil
+}
+
+type fakeReviewClient struct {
+	authReview *authv1.SelfSubjectAccessReview
+}
+
+func (fk fakeReviewClient) Create(ctx context.Context, SelfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error) {
+	if fk.authReview == nil {
+		return nil, errors.New("Something went wrong")
+	}
+	return fk.authReview, nil
 }
 
 func TestKubernetesSecretManagerGetSecret(t *testing.T) {
@@ -257,4 +269,36 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestValidate(t *testing.T) {
+	authReview := authv1.SelfSubjectAccessReview{
+		Status: authv1.SubjectAccessReviewStatus{
+			Allowed: true,
+		},
+	}
+	fakeClient := fakeReviewClient{authReview: &authReview}
+	k := ProviderKubernetes{ReviewClient: fakeClient}
+	err := k.Validate()
+	if err != nil {
+		t.Errorf("Test Failed! %v", err)
+	}
+	authReview = authv1.SelfSubjectAccessReview{
+		Status: authv1.SubjectAccessReviewStatus{
+			Allowed: false,
+		},
+	}
+	fakeClient = fakeReviewClient{authReview: &authReview}
+	k = ProviderKubernetes{ReviewClient: fakeClient}
+	err = k.Validate()
+	if err.Error() != "client is not allowed to get secrets" {
+		t.Errorf("Test Failed! Wanted client is not allowed to get secrets got: %v", err)
+	}
+
+	fakeClient = fakeReviewClient{}
+	k = ProviderKubernetes{ReviewClient: fakeClient}
+	err = k.Validate()
+	if err.Error() != "could not verify if client is valid: Something went wrong" {
+		t.Errorf("Test Failed! Wanted could not verify if client is valid: Something went wrong got: %v", err)
+	}
 }
