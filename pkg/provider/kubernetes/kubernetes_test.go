@@ -33,6 +33,7 @@ import (
 const (
 	errTestFetchCredentialsSecret = "test could not fetch Credentials secret failed"
 	errTestAuthValue              = "test failed key didn't match expected value"
+	errSomethingWentWrong         = "Something went wrong"
 )
 
 type fakeClient struct {
@@ -43,7 +44,7 @@ func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOption
 	secret, ok := fk.secretMap[name]
 
 	if !ok {
-		return nil, errors.New("Something went wrong")
+		return nil, errors.New(errSomethingWentWrong)
 	}
 	return &secret, nil
 }
@@ -54,7 +55,7 @@ type fakeReviewClient struct {
 
 func (fk fakeReviewClient) Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error) {
 	if fk.authReview == nil {
-		return nil, errors.New("Something went wrong")
+		return nil, errors.New(errSomethingWentWrong)
 	}
 	return fk.authReview, nil
 }
@@ -82,7 +83,7 @@ func TestKubernetesSecretManagerGetSecret(t *testing.T) {
 	ref = esv1beta1.ExternalSecretDataRemoteRef{Key: "Key2", Property: "foo"}
 	_, err := kp.GetSecret(ctx, ref)
 
-	if err.Error() != "Something went wrong" {
+	if err.Error() != errSomethingWentWrong {
 		t.Error("test failed")
 	}
 
