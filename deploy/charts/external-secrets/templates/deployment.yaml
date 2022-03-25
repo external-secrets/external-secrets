@@ -44,13 +44,24 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.concurrent) (.Values.extraArgs) }}
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.processClusterStore) (.Values.processClusterExternalSecret) (.Values.concurrent) (.Values.extraArgs) }}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
           {{- end }}
           {{- if .Values.scopedNamespace }}
           - --namespace={{ .Values.scopedNamespace }}
+          {{- end }}
+          {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+          - --enable-cluster-store-reconciler=false
+          - --enable-cluster-external-secret-reconciler=false
+          {{- else }}
+            {{- if not .Values.processClusterStore }}
+          - --enable-cluster-store-reconciler=false
+            {{- end }}
+            {{- if not .Values.processClusterExternalSecret }}
+          - --enable-cluster-external-secret-reconciler=false
+            {{- end }}
           {{- end }}
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}

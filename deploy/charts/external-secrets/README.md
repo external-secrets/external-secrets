@@ -80,12 +80,15 @@ The command removes all the Kubernetes components associated with the chart and 
 | podLabels | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | priorityClassName | string | `""` | Pod priority class name. |
+| processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. |
+| processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
 | prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
 | prometheus.service.port | int | `8080` |  |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
 | scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
+| scopedRBAC | bool | `false` | Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace and implicitly disable cluster stores and cluster external secrets |
 | securityContext | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |

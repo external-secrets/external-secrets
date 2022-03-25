@@ -971,6 +971,22 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	ignoreClusterSecretStoreWhenDisabled := func(tc *testCase) {
+		tc.externalSecret.Spec.SecretStoreRef.Kind = esv1beta1.ClusterSecretStoreKind
+
+		Expect(shouldSkipClusterSecretStore(
+			&Reconciler{
+				ClusterSecretStoreEnabled: false,
+			},
+			*tc.externalSecret,
+		)).To(BeTrue())
+
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			return cond == nil
+		}
+	}
+
 	// When the ownership is set to owner, and we delete a dependent child kind=secret
 	// it should be recreated without waiting for refresh interval
 	checkDeletion := func(tc *testCase) {
@@ -1113,6 +1129,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should set an error condition when store does not exist", storeMissingErrCondition),
 		Entry("should set an error condition when store provider constructor fails", storeConstructErrCondition),
 		Entry("should not process store with mismatching controller field", ignoreMismatchController),
+		Entry("should not process cluster secret store when it is disabled", ignoreClusterSecretStoreWhenDisabled),
 	)
 })
 
