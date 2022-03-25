@@ -141,7 +141,18 @@ type ExternalSecretDataRemoteRef struct {
 	// +optional
 	// Used to select a specific property of the Provider value (if a map), if supported
 	Property string `json:"property,omitempty"`
+	// +optional
+	// Used to define a conversion Strategy
+	// +kubebuilder:default="Default"
+	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
+
+type ExternalSecretConversionStrategy string
+
+const (
+	ExternalSecretConversionDefault ExternalSecretConversionStrategy = "Default"
+	ExternalSecretConversionUnicode ExternalSecretConversionStrategy = "Unicode"
+)
 
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {

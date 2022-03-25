@@ -32,6 +32,10 @@ import (
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/ibm/fake"
 )
 
+const (
+	errExpectedErr = "wanted error got nil"
+)
+
 type secretManagerTestCase struct {
 	mockClient     *fakesm.IBMMockClient
 	apiInput       *sm.GetSecretOptions
@@ -109,6 +113,42 @@ var setAPIErr = func(smtc *secretManagerTestCase) {
 var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.mockClient = nil
 	smtc.expectError = errUninitalizedIBMProvider
+}
+
+// simple tests for Validate Store.
+func TestValidateStore(t *testing.T) {
+	p := providerIBM{}
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				IBM: &esv1beta1.IBMProvider{},
+			},
+		},
+	}
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "serviceURL is required" {
+		t.Errorf("service URL test failed")
+	}
+	url := "my-url"
+	store.Spec.Provider.IBM.ServiceURL = &url
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "secretAPIKey.name cannot be empty" {
+		t.Errorf("KeySelector test failed: expected secret name is required, got %v", err)
+	}
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Name = "foo"
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Key = "bar"
+	ns := "ns-one"
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Namespace = &ns
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
+		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
+	}
 }
 
 // test the sm<->gcp interface
@@ -231,6 +271,38 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.expectError = "remoteRef.property required for secret type imported_cert"
 	}
 
+	// good case: public_cert type with property
+	secretPublicCert := "public_cert/test-secret"
+	setSecretPublicCert := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretPublicCert
+		smtc.ref.Property = "certificate"
+		smtc.expectedSecret = secretCertificate
+	}
+
+	// bad case: public_cert type without property
+	badSecretPublicCert := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretPublicCert
+		smtc.expectError = "remoteRef.property required for secret type public_cert"
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCase(),
 		makeValidSecretManagerTestCaseCustom(setSecretString),
@@ -242,6 +314,8 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretIam),
 		makeValidSecretManagerTestCaseCustom(setSecretCert),
 		makeValidSecretManagerTestCaseCustom(badSecretCert),
+		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
+		makeValidSecretManagerTestCaseCustom(badSecretPublicCert),
 	}
 
 	sm := providerIBM{}
@@ -353,6 +427,28 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectedData["intermediate"] = []byte(secretIntermediate)
 	}
 
+	// good case: public_cert
+	setSecretPublicCert := func(smtc *secretManagerTestCase) {
+		secretData := make(map[string]interface{})
+		secretData["certificate"] = secretCertificate
+		secretData["private_key"] = secretPrivateKey
+		secretData["intermediate"] = secretIntermediate
+
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = "public_cert/test-secret"
+		smtc.expectedData["certificate"] = []byte(secretCertificate)
+		smtc.expectedData["private_key"] = []byte(secretPrivateKey)
+		smtc.expectedData["intermediate"] = []byte(secretIntermediate)
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(setDeserialization),
 		makeValidSecretManagerTestCaseCustom(setInvalidJSON),
@@ -361,6 +457,7 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretUserPass),
 		makeValidSecretManagerTestCaseCustom(setSecretIam),
 		makeValidSecretManagerTestCaseCustom(setSecretCert),
+		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
 	}
 
 	sm := providerIBM{}

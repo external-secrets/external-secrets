@@ -199,7 +199,7 @@ func isPodReady(p *v1.Pod) bool {
 // Timeout is 5min.
 func WaitForURL(url string) error {
 	return wait.PollImmediate(2*time.Second, time.Minute*5, func() (bool, error) {
-		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 		if err != nil {
 			return false, nil
 		}

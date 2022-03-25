@@ -35,6 +35,7 @@ type GCPWorkloadIdentity struct {
 	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
 	ClusterLocation   string                        `json:"clusterLocation"`
 	ClusterName       string                        `json:"clusterName"`
+	ClusterProjectID  string                        `json:"clusterProjectID,omitempty"`
 }
 
 // GCPSMProvider Configures a store to sync secrets using the GCP Secret Manager provider.

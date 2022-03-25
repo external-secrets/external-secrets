@@ -31,6 +31,7 @@ nav:
       ExternalSecret: api-externalsecret.md
       SecretStore: api-secretstore.md
       ClusterSecretStore: api-clustersecretstore.md
+      ClusterExternalSecret: api-clusterexternalsecret.md
   - Guides:
     - Introduction: guides-introduction.md
     - Getting started: guides-getting-started.md
@@ -63,6 +64,7 @@ nav:
       - Oracle Vault: provider-oracle-vault.md
     - Webhook: provider-webhook.md
     - Fake: provider-fake.md
+    - Kubernetes: provider-kubernetes.md
   - Examples:
     - FluxCD: examples-gitops-using-fluxcd.md
     - Anchore Engine: examples-anchore-engine-credentials.md

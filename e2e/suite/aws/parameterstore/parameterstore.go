@@ -41,5 +41,11 @@ var _ = Describe("[aws] ", Label("aws", "parameterstore"), func() {
 		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
+
+		// These are specific to parameterstore
+		Entry(FindByName(f)),
+		Entry(FindByNameWithPath(f)),
+		Entry(FindByTag(f)),
+		Entry(FindByTagWithPath(f)),
 	)
 })

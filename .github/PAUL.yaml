@@ -40,7 +40,7 @@ pull_requests:
   # This will limit the amount of PR's a single contributer can have
   # Limits work in progress
   limit_pull_requests:
-    max_number: 15
+    max_number: 30
   # This is the message that will displayed when a user opens a pull request
   open_message: |
     Greetings!

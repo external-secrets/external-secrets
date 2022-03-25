@@ -134,6 +134,15 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 		}
 
 		return getImportCertSecret(ibm, &secretName, ref)
+
+	case sm.CreateSecretOptionsSecretTypePublicCertConst:
+
+		if ref.Property == "" {
+			return nil, fmt.Errorf("remoteRef.property required for secret type public_cert")
+		}
+
+		return getPublicCertSecret(ibm, &secretName, ref)
+
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
@@ -159,6 +168,25 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+			ID:         secretName,
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	secret := response.Resources[0].(*sm.SecretResource)
+	secretData := secret.SecretData.(map[string]interface{})
+
+	if val, ok := secretData[ref.Property]; ok {
+		return []byte(val.(string)), nil
+	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+}
+
+func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	response, _, err := ibm.IBMClient.GetSecret(
+		&sm.GetSecretOptions{
+			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
 			ID:         secretName,
 		})
 	if err != nil {
@@ -300,6 +328,23 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 
 		return secretMap, nil
 
+	case sm.CreateSecretOptionsSecretTypePublicCertConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+
+		secretMap := byteArrayMap(secretData)
+
+		return secretMap, nil
+
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
@@ -322,6 +367,22 @@ func (ibm *providerIBM) Validate() error {
 }
 
 func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	ibmSpec := storeSpec.Provider.IBM
+	if ibmSpec.ServiceURL == nil {
+		return fmt.Errorf("serviceURL is required")
+	}
+	secretRef := ibmSpec.Auth.SecretRef.SecretAPIKey
+	err := utils.ValidateSecretSelector(store, secretRef)
+	if err != nil {
+		return err
+	}
+	if secretRef.Name == "" {
+		return fmt.Errorf("secretAPIKey.name cannot be empty")
+	}
+	if secretRef.Key == "" {
+		return fmt.Errorf("secretAPIKey.key cannot be empty")
+	}
 	return nil
 }
 

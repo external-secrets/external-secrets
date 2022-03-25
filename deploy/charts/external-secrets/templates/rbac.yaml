@@ -1,8 +1,15 @@
 {{- if .Values.rbac.create -}}
 apiVersion: rbac.authorization.k8s.io/v1
+{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+kind: Role
+{{- else }}
 kind: ClusterRole
+{{- end }}
 metadata:
   name: {{ include "external-secrets.fullname" . }}-controller
+  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 rules:
@@ -12,6 +19,7 @@ rules:
     - "secretstores"
     - "clustersecretstores"
     - "externalsecrets"
+    - "clusterexternalsecrets"
     verbs:
     - "get"
     - "list"
@@ -28,6 +36,9 @@ rules:
     - "clustersecretstores"
     - "clustersecretstores/status"
     - "clustersecretstores/finalizers"
+    - "clusterexternalsecrets"
+    - "clusterexternalsecrets/status"
+    - "clusterexternalsecrets/finalizers"
     verbs:
     - "update"
     - "patch"
@@ -35,6 +46,7 @@ rules:
     - ""
     resources:
     - "serviceaccounts"
+    - "namespaces"
     verbs:
     - "get"
     - "list"
@@ -72,11 +84,25 @@ rules:
     verbs:
     - "create"
     - "patch"
+  - apiGroups:
+    - "external-secrets.io"
+    resources:
+    - "externalsecrets"
+    verbs:
+    - "create"
+    - "update"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+kind: Role
+{{- else }}
 kind: ClusterRole
+{{- end }}
 metadata:
   name: {{ include "external-secrets.fullname" . }}-view
+  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
     rbac.authorization.k8s.io/aggregate-to-view: "true"
@@ -95,9 +121,16 @@ rules:
       - "list"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+kind: Role
+{{- else }}
 kind: ClusterRole
+{{- end }}
 metadata:
   name: {{ include "external-secrets.fullname" . }}-edit
+  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
@@ -117,14 +150,25 @@ rules:
       - "update"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+kind: RoleBinding
+{{- else }}
 kind: ClusterRoleBinding
+{{- end }}
 metadata:
   name: {{ include "external-secrets.fullname" . }}-controller
+  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
+  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  kind: Role
+  {{- else }}
   kind: ClusterRole
+  {{- end }}
   name: {{ include "external-secrets.fullname" . }}-controller
 subjects:
   - name: {{ include "external-secrets.serviceAccountName" . }}

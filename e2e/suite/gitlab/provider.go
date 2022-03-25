@@ -27,7 +27,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
@@ -54,7 +54,7 @@ func newFromEnv(f *framework.Framework) *gitlabProvider {
 	return newGitlabProvider(f, credentials, projectID)
 }
 
-func (s *gitlabProvider) CreateSecret(key, val string) {
+func (s *gitlabProvider) CreateSecret(key string, val framework.SecretEntry) {
 	// **Open the client
 	client, err := gitlab.NewClient(s.credentials)
 	Expect(err).ToNot(HaveOccurred())
@@ -66,7 +66,7 @@ func (s *gitlabProvider) CreateSecret(key, val string) {
 
 	opt := gitlab.CreateProjectVariableOptions{
 		Key:              &variableKey,
-		Value:            &variableValue,
+		Value:            &variableValue.Value,
 		VariableType:     nil,
 		Protected:        nil,
 		Masked:           nil,
@@ -88,7 +88,7 @@ func (s *gitlabProvider) DeleteSecret(key string) {
 	// Open a client**
 
 	// Delete the secret
-	_, err = client.ProjectVariables.RemoveVariable(s.projectID, strings.ReplaceAll(key, "-", "_"))
+	_, err = client.ProjectVariables.RemoveVariable(s.projectID, strings.ReplaceAll(key, "-", "_"), &gitlab.RemoveProjectVariableOptions{})
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -111,17 +111,17 @@ func (s *gitlabProvider) BeforeEach() {
 
 	// Create a secret store - change these values to match YAML
 	By("creating a secret store for credentials")
-	secretStore := &esv1alpha1.SecretStore{
+	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				Gitlab: &esv1alpha1.GitlabProvider{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Gitlab: &esv1beta1.GitlabProvider{
 					ProjectID: s.projectID,
-					Auth: esv1alpha1.GitlabAuth{
-						SecretRef: esv1alpha1.GitlabSecretRef{
+					Auth: esv1beta1.GitlabAuth{
+						SecretRef: esv1beta1.GitlabSecretRef{
 							AccessToken: esmeta.SecretKeySelector{
 								Name: "provider-secret",
 								Key:  "token",

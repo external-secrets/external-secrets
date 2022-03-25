@@ -159,7 +159,19 @@ type ExternalSecretDataRemoteRef struct {
 	// +optional
 	// Used to select a specific property of the Provider value (if a map), if supported
 	Property string `json:"property,omitempty"`
+
+	// +optional
+	// Used to define a conversion Strategy
+	// +kubebuilder:default="Default"
+	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
+
+type ExternalSecretConversionStrategy string
+
+const (
+	ExternalSecretConversionDefault ExternalSecretConversionStrategy = "Default"
+	ExternalSecretConversionUnicode ExternalSecretConversionStrategy = "Unicode"
+)
 
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
@@ -172,9 +184,10 @@ type ExternalSecretDataFromRemoteRef struct {
 	Find *ExternalSecretFind `json:"find,omitempty"`
 }
 
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type ExternalSecretFind struct {
+	// A root path to start the find operations.
+	// +optional
+	Path *string `json:"path,omitempty"`
 	// Finds secrets based on the name.
 	// +optional
 	Name *FindName `json:"name,omitempty"`
@@ -182,6 +195,10 @@ type ExternalSecretFind struct {
 	// Find secrets based on tags.
 	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
+	// +optional
+	// Used to define a conversion Strategy
+	// +kubebuilder:default="Default"
+	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
 
 type FindName struct {

@@ -2,7 +2,7 @@
 
 > NOTE: this feature is experimental and not highly tested
 
-Controller classes are a proprierty set during the deployment that allows multiple controllers to work in a group of workload. It works by separating which secretStores are going to be attributed to which controller. For the behavior of a single controller, no extra configuration is needed.
+Controller classes are a property set during the deployment that allows multiple controllers to work in a group of workload. It works by separating which secretStores are going to be attributed to which controller. For the behavior of a single controller, no extra configuration is needed.
 
 ## Setting up Controller Class
 

@@ -12,12 +12,13 @@ Your Google Kubernetes Engine (GKE) applications can consume GCP services like S
 
 You can find the documentation for Workload Identity [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity). We will walk you through how to navigate it here.
 
-Search [the documment](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for this editable values and change them to your values:
+Search [the document](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for this editable values and change them to your values:  
+_Note: If you have installed ESO, a serviceaccount has already been created. You can either patch the existing `external-secrets` SA or create a new one that fits your needs._
 
 - `CLUSTER_NAME`: The name of your cluster
 - `PROJECT_ID`: Your project ID (not your Project number nor your Project name)
-- `K8S_NAMESPACE`: For us folowing these steps here it will be `es`, but this will be the namespace where you deployed the external-secrets operator
-- `KSA_NAME`: external-secrets (if you are not creating a new one to attach to the deployemnt)
+- `K8S_NAMESPACE`: For us following these steps here it will be `es`, but this will be the namespace where you deployed the external-secrets operator
+- `KSA_NAME`: external-secrets (if you are not creating a new one to attach to the deployment)
 - `GSA_NAME`: external-secrets for simplicity, or something else if you have to follow different naming convetions for cloud resources
 - `ROLE_NAME`: should be `roles/secretmanager.secretAccessor` - so you make the pod only be able to access secrets on Secret Manager
 
@@ -29,8 +30,8 @@ Let's assume you have created a service account correctly and attached a appropr
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: team-a
-  namespace: team-a
+  name: external-secrets
+  namespace: es
   annotations:
     iam.gke.io/gcp-service-account: example-team-a@my-project.iam.gserviceaccount.com
 ```

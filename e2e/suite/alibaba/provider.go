@@ -28,7 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
@@ -63,7 +63,7 @@ func newFromEnv(f *framework.Framework) *alibabaProvider {
 }
 
 // CreateSecret creates a secret in both kv v1 and v2 provider.
-func (s *alibabaProvider) CreateSecret(key, val string) {
+func (s *alibabaProvider) CreateSecret(key string, val framework.SecretEntry) {
 	client, err := kms.NewClientWithAccessKey(s.regionID, s.accessKeyID, s.accessKeySecret)
 	Expect(err).ToNot(HaveOccurred())
 	kmssecretrequest := kms.CreateCreateSecretRequest()
@@ -97,16 +97,16 @@ func (s *alibabaProvider) BeforeEach() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// Creating Alibaba secret store
-	secretStore := &esv1alpha1.SecretStore{
+	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				Alibaba: &esv1alpha1.AlibabaProvider{
-					Auth: &esv1alpha1.AlibabaAuth{
-						SecretRef: esv1alpha1.AlibabaAuthSecretRef{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Alibaba: &esv1beta1.AlibabaProvider{
+					Auth: &esv1beta1.AlibabaAuth{
+						SecretRef: esv1beta1.AlibabaAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
 								Name: "kms-secret",
 								Key:  "keyid",

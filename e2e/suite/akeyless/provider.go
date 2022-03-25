@@ -36,7 +36,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
@@ -83,14 +83,14 @@ func newFromEnv(f *framework.Framework) *akeylessProvider {
 }
 
 // CreateSecret creates a secret.
-func (a *akeylessProvider) CreateSecret(key, val string) {
+func (a *akeylessProvider) CreateSecret(key string, val framework.SecretEntry) {
 	token, err := a.GetToken()
 	Expect(err).ToNot(HaveOccurred())
 
 	ctx := context.Background()
 	gsvBody := akeyless.CreateSecret{
 		Name:  key,
-		Value: val,
+		Value: val.Value,
 		Token: &token,
 	}
 
@@ -129,16 +129,16 @@ func (a *akeylessProvider) BeforeEach() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// Creating Akeyless secret store
-	secretStore := &esv1alpha1.SecretStore{
+	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      a.framework.Namespace.Name,
 			Namespace: a.framework.Namespace.Name,
 		},
-		Spec: esv1alpha1.SecretStoreSpec{
-			Provider: &esv1alpha1.SecretStoreProvider{
-				Akeyless: &esv1alpha1.AkeylessProvider{
-					Auth: &esv1alpha1.AkeylessAuth{
-						SecretRef: esv1alpha1.AkeylessAuthSecretRef{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Akeyless: &esv1beta1.AkeylessProvider{
+					Auth: &esv1beta1.AkeylessAuth{
+						SecretRef: esv1beta1.AkeylessAuthSecretRef{
 							AccessID: esmeta.SecretKeySelector{
 								Name: "access-id-secret",
 								Key:  "access-id",

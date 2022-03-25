@@ -19,7 +19,7 @@ import (
 
 	// nolint
 	// . "github.com/onsi/gomega"
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/framework/addon"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
@@ -44,6 +44,8 @@ var _ = Describe("[gcpmanaged] with pod identity", Label("gcp", "secretsmanager"
 			addon.WithServiceAccount(prov.ServiceAccountName),
 			addon.WithReleaseName(f.Namespace.Name),
 			addon.WithNamespace("default"),
+			addon.WithoutWebhook(),
+			addon.WithoutCertController(),
 		))
 	})
 
@@ -78,6 +80,8 @@ var _ = Describe("[gcpmanaged] with service account", Label("gcp", "secretsmanag
 			addon.WithControllerClass(f.BaseName),
 			addon.WithReleaseName(f.Namespace.Name),
 			addon.WithNamespace(f.Namespace.Name),
+			addon.WithoutWebhook(),
+			addon.WithoutCertController(),
 		))
 	})
 
@@ -105,7 +109,7 @@ func usePodIDESReference(tc *framework.TestCase) {
 
 func useSpecifcSAESReference(prov *GcpProvider) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {
-		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1alpha1.ClusterSecretStoreKind
+		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1beta1.ClusterSecretStoreKind
 		tc.ExternalSecret.Spec.SecretStoreRef.Name = prov.SAClusterSecretStoreName()
 	}
 }

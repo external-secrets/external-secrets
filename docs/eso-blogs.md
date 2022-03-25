@@ -22,3 +22,8 @@ Gustavo writes about how to setup ESO with AWS Secrets Manager. He also shows yo
 ## [Kubernetes Hardening Tutorial Part 2: Network](https://blog.gitguardian.com/kubernetes-tutorial-part-2-network/)
 
 Tiexin Guo Writes about Kubernetes hardening in this series of blogs. He mentions ESO as one of the convenient options when dealing with secrets in Kubernetes, and how to use it with AWS Secret Manager using AWS credentials. [Kubernetes Hardening Tutorial Part 2: Network](https://blog.gitguardian.com/kubernetes-tutorial-part-2-network/)
+
+
+## [Tutorial: How to manage secrets in OpenShift using Vault and External Secrets Operator](https://youtu.be/PgiXKBTel1E)
+
+Balkrishna Pandey published a video tutorial and a [blog post](https://goglides.io/how-to-manage-secrets-in-openshift-using-vault-and-external-secrets/1164/) on integrating HashiCorp Vault and External Secret Operator (ESO) to manage application secrets on OpenShift Cluster. In this blog, he demonstrates the strength of the `ClusterSecretStore` functionality, a cluster scoped SecretStore and is global to the Cluster that all `ExternalSecrets` can reference from all namespaces.

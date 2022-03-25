@@ -46,6 +46,8 @@ const (
 	requeueAfter = time.Second * 30
 
 	errGetES                 = "could not get ExternalSecret"
+	errConvert               = "could not apply conversion strategy to keys: %v"
+	errFindSecretKey         = "could not find secret %v: %v"
 	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
@@ -72,11 +74,12 @@ const (
 // Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	ControllerClass string
-	RequeueInterval time.Duration
-	recorder        record.EventRecorder
+	Log                       logr.Logger
+	Scheme                    *runtime.Scheme
+	ControllerClass           string
+	RequeueInterval           time.Duration
+	ClusterSecretStoreEnabled bool
+	recorder                  record.EventRecorder
 }
 
 // Reconcile implements the main reconciliation loop
@@ -103,6 +106,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	} else if err != nil {
 		log.Error(err, errGetES)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
+		return ctrl.Result{}, nil
+	}
+
+	if shouldSkipClusterSecretStore(r, externalSecret) {
+		log.Info("skipping cluster secret store as it is disabled")
 		return ctrl.Result{}, nil
 	}
 
@@ -318,6 +326,10 @@ func hashMeta(m metav1.ObjectMeta) string {
 	})
 }
 
+func shouldSkipClusterSecretStore(r *Reconciler, es esv1beta1.ExternalSecret) bool {
+	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
+}
+
 func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	// refresh if resource version changed
 	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
@@ -402,10 +414,18 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 			if err != nil {
 				return nil, err
 			}
+			secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
+			if err != nil {
+				return nil, fmt.Errorf(errConvert, err)
+			}
 		} else if remoteRef.Extract != nil {
 			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
 			if err != nil {
 				return nil, err
+			}
+			secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
+			if err != nil {
+				return nil, fmt.Errorf(errConvert, err)
 			}
 		}
 

@@ -26,7 +26,7 @@ kubectl create secret generic yc-auth --from-file=authorized-key=authorized-key.
 ```
 * Create a [SecretStore](../api-secretstore/) pointing to `yc-auth` k8s secret:
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: secret-store
@@ -63,7 +63,7 @@ yc lockbox secret list-access-bindings --name lockbox-secret
 ```
 * Create an [ExternalSecret](../api-externalsecret/) pointing to `secret-store` and `lockbox-secret`:
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: external-secret
