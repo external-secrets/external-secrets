@@ -47,7 +47,6 @@ const (
 
 	errGetES                 = "could not get ExternalSecret"
 	errConvert               = "could not apply conversion strategy to keys: %v"
-	errFindSecretKey         = "could not find secret %v: %v"
 	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
@@ -66,7 +65,6 @@ const (
 	errPolicyMergeGetSecret  = "unable to get secret %s: %w"
 	errPolicyMergeMutate     = "unable to mutate secret %s: %w"
 	errPolicyMergePatch      = "unable to patch secret %s: %w"
-	errGetSecretKey          = "key %q from ExternalSecret %q: %w"
 	errTplCMMissingKey       = "error in configmap %s: missing key %s"
 	errTplSecMissingKey      = "error in secret %s: missing key %s"
 )
