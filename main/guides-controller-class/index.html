@@ -1395,7 +1395,7 @@
 <blockquote>
 <p>NOTE: this feature is experimental and not highly tested</p>
 </blockquote>
-<p>Controller classes are a proprierty set during the deployment that allows multiple controllers to work in a group of workload. It works by separating which secretStores are going to be attributed to which controller. For the behavior of a single controller, no extra configuration is needed.</p>
+<p>Controller classes are a property set during the deployment that allows multiple controllers to work in a group of workload. It works by separating which secretStores are going to be attributed to which controller. For the behavior of a single controller, no extra configuration is needed.</p>
 <h2 id="setting-up-controller-class">Setting up Controller Class</h2>
 <p>In order to deploy the controller with a specific class, install the helm charts specifying the controller class, and create a <code>SecretStore</code> with the appropriate <code>spec.controller</code> values:
 <div class="highlight"><pre><span></span><code>helm install custom-external-secrets external-secrets/external-secrets --set controllerClass=custom
