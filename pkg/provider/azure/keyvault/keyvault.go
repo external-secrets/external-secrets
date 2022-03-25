@@ -162,10 +162,10 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 	checkName := ref.Name != nil && len(ref.Name.RegExp) > 0
 
 	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), *a.provider.VaultURL, nil)
-
 	if err != nil {
 		return nil, err
 	}
+
 	for secretListIter.NotDone() {
 		secretList := secretListIter.Response().Value
 		for _, secret := range *secretList {
@@ -175,13 +175,14 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 			}
 
 			secretResp, err := basicClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, "")
-			secretValue := *secretResp.Value
-
 			if err != nil {
 				return nil, err
 			}
+
+			secretValue := *secretResp.Value
 			secretsMap[secretName] = []byte(secretValue)
 		}
+
 		err = secretListIter.Next()
 		if err != nil {
 			return nil, err

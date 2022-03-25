@@ -400,12 +400,12 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 		if remoteRef.Find != nil {
 			secretMap, err = providerClient.GetAllSecrets(ctx, *remoteRef.Find)
 			if err != nil {
-				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
+				return nil, err
 			}
 		} else if remoteRef.Extract != nil {
 			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
 			if err != nil {
-				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
+				return nil, err
 			}
 		}
 
@@ -415,7 +415,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 	for _, secretRef := range externalSecret.Spec.Data {
 		secretData, err := providerClient.GetSecret(ctx, secretRef.RemoteRef)
 		if err != nil {
-			return nil, fmt.Errorf(errGetSecretKey, secretRef.RemoteRef.Key, externalSecret.Name, err)
+			return nil, err
 		}
 
 		providerData[secretRef.SecretKey] = secretData
