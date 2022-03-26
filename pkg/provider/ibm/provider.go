@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -252,7 +253,6 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 		return nil, err
 	}
 
-	log.Info("getKVSecret", "secretName", secretName)
 	secretData := secret.SecretData.(map[string]interface{})
 
 	payload, ok := secretData["payload"]
@@ -432,21 +432,17 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		return secretMap, nil
 
 	case sm.CreateSecretOptionsSecretTypeKvConst:
-		secret, err := getSecretByType(ibm, &secretName, sm.CreateSecretOptionsSecretTypeKvConst)
+		secret, err := getKVSecret(ibm, &secretName, ref)
+		if err != nil {
+			return nil, err
+		}
+		m := make(map[string]interface{})
+		err = json.Unmarshal(secret, &m)
 		if err != nil {
 			return nil, err
 		}
 
-		secretData := secret.SecretData.(map[string]interface{})
-		secretPayload := secretData["payload"].(string)
-
-		kv := make(map[string]interface{})
-		err = json.Unmarshal([]byte(secretPayload), &kv)
-		if err != nil {
-			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
-		}
-
-		secretMap := byteArrayMap(kv)
+		secretMap := byteArrayMap(m)
 
 		return secretMap, nil
 
@@ -456,11 +452,38 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 }
 
 func byteArrayMap(secretData map[string]interface{}) map[string][]byte {
+	var err error
 	secretMap := make(map[string][]byte)
 	for k, v := range secretData {
-		secretMap[k] = []byte(v.(string))
+		secretMap[k], err = getTypedKey(v)
+		if err != nil {
+			return nil
+		}
 	}
 	return secretMap
+}
+
+// kudos Vault Provider - convert from various types.
+func getTypedKey(v interface{}) ([]byte, error) {
+	switch t := v.(type) {
+	case string:
+		return []byte(t), nil
+	case map[string]interface{}:
+		return json.Marshal(t)
+	case map[string]string:
+		return json.Marshal(t)
+	case []byte:
+		return t, nil
+		// also covers int and float32 due to json.Marshal
+	case float64:
+		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
+	case bool:
+		return []byte(strconv.FormatBool(t)), nil
+	case nil:
+		return []byte(nil), nil
+	default:
+		return nil, fmt.Errorf("secret not in expected format")
+	}
 }
 
 func (ibm *providerIBM) Close(ctx context.Context) error {

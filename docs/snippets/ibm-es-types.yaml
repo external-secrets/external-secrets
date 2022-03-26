@@ -24,11 +24,16 @@ spec:
     remoteRef:
       key: public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
       property: certificate
-  - secretKey: bakv
+  - secretKey: kv_without_key
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: kv_key
     remoteRef:
       key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
       property: 'keyid'
-  - secretKey: key_with_path
+  - secretKey: kv_key_with_path
     remoteRef:
       key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
       property: 'key.path'
+  dataFrom:
+  
