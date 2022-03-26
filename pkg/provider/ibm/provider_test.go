@@ -404,6 +404,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 }
 
 func TestGetSecretMap(t *testing.T) {
+	secretKeyName := "kv/test-secret"
 	secretUsername := "user1"
 	secretPassword := "P@ssw0rd"
 	secretAPIKey := "01234567890"
@@ -535,7 +536,6 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: kv, no property, return entire payload as key:value pairs
 	setSecretKV := func(smtc *secretManagerTestCase) {
 		secretData := make(map[string]interface{})
-		// secretData["payload"] = `{"key1":"val1", "key2":"val2"}`
 		secretData["payload"] = secretComplex
 
 		resources := []sm.SecretResourceIntf{
@@ -547,7 +547,7 @@ func TestGetSecretMap(t *testing.T) {
 
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "kv/test-secret"
+		smtc.ref.Key = secretKeyName
 		smtc.expectedData["key1"] = []byte("val1")
 		smtc.expectedData["key2"] = []byte("val2")
 		smtc.expectedData["keyC"] = []byte(`{"keyC1":{"keyA":"valA","keyB":"valB"}}`)
@@ -568,7 +568,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
 		smtc.ref.Property = "keyC"
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "kv/test-secret"
+		smtc.ref.Key = secretKeyName
 		smtc.expectedData["keyC1"] = []byte(`{"keyA":"valA","keyB":"valB"}`)
 	}
 
@@ -587,7 +587,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
 		smtc.ref.Property = "keyC.keyC1"
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "kv/test-secret"
+		smtc.ref.Key = secretKeyName
 		smtc.expectedData["keyA"] = []byte("valA")
 		smtc.expectedData["keyB"] = []byte("valB")
 	}
@@ -607,7 +607,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
 		smtc.ref.Property = "unknown.property"
 		smtc.apiOutput.Resources = resources
-		smtc.ref.Key = "kv/test-secret"
+		smtc.ref.Key = secretKeyName
 		smtc.expectError = "key unknown.property does not exist in secret kv/test-secret"
 	}
 

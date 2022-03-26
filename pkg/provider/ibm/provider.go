@@ -253,6 +253,8 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 		return nil, err
 	}
 
+	log.Info("fetching secret", "secretName", secretName, "key", ref.Key)
+
 	secretData := secret.SecretData.(map[string]interface{})
 
 	payload, ok := secretData["payload"]
