@@ -6,9 +6,10 @@ It's possible to authenticate against the Kubernetes API using client certificat
 
 ## Example
 
-### K8s Cluster Secret
+### In-cluster secrets using Client certificates
 
-
+1. Create a K8s Secret with the encoded base64 ca and client certificates
+   
 ```
 apiVersion: v1
 kind: Secret
@@ -16,19 +17,18 @@ metadata:
   name: cluster-secrets
 data:
   # Fill with your encoded base64 CA
-  ca: Cg==
+  certificate-authority-data: Cg==
   # Fill with your encoded base64 Certificate
-  certificate: Cg==
+  client-certificate-data: Cg==
   # Fill with your encoded base64 Key
-  key: Cg==
-stringData:
-  # Fill with your a string Token
-  bearerToken: "my-token"
+  client-key-data: Cg==
 ```
+2. Create a SecretStore
 
-## SecretStore
+The Servers `url` won't be present as it will default to `kubernetes.default`, add a proper value if needed. In this example the Certificate Authority is fetch using the referenced `caProvider`.
 
-The `Server` section specifies the url of the Kubernetes API and the location to fetch the CA. The `auth` section indicates the type of authentication to use, `cert`, `token` or `serviceAccount` and includes the path to fetch the certificates or the token.
+The `auth` section indicates that the type `cert`  will be used for authentication, it includes the path to fetch the client certificate and key.
+
 
 ```
 apiVersion: external-secrets.io/v1beta1
@@ -37,25 +37,15 @@ metadata:
   name: example
 spec:
   provider:
-      kubernetes:
-        # If not remoteNamesapce is provided, default namespace is used
-        remoteNamespace: default  
+      kubernetes: 
         server: 
-          url:  https://127.0.0.1:36473
-          # Add your encoded base64 to caBundle or a referenced caProvider
-          # if both are provided caProvider will be ignored
-          caBundle: Cg==
+          # referenced caProvider
           caProvider: 
             type: Secret
             name : cluster-secrets
-            key: ca
+            key: certificate-authority-data
         auth:
-          # Add a referenced bearerToken or client certificates, 
-          # if both are provided client certificates will be ignored
-          token:
-            bearerToken:
-              name: cluster-secrets
-              key: bearerToken
+          # referenced client certificates
           cert:
             clientCert: 
                 name: cluster-secrets
@@ -63,6 +53,10 @@ spec:
             clientKey: 
                 name: cluster-secrets
                 key: key
+```
+3. Create the local secret that will be synced 
+              
+```
 ---
 apiVersion: v1
 kind: Secret
@@ -70,9 +64,8 @@ metadata:
   name: secret-example
 data:
   extra: YmFyCg==
-```
-        
-### ExternalSecret
+```     
+4. Finally create the ExternalSecret resource
 
 ```
 apiVersion: external-secrets.io/v1beta1
@@ -91,5 +84,70 @@ spec:
   - secretKey: extra
     remoteRef:
       key: secret-example
+      property: extra
+```
+
+### Remote Secret using a Token
+
+1. Create a K8s Secret with the encoded base64 ca and client token.
+   
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cluster-secrets
+data:
+  # Fill with your encoded base64 CA
+  certificate-authority-data: Cg==
+stringData:
+  # Fill with your string Token
+  bearerToken: "my-token"
+```
+2. Create a SecretStore
+
+The Server section specifies the `url` of the remote Kubernetes API. In this example the Certificate Authority is fetch using the encoded base64 `caBundle`. 
+
+The `auth` section indicates that the  `token` type will be used for authentication, it includes the path to fetch the token.
+
+```
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: example
+spec:
+  provider:
+      kubernetes: 
+        # If not remoteNamesapce is provided, default     namespace is used
+        remoteNamespace: remote-namespace
+        server: 
+          url: https://remote.kubernetes.api-server.address
+          # Add your encoded base64 to caBundle
+          caBundle: Cg==
+        auth:
+          # Adds referenced bearerToken
+          token:
+            bearerToken:
+              name: cluster-secrets
+              key: bearerToken
+```     
+4. Finally create the ExternalSecret resource
+
+```
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h           
+  secretStoreRef:
+    kind: SecretStore
+    name: example               # name of the SecretStore (or kind specified)
+  target:
+    name: secret-to-be-created  # name of the k8s Secret to be created
+    creationPolicy: Owner
+  data:
+  - secretKey: extra
+    remoteRef:
+      key: secret-remote-example
       property: extra
 ```
