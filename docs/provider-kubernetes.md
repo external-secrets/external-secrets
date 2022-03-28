@@ -120,7 +120,7 @@ spec:
         # If not remoteNamesapce is provided, default     namespace is used
         remoteNamespace: remote-namespace
         server: 
-          url:  https://127.0.0.1:36473
+          url: https://remote.kubernetes.api-server.address
           # Add your encoded base64 to caBundle
           caBundle: Cg==
         auth:
