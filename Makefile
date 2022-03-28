@@ -174,15 +174,20 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
-helm.generate: helm.docs ## Copy crds to helm chart directory
-	@cp $(BUNDLE_DIR)/*.yaml $(HELM_DIR)/templates/crds/
+helm.generate:
+# Split the generated bundle yaml file to inject control flags
+	@for i in $(BUNDLE_DIR)/*.yaml; do \
+		yq -Ns '"$(HELM_DIR)/templates/crds/" + .spec.names.singular' "$$i"; \
+	done
 # Add helm if statement for controlling the install of CRDs
-	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
+	@for i in $(HELM_DIR)/templates/crds/*.yml; do \
+		CRDS_FLAG_NAME="create$$(yq '.spec.names.kind' $$i)" && \
 		cp "$$i" "$$i.bkp" && \
-		echo "{{- if .Values.installCRDs }}" > "$$i" && \
+		echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i" && \
 		cat "$$i.bkp" >> "$$i" && \
 		echo "{{- end }}" >> "$$i" && \
-		rm "$$i.bkp"; \
+		rm "$$i.bkp" && \
+		mv "$$i" "$${i%.yml}.yaml"; \
 	done
 	@$(OK) Finished generating helm chart files
 
