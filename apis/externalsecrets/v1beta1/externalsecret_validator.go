@@ -23,6 +23,18 @@ import (
 type ExternalSecretValidator struct{}
 
 func (esv *ExternalSecretValidator) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+	return validateExternalSecret(obj)
+}
+
+func (esv *ExternalSecretValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+	return validateExternalSecret(newObj)
+}
+
+func (esv *ExternalSecretValidator) ValidateDelete(ctx context.Context, obj runtime.Object) error {
+	return nil
+}
+
+func validateExternalSecret(obj runtime.Object) error {
 	es, ok := obj.(*ExternalSecret)
 	if !ok {
 		return fmt.Errorf("unexpected type")
@@ -36,14 +48,5 @@ func (esv *ExternalSecretValidator) ValidateCreate(ctx context.Context, obj runt
 	if es.Spec.Target.DeletionPolicy == DeletionPolicyMerge && es.Spec.Target.CreationPolicy == CreatePolicyNone {
 		return fmt.Errorf("deletionPolicy=Merge must not be used with creationPolcy=None. There is no Secret to merge with")
 	}
-
-	return nil
-}
-
-func (esv *ExternalSecretValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
-	return nil
-}
-
-func (esv *ExternalSecretValidator) ValidateDelete(ctx context.Context, obj runtime.Object) error {
 	return nil
 }
