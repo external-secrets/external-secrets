@@ -1,3 +1,4 @@
+{{- if .Values.certController.create }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -61,6 +62,12 @@ spec:
             - containerPort: {{ .Values.certController.prometheus.service.port }}
               protocol: TCP
               name: metrics
+          readinessProbe:
+            httpGet:
+              port: 8081
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5
           {{- with .Values.certController.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
@@ -84,3 +91,4 @@ spec:
       {{- if .Values.certController.priorityClassName }}
       priorityClassName: {{ .Values.certController.priorityClassName }}
       {{- end }}
+{{- end }}

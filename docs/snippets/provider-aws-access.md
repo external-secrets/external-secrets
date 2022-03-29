@@ -4,6 +4,8 @@
 
 ![Pod Identity Authentication](./pictures/diagrams-provider-aws-auth-pod-identity.png)
 
+Note: If you are using Paramater Store replace `service: SecretsManager` with `service: ParamaterStore` in all examples below.
+
 This is basicially a zero-configuration authentication method that inherits the credentials from the runtime environment using the [aws sdk default credential chain](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default).
 
 You can attach a role to the pod using [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html), [kiam](https://github.com/uswitch/kiam) or [kube2iam](https://github.com/jtblin/kube2iam). When no other authentication method is configured in the `Kind=Secretstore` this role is used to make all API calls against AWS Secrets Manager or SSM Parameter Store.
@@ -11,7 +13,7 @@ You can attach a role to the pod using [IRSA](https://docs.aws.amazon.com/eks/la
 Based on the Pod's identity you can do a `sts:assumeRole` before fetching the secrets to limit access to certain keys in your provider. This is optional.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: team-b-store
@@ -31,7 +33,7 @@ spec:
 You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: team-b-store
@@ -76,7 +78,7 @@ metadata:
 Reference the service account from above in the Secret Store:
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: secretstore-sample

@@ -98,7 +98,7 @@ You should also consider using Kubernetes' admission control system (e.g.
 fine-grained access control.
 
 ## Running multiple Controller
-You can run multiple controller within the cluster. One controller can be
+You can run multiple controllers within the cluster. One controller can be
 limited to only process `SecretStores` with a predefined `spec.controller`
 field.
 

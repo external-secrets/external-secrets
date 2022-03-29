@@ -16,9 +16,10 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -68,9 +69,14 @@ jobs:
   promote:
     name: Promote Container Image
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -88,3 +94,21 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.inputs.version }}
           SOURCE_TAG: main
+
+      - name: Set up crane
+        if: env.GHCR_USERNAME != ''
+        run: go install github.com/google/go-containerregistry/cmd/crane@v0.8.0
+
+      - name: Install cosign
+        if: env.GHCR_USERNAME != ''
+        uses: sigstore/cosign-installer@main
+        with:
+          cosign-release: 'v1.6.0'
+
+      - name: Sign Container Image
+        if: env.GHCR_USERNAME != ''
+        run: make docker.sign
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.version }}
+          SOURCE_TAG: main
+          COSIGN_EXPERIMENTAL: 1

@@ -92,7 +92,7 @@ jobs:
 
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 
@@ -111,14 +111,14 @@ jobs:
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.7
+      uses: actions/cache@v3
       with:
         path: ${{ steps.go.outputs.build-cache }}
         key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-build-unit-tests-
 
     - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.7
+      uses: actions/cache@v3
       with:
         path: ${{ steps.go.outputs.mod-cache }}
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
@@ -164,7 +164,7 @@ jobs:
 
     - name: Setup gcloud CLI
       if: github.event.client_payload.slash_command.args.named.provider == 'gcp'
-      uses: google-github-actions/setup-gcloud@master
+      uses: google-github-actions/setup-gcloud@v0
       with:
         service_account_key: ${{ env.GCP_SM_SA_GKE_JSON }}
         project_id: ${{ env.GCP_PROJECT_ID }}

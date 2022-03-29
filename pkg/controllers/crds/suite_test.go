@@ -18,6 +18,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -73,19 +74,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
-	err = (&Reconciler{
-		Client:                 k8sClient,
-		Scheme:                 k8sManager.GetScheme(),
-		Log:                    ctrl.Log.WithName("controllers").WithName("CustomResourceDefinition"),
-		SvcName:                "foo",
-		SvcNamespace:           "default",
-		SecretName:             "foo",
-		SecretNamespace:        "default",
-		CrdResources:           []string{"externalsecrets.test.io", "secretstores.test.io", "clustersecretstores.test.io"},
-		CAName:                 "external-secrets",
-		CAOrganization:         "external-secrets",
-		RestartOnSecretRefresh: false,
-	}).SetupWithManager(k8sManager, controller.Options{})
+	rec := New(k8sClient, k8sManager.GetScheme(), log, time.Second*1,
+		"foo", "default", "foo", "default", []string{
+			"secretstores.test.io",
+		})
+	rec.SetupWithManager(k8sManager, controller.Options{})
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

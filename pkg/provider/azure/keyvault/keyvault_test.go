@@ -22,15 +22,11 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
-	tassert "github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -81,76 +77,6 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	smtc.mockClient.WithCertificate(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.certOutput, smtc.apiErr)
 
 	return smtc
-}
-
-func TestNewClientManagedIdentityNoNeedForCredentials(t *testing.T) {
-	namespace := "internal"
-	vaultURL := "https://local.vault.url"
-	identityID := "1234"
-	authType := esv1beta1.ManagedIdentity
-	store := esv1beta1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
-		Spec: esv1beta1.SecretStoreSpec{Provider: &esv1beta1.SecretStoreProvider{AzureKV: &esv1beta1.AzureKVProvider{
-			AuthType:   &authType,
-			IdentityID: &identityID,
-			VaultURL:   &vaultURL,
-		}}},
-	}
-
-	provider, err := schema.GetProvider(&store)
-	tassert.Nil(t, err, "the return err should be nil")
-	k8sClient := clientfake.NewClientBuilder().Build()
-	secretClient, err := provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	if err != nil {
-		// On non Azure environment, MSI auth not available, so this error should be returned
-		tassert.EqualError(t, err, "failed to get oauth token from MSI: MSI not available")
-	} else {
-		// On Azure (where GitHub Actions are running) a secretClient is returned, as only an Authorizer is configured, but no token is requested for MI
-		tassert.NotNil(t, secretClient)
-	}
-}
-
-func TestNewClientNoCreds(t *testing.T) {
-	namespace := "internal"
-	vaultURL := "https://local.vault.url"
-	tenantID := "1234"
-	authType := esv1beta1.ServicePrincipal
-	store := esv1beta1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
-		Spec: esv1beta1.SecretStoreSpec{Provider: &esv1beta1.SecretStoreProvider{AzureKV: &esv1beta1.AzureKVProvider{
-			AuthType: &authType,
-			VaultURL: &vaultURL,
-			TenantID: &tenantID,
-		}}},
-	}
-	provider, err := schema.GetProvider(&store)
-	tassert.Nil(t, err, "the return err should be nil")
-	k8sClient := clientfake.NewClientBuilder().Build()
-	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "missing secretRef in provider config")
-
-	store.Spec.Provider.AzureKV.AuthSecretRef = &esv1beta1.AzureKVAuth{}
-	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
-
-	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID = &v1.SecretKeySelector{Name: "user"}
-	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "missing accessKeyID/secretAccessKey in store config")
-
-	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret = &v1.SecretKeySelector{Name: "password"}
-	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "could not find secret internal/user: secrets \"user\" not found")
-	store.TypeMeta.Kind = esv1beta1.ClusterSecretStoreKind
-	store.TypeMeta.APIVersion = esv1beta1.ClusterSecretStoreKindAPIVersion
-	ns := "default"
-	store.Spec.Provider.AzureKV.AuthSecretRef.ClientID.Namespace = &ns
-	store.Spec.Provider.AzureKV.AuthSecretRef.ClientSecret.Namespace = &ns
-	_, err = provider.NewClient(context.Background(), &store, k8sClient, namespace)
-	tassert.EqualError(t, err, "could not find secret default/user: secrets \"user\" not found")
 }
 
 const (
@@ -379,5 +305,67 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 	return &esv1beta1.ExternalSecretDataRemoteRef{
 		Key:     "test-secret",
 		Version: "default",
+	}
+}
+
+func TestValidateStore(t *testing.T) {
+	type args struct {
+		auth esv1beta1.AzureKVAuth
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "empty auth",
+			wantErr: false,
+		},
+		{
+			name:    "empty client id",
+			wantErr: false,
+			args: args{
+				auth: esv1beta1.AzureKVAuth{},
+			},
+		},
+		{
+			name:    "invalid client id",
+			wantErr: true,
+			args: args{
+				auth: esv1beta1.AzureKVAuth{
+					ClientID: &v1.SecretKeySelector{
+						Namespace: pointer.StringPtr("invalid"),
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid client secret",
+			wantErr: true,
+			args: args{
+				auth: esv1beta1.AzureKVAuth{
+					ClientSecret: &v1.SecretKeySelector{
+						Namespace: pointer.StringPtr("invalid"),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &Azure{}
+			store := &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AzureKV: &esv1beta1.AzureKVProvider{
+							AuthSecretRef: &tt.args.auth,
+						},
+					},
+				},
+			}
+			if err := a.ValidateStore(store); (err != nil) != tt.wantErr {
+				t.Errorf("Azure.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }

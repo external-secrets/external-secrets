@@ -11,7 +11,7 @@ management. Vault itself implements lots of different secret engines, as of now 
 First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token `root`:
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: vault-backend
@@ -46,7 +46,7 @@ vault kv put secret/foo my-value=s3cr3t
 Now create a ExternalSecret that uses the above SecretStore:
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -76,7 +76,7 @@ data:
 You can fetch all key/value pairs for a given path If you leave the `remoteRef.property` empty. This returns the json-encoded secret value for that path.
 
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -105,7 +105,7 @@ Given the following secret - assume its path is `/dev/config`:
 
 You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -141,15 +141,16 @@ Given the following secret - assume its path is `/dev/config`:
 
 You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
+apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: vault-example
 spec:
   # ...
   dataFrom:
-  - key: /dev/config
-    property: foo.nested
+  - extract:
+      key: /dev/config
+      property: foo.nested
 ```
 
 That results in a secret with these values:
@@ -158,6 +159,84 @@ bar=mysecret
 baz=bang
 ```
 
+#### Getting multiple secrets
+
+You can extract multiple secrets from Hashicorp vault by using `dataFrom.Find`
+
+Currently, `dataFrom.Find` allows users to fetch secret names that match a given regexp pattern, or fetch secrets whose `custom_metadata` tags match a predefined set.
+
+
+!!! warning
+    The way hashicorp Vault currently allows LIST operations is through the existence of a secret metadata. If you delete the secret, you will also need to delete the secret's metadata or this will currently make Find operations fail.
+
+Given the following secret - assume its path is `/dev/config`:
+```json
+{
+  "foo": {
+    "nested": {
+      "bar": "mysecret",
+      "baz": "bang"
+    }
+  }
+}
+```
+
+Also consider the following secret has the following `custom_metadata`:
+```json
+{
+  "environment": "dev",
+  "component": "app-1"
+}
+```
+
+It is possible to find this secret by all the following possibilities:
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  dataFrom: 
+  - find: #will return every secret with 'dev' in it (including paths) 
+      name: 
+        regexp: dev
+  - find: #will return every secret matching environment:dev tags from dev/ folder and beyond 
+      tags: 
+        environment: dev
+```
+will generate a secret with: 
+```json
+{
+  "dev_config":"{\"foo\":{\"nested\":{\"bar\":\"mysecret\",\"baz\":\"bang\"}}}"
+}
+```
+
+Currently, `Find` operations are recursive throughout a given vault folder, starting on `provider.Path` definition. It is recommended to narrow down the scope of search by setting a `find.path` variable. This is also useful to automatically reduce the resulting secret key names:
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: vault-example
+spec:
+  # ...
+  dataFrom: 
+  - find: #will return every secret from dev/ folder 
+      path: dev
+      name: 
+        regexp: ".*"
+  - find: #will return every secret matching environment:dev tags from dev/ folder
+      path: dev
+      tags: 
+        environment: dev
+```
+Will generate a secret with:
+```json
+{
+  "config":"{\"foo\": {\"nested\": {\"bar\": \"mysecret\",\"baz\": \"bang\"}}}"
+}
+
+```
 ### Authentication
 
 We support five different modes for authentication:
@@ -239,18 +318,25 @@ and pick the best fit for your environment and Vault configuration.
 
 #### Read Your Writes
 
-The simplest method is simply utilizing the `X-Vault-Index` header returned on
-all write requests (including logins). Passing this header back on subsequent
-requests instructs the Vault client to retry the request until the server has an
-index greater than or equal to that returned with the last write.
+Vault 1.10.0 and later encodes information in the token to detect the case 
+when a server is behind. If a Vault server does not have information about 
+the provided token, [Vault returns a 412 error](https://www.vaultproject.io/docs/faq/ssct#q-is-there-anything-else-i-need-to-consider-to-achieve-consistency-besides-upgrading-to-vault-1-10) 
+so clients know to retry.
 
-Obviously though, this has a performance hit because the read is blocked until
-the follower's local state has caught up.
+A method supported in versions Vault 1.7 and later is to utilize the 
+`X-Vault-Index` header returned on all write requests (including logins). 
+Passing this header back on subsequent requests instructs the Vault client 
+to retry the request until the server has an index greater than or equal 
+to that returned with the last write. Obviously though, this has a performance
+hit because the read is blocked until the follower's local state has caught up.
 
 #### Forward Inconsistent
 
-In addition to the aforementioned `X-Vault-Index` header, Vault also supports
-proxying inconsistent requests to the current cluster leader for immediate
-read-after-write consistency. This is achieved by setting the `X-Vault-Inconsistent`
+Vault also supports proxying inconsistent requests to the current cluster leader 
+for immediate read-after-write consistency.
+ 
+Vault 1.10.0 and later [support a replication configuration](https://www.vaultproject.io/docs/faq/ssct#q-is-there-a-new-configuration-that-this-feature-introduces) that detects when forwarding should occur and does it transparently to the client.
+
+In Vault 1.7 forwarding can be achieved by setting the `X-Vault-Inconsistent`
 header to `forward-active-node`. By default, this behavior is disabled and must
 be explicitly enabled in the server's [replication configuration](https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header).

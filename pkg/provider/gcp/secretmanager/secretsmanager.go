@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go/v2"
@@ -30,8 +31,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -52,12 +51,28 @@ const (
 	errUninitalizedGCPProvider                = "provider GCP is not initialized"
 	errClientGetSecretAccess                  = "unable to access Secret from SecretManager Client: %w"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
+
+	errInvalidStore         = "invalid store"
+	errInvalidStoreSpec     = "invalid store spec"
+	errInvalidStoreProv     = "invalid store provider"
+	errInvalidGCPProv       = "invalid gcp secrets manager provider"
+	errInvalidAuthSecretRef = "invalid auth secret ref: %w"
+	errInvalidWISARef       = "invalid workload identity service account reference: %w"
 )
 
 type GoogleSecretManagerClient interface {
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	Close() error
 }
+
+/*
+ Currently, GCPSM client has a limitation around how concurrent connections work
+ This limitation causes memory leaks due to random disconnects from living clients
+ and also payload switches when sending a call (such as using a credential from one
+ thread to ask secrets from another thread).
+ A Mutex was implemented to make sure only one connection can be in place at a time.
+*/
+var useMu = sync.Mutex{}
 
 // ProviderGCP is a provider for GCP Secret Manager.
 type ProviderGCP struct {
@@ -132,15 +147,17 @@ func serviceAccountTokenSource(ctx context.Context, store esv1beta1.GenericStore
 }
 
 // NewClient constructs a GCP Provider.
-func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.GCPSM == nil {
 		return nil, fmt.Errorf(errGCPSMStore)
 	}
 	storeSpecGCPSM := storeSpec.Provider.GCPSM
 
+	useMu.Lock()
 	wi, err := newWorkloadIdentity(ctx)
 	if err != nil {
+		useMu.Unlock()
 		return nil, fmt.Errorf("unable to initialize workload identity")
 	}
 
@@ -163,17 +180,20 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 
 	ts, err := cliStore.getTokenSource(ctx, store, kube, namespace)
 	if err != nil {
+		useMu.Unlock()
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}
 
 	// check if we can get credentials
 	_, err = ts.Token()
 	if err != nil {
+		useMu.Unlock()
 		return nil, fmt.Errorf(errUnableGetCredentials, err)
 	}
 
 	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
 	if err != nil {
+		useMu.Unlock()
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}
 	sm.SecretManagerClient = clientGCPSM
@@ -260,6 +280,7 @@ func (sm *ProviderGCP) Close(ctx context.Context) error {
 	if sm.gClient != nil {
 		err = sm.gClient.Close()
 	}
+	useMu.Unlock()
 	if err != nil {
 		return fmt.Errorf(errClientClose, err)
 	}
@@ -270,8 +291,36 @@ func (sm *ProviderGCP) Validate() error {
 	return nil
 }
 
+func (sm *ProviderGCP) ValidateStore(store esv1beta1.GenericStore) error {
+	if store == nil {
+		return fmt.Errorf(errInvalidStore)
+	}
+	spc := store.GetSpec()
+	if spc == nil {
+		return fmt.Errorf(errInvalidStoreSpec)
+	}
+	if spc.Provider == nil {
+		return fmt.Errorf(errInvalidStoreProv)
+	}
+	p := spc.Provider.GCPSM
+	if p == nil {
+		return fmt.Errorf(errInvalidGCPProv)
+	}
+	if p.Auth.SecretRef != nil {
+		if err := utils.ValidateSecretSelector(store, p.Auth.SecretRef.SecretAccessKey); err != nil {
+			return fmt.Errorf(errInvalidAuthSecretRef, err)
+		}
+	}
+	if p.Auth.WorkloadIdentity != nil {
+		if err := utils.ValidateServiceAccountSelector(store, p.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
+			return fmt.Errorf(errInvalidWISARef, err)
+		}
+	}
+	return nil
+}
+
 func init() {
-	schema.Register(&ProviderGCP{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&ProviderGCP{}, &esv1beta1.SecretStoreProvider{
 		GCPSM: &esv1beta1.GCPSMProvider{},
 	})
 }

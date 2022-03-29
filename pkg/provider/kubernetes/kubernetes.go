@@ -28,8 +28,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -58,7 +56,7 @@ type ProviderKubernetes struct {
 	Namespace    string
 }
 
-var _ provider.SecretsClient = &ProviderKubernetes{}
+var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
 
 type BaseClient struct {
 	kube        kclient.Client
@@ -72,13 +70,13 @@ type BaseClient struct {
 }
 
 func init() {
-	schema.Register(&ProviderKubernetes{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&ProviderKubernetes{}, &esv1beta1.SecretStoreProvider{
 		Kubernetes: &esv1beta1.KubernetesProvider{},
 	})
 }
 
 // NewClient constructs a Kubernetes Provider.
-func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Kubernetes == nil {
 		return nil, fmt.Errorf("no store type or wrong store type")
@@ -260,5 +258,9 @@ func (k *ProviderKubernetes) Validate() error {
 		return fmt.Errorf("client is not allowed to get secrets")
 	}
 
+	return nil
+}
+
+func (k *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }

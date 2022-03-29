@@ -20,16 +20,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
-var _ provider.Provider = &Client{}
+var _ esv1beta1.Provider = &Client{}
 
 // Client is a fake client for testing.
 type Client struct {
 	NewFn func(context.Context, esv1beta1.GenericStore, client.Client,
-		string) (provider.SecretsClient, error)
+		string) (esv1beta1.SecretsClient, error)
 	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
 	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
@@ -49,7 +47,7 @@ func New() *Client {
 		},
 	}
 
-	v.NewFn = func(context.Context, esv1beta1.GenericStore, client.Client, string) (provider.SecretsClient, error) {
+	v.NewFn = func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error) {
 		return v, nil
 	}
 
@@ -58,7 +56,7 @@ func New() *Client {
 
 // RegisterAs registers the fake client in the schema.
 func (v *Client) RegisterAs(provider *esv1beta1.SecretStoreProvider) {
-	schema.ForceRegister(v, provider)
+	esv1beta1.ForceRegister(v, provider)
 }
 
 // GetSecret implements the provider.Provider interface.
@@ -92,6 +90,10 @@ func (v *Client) Validate() error {
 	return nil
 }
 
+func (v *Client) ValidateStore(store esv1beta1.GenericStore) error {
+	return nil
+}
+
 // WithGetSecretMap wraps the secret data map returned by this fake provider.
 func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client {
 	v.GetSecretMapFn = func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -110,13 +112,13 @@ func (v *Client) WithGetAllSecrets(secData map[string][]byte, err error) *Client
 
 // WithNew wraps the fake provider factory function.
 func (v *Client) WithNew(f func(context.Context, esv1beta1.GenericStore, client.Client,
-	string) (provider.SecretsClient, error)) *Client {
+	string) (esv1beta1.SecretsClient, error)) *Client {
 	v.NewFn = f
 	return v
 }
 
 // NewClient returns a new fake provider.
-func (v *Client) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (v *Client) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	c, err := v.NewFn(ctx, store, kube, namespace)
 	if err != nil {
 		return nil, err

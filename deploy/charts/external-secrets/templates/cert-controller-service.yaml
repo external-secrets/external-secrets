@@ -1,4 +1,4 @@
-{{- if .Values.certController.prometheus.enabled }}
+{{- if and .Values.certController.create .Values.certController.prometheus.enabled }}
 apiVersion: v1
 kind: Service
 metadata:

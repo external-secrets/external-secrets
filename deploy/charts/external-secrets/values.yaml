@@ -25,6 +25,19 @@ controllerClass: ""
 # provided namespace
 scopedNamespace: ""
 
+# -- Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace
+# and implicitly disable cluster stores and cluster external secrets
+scopedRBAC: false
+
+# -- if true, the operator will process cluster external secret. Else, it will ignore them.
+processClusterExternalSecret: true
+
+# -- if true, the operator will process cluster store. Else, it will ignore them.
+processClusterStore: true
+
+# -- Specifies whether an external secret operator deployment be created.
+createOperator: true
+
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
@@ -88,6 +101,8 @@ affinity: {}
 priorityClassName: ""
 
 webhook:
+  # -- Specifies whether a webhook deployment be created.
+  create: true
   certCheckInterval: "5m"
   replicaCount: 1
   certDir: /tmp/certs
@@ -154,6 +169,8 @@ webhook:
       #   memory: 32Mi
 
 certController:
+  # -- Specifies whether a certificate controller deployment be created.
+  create: true
   requeueInterval: "5m"
   image:
     repository: ghcr.io/external-secrets/external-secrets

@@ -12,36 +12,47 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package v1beta1
 
 import (
 	"context"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
+
+// +kubebuilder:object:root=false
+// +kubebuilder:object:generate:false
+// +k8s:deepcopy-gen:interfaces=nil
+// +k8s:deepcopy-gen=nil
 
 // Provider is a common interface for interacting with secret backends.
 type Provider interface {
 	// NewClient constructs a SecretsManager Provider
-	NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (SecretsClient, error)
+	NewClient(ctx context.Context, store GenericStore, kube client.Client, namespace string) (SecretsClient, error)
+
+	// ValidateStore checks if the provided store is valid
+	ValidateStore(store GenericStore) error
 }
+
+// +kubebuilder:object:root=false
+// +kubebuilder:object:generate:false
+// +k8s:deepcopy-gen:interfaces=nil
+// +k8s:deepcopy-gen=nil
 
 // SecretsClient provides access to secrets.
 type SecretsClient interface {
 	// GetSecret returns a single secret from the provider
-	GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
+	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// Validate checks if the client is configured correctly
 	// and is able to retrieve secrets from the provider
 	Validate() error
 
 	// GetSecretMap returns multiple k/v pairs from the provider
-	GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
+	GetSecretMap(ctx context.Context, ref ExternalSecretDataRemoteRef) (map[string][]byte, error)
 
 	// GetAllSecrets returns multiple k/v pairs from the provider
-	GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error)
+	GetAllSecrets(ctx context.Context, ref ExternalSecretFind) (map[string][]byte, error)
 
 	Close(ctx context.Context) error
 }

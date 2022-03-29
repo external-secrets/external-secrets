@@ -15,10 +15,10 @@ limitations under the License.
 package crds
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -26,15 +26,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	client "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
-	setupError              = "Could not setup test"
-	errorSearchingField     = "Error when searching for field"
 	failedCreateCaCerts     = "could not create ca certificates:%v"
 	failedCreateServerCerts = "could not create server certificates:%v"
 	invalidCerts            = "generated certificates are invalid:%v,%v"
@@ -92,21 +89,6 @@ func newCRD() apiextensionsv1.CustomResourceDefinition {
 		},
 	}
 }
-func TestConvertToWebhookInfo(t *testing.T) {
-	rec := newReconciler()
-	info := rec.ConvertToWebhookInfo()
-	if len(info) != 3 {
-		t.Errorf("Convert to WebhookInfo failed. Total resources:%d", len(info))
-	}
-	for _, v := range info {
-		if v.Type != CRDConversion {
-			t.Errorf("Convert to WebhookInfo failed. wrong type:%v", v.Type)
-		}
-		if v.Name != "one" && v.Name != "two" && v.Name != "three" {
-			t.Errorf("Convert to WebhookInfo failed. wrong name:%v", v.Name)
-		}
-	}
-}
 
 func TestUpdateCRD(t *testing.T) {
 	rec := newReconciler()
@@ -123,51 +105,26 @@ func TestUpdateCRD(t *testing.T) {
 	}
 	err := rec.updateCRD(ctx, req)
 	if err != nil {
-		t.Errorf("Failed updating CRD:%v", err)
+		t.Errorf("Failed updating CRD: %v", err)
 	}
 }
 
 func TestInjectSvcToConversionWebhook(t *testing.T) {
 	svc := newService()
 	crd := newCRD()
-	crdunmarshalled := make(map[string]interface{})
-	crdJSON, err := json.Marshal(crd)
-	if err != nil {
-		t.Fatal(setupError)
-	}
-	err = json.Unmarshal(crdJSON, &crdunmarshalled)
-	if err != nil {
-		t.Fatal(setupError)
-	}
-	u := unstructured.Unstructured{
-		Object: crdunmarshalled,
-	}
 	name := types.NamespacedName{
 		Name:      svc.Name,
 		Namespace: svc.Namespace,
 	}
-	err = injectSvcToConversionWebhook(&u, name)
+	err := injectService(&crd, name)
 	if err != nil {
 		t.Errorf("Failed: error when injecting: %v", err)
 	}
-	val, found, err := unstructured.NestedString(u.Object, "spec", "conversion", "webhook", "clientConfig", "service", "name")
-	if err != nil {
-		t.Error(errorSearchingField)
-	}
-	if !found {
-		t.Error("fieldNotFound")
-	}
+	val := crd.Spec.Conversion.Webhook.ClientConfig.Service.Name
 	if val != "foo" {
 		t.Errorf("Wrong service name injected: %v", val)
 	}
-
-	val, found, err = unstructured.NestedString(u.Object, "spec", "conversion", "webhook", "clientConfig", "service", "namespace")
-	if err != nil {
-		t.Error(errorSearchingField)
-	}
-	if !found {
-		t.Error("fieldNotFound")
-	}
+	val = crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace
 	if val != "default" {
 		t.Errorf("Wrong service namespace injected: %v", val)
 	}
@@ -176,31 +133,12 @@ func TestInjectSvcToConversionWebhook(t *testing.T) {
 func TestInjectCertToConversionWebhook(t *testing.T) {
 	certPEM := []byte("foobar")
 	crd := newCRD()
-	crdunmarshalled := make(map[string]interface{})
-	crdJSON, err := json.Marshal(crd)
-	if err != nil {
-		t.Fatal(setupError)
-	}
-	err = json.Unmarshal(crdJSON, &crdunmarshalled)
-	if err != nil {
-		t.Fatal(setupError)
-	}
-	u := unstructured.Unstructured{
-		Object: crdunmarshalled,
-	}
-	err = injectCertToConversionWebhook(&u, certPEM)
+	err := injectCert(&crd, certPEM)
 	if err != nil {
 		t.Errorf("Failed: error when injecting: %v", err)
 	}
-	val, found, err := unstructured.NestedString(u.Object, "spec", "conversion", "webhook", "clientConfig", "caBundle")
-	if err != nil {
-		t.Error(errorSearchingField)
-	}
-	if !found {
-		t.Error("fieldNotFound")
-	}
-	if val != "Zm9vYmFy" {
-		t.Errorf("Wrong certificate name injected: %v", val)
+	if string(crd.Spec.Conversion.Webhook.ClientConfig.CABundle) != "foobar" {
+		t.Errorf("Wrong certificate name injected: %v", string(crd.Spec.Conversion.Webhook.ClientConfig.CABundle))
 	}
 }
 func TestPopulateSecret(t *testing.T) {
@@ -214,16 +152,16 @@ func TestPopulateSecret(t *testing.T) {
 	cert := []byte("foobarcert")
 	key := []byte("foobarkey")
 	populateSecret(cert, key, &caArtifacts, &secret)
-	if string(secret.Data["tls.crt"]) != string(cert) {
+	if !bytes.Equal(secret.Data["tls.crt"], cert) {
 		t.Errorf("secret value for tls.crt is wrong:%v", cert)
 	}
-	if string(secret.Data["tls.key"]) != string(key) {
+	if !bytes.Equal(secret.Data["tls.key"], key) {
 		t.Errorf("secret value for tls.key is wrong:%v", cert)
 	}
-	if string(secret.Data["ca.crt"]) != string(caArtifacts.CertPEM) {
+	if !bytes.Equal(secret.Data["ca.crt"], caArtifacts.CertPEM) {
 		t.Errorf("secret value for ca.crt is wrong:%v", cert)
 	}
-	if string(secret.Data["ca.key"]) != string(caArtifacts.KeyPEM) {
+	if !bytes.Equal(secret.Data["ca.key"], caArtifacts.KeyPEM) {
 		t.Errorf("secret value for ca.key is wrong:%v", cert)
 	}
 }

@@ -1,3 +1,4 @@
+{{- if .Values.webhook.create }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -63,8 +64,9 @@ spec:
               protocol: TCP
               name: webhook
           readinessProbe:
-            tcpSocket:
-              port: 9443
+            httpGet:
+              port: 8081
+              path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
           {{- with .Values.webhook.extraEnv }}
@@ -98,3 +100,4 @@ spec:
       {{- if .Values.webhook.priorityClassName }}
       priorityClassName: {{ .Values.webhook.priorityClassName }}
       {{- end }}
+{{- end }}

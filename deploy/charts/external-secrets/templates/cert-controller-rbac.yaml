@@ -17,6 +17,31 @@ rules:
     - "update"
     - "patch"
   - apiGroups:
+    - "admissionregistration.k8s.io"
+    resources:
+    - "validatingwebhookconfigurations"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+    - "update"
+    - "patch"
+  - apiGroups:
+    - ""
+    resources:
+    - "endpoints"
+    verbs:
+    - "list"
+    - "get"
+    - "watch"
+  - apiGroups:
+    - ""
+    resources:
+    - "events"
+    verbs:
+    - "create"
+    - "patch"
+  - apiGroups:
     - ""
     resources:
     - "secrets"

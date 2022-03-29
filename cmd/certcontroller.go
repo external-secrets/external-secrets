@@ -28,12 +28,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
+	"github.com/external-secrets/external-secrets/pkg/controllers/webhookconfig"
 )
 
 var certcontrollerCmd = &cobra.Command{
 	Use:   "certcontroller",
-	Short: "Controller to manage certificates for external secrets CRDs",
-	Long: `Controller to manage certificates for external secrets CRDs.
+	Short: "Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs",
+	Long: `Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs.
 	For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var lvl zapcore.Level
@@ -46,11 +47,12 @@ var certcontrollerCmd = &cobra.Command{
 		ctrl.SetLogger(logger)
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:             scheme,
-			MetricsBindAddress: metricsAddr,
-			Port:               9443,
-			LeaderElection:     enableLeaderElection,
-			LeaderElectionID:   "crd-certs-controller",
+			Scheme:                 scheme,
+			MetricsBindAddress:     metricsAddr,
+			HealthProbeBindAddress: healthzAddr,
+			Port:                   9443,
+			LeaderElection:         enableLeaderElection,
+			LeaderElectionID:       "crd-certs-controller",
 			ClientDisableCacheFor: []client.Object{
 				// the client creates a ListWatch for all resource kinds that
 				// are requested with .Get().
@@ -59,31 +61,48 @@ var certcontrollerCmd = &cobra.Command{
 				// that he owns.
 				// see #721
 				&v1.Secret{},
-			}})
+			},
+		})
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
 		}
-		crds := &crds.Reconciler{
-			Client:                 mgr.GetClient(),
-			Log:                    ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
-			Scheme:                 mgr.GetScheme(),
-			SvcName:                serviceName,
-			SvcNamespace:           serviceNamespace,
-			SecretName:             secretName,
-			SecretNamespace:        secretNamespace,
-			RequeueInterval:        crdRequeueInterval,
-			CrdResources:           []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"},
-			CAName:                 "external-secrets",
-			CAOrganization:         "external-secrets",
-			RestartOnSecretRefresh: false,
-		}
-		if err := crds.SetupWithManager(mgr, controller.Options{
+		crdctrl := crds.New(mgr.GetClient(), mgr.GetScheme(),
+			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
+			crdRequeueInterval, serviceName, serviceNamespace, secretName, secretNamespace, []string{
+				"externalsecrets.external-secrets.io",
+				"clustersecretstores.external-secrets.io",
+				"secretstores.external-secrets.io",
+			})
+		if err := crdctrl.SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "CustomResourceDefinition")
 			os.Exit(1)
 		}
+
+		whc := webhookconfig.New(mgr.GetClient(), mgr.GetScheme(),
+			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
+			serviceName, serviceNamespace,
+			secretName, secretNamespace, crdRequeueInterval)
+		if err := whc.SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "WebhookConfig")
+			os.Exit(1)
+		}
+
+		err = mgr.AddReadyzCheck("crd-inject", crdctrl.ReadyCheck)
+		if err != nil {
+			setupLog.Error(err, "unable to add crd readyz check")
+			os.Exit(1)
+		}
+		err = mgr.AddReadyzCheck("validation-webhook-inject", whc.ReadyCheck)
+		if err != nil {
+			setupLog.Error(err, "unable to add webhook readyz check")
+			os.Exit(1)
+		}
+
 		setupLog.Info("starting manager")
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 			setupLog.Error(err, "problem running manager")
@@ -96,6 +115,7 @@ func init() {
 	rootCmd.AddCommand(certcontrollerCmd)
 
 	certcontrollerCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	certcontrollerCmd.Flags().StringVar(&healthzAddr, "healthz-addr", ":8081", "The address the health endpoint binds to.")
 	certcontrollerCmd.Flags().StringVar(&serviceName, "service-name", "external-secrets-webhook", "Webhook service name")
 	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
 	certcontrollerCmd.Flags().StringVar(&secretName, "secret-name", "external-secrets-webhook", "Secret to store certs for webhook")

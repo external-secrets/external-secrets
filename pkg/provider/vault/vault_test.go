@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -29,6 +29,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -174,7 +175,7 @@ func newVaultResponse(data *vault.Secret) *vault.Response {
 	jsonData, _ := json.Marshal(data)
 	return &vault.Response{
 		Response: &http.Response{
-			Body: ioutil.NopCloser(bytes.NewReader(jsonData)),
+			Body: io.NopCloser(bytes.NewReader(jsonData)),
 		},
 	}
 }
@@ -183,6 +184,24 @@ func newVaultResponseWithData(data map[string]interface{}) *vault.Response {
 	return newVaultResponse(&vault.Secret{
 		Data: data,
 	})
+}
+
+func newVaultResponseWithMetadata(content map[string]interface{}) map[string]fake.VaultListResponse {
+	ans := make(map[string]fake.VaultListResponse)
+	for k, v := range content {
+		t := v.(map[string]interface{})
+		m := t["metadata"].(map[string]interface{})
+		listResponse := fake.VaultListResponse{
+			Data: newVaultResponse(&vault.Secret{
+				Data: t,
+			}),
+			Metadata: newVaultResponse(&vault.Secret{
+				Data: m,
+			}),
+		}
+		ans[k] = listResponse
+	}
+	return ans
 }
 
 func newVaultTokenIDResponse(token string) *vault.Response {
@@ -982,6 +1001,218 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
+func TestGetAllSecrets(t *testing.T) {
+	secret1Bytes := []byte("{\"access_key\":\"access_key\",\"access_secret\":\"access_secret\"}")
+	secret2Bytes := []byte("{\"access_key\":\"access_key2\",\"access_secret\":\"access_secret2\"}")
+	path1Bytes := []byte("{\"access_key\":\"path1\",\"access_secret\":\"path1\"}")
+	path2Bytes := []byte("{\"access_key\":\"path2\",\"access_secret\":\"path2\"}")
+	tagBytes := []byte("{\"access_key\":\"unfetched\",\"access_secret\":\"unfetched\"}")
+	path := "path"
+	secret := map[string]interface{}{
+		"secret1": map[string]interface{}{
+			"data": map[string]interface{}{
+				"access_key":    "access_key",
+				"access_secret": "access_secret",
+			},
+			"metadata": map[string]interface{}{
+				"custom_metadata": map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+		"secret2": map[string]interface{}{
+			"data": map[string]interface{}{
+				"access_key":    "access_key2",
+				"access_secret": "access_secret2",
+			},
+			"metadata": map[string]interface{}{
+				"custom_metadata": map[string]interface{}{
+					"foo": "baz",
+				},
+			},
+		},
+		"tag": map[string]interface{}{
+			"data": map[string]interface{}{
+				"access_key":    "unfetched",
+				"access_secret": "unfetched",
+			},
+			"metadata": map[string]interface{}{
+				"custom_metadata": map[string]interface{}{
+					"foo": "baz",
+				},
+			},
+		},
+		"path/1": map[string]interface{}{
+			"data": map[string]interface{}{
+				"access_key":    "path1",
+				"access_secret": "path1",
+			},
+			"metadata": map[string]interface{}{
+				"custom_metadata": map[string]interface{}{
+					"foo": "path",
+				},
+			},
+		},
+		"path/2": map[string]interface{}{
+			"data": map[string]interface{}{
+				"access_key":    "path2",
+				"access_secret": "path2",
+			},
+			"metadata": map[string]interface{}{
+				"custom_metadata": map[string]interface{}{
+					"foo": "path",
+				},
+			},
+		},
+		"default": map[string]interface{}{
+			"data": map[string]interface{}{
+				"empty": "true",
+			},
+			"metadata": map[string]interface{}{
+				"keys": []string{"secret1", "secret2", "tag", "path/"},
+			},
+		},
+		"path/": map[string]interface{}{
+			"data": map[string]interface{}{
+				"empty": "true",
+			},
+			"metadata": map[string]interface{}{
+				"keys": []string{"1", "2"},
+			},
+		},
+	}
+	type args struct {
+		store   *esv1beta1.VaultProvider
+		kube    kclient.Client
+		vClient Client
+		ns      string
+		data    esv1beta1.ExternalSecretFind
+	}
+
+	type want struct {
+		err error
+		val map[string][]byte
+	}
+
+	cases := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"FindByName": {
+			reason: "should map multiple secrets matching name",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestListFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestListWithContextFn(
+						newVaultResponseWithMetadata(secret), nil,
+					),
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Name: &esv1beta1.FindName{
+						RegExp: "secret.*",
+					},
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"secret1": secret1Bytes,
+					"secret2": secret2Bytes,
+				},
+			},
+		},
+		"FindByTag": {
+			reason: "should map multiple secrets matching tags",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestListFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestListWithContextFn(
+						newVaultResponseWithMetadata(secret), nil,
+					),
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Tags: map[string]string{
+						"foo": "baz",
+					},
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"tag":     tagBytes,
+					"secret2": secret2Bytes,
+				},
+			},
+		},
+		"FilterByPath": {
+			reason: "should filter secrets based on path",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestListFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestListWithContextFn(
+						newVaultResponseWithMetadata(secret), nil,
+					),
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Path: &path,
+					Tags: map[string]string{
+						"foo": "path",
+					},
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"1": path1Bytes,
+					"2": path2Bytes,
+				},
+			},
+		},
+		"FailIfKv1": {
+			reason: "should not work if using kv1 store",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.VaultClient{
+					MockNewRequest: fake.NewMockNewRequestListFn(&vault.Request{}),
+					MockRawRequestWithContext: fake.NewMockRawRequestListWithContextFn(
+						newVaultResponseWithMetadata(secret), nil,
+					),
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Tags: map[string]string{
+						"foo": "baz",
+					},
+				},
+			},
+			want: want{
+				err: errors.New(errUnsupportedKvVersion),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			vStore := &client{
+				kube:      tc.args.kube,
+				client:    tc.args.vClient,
+				store:     tc.args.store,
+				namespace: tc.args.ns,
+			}
+			val, err := vStore.GetAllSecrets(context.Background(), tc.args.data)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\n%s\nvault.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
+			}
+			if diff := cmp.Diff(tc.want.val, val); diff != "" {
+				t.Errorf("\n%s\nvault.GetSecretMap(...): -want val, +got val:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
 func TestGetSecretPath(t *testing.T) {
 	storeV2 := makeValidSecretStore()
 	storeV2NoPath := storeV2.DeepCopy()
@@ -1066,6 +1297,145 @@ func TestGetSecretPath(t *testing.T) {
 			want := vStore.buildPath(tc.args.path)
 			if diff := cmp.Diff(want, tc.args.expected); diff != "" {
 				t.Errorf("\n%s\nvault.buildPath(...): -want expected, +got error:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestValidateStore(t *testing.T) {
+	type args struct {
+		auth esv1beta1.VaultAuth
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "empty auth",
+			args: args{},
+		},
+
+		{
+			name: "invalid approle with namespace",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					AppRole: &esv1beta1.VaultAppRole{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid clientcert",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Cert: &esv1beta1.VaultCertAuth{
+						ClientCert: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid cert secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Cert: &esv1beta1.VaultCertAuth{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid jwt secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Jwt: &esv1beta1.VaultJwtAuth{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid kubernetes sa",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Kubernetes: &esv1beta1.VaultKubernetesAuth{
+						ServiceAccountRef: &esmeta.ServiceAccountSelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid kubernetes secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Kubernetes: &esv1beta1.VaultKubernetesAuth{
+						SecretRef: &esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid ldap secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					Ldap: &esv1beta1.VaultLdapAuth{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.StringPtr("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid token secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					TokenSecretRef: &esmeta.SecretKeySelector{
+						Namespace: pointer.StringPtr("invalid"),
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &connector{
+				newVaultClient: nil,
+			}
+			store := &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Vault: &esv1beta1.VaultProvider{
+							Auth: tt.args.auth,
+						},
+					},
+				},
+			}
+			if err := c.ValidateStore(store); (err != nil) != tt.wantErr {
+				t.Errorf("connector.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

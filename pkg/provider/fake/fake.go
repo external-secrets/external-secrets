@@ -21,21 +21,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 )
 
 var (
 	errNotFound            = fmt.Errorf("secret value not found")
 	errMissingStore        = fmt.Errorf("missing store provider")
 	errMissingFakeProvider = fmt.Errorf("missing store provider fake")
+	errMissingKeyField     = "key must be set in data %v"
+	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
 )
 
 type Provider struct {
 	config *esv1beta1.FakeProvider
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (provider.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	cfg, err := getProvider(store)
 	if err != nil {
 		return nil, err
@@ -99,8 +99,24 @@ func (p *Provider) Validate() error {
 	return nil
 }
 
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	prov := store.GetSpec().Provider.Fake
+	if prov == nil {
+		return nil
+	}
+	for pos, data := range prov.Data {
+		if data.Key == "" {
+			return fmt.Errorf(errMissingKeyField, pos)
+		}
+		if data.Value == "" && data.ValueMap == nil {
+			return fmt.Errorf(errMissingValueField, pos)
+		}
+	}
+	return nil
+}
+
 func init() {
-	schema.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Fake: &esv1beta1.FakeProvider{},
 	})
 }

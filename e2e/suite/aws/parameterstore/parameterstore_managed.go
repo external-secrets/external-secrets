@@ -47,6 +47,10 @@ var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws"
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.SSHKeySyncDataProperty, awscommon.UseClusterSecretStore),
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.SyncWithoutTargetName, awscommon.UseClusterSecretStore),
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.JSONDataWithoutTargetName, awscommon.UseClusterSecretStore),
+		framework.Compose(awscommon.WithReferencedIRSA, f, FindByName, awscommon.UseClusterSecretStore),
+		framework.Compose(awscommon.WithReferencedIRSA, f, FindByNameWithPath, awscommon.UseClusterSecretStore),
+		framework.Compose(awscommon.WithReferencedIRSA, f, FindByTag, awscommon.UseClusterSecretStore),
+		framework.Compose(awscommon.WithReferencedIRSA, f, FindByTagWithPath, awscommon.UseClusterSecretStore),
 	)
 })
 
@@ -63,6 +67,8 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "parameterstore"
 			addon.WithServiceAccount(prov.ServiceAccountName),
 			addon.WithReleaseName(f.Namespace.Name),
 			addon.WithNamespace("default"),
+			addon.WithoutWebhook(),
+			addon.WithoutCertController(),
 		))
 	})
 
@@ -81,5 +87,9 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "parameterstore"
 		framework.Compose(awscommon.WithMountedIRSA, f, common.SSHKeySyncDataProperty, awscommon.UseMountedIRSAStore),
 		framework.Compose(awscommon.WithMountedIRSA, f, common.SyncWithoutTargetName, awscommon.UseMountedIRSAStore),
 		framework.Compose(awscommon.WithMountedIRSA, f, common.JSONDataWithoutTargetName, awscommon.UseMountedIRSAStore),
+		framework.Compose(awscommon.WithMountedIRSA, f, FindByName, awscommon.UseMountedIRSAStore),
+		framework.Compose(awscommon.WithMountedIRSA, f, FindByNameWithPath, awscommon.UseMountedIRSAStore),
+		framework.Compose(awscommon.WithMountedIRSA, f, FindByTag, awscommon.UseMountedIRSAStore),
+		framework.Compose(awscommon.WithMountedIRSA, f, FindByTagWithPath, awscommon.UseMountedIRSAStore),
 	)
 })

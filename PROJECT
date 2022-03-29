@@ -11,7 +11,7 @@ resources:
 - group: external-secrets
   kind: ExternalSecret
   version: v1alpha1
-- group: external-secrets
+version: "2"
   kind: ClusterSecretStore
   version: v1beta1
 - group: external-secrets

@@ -36,11 +36,9 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
-	"github.com/external-secrets/external-secrets/pkg/provider"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -48,6 +46,8 @@ const (
 	requeueAfter = time.Second * 30
 
 	errGetES                 = "could not get ExternalSecret"
+	errConvert               = "could not apply conversion strategy to keys: %v"
+	errFindSecretKey         = "could not find secret %v: %v"
 	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
@@ -74,11 +74,12 @@ const (
 // Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	ControllerClass string
-	RequeueInterval time.Duration
-	recorder        record.EventRecorder
+	Log                       logr.Logger
+	Scheme                    *runtime.Scheme
+	ControllerClass           string
+	RequeueInterval           time.Duration
+	ClusterSecretStoreEnabled bool
+	recorder                  record.EventRecorder
 }
 
 // Reconcile implements the main reconciliation loop
@@ -105,6 +106,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	} else if err != nil {
 		log.Error(err, errGetES)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
+		return ctrl.Result{}, nil
+	}
+
+	if shouldSkipClusterSecretStore(r, externalSecret) {
+		log.Info("skipping cluster secret store as it is disabled")
 		return ctrl.Result{}, nil
 	}
 
@@ -135,7 +141,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	storeProvider, err := schema.GetProvider(store)
+	storeProvider, err := esv1beta1.GetProvider(store)
 	if err != nil {
 		log.Error(err, errStoreProvider)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
@@ -320,6 +326,10 @@ func hashMeta(m metav1.ObjectMeta) string {
 	})
 }
 
+func shouldSkipClusterSecretStore(r *Reconciler, es esv1beta1.ExternalSecret) bool {
+	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
+}
+
 func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	// refresh if resource version changed
 	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
@@ -393,21 +403,29 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 }
 
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
-func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient provider.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
+func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient esv1beta1.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
 
 	for _, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
 		var err error
-		if len(remoteRef.Find.Tags) > 0 || remoteRef.Find.Name != nil {
-			secretMap, err = providerClient.GetAllSecrets(ctx, remoteRef.Find)
+		if remoteRef.Find != nil {
+			secretMap, err = providerClient.GetAllSecrets(ctx, *remoteRef.Find)
+			if err != nil {
+				return nil, fmt.Errorf(errFindSecretKey, externalSecret.Name, err)
+			}
+			secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
+			if err != nil {
+				return nil, fmt.Errorf(errConvert, err)
+			}
+		} else if remoteRef.Extract != nil {
+			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
 			if err != nil {
 				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
 			}
-		} else if remoteRef.Extract.Key != "" {
-			secretMap, err = providerClient.GetSecretMap(ctx, remoteRef.Extract)
+			secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
 			if err != nil {
-				return nil, fmt.Errorf(errGetSecretKey, remoteRef.Extract.Key, externalSecret.Name, err)
+				return nil, fmt.Errorf(errConvert, err)
 			}
 		}
 

@@ -34,7 +34,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client/fake"
 )
 
@@ -58,7 +57,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 	}
-	provider, err := schema.GetProvider(store)
+	provider, err := esv1beta1.GetProvider(store)
 	tassert.Nil(t, err)
 
 	k8sClient := clientfake.NewClientBuilder().Build()
@@ -102,7 +101,7 @@ func TestNewClient(t *testing.T) {
 	err = createK8sSecret(ctx, k8sClient, namespace, caCertificateSecretName, caCertificateSecretKey, newFakeCACertificate())
 	tassert.Nil(t, err)
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "failed to create Yandex Lockbox client: private key parsing failed: Invalid Key: Key must be PEM encoded PKCS1 or PKCS8 private key")
+	tassert.EqualError(t, err, "failed to create Yandex Lockbox client: private key parsing failed: invalid key: Key must be a PEM encoded PKCS1 or PKCS8 key")
 	tassert.Nil(t, secretClient)
 }
 

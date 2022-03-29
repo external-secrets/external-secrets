@@ -27,8 +27,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/e2e/framework/log"
-	"github.com/external-secrets/external-secrets/pkg/provider"
-	"github.com/external-secrets/external-secrets/pkg/provider/schema"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -44,7 +42,7 @@ const (
 )
 
 type Client interface {
-	GetVariable(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	GetVariable(pid interface{}, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
 // Gitlab Provider struct with reference to a GitLab client and a projectID.
@@ -63,7 +61,7 @@ type gClient struct {
 }
 
 func init() {
-	schema.Register(&Gitlab{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Gitlab{}, &esv1beta1.SecretStoreProvider{
 		Gitlab: &esv1beta1.GitlabProvider{},
 	})
 }
@@ -108,7 +106,7 @@ func NewGitlabProvider() *Gitlab {
 }
 
 // Method on Gitlab Provider to set up client with credentials and populate projectID.
-func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (provider.SecretsClient, error) {
+func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
 		return nil, fmt.Errorf("no store type or wrong store type")
@@ -218,5 +216,9 @@ func (g *Gitlab) Close(ctx context.Context) error {
 }
 
 func (g *Gitlab) Validate() error {
+	return nil
+}
+
+func (g *Gitlab) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
