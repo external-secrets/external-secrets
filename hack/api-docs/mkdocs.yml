@@ -38,11 +38,12 @@ nav:
     - Advanced Templating:
         v2: guides-templating.md
         v1: guides-templating-v1.md
-    - Controller Classes: guides-controller-class.md
     - All keys, One secret: guides-all-keys-one-secret.md
     - Common K8S Secret Types: guides-common-k8s-secret-types.md
+    - Controller Classes: guides-controller-class.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md
+    - Upgrading to v1beta1: guides-v1beta1.md
     - Using Latest Image: guides-using-latest-image.md
   - Provider:
     - AWS:

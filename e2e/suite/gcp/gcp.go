@@ -46,6 +46,7 @@ var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
+		Entry(common.SyncV1Alpha1(f)),
 		Entry("should sync p12 encoded cert secret", p12Cert),
 	)
 })

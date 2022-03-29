@@ -350,6 +350,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+      deprecated: true
       name: v1alpha1
       schema:
         openAPIV3Schema:
@@ -2340,6 +2341,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+      deprecated: true
       name: v1alpha1
       schema:
         openAPIV3Schema:
@@ -2836,6 +2838,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+      deprecated: true
       name: v1alpha1
       schema:
         openAPIV3Schema:
