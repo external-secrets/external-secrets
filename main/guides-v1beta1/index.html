@@ -13,7 +13,7 @@
     
     
       
-        <title>Kubernetes - External Secrets Operator</title>
+        <title>Upgrading to v1beta1 - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#authentication" class="md-skip">
+        <a href="#upgrading-crd-versions" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Kubernetes
+              Upgrading to v1beta1
             
           </span>
         </div>
@@ -345,12 +345,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
       
       
       
@@ -530,11 +532,59 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../guides-v1beta1/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Upgrading to v1beta1
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Upgrading to v1beta1
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#differences-between-versions" class="md-nav__link">
+    Differences between versions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading" class="md-nav__link">
+    Upgrading
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -566,14 +616,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
       
       
       
@@ -993,75 +1041,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Kubernetes
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../provider-kubernetes/" class="md-nav__link">
         Kubernetes
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
-  </a>
-  
-    <nav class="md-nav" aria-label="Example">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#in-cluster-secrets-using-client-certificates" class="md-nav__link">
-    In-cluster secrets using Client certificates
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#remote-secret-using-a-token" class="md-nav__link">
-    Remote Secret using a Token
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1395,6 +1379,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1403,36 +1389,16 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
+  <a href="#differences-between-versions" class="md-nav__link">
+    Differences between versions
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
+  <a href="#upgrading" class="md-nav__link">
+    Upgrading
   </a>
-  
-    <nav class="md-nav" aria-label="Example">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#in-cluster-secrets-using-client-certificates" class="md-nav__link">
-    In-cluster secrets using Client certificates
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#remote-secret-using-a-token" class="md-nav__link">
-    Remote Secret using a Token
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1448,144 +1414,36 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-kubernetes.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-v1beta1.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-  <h1>Kubernetes</h1>
-
-<p>External Secrets Operator allows to retrieve in-cluster secrets or from a remote Kubernetes Cluster.</p>
-<h3 id="authentication">Authentication</h3>
-<p>It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or a service account (not implemented yet). The operator enforces that exactly one authentication method is used.</p>
-<h2 id="example">Example</h2>
-<h3 id="in-cluster-secrets-using-client-certificates">In-cluster secrets using Client certificates</h3>
-<ol>
-<li>Create a K8s Secret with the encoded base64 ca and client certificates</li>
-</ol>
-<p><div class="highlight"><pre><span></span><code>apiVersion: v1
-kind: Secret
-metadata:
-  name: cluster-secrets
-data:
-  # Fill with your encoded base64 CA
-  certificate-authority-data: Cg==
-  # Fill with your encoded base64 Certificate
-  client-certificate-data: Cg==
-  # Fill with your encoded base64 Key
-  client-key-data: Cg==
+<h1 id="upgrading-crd-versions">Upgrading CRD versions</h1>
+<p>From version v0.5.0, <code>v1alpha1</code> version is deprecated, and <code>v1beta1</code> is in place. This guide will cover the main differences between the two versions, and a procedure on how to safely upgrade it.</p>
+<h2 id="differences-between-versions">Differences between versions</h2>
+<p>Versions v1alpha1 and v1beta1 are fully-compatible for SecretStores and ClusterSecretStores. For ExternalSecrets, there is a difference on the <code>dataFrom</code> method.</p>
+<p>While in v1alpha1, we could define a <code>dataFrom</code> with the following format:</p>
+<div class="highlight"><pre><span></span><code>spec:
+  dataFrom:
+    - key: my-key
+    - key: my-other-key
 </code></pre></div>
-2. Create a SecretStore</p>
-<p>The Servers <code>url</code> won't be present as it will default to <code>kubernetes.default</code>, add a proper value if needed. In this example the Certificate Authority is fetch using the referenced <code>caProvider</code>.</p>
-<p>The <code>auth</code> section indicates that the type <code>cert</code>  will be used for authentication, it includes the path to fetch the client certificate and key.</p>
-<p><div class="highlight"><pre><span></span><code>apiVersion: external-secrets.io/v1beta1
-kind: SecretStore
-metadata:
-  name: example
-spec:
-  provider:
-      kubernetes: 
-        server: 
-          # referenced caProvider
-          caProvider: 
-            type: Secret
-            name : cluster-secrets
-            key: certificate-authority-data
-        auth:
-          # referenced client certificates
-          cert:
-            clientCert: 
-                name: cluster-secrets
-                key: certificate
-            clientKey: 
-                name: cluster-secrets
-                key: key
+<p>In v1beta1 is possible to use two methods. One of them is <code>Extract</code> and has the exact same behavior as <code>dataFrom</code> in v1alpha1. The other is <code>Find</code>, which allows finding multiple external secrets and map them into a single Kubernetes secret. Here is an example of <code>Find</code>:</p>
+<div class="highlight"><pre><span></span><code>spec:
+  dataFrom:
+    - find:
+        name:  #matches any secret name ending in foo-bar
+          regexp: .*foo-bar$
+    - find:
+        tags: #matches any secrets with the following metadata.
+            env: dev  
+            app: web
 </code></pre></div>
-3. Create the local secret that will be synced </p>
-<p><div class="highlight"><pre><span></span><code>---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: secret-example
-data:
-  extra: YmFyCg==
-</code></pre></div>
-4. Finally create the ExternalSecret resource</p>
-<div class="highlight"><pre><span></span><code>apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: example
-spec:
-  refreshInterval: 1h           
-  secretStoreRef:
-    kind: SecretStore
-    name: example               # name of the SecretStore (or kind specified)
-  target:
-    name: secret-to-be-created  # name of the k8s Secret to be created
-    creationPolicy: Owner
-  data:
-  - secretKey: extra
-    remoteRef:
-      key: secret-example
-      property: extra
-</code></pre></div>
-<h3 id="remote-secret-using-a-token">Remote Secret using a Token</h3>
-<ol>
-<li>Create a K8s Secret with the encoded base64 ca and client token.</li>
-</ol>
-<p><div class="highlight"><pre><span></span><code>apiVersion: v1
-kind: Secret
-metadata:
-  name: cluster-secrets
-data:
-  # Fill with your encoded base64 CA
-  certificate-authority-data: Cg==
-stringData:
-  # Fill with your string Token
-  bearerToken: &quot;my-token&quot;
-</code></pre></div>
-2. Create a SecretStore</p>
-<p>The Server section specifies the <code>url</code> of the remote Kubernetes API. In this example the Certificate Authority is fetch using the encoded base64 <code>caBundle</code>. </p>
-<p>The <code>auth</code> section indicates that the  <code>token</code> type will be used for authentication, it includes the path to fetch the token.</p>
-<p><div class="highlight"><pre><span></span><code>apiVersion: external-secrets.io/v1beta1
-kind: SecretStore
-metadata:
-  name: example
-spec:
-  provider:
-      kubernetes: 
-        # If not remoteNamesapce is provided, default     namespace is used
-        remoteNamespace: remote-namespace
-        server: 
-          url: https://remote.kubernetes.api-server.address
-          # Add your encoded base64 to caBundle
-          caBundle: Cg==
-        auth:
-          # Adds referenced bearerToken
-          token:
-            bearerToken:
-              name: cluster-secrets
-              key: bearerToken
-</code></pre></div>
-4. Finally create the ExternalSecret resource</p>
-<div class="highlight"><pre><span></span><code>apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: example
-spec:
-  refreshInterval: 1h           
-  secretStoreRef:
-    kind: SecretStore
-    name: example               # name of the SecretStore (or kind specified)
-  target:
-    name: secret-to-be-created  # name of the k8s Secret to be created
-    creationPolicy: Owner
-  data:
-  - secretKey: extra
-    remoteRef:
-      key: secret-remote-example
-      property: extra
-</code></pre></div>
+<h2 id="upgrading">Upgrading</h2>
+<p>If you already have an installation of ESO using <code>v1alpha1</code>, we recommend you to upgrade to <code>v1beta1</code>. If you do not use <code>dataFrom</code> in your ExternalSecrets, or if you deploy the CRDs using the official Helm charts, the upgrade can be done with no risk of losing data. </p>
+<p>If you are installing CRDs manually, you will need to deploy the bundle CRD file available at <code>deploys/crds/bundle.yaml</code>. This bundle file contains <code>v1beta1</code> definition and a conversion webhook configuration. This configuration will ensure that new requests to handle any CRD object will only be valid after the upgrade is successfully complete - so there are no risks of losing data due to an incomplete upgrade. Once the new CRDs are applied, you can proceed to upgrade the controller version.</p>
+<p>Once the upgrade is finished, at each reconcile, any <code>ExternalSecret</code>, <code>SecretStore</code>,  and <code>ClusterSecretStore</code> stored in <code>v1alpha1</code> will be automatically converted to <code>v1beta1</code>. </p>
 
               
             </article>
@@ -1599,7 +1457,7 @@ spec:
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../provider-fake/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Fake" rel="prev">
+        <a href="../guides-metrics/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Metrics" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1608,20 +1466,20 @@ spec:
               <span class="md-footer__direction">
                 Previous
               </span>
-              Fake
+              Metrics
             </div>
           </div>
         </a>
       
       
         
-        <a href="../examples-gitops-using-fluxcd/" class="md-footer__link md-footer__link--next" aria-label="Next: FluxCD" rel="next">
+        <a href="../guides-using-latest-image/" class="md-footer__link md-footer__link--next" aria-label="Next: Using Latest Image" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              FluxCD
+              Using Latest Image
             </div>
           </div>
           <div class="md-footer__button md-icon">
