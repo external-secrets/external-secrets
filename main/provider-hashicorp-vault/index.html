@@ -1990,16 +1990,21 @@ state.</p>
 <p>Below are two different solutions to this scenario. You'll need to review them
 and pick the best fit for your environment and Vault configuration.</p>
 <h4 id="read-your-writes">Read Your Writes</h4>
-<p>The simplest method is simply utilizing the <code>X-Vault-Index</code> header returned on
-all write requests (including logins). Passing this header back on subsequent
-requests instructs the Vault client to retry the request until the server has an
-index greater than or equal to that returned with the last write.</p>
-<p>Obviously though, this has a performance hit because the read is blocked until
-the follower's local state has caught up.</p>
+<p>Vault 1.10.0 and later encodes information in the token to detect the case 
+when a server is behind. If a Vault server does not have information about 
+the provided token, <a href="https://www.vaultproject.io/docs/faq/ssct#q-is-there-anything-else-i-need-to-consider-to-achieve-consistency-besides-upgrading-to-vault-1-10">Vault returns a 412 error</a> 
+so clients know to retry.</p>
+<p>A method supported in versions Vault 1.7 and later is to utilize the 
+<code>X-Vault-Index</code> header returned on all write requests (including logins). 
+Passing this header back on subsequent requests instructs the Vault client 
+to retry the request until the server has an index greater than or equal 
+to that returned with the last write. Obviously though, this has a performance
+hit because the read is blocked until the follower's local state has caught up.</p>
 <h4 id="forward-inconsistent">Forward Inconsistent</h4>
-<p>In addition to the aforementioned <code>X-Vault-Index</code> header, Vault also supports
-proxying inconsistent requests to the current cluster leader for immediate
-read-after-write consistency. This is achieved by setting the <code>X-Vault-Inconsistent</code>
+<p>Vault also supports proxying inconsistent requests to the current cluster leader 
+for immediate read-after-write consistency.</p>
+<p>Vault 1.10.0 and later <a href="https://www.vaultproject.io/docs/faq/ssct#q-is-there-a-new-configuration-that-this-feature-introduces">support a replication configuration</a> that detects when forwarding should occur and does it transparently to the client.</p>
+<p>In Vault 1.7 forwarding can be achieved by setting the <code>X-Vault-Inconsistent</code>
 header to <code>forward-active-node</code>. By default, this behavior is disabled and must
 be explicitly enabled in the server's <a href="https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header">replication configuration</a>.</p>
 
