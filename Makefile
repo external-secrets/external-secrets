@@ -181,9 +181,13 @@ helm.generate:
 	done
 # Add helm if statement for controlling the install of CRDs
 	@for i in $(HELM_DIR)/templates/crds/*.yml; do \
-		CRDS_FLAG_NAME="create$$(yq '.spec.names.kind' $$i)" && \
-		cp "$$i" "$$i.bkp" && \
-		echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i" && \
+		export CRDS_FLAG_NAME="create$$(yq '.spec.names.kind' $$i)"; \
+		cp "$$i" "$$i.bkp"; \
+		if [[ "$$CRDS_FLAG_NAME" == *"Cluster"* ]]; then \
+			echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i"; \
+		else \
+			echo "{{- if .Values.installCRDs }}" > "$$i"; \
+		fi; \
 		cat "$$i.bkp" >> "$$i" && \
 		echo "{{- end }}" >> "$$i" && \
 		rm "$$i.bkp" && \

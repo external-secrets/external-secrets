@@ -12,12 +12,8 @@ installCRDs: true
 crds:
   # -- If true, create CRDs for Cluster External Secret.
   createClusterExternalSecret: true
-  # -- If true, create CRDs for Secret Store.
+  # -- If true, create CRDs for Cluster Secret Store.
   createClusterSecretStore: true
-  # -- If true, create CRDs for External Secret.
-  createExternalSecret: true
-  # -- If true, create CRDs for Secret Store.
-  createSecretStore: true
 
 imagePullSecrets: []
 nameOverride: ""
