@@ -300,6 +300,15 @@ func TestValidateStore(t *testing.T) {
 	} else if err.Error() != "ClientCert.Key cannot be empty" {
 		t.Errorf("KeySelector test failed: expected clientCert Key is required, got %v", err)
 	}
+	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Key = "secret-key"
+	ns := "ns-one"
+	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Namespace = &ns
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
+		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
+	}
 	store.Spec.Provider.Kubernetes.Auth = esv1beta1.KubernetesAuth{Token: &esv1beta1.TokenAuth{}}
 	err = p.ValidateStore(store)
 	if err == nil {
@@ -313,6 +322,14 @@ func TestValidateStore(t *testing.T) {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "BearerToken.Key cannot be empty" {
 		t.Errorf("KeySelector test failed: expected bearer token key is required, got %v", err)
+	}
+	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Key = "secret-key"
+	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Namespace = &ns
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
+		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
 	}
 	store.Spec.Provider.Kubernetes.Auth = esv1beta1.KubernetesAuth{
 		Cert: &esv1beta1.CertAuth{

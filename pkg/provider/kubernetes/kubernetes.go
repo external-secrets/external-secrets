@@ -275,12 +275,18 @@ func (k *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
 		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
 			return fmt.Errorf("ClientCert.Key cannot be empty")
 		}
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
+			return err
+		}
 	} else if k8sSpec.Auth.Token != nil {
 		if k8sSpec.Auth.Token.BearerToken.Name == "" {
 			return fmt.Errorf("BearerToken.Name cannot be empty")
 		}
 		if k8sSpec.Auth.Token.BearerToken.Key == "" {
 			return fmt.Errorf("BearerToken.Key cannot be empty")
+		}
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
+			return err
 		}
 	} else {
 		return fmt.Errorf("an Auth type must be specified")
