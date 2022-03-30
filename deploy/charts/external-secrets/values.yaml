@@ -9,6 +9,12 @@ image:
 # -- If set, install and upgrade CRDs through helm chart.
 installCRDs: true
 
+crds:
+  # -- If true, create CRDs for Cluster External Secret.
+  createClusterExternalSecret: true
+  # -- If true, create CRDs for Cluster Secret Store.
+  createClusterSecretStore: true
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

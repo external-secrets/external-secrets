@@ -63,6 +63,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.tolerations | list | `[]` |  |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
+| crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. |
+| crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. |
 | createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | extraArgs | object | `{}` |  |
