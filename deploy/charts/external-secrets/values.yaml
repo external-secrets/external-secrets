@@ -97,6 +97,19 @@ prometheus:
   service:
     port: 8080
 
+serviceMonitor:
+  # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
+  enabled: false
+
+  # -- Additional labels
+  additionalLabels: {}
+
+  # --  Interval to scrape metrics
+  interval: 30s
+
+  # -- Timeout if metrics can't be retrieved in given time interval
+  scrapeTimeout: 25s
+
 nodeSelector: {}
 
 tolerations: []
@@ -145,11 +158,20 @@ webhook:
 
     # -- Pod priority class name.
   priorityClassName: ""
-  prometheus:
-      # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+
+  serviceMonitor:
+    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
     enabled: false
-    service:
-      port: 8080
+
+    # -- Additional labels
+    additionalLabels: {}
+
+    # --  Interval to scrape metrics
+    interval: 30s
+
+    # -- Timeout if metrics can't be retrieved in given time interval
+    scrapeTimeout: 25s
+
     ## -- Extra environment variables to add to container.
   extraEnv: []
 
@@ -210,11 +232,20 @@ certController:
 
     # -- Pod priority class name.
   priorityClassName: ""
-  prometheus:
-      # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+
+  serviceMonitor:
+    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
     enabled: false
-    service:
-      port: 8080
+
+    # -- Additional labels
+    additionalLabels: {}
+
+    # --  Interval to scrape metrics
+    interval: 30s
+
+    # -- Timeout if metrics can't be retrieved in given time interval
+    scrapeTimeout: 25s
+
     ## -- Extra environment variables to add to container.
   extraEnv: []
 

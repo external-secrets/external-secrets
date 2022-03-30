@@ -1,0 +1,38 @@
+{{- if and .Values.webhook.create .Values.webhook.serviceMonitor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-webhook-metrics
+  labels:
+    {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    protocol: TCP
+    name: metrics
+  selector:
+    {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}
+---
+apiVersion: "monitoring.coreos.com/v1"
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
+{{- if .Values.webhook.serviceMonitor.additionalLabels }}
+{{ toYaml .Values.webhook.serviceMonitor.additionalLabels | indent 4 }}
+{{- end }}
+  name: {{ include "external-secrets.fullname" . }}-webhook-metrics
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace | quote }}
+  endpoints:
+  - port: metrics
+    interval: {{ .Values.webhook.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.webhook.serviceMonitor.scrapeTimeout }}
+{{- end }}
