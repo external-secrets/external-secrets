@@ -17,6 +17,7 @@ package keyvault
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -36,10 +37,12 @@ type secretManagerTestCase struct {
 	secretVersion  string
 	serviceURL     string
 	ref            *esv1beta1.ExternalSecretDataRemoteRef
+	refFind        *esv1beta1.ExternalSecretFind
 	apiErr         error
 	secretOutput   keyvault.SecretBundle
 	keyOutput      keyvault.KeyBundle
 	certOutput     keyvault.CertificateBundle
+	listOutput     keyvault.SecretListResultIterator
 	expectError    string
 	expectedSecret string
 	// for testing secretmap
@@ -53,6 +56,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		secretName:     "MySecret",
 		secretVersion:  "",
 		ref:            makeValidRef(),
+		refFind:        makeValidFind(),
 		secretOutput:   keyvault.SecretBundle{Value: &secretString},
 		serviceURL:     "",
 		apiErr:         nil,
@@ -75,6 +79,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	smtc.mockClient.WithValue(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.secretOutput, smtc.apiErr)
 	smtc.mockClient.WithKey(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.keyOutput, smtc.apiErr)
 	smtc.mockClient.WithCertificate(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.certOutput, smtc.apiErr)
+	smtc.mockClient.WithList(smtc.serviceURL, smtc.listOutput, smtc.apiErr)
 
 	return smtc
 }
@@ -86,6 +91,11 @@ const (
 	jsonSingleTestString = `{"Name": "External", "LastName": "Secret" }`
 	keyName              = "key/keyname"
 	certName             = "cert/certname"
+	secretString         = "changedvalue"
+	unexpectedError      = "[%d] unexpected error: %s, expected: '%s'"
+	unexpectedSecretData = "[%d] unexpected secret data: expected %#v, got %#v"
+	secretName           = "example-1"
+	fakeURL              = "noop"
 )
 
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
@@ -137,7 +147,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		}
 		smtc.ref.Property = "Age"
 		smtc.expectError = fmt.Sprintf("property %s does not exist in key %s", smtc.ref.Property, smtc.ref.Key)
-		smtc.apiErr = fmt.Errorf(smtc.expectError)
+		smtc.apiErr = errors.New(smtc.expectError)
 	}
 
 	// // good case: key set
@@ -191,7 +201,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr("noop")},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -245,7 +255,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		}
 		smtc.ref.Property = "Age"
 		smtc.expectError = fmt.Sprintf("property %s does not exist in key %s", smtc.ref.Property, smtc.ref.Key)
-		smtc.apiErr = fmt.Errorf(smtc.expectError)
+		smtc.apiErr = errors.New(smtc.expectError)
 	}
 
 	badPubRSAKey := func(smtc *secretManagerTestCase) {
@@ -287,7 +297,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr("noop")},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -301,10 +311,175 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 }
 
+func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
+	secretString := secretString
+	secretName := secretName
+	wrongName := "not-valid"
+	environment := "dev"
+	author := "seb"
+	enabled := true
+
+	getNextPage := func(ctx context.Context, list keyvault.SecretListResult) (result keyvault.SecretListResult, err error) {
+		return keyvault.SecretListResult{
+			Value:    nil,
+			NextLink: nil,
+		}, nil
+	}
+
+	setOneSecretByName := func(smtc *secretManagerTestCase) {
+		enabledAtt := keyvault.SecretAttributes{
+			Enabled: &enabled,
+		}
+		secretItem := keyvault.SecretItem{
+			ID:         &secretName,
+			Attributes: &enabledAtt,
+		}
+
+		secretList := make([]keyvault.SecretItem, 0)
+		secretList = append(secretList, secretItem)
+
+		list := keyvault.SecretListResult{
+			Value: &secretList,
+		}
+
+		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
+		smtc.listOutput = keyvault.NewSecretListResultIterator(resultPage)
+
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+
+		smtc.expectedData[secretName] = []byte(secretString)
+	}
+
+	setTwoSecretsByName := func(smtc *secretManagerTestCase) {
+		enabledAtt := keyvault.SecretAttributes{
+			Enabled: &enabled,
+		}
+		secretItemOne := keyvault.SecretItem{
+			ID:         &secretName,
+			Attributes: &enabledAtt,
+		}
+
+		secretItemTwo := keyvault.SecretItem{
+			ID:         &wrongName,
+			Attributes: &enabledAtt,
+		}
+
+		secretList := make([]keyvault.SecretItem, 1)
+		secretList = append(secretList, secretItemOne, secretItemTwo)
+
+		list := keyvault.SecretListResult{
+			Value: &secretList,
+		}
+
+		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
+		smtc.listOutput = keyvault.NewSecretListResultIterator(resultPage)
+
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+
+		smtc.expectedData[secretName] = []byte(secretString)
+	}
+
+	setOneSecretByTag := func(smtc *secretManagerTestCase) {
+		enabledAtt := keyvault.SecretAttributes{
+			Enabled: &enabled,
+		}
+		secretItem := keyvault.SecretItem{
+			ID:         &secretName,
+			Attributes: &enabledAtt,
+			Tags:       map[string]*string{"environment": &environment},
+		}
+
+		secretList := make([]keyvault.SecretItem, 0)
+		secretList = append(secretList, secretItem)
+
+		list := keyvault.SecretListResult{
+			Value: &secretList,
+		}
+
+		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
+		smtc.listOutput = keyvault.NewSecretListResultIterator(resultPage)
+
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+		smtc.refFind.Tags = map[string]string{"environment": environment}
+
+		smtc.expectedData[secretName] = []byte(secretString)
+	}
+
+	setTwoSecretsByTag := func(smtc *secretManagerTestCase) {
+		enabled := true
+		enabledAtt := keyvault.SecretAttributes{
+			Enabled: &enabled,
+		}
+		secretItem := keyvault.SecretItem{
+			ID:         &secretName,
+			Attributes: &enabledAtt,
+			Tags:       map[string]*string{"environment": &environment, "author": &author},
+		}
+
+		secretList := make([]keyvault.SecretItem, 0)
+		secretList = append(secretList, secretItem)
+
+		list := keyvault.SecretListResult{
+			Value: &secretList,
+		}
+
+		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
+		smtc.listOutput = keyvault.NewSecretListResultIterator(resultPage)
+
+		smtc.expectedSecret = secretString
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+		}
+		smtc.refFind.Tags = map[string]string{"environment": environment, "author": author}
+
+		smtc.expectedData[secretName] = []byte(secretString)
+	}
+
+	successCases := []*secretManagerTestCase{
+		makeValidSecretManagerTestCaseCustom(setOneSecretByName),
+		makeValidSecretManagerTestCaseCustom(setTwoSecretsByName),
+		makeValidSecretManagerTestCaseCustom(setOneSecretByTag),
+		makeValidSecretManagerTestCaseCustom(setTwoSecretsByTag),
+	}
+
+	sm := Azure{
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr(fakeURL)},
+	}
+	for k, v := range successCases {
+		sm.baseClient = v.mockClient
+		out, err := sm.GetAllSecrets(context.Background(), *v.refFind)
+		if !utils.ErrorContains(err, v.expectError) {
+			t.Errorf(unexpectedError, k, err.Error(), v.expectError)
+		}
+		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
+			t.Errorf(unexpectedSecretData, k, v.expectedData, out)
+		}
+	}
+}
+
 func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 	return &esv1beta1.ExternalSecretDataRemoteRef{
-		Key:     "test-secret",
-		Version: "default",
+		Key:      "test-secret",
+		Version:  "default",
+		Property: "",
+	}
+}
+
+func makeValidFind() *esv1beta1.ExternalSecretFind {
+	return &esv1beta1.ExternalSecretFind{
+		Name: &esv1beta1.FindName{
+			RegExp: "^example",
+		},
+		Tags: map[string]string{},
 	}
 }
 
