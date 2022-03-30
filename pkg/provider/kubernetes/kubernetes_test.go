@@ -271,6 +271,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 	}
+	secretName := "my-secret-name"
+	secretKey := "my-secert-key"
 	err := p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
@@ -293,14 +295,14 @@ func TestValidateStore(t *testing.T) {
 	} else if err.Error() != "ClientCert.Name cannot be empty" {
 		t.Errorf("KeySelector test failed: expected clientCert name is required, got %v", err)
 	}
-	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Name = "secret-name"
+	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Name = secretName
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "ClientCert.Key cannot be empty" {
 		t.Errorf("KeySelector test failed: expected clientCert Key is required, got %v", err)
 	}
-	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Key = "secret-key"
+	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Key = secretKey
 	ns := "ns-one"
 	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Namespace = &ns
 	err = p.ValidateStore(store)
@@ -316,14 +318,14 @@ func TestValidateStore(t *testing.T) {
 	} else if err.Error() != "BearerToken.Name cannot be empty" {
 		t.Errorf("KeySelector test failed: expected bearer token name is required, got %v", err)
 	}
-	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Name = "secret-name"
+	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Name = secretName
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "BearerToken.Key cannot be empty" {
 		t.Errorf("KeySelector test failed: expected bearer token key is required, got %v", err)
 	}
-	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Key = "secret-key"
+	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Key = secretKey
 	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Namespace = &ns
 	err = p.ValidateStore(store)
 	if err == nil {
@@ -334,14 +336,14 @@ func TestValidateStore(t *testing.T) {
 	store.Spec.Provider.Kubernetes.Auth = esv1beta1.KubernetesAuth{
 		Cert: &esv1beta1.CertAuth{
 			ClientCert: v1.SecretKeySelector{
-				Name: "secret-name",
-				Key:  "secret-key",
+				Name: secretName,
+				Key:  secretKey,
 			},
 		},
 		Token: &esv1beta1.TokenAuth{
 			BearerToken: v1.SecretKeySelector{
-				Name: "secret-name",
-				Key:  "secret-key",
+				Name: secretName,
+				Key:  secretKey,
 			},
 		},
 	}
