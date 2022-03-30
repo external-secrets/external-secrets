@@ -494,12 +494,13 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient esv1beta1.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
 
-	for _, remoteRef := range externalSecret.Spec.DataFrom {
+	for i, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
 		var err error
 		if remoteRef.Find != nil {
 			secretMap, err = providerClient.GetAllSecrets(ctx, *remoteRef.Find)
 			if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
+				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .dataFrom[%d]", i))
 				continue
 			}
 			if err != nil {
@@ -512,6 +513,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 		} else if remoteRef.Extract != nil {
 			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
 			if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
+				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .dataFrom[%d]", i))
 				continue
 			}
 			if err != nil {
@@ -526,9 +528,10 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 		providerData = utils.MergeByteMap(providerData, secretMap)
 	}
 
-	for _, secretRef := range externalSecret.Spec.Data {
+	for i, secretRef := range externalSecret.Spec.Data {
 		secretData, err := providerClient.GetSecret(ctx, secretRef.RemoteRef)
 		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
+			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .data[%d] key=%s", i, secretRef.RemoteRef.Key))
 			continue
 		}
 		if err != nil {

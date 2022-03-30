@@ -274,6 +274,7 @@ const (
 	ReasonProviderClientConfig = "InvalidProviderClientConfig"
 	ReasonUpdateFailed         = "UpdateFailed"
 	ReasonUpdated              = "Updated"
+	ReasonDeleted              = "Deleted"
 )
 
 type ExternalSecretStatus struct {
