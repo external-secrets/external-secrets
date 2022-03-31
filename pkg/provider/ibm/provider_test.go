@@ -303,6 +303,112 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.expectError = "remoteRef.property required for secret type public_cert"
 	}
 
+	secretDataKV := make(map[string]interface{})
+	secretKVPayload := make(map[string]interface{})
+	secretKVPayload["key1"] = "val1"
+	secretDataKV["payload"] = secretKVPayload
+
+	secretDataKVComplex := make(map[string]interface{})
+	secretKVComplex := `{"key1":"val1","key2":"val2","key3":"val3","keyC":{"keyC1":"valC1", "keyC2":"valC2"}, "special.log": "file-content"}`
+
+	secretDataKVComplex["payload"] = secretKVComplex
+
+	secretKV := "kv/test-secret"
+	// bad case: kv type with key which is not in payload
+	badSecretKV := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretDataKV,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKV
+		smtc.ref.Property = "other-key"
+		smtc.expectError = "key other-key does not exist in secret kv/test-secret"
+	}
+
+	// good case: kv type with property
+	setSecretKV := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretDataKV,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKV
+		smtc.ref.Property = "key1"
+		smtc.expectedSecret = "val1"
+	}
+
+	// good case: kv type with property, returns specific value
+	setSecretKVWithKey := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretDataKVComplex,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKV
+		smtc.ref.Property = "key2"
+		smtc.expectedSecret = "val2"
+	}
+
+	// good case: kv type with property and path, returns specific value
+	setSecretKVWithKeyPath := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretDataKVComplex,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKV
+		smtc.ref.Property = "keyC.keyC2"
+		smtc.expectedSecret = "valC2"
+	}
+
+	// good case: kv type with property and dot, returns specific value
+	setSecretKVWithKeyDot := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretDataKVComplex,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKV
+		smtc.ref.Property = "special.log"
+		smtc.expectedSecret = "file-content"
+	}
+
+	// good case: kv type without property, returns all
+	setSecretKVWithOutKey := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretDataKVComplex,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKV
+		smtc.expectedSecret = secretKVComplex
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCase(),
 		makeValidSecretManagerTestCaseCustom(setSecretString),
@@ -314,6 +420,12 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretIam),
 		makeValidSecretManagerTestCaseCustom(setSecretCert),
 		makeValidSecretManagerTestCaseCustom(badSecretCert),
+		makeValidSecretManagerTestCaseCustom(setSecretKV),
+		makeValidSecretManagerTestCaseCustom(setSecretKVWithKey),
+		makeValidSecretManagerTestCaseCustom(setSecretKVWithKeyPath),
+		makeValidSecretManagerTestCaseCustom(setSecretKVWithKeyDot),
+		makeValidSecretManagerTestCaseCustom(setSecretKVWithOutKey),
+		makeValidSecretManagerTestCaseCustom(badSecretKV),
 		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
 		makeValidSecretManagerTestCaseCustom(badSecretPublicCert),
 	}
@@ -332,12 +444,24 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 }
 
 func TestGetSecretMap(t *testing.T) {
+	secretKeyName := "kv/test-secret"
 	secretUsername := "user1"
 	secretPassword := "P@ssw0rd"
 	secretAPIKey := "01234567890"
 	secretCertificate := "certificate_value"
 	secretPrivateKey := "private_key_value"
 	secretIntermediate := "intermediate_value"
+
+	secretComplex := map[string]interface{}{
+		"key1": "val1",
+		"key2": "val2",
+		"keyC": map[string]interface{}{
+			"keyC1": map[string]string{
+				"keyA": "valA",
+				"keyB": "valB",
+			},
+		},
+	}
 
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *secretManagerTestCase) {
@@ -449,6 +573,84 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectedData["intermediate"] = []byte(secretIntermediate)
 	}
 
+	// good case: kv, no property, return entire payload as key:value pairs
+	setSecretKV := func(smtc *secretManagerTestCase) {
+		secretData := make(map[string]interface{})
+		secretData["payload"] = secretComplex
+
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKeyName
+		smtc.expectedData["key1"] = []byte("val1")
+		smtc.expectedData["key2"] = []byte("val2")
+		smtc.expectedData["keyC"] = []byte(`{"keyC1":{"keyA":"valA","keyB":"valB"}}`)
+	}
+
+	// good case: kv, with property
+	setSecretKVWithProperty := func(smtc *secretManagerTestCase) {
+		secretData := make(map[string]interface{})
+		secretData["payload"] = secretComplex
+
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.ref.Property = "keyC"
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKeyName
+		smtc.expectedData["keyC1"] = []byte(`{"keyA":"valA","keyB":"valB"}`)
+	}
+
+	// good case: kv, with property and path
+	setSecretKVWithPathAndProperty := func(smtc *secretManagerTestCase) {
+		secretData := make(map[string]interface{})
+		secretData["payload"] = secretComplex
+
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.ref.Property = "keyC.keyC1"
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKeyName
+		smtc.expectedData["keyA"] = []byte("valA")
+		smtc.expectedData["keyB"] = []byte("valB")
+	}
+
+	// bad case: kv, with property and path
+	badSecretKVWithUnknownProperty := func(smtc *secretManagerTestCase) {
+		secretData := make(map[string]interface{})
+		secretData["payload"] = secretComplex
+
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypeKvConst)
+		smtc.ref.Property = "unknown.property"
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretKeyName
+		smtc.expectError = "key unknown.property does not exist in secret kv/test-secret"
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(setDeserialization),
 		makeValidSecretManagerTestCaseCustom(setInvalidJSON),
@@ -457,6 +659,10 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretUserPass),
 		makeValidSecretManagerTestCaseCustom(setSecretIam),
 		makeValidSecretManagerTestCaseCustom(setSecretCert),
+		makeValidSecretManagerTestCaseCustom(setSecretKV),
+		makeValidSecretManagerTestCaseCustom(setSecretKVWithProperty),
+		makeValidSecretManagerTestCaseCustom(setSecretKVWithPathAndProperty),
+		makeValidSecretManagerTestCaseCustom(badSecretKVWithUnknownProperty),
 		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
 	}
 
