@@ -4,6 +4,8 @@ External Secrets Operator allows to retrieve in-cluster secrets or from a remote
 
 It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or a service account (not implemented yet). The operator enforces that exactly one authentication method is used.
 
+**NOTE:** `SelfSubjectAccessReview` permission is required for the service account in order to validation work properly.
+
 ## Example
 
 ### In-cluster secrets using Client certificates

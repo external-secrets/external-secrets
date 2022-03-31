@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -44,9 +45,15 @@ type KClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error)
 }
 
+type RClient interface {
+	Create(ctx context.Context, SelfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error)
+}
+
 // ProviderKubernetes is a provider for Kubernetes.
 type ProviderKubernetes struct {
-	Client KClient
+	Client       KClient
+	ReviewClient RClient
+	Namespace    string
 }
 
 var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
@@ -104,6 +111,8 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.Gene
 	}
 
 	k.Client = kubeClientSet.CoreV1().Secrets(bStore.store.RemoteNamespace)
+	k.Namespace = bStore.store.RemoteNamespace
+	k.ReviewClient = kubeClientSet.AuthorizationV1().SelfSubjectAccessReviews()
 
 	return k, nil
 }
@@ -229,6 +238,26 @@ func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySel
 }
 
 func (k *ProviderKubernetes) Validate() error {
+	ctx := context.Background()
+
+	authReview, err := k.ReviewClient.Create(ctx, &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Resource:  "secrets",
+				Namespace: k.Namespace,
+				Verb:      "get",
+			},
+		},
+	}, metav1.CreateOptions{})
+
+	if err != nil {
+		return fmt.Errorf("could not verify if client is valid: %w", err)
+	}
+
+	if !authReview.Status.Allowed {
+		return fmt.Errorf("client is not allowed to get secrets")
+	}
+
 	return nil
 }
 
