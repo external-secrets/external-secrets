@@ -21,6 +21,19 @@ spec:
       key: imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
       property: certificate
   - secretKey: bap
-      remoteRef:
-        key: public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
-        property: certificate
+    remoteRef:
+      key: public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: certificate
+  - secretKey: kv_without_key
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: kv_key
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: 'keyid'
+  - secretKey: kv_key_with_path
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: 'key.path'
+  dataFrom:
+  

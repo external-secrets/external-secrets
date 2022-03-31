@@ -879,6 +879,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#kv" class="md-nav__link">
+    kv
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1536,6 +1543,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#kv" class="md-nav__link">
+    kv
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1618,7 +1632,16 @@ Note: Use the url without the <code>/api</code> suffix that is presented in the 
 See here for a list of <a href="https://cloud.ibm.com/apidocs/secrets-manager#getting-started-endpoints">publicly available endpoints</a>.</p>
 <p><img alt="iam-create-success" src="../pictures/screenshot_service_url.png" /></p>
 <h3 id="secret-types">Secret Types</h3>
-<p>We support the following secret types of <a href="https://cloud.ibm.com/apidocs/secrets-manager">IBM Secrets Manager</a>: <code>arbitrary</code>, <code>username_password</code>, <code>iam_credentials</code>, <code>public_cert</code> and <code>imported_cert</code>. To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to <code>arbitrary</code>:</p>
+<p>We support the following secret types of <a href="https://cloud.ibm.com/apidocs/secrets-manager">IBM Secrets Manager</a>:</p>
+<ul>
+<li><code>arbitrary</code> </li>
+<li><code>username_password</code></li>
+<li><code>iam_credentials</code></li>
+<li><code>imported_cert</code></li>
+<li><code>public_cert</code></li>
+<li><code>kv</code> </li>
+</ul>
+<p>To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to <code>arbitrary</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
@@ -1642,9 +1665,21 @@ See here for a list of <a href="https://cloud.ibm.com/apidocs/secrets-manager#ge
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">certificate</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bap</span><span class="w"></span>
-<span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">remoteRef</span><span class="p p-Indicator">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">certificate</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">certificate</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv_without_key</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv_key</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;keyid&#39;</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv_key_with_path</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;key.path&#39;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
 </code></pre></div>
 <p>The behavior for the different secret types is as following:</p>
 <h4 id="arbitrary">arbitrary</h4>
@@ -1667,6 +1702,49 @@ See here for a list of <a href="https://cloud.ibm.com/apidocs/secrets-manager#ge
 <li><code>remoteRef</code> requires a <code>property</code> to be set for either <code>certificate</code>, <code>private_key</code> or <code>intermediate</code> to retrieve respective fields from the secrets manager secret and set in specified <code>secretKey</code></li>
 <li><code>dataFrom</code> retrieves all <code>certificate</code>, <code>private_key</code> and <code>intermediate</code> fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret</li>
 </ul>
+<h4 id="kv">kv</h4>
+<ul>
+<li>An optional <code>property</code> field can be set to <code>remoteRef</code> to select requested key from the KV secret. If not set, the entire secret will be returned</li>
+<li><code>dataFrom</code> retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;val1&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;val2&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;key3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;keyA&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valA&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;keyB&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valB&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="p">},</span><span class="w"></span>
+<span class="w">  </span><span class="nt">&quot;special.key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;special-content&quot;</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key3_keyB</span><span class="w"></span>
+<span class="w">  </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;key3.keyB&#39;</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">special_key</span><span class="w"></span>
+<span class="w">  </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;special.key&#39;</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key_all</span><span class="w"></span>
+<span class="w">  </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span><span class="w"></span>
+
+<span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span><span class="w"></span>
+<span class="w">    </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;key3&#39;</span><span class="w"></span>
+</code></pre></div>
+<p>results in</p>
+<div class="highlight"><pre><span></span><code><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># secrets from data</span><span class="w"></span>
+<span class="w">  </span><span class="nt">key3_keyB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#valB</span><span class="w"></span>
+<span class="w">  </span><span class="nt">special_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#special-content</span><span class="w"></span>
+<span class="w">  </span><span class="nt">key_all</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#{&quot;key1&quot;:&quot;val1&quot;,&quot;key2&quot;:&quot;val2&quot;, ...&quot;special.key&quot;:&quot;special-content&quot;}</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># secrets from dataFrom</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#valA</span><span class="w"></span>
+<span class="w">  </span><span class="nt">keyB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#valB</span><span class="w"></span>
+</code></pre></div>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To create a kubernetes secret from the IBM Secrets Manager, a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
