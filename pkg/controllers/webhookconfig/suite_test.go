@@ -16,10 +16,10 @@ package webhookconfig
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
-	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -66,7 +66,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "crds")},
+		CRDDirectoryPaths:  []string{filepath.Join("..", "..", "..", "deploy", "crds")},
 		UseExistingCluster: &useExistingCluster,
 	}
 

@@ -16,10 +16,10 @@ package crds
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
-	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -50,15 +50,15 @@ var _ = BeforeSuite(func() {
 	logf.SetLogger(log)
 
 	By("bootstrapping test environment")
-	
+
 	useExistingCluster := false
-	
+
 	if os.Getenv("TESTENV_USE_EXISTING_CLUSTER") == "true" {
 		useExistingCluster = true
 	}
 
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "crds")},
+		CRDDirectoryPaths:  []string{filepath.Join("..", "..", "..", "deploy", "crds")},
 		UseExistingCluster: &useExistingCluster,
 	}
 
