@@ -25,6 +25,10 @@ The operator does not create or update the secret, this is basically a no-op.
 ## Deletion Policy
 DeletionPolicy defines what should happen if a given secret gets deleted **from the provider**.
 
+DeletionPolicy is only supported on the following providers. Please feel free to contribute more:
+* AWS Secrets Manager
+* AWS Parameter Store
+
 ### Retain (default)
 Retain will retain the secret if all provider secrets have been deleted.
 If a provider secret does not exist the ExternalSecret gets into the
@@ -34,7 +38,7 @@ SecretSyncedError status.
 Delete deletes the secret if all provider secrets are deleted.
 If a secret gets deleted on the provider side and is not accessible
 anymore this is not considered an error and the ExternalSecret
-does not go into SecretSyncedError status. This is also true for new 
+does not go into SecretSyncedError status. This is also true for new
 ExternalSecrets mapping to non-existing secrets in the provider.
 
 ### Merge
