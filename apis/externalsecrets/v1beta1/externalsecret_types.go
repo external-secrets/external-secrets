@@ -31,6 +31,7 @@ type SecretStoreRef struct {
 }
 
 // ExternalSecretCreationPolicy defines rules on how to create the resulting Secret.
+// +kubebuilder:validation:Enum=Owner;Orphan;Merge;None
 type ExternalSecretCreationPolicy string
 
 const (
@@ -49,6 +50,7 @@ const (
 )
 
 // ExternalSecretDeletionPolicy defines rules on how to delete the resulting Secret.
+// +kubebuilder:validation:Enum=Delete;Merge;Retain
 type ExternalSecretDeletionPolicy string
 
 const (

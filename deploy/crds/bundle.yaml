@@ -143,10 +143,19 @@ spec:
                         creationPolicy:
                           default: Owner
                           description: CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
+                          enum:
+                            - Owner
+                            - Orphan
+                            - Merge
+                            - None
                           type: string
                         deletionPolicy:
                           default: Retain
                           description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'Retain'
+                          enum:
+                            - Delete
+                            - Merge
+                            - Retain
                           type: string
                         immutable:
                           description: Immutable defines if the final secret will be immutable
@@ -2676,10 +2685,19 @@ spec:
                     creationPolicy:
                       default: Owner
                       description: CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
+                      enum:
+                        - Owner
+                        - Orphan
+                        - Merge
+                        - None
                       type: string
                     deletionPolicy:
                       default: Retain
                       description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'Retain'
+                      enum:
+                        - Delete
+                        - Merge
+                        - Retain
                       type: string
                     immutable:
                       description: Immutable defines if the final secret will be immutable
