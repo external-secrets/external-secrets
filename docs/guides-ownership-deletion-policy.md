@@ -11,7 +11,7 @@ The External Secrets Operator manages the lifecycle of secrets in Kubernetes. Wi
 The field `spec.creationPolicy` defines how the operator creates the a secret.
 
 ### Owner (default)
-The External Secret Operator creates secret and sets the `ownerReference` field on the Secret. This secret is subject to [garbage collection](https://kubernetes.io/docs/concepts/architecture/garbage-collection/) if the initial `ExternalSecret` is absent. If a secret with the same name already exists that is not owned by the controller it it will result in a conflict. The operator does not claim ownership.
+The External Secret Operator creates secret and sets the `ownerReference` field on the Secret. This secret is subject to [garbage collection](https://kubernetes.io/docs/concepts/architecture/garbage-collection/) if the initial `ExternalSecret` is absent. If a secret with the same name already exists that is not owned by the controller it will result in a conflict. The operator will just error out, not claiming the ownership.
 
 ### Orphan
 The operator creates ths secret but does not set the `ownerReference` on the Secret. That means the Secret will not be subject to garbage collection. If a secret with the same name already exists it will be updated.
