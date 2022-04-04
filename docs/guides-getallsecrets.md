@@ -33,7 +33,7 @@ Some providers supports filtering out a find operation only to a given path, ins
 ### Avoiding name conflicts
 By default, kubernetes Secrets accepts only a given range of characters. `Find` operations will automatically replace any not allowed character with a `_`. So if we have a given secret `a_c` and `a/c` would lead to a naming conflict. 
 
-It is currently possible to avoid this behavior to Unicode by setting `dataFrom.find.conversionStrategy: Unicode`. When using `Unicode`, any invalid character will be replaced by its unicode, in the form of `_UXXXX_`. In this case, the available kubernetes keys would be `a_c` and `a_U2215_c`, hence avoiding most of possible conflicts.
+It is not entirely possible to avoid this behavior, but setting `dataFrom.find.conversionStrategy: Unicode` reduces the collision probability. When using `Unicode`, any invalid character will be replaced by its unicode, in the form of `_UXXXX_`. In this case, the available kubernetes keys would be `a_c` and `a_U2215_c`, hence avoiding most of possible conflicts.
 
 !!! note "PRs welcome"
     Some providers might not have the implementation needed for fetching multiple secrets. If that's your case, please feel free to contribute!
