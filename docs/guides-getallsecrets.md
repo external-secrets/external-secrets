@@ -28,7 +28,7 @@ This will match any secrets containing all of the metadata labels in the `tags` 
 
 
 ### Searching only in a given path
-Some providers supports filtering out a find operation only to a given path, instead of the root path. In order to use this feature, you can pass `find.path` to filter out these secrets into only this path, instead of the root path.
+Some providers support filtering out a find operation only to a given path, instead of the root path. In order to use this feature, you can pass `find.path` to filter out these secrets into only this path, instead of the root path.
 
 ### Avoiding name conflicts
 By default, kubernetes Secrets accepts only a given range of characters. `Find` operations will automatically replace any not allowed character with a `_`. So if we have a given secret `a_c` and `a/c` would lead to a naming conflict. 
