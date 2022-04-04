@@ -125,7 +125,7 @@ jobs:
         restore-keys: ${{ runner.os }}-pkg-
 
     - name: Setup TFLint
-      uses: terraform-linters/setup-tflint@v1
+      uses: terraform-linters/setup-tflint@v2
       with:
         tflint_version: v0.28.0  # Must be specified. See: https://github.com/terraform-linters/tflint/releases for latest versions
 
