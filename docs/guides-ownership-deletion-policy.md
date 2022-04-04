@@ -34,7 +34,8 @@ SecretSyncedError status.
 Delete deletes the secret if all provider secrets are deleted.
 If a secret gets deleted on the provider side and is not accessible
 anymore this is not considered an error and the ExternalSecret
-does not go into SecretSyncedError status.
+does not go into SecretSyncedError status. This is also true for new 
+ExternalSecrets mapping to non-existing secrets in the provider.
 
 ### Merge
 Merge removes keys in the secret, but not the secret itself.
