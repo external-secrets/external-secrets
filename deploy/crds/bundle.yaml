@@ -999,6 +999,33 @@ spec:
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
                               properties:
+                                kubernetesServiceAccountToken:
+                                  description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      items:
+                                        type: string
+                                      type: array
+                                    expirationSeconds:
+                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      format: int64
+                                      type: integer
+                                    serviceAccountRef:
+                                      description: Service account field containing the name of a kubernetes ServiceAccount.
+                                      properties:
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
                                 path:
                                   default: jwt
                                   description: 'Path where the JWT authentication backend is mounted in Vault, e.g: "jwt"'
@@ -1007,7 +1034,7 @@ spec:
                                   description: Role is a JWT role to authenticate using the JWT/OIDC Vault authentication method
                                   type: string
                                 secretRef:
-                                  description: SecretRef to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method.
                                   properties:
                                     key:
                                       description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
@@ -1972,6 +1999,33 @@ spec:
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
                               properties:
+                                kubernetesServiceAccountToken:
+                                  description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      items:
+                                        type: string
+                                      type: array
+                                    expirationSeconds:
+                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      format: int64
+                                      type: integer
+                                    serviceAccountRef:
+                                      description: Service account field containing the name of a kubernetes ServiceAccount.
+                                      properties:
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
                                 path:
                                   default: jwt
                                   description: 'Path where the JWT authentication backend is mounted in Vault, e.g: "jwt"'
@@ -1980,7 +2034,7 @@ spec:
                                   description: Role is a JWT role to authenticate using the JWT/OIDC Vault authentication method
                                   type: string
                                 secretRef:
-                                  description: SecretRef to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method.
                                   properties:
                                     key:
                                       description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
@@ -3487,6 +3541,33 @@ spec:
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
                               properties:
+                                kubernetesServiceAccountToken:
+                                  description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      items:
+                                        type: string
+                                      type: array
+                                    expirationSeconds:
+                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      format: int64
+                                      type: integer
+                                    serviceAccountRef:
+                                      description: Service account field containing the name of a kubernetes ServiceAccount.
+                                      properties:
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
                                 path:
                                   default: jwt
                                   description: 'Path where the JWT authentication backend is mounted in Vault, e.g: "jwt"'
@@ -3495,7 +3576,7 @@ spec:
                                   description: Role is a JWT role to authenticate using the JWT/OIDC Vault authentication method
                                   type: string
                                 secretRef:
-                                  description: SecretRef to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method.
                                   properties:
                                     key:
                                       description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
@@ -4463,6 +4544,33 @@ spec:
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
                               properties:
+                                kubernetesServiceAccountToken:
+                                  description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      items:
+                                        type: string
+                                      type: array
+                                    expirationSeconds:
+                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      format: int64
+                                      type: integer
+                                    serviceAccountRef:
+                                      description: Service account field containing the name of a kubernetes ServiceAccount.
+                                      properties:
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
                                 path:
                                   default: jwt
                                   description: 'Path where the JWT authentication backend is mounted in Vault, e.g: "jwt"'
@@ -4471,7 +4579,7 @@ spec:
                                   description: Role is a JWT role to authenticate using the JWT/OIDC Vault authentication method
                                   type: string
                                 secretRef:
-                                  description: SecretRef to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method.
                                   properties:
                                     key:
                                       description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
