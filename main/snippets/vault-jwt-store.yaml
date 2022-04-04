@@ -17,6 +17,18 @@ spec:
           path: "jwt"
           # JWT role configured in a Vault server, optional.
           role: "vault-jwt-role"
+
+          # Retrieve JWT token from a Kubernetes secret
           secretRef:
             name: "my-secret"
             key: "jwt-token"
+
+          # ... or retrieve a Kubernetes service account token via the `TokenRequest` API
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: "my-sa"
+            # `audiences` defaults to `["vault"]` it not supplied
+            audiences:
+            - vault
+            # `expirationSeconds` defaults to 10 minutes if not supplied
+            expirationSeconds: 600

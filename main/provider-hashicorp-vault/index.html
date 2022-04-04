@@ -1967,9 +1967,9 @@ in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h4 id="jwtoidc-authentication">JWT/OIDC authentication</h4>
-<p><a href="https://www.vaultproject.io/docs/auth/jwt">JWT/OIDC</a> uses a
+<p><a href="https://www.vaultproject.io/docs/auth/jwt">JWT/OIDC</a> uses either a
 <a href="https://jwt.io/">JWT</a> token stored in a <code>Kind=Secret</code> and referenced by the
-<code>secretRef</code>. Optionally a <code>role</code> field can be defined in a <code>Kind=SecretStore</code>
+<code>secretRef</code> or a temporary Kubernetes service account token retrieved via the <code>TokenRequest</code> API. Optionally a <code>role</code> field can be defined in a <code>Kind=SecretStore</code>
 or <code>Kind=ClusterSecretStore</code> resource.</p>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
@@ -1990,9 +1990,21 @@ or <code>Kind=ClusterSecretStore</code> resource.</p>
 <span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;jwt&quot;</span><span class="w"></span>
 <span class="w">          </span><span class="c1"># JWT role configured in a Vault server, optional.</span><span class="w"></span>
 <span class="w">          </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-jwt-role&quot;</span><span class="w"></span>
+
+<span class="w">          </span><span class="c1"># Retrieve JWT token from a Kubernetes secret</span><span class="w"></span>
 <span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;jwt-token&quot;</span><span class="w"></span>
+
+<span class="w">          </span><span class="c1"># ... or retrieve a Kubernetes service account token via the `TokenRequest` API</span><span class="w"></span>
+<span class="w">          </span><span class="nt">kubernetesServiceAccountToken</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">serviceAccountRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-sa&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="c1"># `audiences` defaults to `[&quot;vault&quot;]` it not supplied</span><span class="w"></span>
+<span class="w">            </span><span class="nt">audiences</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault</span><span class="w"></span>
+<span class="w">            </span><span class="c1"># `expirationSeconds` defaults to 10 minutes if not supplied</span><span class="w"></span>
+<span class="w">            </span><span class="nt">expirationSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">600</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h3 id="vault-enterprise-and-eventual-consistency">Vault Enterprise and Eventual Consistency</h3>

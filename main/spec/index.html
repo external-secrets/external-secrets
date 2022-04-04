@@ -4716,7 +4716,8 @@ authenticate with Vault using the Cert authentication method</p>
 </p>
 <p>
 <p>VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
-method, with the role name and token stored in a Kubernetes Secret resource.</p>
+method, with the role name and a token stored in a Kubernetes Secret resource or
+a Kubernetes service account token retrieved via <code>TokenRequest</code>.</p>
 </p>
 <table>
 <thead>
@@ -4759,8 +4760,24 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<p>SecretRef to a key in a Secret resource containing JWT token to
-authenticate with Vault using the JWT/OIDC authentication method</p>
+<em>(Optional)</em>
+<p>Optional SecretRef that refers to a key in a Secret resource containing JWT token to
+authenticate with Vault using the JWT/OIDC authentication method.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetesServiceAccountToken</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.VaultKubernetesServiceAccountTokenAuth">
+VaultKubernetesServiceAccountTokenAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional ServiceAccountToken specifies the Kubernetes service account for which to request
+a token for with the <code>TokenRequest</code> API.</p>
 </td>
 </tr>
 </tbody>
@@ -4856,6 +4873,66 @@ string
 <td>
 <p>A required field containing the Vault Role to assume. A Role binds a
 Kubernetes ServiceAccount with a set of Vault policies.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.VaultKubernetesServiceAccountTokenAuth">VaultKubernetesServiceAccountTokenAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultJwtAuth">VaultJwtAuth</a>)
+</p>
+<p>
+<p>VaultKubernetesServiceAccountTokenAuth authenticates with Vault using a temporary
+Kubernetes service account token retrieved by the <code>TokenRequest</code> API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+<p>Service account field containing the name of a kubernetes ServiceAccount.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>audiences</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional audiences field that will be used to request a temporary Kubernetes service
+account token for the service account referenced by <code>serviceAccountRef</code>.
+Defaults to a single audience <code>vault</code> it not specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional expiration time in seconds that will be used to request a temporary
+Kubernetes service account token for the service account referenced by
+<code>serviceAccountRef</code>.
+Defaults to 10 minutes.</p>
 </td>
 </tr>
 </tbody>
