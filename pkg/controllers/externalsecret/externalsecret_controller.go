@@ -250,6 +250,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				SetExternalSecretCondition(&externalSecret, *conditionSynced)
 				syncCallsError.With(syncCallsMetricLabels).Inc()
 			}
+
+			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretDeleted, "secret deleted due to DeletionPolicy")
+			SetExternalSecretCondition(&externalSecret, *conditionSynced)
 			return ctrl.Result{RequeueAfter: requeueAfter}, nil
 
 		case esv1beta1.DeletionPolicyMerge:
