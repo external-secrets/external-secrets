@@ -311,7 +311,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errUpdateSecret)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		return ctrl.Result{}, err
 	}
 
 	r.recorder.Event(&externalSecret, v1.EventTypeNormal, esv1beta1.ReasonUpdated, "Updated Secret")

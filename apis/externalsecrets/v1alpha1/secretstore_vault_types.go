@@ -203,8 +203,29 @@ type VaultLdapAuth struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
+// VaultKubernetesServiceAccountTokenAuth authenticates with Vault using a temporary
+// Kubernetes service account token retrieved by the `TokenRequest` API.
+type VaultKubernetesServiceAccountTokenAuth struct {
+	// Service account field containing the name of a kubernetes ServiceAccount.
+	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+
+	// Optional audiences field that will be used to request a temporary Kubernetes service
+	// account token for the service account referenced by `serviceAccountRef`.
+	// Defaults to a single audience `vault` it not specified.
+	// +optional
+	Audiences *[]string `json:"audiences,omitempty"`
+
+	// Optional expiration time in seconds that will be used to request a temporary
+	// Kubernetes service account token for the service account referenced by
+	// `serviceAccountRef`.
+	// Defaults to 10 minutes.
+	// +optional
+	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
+}
+
 // VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
-// method, with the role name and token stored in a Kubernetes Secret resource.
+// method, with the role name and a token stored in a Kubernetes Secret resource or
+// a Kubernetes service account token retrieved via `TokenRequest`.
 type VaultJwtAuth struct {
 	// Path where the JWT authentication backend is mounted
 	// in Vault, e.g: "jwt"
@@ -216,9 +237,15 @@ type VaultJwtAuth struct {
 	// +optional
 	Role string `json:"role"`
 
-	// SecretRef to a key in a Secret resource containing JWT token to
-	// authenticate with Vault using the JWT/OIDC authentication method
-	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+	// Optional SecretRef that refers to a key in a Secret resource containing JWT token to
+	// authenticate with Vault using the JWT/OIDC authentication method.
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// Optional ServiceAccountToken specifies the Kubernetes service account for which to request
+	// a token for with the `TokenRequest` API.
+	// +optional
+	KubernetesServiceAccountToken *VaultKubernetesServiceAccountTokenAuth `json:"kubernetesServiceAccountToken,omitempty"`
 }
 
 // VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication

@@ -262,5 +262,39 @@ func (k *ProviderKubernetes) Validate() error {
 }
 
 func (k *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	k8sSpec := storeSpec.Provider.Kubernetes
+	if k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
+		return fmt.Errorf("a CABundle or CAProvider is required")
+	}
+
+	if k8sSpec.Auth.Cert != nil {
+		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
+			return fmt.Errorf("ClientCert.Name cannot be empty")
+		}
+		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
+			return fmt.Errorf("ClientCert.Key cannot be empty")
+		}
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
+			return err
+		}
+	} else if k8sSpec.Auth.Token != nil {
+		if k8sSpec.Auth.Token.BearerToken.Name == "" {
+			return fmt.Errorf("BearerToken.Name cannot be empty")
+		}
+		if k8sSpec.Auth.Token.BearerToken.Key == "" {
+			return fmt.Errorf("BearerToken.Key cannot be empty")
+		}
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("an Auth type must be specified")
+	}
+
+	if k8sSpec.Auth.Cert != nil && k8sSpec.Auth.Token != nil {
+		return fmt.Errorf("only one authentication method is allowed")
+	}
+
 	return nil
 }
