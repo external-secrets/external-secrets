@@ -16,15 +16,62 @@ package fake
 
 import (
 	"context"
-	"net/url"
-	"strings"
 
 	vault "github.com/hashicorp/vault/api"
 )
 
-type MockNewRequestFn func(method, requestPath string) *vault.Request
+type LoginFn func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
+type Auth struct {
+	LoginFn LoginFn
+}
 
-type MockRawRequestWithContextFn func(ctx context.Context, r *vault.Request) (*vault.Response, error)
+func (f Auth) Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error) {
+	return f.LoginFn(ctx, authMethod)
+}
+
+type ReadWithDataWithContextFn func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
+type ListWithContextFn func(ctx context.Context, path string) (*vault.Secret, error)
+type WriteWithContextFn func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error)
+
+type Logical struct {
+	ReadWithDataWithContextFn ReadWithDataWithContextFn
+	ListWithContextFn         ListWithContextFn
+	WriteWithContextFn        WriteWithContextFn
+}
+
+func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithDataWithContextFn {
+	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+		vault := &vault.Secret{
+			Data: secret,
+		}
+		return vault, err
+	}
+}
+
+func (f Logical) ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+	return f.ReadWithDataWithContextFn(ctx, path, data)
+}
+func (f Logical) ListWithContext(ctx context.Context, path string) (*vault.Secret, error) {
+	return f.ListWithContextFn(ctx, path)
+}
+func (f Logical) WriteWithContext(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+	return f.WriteWithContextFn(ctx, path, data)
+}
+
+type RevokeSelfWithContextFn func(ctx context.Context, token string) error
+type LookupSelfWithContextFn func(ctx context.Context) (*vault.Secret, error)
+
+type Token struct {
+	RevokeSelfWithContextFn RevokeSelfWithContextFn
+	LookupSelfWithContextFn LookupSelfWithContextFn
+}
+
+func (f Token) RevokeSelfWithContext(ctx context.Context, token string) error {
+	return f.RevokeSelfWithContextFn(ctx, token)
+}
+func (f Token) LookupSelfWithContext(ctx context.Context) (*vault.Secret, error) {
+	return f.LookupSelfWithContextFn(ctx)
+}
 
 type MockSetTokenFn func(v string)
 
@@ -36,57 +83,9 @@ type MockSetNamespaceFn func(namespace string)
 
 type MockAddHeaderFn func(key, value string)
 
-func NewMockNewRequestFn(req *vault.Request) MockNewRequestFn {
-	return func(method, requestPath string) *vault.Request {
-		return req
-	}
-}
-
-func NewMockNewRequestListFn(req *vault.Request) MockNewRequestFn {
-	return func(method, requestPath string) *vault.Request {
-		urlPath := url.URL{
-			Path: requestPath,
-		}
-		req.URL = &urlPath
-		req.Params = make(url.Values)
-		return req
-	}
-}
-
-// An RequestFn operates on the supplied Request. You might use an RequestFn to
-// test or update the contents of an Request.
-type RequestFn func(req *vault.Request) error
-
-func NewMockRawRequestWithContextFn(res *vault.Response, err error, ofn ...RequestFn) MockRawRequestWithContextFn {
-	return func(_ context.Context, r *vault.Request) (*vault.Response, error) {
-		for _, fn := range ofn {
-			if err := fn(r); err != nil {
-				return res, err
-			}
-		}
-		return res, err
-	}
-}
-
 type VaultListResponse struct {
 	Metadata *vault.Response
 	Data     *vault.Response
-}
-
-func NewMockRawRequestListWithContextFn(res map[string]VaultListResponse, err error) MockRawRequestWithContextFn {
-	return func(_ context.Context, r *vault.Request) (*vault.Response, error) {
-		pathList := strings.Split(r.URL.Path, "/")
-		path := "default"
-		if pathList[4] != "" {
-			path = strings.Join(pathList[4:], "/")
-		}
-		if strings.Contains(r.URL.Path, "metadata") {
-			resp := res[path].Metadata
-			return resp, err
-		}
-		resp := res[path].Data
-		return resp, err
-	}
 }
 
 func NewSetTokenFn(ofn ...func(v string)) MockSetTokenFn {
@@ -116,21 +115,48 @@ func NewAddHeaderFn() MockAddHeaderFn {
 }
 
 type VaultClient struct {
-	MockNewRequest            MockNewRequestFn
-	MockRawRequestWithContext MockRawRequestWithContextFn
-	MockSetToken              MockSetTokenFn
-	MockToken                 MockTokenFn
-	MockClearToken            MockClearTokenFn
-	MockSetNamespace          MockSetNamespaceFn
-	MockAddHeader             MockAddHeaderFn
+	MockLogical      Logical
+	MockAuth         Auth
+	MockAuthToken    Token
+	MockSetToken     MockSetTokenFn
+	MockToken        MockTokenFn
+	MockClearToken   MockClearTokenFn
+	MockSetNamespace MockSetNamespaceFn
+	MockAddHeader    MockAddHeaderFn
 }
 
-func (c *VaultClient) NewRequest(method, requestPath string) *vault.Request {
-	return c.MockNewRequest(method, requestPath)
+func (c *VaultClient) Logical() Logical {
+	return c.MockLogical
 }
 
-func (c *VaultClient) RawRequestWithContext(ctx context.Context, r *vault.Request) (*vault.Response, error) {
-	return c.MockRawRequestWithContext(ctx, r)
+func NewVaultLogical() Logical {
+	logical := Logical{
+		ReadWithDataWithContextFn: func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+			return nil, nil
+		},
+		ListWithContextFn: func(ctx context.Context, path string) (*vault.Secret, error) {
+			return nil, nil
+		},
+		WriteWithContextFn: func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+			return nil, nil
+		},
+	}
+	return logical
+}
+func (c *VaultClient) Auth() Auth {
+	return c.MockAuth
+}
+
+func NewVaultAuth() Auth {
+	auth := Auth{
+		LoginFn: func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error) {
+			return nil, nil
+		},
+	}
+	return auth
+}
+func (c *VaultClient) AuthToken() Token {
+	return c.MockAuthToken
 }
 
 func (c *VaultClient) SetToken(v string) {

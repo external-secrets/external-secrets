@@ -251,7 +251,7 @@ func (l *Vault) configureVault() error {
 	// configure appRole
 	l.AppRolePath = "myapprole"
 	req := l.VaultClient.NewRequest(http.MethodGet, fmt.Sprintf("/v1/auth/%s/role/eso-e2e-role/role-id", l.AppRolePath))
-	res, err := l.VaultClient.RawRequest(req)
+	res, err := l.VaultClient.RawRequest(req) //nolint:staticcheck
 	if err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func (l *Vault) configureVault() error {
 
 	// parse role id
 	req = l.VaultClient.NewRequest(http.MethodPost, fmt.Sprintf("/v1/auth/%s/role/eso-e2e-role/secret-id", l.AppRolePath))
-	res, err = l.VaultClient.RawRequest(req)
+	res, err = l.VaultClient.RawRequest(req) //nolint:staticcheck
 	if err != nil {
 		return err
 	}
