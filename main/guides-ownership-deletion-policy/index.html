@@ -13,7 +13,7 @@
     
     
       
-        <title>Getting Multiple Secrets - External Secrets Operator</title>
+        <title>Lifecycle: ownership & deletion - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#fetching-information-from-multiple-secrets" class="md-skip">
+        <a href="#lifecycle" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting Multiple Secrets
+              Lifecycle: ownership & deletion
             
           </span>
         </div>
@@ -504,20 +504,6 @@
               
   
   
-  
-    <li class="md-nav__item">
-      <a href="../guides-ownership-deletion-policy/" class="md-nav__link">
-        Lifecycle: ownership & deletion
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
     
   
   
@@ -530,12 +516,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Getting Multiple Secrets
+          Lifecycle: ownership & deletion
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Getting Multiple Secrets
+        Lifecycle: ownership & deletion
       </a>
       
         
@@ -554,30 +540,77 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#fetching-secrets-matching-a-given-name-pattern" class="md-nav__link">
-    Fetching secrets matching a given name pattern
+  <a href="#creation-policy" class="md-nav__link">
+    Creation Policy
   </a>
+  
+    <nav class="md-nav" aria-label="Creation Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#owner-default" class="md-nav__link">
+    Owner (default)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#orphan" class="md-nav__link">
+    Orphan
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#merge" class="md-nav__link">
+    Merge
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#none" class="md-nav__link">
+    None
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#fetching-secrets-matching-a-set-of-metadata-tags" class="md-nav__link">
-    Fetching secrets matching a set of metadata tags
+  <a href="#deletion-policy" class="md-nav__link">
+    Deletion Policy
+  </a>
+  
+    <nav class="md-nav" aria-label="Deletion Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#retain-default" class="md-nav__link">
+    Retain (default)
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#searching-only-in-a-given-path" class="md-nav__link">
-    Searching only in a given path
+        
+          <li class="md-nav__item">
+  <a href="#delete" class="md-nav__link">
+    Delete
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#avoiding-name-conflicts" class="md-nav__link">
-    Avoiding name conflicts
+        
+          <li class="md-nav__item">
+  <a href="#merge_1" class="md-nav__link">
+    Merge
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -585,6 +618,20 @@
   
 </nav>
       
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides-getallsecrets/" class="md-nav__link">
+        Getting Multiple Secrets
+      </a>
     </li>
   
 
@@ -1431,30 +1478,77 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#fetching-secrets-matching-a-given-name-pattern" class="md-nav__link">
-    Fetching secrets matching a given name pattern
+  <a href="#creation-policy" class="md-nav__link">
+    Creation Policy
   </a>
+  
+    <nav class="md-nav" aria-label="Creation Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#owner-default" class="md-nav__link">
+    Owner (default)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#orphan" class="md-nav__link">
+    Orphan
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#merge" class="md-nav__link">
+    Merge
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#none" class="md-nav__link">
+    None
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#fetching-secrets-matching-a-set-of-metadata-tags" class="md-nav__link">
-    Fetching secrets matching a set of metadata tags
+  <a href="#deletion-policy" class="md-nav__link">
+    Deletion Policy
+  </a>
+  
+    <nav class="md-nav" aria-label="Deletion Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#retain-default" class="md-nav__link">
+    Retain (default)
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#searching-only-in-a-given-path" class="md-nav__link">
-    Searching only in a given path
+        
+          <li class="md-nav__item">
+  <a href="#delete" class="md-nav__link">
+    Delete
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#avoiding-name-conflicts" class="md-nav__link">
-    Avoiding name conflicts
+        
+          <li class="md-nav__item">
+  <a href="#merge_1" class="md-nav__link">
+    Merge
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1470,69 +1564,50 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-getallsecrets.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-ownership-deletion-policy.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-<h1 id="fetching-information-from-multiple-secrets">Fetching information from multiple secrets</h1>
-<p>In some use cases, it might be impractical to bundle all sensitive information into a single secret, or even it is not possible to fully know a given secret name. In such cases, it is possible that an user might need to sync multiple secrets from an external provider into a single Kubernetes Secret. This is possible to be done in external-secrets with the <code>dataFrom.find</code> option.</p>
+<h1 id="lifecycle">Lifecycle</h1>
+<p>The External Secrets Operator manages the lifecycle of secrets in Kubernetes. With <code>creationPolicy</code> and <code>deletionPolicy</code> you get fine-grained control of its lifecycle.</p>
 <div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it is not possible to apply any decoding Strategy during a find operation.</p>
+<p class="admonition-title">Creation/Deletion Policy Combinations</p>
+<p>Some combinations of creationPolicy/deletionPolicy are not allowed as they would delete existing secrets:
+<br/>- <code>deletionPolicy=Delete</code> &amp; <code>creationPolicy=Merge</code>
+<br/>- <code>deletionPolicy=Delete</code> &amp; <code>creationPolicy=None</code>
+<br/>- <code>deletionPolicy=Merge</code> &amp; <code>creationPolicy=None</code></p>
 </div>
-<h3 id="fetching-secrets-matching-a-given-name-pattern">Fetching secrets matching a given name pattern</h3>
-<p>To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"> </span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">find-by-tags</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
-<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;key&quot;</span><span class="w"></span>
-</code></pre></div></p>
-<p>Suppose we contain secrets <code>/path/key1</code>, <code>key2/path</code>, and <code>path/to/keyring</code> with their respective values. The above YAML will produce the following kubernetes Secret:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">_path_key1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
-<span class="nt">key2_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
-<span class="nt">path_to_keyring</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
-</code></pre></div>
-<h3 id="fetching-secrets-matching-a-set-of-metadata-tags">Fetching secrets matching a set of metadata tags</h3>
-<p>To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"> </span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">find-by-tags</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
-<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;prod&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">application</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;app-name&quot;</span><span class="w"></span>
-</code></pre></div>
-This will match any secrets containing all of the metadata labels in the <code>tags</code> parameter. At least one tag must be provided in order to allow finding secrets by metadata tags.</p>
-<h3 id="searching-only-in-a-given-path">Searching only in a given path</h3>
-<p>Some providers support filtering out a find operation only to a given path, instead of the root path. In order to use this feature, you can pass <code>find.path</code> to filter out these secrets into only this path, instead of the root path.</p>
-<h3 id="avoiding-name-conflicts">Avoiding name conflicts</h3>
-<p>By default, kubernetes Secrets accepts only a given range of characters. <code>Find</code> operations will automatically replace any not allowed character with a <code>_</code>. So if we have a given secret <code>a_c</code> and <code>a/c</code> would lead to a naming conflict. </p>
-<p>It is not entirely possible to avoid this behavior, but setting <code>dataFrom.find.conversionStrategy: Unicode</code> reduces the collision probability. When using <code>Unicode</code>, any invalid character will be replaced by its unicode, in the form of <code>_UXXXX_</code>. In this case, the available kubernetes keys would be <code>a_c</code> and <code>a_U2215_c</code>, hence avoiding most of possible conflicts.</p>
-<div class="admonition note">
-<p class="admonition-title">PRs welcome</p>
-<p>Some providers might not have the implementation needed for fetching multiple secrets. If that's your case, please feel free to contribute!</p>
-</div>
+<h2 id="creation-policy">Creation Policy</h2>
+<p>The field <code>spec.creationPolicy</code> defines how the operator creates the a secret.</p>
+<h3 id="owner-default">Owner (default)</h3>
+<p>The External Secret Operator creates secret and sets the <code>ownerReference</code> field on the Secret. This secret is subject to <a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> if the initial <code>ExternalSecret</code> is absent. If a secret with the same name already exists that is not owned by the controller it will result in a conflict. The operator will just error out, not claiming the ownership.</p>
+<h3 id="orphan">Orphan</h3>
+<p>The operator creates ths secret but does not set the <code>ownerReference</code> on the Secret. That means the Secret will not be subject to garbage collection. If a secret with the same name already exists it will be updated.</p>
+<h3 id="merge">Merge</h3>
+<p>The operator does not create a secret. Instead, it expects the secret to already exist. Values from the secret provider will be merged into the existing secret. Note: the controller takes ownership of a field even if it is owned by a different entity. Multiple ExternalSecrets can use <code>creationPolicy=Merge</code> with a single secret as long as the fields don't collide - otherwise you end up in an oscillating state.</p>
+<h3 id="none">None</h3>
+<p>The operator does not create or update the secret, this is basically a no-op.</p>
+<h2 id="deletion-policy">Deletion Policy</h2>
+<p>DeletionPolicy defines what should happen if a given secret gets deleted <strong>from the provider</strong>.</p>
+<p>DeletionPolicy is only supported on the following providers. Please feel free to contribute more:
+* AWS Secrets Manager
+* AWS Parameter Store</p>
+<h3 id="retain-default">Retain (default)</h3>
+<p>Retain will retain the secret if all provider secrets have been deleted.
+If a provider secret does not exist the ExternalSecret gets into the
+SecretSyncedError status.</p>
+<h3 id="delete">Delete</h3>
+<p>Delete deletes the secret if all provider secrets are deleted.
+If a secret gets deleted on the provider side and is not accessible
+anymore this is not considered an error and the ExternalSecret
+does not go into SecretSyncedError status. This is also true for new
+ExternalSecrets mapping to non-existing secrets in the provider.</p>
+<h3 id="merge_1">Merge</h3>
+<p>Merge removes keys in the secret, but not the secret itself.
+If a secret gets deleted on the provider side and is not accessible
+anymore this is not considered an error and the ExternalSecret
+does not go into SecretSyncedError status.</p>
 
               
             </article>
@@ -1546,7 +1621,7 @@ This will match any secrets containing all of the metadata labels in the <code>t
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../guides-ownership-deletion-policy/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Lifecycle: ownership &amp; deletion" rel="prev">
+        <a href="../guides-controller-class/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Controller Classes" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1555,20 +1630,20 @@ This will match any secrets containing all of the metadata labels in the <code>t
               <span class="md-footer__direction">
                 Previous
               </span>
-              Lifecycle: ownership & deletion
+              Controller Classes
             </div>
           </div>
         </a>
       
       
         
-        <a href="../guides-multi-tenancy/" class="md-footer__link md-footer__link--next" aria-label="Next: Multi Tenancy" rel="next">
+        <a href="../guides-getallsecrets/" class="md-footer__link md-footer__link--next" aria-label="Next: Getting Multiple Secrets" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Multi Tenancy
+              Getting Multiple Secrets
             </div>
           </div>
           <div class="md-footer__button md-icon">

@@ -557,6 +557,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../guides-ownership-deletion-policy/" class="md-nav__link">
+        Lifecycle: ownership & deletion
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guides-getallsecrets/" class="md-nav__link">
         Getting Multiple Secrets
       </a>
@@ -1507,6 +1521,11 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">    </span><span class="c1"># None does not create a secret (future use with injector)</span><span class="w"></span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;Merge&#39;</span><span class="w"></span>
 
+<span class="w">    </span><span class="c1"># DeletionPolicy defines how/when to delete the Secret in Kubernetes</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># if the provider secret gets deleted.</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># Valid values are Delete, Merge, Retain</span><span class="w"></span>
+<span class="w">    </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Retain&quot;</span><span class="w"></span>
+
 <span class="w">    </span><span class="c1"># Specify a blueprint for the resulting Kind=Secret</span><span class="w"></span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span><span class="w"> </span><span class="c1"># or TLS...</span><span class="w"></span>
@@ -1547,10 +1566,10 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-property</span><span class="w"></span>
 <span class="w">      </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Default</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path-to-filter</span><span class="w"> </span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path-to-filter</span><span class="w"></span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.*foobar.*&quot;</span><span class="w"></span>
-<span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">foo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bar</span><span class="w"></span>
 <span class="w">      </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Unicode</span><span class="w"></span>
 
