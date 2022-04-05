@@ -77,6 +77,10 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 		SecretId:     &ref.Key,
 		VersionStage: &ver,
 	})
+	var nf *awssm.ResourceNotFoundException
+	if errors.As(err, &nf) {
+		return nil, esv1beta1.NoSecretErr
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -212,6 +216,9 @@ func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byt
 // GetSecret returns a single secret from the provider.
 func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secretOut, err := sm.fetch(ctx, ref)
+	if errors.Is(err, esv1beta1.NoSecretErr) {
+		return nil, err
+	}
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}

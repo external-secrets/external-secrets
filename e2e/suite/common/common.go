@@ -13,9 +13,13 @@ limitations under the License.
 package common
 
 import (
+	"context"
 	"fmt"
+	"time"
 
+	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -553,6 +557,51 @@ func SSHKeySyncDataProperty(f *framework.Framework) (string, func(*framework.Tes
 			Data: map[string]string{
 				sshPrivateKey: mysecretToStringTemplating,
 			},
+		}
+	}
+}
+
+func DeletionPolicyDelete(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should delete secret when provider secret was deleted using .data[]", func(tc *framework.TestCase) {
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		secretKey2 := fmt.Sprintf("%s-%s", f.Namespace.Name, "other")
+		secretValue := "bazz"
+		tc.Secrets = map[string]framework.SecretEntry{
+			secretKey1: {Value: secretValue},
+			secretKey2: {Value: secretValue},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				secretKey1: []byte(secretValue),
+				secretKey2: []byte(secretValue),
+			},
+		}
+
+		tc.ExternalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second * 5}
+		tc.ExternalSecret.Spec.Target.DeletionPolicy = esv1beta1.DeletionPolicyDelete
+		tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
+			{
+				SecretKey: secretKey1,
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+					Key: secretKey1,
+				},
+			},
+			{
+				SecretKey: secretKey2,
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+					Key: secretKey2,
+				},
+			},
+		}
+		tc.AfterSync = func(prov framework.SecretStoreProvider, secret *v1.Secret) {
+			prov.DeleteSecret(secretKey1)
+			prov.DeleteSecret(secretKey2)
+
+			gomega.Eventually(func() bool {
+				_, err := f.KubeClientSet.CoreV1().Secrets(f.Namespace.Name).Get(context.Background(), secret.Name, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, time.Minute, time.Second*5).Should(gomega.BeTrue())
 		}
 	}
 }

@@ -14,6 +14,7 @@ limitations under the License.
 package externalsecret
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -24,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -155,6 +157,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		syncCallsTotal.Reset()
 		syncCallsError.Reset()
 		externalSecretCondition.Reset()
+		fakeProvider.Reset()
 	})
 
 	AfterEach(func() {
@@ -162,13 +165,13 @@ var _ = Describe("ExternalSecret controller", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: ExternalSecretNamespace,
 			},
-		}, client.PropagationPolicy(metav1.DeletePropagationBackground)), client.GracePeriodSeconds(0)).To(Succeed())
+		})).To(Succeed())
 		Expect(k8sClient.Delete(context.Background(), &esv1beta1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      ExternalSecretStore,
 				Namespace: ExternalSecretNamespace,
 			},
-		}, client.PropagationPolicy(metav1.DeletePropagationBackground)), client.GracePeriodSeconds(0)).To(Succeed())
+		})).To(Succeed())
 	})
 
 	const targetProp = "targetProperty"
@@ -281,7 +284,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		const secretVal = "someValue"
 		const existingKey = "pre-existing-key"
 		existingVal := "pre-existing-value"
-		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.Merge
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
@@ -320,7 +323,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	mergeWithSecretNoChange := func(tc *testCase) {
 		const existingKey = "pre-existing-key"
 		existingVal := "someValue"
-		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.Merge
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
@@ -360,7 +363,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	// should not merge with secret if it doesn't exist
 	mergeWithSecretErr := func(tc *testCase) {
 		const secretVal = "someValue"
-		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.Merge
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
@@ -386,7 +389,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		// this should confict
 		const existingKey = targetProp
 		existingVal := "pre-existing-value"
-		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.Merge
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
@@ -785,6 +788,162 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	deleteSecretPolicy := func(tc *testCase) {
+		expVal := []byte("1234")
+		// set initial value
+		fakeProvider.WithGetAllSecrets(map[string][]byte{
+			"foo": expVal,
+			"bar": expVal,
+		}, nil)
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1beta1.ExternalSecretFind{
+					Tags: map[string]string{},
+				},
+			},
+		}
+		tc.externalSecret.Spec.Target.DeletionPolicy = esv1beta1.DeletionPolicyDelete
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["foo"]).To(Equal(expVal))
+
+			// update provider secret
+			fakeProvider.WithGetAllSecrets(map[string][]byte{
+				"foo": expVal,
+			}, nil)
+			sec := &v1.Secret{}
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Eventually(func() bool {
+				By("checking secret value for foo=1234 and bar=nil")
+				err := k8sClient.Get(context.Background(), secretLookupKey, sec)
+				if err != nil {
+					return false
+				}
+				return bytes.Equal(sec.Data["foo"], expVal) && sec.Data["bar"] == nil
+			}, time.Second*10, time.Second).Should(BeTrue())
+
+			// return specific delete err to indicate deletion
+			fakeProvider.WithGetAllSecrets(map[string][]byte{}, esv1beta1.NoSecretErr)
+			Eventually(func() bool {
+				By("checking that secret has been deleted")
+				err := k8sClient.Get(context.Background(), secretLookupKey, sec)
+				return apierrors.IsNotFound(err)
+			}, time.Second*10, time.Second).Should(BeTrue())
+		}
+	}
+
+	deleteSecretPolicyRetain := func(tc *testCase) {
+		expVal := []byte("1234")
+		// set initial value
+		fakeProvider.WithGetAllSecrets(map[string][]byte{
+			"foo": expVal,
+			"bar": expVal,
+		}, nil)
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1beta1.ExternalSecretFind{
+					Tags: map[string]string{},
+				},
+			},
+		}
+		tc.externalSecret.Spec.Target.DeletionPolicy = esv1beta1.DeletionPolicyRetain
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["foo"]).To(Equal(expVal))
+
+			sec := &v1.Secret{}
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			// return specific delete err to indicate deletion
+			// however this should not trigger a delete
+			fakeProvider.WithGetAllSecrets(map[string][]byte{}, esv1beta1.NoSecretErr)
+			Consistently(func() bool {
+				By("checking that secret has not been deleted")
+				err := k8sClient.Get(context.Background(), secretLookupKey, sec)
+				return apierrors.IsNotFound(err) && bytes.Equal(sec.Data["foo"], expVal)
+			}, time.Second*10, time.Second).Should(BeFalse())
+		}
+	}
+
+	// merge with existing secret using creationPolicy=Merge
+	// if provider secret gets deleted only the managed field should get deleted
+	deleteSecretPolicyMerge := func(tc *testCase) {
+		const secretVal = "someValue"
+		const existingKey = "some-existing-key"
+		existingVal := "some-existing-value"
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
+		tc.externalSecret.Spec.Target.DeletionPolicy = esv1beta1.DeletionPolicyMerge
+
+		// create secret beforehand
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner(FakeManager))).To(Succeed())
+
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check value
+			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+
+			sec := &v1.Secret{}
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			// return specific delete err to indicate deletion
+			// however this should not trigger a delete
+			// instead expect that only the pre-existing value exists
+			fakeProvider.WithGetSecret(nil, esv1beta1.NoSecretErr)
+			Eventually(func() bool {
+				By("checking that secret has not been deleted and pre-existing key exists")
+				err := k8sClient.Get(context.Background(), secretLookupKey, sec)
+				return !apierrors.IsNotFound(err) &&
+					len(sec.Data) == 1 &&
+					bytes.Equal(sec.Data[existingKey], []byte(existingVal))
+			}, time.Second*30, time.Second).Should(BeTrue())
+
+		}
+	}
+
+	// orphan the secret after the external secret has been deleted
+	createSecretPolicyOrphan := func(tc *testCase) {
+		const secretVal = "someValue"
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyOrphan
+
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check value
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+
+			sec := &v1.Secret{}
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			err := k8sClient.Delete(context.Background(), tc.externalSecret)
+			Expect(err).ToNot(HaveOccurred())
+			Consistently(func() bool {
+				By("checking that secret has not been deleted")
+				err := k8sClient.Get(context.Background(), secretLookupKey, sec)
+				return !apierrors.IsNotFound(err)
+			}, time.Second*15, time.Second).Should(BeTrue())
+		}
+	}
+
 	// with dataFrom all properties from the specified secret
 	// should be put into the secret
 	syncWithDataFrom := func(tc *testCase) {
@@ -1113,6 +1272,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should error if secret doesn't exist when using creationPolicy=Merge", mergeWithSecretErr),
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
+		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync with template engine v2", syncWithTemplateV2),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
@@ -1130,6 +1290,9 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should set an error condition when store provider constructor fails", storeConstructErrCondition),
 		Entry("should not process store with mismatching controller field", ignoreMismatchController),
 		Entry("should not process cluster secret store when it is disabled", ignoreClusterSecretStoreWhenDisabled),
+		Entry("should eventually delete target secret with deletionPolicy=Delete", deleteSecretPolicy),
+		Entry("should not delete target secret with deletionPolicy=Retain", deleteSecretPolicyRetain),
+		Entry("should not delete pre-existing secret with deletionPolicy=Merge", deleteSecretPolicyMerge),
 	)
 })
 

@@ -46,5 +46,6 @@ var _ = Describe("[aws] ", Label("aws", "secretsmanager"), func() {
 		Entry(common.FindByTag(f)),
 		Entry(common.FindByTagWithPath(f)),
 		Entry(common.SyncV1Alpha1(f)),
+		Entry(common.DeletionPolicyDelete(f)),
 	)
 })

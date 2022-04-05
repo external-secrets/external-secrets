@@ -16,7 +16,10 @@ package externalsecret
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -45,6 +48,8 @@ import (
 const (
 	requeueAfter = time.Second * 30
 
+	fieldOwner = "external-secrets"
+
 	errGetES                 = "could not get ExternalSecret"
 	errConvert               = "could not apply conversion strategy to keys: %v"
 	errUpdateSecret          = "could not update Secret"
@@ -58,9 +63,11 @@ const (
 	errCloseStoreClient      = "could not close provider client"
 	errSetCtrlReference      = "could not set ExternalSecret controller reference: %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
-	errGetSecretData         = "could not get secret data from provider: %w"
+	errGetSecretData         = "could not get secret data from provider"
+	errDeleteSecret          = "could not delete secret"
 	errApplyTemplate         = "could not apply template: %w"
 	errExecTpl               = "could not execute template: %w"
+	errInvalidCreatePolicy   = "invalid creationPolicy=%s. Can not delete secret i do not own"
 	errPolicyMergeNotFound   = "the desired secret %s was not found. With creationPolicy=Merge the secret won't be created"
 	errPolicyMergeGetSecret  = "unable to get secret %s: %w"
 	errPolicyMergeMutate     = "unable to mutate secret %s: %w"
@@ -209,32 +216,89 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		Data:      make(map[string][]byte),
 	}
 
+	dataMap, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
+	if err != nil {
+		log.Error(err, errGetSecretData)
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errGetSecretData)
+		SetExternalSecretCondition(&externalSecret, *conditionSynced)
+		syncCallsError.With(syncCallsMetricLabels).Inc()
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
+	// if no data was found we can delete the secret if needed.
+	if len(dataMap) == 0 {
+		switch externalSecret.Spec.Target.DeletionPolicy {
+		// delete secret and return early.
+		case esv1beta1.DeletionPolicyDelete:
+			// safeguard that we only can delete secrets we own
+			// this is also implemented in the es validation webhook
+			if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner {
+				err := fmt.Errorf(errInvalidCreatePolicy, externalSecret.Spec.Target.CreationPolicy)
+				log.Error(err, errDeleteSecret)
+				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errDeleteSecret)
+				SetExternalSecretCondition(&externalSecret, *conditionSynced)
+				syncCallsError.With(syncCallsMetricLabels).Inc()
+				return ctrl.Result{RequeueAfter: requeueAfter}, nil
+			}
+			err = r.Delete(ctx, secret)
+			if err != nil && !apierrors.IsNotFound(err) {
+				log.Error(err, errDeleteSecret)
+				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errDeleteSecret)
+				SetExternalSecretCondition(&externalSecret, *conditionSynced)
+				syncCallsError.With(syncCallsMetricLabels).Inc()
+			}
+
+			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretDeleted, "secret deleted due to DeletionPolicy")
+			SetExternalSecretCondition(&externalSecret, *conditionSynced)
+			return ctrl.Result{RequeueAfter: requeueAfter}, nil
+
+		case esv1beta1.DeletionPolicyMerge:
+			// noop, handled below
+
+		// In case provider secrets don't exist the kubernetes secret will be kept as-is.
+		case esv1beta1.DeletionPolicyRetain:
+			return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		}
+	}
+
 	mutationFunc := func() error {
-		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.Owner {
+		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
 			err = controllerutil.SetControllerReference(&externalSecret, &secret.ObjectMeta, r.Scheme)
 			if err != nil {
 				return fmt.Errorf(errSetCtrlReference, err)
 			}
 		}
-
-		dataMap, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
-		if err != nil {
-			return fmt.Errorf(errGetSecretData, err)
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
 		}
-
 		err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
 		if err != nil {
 			return fmt.Errorf(errApplyTemplate, err)
 		}
 
+		// diff existing keys
+		if externalSecret.Spec.Target.DeletionPolicy == esv1beta1.DeletionPolicyMerge {
+			keys, err := getManagedKeys(&existingSecret)
+			if err != nil {
+				return err
+			}
+			for _, key := range keys {
+				if dataMap[key] == nil {
+					secret.Data[key] = nil
+				}
+			}
+		}
 		return nil
 	}
 
 	// nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
-	case esv1beta1.Merge:
+	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc)
-	case esv1beta1.None:
+	case esv1beta1.CreatePolicyNone:
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
@@ -302,11 +366,40 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 
 	// we're not able to resolve conflicts so we force ownership
 	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#using-server-side-apply-in-a-controller
-	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner("external-secrets"), client.ForceOwnership)
+	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner(fieldOwner), client.ForceOwnership)
 	if err != nil {
 		return fmt.Errorf(errPolicyMergePatch, secret.Name, err)
 	}
 	return nil
+}
+
+func getManagedKeys(secret *v1.Secret) ([]string, error) {
+	var keys []string
+	for _, v := range secret.ObjectMeta.ManagedFields {
+		if v.Manager != fieldOwner {
+			continue
+		}
+		fields := make(map[string]interface{})
+		err := json.Unmarshal(v.FieldsV1.Raw, &fields)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling managed fields: %w", err)
+		}
+		dataFields := fields["f:data"]
+		if dataFields == nil {
+			continue
+		}
+		df, ok := dataFields.(map[string]string)
+		if !ok {
+			continue
+		}
+		for k := range df {
+			if k == "." {
+				continue
+			}
+			keys = append(keys, strings.TrimPrefix(k, "f:"))
+		}
+	}
+	return keys, nil
 }
 
 func getResourceVersion(es esv1beta1.ExternalSecret) string {
@@ -404,11 +497,15 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient esv1beta1.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
 
-	for _, remoteRef := range externalSecret.Spec.DataFrom {
+	for i, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
 		var err error
 		if remoteRef.Find != nil {
 			secretMap, err = providerClient.GetAllSecrets(ctx, *remoteRef.Find)
+			if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
+				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .dataFrom[%d]", i))
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -418,6 +515,10 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 			}
 		} else if remoteRef.Extract != nil {
 			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
+			if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
+				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .dataFrom[%d]", i))
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -430,8 +531,12 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 		providerData = utils.MergeByteMap(providerData, secretMap)
 	}
 
-	for _, secretRef := range externalSecret.Spec.Data {
+	for i, secretRef := range externalSecret.Spec.Data {
 		secretData, err := providerClient.GetSecret(ctx, secretRef.RemoteRef)
+		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
+			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .data[%d] key=%s", i, secretRef.RemoteRef.Key))
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}

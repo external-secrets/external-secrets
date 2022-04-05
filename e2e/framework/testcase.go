@@ -35,6 +35,7 @@ type TestCase struct {
 	ExternalSecretV1Alpha1 *esv1alpha1.ExternalSecret
 	Secrets                map[string]SecretEntry
 	ExpectedSecret         *v1.Secret
+	AfterSync              func(SecretStoreProvider, *v1.Secret)
 }
 
 type SecretEntry struct {
@@ -92,11 +93,14 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 		}
 
 		Expect(err).ToNot(HaveOccurred())
+
+		tc.AfterSync(prov, secret)
 	}
 }
 
 func makeDefaultTestCase(f *Framework) *TestCase {
 	return &TestCase{
+		AfterSync: func(ssp SecretStoreProvider, s *v1.Secret) {},
 		Framework: f,
 		ExternalSecret: &esv1beta1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{

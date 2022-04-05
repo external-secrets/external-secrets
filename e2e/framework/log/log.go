@@ -19,5 +19,5 @@ import (
 
 // Logf logs the format string to ginkgo stdout.
 func Logf(format string, args ...interface{}) {
-	ginkgo.GinkgoWriter.Printf(format, args)
+	ginkgo.GinkgoWriter.Printf(format, args...)
 }

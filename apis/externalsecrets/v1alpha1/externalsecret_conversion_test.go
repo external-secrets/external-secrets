@@ -134,7 +134,7 @@ func newExternalSecretV1Beta1() *esv1beta1.ExternalSecret {
 			},
 			Target: esv1beta1.ExternalSecretTarget{
 				Name:           "test-target",
-				CreationPolicy: esv1beta1.Owner,
+				CreationPolicy: esv1beta1.CreatePolicyOwner,
 				Immutable:      false,
 				Template: &esv1beta1.ExternalSecretTemplate{
 					Type: corev1.SecretTypeOpaque,
