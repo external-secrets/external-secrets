@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -236,7 +237,15 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecr
 	if result.Payload.Data != nil {
 		payload = string(result.Payload.Data)
 	}
-
+	idx := strings.Index(ref.Property, ".")
+	refProperty := ref.Property
+	if idx > 0 {
+		refProperty = strings.ReplaceAll(refProperty, ".", "\\.")
+		val := gjson.Get(payload, refProperty)
+		if val.Exists() {
+			return []byte(val.String()), nil
+		}
+	}
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
