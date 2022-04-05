@@ -13,7 +13,7 @@
     
     
       
-        <title>Blogs - External Secrets Operator</title>
+        <title>Getting Multiple Secrets - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#eso-blogs" class="md-skip">
+        <a href="#fetching-information-from-multiple-secrets" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Blogs
+              Getting Multiple Secrets
             
           </span>
         </div>
@@ -345,12 +345,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
       
       
       
@@ -502,11 +504,73 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../guides-getallsecrets/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Getting Multiple Secrets
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Getting Multiple Secrets
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fetching-secrets-matching-a-given-name-pattern" class="md-nav__link">
+    Fetching secrets matching a given name pattern
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fetching-secrets-matching-a-set-of-metadata-tags" class="md-nav__link">
+    Fetching secrets matching a set of metadata tags
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#searching-only-in-a-given-path" class="md-nav__link">
+    Searching only in a given path
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#avoiding-name-conflicts" class="md-nav__link">
+    Avoiding name conflicts
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1103,14 +1167,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" >
       
       
       
@@ -1159,87 +1221,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Blogs
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../eso-blogs/" class="md-nav__link">
         Blogs
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#tutorial-how-to-set-external-secrets-with-azure-keyvault" class="md-nav__link">
-    Tutorial: How to Set External-Secrets with Azure KeyVault
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tutorial-how-to-set-external-secrets-with-gcp-secret-manager" class="md-nav__link">
-    Tutorial: How to Set External-Secrets with GCP Secret Manager
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tutorial-how-to-set-external-secrets-with-hashicorp-vault" class="md-nav__link">
-    Tutorial: How to Set External-Secrets with Hashicorp Vault
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tutorial-how-to-set-external-secrets-with-aws" class="md-nav__link">
-    Tutorial: How to Set External-Secrets with AWS
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#kubernetes-hardening-tutorial-part-2-network" class="md-nav__link">
-    Kubernetes Hardening Tutorial Part 2: Network
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tutorial-how-to-manage-secrets-in-openshift-using-vault-and-external-secrets-operator" class="md-nav__link">
-    Tutorial: How to manage secrets in OpenShift using Vault and External Secrets Operator
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1431,43 +1417,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#tutorial-how-to-set-external-secrets-with-azure-keyvault" class="md-nav__link">
-    Tutorial: How to Set External-Secrets with Azure KeyVault
+  <a href="#fetching-secrets-matching-a-given-name-pattern" class="md-nav__link">
+    Fetching secrets matching a given name pattern
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#tutorial-how-to-set-external-secrets-with-gcp-secret-manager" class="md-nav__link">
-    Tutorial: How to Set External-Secrets with GCP Secret Manager
+  <a href="#fetching-secrets-matching-a-set-of-metadata-tags" class="md-nav__link">
+    Fetching secrets matching a set of metadata tags
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#tutorial-how-to-set-external-secrets-with-hashicorp-vault" class="md-nav__link">
-    Tutorial: How to Set External-Secrets with Hashicorp Vault
+  <a href="#searching-only-in-a-given-path" class="md-nav__link">
+    Searching only in a given path
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#tutorial-how-to-set-external-secrets-with-aws" class="md-nav__link">
-    Tutorial: How to Set External-Secrets with AWS
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#kubernetes-hardening-tutorial-part-2-network" class="md-nav__link">
-    Kubernetes Hardening Tutorial Part 2: Network
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tutorial-how-to-manage-secrets-in-openshift-using-vault-and-external-secrets-operator" class="md-nav__link">
-    Tutorial: How to manage secrets in OpenShift using Vault and External Secrets Operator
+  <a href="#avoiding-name-conflicts" class="md-nav__link">
+    Avoiding name conflicts
   </a>
   
 </li>
@@ -1484,25 +1456,69 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/eso-blogs.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-getallsecrets.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-<h1 id="eso-blogs">ESO Blogs</h1>
-<p>A list of blogs written by people all over the community. Feel free to let us know if you are writing about ESO at some place! We would be happy to mention you here!</p>
-<h2 id="tutorial-how-to-set-external-secrets-with-azure-keyvault"><a href="https://blog.container-solutions.com/tutorial-external-secrets-with-azure-keyvault">Tutorial: How to Set External-Secrets with Azure KeyVault</a></h2>
-<p>Gustavo writes about how to setup ESO with Azure Key Vault and adds an guide on how to make it a bit more secure with OPA (Open Policy Agent). <a href="https://blog.container-solutions.com/tutorial-external-secrets-with-azure-keyvault">How to Set External-Secrets with Azure KeyVault</a></p>
-<h2 id="tutorial-how-to-set-external-secrets-with-gcp-secret-manager"><a href="https://blog.container-solutions.com/tutorial-how-to-set-external-secrets-with-gcp-secret-manager">Tutorial: How to Set External-Secrets with GCP Secret Manager</a></h2>
-<p>Gustavo writes about how to setup ESO with GCP Secret Manager. He also shows you how to make a simple multi tenant setup with a ClusterSecretStore. <a href="https://blog.container-solutions.com/tutorial-how-to-set-external-secrets-with-gcp-secret-manager">How to Set External-Secrets with GCP Secret Manager</a></p>
-<h2 id="tutorial-how-to-set-external-secrets-with-hashicorp-vault"><a href="https://blog.container-solutions.com/tutorialexternal-secrets-with-hashicorp-vault">Tutorial: How to Set External-Secrets with Hashicorp Vault</a></h2>
-<p>Gustavo writes about how to setup ESO with Hashicorp Vault. He also shows you how to make this scale with multiple replicas of the operator and leader election enabled to lead balance handling synchronization work. <a href="https://blog.container-solutions.com/tutorialexternal-secrets-with-hashicorp-vault">How to Set External-Secrets with Hashicorp Vault</a></p>
-<h2 id="tutorial-how-to-set-external-secrets-with-aws"><a href="https://blog.container-solutions.com/tutorial-how-to-set-external-secrets-with-aws">Tutorial: How to Set External-Secrets with AWS</a></h2>
-<p>Gustavo writes about how to setup ESO with AWS Secrets Manager. He also shows you how to limit access and give granular permissions with better policies and roles for your service accounts to use. <a href="https://blog.container-solutions.com/tutorial-how-to-set-external-secrets-with-aws">How to Set External-Secrets with AWS</a></p>
-<h2 id="kubernetes-hardening-tutorial-part-2-network"><a href="https://blog.gitguardian.com/kubernetes-tutorial-part-2-network/">Kubernetes Hardening Tutorial Part 2: Network</a></h2>
-<p>Tiexin Guo Writes about Kubernetes hardening in this series of blogs. He mentions ESO as one of the convenient options when dealing with secrets in Kubernetes, and how to use it with AWS Secret Manager using AWS credentials. <a href="https://blog.gitguardian.com/kubernetes-tutorial-part-2-network/">Kubernetes Hardening Tutorial Part 2: Network</a></p>
-<h2 id="tutorial-how-to-manage-secrets-in-openshift-using-vault-and-external-secrets-operator"><a href="https://youtu.be/PgiXKBTel1E">Tutorial: How to manage secrets in OpenShift using Vault and External Secrets Operator</a></h2>
-<p>Balkrishna Pandey published a video tutorial and a <a href="https://goglides.io/how-to-manage-secrets-in-openshift-using-vault-and-external-secrets/1164/">blog post</a> on integrating HashiCorp Vault and External Secret Operator (ESO) to manage application secrets on OpenShift Cluster. In this blog, he demonstrates the strength of the <code>ClusterSecretStore</code> functionality, a cluster scoped SecretStore and is global to the Cluster that all <code>ExternalSecrets</code> can reference from all namespaces.</p>
+<h1 id="fetching-information-from-multiple-secrets">Fetching information from multiple secrets</h1>
+<p>In some use cases, it might be impractical to bundle all sensitive information into a single secret, or even it is not possible to fully know a given secret name. In such cases, it is possible that an user might need to sync multiple secrets from an external provider into a single Kubernetes Secret. This is possible to be done in external-secrets with the <code>dataFrom.find</code> option.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it is not possible to apply any decoding Strategy during a find operation.</p>
+</div>
+<h3 id="fetching-secrets-matching-a-given-name-pattern">Fetching secrets matching a given name pattern</h3>
+<p>To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"> </span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">find-by-tags</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;key&quot;</span><span class="w"></span>
+</code></pre></div></p>
+<p>Suppose we contain secrets <code>/path/key1</code>, <code>key2/path</code>, and <code>path/to/keyring</code> with their respective values. The above YAML will produce the following kubernetes Secret:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">_path_key1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
+<span class="nt">key2_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
+<span class="nt">path_to_keyring</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
+</code></pre></div>
+<h3 id="fetching-secrets-matching-a-set-of-metadata-tags">Fetching secrets matching a set of metadata tags</h3>
+<p>To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"> </span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">find-by-tags</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;prod&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">application</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;app-name&quot;</span><span class="w"></span>
+</code></pre></div>
+This will match any secrets containing all of the metadata labels in the <code>tags</code> parameter. At least one tag must be provided in order to allow finding secrets by metadata tags.</p>
+<h3 id="searching-only-in-a-given-path">Searching only in a given path</h3>
+<p>Some providers support filtering out a find operation only to a given path, instead of the root path. In order to use this feature, you can pass <code>find.path</code> to filter out these secrets into only this path, instead of the root path.</p>
+<h3 id="avoiding-name-conflicts">Avoiding name conflicts</h3>
+<p>By default, kubernetes Secrets accepts only a given range of characters. <code>Find</code> operations will automatically replace any not allowed character with a <code>_</code>. So if we have a given secret <code>a_c</code> and <code>a/c</code> would lead to a naming conflict. </p>
+<p>It is not entirely possible to avoid this behavior, but setting <code>dataFrom.find.conversionStrategy: Unicode</code> reduces the collision probability. When using <code>Unicode</code>, any invalid character will be replaced by its unicode, in the form of <code>_UXXXX_</code>. In this case, the available kubernetes keys would be <code>a_c</code> and <code>a_U2215_c</code>, hence avoiding most of possible conflicts.</p>
+<div class="admonition note">
+<p class="admonition-title">PRs welcome</p>
+<p>Some providers might not have the implementation needed for fetching multiple secrets. If that's your case, please feel free to contribute!</p>
+</div>
 
               
             </article>
@@ -1516,7 +1532,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../eso-demos/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Demos" rel="prev">
+        <a href="../guides-controller-class/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Controller Classes" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1525,20 +1541,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Demos
+              Controller Classes
             </div>
           </div>
         </a>
       
       
         
-        <a href="../spec/" class="md-footer__link md-footer__link--next" aria-label="Next: API specification" rel="next">
+        <a href="../guides-multi-tenancy/" class="md-footer__link md-footer__link--next" aria-label="Next: Multi Tenancy" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              API specification
+              Multi Tenancy
             </div>
           </div>
           <div class="md-footer__button md-icon">
