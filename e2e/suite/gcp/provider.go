@@ -113,6 +113,7 @@ func (s *GcpProvider) CreateSecret(key string, val framework.SecretEntry) {
 		Parent:   fmt.Sprintf("projects/%s", s.projectID),
 		SecretId: key,
 		Secret: &secretmanagerpb.Secret{
+			Labels: val.Tags,
 			Replication: &secretmanagerpb.Replication{
 				Replication: &secretmanagerpb.Replication_Automatic_{
 					Automatic: &secretmanagerpb.Replication_Automatic{},

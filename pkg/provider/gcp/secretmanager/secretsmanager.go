@@ -16,6 +16,7 @@ package secretmanager
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -25,13 +26,16 @@ import (
 	"github.com/tidwall/gjson"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -53,16 +57,20 @@ const (
 	errClientGetSecretAccess                  = "unable to access Secret from SecretManager Client: %w"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 
-	errInvalidStore         = "invalid store"
-	errInvalidStoreSpec     = "invalid store spec"
-	errInvalidStoreProv     = "invalid store provider"
-	errInvalidGCPProv       = "invalid gcp secrets manager provider"
-	errInvalidAuthSecretRef = "invalid auth secret ref: %w"
-	errInvalidWISARef       = "invalid workload identity service account reference: %w"
+	errInvalidStore           = "invalid store"
+	errInvalidStoreSpec       = "invalid store spec"
+	errInvalidStoreProv       = "invalid store provider"
+	errInvalidGCPProv         = "invalid gcp secrets manager provider"
+	errInvalidAuthSecretRef   = "invalid auth secret ref: %w"
+	errInvalidWISARef         = "invalid workload identity service account reference: %w"
+	errUnexpectedFindOperator = "unexpected find operator"
 )
+
+var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
 
 type GoogleSecretManagerClient interface {
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
 	Close() error
 }
 
@@ -83,10 +91,11 @@ type ProviderGCP struct {
 }
 
 type gClient struct {
-	kube             kclient.Client
-	store            *esv1beta1.GCPSMProvider
-	namespace        string
-	storeKind        string
+	kube      kclient.Client
+	store     *esv1beta1.GCPSMProvider
+	namespace string
+	storeKind string
+
 	workloadIdentity *workloadIdentity
 }
 
@@ -201,10 +210,120 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 	return sm, nil
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets syncs multiple secrets from gcp provider into a single Kubernetes Secret.
 func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	if ref.Name != nil {
+		return sm.findByName(ctx, ref)
+	}
+	if len(ref.Tags) > 0 {
+		return sm.findByTags(ctx, ref)
+	}
+	return nil, errors.New(errUnexpectedFindOperator)
+}
+
+func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// regex matcher
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
+	}
+	req := &secretmanagerpb.ListSecretsRequest{
+		Parent: fmt.Sprintf("projects/%s", sm.projectID),
+	}
+	if ref.Path != nil {
+		req.Filter = fmt.Sprintf("name:%s", *ref.Path)
+	}
+
+	// Call the API.
+	it := sm.SecretManagerClient.ListSecrets(ctx, req)
+	secretMap := make(map[string][]byte)
+	for {
+		resp, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to list secrets: %w", err)
+		}
+
+		if !matcher.MatchName(resp.Name) {
+			continue
+		}
+
+		log.V(1).Info("gcp sm findByName matches", "name", resp.Name)
+		noPathKey, key := sm.trimName(resp.Name, ref.Path)
+		dataRef := esv1beta1.ExternalSecretDataRemoteRef{
+			Key: key,
+		}
+		data, err := sm.GetSecret(ctx, dataRef)
+		if err != nil {
+			return nil, err
+		}
+		secretMap[noPathKey] = data
+	}
+
+	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+}
+
+func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	var tagFilter string
+	for k, v := range ref.Tags {
+		tagFilter = fmt.Sprintf("%slabels.%s=%s ", tagFilter, k, v)
+	}
+	tagFilter = strings.TrimSuffix(tagFilter, " ")
+	req := &secretmanagerpb.ListSecretsRequest{
+		Parent: fmt.Sprintf("projects/%s", sm.projectID),
+	}
+	log.V(1).Info("gcp sm findByTags", "tagFilter", tagFilter)
+	req.Filter = tagFilter
+
+	// Call the API.
+	it := sm.SecretManagerClient.ListSecrets(ctx, req)
+	secretMap := make(map[string][]byte)
+	for {
+		resp, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to list secrets: %w", err)
+		}
+
+		log.V(1).Info("gcp sm findByName matches tags", "name", resp.Name)
+		noPathKey, key := sm.trimName(resp.Name, ref.Path)
+		dataRef := esv1beta1.ExternalSecretDataRemoteRef{
+			Key: key,
+		}
+		data, err := sm.GetSecret(ctx, dataRef)
+		if err != nil {
+			return nil, err
+		}
+		secretMap[noPathKey] = data
+	}
+
+	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+}
+
+func (sm *ProviderGCP) trimName(name string, path *string) (string, string) {
+	pathValue := ""
+	if path != nil {
+		pathValue = *path
+	}
+	projectIDNumuber := sm.extractProjectIDNumber(name)
+	noPathKey := strings.TrimPrefix(name, fmt.Sprintf("projects/%s/secrets/%s", projectIDNumuber, pathValue))
+	key := fmt.Sprintf("%s%s", pathValue, noPathKey)
+	return noPathKey, key
+}
+
+// extractProjectIDNumber grabs the project id from the full name returned by gcp api
+// gcp api seems to always return the number and not the project name
+// (and users would always use the name, while requests accept both).
+func (sm *ProviderGCP) extractProjectIDNumber(secretFullName string) string {
+	s := strings.Split(secretFullName, "/")
+	projectIDNumuber := s[1]
+	return projectIDNumuber
 }
 
 // GetSecret returns a single secret from the provider.

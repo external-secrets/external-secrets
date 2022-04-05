@@ -17,21 +17,26 @@ import (
 	"context"
 	"fmt"
 
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	grpc "github.com/googleapis/gax-go/v2"
+	"github.com/googleapis/gax-go/v2"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
 type MockSMClient struct {
-	accessSecretFn func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...grpc.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	accessSecretFn func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	ListSecretsFn  func(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
 	closeFn        func() error
 }
 
-func (mc *MockSMClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...grpc.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+func (mc *MockSMClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 	return mc.accessSecretFn(ctx, req)
 }
 
+func (mc *MockSMClient) ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator {
+	return mc.ListSecretsFn(ctx, req)
+}
 func (mc *MockSMClient) Close() error {
 	return mc.closeFn()
 }
@@ -44,7 +49,7 @@ func (mc *MockSMClient) NilClose() {
 
 func (mc *MockSMClient) WithValue(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
 	if mc != nil {
-		mc.accessSecretFn = func(paramCtx context.Context, paramReq *secretmanagerpb.AccessSecretVersionRequest, paramOpts ...grpc.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		mc.accessSecretFn = func(paramCtx context.Context, paramReq *secretmanagerpb.AccessSecretVersionRequest, paramOpts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
 			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
 			if !cmp.Equal(paramReq, req, cmpopts.IgnoreUnexported(secretmanagerpb.AccessSecretVersionRequest{})) {
