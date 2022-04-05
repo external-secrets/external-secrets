@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -89,7 +90,8 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 	return secretOut, nil
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets Method
+// Creates kubernetes secrets with multiple External Secrets information.
 func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
 		return sm.findByName(ctx, ref)
@@ -133,7 +135,11 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 				continue
 			}
 			log.V(1).Info("aws sm findByName matches", "name", *secret.Name)
-			err = sm.fetchAndSet(ctx, data, *secret.Name)
+			secretName := *secret.Name
+			if ref.Path != nil {
+				secretName = strings.TrimPrefix(secretName, *ref.Path)
+			}
+			err = sm.fetchAndSet(ctx, data, secretName)
 			if err != nil {
 				return nil, err
 			}
@@ -184,7 +190,11 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 		}
 		log.V(1).Info("aws sm findByTag found", "secrets", len(it.SecretList))
 		for _, secret := range it.SecretList {
-			err = sm.fetchAndSet(ctx, data, *secret.Name)
+			secretName := *secret.Name
+			if ref.Path != nil {
+				secretName = strings.TrimPrefix(secretName, *ref.Path)
+			}
+			err = sm.fetchAndSet(ctx, data, secretName)
 			if err != nil {
 				return nil, err
 			}

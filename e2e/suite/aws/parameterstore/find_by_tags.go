@@ -97,8 +97,8 @@ func FindByTagWithPath(f *framework.Framework) (string, func(*framework.TestCase
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				fmt.Sprintf("_foobar_%s_two", f.Namespace.Name):   []byte(secretValue),
-				fmt.Sprintf("_foobar_%s_three", f.Namespace.Name): []byte(secretValue),
+				fmt.Sprintf("_%s_two", f.Namespace.Name):   []byte(secretValue),
+				fmt.Sprintf("_%s_three", f.Namespace.Name): []byte(secretValue),
 			},
 		}
 		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{

@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -56,7 +57,8 @@ func New(sess *session.Session) (*ParameterStore, error) {
 	}, nil
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets Method
+// Creates kubernetes secrets with multiple External Secrets information.
 func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
 		return pm.findByName(ref)
@@ -94,7 +96,11 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 			if !matcher.MatchName(*param.Name) {
 				continue
 			}
-			err = pm.fetchAndSet(data, *param.Name)
+			paramName := *param.Name
+			if ref.Path != nil {
+				paramName = strings.TrimPrefix(paramName, *ref.Path)
+			}
+			err = pm.fetchAndSet(data, paramName)
 			if err != nil {
 				return nil, err
 			}
@@ -137,7 +143,11 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 			return nil, err
 		}
 		for _, param := range it.Parameters {
-			err = pm.fetchAndSet(data, *param.Name)
+			paramName := *param.Name
+			if ref.Path != nil {
+				paramName = strings.TrimPrefix(paramName, *ref.Path)
+			}
+			err = pm.fetchAndSet(data, paramName)
 			if err != nil {
 				return nil, err
 			}

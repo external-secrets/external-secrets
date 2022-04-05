@@ -72,11 +72,11 @@ func FindByNameWithPath(f *framework.Framework) (string, func(*framework.TestCas
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				fmt.Sprintf("_%s_two", f.Namespace.Name):   []byte(secretValue),
-				fmt.Sprintf("_%s_three", f.Namespace.Name): []byte(secretValue),
+				"two":   []byte(secretValue),
+				"three": []byte(secretValue),
 			},
 		}
-		pathPrefix := fmt.Sprintf("/%s", f.Namespace.Name)
+		pathPrefix := fmt.Sprintf("/%s/", f.Namespace.Name)
 		tc.ExternalSecret.Spec.DataFrom = []esapi.ExternalSecretDataFromRemoteRef{
 			{
 				Find: &esapi.ExternalSecretFind{

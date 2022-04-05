@@ -73,8 +73,8 @@ func FindByNameWithPath(f *framework.Framework) (string, func(*framework.TestCas
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
-				fmt.Sprintf("%s-two", f.Namespace.Name):   []byte(secretValue),
-				fmt.Sprintf("%s-three", f.Namespace.Name): []byte(secretValue),
+				"-two":   []byte(secretValue),
+				"-three": []byte(secretValue),
 			},
 		}
 		// AWS Secrets Manager is eventually consistent
