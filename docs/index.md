@@ -47,5 +47,9 @@ How to get involved:
 
 ### Kicked off by
 
-![cs-logo](./pictures/cs_logo.png)
 ![godaddy-logo](./pictures/godaddy_logo.png)
+
+### Sponsored by
+
+![cs-logo](./pictures/cs_logo.png)
+![Form3](./pictures/form3_logo.png)
