@@ -11,19 +11,19 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 # Supported Backends
 
-- [AWS Secrets Manager](https://external-secrets.io/provider-aws-secrets-manager/)
-- [AWS Parameter Store](https://external-secrets.io/provider-aws-parameter-store/)
+- [AWS Secrets Manager](https://external-secrets.io/latest/provider-aws-secrets-manager/)
+- [AWS Parameter Store](https://external-secrets.io/latest/provider-aws-parameter-store/)
 - [Akeyless](https://www.akeyless.io/)
 - [Hashicorp Vault](https://www.vaultproject.io/)
-- [Google Cloud Secrets Manager](https://external-secrets.io/provider-google-secrets-manager/)
-- [Azure Key Vault](https://external-secrets.io/provider-azure-key-vault/)
-- [IBM Cloud Secrets Manager](https://external-secrets.io/provider-ibm-secrets-manager/)
-- [Yandex Lockbox](https://external-secrets.io/provider-yandex-lockbox/)
-- [Gitlab Project Variables](https://external-secrets.io/provider-gitlab-project-variables/)
+- [Google Cloud Secrets Manager](https://external-secrets.io/latest/provider-google-secrets-manager/)
+- [Azure Key Vault](https://external-secrets.io/latest/provider-azure-key-vault/)
+- [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider-ibm-secrets-manager/)
+- [Yandex Lockbox](https://external-secrets.io/latest/provider-yandex-lockbox/)
+- [Gitlab Project Variables](https://external-secrets.io/latest/provider-gitlab-project-variables/)
 - [Alibaba Cloud KMS](https://www.alibabacloud.com/product/kms) (Docs still missing, PRs welcomed!)
-- [Oracle Vault](https://external-secrets.io/provider-oracle-vault)
-- [Generic Webhook](https://external-secrets.io/provider-webhook)
-- [Kubernetes](https://external-secrets.io/provider-kubernetes)
+- [Oracle Vault](https://external-secrets.io/latest/provider-oracle-vault)
+- [Generic Webhook](https://external-secrets.io/latest/provider-webhook)
+- [Kubernetes](https://external-secrets.io/latest/provider-kubernetes)
 
 ## Stability and Support Level
 
@@ -31,23 +31,23 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 | Provider                                                                 | Stability |                                        Contact |
 | ------------------------------------------------------------------------ | :-------: | ---------------------------------------------: |
-| [AWS SM](https://external-secrets.io/provider-aws-secrets-manager/)      |   stable   | [ESO Org](https://github.com/external-secrets) |
-| [AWS PS](https://external-secrets.io/provider-aws-parameter-store/)      |   stable   | [ESO Org](https://github.com/external-secrets) |
-| [Hashicorp Vault](https://external-secrets.io/provider-hashicorp-vault/) |   stable   | [ESO Org](https://github.com/external-secrets) |
-| [GCP SM](https://external-secrets.io/provider-google-secrets-manager/)   |   stable | [ESO Org](https://github.com/external-secrets) |
+| [AWS SM](https://external-secrets.io/latest/provider-aws-secrets-manager/)      |   stable   | [ESO Org](https://github.com/external-secrets) |
+| [AWS PS](https://external-secrets.io/latest/provider-aws-parameter-store/)      |   stable   | [ESO Org](https://github.com/external-secrets) |
+| [Hashicorp Vault](https://external-secrets.io/latest/provider-hashicorp-vault/) |   stable   | [ESO Org](https://github.com/external-secrets) |
+| [GCP SM](https://external-secrets.io/latest/provider-google-secrets-manager/)   |   stable | [ESO Org](https://github.com/external-secrets) |
 
 ### Community maintained:
 
 | Provider                                                            | Stability |                  Contact                   |
 | ------------------------------------------------------------------- | :-------: | :----------------------------------------: |
-| [Azure KV](https://external-secrets.io/provider-azure-key-vault/)   |   beta   | [@ahmedmus-1A](https://github.com/ahmedmus-1A) [@asnowfix](https://github.com/asnowfix) [@ncourbet-1A](https://github.com/ncourbet-1A) [@1A-mj](https://github.com/1A-mj) |
-| [IBM SM](https://external-secrets.io/provider-ibm-secrets-manager/) |   alpha   |   [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta)  |
-| [Yandex Lockbox](https://external-secrets.io/provider-yandex-lockbox/) |   alpha   |   [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero)          |
-| [Gitlab Project Variables](https://external-secrets.io/provider-gitlab-project-variables/) |   alpha   |   [@Jabray5](https://github.com/Jabray5)          |
+| [Azure KV](https://external-secrets.io/latest/provider-azure-key-vault/)   |   beta   | [@ahmedmus-1A](https://github.com/ahmedmus-1A) [@asnowfix](https://github.com/asnowfix) [@ncourbet-1A](https://github.com/ncourbet-1A) [@1A-mj](https://github.com/1A-mj) |
+| [IBM SM](https://external-secrets.io/latest/provider-ibm-secrets-manager/) |   alpha   |   [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta)  |
+| [Yandex Lockbox](https://external-secrets.io/latest/provider-yandex-lockbox/) |   alpha   |   [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero)          |
+| [Gitlab Project Variables](https://external-secrets.io/latest/provider-gitlab-project-variables/) |   alpha   |   [@Jabray5](https://github.com/Jabray5)          |
 | Alibaba Cloud KMS                                                   |   alpha  | [@ElsaChelala](https://github.com/ElsaChelala)                                |
-| [Oracle Vault]( https://external-secrets.io/provider-oracle-vault)  |   alpha  | [@KianTigger](https://github.com/KianTigger) [@EladGabay](https://github.com/EladGabay) |
-| [Akeyless]( https://external-secrets.io/provider-akeyless)  |   alpha  | [@renanaAkeyless](https://github.com/renanaAkeyless)                                 |
-| [Generic Webhook](https://external-secrets.io/provider-webhook)  |  alpha  | [@willemm](https://github.com/willemm) |
+| [Oracle Vault]( https://external-secrets.io/latest/provider-oracle-vault)  |   alpha  | [@KianTigger](https://github.com/KianTigger) [@EladGabay](https://github.com/EladGabay) |
+| [Akeyless]( https://external-secrets.io/latest/provider-akeyless)  |   alpha  | [@renanaAkeyless](https://github.com/renanaAkeyless)                                 |
+| [Generic Webhook](https://external-secrets.io/latest/provider-webhook)  |  alpha  | [@willemm](https://github.com/willemm) |
 
 ## Documentation
 
@@ -61,7 +61,7 @@ Even though we have active maintainers and people assigned to this project, we k
 
 ## Contributing
 
-We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/contributing-devguide/) and [Contribution process](https://www.external-secrets.io/contributing-process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/contributing-coc/) and adhere to its guidelines.
+We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/latest/contributing-devguide/) and [Contribution process](https://www.external-secrets.io/latest/contributing-process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/latest/contributing-coc/) and adhere to its guidelines.
 
 ## Bi-weekly Development Meeting
 
