@@ -247,6 +247,12 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 		}
 		log.V(1).Info("gcp sm findByName found", "secrets", strconv.Itoa(it.PageInfo().Remaining()))
 		key := sm.trimName(resp.Name)
+		// If we don't match we skip.
+		// Also, if we have path, and it is not at the beguining we skip.
+		// We have to check if path is at the beguining of the key because
+		// there is no way to create a `name:%s*` (starts with) filter
+		// At https://cloud.google.com/secret-manager/docs/filtering you can use `*`
+		// but not like that it seems.
 		if !matcher.MatchName(key) || (ref.Path != nil && !strings.HasPrefix(key, *ref.Path)) {
 			continue
 		}
