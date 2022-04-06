@@ -2,8 +2,8 @@ apiVersion: v2
 name: external-secrets
 description: External secret management for Kubernetes
 type: application
-version: "0.5.0"
-appVersion: "v0.5.0"
+version: "0.5.1"
+appVersion: "v0.5.1"
 kubeVersion: ">= 1.11.0-0"
 keywords:
   - kubernetes-external-secrets
