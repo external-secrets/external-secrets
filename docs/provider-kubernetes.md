@@ -25,7 +25,7 @@ type: kubernetes.io/service-account-token
 
 The Servers `url` won't be present as it will default to `kubernetes.default`, add a proper value if needed. In this example the Certificate Authority is fetched using the referenced `caProvider`.
 
-The `auth` section indicates that the type `token` will be used for authentication, it includes the path to fetch the token. Set `remoteNamespace` to the name of the current namespace.
+The `auth` section indicates that the type `token` will be used for authentication, it includes the path to fetch the token. Set `remoteNamespace` to the name of the namespace where your target secrets reside.
 
 ```
 apiVersion: external-secrets.io/v1beta1
