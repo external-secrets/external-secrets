@@ -241,7 +241,7 @@ func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySel
 	return val, nil
 }
 
-func (k *ProviderKubernetes) Validate() error {
+func (k *ProviderKubernetes) Validate() (esv1beta1.ValidationResult, error) {
 	ctx := context.Background()
 
 	authReview, err := k.ReviewClient.Create(ctx, &authv1.SelfSubjectAccessReview{
@@ -255,14 +255,14 @@ func (k *ProviderKubernetes) Validate() error {
 	}, metav1.CreateOptions{})
 
 	if err != nil {
-		return fmt.Errorf("could not verify if client is valid: %w", err)
+		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}
 
 	if !authReview.Status.Allowed {
-		return fmt.Errorf("client is not allowed to get secrets")
+		return esv1beta1.ValidationResultError, fmt.Errorf("client is not allowed to get secrets")
 	}
 
-	return nil
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (k *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {

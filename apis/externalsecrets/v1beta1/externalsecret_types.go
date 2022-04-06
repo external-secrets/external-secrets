@@ -273,6 +273,7 @@ const (
 	ConditionReasonSecretDeleted = "SecretDeleted"
 
 	ReasonInvalidStoreRef      = "InvalidStoreRef"
+	ReasonUnavailableStore     = "UnavailableStore"
 	ReasonProviderClientConfig = "InvalidProviderClientConfig"
 	ReasonUpdateFailed         = "UpdateFailed"
 	ReasonUpdated              = "Updated"

@@ -28,33 +28,35 @@ import (
 )
 
 type secretManagerTestCase struct {
-	mockClient        *fakegitlab.GitlabMockClient
-	apiInputProjectID string
-	apiInputKey       string
-	apiOutput         *gitlab.ProjectVariable
-	apiResponse       *gitlab.Response
-	ref               *esv1beta1.ExternalSecretDataRemoteRef
-	projectID         *string
-	apiErr            error
-	expectError       string
-	expectedSecret    string
+	mockClient               *fakegitlab.GitlabMockClient
+	apiInputProjectID        string
+	apiInputKey              string
+	apiOutput                *gitlab.ProjectVariable
+	apiResponse              *gitlab.Response
+	ref                      *esv1beta1.ExternalSecretDataRemoteRef
+	projectID                *string
+	apiErr                   error
+	expectError              string
+	expectedSecret           string
+	expectedValidationResult esv1beta1.ValidationResult
 	// for testing secretmap
 	expectedData map[string][]byte
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc := secretManagerTestCase{
-		mockClient:        &fakegitlab.GitlabMockClient{},
-		apiInputProjectID: makeValidAPIInputProjectID(),
-		apiInputKey:       makeValidAPIInputKey(),
-		ref:               makeValidRef(),
-		projectID:         nil,
-		apiOutput:         makeValidAPIOutput(),
-		apiResponse:       makeValidAPIResponse(),
-		apiErr:            nil,
-		expectError:       "",
-		expectedSecret:    "",
-		expectedData:      map[string][]byte{},
+		mockClient:               &fakegitlab.GitlabMockClient{},
+		apiInputProjectID:        makeValidAPIInputProjectID(),
+		apiInputKey:              makeValidAPIInputKey(),
+		ref:                      makeValidRef(),
+		projectID:                nil,
+		apiOutput:                makeValidAPIOutput(),
+		apiResponse:              makeValidAPIResponse(),
+		apiErr:                   nil,
+		expectError:              "",
+		expectedSecret:           "",
+		expectedValidationResult: esv1beta1.ValidationResultReady,
+		expectedData:             map[string][]byte{},
 	}
 	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
 	return &smtc
@@ -104,22 +106,26 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 var setAPIErr = func(smtc *secretManagerTestCase) {
 	smtc.apiErr = fmt.Errorf("oh no")
 	smtc.expectError = "oh no"
+	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
 var setListAPIErr = func(smtc *secretManagerTestCase) {
 	err := fmt.Errorf("oh no")
 	smtc.apiErr = err
 	smtc.expectError = fmt.Errorf(errList, err).Error()
+	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
 var setListAPIRespNil = func(smtc *secretManagerTestCase) {
 	smtc.apiResponse = nil
 	smtc.expectError = errAuth
+	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
 var setListAPIRespBadCode = func(smtc *secretManagerTestCase) {
 	smtc.apiResponse.StatusCode = http.StatusUnauthorized
 	smtc.expectError = errAuth
+	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
 var setNilMockClient = func(smtc *secretManagerTestCase) {
@@ -172,9 +178,12 @@ func TestValidate(t *testing.T) {
 	for k, v := range successCases {
 		sm.client = v.mockClient
 		t.Logf("%+v", v)
-		err := sm.Validate()
+		validationResult, err := sm.Validate()
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d], unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if validationResult != v.expectedValidationResult {
+			t.Errorf("[%d], unexpected validationResult: %s, expected: '%s'", k, validationResult, v.expectedValidationResult)
 		}
 	}
 }

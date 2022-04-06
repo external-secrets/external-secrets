@@ -32,6 +32,10 @@ type SecretStoreSpec struct {
 	// Used to configure http retries if failed
 	// +optional
 	RetrySettings *SecretStoreRetrySettings `json:"retrySettings,omitempty"`
+
+	// Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+	// +optional
+	RefreshInterval int `json:"refreshInterval"`
 }
 
 // SecretStoreProvider contains the provider-specific configration.

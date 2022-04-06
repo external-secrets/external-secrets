@@ -480,8 +480,8 @@ func (a *Azure) Close(ctx context.Context) error {
 	return nil
 }
 
-func (a *Azure) Validate() error {
-	return nil
+func (a *Azure) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func getObjType(ref esv1beta1.ExternalSecretDataRemoteRef) (string, string) {

@@ -53,8 +53,10 @@ const (
 	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
+	errSecretStoreNotReady   = "the desired SecretStore %s is not ready"
 	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
 	errStoreRef              = "could not get store reference"
+	errStoreUsability        = "could not use store reference"
 	errStoreProvider         = "could not get store provider"
 	errStoreClient           = "could not get provider client"
 	errGetExistingSecret     = "could not get existing secret: %w"
@@ -82,6 +84,7 @@ type Reconciler struct {
 	ControllerClass           string
 	RequeueInterval           time.Duration
 	ClusterSecretStoreEnabled bool
+	EnableFloodGate           bool
 	recorder                  record.EventRecorder
 }
 
@@ -133,7 +136,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errStoreRef)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(syncCallsMetricLabels).Inc()
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		return ctrl.Result{}, err
 	}
 
 	log = log.WithValues("SecretStore", store.GetNamespacedName())
@@ -142,6 +145,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !secretstore.ShouldProcessStore(store, r.ControllerClass) {
 		log.Info("skipping unmanaged store")
 		return ctrl.Result{}, nil
+	}
+
+	if r.EnableFloodGate {
+		if err = assertStoreIsUsable(store); err != nil {
+			log.Error(err, errStoreUsability)
+			r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUnavailableStore, err.Error())
+			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errStoreUsability)
+			SetExternalSecretCondition(&externalSecret, *conditionSynced)
+			syncCallsError.With(syncCallsMetricLabels).Inc()
+			return ctrl.Result{}, err
+		}
 	}
 
 	storeProvider, err := esv1beta1.GetProvider(store)
@@ -158,7 +172,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonProviderClientConfig, err.Error())
 		syncCallsError.With(syncCallsMetricLabels).Inc()
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		return ctrl.Result{}, err
 	}
 
 	defer func() {
@@ -467,7 +481,14 @@ func isSecretValid(existingSecret v1.Secret) bool {
 	return true
 }
 
-// getStore returns the store with the provided ExternalSecret.
+// assertStoreIsUsable assert that the store is ready to use.
+func assertStoreIsUsable(store esv1beta1.GenericStore) error {
+	if secretstore.GetSecretStoreCondition(store.GetStatus(), esv1beta1.SecretStoreReady).Status != v1.ConditionTrue {
+		return fmt.Errorf(errSecretStoreNotReady, store.GetName())
+	}
+	return nil
+}
+
 func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.ExternalSecret) (esv1beta1.GenericStore, error) {
 	ref := types.NamespacedName{
 		Name: externalSecret.Spec.SecretStoreRef.Name,
@@ -479,7 +500,6 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 		if err != nil {
 			return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
 		}
-
 		return &store, nil
 	}
 
@@ -490,6 +510,7 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 	if err != nil {
 		return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
 	}
+
 	return &store, nil
 }
 

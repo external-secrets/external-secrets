@@ -50,8 +50,8 @@ func (p *PP) Close(ctx context.Context) error {
 	return nil
 }
 
-func (p *PP) Validate() error {
-	return nil
+func (p *PP) Validate() (ValidationResult, error) {
+	return ValidationResultReady, nil
 }
 
 func (p *PP) ValidateStore(store GenericStore) error {

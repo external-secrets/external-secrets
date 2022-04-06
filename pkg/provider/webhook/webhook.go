@@ -394,11 +394,14 @@ func (w *WebHook) Close(ctx context.Context) error {
 	return nil
 }
 
-func (w *WebHook) Validate() error {
+func (w *WebHook) Validate() (esv1beta1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	url := w.url
 
-	return utils.NetworkValidate(url, timeout)
+	if err := utils.NetworkValidate(url, timeout); err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func executeTemplateString(tmpl string, data map[string]map[string]string) (string, error) {

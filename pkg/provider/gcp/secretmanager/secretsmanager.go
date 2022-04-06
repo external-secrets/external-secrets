@@ -423,8 +423,8 @@ func (sm *ProviderGCP) Close(ctx context.Context) error {
 	return nil
 }
 
-func (sm *ProviderGCP) Validate() error {
-	return nil
+func (sm *ProviderGCP) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (sm *ProviderGCP) ValidateStore(store esv1beta1.GenericStore) error {
