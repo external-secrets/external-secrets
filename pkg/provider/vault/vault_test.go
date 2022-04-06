@@ -1167,8 +1167,8 @@ func TestGetAllSecrets(t *testing.T) {
 			want: want{
 				err: nil,
 				val: map[string][]byte{
-					"1": path1Bytes,
-					"2": path2Bytes,
+					"path/1": path1Bytes,
+					"path/2": path2Bytes,
 				},
 			},
 		},

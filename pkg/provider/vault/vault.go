@@ -279,12 +279,12 @@ func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		return nil, err
 	}
 	if ref.Name != nil {
-		return v.findSecretsFromName(ctx, potentialSecrets, *ref.Name, searchPath)
+		return v.findSecretsFromName(ctx, potentialSecrets, *ref.Name)
 	}
-	return v.findSecretsFromTags(ctx, potentialSecrets, ref.Tags, searchPath)
+	return v.findSecretsFromTags(ctx, potentialSecrets, ref.Tags)
 }
 
-func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, tags map[string]string, removeFromName string) (map[string][]byte, error) {
+func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, tags map[string]string) (map[string][]byte, error) {
 	secrets := make(map[string][]byte)
 	for _, name := range candidates {
 		match := true
@@ -304,16 +304,13 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 			if err != nil {
 				return nil, err
 			}
-			if removeFromName != "" {
-				name = strings.TrimPrefix(name, removeFromName)
-			}
 			secrets[name] = secret
 		}
 	}
 	return secrets, nil
 }
 
-func (v *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName, removeFromName string) (map[string][]byte, error) {
+func (v *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName) (map[string][]byte, error) {
 	secrets := make(map[string][]byte)
 	matcher, err := find.New(ref)
 	if err != nil {
@@ -325,9 +322,6 @@ func (v *client) findSecretsFromName(ctx context.Context, candidates []string, r
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
 			if err != nil {
 				return nil, err
-			}
-			if removeFromName != "" {
-				name = strings.TrimPrefix(name, removeFromName)
 			}
 			secrets[name] = secret
 		}
