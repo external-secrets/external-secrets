@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -233,7 +234,6 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 	if ref.Path != nil {
 		req.Filter = fmt.Sprintf("name:%s", *ref.Path)
 	}
-
 	// Call the API.
 	it := sm.SecretManagerClient.ListSecrets(ctx, req)
 	secretMap := make(map[string][]byte)
@@ -242,28 +242,33 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 		if errors.Is(err, iterator.Done) {
 			break
 		}
-
 		if err != nil {
 			return nil, fmt.Errorf("failed to list secrets: %w", err)
 		}
-
-		if !matcher.MatchName(resp.Name) {
+		log.V(1).Info("gcp sm findByName found", "secrets", strconv.Itoa(it.PageInfo().Remaining()))
+		key := sm.trimName(resp.Name)
+		if !matcher.MatchName(key) || (ref.Path != nil && !strings.HasPrefix(key, *ref.Path)) {
 			continue
 		}
-
 		log.V(1).Info("gcp sm findByName matches", "name", resp.Name)
-		key := sm.trimName(resp.Name)
-		dataRef := esv1beta1.ExternalSecretDataRemoteRef{
-			Key: key,
-		}
-		data, err := sm.GetSecret(ctx, dataRef)
+		secretMap[key], err = sm.getData(ctx, key)
 		if err != nil {
 			return nil, err
 		}
-		secretMap[key] = data
 	}
 
 	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+}
+
+func (sm *ProviderGCP) getData(ctx context.Context, key string) ([]byte, error) {
+	dataRef := esv1beta1.ExternalSecretDataRemoteRef{
+		Key: key,
+	}
+	data, err := sm.GetSecret(ctx, dataRef)
+	if err != nil {
+		return []byte(""), err
+	}
+	return data, nil
 }
 
 func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -272,12 +277,14 @@ func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSec
 		tagFilter = fmt.Sprintf("%slabels.%s=%s ", tagFilter, k, v)
 	}
 	tagFilter = strings.TrimSuffix(tagFilter, " ")
+	if ref.Path != nil {
+		tagFilter = fmt.Sprintf("%s name:%s", tagFilter, *ref.Path)
+	}
 	req := &secretmanagerpb.ListSecretsRequest{
 		Parent: fmt.Sprintf("projects/%s", sm.projectID),
 	}
 	log.V(1).Info("gcp sm findByTags", "tagFilter", tagFilter)
 	req.Filter = tagFilter
-
 	// Call the API.
 	it := sm.SecretManagerClient.ListSecrets(ctx, req)
 	secretMap := make(map[string][]byte)
@@ -286,21 +293,18 @@ func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSec
 		if errors.Is(err, iterator.Done) {
 			break
 		}
-
 		if err != nil {
 			return nil, fmt.Errorf("failed to list secrets: %w", err)
 		}
-
-		log.V(1).Info("gcp sm findByName matches tags", "name", resp.Name)
 		key := sm.trimName(resp.Name)
-		dataRef := esv1beta1.ExternalSecretDataRemoteRef{
-			Key: key,
+		if ref.Path != nil && !strings.HasPrefix(key, *ref.Path) {
+			continue
 		}
-		data, err := sm.GetSecret(ctx, dataRef)
+		log.V(1).Info("gcp sm findByTags matches tags", "name", resp.Name)
+		secretMap[key], err = sm.getData(ctx, key)
 		if err != nil {
 			return nil, err
 		}
-		secretMap[key] = data
 	}
 
 	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
