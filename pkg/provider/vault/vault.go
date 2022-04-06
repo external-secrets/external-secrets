@@ -96,6 +96,7 @@ const (
 	errInvalidClientCert = "invalid Auth.Cert.ClientCert: %w"
 	errInvalidCertSec    = "invalid Auth.Cert.SecretRef: %w"
 	errInvalidJwtSec     = "invalid Auth.Jwt.SecretRef: %w"
+	errInvalidJwtK8sSA   = "invalid Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef: %w"
 	errInvalidKubeSA     = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
 	errInvalidKubeSec    = "invalid Auth.Kubernetes.SecretRef: %w"
 	errInvalidLdapSec    = "invalid Auth.Ldap.SecretRef: %w"
@@ -231,7 +232,7 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 			}
 		} else if p.Auth.Jwt.KubernetesServiceAccountToken != nil {
 			if err := utils.ValidateServiceAccountSelector(store, p.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef); err != nil {
-				return fmt.Errorf(errInvalidJwtSec, err)
+				return fmt.Errorf(errInvalidJwtK8sSA, err)
 			}
 		} else {
 			return fmt.Errorf(errJwtNoTokenSource)
