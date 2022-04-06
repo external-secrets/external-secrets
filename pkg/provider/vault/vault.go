@@ -558,6 +558,8 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 func (v *client) newConfig() (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
+	// In a controller-runtime context, we rely on the reconciliation process for retrying
+	cfg.MaxRetries = 0
 
 	if len(v.store.CABundle) == 0 && v.store.CAProvider == nil {
 		return cfg, nil
