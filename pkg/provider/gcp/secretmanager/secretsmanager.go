@@ -252,7 +252,7 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 		}
 
 		log.V(1).Info("gcp sm findByName matches", "name", resp.Name)
-		noPathKey, key := sm.trimName(resp.Name, ref.Path)
+		key := sm.trimName(resp.Name)
 		dataRef := esv1beta1.ExternalSecretDataRemoteRef{
 			Key: key,
 		}
@@ -260,7 +260,7 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 		if err != nil {
 			return nil, err
 		}
-		secretMap[noPathKey] = data
+		secretMap[key] = data
 	}
 
 	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
@@ -292,7 +292,7 @@ func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSec
 		}
 
 		log.V(1).Info("gcp sm findByName matches tags", "name", resp.Name)
-		noPathKey, key := sm.trimName(resp.Name, ref.Path)
+		key := sm.trimName(resp.Name)
 		dataRef := esv1beta1.ExternalSecretDataRemoteRef{
 			Key: key,
 		}
@@ -300,21 +300,16 @@ func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSec
 		if err != nil {
 			return nil, err
 		}
-		secretMap[noPathKey] = data
+		secretMap[key] = data
 	}
 
 	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
 }
 
-func (sm *ProviderGCP) trimName(name string, path *string) (string, string) {
-	pathValue := ""
-	if path != nil {
-		pathValue = *path
-	}
+func (sm *ProviderGCP) trimName(name string) string {
 	projectIDNumuber := sm.extractProjectIDNumber(name)
-	noPathKey := strings.TrimPrefix(name, fmt.Sprintf("projects/%s/secrets/%s", projectIDNumuber, pathValue))
-	key := fmt.Sprintf("%s%s", pathValue, noPathKey)
-	return noPathKey, key
+	key := strings.TrimPrefix(name, fmt.Sprintf("projects/%s/secrets/", projectIDNumuber))
+	return key
 }
 
 // extractProjectIDNumber grabs the project id from the full name returned by gcp api
