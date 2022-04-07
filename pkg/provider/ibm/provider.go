@@ -47,6 +47,10 @@ const (
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &providerIBM{}
+var _ esv1beta1.Provider = &providerIBM{}
+
 type SecretManagerClient interface {
 	GetSecret(getSecretOptions *sm.GetSecretOptions) (result *sm.GetSecret, response *core.DetailedResponse, err error)
 }

@@ -79,6 +79,10 @@ const (
 	errMissingSAAnnotation    = "missing service account annotation: %s"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &Azure{}
+var _ esv1beta1.Provider = &Azure{}
+
 // interface to keyvault.BaseClient.
 type SecretClient interface {
 	GetKey(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string) (result keyvault.KeyBundle, err error)

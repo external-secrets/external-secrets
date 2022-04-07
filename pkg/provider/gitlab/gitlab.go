@@ -41,6 +41,10 @@ const (
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &Gitlab{}
+var _ esv1beta1.Provider = &Gitlab{}
+
 type Client interface {
 	GetVariable(pid interface{}, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 }

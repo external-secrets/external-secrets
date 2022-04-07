@@ -31,6 +31,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &ParameterStore{}
+
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
 	sess   *session.Session

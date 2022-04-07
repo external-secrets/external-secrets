@@ -45,6 +45,10 @@ type iamTokenKey struct {
 	privateKeyHash   string
 }
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &lockboxSecretsClient{}
+var _ esv1beta1.Provider = &lockboxProvider{}
+
 // lockboxProvider is a provider for Yandex Lockbox.
 type lockboxProvider struct {
 	yandexCloudCreator client.YandexCloudCreator

@@ -41,6 +41,10 @@ const (
 	errEmptyKey                            = "key %s found but empty"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
+var _ esv1beta1.Provider = &ProviderKubernetes{}
+
 type KClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error)
 }

@@ -41,9 +41,8 @@ import (
 )
 
 const (
-	CloudPlatformRole = "https://www.googleapis.com/auth/cloud-platform"
-	defaultVersion    = "latest"
-
+	CloudPlatformRole                         = "https://www.googleapis.com/auth/cloud-platform"
+	defaultVersion                            = "latest"
 	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
 	errUnableGetCredentials                   = "unable to get credentials: %w"
 	errClientClose                            = "unable to close SecretManager client: %w"
@@ -83,6 +82,10 @@ type GoogleSecretManagerClient interface {
  A Mutex was implemented to make sure only one connection can be in place at a time.
 */
 var useMu = sync.Mutex{}
+
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &ProviderGCP{}
+var _ esv1beta1.Provider = &ProviderGCP{}
 
 // ProviderGCP is a provider for GCP Secret Manager.
 type ProviderGCP struct {
