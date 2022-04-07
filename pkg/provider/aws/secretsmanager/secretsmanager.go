@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -241,7 +242,15 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	if secretOut.SecretBinary != nil {
 		payload = string(secretOut.SecretBinary)
 	}
-
+	// We need to search if a given key with a . exists before using gjson operations.
+	idx := strings.Index(ref.Property, ".")
+	if idx > 0 {
+		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+		val := gjson.Get(payload, refProperty)
+		if val.Exists() {
+			return []byte(val.String()), nil
+		}
+	}
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
