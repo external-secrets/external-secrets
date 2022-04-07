@@ -2,35 +2,30 @@ External Secrets Operator allows to retrieve in-cluster secrets or from a remote
 
 ### Authentication
 
-It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or a service account (not implemented yet). The operator enforces that exactly one authentication method is used.
+It's possible to authenticate against the Kubernetes API using client certificates or a bearer token. Authentication using a service account has not yet been implemented. The operator enforces that exactly one authentication method is used.
 
 **NOTE:** `SelfSubjectAccessReview` permission is required for the service account in order to validation work properly.
 
 ## Example
 
-### In-cluster secrets using Client certificates
+### In-cluster secrets using a Token
 
-1. Create a K8s Secret with the encoded base64 ca and client certificates
-   
+1. Create a K8s Secret with a client token for the default service account
+
 ```
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cluster-secrets
-data:
-  # Fill with your encoded base64 CA
-  certificate-authority-data: Cg==
-  # Fill with your encoded base64 Certificate
-  client-certificate-data: Cg==
-  # Fill with your encoded base64 Key
-  client-key-data: Cg==
+  name: mydefaulttoken
+  annotations:
+    kubernetes.io/service-account.name: default
+type: kubernetes.io/service-account-token
 ```
 2. Create a SecretStore
 
-The Servers `url` won't be present as it will default to `kubernetes.default`, add a proper value if needed. In this example the Certificate Authority is fetch using the referenced `caProvider`.
+The Servers `url` won't be present as it will default to `kubernetes.default`, add a proper value if needed. In this example the Certificate Authority is fetched using the referenced `caProvider`.
 
-The `auth` section indicates that the type `cert`  will be used for authentication, it includes the path to fetch the client certificate and key.
-
+The `auth` section indicates that the type `token` will be used for authentication, it includes the path to fetch the token. Set `remoteNamespace` to the name of the namespace where your target secrets reside.
 
 ```
 apiVersion: external-secrets.io/v1beta1
@@ -39,22 +34,18 @@ metadata:
   name: example
 spec:
   provider:
-      kubernetes: 
-        server: 
-          # referenced caProvider
-          caProvider: 
-            type: Secret
-            name : cluster-secrets
-            key: certificate-authority-data
+    kubernetes:
+      server: 
+        caProvider: 
+          type: Secret
+          name: mydefaulttoken
+          key: ca.crt
         auth:
-          # referenced client certificates
-          cert:
-            clientCert: 
-                name: cluster-secrets
-                key: certificate
-            clientKey: 
-                name: cluster-secrets
-                key: key
+          token:
+            bearerToken: 
+              name: mydefaulttoken
+              key: token
+        remoteNamespace: default
 ```
 3. Create the local secret that will be synced 
               
