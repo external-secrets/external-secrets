@@ -109,6 +109,25 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		smtc.apiOutput.Payload.Data = []byte("testtesttest")
 		smtc.expectedSecret = "testtesttest"
 	}
+	// good case: with a dot in the key name
+	setDotRef := func(smtc *secretManagerTestCase) {
+		smtc.ref = &esv1beta1.ExternalSecretDataRemoteRef{
+			Key:      "/baz",
+			Version:  "default",
+			Property: "name.json",
+		}
+		smtc.apiInput.Name = "projects/default/secrets//baz/versions/default"
+		smtc.apiOutput.Payload.Data = []byte(
+			`{
+			"name.json": "Tom",
+			"friends": [
+				{"first": "Dale", "last": "Murphy"},
+				{"first": "Roger", "last": "Craig"},
+				{"first": "Jane", "last": "Murphy"}
+			]
+        }`)
+		smtc.expectedSecret = "Tom"
+	}
 
 	// good case: ref with
 	setCustomRef := func(smtc *secretManagerTestCase) {
@@ -144,6 +163,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setCustomVersion),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setCustomRef),
+		makeValidSecretManagerTestCaseCustom(setDotRef),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 	}
 

@@ -89,7 +89,7 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 	return secretOut, nil
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets syncs multiple secrets from aws provider into a single Kubernetes Secret.
 func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
 		return sm.findByName(ctx, ref)
