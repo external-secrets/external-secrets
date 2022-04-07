@@ -31,6 +31,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      hostNetwork: {{ .Values.webhook.hostNetwork}}
       serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
       {{- with .Values.webhook.podSecurityContext }}
       securityContext:
@@ -46,6 +47,7 @@ spec:
           imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
           args:
           - webhook
+          - --port={{ .Values.webhook.port }}
           - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
           - --cert-dir={{ .Values.webhook.certDir }}
           - --check-interval={{ .Values.webhook.certCheckInterval }}
@@ -60,7 +62,7 @@ spec:
             - containerPort: {{ .Values.webhook.prometheus.service.port }}
               protocol: TCP
               name: metrics
-            - containerPort: 9443
+            - containerPort: {{ .Values.webhook.port }}
               protocol: TCP
               name: webhook
           readinessProbe:

@@ -103,7 +103,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | webhook.extraArgs | object | `{}` |  |
 | webhook.extraEnv | list | `[]` |  |
+| webhook.failurePolicy | string | `"Fail"` | specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore |
 | webhook.fullnameOverride | string | `""` |  |
+| webhook.hostNetwork | bool | `false` | Specifies if webhook pod should use hostNetwork or not. |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
 | webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
@@ -113,6 +115,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podAnnotations | object | `{}` | Annotations to add to Pod |
 | webhook.podLabels | object | `{}` |  |
 | webhook.podSecurityContext | object | `{}` |  |
+| webhook.port | int | `443` | The port the webhook will listen to |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
 | webhook.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
 | webhook.prometheus.service.port | int | `8080` |  |
