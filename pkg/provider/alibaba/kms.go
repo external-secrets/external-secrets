@@ -51,6 +51,10 @@ type Client struct {
 	accessKey []byte
 }
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &KeyManagementService{}
+var _ esv1beta1.Provider = &KeyManagementService{}
+
 type KeyManagementService struct {
 	Client SMInterface
 }

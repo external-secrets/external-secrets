@@ -103,6 +103,10 @@ const (
 	errInvalidTokenRef   = "invalid Auth.TokenSecretRef: %w"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &client{}
+var _ esv1beta1.Provider = &connector{}
+
 type Client interface {
 	NewRequest(method, requestPath string) *vault.Request
 	RawRequestWithContext(ctx context.Context, r *vault.Request) (*vault.Response, error)

@@ -52,6 +52,10 @@ const (
 	errUnexpectedContent                     = "unexpected secret bundle content"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &VaultManagementService{}
+var _ esv1beta1.Provider = &VaultManagementService{}
+
 type VaultManagementService struct {
 	Client VMInterface
 	vault  string

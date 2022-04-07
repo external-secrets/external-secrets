@@ -32,6 +32,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &SecretsManager{}
+
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
 	sess   *session.Session
