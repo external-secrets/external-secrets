@@ -131,6 +131,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 var _ = Describe("ExternalSecret controller", func() {
 	const (
 		ExternalSecretName             = "test-es"
+		ExternalSecretFQDN             = "externalsecrets.external-secrets.io/test-es"
 		ExternalSecretStore            = "test-store"
 		ExternalSecretTargetSecretName = "test-secret"
 		FakeManager                    = "fake.manager"
@@ -308,11 +309,11 @@ var _ = Describe("ExternalSecret controller", func() {
 			for k, v := range es.ObjectMeta.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
 			}
-			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeFalse())
+			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
 			Expect(ctest.HasFieldOwnership(
 				secret.ObjectMeta,
-				"external-secrets",
+				ExternalSecretFQDN,
 				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
 			).To(BeTrue())
 			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
@@ -408,9 +409,9 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(string(secret.Data[existingKey])).To(Equal(secretVal))
 
 			// check owner/managedFields
-			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeFalse())
+			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
-			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, "external-secrets", "{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:reconcile.external-secrets.io/data-hash\":{}}}}")).To(BeTrue())
+			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, ExternalSecretFQDN, "{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:reconcile.external-secrets.io/data-hash\":{}}}}")).To(BeTrue())
 		}
 	}
 
