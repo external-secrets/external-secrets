@@ -79,5 +79,9 @@ Please create a PR and add your company or your project to our [ADOPTERS](ADOPTE
 
 ## Kicked off by
 
-![](assets/CS_logo_1.png)
 ![](assets/Godaddylogo_2020.png)
+
+## Sponsored by
+
+![](assets/CS_logo_1.png)
+![](assets/form3_logo.png)
