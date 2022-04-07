@@ -227,7 +227,7 @@ func TestConvertKeys(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	err := NetworkValidate("https://google.com", 10*time.Second)
+	err := NetworkValidate("http://google.com", 10*time.Second)
 	if err != nil {
 		t.Errorf("Connection problem: %v", err)
 	}

@@ -140,19 +140,23 @@ func ValidateServiceAccountSelector(store esv1beta1.GenericStore, ref esmeta.Ser
 
 func NetworkValidate(endpoint string, timeout time.Duration) error {
 	hostname, err := url.Parse(endpoint)
+
 	if err != nil {
 		return fmt.Errorf("could not parse url: %w", err)
 	}
 
-	host, port, err := net.SplitHostPort(hostname.Host)
-	if err != nil {
-		return fmt.Errorf("could not find host and port from url: %w", err)
+	host := hostname.Hostname()
+	port := hostname.Port()
+
+	if port == "" {
+		port = "443"
 	}
 
 	url := fmt.Sprintf("%v:%v", host, port)
-	_, err = net.DialTimeout("tcp", url, timeout)
+	conn, err := net.DialTimeout("tcp", url, timeout)
 	if err != nil {
 		return fmt.Errorf("error accessing external store: %w", err)
 	}
+	defer conn.Close()
 	return nil
 }
