@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -48,6 +49,7 @@ type Client interface {
 // Gitlab Provider struct with reference to a GitLab client and a projectID.
 type Gitlab struct {
 	client    Client
+	url       string
 	projectID interface{}
 }
 
@@ -142,6 +144,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 
 	g.client = gitlabClient.ProjectVariables
 	g.projectID = cliStore.store.ProjectID
+	g.url = cliStore.store.URL
 
 	return g, nil
 }
@@ -216,7 +219,10 @@ func (g *Gitlab) Close(ctx context.Context) error {
 }
 
 func (g *Gitlab) Validate() error {
-	return nil
+	timeout := 4 * time.Second
+	url := g.url
+
+	return utils.NetworkValidate(url, timeout)
 }
 
 func (g *Gitlab) ValidateStore(store esv1beta1.GenericStore) error {
