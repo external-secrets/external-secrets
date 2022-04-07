@@ -147,6 +147,13 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		smtc.remoteRef.Property = "foobar.baz"
 		smtc.expectedSecret = "nestedval"
 	}
+	// good case: secretOut.SecretBinary no JSON parsing if name on key
+	setSecretValueWithDot := func(smtc *secretsManagerTestCase) {
+		smtc.apiOutput.SecretString = nil
+		smtc.apiOutput.SecretBinary = []byte(`{"foobar.baz":"nestedval"}`)
+		smtc.remoteRef.Property = "foobar.baz"
+		smtc.expectedSecret = "nestedval"
+	}
 
 	// good case: custom version set
 	setCustomVersion := func(smtc *secretsManagerTestCase) {
@@ -165,6 +172,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		makeValidSecretsManagerTestCaseCustom(setSecretBinaryNotSecretString),
 		makeValidSecretsManagerTestCaseCustom(setSecretBinaryAndSecretStringToNil),
 		makeValidSecretsManagerTestCaseCustom(setNestedSecretValueJSONParsing),
+		makeValidSecretsManagerTestCaseCustom(setSecretValueWithDot),
 		makeValidSecretsManagerTestCaseCustom(setCustomVersion),
 		makeValidSecretsManagerTestCaseCustom(setAPIErr),
 	}

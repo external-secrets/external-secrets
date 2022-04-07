@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -183,6 +184,14 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 			return []byte(*out.Parameter.Value), nil
 		}
 		return nil, fmt.Errorf("invalid secret received. parameter value is nil for key: %s", ref.Key)
+	}
+	idx := strings.Index(ref.Property, ".")
+	if idx > 0 {
+		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+		val := gjson.Get(*out.Parameter.Value, refProperty)
+		if val.Exists() {
+			return []byte(val.String()), nil
+		}
 	}
 	val := gjson.Get(*out.Parameter.Value, ref.Property)
 	if !val.Exists() {

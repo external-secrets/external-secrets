@@ -96,6 +96,12 @@ func TestGetSecret(t *testing.T) {
 		pstc.expectedSecret = "bang"
 		pstc.remoteRef.Property = "/shmoo"
 	}
+	// good case: extract property with `.`
+	setExtractPropertyWithDot := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo.boom": "bang"}`)
+		pstc.expectedSecret = "bang"
+		pstc.remoteRef.Property = "/shmoo.boom"
+	}
 
 	// bad case: missing property
 	setMissingProperty := func(pstc *parameterstoreTestCase) {
@@ -131,6 +137,7 @@ func TestGetSecret(t *testing.T) {
 		makeValidParameterStoreTestCaseCustom(setPropertyFail),
 		makeValidParameterStoreTestCaseCustom(setParameterValueNil),
 		makeValidParameterStoreTestCaseCustom(setAPIError),
+		makeValidParameterStoreTestCaseCustom(setExtractPropertyWithDot),
 	}
 
 	ps := ParameterStore{}
