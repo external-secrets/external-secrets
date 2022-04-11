@@ -49,7 +49,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.15.29
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1473
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1554
 	github.com/aws/aws-sdk-go v1.41.13
 	github.com/crossplane/crossplane-runtime v0.15.1
 	github.com/go-logr/logr v1.2.3
