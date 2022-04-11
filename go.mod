@@ -42,24 +42,24 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.4.0
 	github.com/IBM/go-sdk-core/v5 v5.9.3
-	github.com/IBM/secrets-manager-go-sdk v1.0.37
+	github.com/IBM/secrets-manager-go-sdk v1.0.38
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.15.29
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1473
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1554
 	github.com/aws/aws-sdk-go v1.41.13
 	github.com/crossplane/crossplane-runtime v0.15.1
 	github.com/go-logr/logr v1.2.3
-	github.com/golang-jwt/jwt/v4 v4.4.0
+	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.3.0
 	github.com/googleapis/gax-go/v2 v2.2.0
 	github.com/hashicorp/vault/api v1.4.1
 	github.com/huandu/xstrings v1.3.2 // indirect
-	github.com/lestrrat-go/jwx v1.2.20
+	github.com/lestrrat-go/jwx v1.2.22
 	github.com/onsi/ginkgo/v2 v2.1.3
 	github.com/onsi/gomega v1.19.0
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
@@ -122,7 +122,7 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/flect v0.2.3 // indirect
-	github.com/goccy/go-json v0.9.4 // indirect
+	github.com/goccy/go-json v0.9.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -158,7 +158,7 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.0 // indirect
-	github.com/lestrrat-go/httpcc v1.0.0 // indirect
+	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/iter v1.0.1 // indirect
 	github.com/lestrrat-go/option v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
