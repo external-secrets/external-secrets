@@ -93,8 +93,8 @@ github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3
 github.com/IBM/go-sdk-core/v5 v5.9.1/go.mod h1:axE2JrRq79gIJTjKPBwV6gWHswvVptBjbcvvCPIxARM=
 github.com/IBM/go-sdk-core/v5 v5.9.3 h1:s/oxlSLOJbmLUh1Kg7+A1IPE2kck+3bytGdpozp58lg=
 github.com/IBM/go-sdk-core/v5 v5.9.3/go.mod h1:YlOwV9LeuclmT/qi/LAK2AsobbAP42veV0j68/rlZsE=
-github.com/IBM/secrets-manager-go-sdk v1.0.37 h1:CkCpRoj98VQdAQ+khIGKXyk4hf4+JHxeuBm6UPy5vNk=
-github.com/IBM/secrets-manager-go-sdk v1.0.37/go.mod h1:EsDl09sHI264poINfIdVvtemdgD/YFeSGs3kjvVFeHw=
+github.com/IBM/secrets-manager-go-sdk v1.0.38 h1:VXClXKu/LlhQ5GQ1WPQeu4nDziWJBiJLib4t/L5hAdI=
+github.com/IBM/secrets-manager-go-sdk v1.0.38/go.mod h1:EsDl09sHI264poINfIdVvtemdgD/YFeSGs3kjvVFeHw=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver/v3 v3.1.1 h1:hLg3sBzpNErnxhQtUy/mmLR2I9foDujNK030IGemrRc=
