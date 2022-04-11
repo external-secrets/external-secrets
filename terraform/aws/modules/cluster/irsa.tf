@@ -47,6 +47,7 @@ resource "aws_iam_role" "eso-e2e-irsa" {
           Action = [
             "ssm:GetParameter",
             "ssm:PutParameter",
+            "ssm:DescribeParameters",
           ]
           Effect   = "Allow"
           Resource = "*"
