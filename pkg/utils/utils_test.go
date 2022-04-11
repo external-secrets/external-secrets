@@ -17,6 +17,7 @@ package utils
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	vault "github.com/oracle/oci-go-sdk/v56/vault"
 	v1 "k8s.io/api/core/v1"
@@ -222,5 +223,12 @@ func TestConvertKeys(t *testing.T) {
 				t.Errorf("ConvertKeys() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestValidate(t *testing.T) {
+	err := NetworkValidate("http://google.com", 10*time.Second)
+	if err != nil {
+		t.Errorf("Connection problem: %v", err)
 	}
 }

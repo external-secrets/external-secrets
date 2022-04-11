@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 	"github.com/tidwall/gjson"
@@ -57,6 +58,7 @@ var _ esv1beta1.Provider = &KeyManagementService{}
 
 type KeyManagementService struct {
 	Client SMInterface
+	url    string
 }
 
 type SMInterface interface {
@@ -187,6 +189,7 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.
 		return nil, fmt.Errorf(errAlibabaClient, err)
 	}
 	kms.Client = keyManagementService
+	kms.url = alibabaSpec.Endpoint
 	return kms, nil
 }
 
@@ -195,7 +198,10 @@ func (kms *KeyManagementService) Close(ctx context.Context) error {
 }
 
 func (kms *KeyManagementService) Validate() error {
-	return nil
+	timeout := 15 * time.Second
+	url := kms.url
+
+	return utils.NetworkValidate(url, timeout)
 }
 
 func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {

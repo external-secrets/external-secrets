@@ -19,8 +19,11 @@ import (
 	// nolint:gosec
 	"crypto/md5"
 	"fmt"
+	"net"
+	"net/url"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -132,5 +135,28 @@ func ValidateServiceAccountSelector(store esv1beta1.GenericStore, ref esmeta.Ser
 	if !clusterScope && ref.Namespace != nil {
 		return fmt.Errorf("namespace not allowed with namespaced SecretStore")
 	}
+	return nil
+}
+
+func NetworkValidate(endpoint string, timeout time.Duration) error {
+	hostname, err := url.Parse(endpoint)
+
+	if err != nil {
+		return fmt.Errorf("could not parse url: %w", err)
+	}
+
+	host := hostname.Hostname()
+	port := hostname.Port()
+
+	if port == "" {
+		port = "443"
+	}
+
+	url := fmt.Sprintf("%v:%v", host, port)
+	conn, err := net.DialTimeout("tcp", url, timeout)
+	if err != nil {
+		return fmt.Errorf("error accessing external store: %w", err)
+	}
+	defer conn.Close()
 	return nil
 }

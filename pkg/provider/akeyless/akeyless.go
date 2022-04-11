@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/akeylesslabs/akeyless-go/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,6 +51,7 @@ type akeylessBase struct {
 
 type Akeyless struct {
 	Client akeylessVaultInterface
+	url    string
 }
 
 type akeylessVaultInterface interface {
@@ -102,7 +104,7 @@ func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Clie
 
 	akl.akeylessGwAPIURL = akeylessGwAPIURL
 	akl.RestAPI = RestAPIClient
-	return &Akeyless{Client: akl}, nil
+	return &Akeyless{Client: akl, url: akeylessGwAPIURL}, nil
 }
 
 func (a *Akeyless) Close(ctx context.Context) error {
@@ -110,7 +112,10 @@ func (a *Akeyless) Close(ctx context.Context) error {
 }
 
 func (a *Akeyless) Validate() error {
-	return nil
+	timeout := 15 * time.Second
+	url := a.url
+
+	return utils.NetworkValidate(url, timeout)
 }
 
 // Implements store.Client.GetSecret Interface.
