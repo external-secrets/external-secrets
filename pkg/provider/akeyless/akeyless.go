@@ -32,6 +32,10 @@ const (
 	defaultAPIUrl = "https://api.akeyless.io"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &Akeyless{}
+var _ esv1beta1.Provider = &Provider{}
+
 // Provider satisfies the provider interface.
 type Provider struct{}
 

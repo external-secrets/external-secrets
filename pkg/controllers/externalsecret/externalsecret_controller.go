@@ -46,10 +46,8 @@ import (
 )
 
 const (
-	requeueAfter = time.Second * 30
-
-	fieldOwner = "external-secrets"
-
+	requeueAfter             = time.Second * 30
+	fieldOwnerTemplate       = "externalsecrets.external-secrets.io/%v"
 	errGetES                 = "could not get ExternalSecret"
 	errConvert               = "could not apply conversion strategy to keys: %v"
 	errUpdateSecret          = "could not update Secret"
@@ -281,7 +279,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		// diff existing keys
 		if externalSecret.Spec.Target.DeletionPolicy == esv1beta1.DeletionPolicyMerge {
-			keys, err := getManagedKeys(&existingSecret)
+			keys, err := getManagedKeys(&existingSecret, externalSecret.Name)
 			if err != nil {
 				return err
 			}
@@ -297,7 +295,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1beta1.CreatePolicyMerge:
-		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc)
+		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 	case esv1beta1.CreatePolicyNone:
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
@@ -332,7 +330,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, nil
 }
 
-func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, secret *v1.Secret, mutationFunc func() error) error {
+func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, secret *v1.Secret, mutationFunc func() error, fieldOwner string) error {
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	err := c.Get(ctx, client.ObjectKeyFromObject(secret), secret.DeepCopy())
 	if apierrors.IsNotFound(err) {
 		return fmt.Errorf(errPolicyMergeNotFound, secret.Name)
@@ -366,17 +365,18 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 
 	// we're not able to resolve conflicts so we force ownership
 	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#using-server-side-apply-in-a-controller
-	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner(fieldOwner), client.ForceOwnership)
+	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner(fqdn), client.ForceOwnership)
 	if err != nil {
 		return fmt.Errorf(errPolicyMergePatch, secret.Name, err)
 	}
 	return nil
 }
 
-func getManagedKeys(secret *v1.Secret) ([]string, error) {
+func getManagedKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	var keys []string
 	for _, v := range secret.ObjectMeta.ManagedFields {
-		if v.Manager != fieldOwner {
+		if v.Manager != fqdn {
 			continue
 		}
 		fields := make(map[string]interface{})
