@@ -198,7 +198,7 @@ func (kms *KeyManagementService) Close(ctx context.Context) error {
 }
 
 func (kms *KeyManagementService) Validate() error {
-	timeout := 4 * time.Second
+	timeout := 15 * time.Second
 	url := kms.url
 
 	return utils.NetworkValidate(url, timeout)

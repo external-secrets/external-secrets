@@ -223,7 +223,7 @@ func (g *Gitlab) Close(ctx context.Context) error {
 }
 
 func (g *Gitlab) Validate() error {
-	timeout := 4 * time.Second
+	timeout := 15 * time.Second
 	url := g.url
 
 	return utils.NetworkValidate(url, timeout)

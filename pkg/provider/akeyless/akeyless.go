@@ -112,7 +112,7 @@ func (a *Akeyless) Close(ctx context.Context) error {
 }
 
 func (a *Akeyless) Validate() error {
-	timeout := 4 * time.Second
+	timeout := 15 * time.Second
 	url := a.url
 
 	return utils.NetworkValidate(url, timeout)

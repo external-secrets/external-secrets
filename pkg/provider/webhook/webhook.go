@@ -395,7 +395,7 @@ func (w *WebHook) Close(ctx context.Context) error {
 }
 
 func (w *WebHook) Validate() error {
-	timeout := 4 * time.Second
+	timeout := 15 * time.Second
 	url := w.url
 
 	return utils.NetworkValidate(url, timeout)
