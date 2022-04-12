@@ -112,6 +112,10 @@ webhook:
   certCheckInterval: "5m"
   replicaCount: 1
   certDir: /tmp/certs
+  # -- specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
+  failurePolicy: Fail
+  # -- Specifies if webhook pod should use hostNetwork or not.
+  hostNetwork: false
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
@@ -120,6 +124,8 @@ webhook:
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
+  # -- The port the webhook will listen to
+  port: 10250
   rbac:
   # -- Specifies whether role and rolebinding resources should be created.
     create: true

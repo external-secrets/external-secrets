@@ -96,7 +96,7 @@ var webhookCmd = &cobra.Command{
 			Scheme:                 scheme,
 			MetricsBindAddress:     metricsAddr,
 			HealthProbeBindAddress: healthzAddr,
-			Port:                   9443,
+			Port:                   port,
 			CertDir:                certDir,
 		})
 		if err != nil {
@@ -171,6 +171,7 @@ func init() {
 	rootCmd.AddCommand(webhookCmd)
 	webhookCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	webhookCmd.Flags().StringVar(&healthzAddr, "healthz-addr", ":8081", "The address the health endpoint binds to.")
+	webhookCmd.Flags().IntVar(&port, "port", 10250, "The address the health endpoint binds to.")
 	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "localhost", "DNS name to validate certificates with")
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "path to check for certs")
 	webhookCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")

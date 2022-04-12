@@ -36,6 +36,10 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("IMAGE_REGISTRY"),
 				},
 				{
+					Key:   "webhook.port",
+					Value: "9443",
+				},
+				{
 					Key:   "webhook.image.repository",
 					Value: os.Getenv("IMAGE_REGISTRY"),
 				},

@@ -17,7 +17,7 @@ spec:
   type: ClusterIP
   ports:
   - port: 443
-    targetPort: 9443
+    targetPort: {{ .Values.webhook.port }}
     protocol: TCP
     name: webhook
   {{- if .Values.webhook.prometheus.enabled}}

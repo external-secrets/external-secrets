@@ -50,6 +50,7 @@ var (
 	controllerClass                       string
 	enableLeaderElection                  bool
 	concurrent                            int
+	port                                  int
 	loglevel                              string
 	namespace                             string
 	enableClusterStoreReconciler          bool
