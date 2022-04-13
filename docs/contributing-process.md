@@ -118,6 +118,14 @@ develop and release big changes. Significant changes include for example:
 Please create a document in the `design/` directory based on the template `000-template.md`
 and fill in your proposal. Open a pull request in draft mode and request feedback. Once the proposal is accepted and the pull request is merged we can create work packages and proceed with the implementation.
 
+## Release Planning
+
+We have a [GitHub Project Board](https://github.com/orgs/external-secrets/projects/2/views/1) where we organize issues on a high level. We group issues by milestone. Once all issues of a given milestone are closed we should prepare a new feature release. Issues of the next milestone have priority over other issues - but that does not mean that no one is allowed to start working on them.
+
+Issues must be _manually_ added to that board (at least for now, see [GH Roadmap](https://github.com/github/roadmap/issues/286)). Milestones must be assigned manually as well. If no milestone is assigned it is basically a backlog item. It is the responsibility of the maintainers to (1) assign new issues to the GH Project, (2) add a milestone if needed and (3) add appropriate labels.
+
+If you would like to raise the priority of an issue for whatever reason feel free to comment on the issue or ping a maintainer.
+
 ## Cutting Releases
 
-The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the `RELEASE.md` file in the repo.
+The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the [release](contributing-release.md) page.
