@@ -65,22 +65,22 @@ func newVaultProvider(f *framework.Framework) *vaultProvider {
 func (s *vaultProvider) CreateSecret(key string, val framework.SecretEntry) {
 	req := s.client.NewRequest(http.MethodPost, fmt.Sprintf("/v1/secret/data/%s", key))
 	req.BodyBytes = []byte(fmt.Sprintf(`{"data": %s}`, val.Value))
-	_, err := s.client.RawRequestWithContext(context.Background(), req)
+	_, err := s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 
 	req = s.client.NewRequest(http.MethodPost, fmt.Sprintf("/v1/secret_v1/%s", key))
 	req.BodyBytes = []byte(val.Value)
-	_, err = s.client.RawRequestWithContext(context.Background(), req)
+	_, err = s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *vaultProvider) DeleteSecret(key string) {
 	req := s.client.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/secret/data/%s", key))
-	_, err := s.client.RawRequestWithContext(context.Background(), req)
+	_, err := s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 
 	req = s.client.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/secret_v1/%s", key))
-	_, err = s.client.RawRequestWithContext(context.Background(), req)
+	_, err = s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 }
 
