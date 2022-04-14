@@ -226,14 +226,14 @@ func (g *Gitlab) Close(ctx context.Context) error {
 }
 
 // Validate will use the gitlab client to validate the gitlab provider using the ListVariable call to ensure get permissions without needing a specific key.
-func (g *Gitlab) Validate() error {
+func (g *Gitlab) Validate() (esv1beta1.ValidationResult, error) {
 	_, resp, err := g.client.ListVariables(g.projectID, nil)
 	if err != nil {
-		return fmt.Errorf(errList, err)
+		return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
 	} else if resp == nil || resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(errAuth)
+		return esv1beta1.ValidationResultError, fmt.Errorf(errAuth)
 	}
-	return nil
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (g *Gitlab) ValidateStore(store esv1beta1.GenericStore) error {

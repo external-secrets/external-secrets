@@ -288,8 +288,8 @@ func (c *lockboxSecretsClient) Close(ctx context.Context) error {
 	return nil
 }
 
-func (c *lockboxSecretsClient) Validate() error {
-	return nil
+func (c *lockboxSecretsClient) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func getValueAsIs(entry *lockbox.Payload_Entry) (interface{}, error) {

@@ -18,8 +18,6 @@ import (
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
-	// nolint
-	. "github.com/onsi/ginkgo/v2/extensions/table"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"

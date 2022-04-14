@@ -225,7 +225,10 @@ func (pm *ParameterStore) Close(ctx context.Context) error {
 	return nil
 }
 
-func (pm *ParameterStore) Validate() error {
+func (pm *ParameterStore) Validate() (esv1beta1.ValidationResult, error) {
 	_, err := pm.sess.Config.Credentials.Get()
-	return err
+	if err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+	return esv1beta1.ValidationResultReady, nil
 }

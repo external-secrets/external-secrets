@@ -576,12 +576,12 @@ func (v *client) Close(ctx context.Context) error {
 	return nil
 }
 
-func (v *client) Validate() error {
+func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 	_, err := checkToken(context.Background(), v)
 	if err != nil {
-		return fmt.Errorf(errInvalidCredentials, err)
+		return esv1beta1.ValidationResultError, fmt.Errorf(errInvalidCredentials, err)
 	}
-	return nil
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (v *client) buildMetadataPath(path string) (string, error) {

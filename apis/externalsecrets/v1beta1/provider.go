@@ -20,6 +20,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	ValidationResultReady ValidationResult = iota
+	ValidationResultUnknown
+	ValidationResultError
+)
+
+type ValidationResult uint8
+
+func (v ValidationResult) String() string {
+	return [...]string{"Ready", "Unknown", "Error"}[v]
+}
+
 // +kubebuilder:object:root=false
 // +kubebuilder:object:generate:false
 // +k8s:deepcopy-gen:interfaces=nil
@@ -47,8 +59,9 @@ type SecretsClient interface {
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// Validate checks if the client is configured correctly
-	// and is able to retrieve secrets from the provider
-	Validate() error
+	// and is able to retrieve secrets from the provider.
+	// If the validation result is unknown it will be ignored.
+	Validate() (ValidationResult, error)
 
 	// GetSecretMap returns multiple k/v pairs from the provider
 	GetSecretMap(ctx context.Context, ref ExternalSecretDataRemoteRef) (map[string][]byte, error)

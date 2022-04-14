@@ -111,11 +111,15 @@ func (a *Akeyless) Close(ctx context.Context) error {
 	return nil
 }
 
-func (a *Akeyless) Validate() error {
+func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	url := a.url
 
-	return utils.NetworkValidate(url, timeout)
+	if err := utils.NetworkValidate(url, timeout); err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+
+	return esv1beta1.ValidationResultReady, nil
 }
 
 // Implements store.Client.GetSecret Interface.

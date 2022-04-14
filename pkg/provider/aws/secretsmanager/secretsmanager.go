@@ -287,7 +287,10 @@ func (sm *SecretsManager) Close(ctx context.Context) error {
 	return nil
 }
 
-func (sm *SecretsManager) Validate() error {
+func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
 	_, err := sm.sess.Config.Credentials.Get()
-	return err
+	if err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+	return esv1beta1.ValidationResultReady, nil
 }

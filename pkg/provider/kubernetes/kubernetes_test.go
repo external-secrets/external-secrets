@@ -373,10 +373,14 @@ func TestValidate(t *testing.T) {
 	}
 	fakeClient := fakeReviewClient{authReview: &authReview}
 	k := ProviderKubernetes{ReviewClient: fakeClient}
-	err := k.Validate()
+	validationResult, err := k.Validate()
 	if err != nil {
 		t.Errorf("Test Failed! %v", err)
 	}
+	if validationResult != esv1beta1.ValidationResultReady {
+		t.Errorf("Test Failed! Wanted could not indicate validationResult is %s, got: %s", esv1beta1.ValidationResultReady, validationResult)
+	}
+
 	authReview = authv1.SelfSubjectAccessReview{
 		Status: authv1.SubjectAccessReviewStatus{
 			Allowed: false,
@@ -384,15 +388,21 @@ func TestValidate(t *testing.T) {
 	}
 	fakeClient = fakeReviewClient{authReview: &authReview}
 	k = ProviderKubernetes{ReviewClient: fakeClient}
-	err = k.Validate()
+	validationResult, err = k.Validate()
 	if err.Error() != "client is not allowed to get secrets" {
 		t.Errorf("Test Failed! Wanted client is not allowed to get secrets got: %v", err)
+	}
+	if validationResult != esv1beta1.ValidationResultError {
+		t.Errorf("Test Failed! Wanted could not indicate validationResult is %s, got: %s", esv1beta1.ValidationResultError, validationResult)
 	}
 
 	fakeClient = fakeReviewClient{}
 	k = ProviderKubernetes{ReviewClient: fakeClient}
-	err = k.Validate()
+	validationResult, err = k.Validate()
 	if err.Error() != "could not verify if client is valid: Something went wrong" {
 		t.Errorf("Test Failed! Wanted could not verify if client is valid: Something went wrong got: %v", err)
+	}
+	if validationResult != esv1beta1.ValidationResultUnknown {
+		t.Errorf("Test Failed! Wanted could not indicate validationResult is %s, got: %s", esv1beta1.ValidationResultUnknown, validationResult)
 	}
 }

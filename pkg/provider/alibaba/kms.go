@@ -197,11 +197,14 @@ func (kms *KeyManagementService) Close(ctx context.Context) error {
 	return nil
 }
 
-func (kms *KeyManagementService) Validate() error {
+func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	url := kms.url
 
-	return utils.NetworkValidate(url, timeout)
+	if err := utils.NetworkValidate(url, timeout); err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {

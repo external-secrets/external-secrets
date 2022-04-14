@@ -496,8 +496,8 @@ func (ibm *providerIBM) Close(ctx context.Context) error {
 	return nil
 }
 
-func (ibm *providerIBM) Validate() error {
-	return nil
+func (ibm *providerIBM) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {

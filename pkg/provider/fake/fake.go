@@ -94,8 +94,8 @@ func (p *Provider) Close(ctx context.Context) error {
 	return nil
 }
 
-func (p *Provider) Validate() error {
-	return nil
+func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
