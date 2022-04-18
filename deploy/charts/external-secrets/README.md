@@ -115,7 +115,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podAnnotations | object | `{}` | Annotations to add to Pod |
 | webhook.podLabels | object | `{}` |  |
 | webhook.podSecurityContext | object | `{}` |  |
-| webhook.port | int | `443` | The port the webhook will listen to |
+| webhook.port | int | `10250` | The port the webhook will listen to |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
 | webhook.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
 | webhook.prometheus.service.port | int | `8080` |  |
