@@ -483,7 +483,8 @@ func isSecretValid(existingSecret v1.Secret) bool {
 
 // assertStoreIsUsable assert that the store is ready to use.
 func assertStoreIsUsable(store esv1beta1.GenericStore) error {
-	if secretstore.GetSecretStoreCondition(store.GetStatus(), esv1beta1.SecretStoreReady).Status != v1.ConditionTrue {
+	condition := secretstore.GetSecretStoreCondition(store.GetStatus(), esv1beta1.SecretStoreReady)
+	if condition == nil || condition.Status != v1.ConditionTrue {
 		return fmt.Errorf(errSecretStoreNotReady, store.GetName())
 	}
 	return nil
