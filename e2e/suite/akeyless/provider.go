@@ -19,7 +19,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -223,7 +223,7 @@ func readK8SServiceAccountJWT() (string, error) {
 	}
 	defer data.Close()
 
-	contentBytes, err := ioutil.ReadAll(data)
+	contentBytes, err := io.ReadAll(data)
 	if err != nil {
 		return "", err
 	}

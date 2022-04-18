@@ -177,11 +177,11 @@ helm.build: helm.generate ## Build helm chart
 helm.generate:
 # Split the generated bundle yaml file to inject control flags
 	@for i in $(BUNDLE_DIR)/*.yaml; do \
-		yq -Ns '"$(HELM_DIR)/templates/crds/" + .spec.names.singular' "$$i"; \
+		yq e -Ns '"$(HELM_DIR)/templates/crds/" + .spec.names.singular' "$$i"; \
 	done
 # Add helm if statement for controlling the install of CRDs
 	@for i in $(HELM_DIR)/templates/crds/*.yml; do \
-		export CRDS_FLAG_NAME="create$$(yq '.spec.names.kind' $$i)"; \
+		export CRDS_FLAG_NAME="create$$(yq e '.spec.names.kind' $$i)"; \
 		cp "$$i" "$$i.bkp"; \
 		if [[ "$$CRDS_FLAG_NAME" == *"Cluster"* ]]; then \
 			echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i"; \

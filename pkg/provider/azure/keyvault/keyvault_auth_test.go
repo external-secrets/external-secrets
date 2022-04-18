@@ -340,7 +340,7 @@ func TestAuth(t *testing.T) {
 }
 
 func getTokenFromAuthorizer(t *testing.T, authorizer autorest.Authorizer) string {
-	rq, _ := http.NewRequest("POST", "http://example.com", nil)
+	rq, _ := http.NewRequest("POST", "http://example.com", http.NoBody)
 	_, err := authorizer.WithAuthorization()(
 		autorest.PreparerFunc(func(r *http.Request) (*http.Request, error) {
 			return rq, nil

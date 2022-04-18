@@ -110,14 +110,14 @@ documentation. See `/docs` for the source code and `/hack/api-docs` for the buil
 When writing documentation it is advised to run the mkdocs server with livereload:
 
 ```shell
-make serve-docs
+make docs.serve
 ```
 
 Run the following command to run a complete build. The rendered assets are available under `/site`.
 
 ```shell
 make docs
-make serve-docs
+make docs.serve
 ```
 
 Open `http://localhost:8000` in your browser.

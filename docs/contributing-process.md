@@ -61,7 +61,7 @@ There's another suite of e2e tests that integrate with managed Kuberentes offeri
 They create real infrastructure at a cloud provider and deploy the controller
 into that environment.
 This is necessary to test the authentication integration
-([GCP Worklaod Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity),
+([GCP Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity),
 [EKS IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)...).
 
 These tests are time intensive (~20-45min) and must be triggered manually by
