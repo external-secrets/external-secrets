@@ -8,6 +8,8 @@ git clone https://github.com/external-secrets/external-secrets.git
 cd external-secrets
 ```
 
+_Note: many of the `make` commands use [yq](https://github.com/mikefarah/yq), version 4.2X.X or higher._
+
 If you want to run controller tests you also need to install kubebuilder's `envtest`.
 
 The recommended way to do so is to install [setup-envtest](https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest)
@@ -110,14 +112,14 @@ documentation. See `/docs` for the source code and `/hack/api-docs` for the buil
 When writing documentation it is advised to run the mkdocs server with livereload:
 
 ```shell
-make serve-docs
+make docs.serve
 ```
 
 Run the following command to run a complete build. The rendered assets are available under `/site`.
 
 ```shell
 make docs
-make serve-docs
+make docs.serve
 ```
 
 Open `http://localhost:8000` in your browser.
