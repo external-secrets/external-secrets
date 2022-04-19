@@ -59,7 +59,7 @@ spec:
             {{- end }}
           {{- end }}
           ports:
-            - containerPort: 8080
+            - containerPort: {{ .Values.webhook.prometheus.service.port }}
               protocol: TCP
               name: metrics
             - containerPort: {{ .Values.webhook.port }}

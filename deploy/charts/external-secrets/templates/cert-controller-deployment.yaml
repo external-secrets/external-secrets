@@ -59,7 +59,7 @@ spec:
             {{- end }}
           {{- end }}
           ports:
-            - containerPort: 8080
+            - containerPort: {{ .Values.certController.prometheus.service.port }}
               protocol: TCP
               name: metrics
           readinessProbe:

@@ -1,0 +1,20 @@
+{{- if and .Values.certController.create .Values.certController.prometheus.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
+  labels:
+    {{- include "external-secrets.labels" . | nindent 4 }}
+  annotations:
+    prometheus.io/path: "/metrics"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: {{ .Values.certController.prometheus.service.port | quote }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.certController.prometheus.service.port }}
+    protocol: TCP
+    name: metrics
+  selector:
+    {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 4 }}
+{{- end }}

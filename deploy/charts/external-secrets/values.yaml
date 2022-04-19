@@ -92,9 +92,10 @@ resources: {}
   #   memory: 32Mi
 
 prometheus:
-  # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+  # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead.
   enabled: false
   service:
+    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead.
     port: 8080
 
 serviceMonitor:
@@ -158,6 +159,13 @@ webhook:
 
     # -- Pod priority class name.
   priorityClassName: ""
+
+  prometheus:
+    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
+    enabled: false
+    service:
+      # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
+      port: 8080
 
   serviceMonitor:
     # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
@@ -232,6 +240,13 @@ certController:
 
     # -- Pod priority class name.
   priorityClassName: ""
+
+  prometheus:
+    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
+    enabled: false
+    service:
+      # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
+      port: 8080
 
   serviceMonitor:
     # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
