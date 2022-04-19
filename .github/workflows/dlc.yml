@@ -1,0 +1,64 @@
+name: Dependency License Checks
+
+on:
+  push:
+    branches:
+      - main
+      - release-*
+    paths:
+      - "go.mod"
+  pull_request:
+    paths:
+      - "go.mod"
+  workflow_dispatch: {}
+env:
+  # Common versions
+  GO_VERSION: '1.17'
+  GOLANGCI_VERSION: 'v1.42.1'
+  KUBERNETES_VERSION: '1.23.x'
+  DOCKER_BUILDX_VERSION: 'v0.4.2'
+
+  # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
+  # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
+  # credentials have been provided before trying to run steps that need them.
+  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+
+  # Sonar
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+jobs:
+  license-check:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Find the Go Cache
+        id: go
+        run: |
+          echo "::set-output name=build-cache::$(go env GOCACHE)"
+          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
+
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go.outputs.build-cache }}
+          key: ${{ runner.os }}-build-check-diff-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-check-diff-
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go.outputs.mod-cache }}
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
+          
+      - name: License Checks
+        run: |
+          go install github.com/google/go-licenses@latest
+          make license.check
