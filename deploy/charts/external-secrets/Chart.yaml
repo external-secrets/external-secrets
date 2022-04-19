@@ -9,7 +9,7 @@ keywords:
   - kubernetes-external-secrets
   - secrets
 home: https://github.com/external-secrets/external-secrets
-icon: https://raw.githubusercontent.com/external-secrets/external-secrets/main/assets/round_eso_logo.png
+icon: https://raw.githubusercontent.com/external-secrets/external-secrets/main/assets/eso-logo-large.png
 maintainers:
   - name: mcavoyk
     email: kellinmcavoy@gmail.com
