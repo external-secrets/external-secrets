@@ -126,6 +126,21 @@ Issues must be _manually_ added to that board (at least for now, see [GH Roadmap
 
 If you would like to raise the priority of an issue for whatever reason feel free to comment on the issue or ping a maintainer.
 
+## Support & Questions
+
+Providing support to end users is an important and difficult task.
+We have three different channels through which support questions arise:
+
+1. Kubernetes Slack [#external-secrets](https://kubernetes.slack.com/archives/C017BF84G2Y)
+2. [GitHub Discussions](https://github.com/external-secrets/external-secrets/discussions)
+3. GitHub Issues
+
+We use labels to identify GitHub Issues. Specifically for managing support cases we use the following labels to identify the state a support case is in:
+* `triage/needs-information`: Indicates an issue needs more information in order to work on it.
+* `triage/not-reproducible`: Indicates an issue can not be reproduced as described.
+* `triage/support`: Indicates an issue that is a support question.
+
+
 ## Cutting Releases
 
 The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the [release](contributing-release.md) page.
