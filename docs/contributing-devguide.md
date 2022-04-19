@@ -8,6 +8,8 @@ git clone https://github.com/external-secrets/external-secrets.git
 cd external-secrets
 ```
 
+_Note: many of the `make` commands use [yq](https://github.com/mikefarah/yq), version 4.2X.X or higher._
+
 If you want to run controller tests you also need to install kubebuilder's `envtest`.
 
 The recommended way to do so is to install [setup-envtest](https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest)
