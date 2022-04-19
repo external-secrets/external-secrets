@@ -320,7 +320,6 @@ spec:
       conversionReviewVersions:
         - v1
       clientConfig:
-        caBundle: Cg==
         service:
           name: kubernetes
           namespace: default
@@ -2365,7 +2364,6 @@ spec:
       conversionReviewVersions:
         - v1
       clientConfig:
-        caBundle: Cg==
         service:
           name: kubernetes
           namespace: default
@@ -2874,7 +2872,6 @@ spec:
       conversionReviewVersions:
         - v1
       clientConfig:
-        caBundle: Cg==
         service:
           name: kubernetes
           namespace: default
@@ -4922,7 +4919,6 @@ spec:
       conversionReviewVersions:
         - v1
       clientConfig:
-        caBundle: Cg==
         service:
           name: kubernetes
           namespace: default
