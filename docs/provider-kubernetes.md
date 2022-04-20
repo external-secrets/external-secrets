@@ -66,7 +66,7 @@ kind: ExternalSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 1h           
+  refreshInterval: 1h0m0s           
   secretStoreRef:
     kind: SecretStore
     name: example               # name of the SecretStore (or kind specified)
@@ -131,7 +131,7 @@ kind: ExternalSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 1h           
+  refreshInterval: 1h0m0s           
   secretStoreRef:
     kind: SecretStore
     name: example               # name of the SecretStore (or kind specified)
