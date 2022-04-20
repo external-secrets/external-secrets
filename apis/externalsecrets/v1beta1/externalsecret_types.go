@@ -224,8 +224,8 @@ type FindName struct {
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	SecretStoreRef SecretStoreRef `json:"secretStoreRef"`
-
-	Target ExternalSecretTarget `json:"target"`
+	// +optional
+	Target ExternalSecretTarget `json:"target,omitempty"`
 
 	// RefreshInterval is the amount of time before the values are read again from the SecretStore provider
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"

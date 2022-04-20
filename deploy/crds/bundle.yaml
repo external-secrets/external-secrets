@@ -232,7 +232,6 @@ spec:
                       type: object
                   required:
                     - secretStoreRef
-                    - target
                   type: object
                 namespaceSelector:
                   description: The labels to select by to find the Namespaces to create the ExternalSecrets in.
@@ -2829,7 +2828,6 @@ spec:
                   type: object
               required:
                 - secretStoreRef
-                - target
               type: object
             status:
               properties:
