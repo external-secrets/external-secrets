@@ -51,8 +51,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.podLabels | object | `{}` |  |
 | certController.podSecurityContext | object | `{}` |  |
 | certController.priorityClassName | string | `""` | Pod priority class name. |
-| certController.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
-| certController.prometheus.service.port | int | `8080` |  |
+| certController.prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
+| certController.prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | certController.requeueInterval | string | `"5m"` |  |
 | certController.resources | object | `{}` |  |
@@ -60,6 +60,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| certController.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
+| certController.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
+| certController.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
+| certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | certController.tolerations | list | `[]` |  |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
@@ -84,8 +88,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | priorityClassName | string | `""` | Pod priority class name. |
 | processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
-| prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
-| prometheus.service.port | int | `8080` |  |
+| prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead. |
+| prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead. |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
@@ -95,6 +99,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| serviceMonitor.additionalLabels | object | `{}` | Additional labels |
+| serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
+| serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
+| serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | tolerations | list | `[]` |  |
 | webhook.affinity | object | `{}` |  |
 | webhook.certCheckInterval | string | `"5m"` |  |
@@ -117,8 +125,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podSecurityContext | object | `{}` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
-| webhook.prometheus.enabled | bool | `false` | Specifies whether to expose Service resource for collecting Prometheus metrics |
-| webhook.prometheus.service.port | int | `8080` |  |
+| webhook.prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
+| webhook.prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | webhook.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | webhook.replicaCount | int | `1` |  |
 | webhook.resources | object | `{}` |  |
@@ -127,4 +135,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| webhook.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
+| webhook.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
+| webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
+| webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | webhook.tolerations | list | `[]` |  |
