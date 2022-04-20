@@ -122,6 +122,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | webhook.replicaCount | int | `1` |  |
 | webhook.resources | object | `{}` |  |
+| webhook.secretAnnotations | object | `{}` | Annotations to add to Secret |
 | webhook.securityContext | object | `{}` |  |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |

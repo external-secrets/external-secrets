@@ -156,6 +156,9 @@ webhook:
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
 
+    # -- Annotations to add to Secret
+  secretAnnotations: {}
+
     # -- Annotations to add to Deployment
   deploymentAnnotations: {}
 
