@@ -557,9 +557,40 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Metrics
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Metrics
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#external-secret-metrics" class="md-nav__link">
+    External Secret Metrics
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1372,6 +1403,21 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#external-secret-metrics" class="md-nav__link">
+    External Secret Metrics
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1388,8 +1434,35 @@
 
 
 <h1 id="metrics">Metrics</h1>
-<p>The External Secrets Operator exposes its Prometheus metrics in the <code>/metrics</code> path. To enable it, set the <code>prometheus.enabled</code> Helm flag to <code>true</code>.</p>
+<p>The External Secrets Operator exposes its Prometheus metrics in the <code>/metrics</code> path. To enable it, set the <code>serviceMonitor.enabled</code> Helm flag to <code>true</code>. In addition you can also set <code>webhook.serviceMonitor.enabled=true</code> and <code>certController.serviceMonitor.enabled=true</code> to create <code>ServiceMonitor</code> resources for the other components.</p>
 <p>The Operator has the metrics inherited from Kubebuilder plus some custom metrics with the <code>externalsecret</code> prefix.</p>
+<h2 id="external-secret-metrics">External Secret Metrics</h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>externalsecret_sync_calls_total</td>
+<td>Counter</td>
+<td>Total number of the External Secret sync calls</td>
+</tr>
+<tr>
+<td>externalsecret_sync_calls_error</td>
+<td>Counter</td>
+<td>Total number of the External Secret sync errors</td>
+</tr>
+<tr>
+<td>externalsecret_status_condition</td>
+<td>Gauge</td>
+<td>The status condition of a specific External Secret</td>
+</tr>
+</tbody>
+</table>
 
               
             </article>
