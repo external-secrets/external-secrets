@@ -18,6 +18,7 @@ import (
 
 	// nolint:gosec
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -110,16 +111,33 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
+var (
+	errNamespaceNotAllowed = errors.New("namespace not allowed with namespaced SecretStore")
+	errRequireNamespace    = errors.New("cluster scope requires namespace")
+)
+
 // ValidateSecretSelector just checks if the namespace field is present/absent
 // depending on the secret store type.
 // We MUST NOT check the name or key property here. It MAY be defaulted by the provider.
 func ValidateSecretSelector(store esv1beta1.GenericStore, ref esmeta.SecretKeySelector) error {
 	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
 	if clusterScope && ref.Namespace == nil {
-		return fmt.Errorf("cluster scope requires namespace")
+		return errRequireNamespace
 	}
 	if !clusterScope && ref.Namespace != nil {
-		return fmt.Errorf("namespace not allowed with namespaced SecretStore")
+		return errNamespaceNotAllowed
+	}
+	return nil
+}
+
+// ValidateReferentSecretSelector allows
+// cluster scoped store without namespace
+// this should replace above ValidateServiceAccountSelector once all providers
+// support referent auth.
+func ValidateReferentSecretSelector(store esv1beta1.GenericStore, ref esmeta.SecretKeySelector) error {
+	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
+	if !clusterScope && ref.Namespace != nil {
+		return errNamespaceNotAllowed
 	}
 	return nil
 }
@@ -130,10 +148,22 @@ func ValidateSecretSelector(store esv1beta1.GenericStore, ref esmeta.SecretKeySe
 func ValidateServiceAccountSelector(store esv1beta1.GenericStore, ref esmeta.ServiceAccountSelector) error {
 	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
 	if clusterScope && ref.Namespace == nil {
-		return fmt.Errorf("cluster scope requires namespace")
+		return errRequireNamespace
 	}
 	if !clusterScope && ref.Namespace != nil {
-		return fmt.Errorf("namespace not allowed with namespaced SecretStore")
+		return errNamespaceNotAllowed
+	}
+	return nil
+}
+
+// ValidateReferentServiceAccountSelector allows
+// cluster scoped store without namespace
+// this should replace above ValidateServiceAccountSelector once all providers
+// support referent auth.
+func ValidateReferentServiceAccountSelector(store esv1beta1.GenericStore, ref esmeta.ServiceAccountSelector) error {
+	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
+	if !clusterScope && ref.Namespace != nil {
+		return errNamespaceNotAllowed
 	}
 	return nil
 }
