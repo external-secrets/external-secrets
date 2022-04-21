@@ -21,6 +21,8 @@ import (
 	"os"
 	"time"
 
+	argoapp "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
@@ -34,9 +36,19 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 var Scheme = runtime.NewScheme()
+
+func init() {
+	_ = scheme.AddToScheme(Scheme)
+	_ = esv1beta1.AddToScheme(Scheme)
+	_ = esv1alpha1.AddToScheme(Scheme)
+	_ = argoapp.AddToScheme(Scheme)
+}
 
 const (
 	// How often to poll for conditions.

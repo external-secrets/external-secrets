@@ -7,6 +7,7 @@ BUILD_ARGS     ?=
 
 export E2E_IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed
+export TEST_SUITES ?= provider argocd
 
 start-kind: ## Start kind cluster
 	kind create cluster \
@@ -38,7 +39,7 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 	./run.sh
 
 e2e-bin:
-	CGO_ENABLED=0 go run github.com/onsi/ginkgo/v2/ginkgo build .
+	CGO_ENABLED=0 go run github.com/onsi/ginkgo/v2/ginkgo build ./suites/...
 
 e2e-image: e2e-bin
 	-rm -rf ./k8s/deploy

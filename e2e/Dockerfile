@@ -24,7 +24,8 @@ COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/
 COPY --from=builder /usr/local/bin/helm /usr/local/bin/
 
 COPY entrypoint.sh                  /entrypoint.sh
-COPY e2e.test                       /e2e.test
+COPY suites/provider/provider.test  /provider.test
+COPY suites/argocd/argocd.test      /argocd.test
 COPY k8s                            /k8s
 
 CMD [ "/entrypoint.sh" ]

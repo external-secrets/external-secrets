@@ -33,6 +33,7 @@ type HelmChart struct {
 	Repo         ChartRepo
 	Vars         []StringTuple
 	Values       []string
+	Args         []string
 
 	config *Config
 }
@@ -80,6 +81,8 @@ func (c *HelmChart) Install() error {
 	for _, s := range c.Vars {
 		args = append(args, "--set", fmt.Sprintf("%s=%s", s.Key, s.Value))
 	}
+
+	args = append(args, c.Args...)
 
 	var sout, serr bytes.Buffer
 	log.Logf("installing chart with args: %+q", args)

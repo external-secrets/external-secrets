@@ -15,6 +15,7 @@ package framework
 
 import (
 	"context"
+	"time"
 
 	//nolint
 	. "github.com/onsi/gomega"
@@ -93,7 +94,6 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 		}
 
 		Expect(err).ToNot(HaveOccurred())
-
 		tc.AfterSync(prov, secret)
 	}
 }
@@ -108,6 +108,7 @@ func makeDefaultTestCase(f *Framework) *TestCase {
 				Namespace: f.Namespace.Name,
 			},
 			Spec: esv1beta1.ExternalSecretSpec{
+				RefreshInterval: &metav1.Duration{Duration: time.Second * 5},
 				SecretStoreRef: esv1beta1.SecretStoreRef{
 					Name: f.Namespace.Name,
 				},
