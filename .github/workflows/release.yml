@@ -16,6 +16,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -31,7 +32,7 @@ jobs:
 
       - name: Build Changelog
         id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v2
+        uses: mikepenz/release-changelog-builder-action@v3
         with:
           configuration: "changelog.json"
           toTag: ${{ github.event.inputs.version }}
@@ -56,7 +57,7 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GO_VERSION }}
 
@@ -68,11 +69,41 @@ jobs:
   promote:
     name: Promote Container Image
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Find the Go Cache
+        id: go
+        run: |
+          echo "::set-output name=build-cache::$(go env GOCACHE)"
+          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
+
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go.outputs.build-cache }}
+          key: ${{ runner.os }}-build-publish-artifacts-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-publish-artifacts-
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go.outputs.mod-cache }}
+          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
 
       - name: Login to Docker
         uses: docker/login-action@v1
@@ -88,3 +119,21 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.inputs.version }}
           SOURCE_TAG: main
+
+      - name: Set up crane
+        if: env.GHCR_USERNAME != ''
+        run: go install github.com/google/go-containerregistry/cmd/crane@v0.8.0
+
+      - name: Install cosign
+        if: env.GHCR_USERNAME != ''
+        uses: sigstore/cosign-installer@main
+        with:
+          cosign-release: 'v1.6.0'
+
+      - name: Sign Container Image
+        if: env.GHCR_USERNAME != ''
+        run: make docker.sign
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.version }}
+          SOURCE_TAG: main
+          COSIGN_EXPERIMENTAL: 1

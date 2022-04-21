@@ -4,6 +4,338 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
+  name: clusterexternalsecrets.external-secrets.io
+spec:
+  group: external-secrets.io
+  names:
+    categories:
+      - externalsecrets
+    kind: ClusterExternalSecret
+    listKind: ClusterExternalSecretList
+    plural: clusterexternalsecrets
+    shortNames:
+      - ces
+    singular: clusterexternalsecret
+  scope: Cluster
+  versions:
+    - name: v1beta1
+      schema:
+        openAPIV3Schema:
+          description: ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: ClusterExternalSecretSpec defines the desired state of ClusterExternalSecret.
+              properties:
+                externalSecretName:
+                  description: The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
+                  type: string
+                externalSecretSpec:
+                  description: The spec for the ExternalSecrets to be created
+                  properties:
+                    data:
+                      description: Data defines the connection between the Kubernetes Secret keys and the Provider data
+                      items:
+                        description: ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.
+                        properties:
+                          remoteRef:
+                            description: ExternalSecretDataRemoteRef defines Provider data location.
+                            properties:
+                              conversionStrategy:
+                                default: Default
+                                description: Used to define a conversion Strategy
+                                type: string
+                              key:
+                                description: Key is the key used in the Provider, mandatory
+                                type: string
+                              property:
+                                description: Used to select a specific property of the Provider value (if a map), if supported
+                                type: string
+                              version:
+                                description: Used to select a specific version of the Provider value, if supported
+                                type: string
+                            required:
+                              - key
+                            type: object
+                          secretKey:
+                            type: string
+                        required:
+                          - remoteRef
+                          - secretKey
+                        type: object
+                      type: array
+                    dataFrom:
+                      description: DataFrom is used to fetch all properties from a specific Provider data If multiple entries are specified, the Secret keys are merged in the specified order
+                      items:
+                        maxProperties: 1
+                        minProperties: 1
+                        properties:
+                          extract:
+                            description: Used to extract multiple key/value pairs from one secret
+                            properties:
+                              conversionStrategy:
+                                default: Default
+                                description: Used to define a conversion Strategy
+                                type: string
+                              key:
+                                description: Key is the key used in the Provider, mandatory
+                                type: string
+                              property:
+                                description: Used to select a specific property of the Provider value (if a map), if supported
+                                type: string
+                              version:
+                                description: Used to select a specific version of the Provider value, if supported
+                                type: string
+                            required:
+                              - key
+                            type: object
+                          find:
+                            description: Used to find secrets based on tags or regular expressions
+                            properties:
+                              conversionStrategy:
+                                default: Default
+                                description: Used to define a conversion Strategy
+                                type: string
+                              name:
+                                description: Finds secrets based on the name.
+                                properties:
+                                  regexp:
+                                    description: Finds secrets base
+                                    type: string
+                                type: object
+                              path:
+                                description: A root path to start the find operations.
+                                type: string
+                              tags:
+                                additionalProperties:
+                                  type: string
+                                description: Find secrets based on tags.
+                                type: object
+                            type: object
+                        type: object
+                      type: array
+                    refreshInterval:
+                      default: 1h
+                      description: RefreshInterval is the amount of time before the values are read again from the SecretStore provider Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h" May be set to zero to fetch and create it once. Defaults to 1h.
+                      type: string
+                    secretStoreRef:
+                      description: SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
+                      properties:
+                        kind:
+                          description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore) Defaults to `SecretStore`
+                          type: string
+                        name:
+                          description: Name of the SecretStore resource
+                          type: string
+                      required:
+                        - name
+                      type: object
+                    target:
+                      description: ExternalSecretTarget defines the Kubernetes Secret to be created There can be only one target per ExternalSecret.
+                      properties:
+                        creationPolicy:
+                          default: Owner
+                          description: CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
+                          enum:
+                            - Owner
+                            - Orphan
+                            - Merge
+                            - None
+                          type: string
+                        deletionPolicy:
+                          default: Retain
+                          description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'Retain'
+                          enum:
+                            - Delete
+                            - Merge
+                            - Retain
+                          type: string
+                        immutable:
+                          description: Immutable defines if the final secret will be immutable
+                          type: boolean
+                        name:
+                          description: Name defines the name of the Secret resource to be managed This field is immutable Defaults to the .metadata.name of the ExternalSecret resource
+                          type: string
+                        template:
+                          description: Template defines a blueprint for the created Secret resource.
+                          properties:
+                            data:
+                              additionalProperties:
+                                type: string
+                              type: object
+                            engineVersion:
+                              default: v2
+                              type: string
+                            metadata:
+                              description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
+                              properties:
+                                annotations:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                              type: object
+                            templateFrom:
+                              items:
+                                maxProperties: 1
+                                minProperties: 1
+                                properties:
+                                  configMap:
+                                    properties:
+                                      items:
+                                        items:
+                                          properties:
+                                            key:
+                                              type: string
+                                          required:
+                                            - key
+                                          type: object
+                                        type: array
+                                      name:
+                                        type: string
+                                    required:
+                                      - items
+                                      - name
+                                    type: object
+                                  secret:
+                                    properties:
+                                      items:
+                                        items:
+                                          properties:
+                                            key:
+                                              type: string
+                                          required:
+                                            - key
+                                          type: object
+                                        type: array
+                                      name:
+                                        type: string
+                                    required:
+                                      - items
+                                      - name
+                                    type: object
+                                type: object
+                              type: array
+                            type:
+                              type: string
+                          type: object
+                      type: object
+                  required:
+                    - secretStoreRef
+                  type: object
+                namespaceSelector:
+                  description: The labels to select by to find the Namespaces to create the ExternalSecrets in.
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                      items:
+                        description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies to.
+                            type: string
+                          operator:
+                            description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                            type: string
+                          values:
+                            description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                          - key
+                          - operator
+                        type: object
+                      type: array
+                    matchLabels:
+                      additionalProperties:
+                        type: string
+                      description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                      type: object
+                  type: object
+                refreshTime:
+                  description: The time in which the controller should reconcile it's objects and recheck namespaces for labels.
+                  type: string
+              required:
+                - externalSecretSpec
+                - namespaceSelector
+              type: object
+            status:
+              description: ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.
+              properties:
+                conditions:
+                  items:
+                    properties:
+                      message:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                failedNamespaces:
+                  description: Failed namespaces are the namespaces that failed to apply an ExternalSecret
+                  items:
+                    description: ClusterExternalSecretNamespaceFailure represents a failed namespace deployment and it's reason.
+                    properties:
+                      namespace:
+                        description: Namespace is the namespace that failed when trying to apply an ExternalSecret
+                        type: string
+                      reason:
+                        description: Reason is why the ExternalSecret failed to apply to the namespace
+                        type: string
+                    required:
+                      - namespace
+                    type: object
+                  type: array
+                provisionedNamespaces:
+                  description: ProvisionedNamespaces are the namespaces where the ClusterExternalSecret has secrets
+                  items:
+                    type: string
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -25,6 +357,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+      deprecated: true
       name: v1alpha1
       schema:
         openAPIV3Schema:
@@ -260,9 +593,6 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         authType:
                           default: ServicePrincipal
@@ -270,10 +600,23 @@ spec:
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
+                            - WorkloadIdentity
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
                           type: string
@@ -663,6 +1006,33 @@ spec:
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
                               properties:
+                                kubernetesServiceAccountToken:
+                                  description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      items:
+                                        type: string
+                                      type: array
+                                    expirationSeconds:
+                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      format: int64
+                                      type: integer
+                                    serviceAccountRef:
+                                      description: Service account field containing the name of a kubernetes ServiceAccount.
+                                      properties:
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
                                 path:
                                   default: jwt
                                   description: 'Path where the JWT authentication backend is mounted in Vault, e.g: "jwt"'
@@ -671,7 +1041,7 @@ spec:
                                   description: Role is a JWT role to authenticate using the JWT/OIDC Vault authentication method
                                   type: string
                                 secretRef:
-                                  description: SecretRef to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method.
                                   properties:
                                     key:
                                       description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
@@ -1223,9 +1593,6 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         authType:
                           default: ServicePrincipal
@@ -1233,10 +1600,23 @@ spec:
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
+                            - WorkloadIdentity
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
                           type: string
@@ -1693,6 +2073,33 @@ spec:
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
                               properties:
+                                kubernetesServiceAccountToken:
+                                  description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      items:
+                                        type: string
+                                      type: array
+                                    expirationSeconds:
+                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      format: int64
+                                      type: integer
+                                    serviceAccountRef:
+                                      description: Service account field containing the name of a kubernetes ServiceAccount.
+                                      properties:
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
                                 path:
                                   default: jwt
                                   description: 'Path where the JWT authentication backend is mounted in Vault, e.g: "jwt"'
@@ -1701,7 +2108,7 @@ spec:
                                   description: Role is a JWT role to authenticate using the JWT/OIDC Vault authentication method
                                   type: string
                                 secretRef:
-                                  description: SecretRef to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method.
                                   properties:
                                     key:
                                       description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
@@ -1974,6 +2381,9 @@ spec:
                         - auth
                       type: object
                   type: object
+                refreshInterval:
+                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+                  type: integer
                 retrySettings:
                   description: Used to configure http retries if failed
                   properties:
@@ -2020,7 +2430,6 @@ spec:
       conversionReviewVersions:
         - v1
       clientConfig:
-        caBundle: Cg==
         service:
           name: kubernetes
           namespace: default
@@ -2062,6 +2471,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+      deprecated: true
       name: v1alpha1
       schema:
         openAPIV3Schema:
@@ -2396,10 +2806,19 @@ spec:
                     creationPolicy:
                       default: Owner
                       description: CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
+                      enum:
+                        - Owner
+                        - Orphan
+                        - Merge
+                        - None
                       type: string
                     deletionPolicy:
-                      default: None
-                      description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'None'
+                      default: Retain
+                      description: DeletionPolicy defines rules on how to delete the resulting Secret Defaults to 'Retain'
+                      enum:
+                        - Delete
+                        - Merge
+                        - Retain
                       type: string
                     immutable:
                       description: Immutable defines if the final secret will be immutable
@@ -2476,7 +2895,6 @@ spec:
                   type: object
               required:
                 - secretStoreRef
-                - target
               type: object
             status:
               properties:
@@ -2519,7 +2937,6 @@ spec:
       conversionReviewVersions:
         - v1
       clientConfig:
-        caBundle: Cg==
         service:
           name: kubernetes
           namespace: default
@@ -2558,6 +2975,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+      deprecated: true
       name: v1alpha1
       schema:
         openAPIV3Schema:
@@ -2793,9 +3211,6 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         authType:
                           default: ServicePrincipal
@@ -2803,10 +3218,23 @@ spec:
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
+                            - WorkloadIdentity
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
                           type: string
@@ -3196,6 +3624,33 @@ spec:
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
                               properties:
+                                kubernetesServiceAccountToken:
+                                  description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      items:
+                                        type: string
+                                      type: array
+                                    expirationSeconds:
+                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      format: int64
+                                      type: integer
+                                    serviceAccountRef:
+                                      description: Service account field containing the name of a kubernetes ServiceAccount.
+                                      properties:
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
                                 path:
                                   default: jwt
                                   description: 'Path where the JWT authentication backend is mounted in Vault, e.g: "jwt"'
@@ -3204,7 +3659,7 @@ spec:
                                   description: Role is a JWT role to authenticate using the JWT/OIDC Vault authentication method
                                   type: string
                                 secretRef:
-                                  description: SecretRef to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method.
                                   properties:
                                     key:
                                       description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
@@ -3759,9 +4214,6 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         authType:
                           default: ServicePrincipal
@@ -3769,10 +4221,23 @@ spec:
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
+                            - WorkloadIdentity
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
                           type: string
@@ -4229,6 +4694,33 @@ spec:
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
                               properties:
+                                kubernetesServiceAccountToken:
+                                  description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      items:
+                                        type: string
+                                      type: array
+                                    expirationSeconds:
+                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      format: int64
+                                      type: integer
+                                    serviceAccountRef:
+                                      description: Service account field containing the name of a kubernetes ServiceAccount.
+                                      properties:
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  required:
+                                    - serviceAccountRef
+                                  type: object
                                 path:
                                   default: jwt
                                   description: 'Path where the JWT authentication backend is mounted in Vault, e.g: "jwt"'
@@ -4237,7 +4729,7 @@ spec:
                                   description: Role is a JWT role to authenticate using the JWT/OIDC Vault authentication method
                                   type: string
                                 secretRef:
-                                  description: SecretRef to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Vault using the JWT/OIDC authentication method.
                                   properties:
                                     key:
                                       description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
@@ -4510,6 +5002,9 @@ spec:
                         - auth
                       type: object
                   type: object
+                refreshInterval:
+                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+                  type: integer
                 retrySettings:
                   description: Used to configure http retries if failed
                   properties:
@@ -4556,7 +5051,6 @@ spec:
       conversionReviewVersions:
         - v1
       clientConfig:
-        caBundle: Cg==
         service:
           name: kubernetes
           namespace: default

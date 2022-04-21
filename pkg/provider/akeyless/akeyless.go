@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/akeylesslabs/akeyless-go/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,6 +31,10 @@ import (
 const (
 	defaultAPIUrl = "https://api.akeyless.io"
 )
+
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &Akeyless{}
+var _ esv1beta1.Provider = &Provider{}
 
 // Provider satisfies the provider interface.
 type Provider struct{}
@@ -46,6 +51,7 @@ type akeylessBase struct {
 
 type Akeyless struct {
 	Client akeylessVaultInterface
+	url    string
 }
 
 type akeylessVaultInterface interface {
@@ -98,15 +104,22 @@ func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Clie
 
 	akl.akeylessGwAPIURL = akeylessGwAPIURL
 	akl.RestAPI = RestAPIClient
-	return &Akeyless{Client: akl}, nil
+	return &Akeyless{Client: akl, url: akeylessGwAPIURL}, nil
 }
 
 func (a *Akeyless) Close(ctx context.Context) error {
 	return nil
 }
 
-func (a *Akeyless) Validate() error {
-	return nil
+func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
+	timeout := 15 * time.Second
+	url := a.url
+
+	if err := utils.NetworkValidate(url, timeout); err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+
+	return esv1beta1.ValidationResultReady, nil
 }
 
 // Implements store.Client.GetSecret Interface.

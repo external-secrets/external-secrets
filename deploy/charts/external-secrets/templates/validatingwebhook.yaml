@@ -1,3 +1,4 @@
+{{- if .Values.webhook.create }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -17,8 +18,6 @@ webhooks:
       namespace: {{ .Release.Namespace | quote }}
       name: {{ include "external-secrets.fullname" . }}-webhook
       path: /validate-external-secrets-io-v1beta1-secretstore
-    # will be set by controller
-    caBundle: Cg==
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None
   timeoutSeconds: 5
@@ -35,7 +34,31 @@ webhooks:
       namespace: {{ .Release.Namespace | quote }}
       name: {{ include "external-secrets.fullname" . }}-webhook
       path: /validate-external-secrets-io-v1beta1-clustersecretstore
-    caBundle: Cg== # will be set by controller
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None
   timeoutSeconds: 5
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: externalsecret-validate
+  labels:
+    external-secrets.io/component: webhook
+webhooks:
+- name: "validate.externalsecret.external-secrets.io"
+  rules:
+  - apiGroups:   ["external-secrets.io"]
+    apiVersions: ["v1beta1"]
+    operations:  ["CREATE", "UPDATE", "DELETE"]
+    resources:   ["externalsecrets"]
+    scope:       "Namespaced"
+  clientConfig:
+    service:
+      namespace: {{ .Release.Namespace | quote }}
+      name: {{ include "external-secrets.fullname" . }}-webhook
+      path: /validate-external-secrets-io-v1beta1-externalsecret
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  timeoutSeconds: 5
+  failurePolicy: {{ .Values.webhook.failurePolicy}}
+{{- end }}

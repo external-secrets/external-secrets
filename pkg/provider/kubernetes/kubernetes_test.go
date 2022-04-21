@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -32,6 +33,8 @@ import (
 const (
 	errTestFetchCredentialsSecret = "test could not fetch Credentials secret failed"
 	errTestAuthValue              = "test failed key didn't match expected value"
+	errSomethingWentWrong         = "Something went wrong"
+	errExpectedErr                = "wanted error got nil"
 )
 
 type fakeClient struct {
@@ -42,9 +45,20 @@ func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOption
 	secret, ok := fk.secretMap[name]
 
 	if !ok {
-		return nil, errors.New("Something went wrong")
+		return nil, errors.New(errSomethingWentWrong)
 	}
 	return &secret, nil
+}
+
+type fakeReviewClient struct {
+	authReview *authv1.SelfSubjectAccessReview
+}
+
+func (fk fakeReviewClient) Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error) {
+	if fk.authReview == nil {
+		return nil, errors.New(errSomethingWentWrong)
+	}
+	return fk.authReview, nil
 }
 
 func TestKubernetesSecretManagerGetSecret(t *testing.T) {
@@ -70,7 +84,7 @@ func TestKubernetesSecretManagerGetSecret(t *testing.T) {
 	ref = esv1beta1.ExternalSecretDataRemoteRef{Key: "Key2", Property: "foo"}
 	_, err := kp.GetSecret(ctx, ref)
 
-	if err.Error() != "Something went wrong" {
+	if err.Error() != errSomethingWentWrong {
 		t.Error("test failed")
 	}
 
@@ -248,6 +262,98 @@ func TestKubernetesSecretManagerSetAuth(t *testing.T) {
 		t.Error(errTestAuthValue)
 	}
 }
+func TestValidateStore(t *testing.T) {
+	p := ProviderKubernetes{}
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Kubernetes: &esv1beta1.KubernetesProvider{},
+			},
+		},
+	}
+	secretName := "my-secret-name"
+	secretKey := "my-secert-key"
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "a CABundle or CAProvider is required" {
+		t.Errorf("service CA test failed, got %v", err.Error())
+	}
+
+	bundle := []byte("ca-bundle")
+	store.Spec.Provider.Kubernetes.Server.CABundle = bundle
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "an Auth type must be specified" {
+		t.Errorf("empty Auth test failed")
+	}
+	store.Spec.Provider.Kubernetes.Auth = esv1beta1.KubernetesAuth{Cert: &esv1beta1.CertAuth{}}
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "ClientCert.Name cannot be empty" {
+		t.Errorf("KeySelector test failed: expected clientCert name is required, got %v", err)
+	}
+	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Name = secretName
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "ClientCert.Key cannot be empty" {
+		t.Errorf("KeySelector test failed: expected clientCert Key is required, got %v", err)
+	}
+	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Key = secretKey
+	ns := "ns-one"
+	store.Spec.Provider.Kubernetes.Auth.Cert.ClientCert.Namespace = &ns
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
+		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
+	}
+	store.Spec.Provider.Kubernetes.Auth = esv1beta1.KubernetesAuth{Token: &esv1beta1.TokenAuth{}}
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "BearerToken.Name cannot be empty" {
+		t.Errorf("KeySelector test failed: expected bearer token name is required, got %v", err)
+	}
+	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Name = secretName
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "BearerToken.Key cannot be empty" {
+		t.Errorf("KeySelector test failed: expected bearer token key is required, got %v", err)
+	}
+	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Key = secretKey
+	store.Spec.Provider.Kubernetes.Auth.Token.BearerToken.Namespace = &ns
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
+		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
+	}
+	store.Spec.Provider.Kubernetes.Auth = esv1beta1.KubernetesAuth{
+		Cert: &esv1beta1.CertAuth{
+			ClientCert: v1.SecretKeySelector{
+				Name: secretName,
+				Key:  secretKey,
+			},
+		},
+		Token: &esv1beta1.TokenAuth{
+			BearerToken: v1.SecretKeySelector{
+				Name: secretName,
+				Key:  secretKey,
+			},
+		},
+	}
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf(errExpectedErr)
+	} else if err.Error() != "only one authentication method is allowed" {
+		t.Errorf("KeySelector test failed: expected only one auth method allowed, got %v", err)
+	}
+}
 
 func ErrorContains(out error, want string) bool {
 	if out == nil {
@@ -257,4 +363,46 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestValidate(t *testing.T) {
+	authReview := authv1.SelfSubjectAccessReview{
+		Status: authv1.SubjectAccessReviewStatus{
+			Allowed: true,
+		},
+	}
+	fakeClient := fakeReviewClient{authReview: &authReview}
+	k := ProviderKubernetes{ReviewClient: fakeClient}
+	validationResult, err := k.Validate()
+	if err != nil {
+		t.Errorf("Test Failed! %v", err)
+	}
+	if validationResult != esv1beta1.ValidationResultReady {
+		t.Errorf("Test Failed! Wanted could not indicate validationResult is %s, got: %s", esv1beta1.ValidationResultReady, validationResult)
+	}
+
+	authReview = authv1.SelfSubjectAccessReview{
+		Status: authv1.SubjectAccessReviewStatus{
+			Allowed: false,
+		},
+	}
+	fakeClient = fakeReviewClient{authReview: &authReview}
+	k = ProviderKubernetes{ReviewClient: fakeClient}
+	validationResult, err = k.Validate()
+	if err.Error() != "client is not allowed to get secrets" {
+		t.Errorf("Test Failed! Wanted client is not allowed to get secrets got: %v", err)
+	}
+	if validationResult != esv1beta1.ValidationResultError {
+		t.Errorf("Test Failed! Wanted could not indicate validationResult is %s, got: %s", esv1beta1.ValidationResultError, validationResult)
+	}
+
+	fakeClient = fakeReviewClient{}
+	k = ProviderKubernetes{ReviewClient: fakeClient}
+	validationResult, err = k.Validate()
+	if err.Error() != "could not verify if client is valid: Something went wrong" {
+		t.Errorf("Test Failed! Wanted could not verify if client is valid: Something went wrong got: %v", err)
+	}
+	if validationResult != esv1beta1.ValidationResultUnknown {
+		t.Errorf("Test Failed! Wanted could not indicate validationResult is %s, got: %s", esv1beta1.ValidationResultUnknown, validationResult)
+	}
 }

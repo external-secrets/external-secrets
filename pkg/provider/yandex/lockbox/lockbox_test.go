@@ -101,7 +101,7 @@ func TestNewClient(t *testing.T) {
 	err = createK8sSecret(ctx, k8sClient, namespace, caCertificateSecretName, caCertificateSecretKey, newFakeCACertificate())
 	tassert.Nil(t, err)
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "failed to create Yandex Lockbox client: private key parsing failed: Invalid Key: Key must be PEM encoded PKCS1 or PKCS8 private key")
+	tassert.EqualError(t, err, "failed to create Yandex Lockbox client: private key parsing failed: invalid key: Key must be a PEM encoded PKCS1 or PKCS8 key")
 	tassert.Nil(t, secretClient)
 }
 

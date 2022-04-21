@@ -20,15 +20,18 @@ import smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 // Only one of the following auth types may be specified.
 // If none of the following auth type is specified, the default one
 // is ServicePrincipal.
-// +kubebuilder:validation:Enum=ServicePrincipal;ManagedIdentity
-type AuthType string
+// +kubebuilder:validation:Enum=ServicePrincipal;ManagedIdentity;WorkloadIdentity
+type AzureAuthType string
 
 const (
 	// Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.
-	ServicePrincipal AuthType = "ServicePrincipal"
+	AzureServicePrincipal AzureAuthType = "ServicePrincipal"
 
-	// Using Managed Identity to authenticate. Used with aad-pod-identity instelled in the clister.
-	ManagedIdentity AuthType = "ManagedIdentity"
+	// Using Managed Identity to authenticate. Used with aad-pod-identity installed in the clister.
+	AzureManagedIdentity AzureAuthType = "ManagedIdentity"
+
+	// Using Workload Identity service accounts to authenticate.
+	AzureWorkloadIdentity AzureAuthType = "WorkloadIdentity"
 )
 
 // Configures an store to sync secrets using Azure KV.
@@ -39,15 +42,24 @@ type AzureKVProvider struct {
 	// - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
 	// +optional
 	// +kubebuilder:default=ServicePrincipal
-	AuthType *AuthType `json:"authType,omitempty"`
+	AuthType *AzureAuthType `json:"authType,omitempty"`
+
 	// Vault Url from which the secrets to be fetched from.
 	VaultURL *string `json:"vaultUrl"`
+
 	// TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
 	// +optional
 	TenantID *string `json:"tenantId,omitempty"`
+
 	// Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
 	// +optional
 	AuthSecretRef *AzureKVAuth `json:"authSecretRef,omitempty"`
+
+	// ServiceAccountRef specified the service account
+	// that should be used when authenticating with WorkloadIdentity.
+	// +optional
+	ServiceAccountRef *smmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
 	// If multiple Managed Identity is assigned to the pod, you can select the one to be used
 	// +optional
 	IdentityID *string `json:"identityId,omitempty"`
@@ -56,7 +68,10 @@ type AzureKVProvider struct {
 // Configuration used to authenticate with Azure.
 type AzureKVAuth struct {
 	// The Azure clientId of the service principle used for authentication.
-	ClientID *smmeta.SecretKeySelector `json:"clientId"`
+	// +optional
+	ClientID *smmeta.SecretKeySelector `json:"clientId,omitempty"`
+
 	// The Azure ClientSecret of the service principle used for authentication.
-	ClientSecret *smmeta.SecretKeySelector `json:"clientSecret"`
+	// +optional
+	ClientSecret *smmeta.SecretKeySelector `json:"clientSecret,omitempty"`
 }

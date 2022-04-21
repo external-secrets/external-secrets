@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -37,17 +38,25 @@ const (
 	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
 	errMissingSAK                             = "missing credentials while setting auth"
+	errList                                   = "could not verify if the client is valid: %w"
+	errAuth                                   = "client is not allowed to get secrets"
 	errUninitalizedGitlabProvider             = "provider gitlab is not initialized"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &Gitlab{}
+var _ esv1beta1.Provider = &Gitlab{}
+
 type Client interface {
 	GetVariable(pid interface{}, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	ListVariables(pid interface{}, opt *gitlab.ListProjectVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
 // Gitlab Provider struct with reference to a GitLab client and a projectID.
 type Gitlab struct {
 	client    Client
+	url       string
 	projectID interface{}
 }
 
@@ -142,6 +151,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 
 	g.client = gitlabClient.ProjectVariables
 	g.projectID = cliStore.store.ProjectID
+	g.url = cliStore.store.URL
 
 	return g, nil
 }
@@ -215,8 +225,15 @@ func (g *Gitlab) Close(ctx context.Context) error {
 	return nil
 }
 
-func (g *Gitlab) Validate() error {
-	return nil
+// Validate will use the gitlab client to validate the gitlab provider using the ListVariable call to ensure get permissions without needing a specific key.
+func (g *Gitlab) Validate() (esv1beta1.ValidationResult, error) {
+	_, resp, err := g.client.ListVariables(g.projectID, nil)
+	if err != nil {
+		return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
+	} else if resp == nil || resp.StatusCode != http.StatusOK {
+		return esv1beta1.ValidationResultError, fmt.Errorf(errAuth)
+	}
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (g *Gitlab) ValidateStore(store esv1beta1.GenericStore) error {

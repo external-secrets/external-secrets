@@ -35,27 +35,32 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
 
 var (
-	scheme                        = runtime.NewScheme()
-	setupLog                      = ctrl.Log.WithName("setup")
-	dnsName                       string
-	certDir                       string
-	metricsAddr                   string
-	healthzAddr                   string
-	controllerClass               string
-	enableLeaderElection          bool
-	concurrent                    int
-	loglevel                      string
-	namespace                     string
-	storeRequeueInterval          time.Duration
-	serviceName, serviceNamespace string
-	secretName, secretNamespace   string
-	crdRequeueInterval            time.Duration
-	certCheckInterval             time.Duration
+	scheme                                = runtime.NewScheme()
+	setupLog                              = ctrl.Log.WithName("setup")
+	dnsName                               string
+	certDir                               string
+	metricsAddr                           string
+	healthzAddr                           string
+	controllerClass                       string
+	enableLeaderElection                  bool
+	concurrent                            int
+	port                                  int
+	loglevel                              string
+	namespace                             string
+	enableClusterStoreReconciler          bool
+	enableClusterExternalSecretReconciler bool
+	enableFloodGate                       bool
+	storeRequeueInterval                  time.Duration
+	serviceName, serviceNamespace         string
+	secretName, secretNamespace           string
+	crdRequeueInterval                    time.Duration
+	certCheckInterval                     time.Duration
 )
 
 const (
@@ -115,27 +120,44 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, errCreateController, "controller", "SecretStore")
 			os.Exit(1)
 		}
-		if err = (&secretstore.ClusterStoreReconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: storeRequeueInterval,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
-			os.Exit(1)
+		if enableClusterStoreReconciler {
+			if err = (&secretstore.ClusterStoreReconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+				Scheme:          mgr.GetScheme(),
+				ControllerClass: controllerClass,
+				RequeueInterval: storeRequeueInterval,
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
+				os.Exit(1)
+			}
 		}
 		if err = (&externalsecret.Reconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: time.Hour,
+			Client:                    mgr.GetClient(),
+			Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
+			Scheme:                    mgr.GetScheme(),
+			ControllerClass:           controllerClass,
+			RequeueInterval:           time.Hour,
+			ClusterSecretStoreEnabled: enableClusterStoreReconciler,
+			EnableFloodGate:           enableFloodGate,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 			os.Exit(1)
+		}
+		if enableClusterExternalSecretReconciler {
+			if err = (&clusterexternalsecret.Reconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecret"),
+				Scheme:          mgr.GetScheme(),
+				RequeueInterval: time.Hour,
+			}).SetupWithManager(mgr, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+			}); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "ClusterExternalSecret")
+				os.Exit(1)
+			}
 		}
 		setupLog.Info("starting manager")
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
@@ -159,5 +181,8 @@ func init() {
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent ExternalSecret reconciles.")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
-	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Time duration between reconciling (Cluster)SecretStores")
+	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
+	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
+	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
+	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 }

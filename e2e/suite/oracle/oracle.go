@@ -16,8 +16,6 @@ import (
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
-	// nolint
-	. "github.com/onsi/ginkgo/v2/extensions/table"
 
 	"github.com/external-secrets/external-secrets/e2e/framework"
 	"github.com/external-secrets/external-secrets/e2e/suite/common"
@@ -39,5 +37,6 @@ var _ = Describe("[oracle]", Label("oracle"), func() {
 		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
+		Entry(common.SyncV1Alpha1(f)),
 	)
 })

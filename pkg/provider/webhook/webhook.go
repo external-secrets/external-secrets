@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"strings"
 	tpl "text/template"
+	"time"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/PaesslerAG/jsonpath"
@@ -35,7 +36,12 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
+
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &WebHook{}
+var _ esv1beta1.Provider = &Provider{}
 
 // Provider satisfies the provider interface.
 type Provider struct{}
@@ -46,6 +52,7 @@ type WebHook struct {
 	namespace string
 	storeKind string
 	http      *http.Client
+	url       string
 }
 
 func init() {
@@ -65,6 +72,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if err != nil {
 		return nil, err
 	}
+	whClient.url = provider.URL
+
 	whClient.http, err = whClient.getHTTPClient(provider)
 	if err != nil {
 		return nil, err
@@ -385,8 +394,14 @@ func (w *WebHook) Close(ctx context.Context) error {
 	return nil
 }
 
-func (w *WebHook) Validate() error {
-	return nil
+func (w *WebHook) Validate() (esv1beta1.ValidationResult, error) {
+	timeout := 15 * time.Second
+	url := w.url
+
+	if err := utils.NetworkValidate(url, timeout); err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func executeTemplateString(tmpl string, data map[string]map[string]string) (string, error) {

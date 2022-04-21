@@ -24,9 +24,10 @@ import (
 )
 
 var (
-	errNotFound            = fmt.Errorf("secret value not found")
 	errMissingStore        = fmt.Errorf("missing store provider")
 	errMissingFakeProvider = fmt.Errorf("missing store provider fake")
+	errMissingKeyField     = "key must be set in data %v"
+	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
 )
 
 type Provider struct {
@@ -67,7 +68,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 			return []byte(data.Value), nil
 		}
 	}
-	return nil, errNotFound
+	return nil, esv1beta1.NoSecretErr
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
@@ -78,7 +79,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 		}
 		return convertMap(data.ValueMap), nil
 	}
-	return nil, errNotFound
+	return nil, esv1beta1.NoSecretErr
 }
 
 func convertMap(in map[string]string) map[string][]byte {
@@ -93,11 +94,23 @@ func (p *Provider) Close(ctx context.Context) error {
 	return nil
 }
 
-func (p *Provider) Validate() error {
-	return nil
+func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	prov := store.GetSpec().Provider.Fake
+	if prov == nil {
+		return nil
+	}
+	for pos, data := range prov.Data {
+		if data.Key == "" {
+			return fmt.Errorf(errMissingKeyField, pos)
+		}
+		if data.Value == "" && data.ValueMap == nil {
+			return fmt.Errorf(errMissingValueField, pos)
+		}
+	}
 	return nil
 }
 

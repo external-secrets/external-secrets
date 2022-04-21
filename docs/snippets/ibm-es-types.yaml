@@ -12,9 +12,28 @@ spec:
   - secretKey: foo
     remoteRef:
       key: username_password/yyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+      property: username
   - secretKey: bar
     remoteRef:
       key: iam_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
   - secretKey: baz
     remoteRef:
       key: imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: certificate
+  - secretKey: bap
+    remoteRef:
+      key: public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: certificate
+  - secretKey: kv_without_key
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: kv_key
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: 'keyid'
+  - secretKey: kv_key_with_path
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: 'key.path'
+  dataFrom:
+  

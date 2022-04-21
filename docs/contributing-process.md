@@ -61,7 +61,7 @@ There's another suite of e2e tests that integrate with managed Kuberentes offeri
 They create real infrastructure at a cloud provider and deploy the controller
 into that environment.
 This is necessary to test the authentication integration
-([GCP Worklaod Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity),
+([GCP Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity),
 [EKS IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)...).
 
 These tests are time intensive (~20-45min) and must be triggered manually by
@@ -118,6 +118,29 @@ develop and release big changes. Significant changes include for example:
 Please create a document in the `design/` directory based on the template `000-template.md`
 and fill in your proposal. Open a pull request in draft mode and request feedback. Once the proposal is accepted and the pull request is merged we can create work packages and proceed with the implementation.
 
+## Release Planning
+
+We have a [GitHub Project Board](https://github.com/orgs/external-secrets/projects/2/views/1) where we organize issues on a high level. We group issues by milestone. Once all issues of a given milestone are closed we should prepare a new feature release. Issues of the next milestone have priority over other issues - but that does not mean that no one is allowed to start working on them.
+
+Issues must be _manually_ added to that board (at least for now, see [GH Roadmap](https://github.com/github/roadmap/issues/286)). Milestones must be assigned manually as well. If no milestone is assigned it is basically a backlog item. It is the responsibility of the maintainers to (1) assign new issues to the GH Project, (2) add a milestone if needed and (3) add appropriate labels.
+
+If you would like to raise the priority of an issue for whatever reason feel free to comment on the issue or ping a maintainer.
+
+## Support & Questions
+
+Providing support to end users is an important and difficult task.
+We have three different channels through which support questions arise:
+
+1. Kubernetes Slack [#external-secrets](https://kubernetes.slack.com/archives/C017BF84G2Y)
+2. [GitHub Discussions](https://github.com/external-secrets/external-secrets/discussions)
+3. GitHub Issues
+
+We use labels to identify GitHub Issues. Specifically for managing support cases we use the following labels to identify the state a support case is in:
+* `triage/needs-information`: Indicates an issue needs more information in order to work on it.
+* `triage/not-reproducible`: Indicates an issue can not be reproduced as described.
+* `triage/support`: Indicates an issue that is a support question.
+
+
 ## Cutting Releases
 
-The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the `RELEASE.md` file in the repo.
+The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the [release](contributing-release.md) page.

@@ -16,17 +16,24 @@ package parameterstore
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
-	ctrl "sigs.k8s.io/controller-runtime"
+	utilpointer "k8s.io/utils/pointer"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
+
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &ParameterStore{}
 
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
@@ -38,9 +45,12 @@ type ParameterStore struct {
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/ssm/ssmiface/
 type PMInterface interface {
 	GetParameter(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+	DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error)
 }
 
-var log = ctrl.Log.WithName("provider").WithName("aws").WithName("parameterstore")
+const (
+	errUnexpectedFindOperator = "unexpected find operator"
+)
 
 // New constructs a ParameterStore Provider that is specific to a store.
 func New(sess *session.Session) (*ParameterStore, error) {
@@ -52,17 +62,123 @@ func New(sess *session.Session) (*ParameterStore, error) {
 
 // Empty GetAllSecrets.
 func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	if ref.Name != nil {
+		return pm.findByName(ref)
+	}
+	if ref.Tags != nil {
+		return pm.findByTags(ref)
+	}
+	return nil, errors.New(errUnexpectedFindOperator)
+}
+
+func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
+	}
+	pathFilter := make([]*ssm.ParameterStringFilter, 0)
+	if ref.Path != nil {
+		pathFilter = append(pathFilter, &ssm.ParameterStringFilter{
+			Key:    aws.String("Path"),
+			Option: aws.String("Recursive"),
+			Values: []*string{ref.Path},
+		})
+	}
+	data := make(map[string][]byte)
+	var nextToken *string
+	for {
+		it, err := pm.client.DescribeParameters(&ssm.DescribeParametersInput{
+			NextToken:        nextToken,
+			ParameterFilters: pathFilter,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, param := range it.Parameters {
+			if !matcher.MatchName(*param.Name) {
+				continue
+			}
+			err = pm.fetchAndSet(data, *param.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		nextToken = it.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+
+	return utils.ConvertKeys(ref.ConversionStrategy, data)
+}
+
+func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	filters := make([]*ssm.ParameterStringFilter, 0)
+	for k, v := range ref.Tags {
+		filters = append(filters, &ssm.ParameterStringFilter{
+			Key:    utilpointer.StringPtr(fmt.Sprintf("tag:%s", k)),
+			Values: []*string{utilpointer.StringPtr(v)},
+			Option: utilpointer.StringPtr("Equals"),
+		})
+	}
+
+	if ref.Path != nil {
+		filters = append(filters, &ssm.ParameterStringFilter{
+			Key:    aws.String("Path"),
+			Option: aws.String("Recursive"),
+			Values: []*string{ref.Path},
+		})
+	}
+
+	data := make(map[string][]byte)
+	var nextToken *string
+	for {
+		it, err := pm.client.DescribeParameters(&ssm.DescribeParametersInput{
+			ParameterFilters: filters,
+			NextToken:        nextToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, param := range it.Parameters {
+			err = pm.fetchAndSet(data, *param.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		nextToken = it.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+
+	return utils.ConvertKeys(ref.ConversionStrategy, data)
+}
+
+func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error {
+	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
+		Name:           utilpointer.StringPtr(name),
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		return util.SanitizeErr(err)
+	}
+
+	data[name] = []byte(*out.Parameter.Value)
+	return nil
 }
 
 // GetSecret returns a single secret from the provider.
 func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	log.Info("fetching secret value", "key", ref.Key)
 	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
 		Name:           &ref.Key,
 		WithDecryption: aws.Bool(true),
 	})
+
+	var nf *ssm.ParameterNotFound
+	if errors.As(err, &nf) {
+		return nil, esv1beta1.NoSecretErr
+	}
 	if err != nil {
 		return nil, util.SanitizeErr(err)
 	}
@@ -71,6 +187,14 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 			return []byte(*out.Parameter.Value), nil
 		}
 		return nil, fmt.Errorf("invalid secret received. parameter value is nil for key: %s", ref.Key)
+	}
+	idx := strings.Index(ref.Property, ".")
+	if idx > 0 {
+		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+		val := gjson.Get(*out.Parameter.Value, refProperty)
+		if val.Exists() {
+			return []byte(val.String()), nil
+		}
 	}
 	val := gjson.Get(*out.Parameter.Value, ref.Property)
 	if !val.Exists() {
@@ -81,7 +205,6 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	log.Info("fetching secret map", "key", ref.Key)
 	data, err := pm.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -102,7 +225,10 @@ func (pm *ParameterStore) Close(ctx context.Context) error {
 	return nil
 }
 
-func (pm *ParameterStore) Validate() error {
+func (pm *ParameterStore) Validate() (esv1beta1.ValidationResult, error) {
 	_, err := pm.sess.Config.Credentials.Get()
-	return err
+	if err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+	return esv1beta1.ValidationResultReady, nil
 }

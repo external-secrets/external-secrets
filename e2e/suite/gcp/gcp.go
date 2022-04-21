@@ -46,6 +46,11 @@ var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
+		Entry(common.FindByName(f)),
+		Entry(common.FindByNameWithPath(f)),
+		Entry(common.FindByTag(f)),
+		Entry(common.FindByTagWithPath(f)),
+		Entry(common.SyncV1Alpha1(f)),
 		Entry("should sync p12 encoded cert secret", p12Cert),
 	)
 })
@@ -122,8 +127,8 @@ x6HaRh+EUwU51von6M9lEF9/p5Q=
 	emptyCACerts := []*x509.Certificate{}
 	p12Cert, _ := p12.Encode(rand.Reader, privkey, cert, emptyCACerts, "")
 
-	tc.Secrets = map[string]string{
-		cloudSecretName: string(p12Cert),
+	tc.Secrets = map[string]framework.SecretEntry{
+		cloudSecretName: {Value: string(p12Cert)},
 	}
 
 	tc.ExpectedSecret = &v1.Secret{

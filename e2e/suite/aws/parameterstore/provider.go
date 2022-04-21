@@ -16,6 +16,7 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -95,12 +96,20 @@ func NewFromEnv(f *framework.Framework) *Provider {
 }
 
 // CreateSecret creates a secret at the provider.
-func (s *Provider) CreateSecret(key, val string) {
+func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
+	pmTags := make([]*ssm.Tag, 0)
+	for k, v := range val.Tags {
+		pmTags = append(pmTags, &ssm.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
 	_, err := s.client.PutParameter(&ssm.PutParameterInput{
 		Name:     aws.String(key),
-		Value:    aws.String(val),
+		Value:    aws.String(val.Value),
 		DataType: aws.String("text"),
 		Type:     aws.String("String"),
+		Tags:     pmTags,
 	})
 	Expect(err).ToNot(HaveOccurred())
 }
@@ -110,6 +119,10 @@ func (s *Provider) DeleteSecret(key string) {
 	_, err := s.client.DeleteParameter(&ssm.DeleteParameterInput{
 		Name: aws.String(key),
 	})
+	var nf *ssm.ParameterNotFound
+	if errors.As(err, &nf) {
+		return
+	}
 	Expect(err).ToNot(HaveOccurred())
 }
 

@@ -1,0 +1,38 @@
+{{- if and .Values.certController.create .Values.certController.serviceMonitor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
+  labels:
+    {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    protocol: TCP
+    name: metrics
+  selector:
+    {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 4 }}
+---
+apiVersion: "monitoring.coreos.com/v1"
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+{{- if .Values.certController.serviceMonitor.additionalLabels }}
+{{ toYaml .Values.certController.serviceMonitor.additionalLabels | indent 4 }}
+{{- end }}
+  name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace | quote }}
+  endpoints:
+  - port: metrics
+    interval: {{ .Values.certController.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.certController.serviceMonitor.scrapeTimeout }}
+{{- end }}

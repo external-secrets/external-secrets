@@ -100,7 +100,7 @@ jobs:
       run: git fetch --prune --unshallow
 
     - name: Setup Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ env.GO_VERSION }}
 
@@ -111,21 +111,21 @@ jobs:
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
 
     - name: Cache the Go Build Cache
-      uses: actions/cache@v2.1.7
+      uses: actions/cache@v3
       with:
         path: ${{ steps.go.outputs.build-cache }}
         key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-build-unit-tests-
 
     - name: Cache Go Dependencies
-      uses: actions/cache@v2.1.7
+      uses: actions/cache@v3
       with:
         path: ${{ steps.go.outputs.mod-cache }}
         key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
         restore-keys: ${{ runner.os }}-pkg-
 
     - name: Setup TFLint
-      uses: terraform-linters/setup-tflint@v1
+      uses: terraform-linters/setup-tflint@v2
       with:
         tflint_version: v0.28.0  # Must be specified. See: https://github.com/terraform-linters/tflint/releases for latest versions
 
@@ -164,7 +164,7 @@ jobs:
 
     - name: Setup gcloud CLI
       if: github.event.client_payload.slash_command.args.named.provider == 'gcp'
-      uses: google-github-actions/setup-gcloud@master
+      uses: google-github-actions/setup-gcloud@v0
       with:
         service_account_key: ${{ env.GCP_SM_SA_GKE_JSON }}
         project_id: ${{ env.GCP_PROJECT_ID }}

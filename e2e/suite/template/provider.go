@@ -39,7 +39,7 @@ func newProvider(f *framework.Framework) *templateProvider {
 	return prov
 }
 
-func (s *templateProvider) CreateSecret(key, val string) {
+func (s *templateProvider) CreateSecret(key string, val framework.SecretEntry) {
 	// noop: this provider implements static key/value pairs
 }
 

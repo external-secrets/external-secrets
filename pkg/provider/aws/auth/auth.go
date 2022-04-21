@@ -223,7 +223,7 @@ func DefaultJWTProvider(name, namespace, roleArn, region string) (credentials.Pr
 		k8sClient:      clientset.CoreV1(),
 	}
 
-	return stscreds.NewWebIdentityRoleProviderWithToken(
+	return stscreds.NewWebIdentityRoleProviderWithOptions(
 		sts.New(sess), roleArn, "external-secrets-provider-aws", tokenFetcher), nil
 }
 

@@ -49,5 +49,5 @@ fi
 
 gendoc::build
 gendoc::exec \
-    -api-dir github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1 \
+    -api-dir github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1 \
     -out-file "$1"

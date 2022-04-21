@@ -34,6 +34,11 @@ kubectl create clusterrolebinding permissive-binding \
   --user=kubelet \
   --serviceaccount=default:external-secrets-e2e || true
 
+echo -e "Granting anonymous access to service account issuer discovery"
+kubectl create clusterrolebinding service-account-issuer-discovery-binding \
+  --clusterrole=system:service-account-issuer-discovery \
+  --group=system:unauthenticated || true
+
 echo -e "Waiting service account..."; \
 until kubectl get secret | grep -q -e ^external-secrets-e2e-token; do \
   echo -e "waiting for api token"; \

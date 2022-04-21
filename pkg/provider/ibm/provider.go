@@ -17,17 +17,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/IBM/go-sdk-core/v5/core"
+	core "github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/secretsmanagerv1"
+	gjson "github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
+	types "k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -44,6 +47,10 @@ const (
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &providerIBM{}
+var _ esv1beta1.Provider = &providerIBM{}
+
 type SecretManagerClient interface {
 	GetSecret(getSecretOptions *sm.GetSecretOptions) (result *sm.GetSecret, response *core.DetailedResponse, err error)
 }
@@ -59,6 +66,8 @@ type client struct {
 	storeKind   string
 	credentials []byte
 }
+
+var log = ctrl.Log.WithName("provider").WithName("ibm").WithName("secretsmanager")
 
 func (c *client) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
@@ -134,6 +143,19 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 		}
 
 		return getImportCertSecret(ibm, &secretName, ref)
+
+	case sm.CreateSecretOptionsSecretTypePublicCertConst:
+
+		if ref.Property == "" {
+			return nil, fmt.Errorf("remoteRef.property required for secret type public_cert")
+		}
+
+		return getPublicCertSecret(ibm, &secretName, ref)
+
+	case sm.CreateSecretOptionsSecretTypeKvConst:
+
+		return getKVSecret(ibm, &secretName, ref)
+
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
@@ -159,6 +181,25 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
+			ID:         secretName,
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	secret := response.Resources[0].(*sm.SecretResource)
+	secretData := secret.SecretData.(map[string]interface{})
+
+	if val, ok := secretData[ref.Property]; ok {
+		return []byte(val.(string)), nil
+	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+}
+
+func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	response, _, err := ibm.IBMClient.GetSecret(
+		&sm.GetSecretOptions{
+			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
 			ID:         secretName,
 		})
 	if err != nil {
@@ -207,6 +248,85 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 		return []byte(val.(string)), nil
 	}
 	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+}
+
+// Returns a secret of type kv and supports json path.
+func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	secret, err := getSecretByType(ibm, secretName, sm.CreateSecretOptionsSecretTypeKvConst)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("fetching secret", "secretName", secretName, "key", ref.Key)
+
+	secretData := secret.SecretData.(map[string]interface{})
+
+	payload, ok := secretData["payload"]
+	if !ok {
+		return nil, fmt.Errorf("no payload returned for secret %s", ref.Key)
+	}
+
+	payloadJSON := payload
+
+	payloadJSONMap, ok := payloadJSON.(map[string]interface{})
+	if ok {
+		var payloadJSONByte []byte
+		payloadJSONByte, err = json.Marshal(payloadJSONMap)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling payload from secret failed. %w", err)
+		}
+		payloadJSON = string(payloadJSONByte)
+	}
+
+	// no property requested, return the entire payload
+	if ref.Property == "" {
+		return []byte(payloadJSON.(string)), nil
+	}
+
+	// returns the requested key
+	// consider that the key contains a ".". this could be one of 2 options
+	// a) "." is part of the key name
+	// b) "." is symbole for JSON path
+	if ref.Property != "" {
+		refProperty := ref.Property
+
+		// a) "." is part the key name
+		// escape "."
+		idx := strings.Index(refProperty, ".")
+		if idx > 0 {
+			refProperty = strings.ReplaceAll(refProperty, ".", "\\.")
+
+			val := gjson.Get(payloadJSON.(string), refProperty)
+			if val.Exists() {
+				return []byte(val.String()), nil
+			}
+		}
+
+		// b) "." is symbole for JSON path
+		// try to get value for this path
+		val := gjson.Get(payloadJSON.(string), ref.Property)
+		if !val.Exists() {
+			return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		}
+		return []byte(val.String()), nil
+	}
+
+	return nil, fmt.Errorf("no property provided for secret %s", ref.Key)
+}
+
+func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*sm.SecretResource, error) {
+	response, _, err := ibm.IBMClient.GetSecret(
+		&sm.GetSecretOptions{
+			SecretType: core.StringPtr(secretType),
+			ID:         secretName,
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	secret := response.Resources[0].(*sm.SecretResource)
+
+	return secret, nil
 }
 
 func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -300,28 +420,103 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 
 		return secretMap, nil
 
+	case sm.CreateSecretOptionsSecretTypePublicCertConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+
+		secretMap := byteArrayMap(secretData)
+
+		return secretMap, nil
+
+	case sm.CreateSecretOptionsSecretTypeKvConst:
+		secret, err := getKVSecret(ibm, &secretName, ref)
+		if err != nil {
+			return nil, err
+		}
+		m := make(map[string]interface{})
+		err = json.Unmarshal(secret, &m)
+		if err != nil {
+			return nil, err
+		}
+
+		secretMap := byteArrayMap(m)
+
+		return secretMap, nil
+
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
 }
 
 func byteArrayMap(secretData map[string]interface{}) map[string][]byte {
+	var err error
 	secretMap := make(map[string][]byte)
 	for k, v := range secretData {
-		secretMap[k] = []byte(v.(string))
+		secretMap[k], err = getTypedKey(v)
+		if err != nil {
+			return nil
+		}
 	}
 	return secretMap
+}
+
+// kudos Vault Provider - convert from various types.
+func getTypedKey(v interface{}) ([]byte, error) {
+	switch t := v.(type) {
+	case string:
+		return []byte(t), nil
+	case map[string]interface{}:
+		return json.Marshal(t)
+	case map[string]string:
+		return json.Marshal(t)
+	case []byte:
+		return t, nil
+		// also covers int and float32 due to json.Marshal
+	case float64:
+		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
+	case bool:
+		return []byte(strconv.FormatBool(t)), nil
+	case nil:
+		return []byte(nil), nil
+	default:
+		return nil, fmt.Errorf("secret not in expected format")
+	}
 }
 
 func (ibm *providerIBM) Close(ctx context.Context) error {
 	return nil
 }
 
-func (ibm *providerIBM) Validate() error {
-	return nil
+func (ibm *providerIBM) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	ibmSpec := storeSpec.Provider.IBM
+	if ibmSpec.ServiceURL == nil {
+		return fmt.Errorf("serviceURL is required")
+	}
+	secretRef := ibmSpec.Auth.SecretRef.SecretAPIKey
+	err := utils.ValidateSecretSelector(store, secretRef)
+	if err != nil {
+		return err
+	}
+	if secretRef.Name == "" {
+		return fmt.Errorf("secretAPIKey.name cannot be empty")
+	}
+	if secretRef.Key == "" {
+		return fmt.Errorf("secretAPIKey.key cannot be empty")
+	}
 	return nil
 }
 

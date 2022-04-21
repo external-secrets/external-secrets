@@ -20,6 +20,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	ValidationResultReady ValidationResult = iota
+	ValidationResultUnknown
+	ValidationResultError
+)
+
+type ValidationResult uint8
+
+func (v ValidationResult) String() string {
+	return [...]string{"Ready", "Unknown", "Error"}[v]
+}
+
 // +kubebuilder:object:root=false
 // +kubebuilder:object:generate:false
 // +k8s:deepcopy-gen:interfaces=nil
@@ -42,11 +54,14 @@ type Provider interface {
 // SecretsClient provides access to secrets.
 type SecretsClient interface {
 	// GetSecret returns a single secret from the provider
+	// if GetSecret returns an error with type NoSecretError
+	// then the secret entry will be deleted depending on the deletionPolicy.
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// Validate checks if the client is configured correctly
-	// and is able to retrieve secrets from the provider
-	Validate() error
+	// and is able to retrieve secrets from the provider.
+	// If the validation result is unknown it will be ignored.
+	Validate() (ValidationResult, error)
 
 	// GetSecretMap returns multiple k/v pairs from the provider
 	GetSecretMap(ctx context.Context, ref ExternalSecretDataRemoteRef) (map[string][]byte, error)
@@ -55,4 +70,14 @@ type SecretsClient interface {
 	GetAllSecrets(ctx context.Context, ref ExternalSecretFind) (map[string][]byte, error)
 
 	Close(ctx context.Context) error
+}
+
+var NoSecretErr = NoSecretError{}
+
+// NoSecretError shall be returned when a GetSecret can not find the
+// desired secret. This is used for deletionPolicy.
+type NoSecretError struct{}
+
+func (NoSecretError) Error() string {
+	return "Secret does not exist"
 }

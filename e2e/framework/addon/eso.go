@@ -36,6 +36,10 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("IMAGE_REGISTRY"),
 				},
 				{
+					Key:   "webhook.port",
+					Value: "9443",
+				},
+				{
 					Key:   "webhook.image.repository",
 					Value: os.Getenv("IMAGE_REGISTRY"),
 				},
@@ -89,6 +93,24 @@ func WithNamespaceScope(namespace string) MutationFunc {
 		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
 			Key:   "scopedNamespace",
 			Value: namespace,
+		})
+	}
+}
+
+func WithoutWebhook() MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "webhook.create",
+			Value: "false",
+		})
+	}
+}
+
+func WithoutCertController() MutationFunc {
+	return func(eso *ESO) {
+		eso.HelmChart.Vars = append(eso.HelmChart.Vars, StringTuple{
+			Key:   "certController.create",
+			Value: "false",
 		})
 	}
 }

@@ -31,31 +31,45 @@ type SecretStoreRef struct {
 }
 
 // ExternalSecretCreationPolicy defines rules on how to create the resulting Secret.
+// +kubebuilder:validation:Enum=Owner;Orphan;Merge;None
 type ExternalSecretCreationPolicy string
 
 const (
 	// Owner creates the Secret and sets .metadata.ownerReferences to the ExternalSecret resource.
-	Owner ExternalSecretCreationPolicy = "Owner"
+	CreatePolicyOwner ExternalSecretCreationPolicy = "Owner"
+
+	// Orphan creates the Secret and does not set the ownerReference.
+	// I.e. it will be orphaned after the deletion of the ExternalSecret.
+	CreatePolicyOrphan ExternalSecretCreationPolicy = "Orphan"
 
 	// Merge does not create the Secret, but merges the data fields to the Secret.
-	Merge ExternalSecretCreationPolicy = "Merge"
+	CreatePolicyMerge ExternalSecretCreationPolicy = "Merge"
 
 	// None does not create a Secret (future use with injector).
-	None ExternalSecretCreationPolicy = "None"
+	CreatePolicyNone ExternalSecretCreationPolicy = "None"
 )
 
 // ExternalSecretDeletionPolicy defines rules on how to delete the resulting Secret.
+// +kubebuilder:validation:Enum=Delete;Merge;Retain
 type ExternalSecretDeletionPolicy string
 
 const (
-	// Owner creates the Secret and sets .metadata.ownerReferences to the ExternalSecret resource.
-	DeletionOwner ExternalSecretDeletionPolicy = "Owner"
+	// Delete deletes the secret if all provider secrets are deleted.
+	// If a secret gets deleted on the provider side and is not accessible
+	// anymore this is not considered an error and the ExternalSecret
+	// does not go into SecretSyncedError status.
+	DeletionPolicyDelete ExternalSecretDeletionPolicy = "Delete"
 
-	// Merge does not create the Secret, but merges the data fields to the Secret.
-	DeletionMerge ExternalSecretDeletionPolicy = "Merge"
+	// Merge removes keys in the secret, but not the secret itself.
+	// If a secret gets deleted on the provider side and is not accessible
+	// anymore this is not considered an error and the ExternalSecret
+	// does not go into SecretSyncedError status.
+	DeletionPolicyMerge ExternalSecretDeletionPolicy = "Merge"
 
-	// None does not create a Secret (future use with injector).
-	DeletionNone ExternalSecretDeletionPolicy = "None"
+	// Retain will retain the secret if all provider secrets have been deleted.
+	// If a provider secret does not exist the ExternalSecret gets into the
+	// SecretSyncedError status.
+	DeletionPolicyRetain ExternalSecretDeletionPolicy = "Retain"
 )
 
 // ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -127,9 +141,9 @@ type ExternalSecretTarget struct {
 	// +kubebuilder:default="Owner"
 	CreationPolicy ExternalSecretCreationPolicy `json:"creationPolicy,omitempty"`
 	// DeletionPolicy defines rules on how to delete the resulting Secret
-	// Defaults to 'None'
+	// Defaults to 'Retain'
 	// +optional
-	// +kubebuilder:default="None"
+	// +kubebuilder:default="Retain"
 	DeletionPolicy ExternalSecretDeletionPolicy `json:"deletionPolicy,omitempty"`
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
@@ -210,8 +224,8 @@ type FindName struct {
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	SecretStoreRef SecretStoreRef `json:"secretStoreRef"`
-
-	Target ExternalSecretTarget `json:"target"`
+	// +optional
+	Target ExternalSecretTarget `json:"target,omitempty"`
 
 	// RefreshInterval is the amount of time before the values are read again from the SecretStore provider
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
@@ -259,9 +273,11 @@ const (
 	ConditionReasonSecretDeleted = "SecretDeleted"
 
 	ReasonInvalidStoreRef      = "InvalidStoreRef"
+	ReasonUnavailableStore     = "UnavailableStore"
 	ReasonProviderClientConfig = "InvalidProviderClientConfig"
 	ReasonUpdateFailed         = "UpdateFailed"
 	ReasonUpdated              = "Updated"
+	ReasonDeleted              = "Deleted"
 )
 
 type ExternalSecretStatus struct {

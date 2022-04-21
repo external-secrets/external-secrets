@@ -46,6 +46,10 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		return ctrl.Result{}, nil
 	}
 
+	if ss.GetSpec().RefreshInterval != 0 {
+		requeueInterval = time.Second * time.Duration(ss.GetSpec().RefreshInterval)
+	}
+
 	// patch status when done processing
 	p := client.MergeFrom(ss.Copy())
 	defer func() {
@@ -91,9 +95,10 @@ func validateStore(ctx context.Context, namespace string, store esapi.GenericSto
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
 		return fmt.Errorf(errStoreClient, err)
 	}
+	defer cl.Close(ctx)
 
-	err = cl.Validate()
-	if err != nil {
+	validationResult, err := cl.Validate()
+	if err != nil && validationResult != esapi.ValidationResultUnknown {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, errUnableValidateStore)
 		SetExternalSecretCondition(store, *cond)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())

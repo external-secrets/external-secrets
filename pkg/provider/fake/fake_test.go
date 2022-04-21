@@ -15,6 +15,7 @@ package fake
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -35,6 +36,39 @@ func TestNewClient(t *testing.T) {
 	gomega.Expect(err).To(gomega.HaveOccurred())
 }
 
+func TestValidateStore(t *testing.T) {
+	p := &Provider{}
+	gomega.RegisterTestingT(t)
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Fake: &esv1beta1.FakeProvider{
+					Data: []esv1beta1.FakeProviderData{},
+				},
+			},
+		},
+	}
+	// empty data must not error
+	err := p.ValidateStore(store)
+	gomega.Expect(err).To(gomega.BeNil())
+	// missing key in data
+	data := esv1beta1.FakeProviderData{}
+	data.Version = "v1"
+	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
+	err = p.ValidateStore(store)
+	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingKeyField, 0)))
+	// missing values in data
+	data.Key = "/foo"
+	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
+	err = p.ValidateStore(store)
+	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingValueField, 0)))
+	// spec ok
+	data.Value = "bar"
+	data.ValueMap = map[string]string{"foo": "bar"}
+	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
+	err = p.ValidateStore(store)
+	gomega.Expect(err).To(gomega.BeNil())
+}
 func TestClose(t *testing.T) {
 	p := &Provider{}
 	gomega.RegisterTestingT(t)
@@ -61,7 +95,7 @@ func TestGetSecret(t *testing.T) {
 				Key:     "/foo",
 				Version: "v2",
 			},
-			expErr: "secret value not found",
+			expErr: esv1beta1.NoSecretErr.Error(),
 		},
 		{
 			name: "get correct value from multiple versions",
@@ -131,7 +165,7 @@ func TestGetSecretMap(t *testing.T) {
 				Key:     "/foo",
 				Version: "v2",
 			},
-			expErr: "secret value not found",
+			expErr: esv1beta1.NoSecretErr.Error(),
 		},
 		{
 			name: "get correct value from multiple versions",

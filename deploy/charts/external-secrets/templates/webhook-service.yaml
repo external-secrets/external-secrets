@@ -1,3 +1,4 @@
+{{- if .Values.webhook.create }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -16,7 +17,7 @@ spec:
   type: ClusterIP
   ports:
   - port: 443
-    targetPort: 9443
+    targetPort: {{ .Values.webhook.port }}
     protocol: TCP
     name: webhook
   {{- if .Values.webhook.prometheus.enabled}}
@@ -27,3 +28,4 @@ spec:
   {{- end }}
   selector:
     {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}
+{{- end }}

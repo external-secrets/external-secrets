@@ -58,6 +58,7 @@ type Vault struct {
 	JWTToken           string
 	JWTRole            string
 	JWTPath            string
+	JWTK8sPath         string
 	KubernetesAuthPath string
 	KubernetesAuthRole string
 
@@ -162,6 +163,7 @@ func (l *Vault) initVault() error {
 	l.JWTPubkey = jwtPubkey
 	l.JWTToken = jwtToken
 	l.JWTPath = "myjwt"                                // see configure-vault.sh
+	l.JWTK8sPath = "myjwtk8s"                          // see configure-vault.sh
 	l.JWTRole = "external-secrets-operator"            // see configure-vault.sh
 	l.KubernetesAuthPath = "mykubernetes"              // see configure-vault.sh
 	l.KubernetesAuthRole = "external-secrets-operator" // see configure-vault.sh
@@ -249,7 +251,7 @@ func (l *Vault) configureVault() error {
 	// configure appRole
 	l.AppRolePath = "myapprole"
 	req := l.VaultClient.NewRequest(http.MethodGet, fmt.Sprintf("/v1/auth/%s/role/eso-e2e-role/role-id", l.AppRolePath))
-	res, err := l.VaultClient.RawRequest(req)
+	res, err := l.VaultClient.RawRequest(req) //nolint:staticcheck
 	if err != nil {
 		return err
 	}
@@ -263,7 +265,7 @@ func (l *Vault) configureVault() error {
 
 	// parse role id
 	req = l.VaultClient.NewRequest(http.MethodPost, fmt.Sprintf("/v1/auth/%s/role/eso-e2e-role/secret-id", l.AppRolePath))
-	res, err = l.VaultClient.RawRequest(req)
+	res, err = l.VaultClient.RawRequest(req) //nolint:staticcheck
 	if err != nil {
 		return err
 	}

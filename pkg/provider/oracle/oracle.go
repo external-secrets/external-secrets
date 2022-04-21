@@ -52,6 +52,10 @@ const (
 	errUnexpectedContent                     = "unexpected secret bundle content"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &VaultManagementService{}
+var _ esv1beta1.Provider = &VaultManagementService{}
+
 type VaultManagementService struct {
 	Client VMInterface
 	vault  string
@@ -219,8 +223,8 @@ func (vms *VaultManagementService) Close(ctx context.Context) error {
 	return nil
 }
 
-func (vms *VaultManagementService) Validate() error {
-	return nil
+func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) error {

@@ -45,6 +45,10 @@ type iamTokenKey struct {
 	privateKeyHash   string
 }
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &lockboxSecretsClient{}
+var _ esv1beta1.Provider = &lockboxProvider{}
+
 // lockboxProvider is a provider for Yandex Lockbox.
 type lockboxProvider struct {
 	yandexCloudCreator client.YandexCloudCreator
@@ -284,8 +288,8 @@ func (c *lockboxSecretsClient) Close(ctx context.Context) error {
 	return nil
 }
 
-func (c *lockboxSecretsClient) Validate() error {
-	return nil
+func (c *lockboxSecretsClient) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func getValueAsIs(entry *lockbox.Payload_Entry) (interface{}, error) {

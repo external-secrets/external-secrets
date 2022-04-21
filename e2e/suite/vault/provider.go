@@ -45,6 +45,7 @@ const (
 	appRoleAuthProviderName = "app-role-provider"
 	kvv1ProviderName        = "kv-v1-provider"
 	jwtProviderName         = "jwt-provider"
+	jwtK8sProviderName      = "jwt-k8s-provider"
 	kubernetesProviderName  = "kubernetes-provider"
 )
 
@@ -61,25 +62,25 @@ func newVaultProvider(f *framework.Framework) *vaultProvider {
 }
 
 // CreateSecret creates a secret in both kv v1 and v2 provider.
-func (s *vaultProvider) CreateSecret(key, val string) {
+func (s *vaultProvider) CreateSecret(key string, val framework.SecretEntry) {
 	req := s.client.NewRequest(http.MethodPost, fmt.Sprintf("/v1/secret/data/%s", key))
-	req.BodyBytes = []byte(fmt.Sprintf(`{"data": %s}`, val))
-	_, err := s.client.RawRequestWithContext(context.Background(), req)
+	req.BodyBytes = []byte(fmt.Sprintf(`{"data": %s}`, val.Value))
+	_, err := s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 
 	req = s.client.NewRequest(http.MethodPost, fmt.Sprintf("/v1/secret_v1/%s", key))
-	req.BodyBytes = []byte(val)
-	_, err = s.client.RawRequestWithContext(context.Background(), req)
+	req.BodyBytes = []byte(val.Value)
+	_, err = s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *vaultProvider) DeleteSecret(key string) {
 	req := s.client.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/secret/data/%s", key))
-	_, err := s.client.RawRequestWithContext(context.Background(), req)
+	_, err := s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 
 	req = s.client.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/secret_v1/%s", key))
-	_, err = s.client.RawRequestWithContext(context.Background(), req)
+	_, err = s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -95,6 +96,7 @@ func (s *vaultProvider) BeforeEach() {
 	s.CreateAppRoleStore(v, ns)
 	s.CreateV1Store(v, ns)
 	s.CreateJWTStore(v, ns)
+	s.CreateJWTK8sStore(v, ns)
 	s.CreateKubernetesAuthStore(v, ns)
 }
 
@@ -249,13 +251,33 @@ func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 		Jwt: &esv1beta1.VaultJwtAuth{
 			Path: v.JWTPath,
 			Role: v.JWTRole,
-			SecretRef: esmeta.SecretKeySelector{
+			SecretRef: &esmeta.SecretKeySelector{
 				Name: "jwt-provider",
 				Key:  "jwt",
 			},
 		},
 	}
 	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s vaultProvider) CreateJWTK8sStore(v *addon.Vault, ns string) {
+	secretStore := makeStore(jwtK8sProviderName, ns, v)
+	secretStore.Spec.Provider.Vault.Auth = esv1beta1.VaultAuth{
+		Jwt: &esv1beta1.VaultJwtAuth{
+			Path: v.JWTK8sPath,
+			Role: v.JWTRole,
+			KubernetesServiceAccountToken: &esv1beta1.VaultKubernetesServiceAccountTokenAuth{
+				ServiceAccountRef: esmeta.ServiceAccountSelector{
+					Name: "default",
+				},
+				Audiences: &[]string{
+					"vault.client",
+				},
+			},
+		},
+	}
+	err := s.framework.CRClient.Create(context.Background(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 

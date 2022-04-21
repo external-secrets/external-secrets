@@ -26,8 +26,7 @@ var _ esv1beta1.Provider = &Client{}
 
 // Client is a fake client for testing.
 type Client struct {
-	NewFn func(context.Context, esv1beta1.GenericStore, client.Client,
-		string) (esv1beta1.SecretsClient, error)
+	NewFn           func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error)
 	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
 	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
@@ -59,7 +58,7 @@ func (v *Client) RegisterAs(provider *esv1beta1.SecretStoreProvider) {
 	esv1beta1.ForceRegister(v, provider)
 }
 
-// GetSecret implements the provider.Provider interface.
+// GetAllSecrets implements the provider.Provider interface.
 func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	return v.GetAllSecretsFn(ctx, ref)
 }
@@ -77,7 +76,7 @@ func (v *Client) WithGetSecret(secData []byte, err error) *Client {
 	return v
 }
 
-// GetSecretMap imeplements the provider.Provider interface.
+// GetSecretMap implements the provider.Provider interface.
 func (v *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return v.GetSecretMapFn(ctx, ref)
 }
@@ -86,8 +85,8 @@ func (v *Client) Close(ctx context.Context) error {
 	return nil
 }
 
-func (v *Client) Validate() error {
-	return nil
+func (v *Client) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (v *Client) ValidateStore(store esv1beta1.GenericStore) error {
@@ -124,4 +123,11 @@ func (v *Client) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 		return nil, err
 	}
 	return c, nil
+}
+
+func (v *Client) Reset() {
+	v.WithNew(func(context.Context, esv1beta1.GenericStore, client.Client,
+		string) (esv1beta1.SecretsClient, error) {
+		return v, nil
+	})
 }

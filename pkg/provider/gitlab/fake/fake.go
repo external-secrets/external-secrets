@@ -18,14 +18,19 @@ import (
 )
 
 type GitlabMockClient struct {
-	getVariable func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	getVariable   func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	listVariables func(pid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
 func (mc *GitlabMockClient) GetVariable(pid interface{}, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
 	return mc.getVariable(pid, key, nil)
 }
 
-func (mc *GitlabMockClient) WithValue(projectIDinput, keyInput string, output *gitlab.ProjectVariable, err error) {
+func (mc *GitlabMockClient) ListVariables(pid interface{}, opt *gitlab.ListProjectVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
+	return mc.listVariables(pid)
+}
+
+func (mc *GitlabMockClient) WithValue(projectIDinput, keyInput string, output *gitlab.ProjectVariable, response *gitlab.Response, err error) {
 	if mc != nil {
 		mc.getVariable = func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
 			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
@@ -33,7 +38,11 @@ func (mc *GitlabMockClient) WithValue(projectIDinput, keyInput string, output *g
 			// if !cmp.Equal(paramReq, input, cmpopts.IgnoreUnexported(gitlab.ProjectVariable{})) {
 			// 	return nil, nil, fmt.Errorf("unexpected test argument")
 			// }
-			return output, nil, err
+			return output, response, err
+		}
+
+		mc.listVariables = func(pid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
+			return []*gitlab.ProjectVariable{output}, response, err
 		}
 	}
 }

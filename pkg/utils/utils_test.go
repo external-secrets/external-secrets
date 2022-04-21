@@ -15,10 +15,14 @@ limitations under the License.
 package utils
 
 import (
+	"reflect"
 	"testing"
+	"time"
 
 	vault "github.com/oracle/oci-go-sdk/v56/vault"
 	v1 "k8s.io/api/core/v1"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 func TestObjectHash(t *testing.T) {
@@ -144,5 +148,87 @@ func TestIsNil(t *testing.T) {
 				t.Errorf("IsNil(%#v)=%t, expected %t", row.val, res, row.exp)
 			}
 		})
+	}
+}
+
+func TestConvertKeys(t *testing.T) {
+	type args struct {
+		strategy esv1beta1.ExternalSecretConversionStrategy
+		in       map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "convert with special chars",
+			args: args{
+				strategy: esv1beta1.ExternalSecretConversionDefault,
+				in: map[string][]byte{
+					"foo$bar%baz*bing": []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				"foo_bar_baz_bing": []byte(`noop`),
+			},
+		},
+		{
+			name: "error on collision",
+			args: args{
+				strategy: esv1beta1.ExternalSecretConversionDefault,
+				in: map[string][]byte{
+					"foo$bar%baz*bing": []byte(`noop`),
+					"foo_bar_baz$bing": []byte(`noop`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "convert path",
+			args: args{
+				strategy: esv1beta1.ExternalSecretConversionDefault,
+				in: map[string][]byte{
+					"/foo/bar/baz/bing": []byte(`noop`),
+					"foo/bar/baz/bing/": []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				"_foo_bar_baz_bing": []byte(`noop`),
+				"foo_bar_baz_bing_": []byte(`noop`),
+			},
+		},
+		{
+			name: "convert unicode",
+			args: args{
+				strategy: esv1beta1.ExternalSecretConversionUnicode,
+				in: map[string][]byte{
+					"😀foo😁bar😂baz😈bing": []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				"_U1f600_foo_U1f601_bar_U1f602_baz_U1f608_bing": []byte(`noop`),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ConvertKeys(tt.args.strategy, tt.args.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ConvertKeys() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ConvertKeys() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidate(t *testing.T) {
+	err := NetworkValidate("http://google.com", 10*time.Second)
+	if err != nil {
+		t.Errorf("Connection problem: %v", err)
 	}
 }

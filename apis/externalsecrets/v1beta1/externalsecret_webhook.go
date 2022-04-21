@@ -21,5 +21,6 @@ import (
 func (r *ExternalSecret) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithValidator(&ExternalSecretValidator{}).
 		Complete()
 }

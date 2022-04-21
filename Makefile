@@ -16,6 +16,8 @@ all: $(addprefix build-,$(ARCH))
 # Image registry for build/push image targets
 export IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
+#Valid licenses for license.check
+LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause|Unknown
 BUNDLE_DIR     ?= deploy/crds
 CRD_DIR     ?= config/crds
 
@@ -68,6 +70,19 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 reviewable: generate helm.generate lint ## Ensure a PR is ready for review.
 	@go mod tidy
 
+golicenses.check: ## Check install of go-licenses
+	@if ! go-licenses >> /dev/null 2>&1; then \
+		echo -e "\033[0;33mgo-licenses is not installed: run go install github.com/google/go-licenses@latest" ; \
+		exit 1; \
+	fi
+
+license.check: golicenses.check
+	@$(INFO) running dependency license checks
+	@ok=0; go-licenses csv github.com/external-secrets/external-secrets 2>/dev/null | \
+	 grep -v -E '${LICENSES}' | \
+	 tr "," " " | awk '{print "Invalid License " $$3 " for dependency " $$1 }'|| ok=1; \
+	 if [[ $$ok -eq 1 ]]; then $(OK) dependencies are compliant; else $(FAIL); fi
+	 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
 	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
@@ -138,7 +153,7 @@ generate: ## Generate code and crds
   		cp "$$i.bkp" "$$i" && \
   		rm "$$i.bkp"; \
   	done
-	@yq e '.spec.conversion.strategy = "Webhook" | .spec.conversion.webhook.conversionReviewVersions = ["v1"] | .spec.conversion.webhook.clientConfig.caBundle = "Cg==" | .spec.conversion.webhook.clientConfig.service.name = "kubernetes" | .spec.conversion.webhook.clientConfig.service.namespace = "default" |	.spec.conversion.webhook.clientConfig.service.path = "/convert"' $(CRD_DIR)/bases/*  > $(BUNDLE_DIR)/bundle.yaml
+	@yq e '.spec.conversion.strategy = "Webhook" | .spec.conversion.webhook.conversionReviewVersions = ["v1"] | .spec.conversion.webhook.clientConfig.service.name = "kubernetes" | .spec.conversion.webhook.clientConfig.service.namespace = "default" |	.spec.conversion.webhook.clientConfig.service.path = "/convert"' $(CRD_DIR)/bases/*  > $(BUNDLE_DIR)/bundle.yaml
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
@@ -174,15 +189,26 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
-helm.generate: helm.docs ## Copy crds to helm chart directory
-	@cp $(BUNDLE_DIR)/*.yaml $(HELM_DIR)/templates/crds/
+helm.generate:
+# Split the generated bundle yaml file to inject control flags
+	@for i in $(BUNDLE_DIR)/*.yaml; do \
+		yq e -Ns '"$(HELM_DIR)/templates/crds/" + .spec.names.singular' "$$i"; \
+	done
 # Add helm if statement for controlling the install of CRDs
-	@for i in $(HELM_DIR)/templates/crds/*.yaml; do \
-		cp "$$i" "$$i.bkp" && \
-		echo "{{- if .Values.installCRDs }}" > "$$i" && \
+	@for i in $(HELM_DIR)/templates/crds/*.yml; do \
+		export CRDS_FLAG_NAME="create$$(yq e '.spec.names.kind' $$i)"; \
+		cp "$$i" "$$i.bkp"; \
+		if [[ "$$CRDS_FLAG_NAME" == *"Cluster"* ]]; then \
+			echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i"; \
+		else \
+			echo "{{- if .Values.installCRDs }}" > "$$i"; \
+		fi; \
 		cat "$$i.bkp" >> "$$i" && \
 		echo "{{- end }}" >> "$$i" && \
-		rm "$$i.bkp"; \
+		rm "$$i.bkp" && \
+		sed -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$$i" && \
+		sed -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$$i" && \
+		mv "$$i" "$${i%.yml}.yaml"; \
 	done
 	@$(OK) Finished generating helm chart files
 
@@ -230,6 +256,12 @@ docker.promote: ## Promote the docker image to the registry
 		$$(jq -j '"--amend $(IMAGE_REGISTRY)@" + .manifests[].digest + " "' < .tagmanifest)
 	docker manifest push $(IMAGE_REGISTRY):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
+
+docker.sign: ## Sign
+	@$(INFO) signing $(IMAGE_REGISTRY):$(RELEASE_TAG)
+	crane digest $(IMAGE_REGISTRY):$(RELEASE_TAG) > .digest
+	cosign sign $(IMAGE_REGISTRY)@$$(cat .digest)
+	@$(OK) cosign sign $(IMAGE_REGISTRY):$(RELEASE_TAG)
 
 # ====================================================================================
 # Terraform

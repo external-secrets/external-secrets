@@ -19,7 +19,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -83,14 +83,14 @@ func newFromEnv(f *framework.Framework) *akeylessProvider {
 }
 
 // CreateSecret creates a secret.
-func (a *akeylessProvider) CreateSecret(key, val string) {
+func (a *akeylessProvider) CreateSecret(key string, val framework.SecretEntry) {
 	token, err := a.GetToken()
 	Expect(err).ToNot(HaveOccurred())
 
 	ctx := context.Background()
 	gsvBody := akeyless.CreateSecret{
 		Name:  key,
-		Value: val,
+		Value: val.Value,
 		Token: &token,
 	}
 
@@ -223,7 +223,7 @@ func readK8SServiceAccountJWT() (string, error) {
 	}
 	defer data.Close()
 
-	contentBytes, err := ioutil.ReadAll(data)
+	contentBytes, err := io.ReadAll(data)
 	if err != nil {
 		return "", err
 	}

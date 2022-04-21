@@ -27,6 +27,7 @@ In: https://github.com/Azure/secrets-store-csi-driver-provider-azure/pull/332
 package template
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -65,7 +66,7 @@ func fetchCertChains(data []byte) ([]byte, error) {
 			}
 			// if ith node AuthorityKeyId is same as jth node SubjectKeyId, jth node was used
 			// to sign the ith certificate
-			if string(nodes[i].cert.AuthorityKeyId) == string(nodes[j].cert.SubjectKeyId) {
+			if bytes.Equal(nodes[i].cert.AuthorityKeyId, nodes[j].cert.SubjectKeyId) {
 				nodes[j].isParent = true
 				nodes[i].parent = nodes[j]
 				break

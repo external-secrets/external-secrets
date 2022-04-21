@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,13 +41,23 @@ const (
 	errEmptyKey                            = "key %s found but empty"
 )
 
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
+var _ esv1beta1.Provider = &ProviderKubernetes{}
+
 type KClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error)
 }
 
+type RClient interface {
+	Create(ctx context.Context, SelfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error)
+}
+
 // ProviderKubernetes is a provider for Kubernetes.
 type ProviderKubernetes struct {
-	Client KClient
+	Client       KClient
+	ReviewClient RClient
+	Namespace    string
 }
 
 var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
@@ -104,6 +115,8 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.Gene
 	}
 
 	k.Client = kubeClientSet.CoreV1().Secrets(bStore.store.RemoteNamespace)
+	k.Namespace = bStore.store.RemoteNamespace
+	k.ReviewClient = kubeClientSet.AuthorizationV1().SelfSubjectAccessReviews()
 
 	return k, nil
 }
@@ -228,10 +241,64 @@ func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySel
 	return val, nil
 }
 
-func (k *ProviderKubernetes) Validate() error {
-	return nil
+func (k *ProviderKubernetes) Validate() (esv1beta1.ValidationResult, error) {
+	ctx := context.Background()
+
+	authReview, err := k.ReviewClient.Create(ctx, &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Resource:  "secrets",
+				Namespace: k.Namespace,
+				Verb:      "get",
+			},
+		},
+	}, metav1.CreateOptions{})
+
+	if err != nil {
+		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
+	}
+
+	if !authReview.Status.Allowed {
+		return esv1beta1.ValidationResultError, fmt.Errorf("client is not allowed to get secrets")
+	}
+
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (k *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	k8sSpec := storeSpec.Provider.Kubernetes
+	if k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
+		return fmt.Errorf("a CABundle or CAProvider is required")
+	}
+
+	if k8sSpec.Auth.Cert != nil {
+		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
+			return fmt.Errorf("ClientCert.Name cannot be empty")
+		}
+		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
+			return fmt.Errorf("ClientCert.Key cannot be empty")
+		}
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
+			return err
+		}
+	} else if k8sSpec.Auth.Token != nil {
+		if k8sSpec.Auth.Token.BearerToken.Name == "" {
+			return fmt.Errorf("BearerToken.Name cannot be empty")
+		}
+		if k8sSpec.Auth.Token.BearerToken.Key == "" {
+			return fmt.Errorf("BearerToken.Key cannot be empty")
+		}
+		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("an Auth type must be specified")
+	}
+
+	if k8sSpec.Auth.Cert != nil && k8sSpec.Auth.Token != nil {
+		return fmt.Errorf("only one authentication method is allowed")
+	}
+
 	return nil
 }

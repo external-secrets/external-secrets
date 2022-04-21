@@ -30,6 +30,7 @@ const (
 	withApprole   = "with approle auth"
 	withV1        = "with v1 provider"
 	withJWT       = "with jwt provider"
+	withJWTK8s    = "with jwt k8s provider"
 	withK8s       = "with kubernetes provider"
 )
 
@@ -40,21 +41,22 @@ var _ = Describe("[vault]", Label("vault"), func() {
 	DescribeTable("sync secrets",
 		framework.TableFunc(f, prov),
 		// uses token auth
-		framework.Compose(withTokenAuth, f, common.JSONFindSync, useTokenAuth),
+		framework.Compose(withTokenAuth, f, common.FindByName, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataFromSync, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataWithProperty, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplate, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.DataPropertyDockerconfigJSON, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataWithoutTargetName, useTokenAuth),
+		framework.Compose(withTokenAuth, f, common.SyncV1Alpha1, useTokenAuth),
 		// use cert auth
-		framework.Compose(withCertAuth, f, common.JSONFindSync, useCertAuth),
+		framework.Compose(withCertAuth, f, common.FindByName, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataFromSync, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataWithProperty, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataWithTemplate, useCertAuth),
 		framework.Compose(withCertAuth, f, common.DataPropertyDockerconfigJSON, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataWithoutTargetName, useCertAuth),
 		// use approle auth
-		framework.Compose(withApprole, f, common.JSONFindSync, useApproleAuth),
+		framework.Compose(withApprole, f, common.FindByName, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataFromSync, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithProperty, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithTemplate, useApproleAuth),
@@ -67,14 +69,20 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withV1, f, common.DataPropertyDockerconfigJSON, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataWithoutTargetName, useV1Provider),
 		// use jwt provider
-		framework.Compose(withJWT, f, common.JSONFindSync, useJWTProvider),
+		framework.Compose(withJWT, f, common.FindByName, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataFromSync, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithProperty, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithTemplate, useJWTProvider),
 		framework.Compose(withJWT, f, common.DataPropertyDockerconfigJSON, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithoutTargetName, useJWTProvider),
+		// use jwt k8s provider
+		framework.Compose(withJWTK8s, f, common.JSONDataFromSync, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.JSONDataWithProperty, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.JSONDataWithTemplate, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.DataPropertyDockerconfigJSON, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.JSONDataWithoutTargetName, useJWTK8sProvider),
 		// use kubernetes provider
-		framework.Compose(withK8s, f, common.JSONFindSync, useKubernetesProvider),
+		framework.Compose(withK8s, f, common.FindByName, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataFromSync, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataWithProperty, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataWithTemplate, useKubernetesProvider),
@@ -108,6 +116,10 @@ func useJWTProvider(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtProviderName
 }
 
+func useJWTK8sProvider(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtK8sProviderName
+}
+
 func useKubernetesProvider(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = kubernetesProviderName
 }
@@ -117,8 +129,8 @@ const jsonVal = `{"foo":{"nested":{"bar":"mysecret","baz":"bang"}}}`
 // when no property is set it should return the json-encoded at path.
 func testJSONWithoutProperty(tc *framework.TestCase) {
 	secretKey := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "json")
-	tc.Secrets = map[string]string{
-		secretKey: jsonVal,
+	tc.Secrets = map[string]framework.SecretEntry{
+		secretKey: {Value: jsonVal},
 	}
 	tc.ExpectedSecret = &v1.Secret{
 		Type: v1.SecretTypeOpaque,
@@ -140,8 +152,8 @@ func testJSONWithoutProperty(tc *framework.TestCase) {
 func testJSONWithProperty(tc *framework.TestCase) {
 	secretKey := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "json")
 	expectedVal := `{"bar":"mysecret","baz":"bang"}`
-	tc.Secrets = map[string]string{
-		secretKey: jsonVal,
+	tc.Secrets = map[string]framework.SecretEntry{
+		secretKey: {Value: jsonVal},
 	}
 	tc.ExpectedSecret = &v1.Secret{
 		Type: v1.SecretTypeOpaque,
@@ -164,8 +176,8 @@ func testJSONWithProperty(tc *framework.TestCase) {
 // note: it should json-encode if a value contains nested data
 func testDataFromJSONWithoutProperty(tc *framework.TestCase) {
 	secretKey := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "json")
-	tc.Secrets = map[string]string{
-		secretKey: jsonVal,
+	tc.Secrets = map[string]framework.SecretEntry{
+		secretKey: {Value: jsonVal},
 	}
 	tc.ExpectedSecret = &v1.Secret{
 		Type: v1.SecretTypeOpaque,
@@ -185,8 +197,8 @@ func testDataFromJSONWithoutProperty(tc *framework.TestCase) {
 // when property is set it should extract values with dataFrom at the given path.
 func testDataFromJSONWithProperty(tc *framework.TestCase) {
 	secretKey := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "json")
-	tc.Secrets = map[string]string{
-		secretKey: jsonVal,
+	tc.Secrets = map[string]framework.SecretEntry{
+		secretKey: {Value: jsonVal},
 	}
 	tc.ExpectedSecret = &v1.Secret{
 		Type: v1.SecretTypeOpaque,

@@ -9,6 +9,12 @@ image:
 # -- If set, install and upgrade CRDs through helm chart.
 installCRDs: true
 
+crds:
+  # -- If true, create CRDs for Cluster External Secret.
+  createClusterExternalSecret: true
+  # -- If true, create CRDs for Cluster Secret Store.
+  createClusterSecretStore: true
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -24,6 +30,16 @@ controllerClass: ""
 # -- If set external secrets are only reconciled in the
 # provided namespace
 scopedNamespace: ""
+
+# -- Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace
+# and implicitly disable cluster stores and cluster external secrets
+scopedRBAC: false
+
+# -- if true, the operator will process cluster external secret. Else, it will ignore them.
+processClusterExternalSecret: true
+
+# -- if true, the operator will process cluster store. Else, it will ignore them.
+processClusterStore: true
 
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
@@ -76,10 +92,24 @@ resources: {}
   #   memory: 32Mi
 
 prometheus:
-  # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+  # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead.
   enabled: false
   service:
+    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead.
     port: 8080
+
+serviceMonitor:
+  # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
+  enabled: false
+
+  # -- Additional labels
+  additionalLabels: {}
+
+  # --  Interval to scrape metrics
+  interval: 30s
+
+  # -- Timeout if metrics can't be retrieved in given time interval
+  scrapeTimeout: 25s
 
 nodeSelector: {}
 
@@ -96,6 +126,10 @@ webhook:
   certCheckInterval: "5m"
   replicaCount: 1
   certDir: /tmp/certs
+  # -- specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
+  failurePolicy: Fail
+  # -- Specifies if webhook pod should use hostNetwork or not.
+  hostNetwork: false
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
@@ -104,6 +138,8 @@ webhook:
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
+  # -- The port the webhook will listen to
+  port: 10250
   rbac:
   # -- Specifies whether role and rolebinding resources should be created.
     create: true
@@ -123,16 +159,35 @@ webhook:
 
     # -- Pod priority class name.
   priorityClassName: ""
+
   prometheus:
-      # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
     enabled: false
     service:
+      # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
       port: 8080
+
+  serviceMonitor:
+    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
+    enabled: false
+
+    # -- Additional labels
+    additionalLabels: {}
+
+    # --  Interval to scrape metrics
+    interval: 30s
+
+    # -- Timeout if metrics can't be retrieved in given time interval
+    scrapeTimeout: 25s
+
     ## -- Extra environment variables to add to container.
   extraEnv: []
 
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
+
+    # -- Annotations to add to Secret
+  secretAnnotations: {}
 
     # -- Annotations to add to Deployment
   deploymentAnnotations: {}
@@ -188,11 +243,27 @@ certController:
 
     # -- Pod priority class name.
   priorityClassName: ""
+
   prometheus:
-      # -- Specifies whether to expose Service resource for collecting Prometheus metrics
+    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
     enabled: false
     service:
+      # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
       port: 8080
+
+  serviceMonitor:
+    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
+    enabled: false
+
+    # -- Additional labels
+    additionalLabels: {}
+
+    # --  Interval to scrape metrics
+    interval: 30s
+
+    # -- Timeout if metrics can't be retrieved in given time interval
+    scrapeTimeout: 25s
+
     ## -- Extra environment variables to add to container.
   extraEnv: []
 
