@@ -19,7 +19,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -27,6 +26,9 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
 )
+
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &DSM{}
 
 /*
 	DSM service for SenhaseguraProvider
@@ -82,7 +84,7 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 }
 
 /*
-	GetSecret implements ESO interface and get a single k/v pair from senhasegura provider with DSM service
+	GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service
 */
 func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (resp []byte, err error) {
 	appSecrets, err := dsm.fetchSecrets()
@@ -92,18 +94,29 @@ func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 
 	for _, v := range appSecrets.Application.Secrets {
 		if ref.Key == v.Identity {
+
+			// Return whole data content in json-encoded when ref.Property is empty
+			if ref.Property == "" {
+				jsonStr, err := json.Marshal(v.Data)
+				if err != nil {
+					return nil, err
+				}
+				return jsonStr, nil
+			}
+
+			// Return raw data content when ref.Property is provided
 			for _, v2 := range v.Data {
 				for k, v3 := range v2 {
 					if k == ref.Property {
 						resp = []byte(v3)
-						/* Dont stop, respect precedence, last data from response wins */
+						return resp, nil
 					}
 				}
 			}
 		}
 	}
 
-	return resp, nil
+	return []byte(""), esv1beta1.NoSecretErr
 }
 
 /*
@@ -129,11 +142,26 @@ func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 }
 
 /*
-	GetAllSecrets implements ESO interface and returns miltiple k/v pairs from senhasegura provider with DSM service
+	GetAllSecrets implements ESO interface and returns multiple secrets from senhasegura provider with DSM service
+
+	TODO: GetAllSecrets functionality is to get secrets from either regexp-matching against the names or via metadata label matching.
 */
-func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented yet")
+func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (secretData map[string][]byte, err error) {
+	secretData = make(map[string][]byte)
+	appSecrets, err := dsm.fetchSecrets()
+	if err != nil {
+		return secretData, err
+	}
+
+	for _, v := range appSecrets.Application.Secrets {
+		for _, v2 := range v.Data {
+			for k, v3 := range v2 {
+				secretData[k] = []byte(v3)
+			}
+		}
+	}
+
+	return secretData, nil
 }
 
 /*
@@ -193,10 +221,14 @@ func (dsm *DSM) Close(ctx context.Context) error {
 	return nil
 }
 
-/*
-	Validate implements ESO interface
-*/
-func (dsm *DSM) Validate() error {
-	// TO be implemented
-	return nil
+// Validate if has valid connection with senhasegura, credentials, authorization using fetchSecrets method
+// fetchSecrets method implement required check about request
+// https://github.com/external-secrets/external-secrets/pull/830#discussion_r833275463
+func (dsm *DSM) Validate() (esv1beta1.ValidationResult, error) {
+	_, err := dsm.fetchSecrets()
+	if err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+
+	return esv1beta1.ValidationResultReady, nil
 }

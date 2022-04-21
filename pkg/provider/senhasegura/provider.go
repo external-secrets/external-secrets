@@ -23,24 +23,29 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/senhasegura/dsm"
-	"github.com/external-secrets/external-secrets/pkg/provider/senhasegura/utils"
 )
+
+// https://github.com/external-secrets/external-secrets/issues/644
+// https://github.com/external-secrets/external-secrets/pull/967
+var _ esv1beta1.Provider = &Provider{}
 
 // Provider struct that satisfier ESO interface.
 type Provider struct{}
 
 const (
 	errUnknownProviderService = "unknown senhasegura Provider Service: %s"
+	errNilStore               = "nil store found"
+	errMissingStoreSpec       = "store is missing spec"
+	errMissingProvider        = "storeSpec is missing provider"
+	errInvalidProvider        = "invalid provider spec. Missing senhasegura field in store %s"
 )
 
 /*
 	Construct a new secrets client based on provided store
 */
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	provider, err := utils.GetSenhaseguraProvider(store)
-	if err != nil {
-		return nil, err
-	}
+	spec := store.GetSpec()
+	provider := spec.Provider.Senhasegura
 
 	isoSession, err := senhaseguraAuth.Authenticate(ctx, store, provider, kube, namespace)
 	if err != nil {
@@ -54,11 +59,28 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return nil, fmt.Errorf(errUnknownProviderService, provider.Module)
 }
 
+// Validate store using Validating webhook during secret store creating
+// Checks here are usually the best experience for the user, as the SecretStore will not be created until it is a 'valid' one.
+// https://github.com/external-secrets/external-secrets/pull/830#discussion_r833278518
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
-	_, err := utils.GetSenhaseguraProvider(store)
-	if err != nil {
-		return err
+	if store == nil {
+		return fmt.Errorf(errNilStore)
 	}
+
+	spec := store.GetSpec()
+	if spec == nil {
+		return fmt.Errorf(errMissingStoreSpec)
+	}
+
+	if spec.Provider == nil {
+		return fmt.Errorf(errMissingProvider)
+	}
+
+	provider := spec.Provider.Senhasegura
+	if provider == nil {
+		return fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
+	}
+
 	return nil
 }
 
