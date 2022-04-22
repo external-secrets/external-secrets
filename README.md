@@ -29,6 +29,9 @@ External Secrets Operator guides and reference documentation is available at [ex
 
 We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/latest/contributing-devguide/) and [Contribution process](https://www.external-secrets.io/latest/contributing-process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/latest/contributing-coc/) and adhere to its guidelines.
 
+### Sponsoring
+Please consider sponsoring this project, there are many ways you can help us with: engineering time, providing infrastructure, donating money, etc. We are open to cooperations, feel free to approach as and we discuss how this could look like.
+
 ## Bi-weekly Development Meeting
 
 We host our development meeting every odd wednesday at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin) on [Jitsi](https://meet.jit.si/eso-community-meeting). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
