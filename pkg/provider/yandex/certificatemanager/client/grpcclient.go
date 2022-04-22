@@ -16,10 +16,11 @@ package client
 import (
 	"context"
 
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	"google.golang.org/grpc"
+
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 )
 
 // Real/gRPC implementation of CertificateManagerClient.
