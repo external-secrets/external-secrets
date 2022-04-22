@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-// Fake implementation of CertificateManagerClient
+// Fake implementation of CertificateManagerClient.
 type fakeCertificateManagerClient struct {
 	fakeCertificateManagerServer *FakeCertificateManagerServer
 }

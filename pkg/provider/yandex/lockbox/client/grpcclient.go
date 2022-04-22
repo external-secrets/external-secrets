@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Real/gRPC implementation of LockboxClient
+// Real/gRPC implementation of LockboxClient.
 type grpcLockboxClient struct {
 	lockboxPayloadClient api.PayloadServiceClient
 }

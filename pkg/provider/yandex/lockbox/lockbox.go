@@ -46,9 +46,9 @@ func adaptInput(store esv1beta1.GenericStore) (*common.SecretsClientInput, error
 	}
 
 	return &common.SecretsClientInput{
-		storeSpecYandexLockbox.APIEndpoint,
-		storeSpecYandexLockbox.Auth.AuthorizedKey,
-		caCertificate,
+		APIEndpoint:   storeSpecYandexLockbox.APIEndpoint,
+		AuthorizedKey: storeSpecYandexLockbox.Auth.AuthorizedKey,
+		CACertificate: caCertificate,
 	}, nil
 }
 

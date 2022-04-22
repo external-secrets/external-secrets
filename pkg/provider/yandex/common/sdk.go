@@ -27,7 +27,7 @@ import (
 	"time"
 )
 
-// Creates a connection to the given Yandex.Cloud API endpoint
+// Creates a connection to the given Yandex.Cloud API endpoint.
 func NewGrpcConnection(
 	ctx context.Context,
 	apiEndpoint string,
@@ -66,7 +66,7 @@ func NewGrpcConnection(
 	)
 }
 
-// Exchanges the given authorized key to an IAM token
+// Exchanges the given authorized key to an IAM token.
 func NewIamToken(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (*IamToken, error) {
 	tlsConfig, err := tlsConfig(caCertificate)
 	if err != nil {

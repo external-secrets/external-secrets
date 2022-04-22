@@ -83,7 +83,7 @@ func TestNewClient(t *testing.T) {
 	tassert.EqualError(t, err, "could not fetch AuthorizedKey secret: secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
-	err = createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, newFakeAuthorizedKey()))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))
 	tassert.Nil(t, err)
 
 	const caCertificateSecretName = "caCertificateSecretName"
@@ -98,7 +98,7 @@ func TestNewClient(t *testing.T) {
 	tassert.EqualError(t, err, "could not fetch CA certificate secret: secrets \"caCertificateSecretName\" not found")
 	tassert.Nil(t, secretClient)
 
-	err = createK8sSecret(t, ctx, k8sClient, namespace, caCertificateSecretName, caCertificateSecretKey, []byte("it-is-not-a-certificate"))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, caCertificateSecretName, caCertificateSecretKey, []byte("it-is-not-a-certificate"))
 	tassert.Nil(t, err)
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, "failed to create Yandex.Cloud client: unable to read trusted CA certificates")
@@ -122,7 +122,7 @@ func TestGetSecretForAllEntries(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -159,7 +159,7 @@ func TestGetSecretForTextEntry(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -189,7 +189,7 @@ func TestGetSecretForBinaryEntry(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -217,7 +217,7 @@ func TestGetSecretByVersionID(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -258,7 +258,7 @@ func TestGetSecretUnauthorized(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKeyB))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKeyB))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -280,7 +280,7 @@ func TestGetSecretNotFound(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -318,9 +318,9 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace1, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey1))
+	err := createK8sSecret(ctx, t, k8sClient, namespace1, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey1))
 	tassert.Nil(t, err)
-	err = createK8sSecret(t, ctx, k8sClient, namespace2, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey2))
+	err = createK8sSecret(ctx, t, k8sClient, namespace2, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey2))
 	tassert.Nil(t, err)
 	store1 := newYandexLockboxSecretStore("", namespace1, authorizedKeySecretName, authorizedKeySecretKey)
 	store2 := newYandexLockboxSecretStore("", namespace2, authorizedKeySecretName, authorizedKeySecretKey)
@@ -369,11 +369,11 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName1 = "authorizedKeySecretName1"
 	const authorizedKeySecretKey1 = "authorizedKeySecretKey1"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName1, authorizedKeySecretKey1, toJson(t, authorizedKey1))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName1, authorizedKeySecretKey1, toJSON(t, authorizedKey1))
 	tassert.Nil(t, err)
 	const authorizedKeySecretName2 = "authorizedKeySecretName2"
 	const authorizedKeySecretKey2 = "authorizedKeySecretKey2"
-	err = createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName2, authorizedKeySecretKey2, toJson(t, authorizedKey2))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName2, authorizedKeySecretKey2, toJSON(t, authorizedKey2))
 	tassert.Nil(t, err)
 
 	store1 := newYandexLockboxSecretStore(apiEndpoint1, namespace, authorizedKeySecretName1, authorizedKeySecretKey1)
@@ -420,7 +420,7 @@ func TestGetSecretWithIamTokenExpiration(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -468,11 +468,11 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName1 = "authorizedKeySecretName1"
 	const authorizedKeySecretKey1 = "authorizedKeySecretKey1"
-	err = createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName1, authorizedKeySecretKey1, toJson(t, authorizedKey1))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName1, authorizedKeySecretKey1, toJSON(t, authorizedKey1))
 	tassert.Nil(t, err)
 	const authorizedKeySecretName2 = "authorizedKeySecretName2"
 	const authorizedKeySecretKey2 = "authorizedKeySecretKey2"
-	err = createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName2, authorizedKeySecretKey2, toJson(t, authorizedKey2))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName2, authorizedKeySecretKey2, toJSON(t, authorizedKey2))
 	tassert.Nil(t, err)
 
 	store1 := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName1, authorizedKeySecretKey1)
@@ -541,7 +541,7 @@ func TestGetSecretMap(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -576,7 +576,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexLockboxSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -640,13 +640,13 @@ func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName
 	}
 }
 
-func toJson(t *testing.T, v interface{}) []byte {
+func toJSON(t *testing.T, v interface{}) []byte {
 	jsonBytes, err := json.Marshal(v)
 	tassert.Nil(t, err)
 	return jsonBytes
 }
 
-func createK8sSecret(t *testing.T, ctx context.Context, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) error {
+func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) error {
 	err := k8sClient.Create(ctx, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,

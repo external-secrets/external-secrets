@@ -22,7 +22,7 @@ import (
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 )
 
-// Implementation of common.SecretGetter
+// Implementation of common.SecretGetter.
 type lockboxSecretGetter struct {
 	lockboxClient client.LockboxClient
 }

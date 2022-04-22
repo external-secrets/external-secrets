@@ -83,7 +83,7 @@ func TestNewClient(t *testing.T) {
 	tassert.EqualError(t, err, "could not fetch AuthorizedKey secret: secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
-	err = createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, newFakeAuthorizedKey()))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))
 	tassert.Nil(t, err)
 
 	const caCertificateSecretName = "caCertificateSecretName"
@@ -98,7 +98,7 @@ func TestNewClient(t *testing.T) {
 	tassert.EqualError(t, err, "could not fetch CA certificate secret: secrets \"caCertificateSecretName\" not found")
 	tassert.Nil(t, secretClient)
 
-	err = createK8sSecret(t, ctx, k8sClient, namespace, caCertificateSecretName, caCertificateSecretKey, []byte("it-is-not-a-certificate"))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, caCertificateSecretName, caCertificateSecretKey, []byte("it-is-not-a-certificate"))
 	tassert.Nil(t, err)
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, "failed to create Yandex.Cloud client: unable to read trusted CA certificates")
@@ -112,9 +112,9 @@ func TestGetSecretWithoutProperty(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	certificate1 := "dummyCertificateBlock#1"
-	certificate2 := "dummyCertificateBlock#2"
-	privateKey := "dummyPrivateKeyBlock"
+	certificate1 := uuid.NewString()
+	certificate2 := uuid.NewString()
+	privateKey := uuid.NewString()
 	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{certificate1, certificate2},
 		PrivateKey:       privateKey,
@@ -123,7 +123,7 @@ func TestGetSecretWithoutProperty(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -147,9 +147,9 @@ func TestGetSecretWithProperty(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	certificate1 := "dummyCertificateBlock#1"
-	certificate2 := "dummyCertificateBlock#2"
-	privateKey := "dummyPrivateKeyBlock"
+	certificate1 := uuid.NewString()
+	certificate2 := uuid.NewString()
+	privateKey := uuid.NewString()
 	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{certificate1, certificate2},
 		PrivateKey:       privateKey,
@@ -158,7 +158,7 @@ func TestGetSecretWithProperty(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -198,9 +198,9 @@ func TestGetSecretByVersionID(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	oldCertificate1 := "oldCertificateBlock#1"
-	oldCertificate2 := "oldCertificateBlock#2"
-	oldPrivateKey := "oldPrivateKeyBlock"
+	oldCertificate1 := uuid.NewString()
+	oldCertificate2 := uuid.NewString()
+	oldPrivateKey := uuid.NewString()
 	certificateID, oldVersionID := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{oldCertificate1, oldCertificate2},
 		PrivateKey:       oldPrivateKey,
@@ -209,7 +209,7 @@ func TestGetSecretByVersionID(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -225,9 +225,9 @@ func TestGetSecretByVersionID(t *testing.T) {
 		strings.TrimSpace(string(data)),
 	)
 
-	newCertificate1 := "oldCertificateBlock#1"
-	newCertificate2 := "oldCertificateBlock#2"
-	newPrivateKey := "oldPrivateKeyBlock"
+	newCertificate1 := uuid.NewString()
+	newCertificate2 := uuid.NewString()
+	newPrivateKey := uuid.NewString()
 	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{newCertificate1, newCertificate2},
 		PrivateKey:       newPrivateKey,
@@ -259,14 +259,14 @@ func TestGetSecretUnauthorized(t *testing.T) {
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
 	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKeyA, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{"dummyCertificateBlock"},
-		PrivateKey:       "dummyPrivateKeyBlock",
+		CertificateChain: []string{uuid.NewString()},
+		PrivateKey:       uuid.NewString(),
 	})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKeyB))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKeyB))
 	tassert.Nil(t, err)
 	store := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -288,7 +288,7 @@ func TestGetSecretNotFound(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -299,8 +299,8 @@ func TestGetSecretNotFound(t *testing.T) {
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
 	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{"dummyCertificateBlock"},
-		PrivateKey:       "dummyPrivateKeyBlock",
+		CertificateChain: []string{uuid.NewString()},
+		PrivateKey:       uuid.NewString(),
 	})
 	_, err = secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Version: "no-version-with-this-id"})
 	tassert.EqualError(t, err, "unable to request certificate content to get secret: version not found")
@@ -315,14 +315,14 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	certificate1 := "dummyCertificateBlock1"
-	privateKey1 := "dummyPrivateKeyBlock1"
+	certificate1 := uuid.NewString()
+	privateKey1 := uuid.NewString()
 	certificateID1, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey1, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{certificate1},
 		PrivateKey:       privateKey1,
 	})
-	certificate2 := "dummyCertificateBlock1"
-	privateKey2 := "dummyPrivateKeyBlock1"
+	certificate2 := uuid.NewString()
+	privateKey2 := uuid.NewString()
 	certificateID2, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey2, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{certificate2},
 		PrivateKey:       privateKey2,
@@ -331,9 +331,9 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace1, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey1))
+	err := createK8sSecret(ctx, t, k8sClient, namespace1, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey1))
 	tassert.Nil(t, err)
-	err = createK8sSecret(t, ctx, k8sClient, namespace2, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey2))
+	err = createK8sSecret(ctx, t, k8sClient, namespace2, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey2))
 	tassert.Nil(t, err)
 	store1 := newYandexCertificateManagerSecretStore("", namespace1, authorizedKeySecretName, authorizedKeySecretKey)
 	store2 := newYandexCertificateManagerSecretStore("", namespace2, authorizedKeySecretName, authorizedKeySecretKey)
@@ -369,15 +369,15 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer1 := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	certificate1 := "dummyCertificateBlock1"
-	privateKey1 := "dummyPrivateKeyBlock1"
+	certificate1 := uuid.NewString()
+	privateKey1 := uuid.NewString()
 	certificateID1, _ := fakeCertificateManagerServer1.CreateCertificate(authorizedKey1, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{certificate1},
 		PrivateKey:       privateKey1,
 	})
 	fakeCertificateManagerServer2 := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	certificate2 := "dummyCertificateBlock1"
-	privateKey2 := "dummyPrivateKeyBlock1"
+	certificate2 := uuid.NewString()
+	privateKey2 := uuid.NewString()
 	certificateID2, _ := fakeCertificateManagerServer2.CreateCertificate(authorizedKey2, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{certificate2},
 		PrivateKey:       privateKey2,
@@ -386,11 +386,11 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName1 = "authorizedKeySecretName1"
 	const authorizedKeySecretKey1 = "authorizedKeySecretKey1"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName1, authorizedKeySecretKey1, toJson(t, authorizedKey1))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName1, authorizedKeySecretKey1, toJSON(t, authorizedKey1))
 	tassert.Nil(t, err)
 	const authorizedKeySecretName2 = "authorizedKeySecretName2"
 	const authorizedKeySecretKey2 = "authorizedKeySecretKey2"
-	err = createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName2, authorizedKeySecretKey2, toJson(t, authorizedKey2))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName2, authorizedKeySecretKey2, toJSON(t, authorizedKey2))
 	tassert.Nil(t, err)
 
 	store1 := newYandexCertificateManagerSecretStore(apiEndpoint1, namespace, authorizedKeySecretName1, authorizedKeySecretKey1)
@@ -429,8 +429,8 @@ func TestGetSecretWithIamTokenExpiration(t *testing.T) {
 	fakeClock := clock.NewFakeClock()
 	tokenExpirationTime := time.Hour
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, tokenExpirationTime)
-	certificate := "dummyCertificateBlock"
-	privateKey := "dummyPrivateKeyBlock"
+	certificate := uuid.NewString()
+	privateKey := uuid.NewString()
 	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{certificate},
 		PrivateKey:       privateKey,
@@ -439,7 +439,7 @@ func TestGetSecretWithIamTokenExpiration(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -476,12 +476,12 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	tokenExpirationDuration := time.Hour
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, tokenExpirationDuration)
 	certificateID1, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey1, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{"dummyCertificateBlock1"},
-		PrivateKey:       "dummyPrivateKeyBlock1",
+		CertificateChain: []string{uuid.NewString()},
+		PrivateKey:       uuid.NewString(),
 	})
 	certificateID2, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey2, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{"dummyCertificateBlock2"},
-		PrivateKey:       "dummyPrivateKeyBlock2",
+		CertificateChain: []string{uuid.NewString()},
+		PrivateKey:       uuid.NewString(),
 	})
 
 	var err error
@@ -489,11 +489,11 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName1 = "authorizedKeySecretName1"
 	const authorizedKeySecretKey1 = "authorizedKeySecretKey1"
-	err = createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName1, authorizedKeySecretKey1, toJson(t, authorizedKey1))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName1, authorizedKeySecretKey1, toJSON(t, authorizedKey1))
 	tassert.Nil(t, err)
 	const authorizedKeySecretName2 = "authorizedKeySecretName2"
 	const authorizedKeySecretKey2 = "authorizedKeySecretKey2"
-	err = createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName2, authorizedKeySecretKey2, toJson(t, authorizedKey2))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName2, authorizedKeySecretKey2, toJSON(t, authorizedKey2))
 	tassert.Nil(t, err)
 
 	store1 := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName1, authorizedKeySecretKey1)
@@ -552,9 +552,9 @@ func TestGetSecretMap(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	certificate1 := "dummyCertificateBlock#1"
-	certificate2 := "dummyCertificateBlock#2"
-	privateKey := "dummyPrivateKeyBlock"
+	certificate1 := uuid.NewString()
+	certificate2 := uuid.NewString()
+	privateKey := uuid.NewString()
 	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{certificate1, certificate2},
 		PrivateKey:       privateKey,
@@ -563,7 +563,7 @@ func TestGetSecretMap(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -590,8 +590,8 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	oldCertificate := "oldCertificateBlock"
-	oldPrivateKey := "oldPrivateKeyBlock"
+	oldCertificate := uuid.NewString()
+	oldPrivateKey := uuid.NewString()
 	certificateID, oldVersionID := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{oldCertificate},
 		PrivateKey:       oldPrivateKey,
@@ -600,7 +600,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	err := createK8sSecret(t, ctx, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJson(t, authorizedKey))
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
 	tassert.Nil(t, err)
 	store := newYandexCertificateManagerSecretStore("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
 
@@ -619,8 +619,8 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 		data,
 	)
 
-	newCertificate := "newCertificateBlock"
-	newPrivateKey := "newPrivateKeyBlock"
+	newCertificate := uuid.NewString()
+	newPrivateKey := uuid.NewString()
 	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{newCertificate},
 		PrivateKey:       newPrivateKey,
@@ -687,13 +687,13 @@ func newYandexCertificateManagerSecretStore(apiEndpoint, namespace, authorizedKe
 	}
 }
 
-func toJson(t *testing.T, v interface{}) []byte {
+func toJSON(t *testing.T, v interface{}) []byte {
 	jsonBytes, err := json.Marshal(v)
 	tassert.Nil(t, err)
 	return jsonBytes
 }
 
-func createK8sSecret(t *testing.T, ctx context.Context, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) error {
+func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) error {
 	err := k8sClient.Create(ctx, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,

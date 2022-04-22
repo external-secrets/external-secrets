@@ -22,7 +22,7 @@ import (
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &yandexCloudSecretsClient{}
 
-// Implementation of v1beta1.SecretsClient
+// Implementation of v1beta1.SecretsClient.
 type yandexCloudSecretsClient struct {
 	secretGetter SecretGetter
 	iamToken     string

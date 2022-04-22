@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-// Fake implementation of LockboxClient
+// Fake implementation of LockboxClient.
 type fakeLockboxClient struct {
 	fakeLockboxServer *FakeLockboxServer
 }

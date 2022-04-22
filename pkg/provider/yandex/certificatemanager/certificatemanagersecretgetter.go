@@ -27,7 +27,7 @@ const (
 	chainAndPrivateKeyProperty = "chainAndPrivateKey"
 )
 
-// Implementation of common.SecretGetter
+// Implementation of common.SecretGetter.
 type certificateManagerSecretGetter struct {
 	certificateManagerClient client.CertificateManagerClient
 }

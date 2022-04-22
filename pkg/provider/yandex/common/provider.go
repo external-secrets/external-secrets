@@ -37,7 +37,7 @@ const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifet
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.Provider = &YandexCloudProvider{}
 
-// Implementation of v1beta1.Provider
+// Implementation of v1beta1.Provider.
 type YandexCloudProvider struct {
 	logger              logr.Logger
 	clock               clock2.Clock

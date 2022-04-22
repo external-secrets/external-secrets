@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Real/gRPC implementation of CertificateManagerClient
+// Real/gRPC implementation of CertificateManagerClient.
 type grpcCertificateManagerClient struct {
 	certificateContentServiceClient api.CertificateContentServiceClient
 }
