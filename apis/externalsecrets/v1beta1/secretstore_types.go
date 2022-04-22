@@ -70,6 +70,10 @@ type SecretStoreProvider struct {
 	// +optional
 	IBM *IBMProvider `json:"ibm,omitempty"`
 
+	// YandexCertificateManager configures this store to sync secrets using Yandex Certificate Manager provider
+	// +optional
+	YandexCertificateManager *YandexCertificateManagerProvider `json:"yandexcertificatemanager,omitempty"`
+
 	// YandexLockbox configures this store to sync secrets using Yandex Lockbox provider
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
