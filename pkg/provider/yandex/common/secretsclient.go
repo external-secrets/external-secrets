@@ -16,6 +16,7 @@ package common
 import (
 	"context"
 	"fmt"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 

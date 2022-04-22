@@ -16,25 +16,24 @@ package certificatemanager
 import (
 	"context"
 	"encoding/json"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
-	"github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
-	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
 	"time"
 
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
+	"github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const (

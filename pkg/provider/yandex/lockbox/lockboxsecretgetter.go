@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"

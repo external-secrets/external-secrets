@@ -16,6 +16,8 @@ package client
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
 	"github.com/google/go-cmp/cmp"
@@ -23,7 +25,6 @@ import (
 	"github.com/google/uuid"
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
-	"time"
 )
 
 // Fake implementation of CertificateManagerClient.

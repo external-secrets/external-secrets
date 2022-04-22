@@ -15,6 +15,7 @@ package client
 
 import (
 	"context"
+
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"

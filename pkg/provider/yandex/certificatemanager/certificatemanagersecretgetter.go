@@ -16,9 +16,10 @@ package certificatemanager
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
-	"strings"
 )
 
 const (

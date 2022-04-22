@@ -18,13 +18,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"time"
+
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/endpoint"
 	ycsdk "github.com/yandex-cloud/go-sdk"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"time"
 )
 
 // Creates a connection to the given Yandex.Cloud API endpoint.
