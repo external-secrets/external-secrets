@@ -1,8 +1,8 @@
-This page lists the status, timeline and policy for currently supported ESO releases its providers.
+This page lists the status, timeline and policy for currently supported ESO releases and its providers. Please also see our [deprecation policy](deprecation-policy.md) that describes API versioning, deprecation and API surface.
 
 ## External Secrets Operator
 
-We are currently in beta and support only the latest release.
+We are currently in beta and support **only the latest release** for the time being.
 
 | ESO Version | Kubernetes Version |
 | ----------- | ------------------ |
@@ -12,12 +12,14 @@ We are currently in beta and support only the latest release.
 
 ## Provider Stability and Support Level
 
-| Provider                                                                                          | Stability |                                                                                                                                                                   Contact |
+The following table describes the stability level of each provider and who's responsible.
+
+| Provider                                                                                          | Stability |                                                                                                                                                                   Maintainer |
 | ------------------------------------------------------------------------------------------------- | :-------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| [AWS Secrets Manager](https://external-secrets.io/latest/provider-aws-secrets-manager/)           |  stable   |                                                                                                                     [ESO Maintained](https://github.com/external-secrets) |
-| [AWS Parameter Store](https://external-secrets.io/latest/provider-aws-parameter-store/)           |  stable   |                                                                                                                     [ESO Maintained](https://github.com/external-secrets) |
-| [Hashicorp Vault](https://external-secrets.io/latest/provider-hashicorp-vault/)                   |  stable   |                                                                                                                     [ESO Maintained](https://github.com/external-secrets) |
-| [GCP Secret Manager](https://external-secrets.io/latest/provider-google-secrets-manager/)         |  stable   |                                                                                                                     [ESO Maintained](https://github.com/external-secrets) |
+| [AWS Secrets Manager](https://external-secrets.io/latest/provider-aws-secrets-manager/)           |  stable   |                                                                                                                     [external-secrets](https://github.com/external-secrets) |
+| [AWS Parameter Store](https://external-secrets.io/latest/provider-aws-parameter-store/)           |  stable   |                                                                                                                     [external-secrets](https://github.com/external-secrets) |
+| [Hashicorp Vault](https://external-secrets.io/latest/provider-hashicorp-vault/)                   |  stable   |                                                                                                                     [external-secrets](https://github.com/external-secrets) |
+| [GCP Secret Manager](https://external-secrets.io/latest/provider-google-secrets-manager/)         |  stable   |                                                                                                                     [external-secrets](https://github.com/external-secrets) |
 | [Azure Keyvault](https://external-secrets.io/latest/provider-azure-key-vault/)                    |   beta    | [@ahmedmus-1A](https://github.com/ahmedmus-1A) [@asnowfix](https://github.com/asnowfix) [@ncourbet-1A](https://github.com/ncourbet-1A) [@1A-mj](https://github.com/1A-mj) |
 | [IBM Secrets Manager](https://external-secrets.io/latest/provider-ibm-secrets-manager/)           |   alpha   |                            [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta) |
 | [Yandex Lockbox](https://external-secrets.io/latest/provider-yandex-lockbox/)                     |   alpha   |                                                                       [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |

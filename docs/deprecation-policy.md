@@ -2,7 +2,7 @@
 
 We follow the [Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/) and [API Versioning Scheme](https://kubernetes.io/docs/reference/using-api/#api-versioning): alpha, beta, GA.
 
-The project is currently in `alpha` state. We track `beta` progress in [this GitHub Project](https://github.com/external-secrets/external-secrets/projects/3). Please try the `alpha` and `beta` features and provide feedback. After the features exit beta, it may not be practical to make more changes.
+The project is currently in `beta` state. Please try the `beta` features and provide feedback. After the features exits beta, it may not be practical to make more changes.
 
 * alpha
     * The support for a feature may be dropped at any time without notice.
