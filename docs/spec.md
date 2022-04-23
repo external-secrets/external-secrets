@@ -1296,6 +1296,7 @@ ExternalSecretTarget
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -1734,6 +1735,7 @@ ExternalSecretTarget
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>

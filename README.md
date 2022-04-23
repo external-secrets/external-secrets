@@ -1,71 +1,40 @@
+<p align="center">
+    <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
+</p>
+
 # External Secrets
+![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5327/badge)](https://bestpractices.coreinfrastructure.org/projects/5947)
+[![Go Report Card](https://goreportcard.com/badge/github.com/external-secrets/external-secrets)](https://goreportcard.com/report/github.com/external-secrets/external-secrets)
+<a href="https://artifacthub.io/packages/helm/external-secrets-operator/external-secrets"><img alt="Artifact Hub" src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/external-secrets" /></a>
+<a href="https://operatorhub.io/operator/external-secrets-operator"><img alt="operatorhub.io" src="https://img.shields.io/badge/operatorhub.io-external--secrets-brightgreen" /></a>
 
-<img src="assets/round_eso_logo.png" width="100">
-
-----
-
-The External Secrets Operator reads information from a third party service
-like [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) and automatically injects the values as [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/).
+**External Secrets Operator** is a Kubernetes operator that integrates external
+secret management systems like [AWS Secrets
+Manager](https://aws.amazon.com/secrets-manager/), [HashiCorp
+Vault](https://www.vaultproject.io/), [Google Secrets
+Manager](https://cloud.google.com/secret-manager), [Azure Key
+Vault](https://azure.microsoft.com/en-us/services/key-vault/) and many more. The
+operator reads information from external APIs and automatically injects the
+values into a [Kubernetes
+Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
 Multiple people and organizations are joining efforts to create a single External Secrets solution based on existing projects. If you are curious about the origins of this project, check out this [issue](https://github.com/external-secrets/kubernetes-external-secrets/issues/47) and this [PR](https://github.com/external-secrets/kubernetes-external-secrets/pull/477).
 
-# Supported Backends
-
-- [AWS Secrets Manager](https://external-secrets.io/latest/provider-aws-secrets-manager/)
-- [AWS Parameter Store](https://external-secrets.io/latest/provider-aws-parameter-store/)
-- [Akeyless](https://www.akeyless.io/)
-- [Hashicorp Vault](https://www.vaultproject.io/)
-- [Google Cloud Secrets Manager](https://external-secrets.io/latest/provider-google-secrets-manager/)
-- [Azure Key Vault](https://external-secrets.io/latest/provider-azure-key-vault/)
-- [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider-ibm-secrets-manager/)
-- [Yandex Lockbox](https://external-secrets.io/latest/provider-yandex-lockbox/)
-- [Gitlab Project Variables](https://external-secrets.io/latest/provider-gitlab-project-variables/)
-- [Alibaba Cloud KMS](https://www.alibabacloud.com/product/kms) (Docs still missing, PRs welcomed!)
-- [Oracle Vault](https://external-secrets.io/latest/provider-oracle-vault)
-- [Generic Webhook](https://external-secrets.io/latest/provider-webhook)
-- [Kubernetes](https://external-secrets.io/latest/provider-kubernetes)
-
-## Stability and Support Level
-
-### Internally maintained:
-
-| Provider                                                                 | Stability |                                        Contact |
-| ------------------------------------------------------------------------ | :-------: | ---------------------------------------------: |
-| [AWS SM](https://external-secrets.io/latest/provider-aws-secrets-manager/)      |   stable   | [ESO Org](https://github.com/external-secrets) |
-| [AWS PS](https://external-secrets.io/latest/provider-aws-parameter-store/)      |   stable   | [ESO Org](https://github.com/external-secrets) |
-| [Hashicorp Vault](https://external-secrets.io/latest/provider-hashicorp-vault/) |   stable   | [ESO Org](https://github.com/external-secrets) |
-| [GCP SM](https://external-secrets.io/latest/provider-google-secrets-manager/)   |   stable | [ESO Org](https://github.com/external-secrets) |
-
-### Community maintained:
-
-| Provider                                                            | Stability |                  Contact                   |
-| ------------------------------------------------------------------- | :-------: | :----------------------------------------: |
-| [Azure KV](https://external-secrets.io/latest/provider-azure-key-vault/)   |   beta   | [@ahmedmus-1A](https://github.com/ahmedmus-1A) [@asnowfix](https://github.com/asnowfix) [@ncourbet-1A](https://github.com/ncourbet-1A) [@1A-mj](https://github.com/1A-mj) |
-| [IBM SM](https://external-secrets.io/latest/provider-ibm-secrets-manager/) |   alpha   |   [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta)  |
-| [Yandex Lockbox](https://external-secrets.io/latest/provider-yandex-lockbox/) |   alpha   |   [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero)          |
-| [Gitlab Project Variables](https://external-secrets.io/latest/provider-gitlab-project-variables/) |   alpha   |   [@Jabray5](https://github.com/Jabray5)          |
-| Alibaba Cloud KMS                                                   |   alpha  | [@ElsaChelala](https://github.com/ElsaChelala)                                |
-| [Oracle Vault]( https://external-secrets.io/latest/provider-oracle-vault)  |   alpha  | [@KianTigger](https://github.com/KianTigger) [@EladGabay](https://github.com/EladGabay) |
-| [Akeyless]( https://external-secrets.io/latest/provider-akeyless)  |   alpha  | [@renanaAkeyless](https://github.com/renanaAkeyless)                                 |
-| [Generic Webhook](https://external-secrets.io/latest/provider-webhook)  |  alpha  | [@willemm](https://github.com/willemm) |
-
 ## Documentation
 
-External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io).
-
-## Support
-
-You can use GitHub's [issues](https://github.com/external-secrets/external-secrets/issues) to report bugs/suggest features or use GitHub's [discussions](https://github.com/external-secrets/external-secrets/discussions) to ask for help and figure out problems. You can also reach us at our KES and ESO shared [channel in Kubernetes slack](https://kubernetes.slack.com/messages/external-secrets).
-
-Even though we have active maintainers and people assigned to this project, we kindly ask for patience when asking for support. We will try to get to priority issues as fast as possible, but there may be some delays.
+External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io). Also see our [stability and support](https://external-secrets.io/latest/stability-support/) policy.
 
 ## Contributing
 
 We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/latest/contributing-devguide/) and [Contribution process](https://www.external-secrets.io/latest/contributing-process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/latest/contributing-coc/) and adhere to its guidelines.
 
+### Sponsoring
+Please consider sponsoring this project, there are many ways you can help us with: engineering time, providing infrastructure, donating money, etc. We are open to cooperations, feel free to approach as and we discuss how this could look like. We can keep your contribution anonymized if that's required (depending on the type of contribution), and anonymous donations are possible inside [Opencollective](https://opencollective.com/external-secrets-org).
+
 ## Bi-weekly Development Meeting
 
-We host our development meeting every odd wednesday at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin) on [Jitsi](https://meet.jit.si/SurroundingContentionsImportSubsequently). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
+We host our development meeting every odd wednesday at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin) on [Jitsi](https://meet.jit.si/eso-community-meeting). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
 
 Anyone is welcome to join. Feel free to ask questions, request feedback, raise awareness for an issue or just say hi ;)
 

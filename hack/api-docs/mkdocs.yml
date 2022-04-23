@@ -83,4 +83,5 @@ nav:
     - Contributing Process: contributing-process.md
     - Release Process: contributing-release.md
     - Code of Conduct: contributing-coc.md
+  - Stability and Support: stability-support.md
   - Deprecation Policy: deprecation-policy.md
