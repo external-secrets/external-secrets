@@ -1296,6 +1296,7 @@ ExternalSecretTarget
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -1734,6 +1735,7 @@ ExternalSecretTarget
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -3233,6 +3235,20 @@ IBMProvider
 </tr>
 <tr>
 <td>
+<code>yandexcertificatemanager</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.YandexCertificateManagerProvider">
+YandexCertificateManagerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>YandexCertificateManager configures this store to sync secrets using Yandex Certificate Manager provider</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>yandexlockbox</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.YandexLockboxProvider">
@@ -4723,6 +4739,122 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </td>
 <td>
 <p>Secret ref to fill in credentials</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.YandexCertificateManagerAuth">YandexCertificateManagerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authorizedKeySecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The authorized key used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.YandexCertificateManagerCAProvider">YandexCertificateManagerCAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.YandexCertificateManagerProvider">YandexCertificateManagerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>YandexCertificateManagerProvider Configures a store to sync secrets using the Yandex Certificate Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Yandex.Cloud API endpoint (e.g. &lsquo;api.cloud.yandex.net:443&rsquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.YandexCertificateManagerAuth">
+YandexCertificateManagerAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against Yandex Certificate Manager</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.YandexCertificateManagerCAProvider">
+YandexCertificateManagerCAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Yandex.Cloud server certificate.</p>
 </td>
 </tr>
 </tbody>
