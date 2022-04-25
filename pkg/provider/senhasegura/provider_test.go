@@ -56,6 +56,30 @@ func TestProvider(t *testing.T) {
 			},
 		},
 		{
+			test:   "should not create provider due to missing provider module",
+			expErr: true,
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Senhasegura: &esv1beta1.SenhaseguraProvider{},
+					},
+				},
+			},
+		},
+		{
+			test:   "should not create provider due to missing provider auth.ref",
+			expErr: true,
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Senhasegura: &esv1beta1.SenhaseguraProvider{
+							Module: esv1beta1.SenhaseguraModuleDSM,
+						},
+					},
+				},
+			},
+		},
+		{
 			test:   "invalid module should return an error",
 			expErr: true,
 			store: &esv1beta1.SecretStore{

@@ -44,6 +44,11 @@ const (
 	Construct a new secrets client based on provided store
 */
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	err := p.ValidateStore(store)
+	if err != nil {
+		return nil, err
+	}
+
 	spec := store.GetSpec()
 	provider := spec.Provider.Senhasegura
 
