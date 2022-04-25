@@ -1,4 +1,5 @@
 {{- if .Values.createOperator }}
+{{- if eq (len .Values.scopedNamespaces) 0 }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -104,4 +105,117 @@ spec:
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
+{{- else }}
+{{- $values := .Values }}
+{{- $chart := .Chart }}
+{{- $release := .Release }}
+{{- range $index, $namespace := .Values.scopedNamespaces }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ include "external-secrets.fullname" $ }}-{{ $namespace }}"
+  namespace: {{ $release.Namespace | quote }}
+  labels:
+    {{- include "external-secrets.labels" $ | nindent 4 }}
+  {{- with $values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ $values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "{{ include "external-secrets.name" $ }}-{{ $namespace }}"
+      app.kubernetes.io/instance: "{{ $release.Name }}-{{ $namespace }}"
+  template:
+    metadata:
+      {{- with $values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app.kubernetes.io/name: "{{ include "external-secrets.name" $ }}-{{ $namespace }}"
+        app.kubernetes.io/instance: "{{ $release.Name }}-{{ $namespace }}"
+        {{- with $values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "external-secrets.serviceAccountName" $ }}
+      {{- with $values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: "{{ $chart.Name }}-{{ $namespace }}"
+          {{- with $values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ $values.image.repository }}:{{ $values.image.tag | default $chart.AppVersion }}"
+          imagePullPolicy: {{ $values.image.pullPolicy }}
+          {{- if or ($values.leaderElect) ($values.processClusterStore) ($values.processClusterExternalSecret) ($values.concurrent) ($values.extraArgs) }}
+          args:
+          {{- if $values.leaderElect }}
+          - --enable-leader-election=true
+          {{- end }}
+          - --namespace={{ $namespace }}
+          {{- if $values.scopedRBAC }}
+          - --enable-cluster-store-reconciler=false
+          - --enable-cluster-external-secret-reconciler=false
+          {{- else }}
+            {{- if not $values.processClusterStore }}
+          - --enable-cluster-store-reconciler=false
+            {{- end }}
+            {{- if not $values.processClusterExternalSecret }}
+          - --enable-cluster-external-secret-reconciler=false
+            {{- end }}
+          {{- end }}
+          {{- if $values.controllerClass }}
+          - --controller-class={{ $values.controllerClass }}
+          {{- end }}
+          {{- if $values.concurrent }}
+          - --concurrent={{ $values.concurrent }}
+          {{- end }}
+          {{- range $key, $value := $values.extraArgs }}
+            {{- if $value }}
+          - --{{ $key }}={{ $value }}
+            {{- else }}
+          - --{{ $key }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: {{ $values.prometheus.service.port }}
+              protocol: TCP
+              name: metrics
+          {{- with $values.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with $values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $values.priorityClassName }}
+      priorityClassName: {{ $values.priorityClassName }}
+      {{- end }}
+---
+{{- end }}
+{{- end }}
 {{- end }}

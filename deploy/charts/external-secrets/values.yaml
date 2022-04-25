@@ -31,6 +31,10 @@ controllerClass: ""
 # provided namespace
 scopedNamespace: ""
 
+# -- If set external secrets are only reconciled in the
+# provided namespaces
+scopedNamespaces: []
+
 # -- Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace
 # and implicitly disable cluster stores and cluster external secrets
 scopedRBAC: false
