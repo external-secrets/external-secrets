@@ -3621,56 +3621,12 @@ Kubernetes meta/v1.Time
 <tbody>
 <tr>
 <td>
-<code>isoSecretRef</code></br>
+<code>clientId</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SenhaseguraIsoAuth">
-SenhaseguraIsoAuth
-</a>
+string
 </em>
 </td>
 <td>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.SenhaseguraIsoAuth">SenhaseguraIsoAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SenhaseguraAuth">SenhaseguraAuth</a>)
-</p>
-<p>
-<pre><code>SenhaseguraIsoAuth holds secrets references for senhasegura authentication parameters
-</code></pre>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>urlSecretRef</code></br>
-<em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
-</em>
-</td>
-<td>
-<p>The URL is used for authentication</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clientIdSecretRef</code></br>
-<em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
-</em>
-</td>
-<td>
-<p>The Client ID is used for authentication</p>
 </td>
 </tr>
 <tr>
@@ -3681,7 +3637,6 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<p>The Client Secret is used for authentication</p>
 </td>
 </tr>
 </tbody>
@@ -3728,6 +3683,17 @@ see: https://senhasegura.com/devops
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL of senhasegura</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>module</code></br>

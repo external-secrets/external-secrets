@@ -20,20 +20,7 @@ import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	SenhaseguraAuth tells the controller how to do auth in senhasegura
 */
 type SenhaseguraAuth struct {
-	IsoSecretRef *SenhaseguraIsoAuth `json:"isoSecretRef"`
-}
-
-/*
-	SenhaseguraIsoAuth holds secrets references for senhasegura authentication parameters
-*/
-type SenhaseguraIsoAuth struct {
-	/* The URL is used for authentication */
-	URL esmeta.SecretKeySelector `json:"urlSecretRef"`
-
-	/* The Client ID is used for authentication */
-	ClientID esmeta.SecretKeySelector `json:"clientIdSecretRef"`
-
-	/* The Client Secret is used for authentication */
+	ClientId     string                   `json:"clientId"`
 	ClientSecret esmeta.SecretKeySelector `json:"clientSecretSecretRef"`
 }
 
@@ -55,6 +42,9 @@ const (
 	SenhaseguraProvider setup a store to sync secrets with senhasegura
 */
 type SenhaseguraProvider struct {
+	/* URL of senhasegura */
+	Url string `json:"url"`
+
 	/* Module defines which senhasegura module should be used to get secrets */
 	Module SenhaseguraModuleType `json:"module"`
 

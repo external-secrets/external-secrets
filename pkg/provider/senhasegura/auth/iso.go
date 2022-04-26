@@ -66,42 +66,29 @@ var (
 	Authenticate check required authentication method based on provider spec and initialize ISO OAuth2 session
 */
 func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *esv1beta1.SenhaseguraProvider, kube client.Client, namespace string) (isoSession *SenhaseguraIsoSession, err error) {
-	// provider.Auth.IsoSecretRef is already validated by webhooks now ?
-	if provider.Auth.IsoSecretRef != nil {
-		isoSession, err = isoSession.IsoSessionFromSecretRef(ctx, provider, store, kube, namespace)
-		if err != nil {
-			return nil, err
-		}
-		return isoSession, nil
+	isoSession, err = isoSession.IsoSessionFromSecretRef(ctx, provider, store, kube, namespace)
+	if err != nil {
+		return nil, err
 	}
-
-	return &SenhaseguraIsoSession{}, errRequiredIsoSecretRef
+	return isoSession, nil
 }
 
 /*
 	IsoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters
 */
 func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
-	clientID, err := getKubernetesSecret(ctx, provider.Auth.IsoSecretRef.ClientID, store, kube, namespace)
-	if err != nil {
-		return &SenhaseguraIsoSession{}, err
-	}
-	clientSecret, err := getKubernetesSecret(ctx, provider.Auth.IsoSecretRef.ClientSecret, store, kube, namespace)
-	if err != nil {
-		return &SenhaseguraIsoSession{}, err
-	}
-	systemURL, err := getKubernetesSecret(ctx, provider.Auth.IsoSecretRef.URL, store, kube, namespace)
+	clientSecret, err := getKubernetesSecret(ctx, provider.Auth.ClientSecret, store, kube, namespace)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
 
-	isoToken, err := s.GetIsoToken(clientID, clientSecret, systemURL, provider.IgnoreSslCertificate)
+	isoToken, err := s.GetIsoToken(provider.Auth.ClientId, clientSecret, provider.Url, provider.IgnoreSslCertificate)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
 
 	return &SenhaseguraIsoSession{
-		URL:                  systemURL,
+		URL:                  provider.Url,
 		Token:                isoToken,
 		IgnoreSslCertificate: provider.IgnoreSslCertificate,
 		isoClient:            &SenhaseguraIsoSession{},

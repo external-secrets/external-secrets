@@ -1945,55 +1945,24 @@ spec:
                         auth:
                           description: Auth defines parameters to authenticate in senhasegura
                           properties:
-                            isoSecretRef:
-                              description: SenhaseguraIsoAuth holds secrets references for senhasegura authentication parameters
+                            clientId:
+                              type: string
+                            clientSecretSecretRef:
+                              description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
                               properties:
-                                clientIdSecretRef:
-                                  description: The Client ID is used for authentication
-                                  properties:
-                                    key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
-                                      type: string
-                                    name:
-                                      description: The name of the Secret resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  type: object
-                                clientSecretSecretRef:
-                                  description: The Client Secret is used for authentication
-                                  properties:
-                                    key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
-                                      type: string
-                                    name:
-                                      description: The name of the Secret resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  type: object
-                                urlSecretRef:
-                                  description: The URL is used for authentication
-                                  properties:
-                                    key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
-                                      type: string
-                                    name:
-                                      description: The name of the Secret resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  type: object
-                              required:
-                                - clientIdSecretRef
-                                - clientSecretSecretRef
-                                - urlSecretRef
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
                               type: object
                           required:
-                            - isoSecretRef
+                            - clientId
+                            - clientSecretSecretRef
                           type: object
                         ignoreSslCertificate:
                           default: false
@@ -2002,9 +1971,13 @@ spec:
                         module:
                           description: Module defines which senhasegura module should be used to get secrets
                           type: string
+                        url:
+                          description: URL of senhasegura
+                          type: string
                       required:
                         - auth
                         - module
+                        - url
                       type: object
                     vault:
                       description: Vault configures this store to sync secrets using Hashi provider
@@ -4566,55 +4539,24 @@ spec:
                         auth:
                           description: Auth defines parameters to authenticate in senhasegura
                           properties:
-                            isoSecretRef:
-                              description: SenhaseguraIsoAuth holds secrets references for senhasegura authentication parameters
+                            clientId:
+                              type: string
+                            clientSecretSecretRef:
+                              description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
                               properties:
-                                clientIdSecretRef:
-                                  description: The Client ID is used for authentication
-                                  properties:
-                                    key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
-                                      type: string
-                                    name:
-                                      description: The name of the Secret resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  type: object
-                                clientSecretSecretRef:
-                                  description: The Client Secret is used for authentication
-                                  properties:
-                                    key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
-                                      type: string
-                                    name:
-                                      description: The name of the Secret resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  type: object
-                                urlSecretRef:
-                                  description: The URL is used for authentication
-                                  properties:
-                                    key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
-                                      type: string
-                                    name:
-                                      description: The name of the Secret resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  type: object
-                              required:
-                                - clientIdSecretRef
-                                - clientSecretSecretRef
-                                - urlSecretRef
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
                               type: object
                           required:
-                            - isoSecretRef
+                            - clientId
+                            - clientSecretSecretRef
                           type: object
                         ignoreSslCertificate:
                           default: false
@@ -4623,9 +4565,13 @@ spec:
                         module:
                           description: Module defines which senhasegura module should be used to get secrets
                           type: string
+                        url:
+                          description: URL of senhasegura
+                          type: string
                       required:
                         - auth
                         - module
+                        - url
                       type: object
                     vault:
                       description: Vault configures this store to sync secrets using Hashi provider
