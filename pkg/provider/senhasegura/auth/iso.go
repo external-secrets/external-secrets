@@ -30,6 +30,11 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
+type ISOInterface interface {
+	IsoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error)
+	GetIsoToken(clientID, clientSecret, systemURL string, ignoreSslCertificate bool) (token string, err error)
+}
+
 /*
 	SenhaseguraIsoSession contains information about senhasegura ISO API for any request
 */
@@ -37,6 +42,7 @@ type SenhaseguraIsoSession struct {
 	URL                  string
 	Token                string
 	IgnoreSslCertificate bool
+	isoClient            ISOInterface
 }
 
 /*
@@ -60,20 +66,22 @@ var (
 	Authenticate check required authentication method based on provider spec and initialize ISO OAuth2 session
 */
 func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *esv1beta1.SenhaseguraProvider, kube client.Client, namespace string) (isoSession *SenhaseguraIsoSession, err error) {
+	// provider.Auth.IsoSecretRef is already validated by webhooks now ?
 	if provider.Auth.IsoSecretRef != nil {
-		isoSession, err = isoSessionFromSecretRef(ctx, provider, store, kube, namespace)
+		isoSession, err = isoSession.IsoSessionFromSecretRef(ctx, provider, store, kube, namespace)
 		if err != nil {
 			return nil, err
 		}
 		return isoSession, nil
 	}
+
 	return &SenhaseguraIsoSession{}, errRequiredIsoSecretRef
 }
 
 /*
-	isoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters
+	IsoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters
 */
-func isoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
+func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
 	clientID, err := getKubernetesSecret(ctx, provider.Auth.IsoSecretRef.ClientID, store, kube, namespace)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
@@ -87,7 +95,7 @@ func isoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.Senhasegur
 		return &SenhaseguraIsoSession{}, err
 	}
 
-	isoToken, err := getIsoToken(clientID, clientSecret, systemURL, provider.IgnoreSslCertificate)
+	isoToken, err := s.GetIsoToken(clientID, clientSecret, systemURL, provider.IgnoreSslCertificate)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
@@ -96,13 +104,14 @@ func isoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.Senhasegur
 		URL:                  systemURL,
 		Token:                isoToken,
 		IgnoreSslCertificate: provider.IgnoreSslCertificate,
+		isoClient:            &SenhaseguraIsoSession{},
 	}, nil
 }
 
 /*
-	getIsoToken calls senhasegura OAuth2 endpoint to get a token
+	GetIsoToken calls senhasegura OAuth2 endpoint to get a token
 */
-func getIsoToken(clientID, clientSecret, systemURL string, ignoreSslCertificate bool) (token string, err error) {
+func (s *SenhaseguraIsoSession) GetIsoToken(clientID, clientSecret, systemURL string, ignoreSslCertificate bool) (token string, err error) {
 	data := url.Values{}
 	data.Set("grant_type", "client_credentials")
 	data.Set("client_id", clientID)

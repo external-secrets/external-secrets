@@ -27,6 +27,10 @@ import (
 	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
 )
 
+type DSMInterface interface {
+	FetchSecrets() (respObj isoDappResponse, err error)
+}
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &DSM{}
 
@@ -35,6 +39,7 @@ var _ esv1beta1.SecretsClient = &DSM{}
 */
 type DSM struct {
 	isoSession *senhaseguraAuth.SenhaseguraIsoSession
+	dsmClient  DSMInterface
 }
 
 /*
@@ -80,6 +85,7 @@ var (
 func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 	return &DSM{
 		isoSession: isoSession,
+		dsmClient:  &DSM{},
 	}, nil
 }
 
@@ -87,7 +93,7 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 	GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service
 */
 func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (resp []byte, err error) {
-	appSecrets, err := dsm.fetchSecrets()
+	appSecrets, err := dsm.FetchSecrets()
 	if err != nil {
 		return []byte(""), err
 	}
@@ -124,7 +130,7 @@ func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 */
 func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (secretData map[string][]byte, err error) {
 	secretData = make(map[string][]byte)
-	appSecrets, err := dsm.fetchSecrets()
+	appSecrets, err := dsm.FetchSecrets()
 	if err != nil {
 		return secretData, err
 	}
@@ -148,7 +154,7 @@ func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 */
 func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (secretData map[string][]byte, err error) {
 	secretData = make(map[string][]byte)
-	appSecrets, err := dsm.fetchSecrets()
+	appSecrets, err := dsm.FetchSecrets()
 	if err != nil {
 		return secretData, err
 	}
@@ -168,7 +174,7 @@ func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 	fetchSecrets calls senhasegura DSM /iso/dapp/application API endpoint
 	Return an isoDappResponse with all related information from senhasegura provider with DSM service and error
 */
-func (dsm *DSM) fetchSecrets() (respObj isoDappResponse, err error) {
+func (dsm *DSM) FetchSecrets() (respObj isoDappResponse, err error) {
 	u, _ := url.ParseRequestURI(dsm.isoSession.URL)
 	u.Path = "/iso/dapp/application"
 
@@ -225,7 +231,7 @@ func (dsm *DSM) Close(ctx context.Context) error {
 // fetchSecrets method implement required check about request
 // https://github.com/external-secrets/external-secrets/pull/830#discussion_r833275463
 func (dsm *DSM) Validate() (esv1beta1.ValidationResult, error) {
-	_, err := dsm.fetchSecrets()
+	_, err := dsm.FetchSecrets()
 	if err != nil {
 		return esv1beta1.ValidationResultError, err
 	}
