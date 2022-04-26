@@ -27,8 +27,8 @@ import (
 	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
 )
 
-type DSMInterface interface {
-	FetchSecrets() (respObj isoDappResponse, err error)
+type clientDSMInterface interface {
+	FetchSecrets() (respObj IsoDappResponse, err error)
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -39,14 +39,14 @@ var _ esv1beta1.SecretsClient = &DSM{}
 */
 type DSM struct {
 	isoSession *senhaseguraAuth.SenhaseguraIsoSession
-	dsmClient  DSMInterface
+	dsmClient  clientDSMInterface
 }
 
 /*
-	isoDappResponse is a response object from senhasegura /iso/dapp/response (DevOps Secrets Management API endpoint)
+	IsoDappResponse is a response object from senhasegura /iso/dapp/response (DevOps Secrets Management API endpoint)
 	Contains information about API request and Secrets linked with authorization
 */
-type isoDappResponse struct {
+type IsoDappResponse struct {
 	Response struct {
 		Status    int    `json:"status"`
 		Message   string `json:"message"`
@@ -100,7 +100,6 @@ func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 
 	for _, v := range appSecrets.Application.Secrets {
 		if ref.Key == v.Identity {
-
 			// Return whole data content in json-encoded when ref.Property is empty
 			if ref.Property == "" {
 				jsonStr, err := json.Marshal(v.Data)
@@ -172,9 +171,9 @@ func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 
 /*
 	fetchSecrets calls senhasegura DSM /iso/dapp/application API endpoint
-	Return an isoDappResponse with all related information from senhasegura provider with DSM service and error
+	Return an IsoDappResponse with all related information from senhasegura provider with DSM service and error
 */
-func (dsm *DSM) FetchSecrets() (respObj isoDappResponse, err error) {
+func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 	u, _ := url.ParseRequestURI(dsm.isoSession.URL)
 	u.Path = "/iso/dapp/application"
 
