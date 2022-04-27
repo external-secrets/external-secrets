@@ -94,7 +94,7 @@ func validateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errInvalidSenhaseguraURL)
 	}
 
-	// senhasegura doesn't accepts requests without SSL/TLS layer for security reasons
+	// senhasegura doesn't accept requests without SSL/TLS layer for security reasons
 	// DSM doesn't provides gRPC schema, only HTTPS
 	if url.Scheme != "https" {
 		return fmt.Errorf(errInvalidSenhaseguraURLHTTPS)
