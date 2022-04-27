@@ -84,7 +84,7 @@ You can fetch all key/value pairs for a given secret identifier If you leave the
 
 If you only need a specific key, you can select it using remoteRef.property as the key name.
 
-In this method, you can overwrites data name in Kubernetes Secret object (e.g API_SETTINGS_JSON and API_SETTINGS_TOKEN)
+In this method, you can overwrites data name in Kubernetes Secret object (e.g API_SETTINGS and API_SETTINGS_TOKEN)
 
 ``` yaml
 {% include 'senhasegura-dsm-external-secret-single.yaml' %}
@@ -93,7 +93,7 @@ In this method, you can overwrites data name in Kubernetes Secret object (e.g AP
 Kubernetes Secret will be create with follow `.data.X`
 
 ```bash
-API_SETTINGS_JSON='{"URL":"https://example.com/api/example", "TOKEN": "example-token-value"}'
+API_SETTINGS='[{"TOKEN":"example-token-value","URL":"https://example.com/api/example"}]'
 API_SETTINGS_TOKEN='example-token-value'
 ```
 
