@@ -195,6 +195,18 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
+			name: "use replace function",
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ .conn | replace "postgres://" "db+postgresql://"}}`),
+			},
+			data: map[string][]byte{
+				"conn": []byte(`postgres://user:pass@db.host:5432/dbname`),
+			},
+			expetedData: map[string][]byte{
+				"foo": []byte(`db+postgresql://user:pass@db.host:5432/dbname`),
+			},
+		},
+		{
 			name: "multiline template",
 			tpl: map[string][]byte{
 				"cfg": []byte(`
