@@ -27,7 +27,6 @@ import (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-// https://github.com/external-secrets/external-secrets/pull/967
 var _ esv1beta1.Provider = &Provider{}
 
 // Provider struct that satisfier ESO interface.
