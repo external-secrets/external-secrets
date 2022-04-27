@@ -17,6 +17,7 @@ package senhasegura
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -33,11 +34,13 @@ var _ esv1beta1.Provider = &Provider{}
 type Provider struct{}
 
 const (
-	errUnknownProviderService = "unknown senhasegura Provider Service: %s"
-	errNilStore               = "nil store found"
-	errMissingStoreSpec       = "store is missing spec"
-	errMissingProvider        = "storeSpec is missing provider"
-	errInvalidProvider        = "invalid provider spec. Missing senhasegura field in store %s"
+	errUnknownProviderService     = "unknown senhasegura Provider Service: %s"
+	errNilStore                   = "nil store found"
+	errMissingStoreSpec           = "store is missing spec"
+	errMissingProvider            = "storeSpec is missing provider"
+	errInvalidProvider            = "invalid provider spec. Missing senhasegura field in store %s"
+	errInvalidSenhaseguraUrl      = "invalid senhasegura URL"
+	errInvalidSenhaseguraUrlHttps = "invalid senhasegura URL, must be HTTPS for security reasons"
 )
 
 /*
@@ -86,6 +89,20 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
 	}
 
+	url, err := url.Parse(provider.Url)
+	if err != nil {
+		return fmt.Errorf(errInvalidSenhaseguraUrl)
+	}
+
+	// senhasegura doesn't accepts requests without SSL/TLS layer for security reasons
+	// DSM doesn't provides gRPC schema, only HTTPS
+	if url.Scheme != "https" {
+		return fmt.Errorf(errInvalidSenhaseguraUrlHttps)
+	}
+
+	if url.Host == "" {
+		return fmt.Errorf(errInvalidSenhaseguraUrl)
+	}
 	return nil
 }
 
