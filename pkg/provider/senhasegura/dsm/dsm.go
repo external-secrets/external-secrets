@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -150,23 +151,10 @@ func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	GetAllSecrets implements ESO interface and returns multiple secrets from senhasegura provider with DSM service
 
 	TODO: GetAllSecrets functionality is to get secrets from either regexp-matching against the names or via metadata label matching.
+	https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107
 */
 func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (secretData map[string][]byte, err error) {
-	secretData = make(map[string][]byte)
-	appSecrets, err := dsm.FetchSecrets()
-	if err != nil {
-		return secretData, err
-	}
-
-	for _, v := range appSecrets.Application.Secrets {
-		for _, v2 := range v.Data {
-			for k, v3 := range v2 {
-				secretData[k] = []byte(v3)
-			}
-		}
-	}
-
-	return secretData, nil
+	return nil, fmt.Errorf("GetAllSecrets not implemented yet")
 }
 
 /*

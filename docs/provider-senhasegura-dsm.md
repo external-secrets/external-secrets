@@ -120,7 +120,9 @@ DB_USERNAME='example'
 DB_PASSWORD='example'
 ```
 
-### Sync all secrets from DSM authorization
+<!-- https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107 -->
+
+<!-- ### Sync all secrets from DSM authorization
 
 You can sync all secrets that your authorization in DSM has using find, in a future release you will be able to filter secrets by name, path or tags
 
@@ -139,4 +141,4 @@ DB_USERNAME='example'
 DB_PASSWORD='example'
 HSM_ADDRESS='hsm.example'
 HSM_PORT='9223'
-```
+``` -->
