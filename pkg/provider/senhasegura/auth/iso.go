@@ -55,11 +55,10 @@ type isoGetTokenResponse struct {
 }
 
 var (
-	errCannotCreateRequest  = errors.New("cannot create request to senhasegura resource /iso/oauth2/token")
-	errCannotDoRequest      = errors.New("cannot do request in senhasegura, SSL certificate is valid ?")
-	errInvalidResponseBody  = errors.New("invalid HTTP response body received from senhasegura")
-	errInvalidHTTPCode      = errors.New("received invalid HTTP code from senhasegura")
-	errRequiredIsoSecretRef = errors.New("required auth.isoSecretRef not found")
+	errCannotCreateRequest = errors.New("cannot create request to senhasegura resource /iso/oauth2/token")
+	errCannotDoRequest     = errors.New("cannot do request in senhasegura, SSL certificate is valid ?")
+	errInvalidResponseBody = errors.New("invalid HTTP response body received from senhasegura")
+	errInvalidHTTPCode     = errors.New("received invalid HTTP code from senhasegura")
 )
 
 /*
@@ -82,13 +81,13 @@ func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, pro
 		return &SenhaseguraIsoSession{}, err
 	}
 
-	isoToken, err := s.GetIsoToken(provider.Auth.ClientId, clientSecret, provider.Url, provider.IgnoreSslCertificate)
+	isoToken, err := s.GetIsoToken(provider.Auth.ClientID, clientSecret, provider.URL, provider.IgnoreSslCertificate)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
 
 	return &SenhaseguraIsoSession{
-		URL:                  provider.Url,
+		URL:                  provider.URL,
 		Token:                isoToken,
 		IgnoreSslCertificate: provider.IgnoreSslCertificate,
 		isoClient:            &SenhaseguraIsoSession{},

@@ -20,7 +20,7 @@ import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	SenhaseguraAuth tells the controller how to do auth in senhasegura
 */
 type SenhaseguraAuth struct {
-	ClientId     string                   `json:"clientId"`
+	ClientID     string                   `json:"clientId"`
 	ClientSecret esmeta.SecretKeySelector `json:"clientSecretSecretRef"`
 }
 
@@ -43,7 +43,7 @@ const (
 */
 type SenhaseguraProvider struct {
 	/* URL of senhasegura */
-	Url string `json:"url"`
+	URL string `json:"url"`
 
 	/* Module defines which senhasegura module should be used to get secrets */
 	Module SenhaseguraModuleType `json:"module"`

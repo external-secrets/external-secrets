@@ -39,8 +39,8 @@ const (
 	errMissingStoreSpec           = "store is missing spec"
 	errMissingProvider            = "storeSpec is missing provider"
 	errInvalidProvider            = "invalid provider spec. Missing senhasegura field in store %s"
-	errInvalidSenhaseguraUrl      = "invalid senhasegura URL"
-	errInvalidSenhaseguraUrlHttps = "invalid senhasegura URL, must be HTTPS for security reasons"
+	errInvalidSenhaseguraURL      = "invalid senhasegura URL"
+	errInvalidSenhaseguraURLHTTPS = "invalid senhasegura URL, must be HTTPS for security reasons"
 	errMissingClientID            = "missing senhasegura authentication Client ID"
 )
 
@@ -89,22 +89,22 @@ func validateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
 	}
 
-	url, err := url.Parse(provider.Url)
+	url, err := url.Parse(provider.URL)
 	if err != nil {
-		return fmt.Errorf(errInvalidSenhaseguraUrl)
+		return fmt.Errorf(errInvalidSenhaseguraURL)
 	}
 
 	// senhasegura doesn't accepts requests without SSL/TLS layer for security reasons
 	// DSM doesn't provides gRPC schema, only HTTPS
 	if url.Scheme != "https" {
-		return fmt.Errorf(errInvalidSenhaseguraUrlHttps)
+		return fmt.Errorf(errInvalidSenhaseguraURLHTTPS)
 	}
 
 	if url.Host == "" {
-		return fmt.Errorf(errInvalidSenhaseguraUrl)
+		return fmt.Errorf(errInvalidSenhaseguraURL)
 	}
 
-	if provider.Auth.ClientId == "" {
+	if provider.Auth.ClientID == "" {
 		return fmt.Errorf(errMissingClientID)
 	}
 

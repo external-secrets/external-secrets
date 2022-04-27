@@ -94,7 +94,7 @@ func TestValidateStore(t *testing.T) {
 					Provider: &esv1beta1.SecretStoreProvider{
 						Senhasegura: &esv1beta1.SenhaseguraProvider{
 							Module: esv1beta1.SenhaseguraModuleDSM,
-							Url:    "http://dev.null",
+							URL:    "http://dev.null",
 						},
 					},
 				},
@@ -108,7 +108,7 @@ func TestValidateStore(t *testing.T) {
 					Provider: &esv1beta1.SecretStoreProvider{
 						Senhasegura: &esv1beta1.SenhaseguraProvider{
 							Module: esv1beta1.SenhaseguraModuleDSM,
-							Url:    "https://",
+							URL:    "https://",
 						},
 					},
 				},
@@ -122,9 +122,9 @@ func TestValidateStore(t *testing.T) {
 					Provider: &esv1beta1.SecretStoreProvider{
 						Senhasegura: &esv1beta1.SenhaseguraProvider{
 							Module: esv1beta1.SenhaseguraModuleDSM,
-							Url:    "https://senhasegura.local",
+							URL:    "https://senhasegura.local",
 							Auth: esv1beta1.SenhaseguraAuth{
-								ClientId: "example",
+								ClientID: "example",
 							},
 						},
 					},
