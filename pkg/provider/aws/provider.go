@@ -47,6 +47,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	return validateStore(store)
+}
+
+func validateStore(store esv1beta1.GenericStore) error {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
 		return err

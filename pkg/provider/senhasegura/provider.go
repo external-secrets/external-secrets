@@ -41,17 +41,13 @@ const (
 	errInvalidProvider            = "invalid provider spec. Missing senhasegura field in store %s"
 	errInvalidSenhaseguraUrl      = "invalid senhasegura URL"
 	errInvalidSenhaseguraUrlHttps = "invalid senhasegura URL, must be HTTPS for security reasons"
+	errMissingClientID            = "missing senhasegura authentication Client ID"
 )
 
 /*
 	Construct a new secrets client based on provided store
 */
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	err := p.ValidateStore(store)
-	if err != nil {
-		return nil, err
-	}
-
 	spec := store.GetSpec()
 	provider := spec.Provider.Senhasegura
 
@@ -71,6 +67,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 // Checks here are usually the best experience for the user, as the SecretStore will not be created until it is a 'valid' one.
 // https://github.com/external-secrets/external-secrets/pull/830#discussion_r833278518
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	return validateStore(store)
+}
+
+func validateStore(store esv1beta1.GenericStore) error {
 	if store == nil {
 		return fmt.Errorf(errNilStore)
 	}
@@ -103,6 +103,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	if url.Host == "" {
 		return fmt.Errorf(errInvalidSenhaseguraUrl)
 	}
+
+	if provider.Auth.ClientId == "" {
+		return fmt.Errorf(errMissingClientID)
+	}
+
 	return nil
 }
 

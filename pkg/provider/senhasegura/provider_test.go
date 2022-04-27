@@ -15,24 +15,18 @@ limitations under the License.
 package senhasegura
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-func TestProvider(t *testing.T) {
-	cl := clientfake.NewClientBuilder().Build()
-	p := Provider{}
-
+func TestValidateStore(t *testing.T) {
 	tbl := []struct {
-		test    string
-		store   esv1beta1.GenericStore
-		expType interface{}
-		expErr  bool
+		test   string
+		store  esv1beta1.GenericStore
+		expErr bool
 	}{
 		{
 			test:   "should not create provider due to nil store",
@@ -67,7 +61,7 @@ func TestProvider(t *testing.T) {
 			},
 		},
 		{
-			test:   "should not create provider due to missing provider auth.ref",
+			test:   "should not create provider due to missing provider auth client ID",
 			expErr: true,
 			store: &esv1beta1.SecretStore{
 				Spec: esv1beta1.SecretStoreSpec{
@@ -92,18 +86,60 @@ func TestProvider(t *testing.T) {
 				},
 			},
 		},
+		{
+			test:   "should not create provider due senhasegura URL without https scheme",
+			expErr: true,
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Senhasegura: &esv1beta1.SenhaseguraProvider{
+							Module: esv1beta1.SenhaseguraModuleDSM,
+							Url:    "http://dev.null",
+						},
+					},
+				},
+			},
+		},
+		{
+			test:   "should not create provider due senhasegura URL without valid name",
+			expErr: true,
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Senhasegura: &esv1beta1.SenhaseguraProvider{
+							Module: esv1beta1.SenhaseguraModuleDSM,
+							Url:    "https://",
+						},
+					},
+				},
+			},
+		},
+		{
+			test:   "should create provider",
+			expErr: false,
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Senhasegura: &esv1beta1.SenhaseguraProvider{
+							Module: esv1beta1.SenhaseguraModuleDSM,
+							Url:    "https://senhasegura.local",
+							Auth: esv1beta1.SenhaseguraAuth{
+								ClientId: "example",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for i := range tbl {
 		row := tbl[i]
 		t.Run(row.test, func(t *testing.T) {
-			sc, err := p.NewClient(context.TODO(), row.store, cl, "foo")
+			err := validateStore(row.store)
 			if row.expErr {
 				assert.Error(t, err)
-				assert.Nil(t, sc)
 			} else {
 				assert.Nil(t, err)
-				assert.NotNil(t, sc)
-				assert.IsType(t, row.expType, sc)
 			}
 		})
 	}
