@@ -165,23 +165,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
-	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
-	if err != nil {
-		log.Error(err, errStoreClient)
-		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errStoreClient)
-		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonProviderClientConfig, err.Error())
-		syncCallsError.With(syncCallsMetricLabels).Inc()
-		return ctrl.Result{}, err
-	}
-
-	defer func() {
-		err = secretClient.Close(ctx)
-		if err != nil {
-			log.Error(err, errCloseStoreClient)
-		}
-	}()
-
 	refreshInt := r.RequeueInterval
 	if externalSecret.Spec.RefreshInterval != nil {
 		refreshInt = externalSecret.Spec.RefreshInterval.Duration
@@ -218,6 +201,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Requeue:      false,
 		}, nil
 	}
+
+	// secret client is created only if we are going to refresh
+	// this skip an unnecessary check/request in the case we are not going to do anything
+	secretClient, err := storeProvider.NewClient(ctx, store, r.Client, req.Namespace)
+	if err != nil {
+		log.Error(err, errStoreClient)
+		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errStoreClient)
+		SetExternalSecretCondition(&externalSecret, *conditionSynced)
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonProviderClientConfig, err.Error())
+		syncCallsError.With(syncCallsMetricLabels).Inc()
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
+	defer func() {
+		err = secretClient.Close(ctx)
+		if err != nil {
+			log.Error(err, errCloseStoreClient)
+		}
+	}()
 
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -511,7 +513,6 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 	if err != nil {
 		return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
 	}
-
 	return &store, nil
 }
 
