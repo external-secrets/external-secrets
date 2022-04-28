@@ -1598,6 +1598,8 @@
 <span class="w">            </span><span class="no">url: http://localhost:8080</span><span class="w"></span>
 <span class="w">            </span><span class="no">password: &quot;{{ .password }}&quot;</span><span class="w"></span>
 <span class="w">            </span><span class="no">user: &quot;{{ .user }}&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># using replace function to rewrite secret</span><span class="w"></span>
+<span class="w">        </span><span class="nt">connection</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{{</span><span class="nv"> </span><span class="s">.dburl</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">replace</span><span class="nv"> </span><span class="s">&quot;postgres://&quot;</span><span class="nv"> </span><span class="s">&quot;postgresql://&quot;</span><span class="nv"> </span><span class="s">}}&#39;</span><span class="w"></span>
 
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user</span><span class="w"></span>
@@ -1606,6 +1608,9 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/grafana/password</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dburl</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/database/url</span><span class="w"></span>
 </code></pre></div>
 <h3 id="templatefrom">TemplateFrom</h3>
 <p>You do not have to define your templates inline in an ExternalSecret but you can pull <code>ConfigMaps</code> or other Secrets that contain a template. Consider the following example:</p>
