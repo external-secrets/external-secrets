@@ -83,6 +83,10 @@ spec:
         key: ***** # the certificate ID
         property: privateKey
 ```
+The following property values are possible:
+    * `chain` – to fetch PEM-encoded certificate chain
+    * `privateKey` – to fetch PEM-encoded private key
+    * `chainAndPrivateKey` or missing property – to fetch both chain and private key
 
 The operator will fetch the Yandex Certificate Manager certificate and inject it as a `Kind=Secret`
 ```yaml

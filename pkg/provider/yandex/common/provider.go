@@ -252,5 +252,9 @@ func (p *YandexCloudProvider) CleanUpIamTokenMap() {
 }
 
 func (p *YandexCloudProvider) ValidateStore(store esv1beta1.GenericStore) error {
+	_, err := p.adaptInputFunc(store) // adaptInputFunc validates the input store
+	if err != nil {
+		return err
+	}
 	return nil
 }
