@@ -702,7 +702,7 @@ spec:
                           type: string
                       type: object
                     gitlab:
-                      description: GItlab configures this store to sync secrets using Gitlab Variables provider
+                      description: Gitlab configures this store to sync secrets using Gitlab Variables provider
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -1702,7 +1702,7 @@ spec:
                           type: string
                       type: object
                     gitlab:
-                      description: GItlab configures this store to sync secrets using Gitlab Variables provider
+                      description: Gitlab configures this store to sync secrets using Gitlab Variables provider
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -3253,7 +3253,7 @@ spec:
                           type: string
                       type: object
                     gitlab:
-                      description: GItlab configures this store to sync secrets using Gitlab Variables provider
+                      description: Gitlab configures this store to sync secrets using Gitlab Variables provider
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -4256,7 +4256,7 @@ spec:
                           type: string
                       type: object
                     gitlab:
-                      description: GItlab configures this store to sync secrets using Gitlab Variables provider
+                      description: Gitlab configures this store to sync secrets using Gitlab Variables provider
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
