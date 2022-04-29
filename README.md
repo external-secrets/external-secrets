@@ -54,3 +54,4 @@ Please create a PR and add your company or your project to our [ADOPTERS](ADOPTE
 
 ![](assets/CS_logo_1.png)
 ![](assets/form3_logo.png)
+![](assets/pento_logo.png)

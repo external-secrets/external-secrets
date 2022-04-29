@@ -53,3 +53,4 @@ How to get involved:
 
 ![cs-logo](./pictures/cs_logo.png)
 ![Form3](./pictures/form3_logo.png)
+![Pento](./pictures/pento_logo.png)
