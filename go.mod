@@ -42,7 +42,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.4.0
 	github.com/IBM/go-sdk-core/v5 v5.9.5
-	github.com/IBM/secrets-manager-go-sdk v1.0.39
+	github.com/IBM/secrets-manager-go-sdk v1.0.44
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/PaesslerAG/jsonpath v0.1.1
@@ -119,7 +119,7 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/zapr v1.2.0 // indirect
 	github.com/go-openapi/errors v0.19.8 // indirect
-	github.com/go-openapi/strfmt v0.21.1 // indirect
+	github.com/go-openapi/strfmt v0.21.2 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
