@@ -72,6 +72,7 @@ const (
 	errServiceAccount       = "cannot read Kubernetes service account token from file system: %w"
 	errJwtNoTokenSource     = "neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication"
 	errUnsupportedKvVersion = "cannot perform find operations with kv version v1"
+	errNotFound             = "secret not found"
 
 	errGetKubeSA             = "cannot get Kubernetes service account %q: %w"
 	errGetKubeSASecrets      = "cannot find secrets bound to service account: %q"
@@ -461,6 +462,9 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
+	if secret == nil {
+		return nil, errors.New(errNotFound)
+	}
 	t, ok := secret.Data["custom_metadata"]
 	if !ok {
 		return nil, nil
@@ -638,6 +642,9 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 	vaultSecret, err := v.logical.ReadWithDataWithContext(ctx, dataPath, params)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
+	}
+	if vaultSecret == nil {
+		return nil, errors.New(errNotFound)
 	}
 	secretData := vaultSecret.Data
 	if v.store.Version == esv1beta1.VaultKVStoreV2 {
