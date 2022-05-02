@@ -62,7 +62,7 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.1.0
 	github.com/hashicorp/vault/api/auth/ldap v0.1.0
 	github.com/huandu/xstrings v1.3.2 // indirect
-	github.com/lestrrat-go/jwx v1.2.22
+	github.com/lestrrat-go/jwx v1.2.23
 	github.com/onsi/ginkgo/v2 v2.1.3
 	github.com/onsi/gomega v1.19.0
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
