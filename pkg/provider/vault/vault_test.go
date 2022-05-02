@@ -656,6 +656,23 @@ func TestGetSecret(t *testing.T) {
 				err: fmt.Errorf(errReadSecret, errBoom),
 			},
 		},
+		"ReadSecretNotFound": {
+			reason: "Secret doesn't exist",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					Property: "access_key",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+						return nil, nil
+					},
+				},
+			},
+			want: want{
+				err: errors.New(errNotFound),
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -1112,6 +1129,26 @@ func TestGetAllSecrets(t *testing.T) {
 			},
 			want: want{
 				err: errors.New(errUnsupportedKvVersion),
+			},
+		},
+		"MetadataNotFound": {
+			reason: "metadata secret not found",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ListWithContextFn: newListWithContextFn(secret),
+					ReadWithDataWithContextFn: func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
+						return nil, nil
+					},
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Tags: map[string]string{
+						"foo": "baz",
+					},
+				},
+			},
+			want: want{
+				err: errors.New(errNotFound),
 			},
 		},
 	}
