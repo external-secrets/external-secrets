@@ -13,7 +13,7 @@
     
     
       
-        <title>All keys, One secret - External Secrets Operator</title>
+        <title>DevOps Secrets Management (DSM) - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#all-keys-one-secret" class="md-skip">
+        <a href="#senhasegura-devops-secrets-management-dsm" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              All keys, One secret
+              DevOps Secrets Management (DSM)
             
           </span>
         </div>
@@ -345,14 +345,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
       
       
       
@@ -462,52 +460,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          All keys, One secret
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../guides-all-keys-one-secret/" class="md-nav__link">
         All keys, One secret
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#creating-datafrom-external-secret" class="md-nav__link">
-    Creating dataFrom external secret
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -637,12 +594,14 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
       
       
       
@@ -1076,12 +1035,14 @@
               
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_13" type="checkbox" id="__nav_5_13" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_13" type="checkbox" id="__nav_5_13" checked>
       
       
       
@@ -1102,11 +1063,109 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../provider-senhasegura-dsm/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          DevOps Secrets Management (DSM)
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         DevOps Secrets Management (DSM)
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#senhasegura-devops-secrets-management-dsm" class="md-nav__link">
+    senhasegura DevOps Secrets Management (DSM)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    Examples
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secretstore" class="md-nav__link">
+    SecretStore
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clustersecretstore" class="md-nav__link">
+    ClusterSecretStore
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#syncing-secrets" class="md-nav__link">
+    Syncing secrets
+  </a>
+  
+    <nav class="md-nav" aria-label="Syncing secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sync-dsm-secrets-using-secret-identifiers" class="md-nav__link">
+    Sync DSM secrets using Secret Identifiers
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sync-dsm-secrets-using-secret-identifiers-with-automatically-name-assignments" class="md-nav__link">
+    Sync DSM secrets using Secret Identifiers with automatically name assignments
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1462,8 +1521,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1472,9 +1529,70 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#creating-datafrom-external-secret" class="md-nav__link">
-    Creating dataFrom external secret
+  <a href="#senhasegura-devops-secrets-management-dsm" class="md-nav__link">
+    senhasegura DevOps Secrets Management (DSM)
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    Examples
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secretstore" class="md-nav__link">
+    SecretStore
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clustersecretstore" class="md-nav__link">
+    ClusterSecretStore
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#syncing-secrets" class="md-nav__link">
+    Syncing secrets
+  </a>
+  
+    <nav class="md-nav" aria-label="Syncing secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sync-dsm-secrets-using-secret-identifiers" class="md-nav__link">
+    Sync DSM secrets using Secret Identifiers
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sync-dsm-secrets-using-secret-identifiers-with-automatically-name-assignments" class="md-nav__link">
+    Sync DSM secrets using Secret Identifiers with automatically name assignments
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1490,39 +1608,188 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/guides-all-keys-one-secret.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-senhasegura-dsm.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-<h1 id="all-keys-one-secret">All Keys, One Secret</h1>
-<p>To get multiple key-values from an external secret, not having to worry about how many, or what these keys are, we have to use the dataFrom field of the ExternalSecret resource, instead of the data field. We will give an example here with the gcp provider (should work with other providers in the same way).</p>
-<p>Please follow the authentication and SecretStore steps of the <a href="../provider-google-secrets-manager/">Google Cloud Secrets Manager guide</a> to setup access to your google cloud account first.</p>
-<p>Then create a secret in Google Cloud Secret Manager that contains a JSON string with multiple key values like this:</p>
-<p><img alt="secret-value" src="../pictures/screenshot_json_string_gcp_secret_value.png" /></p>
-<p>Let's call this secret all-keys-example-secret on Google Cloud.</p>
-<h3 id="creating-datafrom-external-secret">Creating dataFrom external secret</h3>
-<p>Now, when creating our ExternalSecret resource, instead of using the data field, we use the dataFrom field:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+  <h1>DevOps Secrets Management (DSM)</h1>
+
+<h2 id="senhasegura-devops-secrets-management-dsm">senhasegura DevOps Secrets Management (DSM)</h2>
+<p>External Secrets Operator integrates with <a href="https://senhasegura.com/">senhasegura</a> <a href="https://senhasegura.com/devops">DevOps Secrets Management (DSM)</a> module to sync application secrets to secrets held on the Kubernetes cluster.</p>
+<hr />
+<h2 id="authentication">Authentication</h2>
+<p>Authentication in senhasegura uses DevOps Secrets Management (DSM) application authorization schema</p>
+<p>You need to create an Kubernetes Secret with desired auth parameters, for example:</p>
+<p>Instructions to setup authorizations and secrets in senhasegura DSM can be found at <a href="https://helpcenter.senhasegura.io/docs/3.22/dsm">senhasegura docs for DSM</a> and <a href="https://www.youtube.com/channel/UCpDms35l3tcrfb8kZSpeNYw/search?query=DSM%2C%20en-US">senhasegura YouTube channel</a></p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura-dsm-auth</span><span class="w"></span>
+<span class="nt">stringData</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">CLIENT_SECRET</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;CHANGEME&quot;</span><span class="w"></span>
+</code></pre></div>
+<hr />
+<h2 id="examples">Examples</h2>
+<p>To sync secrets between senhasegura and Kubernetes with External Secrets, we need to define an SecretStore or ClusterSecretStore resource with senhasegura provider, setting authentication in DSM module with Secret defined before</p>
+<h3 id="secretstore">SecretStore</h3>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">senhasegura</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://senhasegura.changeme.com&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">module</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DSM</span><span class="w"> </span><span class="c1"># Select senhasegura DSM module to sync secrets</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;CHANGEME&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">clientSecretSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura-dsm-auth</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CLIENT_SECRET</span><span class="w"></span>
+<span class="w">      </span><span class="nt">ignoreSslCertificate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"> </span><span class="c1"># Optional</span><span class="w"></span>
+</code></pre></div>
+<h3 id="clustersecretstore">ClusterSecretStore</h3>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">senhasegura</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://senhasegura.changeme.com&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">module</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DSM</span><span class="w"> </span><span class="c1"># Select senhasegura DSM module to sync secrets</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;CHANGEME&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">clientSecretSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura-dsm-auth</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CLIENT_SECRET</span><span class="w"></span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura</span><span class="w"> </span><span class="c1"># Namespace of Secret &quot;senhasegura-dsm-auth&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">ignoreSslCertificate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"> </span><span class="c1"># Optional</span><span class="w"></span>
+</code></pre></div>
+<hr />
+<h2 id="syncing-secrets">Syncing secrets</h2>
+<p>In examples below, consider that three secrets (api-settings, db-settings and hsm-settings) are defined in senhasegura DSM</p>
+<hr />
+<p><strong>Secret Identifier: </strong> api-settings</p>
+<p><strong>Secret data:</strong> </p>
+<div class="highlight"><pre><span></span><code><span class="nv">URL</span><span class="o">=</span>https://example.com/api/example
+<span class="nv">TOKEN</span><span class="o">=</span>example-token-value
+</code></pre></div>
+<hr />
+<p><strong>Secret Identifier: </strong> db-settings</p>
+<p><strong>Secret data:</strong> </p>
+<div class="highlight"><pre><span></span><code><span class="nv">DB_HOST</span><span class="o">=</span><span class="s1">&#39;db.example&#39;</span>
+<span class="nv">DB_PORT</span><span class="o">=</span><span class="s1">&#39;5432&#39;</span>
+<span class="nv">DB_USERNAME</span><span class="o">=</span><span class="s1">&#39;example&#39;</span>
+<span class="nv">DB_PASSWORD</span><span class="o">=</span><span class="s1">&#39;example&#39;</span>
+</code></pre></div>
+<hr />
+<p><strong>Secret Identifier: </strong> hsm-settings</p>
+<p><strong>Secret data:</strong> </p>
+<div class="highlight"><pre><span></span><code><span class="nv">HSM_ADDRESS</span><span class="o">=</span><span class="s1">&#39;hsm.example&#39;</span>
+<span class="nv">HSM_PORT</span><span class="o">=</span><span class="s1">&#39;9223&#39;</span>
+</code></pre></div>
+<hr />
+<h3 id="sync-dsm-secrets-using-secret-identifiers">Sync DSM secrets using Secret Identifiers</h3>
+<p>You can fetch all key/value pairs for a given secret identifier If you leave the remoteRef.property empty. This returns the json-encoded secret value for that path.</p>
+<p>If you only need a specific key, you can select it using remoteRef.property as the key name.</p>
+<p>In this method, you can overwrites data name in Kubernetes Secret object (e.g API_SETTINGS and API_SETTINGS_TOKEN)</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span><span class="w"></span>
 <span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w">           </span><span class="c1"># rate SecretManager pulls GCPSM</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30s&quot;</span><span class="w"></span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura</span><span class="w"></span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span><span class="w"></span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w">  </span><span class="c1"># name of the k8s Secret to be created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Define API_SETTINGS Kubernetes Secret key, with json-encoded values from senhasegura secret with identifier &quot;api-settings&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">API_SETTINGS</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-settings</span><span class="w"> </span><span class="c1"># Secret Identifier in senhasegura</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Define API_SETTINGS_TOKEN Kubernetes Secret key, with single secret key (TOKEN) from senhasegura as string</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">API_SETTINGS_TOKEN</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-settings</span><span class="w"> </span><span class="c1"># Secret Identifier in senhasegura</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TOKEN</span><span class="w"> </span><span class="c1"># Optional, Key name within secret</span><span class="w"></span>
+</code></pre></div>
+<p>Kubernetes Secret will be create with follow <code>.data.X</code></p>
+<div class="highlight"><pre><span></span><code><span class="nv">API_SETTINGS</span><span class="o">=</span><span class="s1">&#39;[{&quot;TOKEN&quot;:&quot;example-token-value&quot;,&quot;URL&quot;:&quot;https://example.com/api/example&quot;}]&#39;</span>
+<span class="nv">API_SETTINGS_TOKEN</span><span class="o">=</span><span class="s1">&#39;example-token-value&#39;</span>
+</code></pre></div>
+<hr />
+<h3 id="sync-dsm-secrets-using-secret-identifiers-with-automatically-name-assignments">Sync DSM secrets using Secret Identifiers with automatically name assignments</h3>
+<p>If your app requires multiples secrets, it is not required to create multiple ExternalSecret resources, you can aggregate secrets using a single ExternalSecret resource</p>
+<p>In this method, every secret data in senhasegura creates an Kubernetes Secret <code>.data.X</code> field</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30s&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span><span class="w"></span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Define Kubernetes Secret key with any k/v pair in senhasegura Secret with identifier &quot;api-settings&quot; or &quot;db-settings&quot;</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">all-keys-example-secret</span><span class="w">  </span><span class="c1"># name of the GCPSM secret</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-settings</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-settings</span><span class="w"></span>
 </code></pre></div>
-<p>To check both values we can run:</p>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.data.username}&#39; | base64 -d
-kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.data.surname}&#39; | base64 -d
+<p>Kubernetes Secret will be create with follow <code>.data.X</code></p>
+<div class="highlight"><pre><span></span><code><span class="nv">URL</span><span class="o">=</span><span class="s1">&#39;https://example.com/api/example&#39;</span>
+<span class="nv">TOKEN</span><span class="o">=</span><span class="s1">&#39;example-token-value&#39;</span>
+<span class="nv">DB_HOST</span><span class="o">=</span><span class="s1">&#39;db.example&#39;</span>
+<span class="nv">DB_PORT</span><span class="o">=</span><span class="s1">&#39;5432&#39;</span>
+<span class="nv">DB_USERNAME</span><span class="o">=</span><span class="s1">&#39;example&#39;</span>
+<span class="nv">DB_PASSWORD</span><span class="o">=</span><span class="s1">&#39;example&#39;</span>
 </code></pre></div>
+<!-- https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107 -->
+
+<!-- ### Sync all secrets from DSM authorization
+
+You can sync all secrets that your authorization in DSM has using find, in a future release you will be able to filter secrets by name, path or tags
+
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30s&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">senhasegura</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span><span class="w"></span>
+</code></pre></div>
+
+Kubernetes Secret will be create with follow `.data.X`
+
+```bash
+URL='https://example.com/api/example'
+TOKEN='example-token-value'
+DB_HOST='db.example'
+DB_PORT='5432'
+DB_USERNAME='example'
+DB_PASSWORD='example'
+HSM_ADDRESS='hsm.example'
+HSM_PORT='9223'
+``` -->
 
               
             </article>
@@ -1536,7 +1803,7 @@ kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../guides-templating-v1/" class="md-footer__link md-footer__link--prev" aria-label="Previous: v1" rel="prev">
+        <a href="../provider-kubernetes/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Kubernetes" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1545,20 +1812,20 @@ kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.
               <span class="md-footer__direction">
                 Previous
               </span>
-              v1
+              Kubernetes
             </div>
           </div>
         </a>
       
       
         
-        <a href="../guides-common-k8s-secret-types/" class="md-footer__link md-footer__link--next" aria-label="Next: Common K8S Secret Types" rel="next">
+        <a href="../examples-gitops-using-fluxcd/" class="md-footer__link md-footer__link--next" aria-label="Next: FluxCD" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Common K8S Secret Types
+              FluxCD
             </div>
           </div>
           <div class="md-footer__button md-icon">
