@@ -237,5 +237,12 @@ func (g *Gitlab) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (g *Gitlab) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	gitlabSpec := storeSpec.Provider.Gitlab
+	accessToken := gitlabSpec.Auth.SecretRef.AccessToken
+	err := utils.ValidateSecretSelector(store, accessToken)
+	if err != nil {
+		return err
+	}
 	return nil
 }

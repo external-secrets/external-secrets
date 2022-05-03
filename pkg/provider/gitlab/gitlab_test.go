@@ -24,6 +24,7 @@ import (
 	gitlab "github.com/xanzy/go-gitlab"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
 )
 
@@ -229,4 +230,35 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestValidateStore(t *testing.T) {
+	p := Gitlab{}
+	bing := "bing"
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Gitlab: &esv1beta1.GitlabProvider{
+					Auth: esv1beta1.GitlabAuth{
+						SecretRef: esv1beta1.GitlabSecretRef{
+							AccessToken: v1.SecretKeySelector{
+								Name:      "Foo",
+								Key:       "Baa",
+								Namespace: &bing,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Namespace = nil
+	err = p.ValidateStore(store)
+	if err != nil {
+		t.Errorf("want nil got err: %v", err)
+	}
 }
