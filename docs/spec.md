@@ -3258,7 +3258,7 @@ GitlabProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>GItlab configures this store to sync secrets using Gitlab Variables provider</p>
+<p>Gitlab configures this store to sync secrets using Gitlab Variables provider</p>
 </td>
 </tr>
 <tr>
@@ -3315,6 +3315,20 @@ FakeProvider
 <td>
 <em>(Optional)</em>
 <p>Fake configures a store with static key/value pairs</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>senhasegura</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SenhaseguraProvider">
+SenhaseguraProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Senhasegura configures this store to sync secrets using senhasegura provider</p>
 </td>
 </tr>
 </tbody>
@@ -3587,6 +3601,138 @@ Kubernetes meta/v1.Time
 <p>
 <p>SecretsClient provides access to secrets.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.SenhaseguraAuth">SenhaseguraAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SenhaseguraProvider">SenhaseguraProvider</a>)
+</p>
+<p>
+<pre><code>SenhaseguraAuth tells the controller how to do auth in senhasegura
+</code></pre>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecretSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.SenhaseguraModuleType">SenhaseguraModuleType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SenhaseguraProvider">SenhaseguraProvider</a>)
+</p>
+<p>
+<pre><code>SenhaseguraModuleType enum defines senhasegura target module to fetch secrets
+</code></pre>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;DSM&#34;</p></td>
+<td><pre><code>	SenhaseguraModuleDSM is the senhasegura DevOps Secrets Management module
+see: https://senhasegura.com/devops
+</code></pre>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.SenhaseguraProvider">SenhaseguraProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<pre><code>SenhaseguraProvider setup a store to sync secrets with senhasegura
+</code></pre>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL of senhasegura</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>module</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SenhaseguraModuleType">
+SenhaseguraModuleType
+</a>
+</em>
+</td>
+<td>
+<p>Module defines which senhasegura module should be used to get secrets</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SenhaseguraAuth">
+SenhaseguraAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines parameters to authenticate in senhasegura</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignoreSslCertificate</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>IgnoreSslCertificate defines if SSL certificate must be ignored</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ServiceAccountAuth">ServiceAccountAuth
 </h3>
 <p>

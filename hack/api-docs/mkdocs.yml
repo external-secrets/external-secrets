@@ -68,6 +68,8 @@ nav:
     - Webhook: provider-webhook.md
     - Fake: provider-fake.md
     - Kubernetes: provider-kubernetes.md
+    - senhasegura:
+      - DevOps Secrets Management (DSM): provider-senhasegura-dsm.md
   - Examples:
     - FluxCD: examples-gitops-using-fluxcd.md
     - Anchore Engine: examples-anchore-engine-credentials.md
