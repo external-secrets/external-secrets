@@ -20,8 +20,6 @@ import (
 	"testing"
 	"time"
 
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
