@@ -45,6 +45,7 @@ const (
 	appRoleAuthProviderName = "app-role-provider"
 	kvv1ProviderName        = "kv-v1-provider"
 	jwtProviderName         = "jwt-provider"
+	jwtProviderSecretName   = "jwt-provider-credentials"
 	jwtK8sProviderName      = "jwt-k8s-provider"
 	kubernetesProviderName  = "kubernetes-provider"
 )
@@ -237,7 +238,7 @@ func (s vaultProvider) CreateV1Store(v *addon.Vault, ns string) {
 func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 	vaultCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "jwt-provider",
+			Name:      jwtProviderSecretName,
 			Namespace: ns,
 		},
 		Data: map[string][]byte{
@@ -252,7 +253,7 @@ func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 			Path: v.JWTPath,
 			Role: v.JWTRole,
 			SecretRef: &esmeta.SecretKeySelector{
-				Name: "jwt-provider",
+				Name: jwtProviderSecretName,
 				Key:  "jwt",
 			},
 		},

@@ -45,8 +45,6 @@ until kubectl get secret | grep -q -e ^external-secrets-e2e-token; do \
   sleep 3; \
 done
 
-kubectl apply -f ${DIR}/k8s/deploy/crds
-
 echo -e "Starting the e2e test pod ${E2E_IMAGE_REGISTRY}:${VERSION}"
 
 kubectl run --rm \

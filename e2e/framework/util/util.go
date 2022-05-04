@@ -22,10 +22,13 @@ import (
 	"time"
 
 	argoapp "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta1"
+	fluxsrc "github.com/fluxcd/source-controller/api/v1beta2"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,6 +51,9 @@ func init() {
 	_ = esv1beta1.AddToScheme(Scheme)
 	_ = esv1alpha1.AddToScheme(Scheme)
 	_ = argoapp.AddToScheme(Scheme)
+	_ = fluxhelm.AddToScheme(Scheme)
+	_ = fluxsrc.AddToScheme(Scheme)
+	_ = apiextensionsv1.AddToScheme(Scheme)
 }
 
 const (

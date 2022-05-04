@@ -177,3 +177,12 @@ func (c *HelmChart) Logs() error {
 	}
 	return nil
 }
+
+func (c *HelmChart) HasVar(key, value string) bool {
+	for _, v := range c.Vars {
+		if v.Key == key && v.Value == value {
+			return true
+		}
+	}
+	return false
+}

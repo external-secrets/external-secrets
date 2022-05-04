@@ -11,28 +11,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package e2e
+package flux
 
 import (
 	"testing"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+
 	// nolint
 	. "github.com/onsi/gomega"
 
 	"github.com/external-secrets/external-secrets/e2e/framework/addon"
 	"github.com/external-secrets/external-secrets/e2e/framework/util"
-	_ "github.com/external-secrets/external-secrets/e2e/suites/provider/cases"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg := &addon.Config{}
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
-
-	By("installing eso")
-	addon.InstallGlobalAddon(addon.NewESO(addon.WithCRDs()), cfg)
-
+	installFlux()
+	installESO(cfg)
 	return nil
 }, func([]byte) {
 	// noop
@@ -51,5 +49,5 @@ var _ = SynchronizedAfterSuite(func() {
 func TestE2E(t *testing.T) {
 	NewWithT(t)
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "external-secrets e2e suite", Label("e2e"))
+	RunSpecs(t, "external-secrets flux e2e suite", Label("flux"))
 }

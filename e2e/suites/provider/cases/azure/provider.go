@@ -33,6 +33,8 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
+const providerSecretName = "provider-secret"
+
 type azureProvider struct {
 	clientID     string
 	clientSecret string
@@ -179,7 +181,7 @@ func (s *azureProvider) DeleteCertificate(key string) {
 func (s *azureProvider) CreateSecretStore() {
 	azureCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "provider-secret",
+			Name:      providerSecretName,
 			Namespace: s.framework.Namespace.Name,
 		},
 		StringData: map[string]string{
@@ -202,11 +204,11 @@ func (s *azureProvider) CreateSecretStore() {
 					VaultURL: &s.vaultURL,
 					AuthSecretRef: &esv1beta1.AzureKVAuth{
 						ClientID: &esmeta.SecretKeySelector{
-							Name: "provider-secret",
+							Name: providerSecretName,
 							Key:  "client-id",
 						},
 						ClientSecret: &esmeta.SecretKeySelector{
-							Name: "provider-secret",
+							Name: providerSecretName,
 							Key:  "client-secret",
 						},
 					},

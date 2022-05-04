@@ -32,9 +32,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	installArgo(cfg)
 	installESO(cfg)
 	return nil
-}, func([]byte) {})
+}, func([]byte) {
+	// noop
+})
 
-var _ = SynchronizedAfterSuite(func() {}, func() {
+var _ = SynchronizedAfterSuite(func() {
+	// noop
+}, func() {
 	By("Cleaning up global addons")
 	addon.UninstallGlobalAddons()
 	if CurrentSpecReport().Failed() {
@@ -45,5 +49,5 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 func TestE2E(t *testing.T) {
 	NewWithT(t)
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "external-secrets gitops e2e suite", Label("gitops"))
+	RunSpecs(t, "external-secrets argocd e2e suite", Label("argocd"))
 }

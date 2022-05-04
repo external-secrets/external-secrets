@@ -91,8 +91,8 @@ func (c *ArgoCDApplication) Install() error {
 	err = wait.PollImmediate(time.Second*5, time.Minute*10, func() (bool, error) {
 		var app argoapp.Application
 		err := c.config.CRClient.Get(context.Background(), types.NamespacedName{
-			Name:      "external-secrets",
-			Namespace: "argocd",
+			Name:      c.Name,
+			Namespace: c.Namespace,
 		}, &app)
 		if err != nil {
 			return false, nil
@@ -123,12 +123,20 @@ func (c *ArgoCDApplication) Install() error {
 
 // Uninstall removes the chart aswell as the repo.
 func (c *ArgoCDApplication) Uninstall() error {
-	return c.config.CRClient.Delete(context.Background(), &argoapp.Application{
+	err := c.config.CRClient.Delete(context.Background(), &argoapp.Application{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: c.Namespace,
 		},
 	})
+	if err != nil {
+		return err
+	}
+	err = uninstallCRDs(c.config)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *ArgoCDApplication) Logs() error {

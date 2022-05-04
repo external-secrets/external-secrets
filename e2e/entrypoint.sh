@@ -41,8 +41,6 @@ ginkgo_args=(
   "-timeout=45m"
 )
 
-kubectl apply -f /k8s/deploy/crds
-
 for SUITE in ${TEST_SUITES}; do
   echo -e "${BGREEN}Running suite ${SUITE} (LABELS=${GINKGO_LABELS})...${NC}"
   ACK_GINKGO_RC=true ginkgo "${ginkgo_args[@]}" \
