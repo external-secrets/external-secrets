@@ -177,3 +177,44 @@ func ErrorContains(out error, want string) bool {
 	}
 	return strings.Contains(out.Error(), want)
 }
+
+func makeSecretStore(vault, region string) *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Oracle: &esv1beta1.OracleProvider{
+					Vault:  vault,
+					Region: region,
+				},
+			},
+		},
+	}
+}
+
+func TestValidateStoreNoVault(t *testing.T) {
+	p := VaultManagementService{}
+	store := makeSecretStore("", "some-region")
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+}
+
+func TestValidateStoreNoRegion(t *testing.T) {
+	p := VaultManagementService{}
+	store := makeSecretStore("some-OICD", "")
+
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+}
+
+func TestValidateStoreSuccess(t *testing.T) {
+	p := VaultManagementService{}
+	store := makeSecretStore("some-OICD", "some-region")
+	err := p.ValidateStore(store)
+	if err != nil {
+		t.Errorf("want nil got err")
+	}
+}

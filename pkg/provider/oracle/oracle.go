@@ -228,6 +228,19 @@ func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error
 }
 
 func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	oracleSpec := storeSpec.Provider.Oracle
+
+	vault := oracleSpec.Vault
+	if vault == "" {
+		return fmt.Errorf("vault cannot be empty")
+	}
+
+	region := oracleSpec.Region
+	if region == "" {
+		return fmt.Errorf("region cannot be empty")
+	}
+
 	return nil
 }
 
