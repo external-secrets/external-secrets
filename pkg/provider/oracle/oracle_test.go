@@ -178,8 +178,10 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
-func makeSecretStore(vault, region string) *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
+
+func makeSecretStore(vault, region string, fn ...storeModifier) *esv1beta1.SecretStore {
+	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Oracle: &esv1beta1.OracleProvider{
@@ -189,6 +191,11 @@ func makeSecretStore(vault, region string) *esv1beta1.SecretStore {
 			},
 		},
 	}
+
+	for _, f := range fn {
+		store = f(store)
+	}
+	return store
 }
 
 func TestValidateStoreNoVault(t *testing.T) {
@@ -216,5 +223,33 @@ func TestValidateStoreSuccess(t *testing.T) {
 	err := p.ValidateStore(store)
 	if err != nil {
 		t.Errorf("want nil got err")
+	}
+}
+
+func withSecretAuth(user, tenancy string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Oracle.Auth = &esv1beta1.OracleAuth{
+			User:    user,
+			Tenancy: tenancy,
+		}
+		return store
+	}
+}
+
+func TestSecretAuthNoUser(t *testing.T) {
+	p := VaultManagementService{}
+	store := makeSecretStore("some-OICD", "some-region", withSecretAuth("", "a-tenant"))
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+}
+
+func TestSecretAuthNoTenancy(t *testing.T) {
+	p := VaultManagementService{}
+	store := makeSecretStore("some-OICD", "some-region", withSecretAuth("user", ""))
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
 	}
 }

@@ -241,6 +241,21 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) e
 		return fmt.Errorf("region cannot be empty")
 	}
 
+	auth := oracleSpec.Auth
+	if auth == nil {
+		return nil
+	}
+
+	user := oracleSpec.Auth.User
+	if user == "" {
+		return fmt.Errorf("user cannot be empty")
+	}
+
+	tenant := oracleSpec.Auth.Tenancy
+	if tenant == "" {
+		return fmt.Errorf("tenant cannot be empty")
+	}
+
 	return nil
 }
 
