@@ -248,6 +248,7 @@ func TestValidateStore(t *testing.T) {
 							},
 						},
 					},
+					ProjectID: "my-project",
 				},
 			},
 		},
@@ -260,5 +261,10 @@ func TestValidateStore(t *testing.T) {
 	err = p.ValidateStore(store)
 	if err != nil {
 		t.Errorf("want nil got err: %v", err)
+	}
+	store.Spec.Provider.Gitlab.ProjectID = ""
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("projectId validation: want error got nil")
 	}
 }
