@@ -2,12 +2,20 @@
     <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
 </p>
 
+*For the **Platform Teams***
+*Who **need a secure method to get secrets from an external manager to K8s services***
+*The **External Secrets Operator***
+*is a **Secrets Management Integration Tool***
+*that **brings Secrets from your secure environments into k8s Workloads***
+*Different From **managing Secrets manually***
+***ESO allows multiple governance and setup strategies***
 # External Secrets
 ![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5327/badge)](https://bestpractices.coreinfrastructure.org/projects/5947)
 [![Go Report Card](https://goreportcard.com/badge/github.com/external-secrets/external-secrets)](https://goreportcard.com/report/github.com/external-secrets/external-secrets)
 <a href="https://artifacthub.io/packages/helm/external-secrets-operator/external-secrets"><img alt="Artifact Hub" src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/external-secrets" /></a>
 <a href="https://operatorhub.io/operator/external-secrets-operator"><img alt="operatorhub.io" src="https://img.shields.io/badge/operatorhub.io-external--secrets-brightgreen" /></a>
+
 
 **External Secrets Operator** is a Kubernetes operator that integrates external
 secret management systems like [AWS Secrets
