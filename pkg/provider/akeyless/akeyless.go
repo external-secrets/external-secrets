@@ -71,6 +71,33 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	akeylessSpec := storeSpec.Provider.Akeyless
+
+	akeylessGWApiURL := akeylessSpec.AkeylessGWApiURL
+
+	if akeylessGWApiURL == nil {
+		return fmt.Errorf("Akeyless GW API URL is required ")
+	}
+
+	accessId := akeylessSpec.Auth.SecretRef.AccessID
+	err := utils.ValidateSecretSelector(store, accessId)
+	if err != nil {
+		return err
+	}
+
+	accessType := akeylessSpec.Auth.SecretRef.AccessType
+	err = utils.ValidateSecretSelector(store, accessType)
+	if err != nil {
+		return err
+	}
+
+	accessTypeParam := akeylessSpec.Auth.SecretRef.AccessTypeParam
+	err = utils.ValidateSecretSelector(store, accessTypeParam)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
