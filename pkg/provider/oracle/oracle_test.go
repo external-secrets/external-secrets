@@ -234,6 +234,7 @@ type ValidateStoreTestCase struct {
 }
 
 func TestValidateStore(t *testing.T) {
+	namespace := "my-namespace"
 	testCases := []ValidateStoreTestCase{
 		{
 			store: makeSecretStore("", "some-region"),
@@ -242,6 +243,38 @@ func TestValidateStore(t *testing.T) {
 		{
 			store: makeSecretStore("some-OCID", ""),
 			err:   fmt.Errorf("region cannot be empty"),
+		},
+		{
+			store: makeSecretStore("some-OCID", "some-region", withSecretAuth("", "a-tenant")),
+			err:   fmt.Errorf("user cannot be empty"),
+		},
+		{
+			store: makeSecretStore("some-OCID", "some-region", withSecretAuth("user-OCID", "")),
+			err:   fmt.Errorf("tenant cannot be empty"),
+		},
+		{
+			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("", "key", nil)),
+			err:   fmt.Errorf("privateKey.name cannot be empty"),
+		},
+		{
+			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", &namespace)),
+			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+		},
+		{
+			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "", nil)),
+			err:   fmt.Errorf("privateKey.key cannot be empty"),
+		},
+		{
+			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("", "key", nil)),
+			err:   fmt.Errorf("fingerprint.name cannot be empty"),
+		},
+		{
+			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "key", &namespace)),
+			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+		},
+		{
+			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "", nil)),
+			err:   fmt.Errorf("fingerprint.key cannot be empty"),
 		},
 	}
 	p := VaultManagementService{}
@@ -259,67 +292,5 @@ func TestValidateStoreSuccess(t *testing.T) {
 	err := p.ValidateStore(store)
 	if err != nil {
 		t.Errorf("want nil got err")
-	}
-}
-
-func TestSecretAuthNoUser(t *testing.T) {
-	p := VaultManagementService{}
-	store := makeSecretStore("some-OCID", "some-region", withSecretAuth("", "a-tenant"))
-	err := p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
-	}
-}
-
-func TestSecretAuthNoTenancy(t *testing.T) {
-	p := VaultManagementService{}
-	store := makeSecretStore("some-OCID", "some-region", withSecretAuth("user-OCID", ""))
-	err := p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
-	}
-}
-
-func TestSecretAuthNoPrivateKey(t *testing.T) {
-	p := VaultManagementService{}
-	store := makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("", "key", nil))
-	err := p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
-	}
-
-	namespace := "my-namespace"
-	store = makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", &namespace))
-	err = p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
-	}
-
-	store = makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "", nil))
-	err = p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
-	}
-}
-
-func TestSecretAuthNoFingerprint(t *testing.T) {
-	p := VaultManagementService{}
-	store := makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("", "key", nil))
-	err := p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
-	}
-
-	namespace := "my-namespace"
-	store = makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "key", &namespace))
-	err = p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
-	}
-
-	store = makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "", nil))
-	err = p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
 	}
 }
