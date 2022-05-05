@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	fakeakeyless "github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	fakeakeyless "github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake"
 )
 
 type akeylessTestCase struct {
@@ -139,15 +139,15 @@ func TestValidateStore(t *testing.T) {
 						SecretRef: esv1beta1.AkeylessAuthSecretRef{
 							AccessID: esmeta.SecretKeySelector{
 								Name: "accessId",
-								Key: "key-1",
+								Key:  "key-1",
 							},
 							AccessType: esmeta.SecretKeySelector{
 								Name: "accessId",
-								Key: "key-1",
+								Key:  "key-1",
 							},
 							AccessTypeParam: esmeta.SecretKeySelector{
 								Name: "accessId",
-								Key: "key-1",
+								Key:  "key-1",
 							},
 						},
 					},
