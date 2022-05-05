@@ -256,6 +256,21 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) e
 		return fmt.Errorf("tenant cannot be empty")
 	}
 
+	privateKeyName := oracleSpec.Auth.SecretRef.PrivateKey.Name
+	if privateKeyName == "" {
+		return fmt.Errorf("privateKey.name cannot be empty")
+	}
+
+	accessToken := oracleSpec.Auth.SecretRef.PrivateKey
+	err := utils.ValidateSecretSelector(store, accessToken)
+	if err != nil {
+		return err
+	}
+
+	if oracleSpec.Auth.SecretRef.PrivateKey.Key == "" {
+		return fmt.Errorf("privateKey.key cannot be empty")
+	}
+
 	return nil
 }
 

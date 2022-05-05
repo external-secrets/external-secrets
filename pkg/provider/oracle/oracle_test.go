@@ -23,6 +23,7 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
 )
 
@@ -251,5 +252,38 @@ func TestSecretAuthNoTenancy(t *testing.T) {
 	err := p.ValidateStore(store)
 	if err == nil {
 		t.Errorf("want err got nil")
+	}
+}
+
+func TestSecretAuthNoPrivateKey(t *testing.T) {
+	p := VaultManagementService{}
+	store := makeSecretStore("some-OICD", "some-region", withSecretAuth("user", "a-tenant"), withPrivateKey("", "key", nil))
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+
+	namespace := "my-namespace"
+	store = makeSecretStore("some-OICD", "some-region", withSecretAuth("user", "a-tenant"), withPrivateKey("bob", "key", &namespace))
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+
+	store = makeSecretStore("some-OICD", "some-region", withSecretAuth("user", "a-tenant"), withPrivateKey("bob", "", nil))
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+}
+
+func withPrivateKey(name, key string, namespace *string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Oracle.Auth.SecretRef.PrivateKey = v1.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
 	}
 }
