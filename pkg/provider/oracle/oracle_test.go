@@ -198,7 +198,35 @@ func makeSecretStore(vault, region string, fn ...storeModifier) *esv1beta1.Secre
 	}
 	return store
 }
-
+func withSecretAuth(user, tenancy string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Oracle.Auth = &esv1beta1.OracleAuth{
+			User:    user,
+			Tenancy: tenancy,
+		}
+		return store
+	}
+}
+func withPrivateKey(name, key string, namespace *string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Oracle.Auth.SecretRef.PrivateKey = v1.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+func withFingerprint(name, key string, namespace *string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Oracle.Auth.SecretRef.Fingerprint = v1.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
 func TestValidateStoreNoVault(t *testing.T) {
 	p := VaultManagementService{}
 	store := makeSecretStore("", "some-region")
@@ -210,7 +238,7 @@ func TestValidateStoreNoVault(t *testing.T) {
 
 func TestValidateStoreNoRegion(t *testing.T) {
 	p := VaultManagementService{}
-	store := makeSecretStore("some-OICD", "")
+	store := makeSecretStore("some-OCID", "")
 
 	err := p.ValidateStore(store)
 	if err == nil {
@@ -220,26 +248,16 @@ func TestValidateStoreNoRegion(t *testing.T) {
 
 func TestValidateStoreSuccess(t *testing.T) {
 	p := VaultManagementService{}
-	store := makeSecretStore("some-OICD", "some-region")
+	store := makeSecretStore("some-OCID", "some-region")
 	err := p.ValidateStore(store)
 	if err != nil {
 		t.Errorf("want nil got err")
 	}
 }
 
-func withSecretAuth(user, tenancy string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
-		store.Spec.Provider.Oracle.Auth = &esv1beta1.OracleAuth{
-			User:    user,
-			Tenancy: tenancy,
-		}
-		return store
-	}
-}
-
 func TestSecretAuthNoUser(t *testing.T) {
 	p := VaultManagementService{}
-	store := makeSecretStore("some-OICD", "some-region", withSecretAuth("", "a-tenant"))
+	store := makeSecretStore("some-OCID", "some-region", withSecretAuth("", "a-tenant"))
 	err := p.ValidateStore(store)
 	if err == nil {
 		t.Errorf("want err got nil")
@@ -248,7 +266,7 @@ func TestSecretAuthNoUser(t *testing.T) {
 
 func TestSecretAuthNoTenancy(t *testing.T) {
 	p := VaultManagementService{}
-	store := makeSecretStore("some-OICD", "some-region", withSecretAuth("user", ""))
+	store := makeSecretStore("some-OCID", "some-region", withSecretAuth("user-OCID", ""))
 	err := p.ValidateStore(store)
 	if err == nil {
 		t.Errorf("want err got nil")
@@ -257,33 +275,44 @@ func TestSecretAuthNoTenancy(t *testing.T) {
 
 func TestSecretAuthNoPrivateKey(t *testing.T) {
 	p := VaultManagementService{}
-	store := makeSecretStore("some-OICD", "some-region", withSecretAuth("user", "a-tenant"), withPrivateKey("", "key", nil))
+	store := makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("", "key", nil))
 	err := p.ValidateStore(store)
 	if err == nil {
 		t.Errorf("want err got nil")
 	}
 
 	namespace := "my-namespace"
-	store = makeSecretStore("some-OICD", "some-region", withSecretAuth("user", "a-tenant"), withPrivateKey("bob", "key", &namespace))
+	store = makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", &namespace))
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf("want err got nil")
 	}
 
-	store = makeSecretStore("some-OICD", "some-region", withSecretAuth("user", "a-tenant"), withPrivateKey("bob", "", nil))
+	store = makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "", nil))
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf("want err got nil")
 	}
 }
 
-func withPrivateKey(name, key string, namespace *string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
-		store.Spec.Provider.Oracle.Auth.SecretRef.PrivateKey = v1.SecretKeySelector{
-			Name:      name,
-			Key:       key,
-			Namespace: namespace,
-		}
-		return store
+func TestSecretAuthNoFingerprint(t *testing.T) {
+	p := VaultManagementService{}
+	store := makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("", "key", nil))
+	err := p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+
+	namespace := "my-namespace"
+	store = makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "key", &namespace))
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
+	}
+
+	store = makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "", nil))
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("want err got nil")
 	}
 }
