@@ -13,7 +13,7 @@ limitations under the License.
 package azure
 
 import (
-	
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 

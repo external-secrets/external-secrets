@@ -15,7 +15,7 @@ limitations under the License.
 package alibaba
 
 import (
-	
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 

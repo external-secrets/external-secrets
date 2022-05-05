@@ -14,7 +14,7 @@ limitations under the License.
 package suite
 
 import (
-	
+
 	// import different e2e test suites.
 	_ "github.com/external-secrets/external-secrets/e2e/suite/aws/parameterstore"
 	_ "github.com/external-secrets/external-secrets/e2e/suite/aws/secretsmanager"

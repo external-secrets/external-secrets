@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	
+
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
 

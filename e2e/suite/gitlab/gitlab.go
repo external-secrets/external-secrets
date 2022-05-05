@@ -18,7 +18,7 @@ package gitlab
 // and in e2e/suite/common/common.go, but this breaks Azure provider.
 
 import (
-	
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 

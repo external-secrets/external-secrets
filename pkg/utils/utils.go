@@ -15,7 +15,7 @@ limitations under the License.
 package utils
 
 import (
-	
+
 	// nolint:gosec
 	"crypto/md5"
 	"fmt"

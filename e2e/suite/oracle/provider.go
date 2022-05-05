@@ -15,7 +15,7 @@ package oracle
 import (
 	"context"
 	"os"
-	
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 

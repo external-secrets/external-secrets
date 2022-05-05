@@ -19,7 +19,7 @@ import (
 	"os"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
-	
+
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
 

@@ -19,7 +19,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
-	
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 	// nolint

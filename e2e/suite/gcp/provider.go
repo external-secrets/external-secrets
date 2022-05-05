@@ -18,7 +18,7 @@ import (
 	"os"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 

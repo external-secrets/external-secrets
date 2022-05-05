@@ -20,7 +20,7 @@ import (
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
-	
+
 	// nolint
 	. "github.com/onsi/gomega"
 	gitlab "github.com/xanzy/go-gitlab"
