@@ -276,21 +276,19 @@ func TestValidateStore(t *testing.T) {
 			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "", nil)),
 			err:   fmt.Errorf("fingerprint.key cannot be empty"),
 		},
+		{
+			store: makeSecretStore("vault-OCID", "some-region"),
+			err:   nil,
+		},
 	}
 	p := VaultManagementService{}
 	for _, tc := range testCases {
-		err := p.ValidateStore(tc.store)
-		if err.Error() != tc.err.Error() {
-			t.Errorf("test failed! want %v, got %v", tc.err, err)
-		}
-	}
-}
 
-func TestValidateStoreSuccess(t *testing.T) {
-	p := VaultManagementService{}
-	store := makeSecretStore("some-OCID", "some-region")
-	err := p.ValidateStore(store)
-	if err != nil {
-		t.Errorf("want nil got err")
+		err := p.ValidateStore(tc.store)
+		if tc.err != nil && err.Error() != tc.err.Error() {
+			t.Errorf("test failed! want %v, got %v", tc.err, err)
+		} else if tc.err == nil && err != nil {
+			t.Errorf("want nil got err %v", err)
+		}
 	}
 }
