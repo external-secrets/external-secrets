@@ -15,7 +15,7 @@ limitations under the License.
 package aws
 
 import (
-
+	
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 

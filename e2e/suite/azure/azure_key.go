@@ -17,7 +17,7 @@ import (
 	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
-
+	
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"

@@ -30,7 +30,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	vault "github.com/hashicorp/vault/api"
-
+	
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"

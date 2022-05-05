@@ -80,8 +80,8 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf("Akeyless GW API URL is required ")
 	}
 
-	accessId := akeylessSpec.Auth.SecretRef.AccessID
-	err := utils.ValidateSecretSelector(store, accessId)
+	accessID := akeylessSpec.Auth.SecretRef.AccessID
+	err := utils.ValidateSecretSelector(store, accessID)
 	if err != nil {
 		return err
 	}
