@@ -227,22 +227,29 @@ func withFingerprint(name, key string, namespace *string) storeModifier {
 		return store
 	}
 }
-func TestValidateStoreNoVault(t *testing.T) {
-	p := VaultManagementService{}
-	store := makeSecretStore("", "some-region")
-	err := p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
-	}
+
+type ValidateStoreTestCase struct {
+	store *esv1beta1.SecretStore
+	err   error
 }
 
-func TestValidateStoreNoRegion(t *testing.T) {
+func TestValidateStore(t *testing.T) {
+	testCases := []ValidateStoreTestCase{
+		{
+			store: makeSecretStore("", "some-region"),
+			err:   fmt.Errorf("vault cannot be empty"),
+		},
+		{
+			store: makeSecretStore("some-OCID", ""),
+			err:   fmt.Errorf("region cannot be empty"),
+		},
+	}
 	p := VaultManagementService{}
-	store := makeSecretStore("some-OCID", "")
-
-	err := p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
+	for _, tc := range testCases {
+		err := p.ValidateStore(tc.store)
+		if err.Error() != tc.err.Error() {
+			t.Errorf("test failed! want %v, got %v", tc.err, err)
+		}
 	}
 }
 
