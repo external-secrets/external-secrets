@@ -276,6 +276,14 @@ func TestValidateStore(t *testing.T) {
 	if err == nil {
 		t.Errorf("key cannot be empty")
 	}
+
+	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = "key"
+	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Name = ""
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("name cannot be empty")
+	}
+
 }
 
 // func makeSecretStore()store := &esv1beta1.SecretStore{

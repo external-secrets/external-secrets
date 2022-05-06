@@ -245,14 +245,16 @@ func (g *Gitlab) ValidateStore(store esv1beta1.GenericStore) error {
 		return err
 	}
 
-	projectID := gitlabSpec.ProjectID
-	if projectID == "" {
+	if gitlabSpec.ProjectID == "" {
 		return fmt.Errorf("projectID cannot be empty")
 	}
 
-	key := gitlabSpec.Auth.SecretRef.AccessToken.Key
-	if key == "" {
-		return fmt.Errorf("key cannot be empty")
+	if accessToken.Key == "" {
+		return fmt.Errorf("accessToken.key cannot be empty")
+	}
+
+	if accessToken.Name == "" {
+		return fmt.Errorf("accessToken.name cannot be empty")
 	}
 	return nil
 }
