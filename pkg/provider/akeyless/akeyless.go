@@ -40,13 +40,6 @@ var _ esv1beta1.Provider = &Provider{}
 // Provider satisfies the provider interface.
 type Provider struct{}
 
-// List of error messages.
-const (
-	errInvalidAkeylessURL          = "invalid akeyless GW API URL"
-	errInvalidAkeylessAccessIDName = "missing akeyless accessID name"
-	errInvalidAkeylessAccessIDKey  = "missing akeyless accessID key"
-)
-
 // akeylessBase satisfies the provider.SecretsClient interface.
 type akeylessBase struct {
 	kube      client.Client
@@ -85,7 +78,6 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	akeylessGWApiURL := *akeylessSpec.AkeylessGWApiURL
 
 	if akeylessGWApiURL != "" {
-
 		url, err := url.Parse(akeylessGWApiURL)
 		if err != nil {
 			return fmt.Errorf(errInvalidAkeylessURL)
