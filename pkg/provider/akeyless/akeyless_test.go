@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeakeyless "github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake"
 )
 
@@ -121,6 +122,43 @@ func TestAkeylessGetSecret(t *testing.T) {
 		if string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
 		}
+	}
+}
+
+func TestValidateStore(t *testing.T) {
+	provider := Provider{}
+
+	akeylessGWApiURL := ""
+
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Akeyless: &esv1beta1.AkeylessProvider{
+					AkeylessGWApiURL: &akeylessGWApiURL,
+					Auth: &esv1beta1.AkeylessAuth{
+						SecretRef: esv1beta1.AkeylessAuthSecretRef{
+							AccessID: esmeta.SecretKeySelector{
+								Name: "accessId",
+								Key:  "key-1",
+							},
+							AccessType: esmeta.SecretKeySelector{
+								Name: "accessId",
+								Key:  "key-1",
+							},
+							AccessTypeParam: esmeta.SecretKeySelector{
+								Name: "accessId",
+								Key:  "key-1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := provider.ValidateStore(store)
+	if err != nil {
+		t.Errorf(err.Error())
 	}
 }
 

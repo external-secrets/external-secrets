@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -71,6 +72,48 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	akeylessSpec := storeSpec.Provider.Akeyless
+
+	akeylessGWApiURL := akeylessSpec.AkeylessGWApiURL
+
+	if akeylessGWApiURL != nil && *akeylessGWApiURL != "" {
+		url, err := url.Parse(*akeylessGWApiURL)
+		if err != nil {
+			return fmt.Errorf(errInvalidAkeylessURL)
+		}
+
+		if url.Host == "" {
+			return fmt.Errorf(errInvalidAkeylessURL)
+		}
+	}
+
+	accessID := akeylessSpec.Auth.SecretRef.AccessID
+	err := utils.ValidateSecretSelector(store, accessID)
+	if err != nil {
+		return err
+	}
+
+	if accessID.Name == "" {
+		return fmt.Errorf(errInvalidAkeylessAccessIDName)
+	}
+
+	if accessID.Key == "" {
+		return fmt.Errorf(errInvalidAkeylessAccessIDKey)
+	}
+
+	accessType := akeylessSpec.Auth.SecretRef.AccessType
+	err = utils.ValidateSecretSelector(store, accessType)
+	if err != nil {
+		return err
+	}
+
+	accessTypeParam := akeylessSpec.Auth.SecretRef.AccessTypeParam
+	err = utils.ValidateSecretSelector(store, accessTypeParam)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
