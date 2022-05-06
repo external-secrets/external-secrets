@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -76,14 +77,29 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 
 	akeylessGWApiURL := akeylessSpec.AkeylessGWApiURL
 
-	if akeylessGWApiURL == nil {
-		return fmt.Errorf("Akeyless GW API URL is required ")
+	if akeylessGWApiURL != nil && *akeylessGWApiURL != "" {
+		url, err := url.Parse(*akeylessGWApiURL)
+		if err != nil {
+			return fmt.Errorf(errInvalidAkeylessURL)
+		}
+
+		if url.Host == "" {
+			return fmt.Errorf(errInvalidAkeylessURL)
+		}
 	}
 
-	accessId := akeylessSpec.Auth.SecretRef.AccessID
-	err := utils.ValidateSecretSelector(store, accessId)
+	accessID := akeylessSpec.Auth.SecretRef.AccessID
+	err := utils.ValidateSecretSelector(store, accessID)
 	if err != nil {
 		return err
+	}
+
+	if accessID.Name == "" {
+		return fmt.Errorf(errInvalidAkeylessAccessIDName)
+	}
+
+	if accessID.Key == "" {
+		return fmt.Errorf(errInvalidAkeylessAccessIDKey)
 	}
 
 	accessType := akeylessSpec.Auth.SecretRef.AccessType

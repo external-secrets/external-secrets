@@ -31,6 +31,9 @@ const (
 	errInvalidProvider              = "invalid provider spec. Missing Akeyless field in store %s"
 	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
 	errUninitalizedAkeylessProvider = "provider akeyless is not initialized"
+	errInvalidAkeylessURL           = "invalid akeyless GW API URL"
+	errInvalidAkeylessAccessIDName  = "missing akeyless accessID name"
+	errInvalidAkeylessAccessIDKey   = "missing akeyless accessID key"
 )
 
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.
