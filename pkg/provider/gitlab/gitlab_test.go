@@ -257,14 +257,30 @@ func TestValidateStore(t *testing.T) {
 	if err == nil {
 		t.Errorf("want err got nil")
 	}
+
 	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Namespace = nil
 	err = p.ValidateStore(store)
 	if err != nil {
 		t.Errorf("want nil got err: %v", err)
 	}
+
 	store.Spec.Provider.Gitlab.ProjectID = ""
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf("projectId validation: want error got nil")
 	}
+
+	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = ""
+	store.Spec.Provider.Gitlab.ProjectID = "project"
+	err = p.ValidateStore(store)
+	if err == nil {
+		t.Errorf("key cannot be empty")
+	}
 }
+
+// func makeSecretStore()store := &esv1beta1.SecretStore{
+// 	Spec: esv1beta1.SecretStoreSpec{
+// 		Provider: &esv1beta1.SecretStoreProvider{
+// 			Gitlab: &esv1beta1.GitlabProvider{
+// 				Auth: esv1beta1.GitlabAuth{
+// 					SecretRef: esv1beta1.GitlabSecretRef{
