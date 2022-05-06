@@ -278,7 +278,7 @@ func TestValidateStore(t *testing.T) {
 			err:   fmt.Errorf("fingerprint.name cannot be empty"),
 		},
 		{
-			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, &namespace)),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, nil)),
 			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
 		},
 		{
@@ -293,10 +293,12 @@ func TestValidateStore(t *testing.T) {
 	p := VaultManagementService{}
 	for _, tc := range testCases {
 		err := p.ValidateStore(tc.store)
-		if tc.err != nil && err.Error() != tc.err.Error() {
+		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
 			t.Errorf("test failed! want %v, got %v", tc.err, err)
 		} else if tc.err == nil && err != nil {
 			t.Errorf("want nil got err %v", err)
+		} else if tc.err != nil && err == nil {
+			t.Errorf("want err %v got nil", tc.err)
 		}
 	}
 }
