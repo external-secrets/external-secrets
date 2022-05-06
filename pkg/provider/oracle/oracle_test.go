@@ -278,7 +278,7 @@ func TestValidateStore(t *testing.T) {
 			err:   fmt.Errorf("fingerprint.name cannot be empty"),
 		},
 		{
-			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, nil)),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, &namespace)),
 			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
 		},
 		{
