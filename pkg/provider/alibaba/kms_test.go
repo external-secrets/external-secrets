@@ -25,6 +25,7 @@ import (
 	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
 )
 
@@ -183,6 +184,37 @@ func TestGetSecretMap(t *testing.T) {
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
+	}
+}
+
+func TestValidateStore(t *testing.T) {
+	kms := KeyManagementService{}
+
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Alibaba: &esv1beta1.AlibabaProvider{
+					RegionID: "region-1",
+					Auth: &esv1beta1.AlibabaAuth{
+						SecretRef: esv1beta1.AlibabaAuthSecretRef{
+							AccessKeyID: esmeta.SecretKeySelector{
+								Name: "accessKeyID",
+								Key:  "key-1",
+							},
+							AccessKeySecret: esmeta.SecretKeySelector{
+								Name: "accessKeySecret",
+								Key:  "key-1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := kms.ValidateStore(store)
+	if err != nil {
+		t.Errorf(err.Error())
 	}
 }
 

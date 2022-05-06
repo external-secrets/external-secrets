@@ -208,6 +208,27 @@ func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) 
 }
 
 func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+
+	regionID := alibabaSpec.RegionID
+
+	if regionID == "" {
+		return fmt.Errorf("missing alibaba region")
+	}
+
+	accessKeyID := alibabaSpec.Auth.SecretRef.AccessKeyID
+	err := utils.ValidateSecretSelector(store, accessKeyID)
+	if err != nil {
+		return err
+	}
+
+	accessKeySecret := alibabaSpec.Auth.SecretRef.AccessKeySecret
+	err = utils.ValidateSecretSelector(store, accessKeySecret)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
