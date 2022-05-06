@@ -27,6 +27,15 @@ import (
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
 )
 
+const (
+	vaultOCID  = "vault-OCID"
+	region     = "some-region"
+	tenant     = "a-tenant"
+	userOCID   = "user-OCID"
+	secretKey  = "key"
+	secretName = "name"
+)
+
 type vaultTestCase struct {
 	mockClient     *fakeoracle.OracleMockClient
 	apiInput       *secrets.GetSecretBundleByNameRequest
@@ -237,47 +246,47 @@ func TestValidateStore(t *testing.T) {
 	namespace := "my-namespace"
 	testCases := []ValidateStoreTestCase{
 		{
-			store: makeSecretStore("", "some-region"),
+			store: makeSecretStore("", region),
 			err:   fmt.Errorf("vault cannot be empty"),
 		},
 		{
-			store: makeSecretStore("some-OCID", ""),
+			store: makeSecretStore(vaultOCID, ""),
 			err:   fmt.Errorf("region cannot be empty"),
 		},
 		{
-			store: makeSecretStore("some-OCID", "some-region", withSecretAuth("", "a-tenant")),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth("", tenant)),
 			err:   fmt.Errorf("user cannot be empty"),
 		},
 		{
-			store: makeSecretStore("some-OCID", "some-region", withSecretAuth("user-OCID", "")),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, "")),
 			err:   fmt.Errorf("tenant cannot be empty"),
 		},
 		{
-			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("", "key", nil)),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey("", secretKey, nil)),
 			err:   fmt.Errorf("privateKey.name cannot be empty"),
 		},
 		{
-			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", &namespace)),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, &namespace)),
 			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
 		},
 		{
-			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "", nil)),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, "", nil)),
 			err:   fmt.Errorf("privateKey.key cannot be empty"),
 		},
 		{
-			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("", "key", nil)),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint("", secretKey, nil)),
 			err:   fmt.Errorf("fingerprint.name cannot be empty"),
 		},
 		{
-			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "key", &namespace)),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, &namespace)),
 			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
 		},
 		{
-			store: makeSecretStore("vault-OCID", "some-region", withSecretAuth("user-OCID", "a-tenant"), withPrivateKey("bob", "key", nil), withFingerprint("kelly", "", nil)),
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, "", nil)),
 			err:   fmt.Errorf("fingerprint.key cannot be empty"),
 		},
 		{
-			store: makeSecretStore("vault-OCID", "some-region"),
+			store: makeSecretStore(vaultOCID, region),
 			err:   nil,
 		},
 	}
