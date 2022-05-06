@@ -82,19 +82,22 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	akeylessSpec := storeSpec.Provider.Akeyless
 
-	akeylessGWApiURL := akeylessSpec.AkeylessGWApiURL
+	akeylessGWApiURL := *akeylessSpec.AkeylessGWApiURL
 
-	url, err := url.Parse(*akeylessGWApiURL)
-	if err != nil {
-		return fmt.Errorf(errInvalidAkeylessURL)
-	}
+	if akeylessGWApiURL != "" {
 
-	if url.Host == "" {
-		return fmt.Errorf(errInvalidAkeylessURL)
+		url, err := url.Parse(akeylessGWApiURL)
+		if err != nil {
+			return fmt.Errorf(errInvalidAkeylessURL)
+		}
+
+		if url.Host == "" {
+			return fmt.Errorf(errInvalidAkeylessURL)
+		}
 	}
 
 	accessID := akeylessSpec.Auth.SecretRef.AccessID
-	err = utils.ValidateSecretSelector(store, accessID)
+	err := utils.ValidateSecretSelector(store, accessID)
 	if err != nil {
 		return err
 	}
