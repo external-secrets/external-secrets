@@ -75,10 +75,10 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	akeylessSpec := storeSpec.Provider.Akeyless
 
-	akeylessGWApiURL := *akeylessSpec.AkeylessGWApiURL
+	akeylessGWApiURL := akeylessSpec.AkeylessGWApiURL
 
-	if akeylessGWApiURL != "" {
-		url, err := url.Parse(akeylessGWApiURL)
+	if akeylessGWApiURL != nil && *akeylessGWApiURL != "" {
+		url, err := url.Parse(*akeylessGWApiURL)
 		if err != nil {
 			return fmt.Errorf(errInvalidAkeylessURL)
 		}
