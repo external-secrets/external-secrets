@@ -40,7 +40,7 @@ var _ esv1beta1.Provider = &Provider{}
 // Provider satisfies the provider interface.
 type Provider struct{}
 
-// Error messages
+// List of error messages.
 const (
 	errInvalidAkeylessURL          = "invalid akeyless GW API URL"
 	errInvalidAkeylessAccessIDName = "missing akeyless accessID name"
