@@ -28,6 +28,8 @@ import (
 	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
 )
 
+const myProject = "myProject"
+
 type secretManagerTestCase struct {
 	mockClient               *fakegitlab.GitlabMockClient
 	apiInputProjectID        string
@@ -232,63 +234,72 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
-func TestValidateStore(t *testing.T) {
-	p := Gitlab{}
-	bing := "bing"
+type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
+
+func makeSecretStore(projectID string, fn ...storeModifier) *esv1beta1.SecretStore {
 	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Gitlab: &esv1beta1.GitlabProvider{
-					Auth: esv1beta1.GitlabAuth{
-						SecretRef: esv1beta1.GitlabSecretRef{
-							AccessToken: v1.SecretKeySelector{
-								Name:      "Foo",
-								Key:       "Baa",
-								Namespace: &bing,
-							},
-						},
-					},
-					ProjectID: "my-project",
+					Auth:      esv1beta1.GitlabAuth{},
+					ProjectID: projectID,
 				},
 			},
 		},
 	}
-	err := p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("want err got nil")
+	for _, f := range fn {
+		store = f(store)
 	}
+	return store
+}
 
-	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Namespace = nil
-	err = p.ValidateStore(store)
+func withAccessToken(name, key string, namespace *string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken = v1.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+
+type ValidateStoreTestCase struct {
+	store *esv1beta1.SecretStore
+	err   error
+}
+
+func TestValidateStore(t *testing.T) {
+	testCases := []ValidateStoreTestCase{
+		{
+			store: makeSecretStore(""),
+			err:   fmt.Errorf("projectID cannot be empty"),
+		},
+		{
+			store: makeSecretStore(myProject, withAccessToken("", "userKey", nil)),
+			err:   fmt.Errorf("accessToken.name cannot be empty"),
+		},
+		{
+			store: makeSecretStore(myProject, withAccessToken("userName", "", nil)),
+			err:   fmt.Errorf("accessToken.key cannot be empty"),
+		},
+	}
+	p := Gitlab{}
+	for _, tc := range testCases {
+		err := p.ValidateStore(tc.store)
+		if tc.err != nil && err.Error() != tc.err.Error() {
+			t.Errorf("test failed! want %v, got %v", tc.err, err)
+		} else if tc.err == nil && err != nil {
+			t.Errorf("want nil got err %v", err)
+		}
+	}
+}
+
+func TestValidateNilNamespace(t *testing.T) {
+	p := Gitlab{}
+	store := makeSecretStore(myProject, withAccessToken("userName", "userKey", nil))
+	err := p.ValidateStore(store)
 	if err != nil {
 		t.Errorf("want nil got err: %v", err)
 	}
-
-	store.Spec.Provider.Gitlab.ProjectID = ""
-	err = p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("projectId validation: want error got nil")
-	}
-
-	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = ""
-	store.Spec.Provider.Gitlab.ProjectID = "project"
-	err = p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("key cannot be empty")
-	}
-
-	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = "key"
-	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Name = ""
-	err = p.ValidateStore(store)
-	if err == nil {
-		t.Errorf("name cannot be empty")
-	}
-
 }
-
-// func makeSecretStore()store := &esv1beta1.SecretStore{
-// 	Spec: esv1beta1.SecretStoreSpec{
-// 		Provider: &esv1beta1.SecretStoreProvider{
-// 			Gitlab: &esv1beta1.GitlabProvider{
-// 				Auth: esv1beta1.GitlabAuth{
-// 					SecretRef: esv1beta1.GitlabSecretRef{
