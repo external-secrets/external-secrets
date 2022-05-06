@@ -128,7 +128,7 @@ func TestAkeylessGetSecret(t *testing.T) {
 func TestValidateStore(t *testing.T) {
 	provider := Provider{}
 
-	akeylessGWApiURL := "gwapi.akeyless"
+	akeylessGWApiURL := "http://gwapi.akeyless"
 
 	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{

@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -38,6 +39,13 @@ var _ esv1beta1.Provider = &Provider{}
 
 // Provider satisfies the provider interface.
 type Provider struct{}
+
+// Error messages
+const (
+	errInvalidAkeylessURL          = "invalid akeyless GW API URL"
+	errInvalidAkeylessAccessIDName = "missing akeyless accessID name"
+	errInvalidAkeylessAccessIDKey  = "missing akeyless accessID key"
+)
 
 // akeylessBase satisfies the provider.SecretsClient interface.
 type akeylessBase struct {
@@ -76,14 +84,27 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 
 	akeylessGWApiURL := akeylessSpec.AkeylessGWApiURL
 
-	if akeylessGWApiURL == nil {
-		return fmt.Errorf("Akeyless GW API URL is required ")
+	url, err := url.Parse(*akeylessGWApiURL)
+	if err != nil {
+		return fmt.Errorf(errInvalidAkeylessURL)
+	}
+
+	if url.Host == "" {
+		return fmt.Errorf(errInvalidAkeylessURL)
 	}
 
 	accessID := akeylessSpec.Auth.SecretRef.AccessID
-	err := utils.ValidateSecretSelector(store, accessID)
+	err = utils.ValidateSecretSelector(store, accessID)
 	if err != nil {
 		return err
+	}
+
+	if accessID.Name == "" {
+		return fmt.Errorf(errInvalidAkeylessAccessIDName)
+	}
+
+	if accessID.Key == "" {
+		return fmt.Errorf(errInvalidAkeylessAccessIDKey)
 	}
 
 	accessType := akeylessSpec.Auth.SecretRef.AccessType
