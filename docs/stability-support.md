@@ -29,7 +29,7 @@ The following table describes the stability level of each provider and who's res
 | [Akeyless](https://external-secrets.io/latest/provider-akeyless)                                           |   alpha   |                                                                                                                      [@renanaAkeyless](https://github.com/renanaAkeyless) |
 | [Generic Webhook](https://external-secrets.io/latest/provider-webhook)                                     |   alpha   |                                                                                                                                    [@willemm](https://github.com/willemm) |
 | [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider-senhasegura-dsm) |   alpha   |                                                                                                                                      [@lfraga](https://github.com/lfraga) |
-
+| [Kubernetes](https://external-secrets.io/latest/provider-kubernetes) |   alpha   |                                                                                                                                      [@rodrmartinez](https://github.com/rodrmartinez) |
 
 ## Support Policy
 
