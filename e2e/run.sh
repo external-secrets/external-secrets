@@ -23,6 +23,8 @@ fi
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
+kubectl version --client
+
 echo "Kubernetes cluster:"
 kubectl get nodes -o wide
 

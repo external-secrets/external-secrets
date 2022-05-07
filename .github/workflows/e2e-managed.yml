@@ -8,6 +8,10 @@ env:
   GO_VERSION: '1.17'
   GOLANGCI_VERSION: 'v1.33'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
+  # this version pin can be removed once
+  # aws cli moved to new apiVersion
+  # see: https://github.com/aws/aws-cli/issues/6920
+  KUBECTL_VERSION: 'v1.23.6'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
@@ -98,6 +102,11 @@ jobs:
 
     - name: Fetch History
       run: git fetch --prune --unshallow
+
+    - name: setup kubectl
+      uses: azure/setup-kubectl@v2.0
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
 
     - name: Setup Go
       uses: actions/setup-go@v3
