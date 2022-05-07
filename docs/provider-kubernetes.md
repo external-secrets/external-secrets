@@ -35,14 +35,14 @@ metadata:
 spec:
   provider:
     kubernetes:
-      server: 
-        caProvider: 
+      server:
+        caProvider:
           type: Secret
           name: mydefaulttoken
           key: ca.crt
       auth:
         token:
-          bearerToken: 
+          bearerToken:
             name: mydefaulttoken
             key: token
       remoteNamespace: default
