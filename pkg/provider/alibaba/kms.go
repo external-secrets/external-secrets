@@ -223,10 +223,26 @@ func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) err
 		return err
 	}
 
+	if accessKeyID.Name == "" {
+		return fmt.Errorf("missing alibaba access ID name")
+	}
+
+	if accessKeyID.Key == "" {
+		return fmt.Errorf("missing alibaba access ID key")
+	}
+
 	accessKeySecret := alibabaSpec.Auth.SecretRef.AccessKeySecret
 	err = utils.ValidateSecretSelector(store, accessKeySecret)
 	if err != nil {
 		return err
+	}
+
+	if accessKeySecret.Name == "" {
+		return fmt.Errorf("missing alibaba access key secret name")
+	}
+
+	if accessKeySecret.Key == "" {
+		return fmt.Errorf("missing alibaba access key secret key")
 	}
 
 	return nil
