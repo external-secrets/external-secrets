@@ -35,17 +35,17 @@ metadata:
 spec:
   provider:
     kubernetes:
-      server: 
-        caProvider: 
+      server:
+        caProvider:
           type: Secret
           name: mydefaulttoken
           key: ca.crt
-        auth:
-          token:
-            bearerToken: 
-              name: mydefaulttoken
-              key: token
-        remoteNamespace: default
+      auth:
+        token:
+          bearerToken:
+            name: mydefaulttoken
+            key: token
+      remoteNamespace: default
 ```
 3. Create the local secret that will be synced 
               
@@ -109,19 +109,19 @@ metadata:
   name: example
 spec:
   provider:
-      kubernetes: 
-        # If not remoteNamesapce is provided, default     namespace is used
-        remoteNamespace: remote-namespace
-        server: 
-          url: https://remote.kubernetes.api-server.address
-          # Add your encoded base64 to caBundle
-          caBundle: Cg==
-        auth:
-          # Adds referenced bearerToken
-          token:
-            bearerToken:
-              name: cluster-secrets
-              key: bearerToken
+    kubernetes:
+      # If not remoteNamesapce is provided, default     namespace is used
+      remoteNamespace: remote-namespace
+      server:
+        url: https://remote.kubernetes.api-server.address
+        # Add your encoded base64 to caBundle
+        caBundle: Cg==
+      auth:
+        # Adds referenced bearerToken
+        token:
+          bearerToken:
+            name: cluster-secrets
+            key: bearerToken
 ```     
 4. Finally create the ExternalSecret resource
 
