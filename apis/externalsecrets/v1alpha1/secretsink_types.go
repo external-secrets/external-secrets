@@ -15,10 +15,51 @@ limitations under the License.
 package v1alpha1
 
 import (
-
-	// corev1 "k8s.io/api/core/v1".
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// SecretSinkSpec configures the behavior of the SecretSink.
+type SecretSinkSpec struct {
+	Selector string   `json:"selector"`
+	Data     []string `json:"data,omitempty"`
+}
+
+// SecretSinkConditionType indicates the condition of the SecretSink.
+type SecretSinkConditionType string
+
+const (
+	SecretSinkNotImplemented SecretSinkConditionType = "NotImplemented"
+)
+
+// SecretSinkStatusCondition indicates the status of the SecretSink.
+type SecretSinkStatusCondition struct {
+	Type   SecretSinkConditionType `json:"type"`
+	Status corev1.ConditionStatus  `json:"status"`
+
+	// +optional
+	Reason string `json:"reason,omitempty"`
+
+	// +optional
+	Message string `json:"message,omitempty"`
+
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+}
+
+// SecretSinkStatus indicates the history of the status of SecretSink.
+type SecretSinkStatus struct {
+	// +nullable
+	// refreshTime is the time and date the external secret was fetched and
+	// the target secret updated
+	RefreshTime metav1.Time `json:"refreshTime,omitempty"`
+
+	// SyncedResourceVersion keeps track of the last synced version.
+	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
+
+	// +optional
+	Conditions []SecretSinkStatusCondition `json:"conditions,omitempty"`
+}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
@@ -30,8 +71,8 @@ type SecretSink struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   string `json:"spec,omitempty"`
-	Status string `json:"status,omitempty"`
+	Spec   SecretSinkSpec   `json:"spec,omitempty"`
+	Status SecretSinkStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

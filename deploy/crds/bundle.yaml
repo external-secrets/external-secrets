@@ -2952,9 +2952,50 @@ spec:
             metadata:
               type: object
             spec:
-              type: string
+              description: SecretSinkSpec configures the behavior of the SecretSink.
+              properties:
+                data:
+                  items:
+                    type: string
+                  type: array
+                selector:
+                  type: string
+              required:
+                - selector
+              type: object
             status:
-              type: string
+              description: SecretSinkStatus indicates the history of the status of SecretSink.
+              properties:
+                conditions:
+                  items:
+                    description: SecretSinkStatusCondition indicates the status of the SecretSink.
+                    properties:
+                      lastTransitionTime:
+                        format: date-time
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        description: SecretSinkConditionType indicates the condition of the SecretSink.
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                refreshTime:
+                  description: refreshTime is the time and date the external secret was fetched and the target secret updated
+                  format: date-time
+                  nullable: true
+                  type: string
+                syncedResourceVersion:
+                  description: SyncedResourceVersion keeps track of the last synced version.
+                  type: string
+              type: object
           type: object
       served: true
       storage: true
