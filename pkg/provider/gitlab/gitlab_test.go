@@ -24,7 +24,14 @@ import (
 	gitlab "github.com/xanzy/go-gitlab"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
+)
+
+const (
+	project  = "my-Project"
+	username = "user-name"
+	userkey  = "user-key"
 )
 
 type secretManagerTestCase struct {
@@ -229,4 +236,76 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
+
+func makeSecretStore(projectID string, fn ...storeModifier) *esv1beta1.SecretStore {
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Gitlab: &esv1beta1.GitlabProvider{
+					Auth:      esv1beta1.GitlabAuth{},
+					ProjectID: projectID,
+				},
+			},
+		},
+	}
+	for _, f := range fn {
+		store = f(store)
+	}
+	return store
+}
+
+func withAccessToken(name, key string, namespace *string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken = v1.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+
+type ValidateStoreTestCase struct {
+	store *esv1beta1.SecretStore
+	err   error
+}
+
+func TestValidateStore(t *testing.T) {
+	namespace := "my-namespace"
+	testCases := []ValidateStoreTestCase{
+		{
+			store: makeSecretStore(""),
+			err:   fmt.Errorf("projectID cannot be empty"),
+		},
+		{
+			store: makeSecretStore(project, withAccessToken("", userkey, nil)),
+			err:   fmt.Errorf("accessToken.name cannot be empty"),
+		},
+		{
+			store: makeSecretStore(project, withAccessToken(username, "", nil)),
+			err:   fmt.Errorf("accessToken.key cannot be empty"),
+		},
+		{
+			store: makeSecretStore(project, withAccessToken("userName", "userKey", &namespace)),
+			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+		},
+		{
+			store: makeSecretStore(project, withAccessToken("userName", "userKey", nil)),
+			err:   nil,
+		},
+	}
+	p := Gitlab{}
+	for _, tc := range testCases {
+		err := p.ValidateStore(tc.store)
+		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
+			t.Errorf("test failed! want %v, got %v", tc.err, err)
+		} else if tc.err == nil && err != nil {
+			t.Errorf("want nil got err %v", err)
+		} else if tc.err != nil && err == nil {
+			t.Errorf("want err %v got nil", tc.err)
+		}
+	}
 }

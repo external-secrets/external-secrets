@@ -23,7 +23,17 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
+)
+
+const (
+	vaultOCID  = "vault-OCID"
+	region     = "some-region"
+	tenant     = "a-tenant"
+	userOCID   = "user-OCID"
+	secretKey  = "key"
+	secretName = "name"
 )
 
 type vaultTestCase struct {
@@ -176,4 +186,119 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
+
+func makeSecretStore(vault, region string, fn ...storeModifier) *esv1beta1.SecretStore {
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Oracle: &esv1beta1.OracleProvider{
+					Vault:  vault,
+					Region: region,
+				},
+			},
+		},
+	}
+
+	for _, f := range fn {
+		store = f(store)
+	}
+	return store
+}
+func withSecretAuth(user, tenancy string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Oracle.Auth = &esv1beta1.OracleAuth{
+			User:    user,
+			Tenancy: tenancy,
+		}
+		return store
+	}
+}
+func withPrivateKey(name, key string, namespace *string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Oracle.Auth.SecretRef.PrivateKey = v1.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+func withFingerprint(name, key string, namespace *string) storeModifier {
+	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+		store.Spec.Provider.Oracle.Auth.SecretRef.Fingerprint = v1.SecretKeySelector{
+			Name:      name,
+			Key:       key,
+			Namespace: namespace,
+		}
+		return store
+	}
+}
+
+type ValidateStoreTestCase struct {
+	store *esv1beta1.SecretStore
+	err   error
+}
+
+func TestValidateStore(t *testing.T) {
+	namespace := "my-namespace"
+	testCases := []ValidateStoreTestCase{
+		{
+			store: makeSecretStore("", region),
+			err:   fmt.Errorf("vault cannot be empty"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, ""),
+			err:   fmt.Errorf("region cannot be empty"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region, withSecretAuth("", tenant)),
+			err:   fmt.Errorf("user cannot be empty"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, "")),
+			err:   fmt.Errorf("tenant cannot be empty"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey("", secretKey, nil)),
+			err:   fmt.Errorf("privateKey.name cannot be empty"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, &namespace)),
+			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, "", nil)),
+			err:   fmt.Errorf("privateKey.key cannot be empty"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint("", secretKey, nil)),
+			err:   fmt.Errorf("fingerprint.name cannot be empty"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, &namespace)),
+			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, "", nil)),
+			err:   fmt.Errorf("fingerprint.key cannot be empty"),
+		},
+		{
+			store: makeSecretStore(vaultOCID, region),
+			err:   nil,
+		},
+	}
+	p := VaultManagementService{}
+	for _, tc := range testCases {
+		err := p.ValidateStore(tc.store)
+		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
+			t.Errorf("test failed! want %v, got %v", tc.err, err)
+		} else if tc.err == nil && err != nil {
+			t.Errorf("want nil got err %v", err)
+		} else if tc.err != nil && err == nil {
+			t.Errorf("want err %v got nil", tc.err)
+		}
+	}
 }

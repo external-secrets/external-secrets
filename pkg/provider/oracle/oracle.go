@@ -228,6 +228,63 @@ func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error
 }
 
 func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	oracleSpec := storeSpec.Provider.Oracle
+
+	vault := oracleSpec.Vault
+	if vault == "" {
+		return fmt.Errorf("vault cannot be empty")
+	}
+
+	region := oracleSpec.Region
+	if region == "" {
+		return fmt.Errorf("region cannot be empty")
+	}
+
+	auth := oracleSpec.Auth
+	if auth == nil {
+		return nil
+	}
+
+	user := oracleSpec.Auth.User
+	if user == "" {
+		return fmt.Errorf("user cannot be empty")
+	}
+
+	tenant := oracleSpec.Auth.Tenancy
+	if tenant == "" {
+		return fmt.Errorf("tenant cannot be empty")
+	}
+	privateKey := oracleSpec.Auth.SecretRef.PrivateKey
+
+	if privateKey.Name == "" {
+		return fmt.Errorf("privateKey.name cannot be empty")
+	}
+
+	if privateKey.Key == "" {
+		return fmt.Errorf("privateKey.key cannot be empty")
+	}
+
+	err := utils.ValidateSecretSelector(store, privateKey)
+	if err != nil {
+		return err
+	}
+
+	fingerprint := oracleSpec.Auth.SecretRef.Fingerprint
+
+	if fingerprint.Name == "" {
+		return fmt.Errorf("fingerprint.name cannot be empty")
+	}
+
+	if fingerprint.Key == "" {
+		return fmt.Errorf("fingerprint.key cannot be empty")
+	}
+
+	err = utils.ValidateSecretSelector(store, fingerprint)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

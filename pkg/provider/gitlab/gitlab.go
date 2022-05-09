@@ -237,5 +237,24 @@ func (g *Gitlab) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (g *Gitlab) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	gitlabSpec := storeSpec.Provider.Gitlab
+	accessToken := gitlabSpec.Auth.SecretRef.AccessToken
+	err := utils.ValidateSecretSelector(store, accessToken)
+	if err != nil {
+		return err
+	}
+
+	if gitlabSpec.ProjectID == "" {
+		return fmt.Errorf("projectID cannot be empty")
+	}
+
+	if accessToken.Key == "" {
+		return fmt.Errorf("accessToken.key cannot be empty")
+	}
+
+	if accessToken.Name == "" {
+		return fmt.Errorf("accessToken.name cannot be empty")
+	}
 	return nil
 }
