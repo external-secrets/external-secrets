@@ -3040,10 +3040,40 @@ spec:
               properties:
                 data:
                   items:
-                    type: string
+                    properties:
+                      match:
+                        properties:
+                          remoteRefs:
+                            items:
+                              properties:
+                                remoteKey:
+                                  type: string
+                              required:
+                                - remoteKey
+                              type: object
+                            type: array
+                          secretKey:
+                            type: string
+                        required:
+                          - remoteRefs
+                          - secretKey
+                        type: object
+                    required:
+                      - match
+                    type: object
                   type: array
                 selector:
-                  type: string
+                  properties:
+                    secret:
+                      properties:
+                        name:
+                          type: string
+                      required:
+                        - name
+                      type: object
+                  required:
+                    - secret
+                  type: object
               required:
                 - selector
               type: object
