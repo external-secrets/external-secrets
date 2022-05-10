@@ -19,10 +19,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type SecretSinkStoreRef struct {
+	// Name of the SecretStore resource
+	Name string `json:"name"`
+
+	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+	// Defaults to `SecretStore`
+	// +optional
+	Kind string `json:"kind,omitempty"`
+}
+
 // SecretSinkSpec configures the behavior of the SecretSink.
 type SecretSinkSpec struct {
-	Selector SecretSinkSelector `json:"selector"`
-	Data     []SecretSinkData   `json:"data,omitempty"`
+	SecretStoreRefs []SecretSinkStoreRef `json:"secretStoreRefs"`
+	Selector        SecretSinkSelector   `json:"selector"`
+	Data            []SecretSinkData     `json:"data,omitempty"`
 }
 
 type SecretSinkSecret struct {
@@ -43,7 +54,7 @@ type SecretSinkMatch struct {
 }
 
 type SecretSinkData struct {
-	Match SecretSinkMatch `json:"match"`
+	Match []SecretSinkMatch `json:"match"`
 }
 
 // SecretSinkConditionType indicates the condition of the SecretSink.

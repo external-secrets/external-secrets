@@ -3042,24 +3042,39 @@ spec:
                   items:
                     properties:
                       match:
-                        properties:
-                          remoteRefs:
-                            items:
-                              properties:
-                                remoteKey:
-                                  type: string
-                              required:
-                                - remoteKey
-                              type: object
-                            type: array
-                          secretKey:
-                            type: string
-                        required:
-                          - remoteRefs
-                          - secretKey
-                        type: object
+                        items:
+                          properties:
+                            remoteRefs:
+                              items:
+                                properties:
+                                  remoteKey:
+                                    type: string
+                                required:
+                                  - remoteKey
+                                type: object
+                              type: array
+                            secretKey:
+                              type: string
+                          required:
+                            - remoteRefs
+                            - secretKey
+                          type: object
+                        type: array
                     required:
                       - match
+                    type: object
+                  type: array
+                secretStoreRefs:
+                  items:
+                    properties:
+                      kind:
+                        description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore) Defaults to `SecretStore`
+                        type: string
+                      name:
+                        description: Name of the SecretStore resource
+                        type: string
+                    required:
+                      - name
                     type: object
                   type: array
                 selector:
@@ -3075,6 +3090,7 @@ spec:
                     - secret
                   type: object
               required:
+                - secretStoreRefs
                 - selector
               type: object
             status:
