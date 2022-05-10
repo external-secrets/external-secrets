@@ -21,8 +21,29 @@ import (
 
 // SecretSinkSpec configures the behavior of the SecretSink.
 type SecretSinkSpec struct {
-	Selector string   `json:"selector"`
-	Data     []string `json:"data,omitempty"`
+	Selector SecretSinkSelector `json:"selector"`
+	Data     []SecretSinkData   `json:"data,omitempty"`
+}
+
+type SecretSinkSecret struct {
+	Name string `json:"name"`
+}
+
+type SecretSinkSelector struct {
+	Secret SecretSinkSecret `json:"secret"`
+}
+
+type SecretSinkRemoteRefs struct {
+	RemoteKey string `json:"remoteKey"`
+}
+
+type SecretSinkMatch struct {
+	SecretKey  string                 `json:"secretKey"`
+	RemoteRefs []SecretSinkRemoteRefs `json:"remoteRefs"`
+}
+
+type SecretSinkData struct {
+	Match SecretSinkMatch `json:"match"`
 }
 
 // SecretSinkConditionType indicates the condition of the SecretSink.
