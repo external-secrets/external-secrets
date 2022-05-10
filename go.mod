@@ -40,7 +40,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.27
 	github.com/Azure/go-autorest/autorest/adal v0.9.18
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
-	github.com/AzureAD/microsoft-authentication-library-for-go v0.4.0
+	github.com/AzureAD/microsoft-authentication-library-for-go v0.5.0
 	github.com/IBM/go-sdk-core/v5 v5.9.5
 	github.com/IBM/secrets-manager-go-sdk v1.0.44
 	github.com/Masterminds/goutils v1.1.1 // indirect
