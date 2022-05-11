@@ -100,6 +100,11 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
+// Not Implemented SetSecret.
+func (ibm *providerIBM) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented

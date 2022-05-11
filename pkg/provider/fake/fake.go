@@ -55,6 +55,11 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 	return spc.Provider.Fake, nil
 }
 
+// Not Implemented SetSecret.
+func (p *Provider) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented

@@ -65,6 +65,11 @@ type VMInterface interface {
 	GetSecretBundleByName(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error)
 }
 
+// Not Implemented SetSecret.
+func (vms *VaultManagementService) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented

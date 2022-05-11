@@ -125,6 +125,11 @@ func (k *ProviderKubernetes) Close(ctx context.Context) error {
 	return nil
 }
 
+// Not Implemented SetSecret.
+func (k *ProviderKubernetes) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 func (k *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Property == "" {
 		return nil, fmt.Errorf(errPropertyNotFound)

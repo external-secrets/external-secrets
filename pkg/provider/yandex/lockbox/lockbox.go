@@ -230,6 +230,11 @@ type lockboxSecretsClient struct {
 	iamToken      string
 }
 
+// Not Implemented SetSecret.
+func (c *lockboxSecretsClient) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (c *lockboxSecretsClient) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented

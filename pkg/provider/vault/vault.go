@@ -350,9 +350,13 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-// Empty GetAllSecrets.
-// GetAllSecrets
-// First load all secrets from secretStore path configuration.
+// Not Implemented SetSecret.
+func (v *client) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
+// GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
+// First load all secrets from secretStore path configuration
 // Then, gets secrets from a matching name or matching custom_metadata.
 func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if v.store.Version == esv1beta1.VaultKVStoreV1 {
