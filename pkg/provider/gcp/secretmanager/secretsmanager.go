@@ -214,6 +214,11 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 	return sm, nil
 }
 
+// Not Implemented SetSecret.
+func (sm *ProviderGCP) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 // GetAllSecrets syncs multiple secrets from gcp provider into a single Kubernetes Secret.
 func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {

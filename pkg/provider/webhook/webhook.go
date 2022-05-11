@@ -111,6 +111,11 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 	return secret, nil
 }
 
+// Not Implemented SetSecret.
+func (w *WebHook) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented

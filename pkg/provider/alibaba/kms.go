@@ -114,6 +114,10 @@ func (c *Client) setAuth(ctx context.Context) error {
 	return nil
 }
 
+func (kms *KeyManagementService) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented

@@ -195,6 +195,11 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
+// Not Implemented SetSecret.
+func (a *Azure) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 // Implements store.Client.GetAllSecrets Interface.
 // Retrieves a map[string][]byte with the secret names as key and the secret itself as the calue.
 func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
