@@ -44,6 +44,8 @@ type Provider interface {
 
 	// ValidateStore checks if the provided store is valid
 	ValidateStore(store GenericStore) error
+	// Capabilities returns the provider Capabilities (Read, Write, ReadWrite)
+	Capabilities() SecretStoreCapabilities
 }
 
 // +kubebuilder:object:root=false

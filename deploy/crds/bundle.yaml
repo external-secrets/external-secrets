@@ -1358,6 +1358,12 @@ spec:
         - jsonPath: .metadata.creationTimestamp
           name: AGE
           type: date
+        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Status
+          type: string
+        - jsonPath: .status.capabilities
+          name: Capabilities
+          type: string
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -2456,6 +2462,9 @@ spec:
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
+                capabilities:
+                  description: SecretStoreCapabilities defines the possible operations a SecretStore can do.
+                  type: string
                 conditions:
                   items:
                     properties:
@@ -4179,6 +4188,9 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+        - jsonPath: .status.capabilities
+          name: Capabilities
+          type: string
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -5277,6 +5289,9 @@ spec:
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
+                capabilities:
+                  description: SecretStoreCapabilities defines the possible operations a SecretStore can do.
+                  type: string
                 conditions:
                   items:
                     properties:

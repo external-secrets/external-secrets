@@ -30,7 +30,41 @@ import (
 
 var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox")
 
-func adaptInput(store esv1beta1.GenericStore) (*common.SecretsClientInput, error) {
+type iamTokenKey struct {
+	authorizedKeyID  string
+	serviceAccountID string
+	privateKeyHash   string
+}
+
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &lockboxSecretsClient{}
+var _ esv1beta1.Provider = &lockboxProvider{}
+
+// lockboxProvider is a provider for Yandex Lockbox.
+type lockboxProvider struct {
+	yandexCloudCreator client.YandexCloudCreator
+
+	lockboxClientMap      map[string]client.LockboxClient // apiEndpoint -> LockboxClient
+	lockboxClientMapMutex sync.Mutex
+	iamTokenMap           map[iamTokenKey]*client.IamToken
+	iamTokenMapMutex      sync.Mutex
+}
+
+func newLockboxProvider(yandexCloudCreator client.YandexCloudCreator) *lockboxProvider {
+	return &lockboxProvider{
+		yandexCloudCreator: yandexCloudCreator,
+		lockboxClientMap:   make(map[string]client.LockboxClient),
+		iamTokenMap:        make(map[iamTokenKey]*client.IamToken),
+	}
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *lockboxProvider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
+// NewClient constructs a Yandex Lockbox Provider.
+func (p *lockboxProvider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexLockbox == nil {
 		return nil, fmt.Errorf("received invalid Yandex Lockbox SecretStore resource")

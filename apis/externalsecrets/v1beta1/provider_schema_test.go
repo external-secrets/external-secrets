@@ -25,6 +25,10 @@ type PP struct{}
 
 const shouldBeRegistered = "provider should be registered"
 
+func (p *PP) Capabilities() SecretStoreCapabilities {
+	return SecretStoreReadOnly
+}
+
 // New constructs a SecretsManager Provider.
 func (p *PP) NewClient(ctx context.Context, store GenericStore, kube client.Client, namespace string) (SecretsClient, error) {
 	return p, nil
