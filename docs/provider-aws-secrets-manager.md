@@ -57,4 +57,54 @@ This is an example on how you would look up nested keys in the above json object
 {% include 'aws-sm-external-secret.yaml' %}
 ```
 
+### Secret Versions
+
+SecretsManager creates a new version of a secret every time it is updated. The secret version can be reference in two ways, the `VersionStage` and the `VersionId`. The `VersionId` is a unique uuid which is generated every time the secret changes. This id is immutable and will always refer to the same secret data. The `VersionStage` is an alias to a `VersionId`, and can refer to different secret data as the secret is updated. By default, SecretsManager will add the version stages `AWSCURRENT` and `AWSPREVIOUS` to every secret, but other stages can be created via the [update-secret-version-stage](https://docs.aws.amazon.com/cli/latest/reference/secretsmanager/update-secret-version-stage.html) api.
+
+The `version` field on the `remoteRef` of the ExternalSecret will normally consider the version to be a `VersionStage`, but if the field is prefixed with `uuid/`, then the version will be considered a `VersionId`.
+
+So in this example, the operator will request the secret with `VersionStage` as `AWSPREVIOUS`:
+
+``` yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: secretstore-sample
+    kind: SecretStore
+  target:
+    name: secret-to-be-created
+    creationPolicy: Owner
+  data:
+  - secretKey: secret-key-to-be-managed
+    remoteRef:
+      key: "example/secret"
+      version: "AWSPREVIOUS"
+```
+
+While in this example, the operator will request the secret with `VersionId` as `abcd-1234`
+
+``` yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: secretstore-sample
+    kind: SecretStore
+  target:
+    name: secret-to-be-created
+    creationPolicy: Owner
+  data:
+  - secretKey: secret-key-to-be-managed
+    remoteRef:
+      key: "example/secret"
+      version: "uuid/abcd-1234"
+```
+
 --8<-- "snippets/provider-aws-access.md"
