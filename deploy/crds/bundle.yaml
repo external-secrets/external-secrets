@@ -2948,7 +2948,11 @@ spec:
     singular: secretsink
   scope: Namespaced
   versions:
-    - name: v1alpha1
+    - additionalPrinterColumns:
+        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Status
+          type: string
+      name: v1alpha1
       schema:
         openAPIV3Schema:
           properties:
@@ -2998,11 +3002,8 @@ spec:
                       name:
                         description: Name of the SecretStore resource
                         type: string
-                      status:
-                        type: string
                     required:
                       - name
-                      - status
                     type: object
                   type: array
                 selector:
