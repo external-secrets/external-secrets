@@ -23,8 +23,6 @@ type SecretSinkStoreRef struct {
 	// Name of the SecretStore resource
 	Name string `json:"name"`
 
-	Status string `json:"status"`
-
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// Defaults to `SecretStore`
 	// +optional
@@ -63,6 +61,9 @@ type SecretSinkData struct {
 type SecretSinkConditionType string
 
 const (
+	SecretSinkSynced         SecretSinkConditionType = "Synced"
+	SecretSinkNotSynced      SecretSinkConditionType = "NotSynced"
+	SecretSinkError          SecretSinkConditionType = "Error"
 	SecretSinkNotImplemented SecretSinkConditionType = "NotImplemented"
 )
 
@@ -81,6 +82,7 @@ type SecretSinkStatusCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // SecretSinkStatus indicates the history of the status of SecretSink.
 type SecretSinkStatus struct {
 	// +nullable
@@ -98,6 +100,7 @@ type SecretSinkStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // Secretsinks is the Schema for the secretsinks API.
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced,categories={secretsinks}
 
@@ -111,6 +114,7 @@ type SecretSink struct {
 
 // +kubebuilder:object:root=true
 
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // SecretSinkList contains a list of SecretSink resources.
 type SecretSinkList struct {
 	metav1.TypeMeta `json:",inline"`
