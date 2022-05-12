@@ -155,12 +155,21 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = "nestedval"
 	}
 
-	// good case: custom version set
-	setCustomVersion := func(smtc *secretsManagerTestCase) {
+	// good case: custom version stage set
+	setCustomVersionStage := func(smtc *secretsManagerTestCase) {
 		smtc.apiInput.VersionStage = aws.String("1234")
 		smtc.remoteRef.Version = "1234"
 		smtc.apiOutput.SecretString = aws.String("FOOBA!")
 		smtc.expectedSecret = "FOOBA!"
+	}
+
+	// good case: custom version id set
+	setCustomVersionID := func(smtc *secretsManagerTestCase) {
+		smtc.apiInput.VersionStage = nil
+		smtc.apiInput.VersionId = aws.String("1234-5678")
+		smtc.remoteRef.Version = "uuid/1234-5678"
+		smtc.apiOutput.SecretString = aws.String("myvalue")
+		smtc.expectedSecret = "myvalue"
 	}
 
 	successCases := []*secretsManagerTestCase{
@@ -173,7 +182,8 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		makeValidSecretsManagerTestCaseCustom(setSecretBinaryAndSecretStringToNil),
 		makeValidSecretsManagerTestCaseCustom(setNestedSecretValueJSONParsing),
 		makeValidSecretsManagerTestCaseCustom(setSecretValueWithDot),
-		makeValidSecretsManagerTestCaseCustom(setCustomVersion),
+		makeValidSecretsManagerTestCaseCustom(setCustomVersionStage),
+		makeValidSecretsManagerTestCaseCustom(setCustomVersionID),
 		makeValidSecretsManagerTestCaseCustom(setAPIErr),
 	}
 

@@ -77,10 +77,21 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 		log.Info("found secret in cache", "key", ref.Key, "version", ver)
 		return secretOut, nil
 	}
-	secretOut, err := sm.client.GetSecretValue(&awssm.GetSecretValueInput{
-		SecretId:     &ref.Key,
-		VersionStage: &ver,
-	})
+
+	var getSecretValueInput *awssm.GetSecretValueInput
+	if strings.HasPrefix(ver, "uuid/") {
+		versionID := strings.TrimPrefix(ver, "uuid/")
+		getSecretValueInput = &awssm.GetSecretValueInput{
+			SecretId:  &ref.Key,
+			VersionId: &versionID,
+		}
+	} else {
+		getSecretValueInput = &awssm.GetSecretValueInput{
+			SecretId:     &ref.Key,
+			VersionStage: &ver,
+		}
+	}
+	secretOut, err := sm.client.GetSecretValue(getSecretValueInput)
 	var nf *awssm.ResourceNotFoundException
 	if errors.As(err, &nf) {
 		return nil, esv1beta1.NoSecretErr
