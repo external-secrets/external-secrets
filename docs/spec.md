@@ -2835,6 +2835,121 @@ CAProvider
 <p>NoSecretError shall be returned when a GetSecret can not find the
 desired secret. This is used for deletionPolicy.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.OnePasswordAuth">OnePasswordAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.OnePasswordProvider">OnePasswordProvider</a>)
+</p>
+<p>
+<p>OnePasswordAuth contains a secretRef for credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OnePasswordAuthSecretRef">
+OnePasswordAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.OnePasswordAuthSecretRef">OnePasswordAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.OnePasswordAuth">OnePasswordAuth</a>)
+</p>
+<p>
+<p>OnePasswordAuthSecretRef holds secret references for 1Password credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>connectTokenSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The ConnectToken is used for authentication to a 1Password Connect Server.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.OnePasswordProvider">OnePasswordProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OnePasswordProvider configures a store to sync secrets using the 1Password Secret Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OnePasswordAuth">
+OnePasswordAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against OnePassword Connect Server</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>connectHost</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ConnectHost defines the OnePassword Connect Server to connect to</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaults</code></br>
+<em>
+map[string]int
+</em>
+</td>
+<td>
+<p>Vaults defines which OnePassword vaults to search in which order</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.OracleAuth">OracleAuth
 </h3>
 <p>
@@ -3273,6 +3388,20 @@ AlibabaProvider
 <td>
 <em>(Optional)</em>
 <p>Alibaba configures this store to sync secrets using Alibaba Cloud provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>onepassword</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OnePasswordProvider">
+OnePasswordProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OnePassword configures this store to sync secrets using the 1Password Cloud provider</p>
 </td>
 </tr>
 <tr>
