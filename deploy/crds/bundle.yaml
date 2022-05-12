@@ -3082,8 +3082,11 @@ spec:
                       name:
                         description: Name of the SecretStore resource
                         type: string
+                      status:
+                        type: string
                     required:
                       - name
+                      - status
                     type: object
                   type: array
                 selector:

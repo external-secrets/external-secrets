@@ -23,6 +23,8 @@ type SecretSinkStoreRef struct {
 	// Name of the SecretStore resource
 	Name string `json:"name"`
 
+	Status string `json:"status"`
+
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// Defaults to `SecretStore`
 	// +optional
