@@ -61,10 +61,7 @@ type SecretSinkData struct {
 type SecretSinkConditionType string
 
 const (
-	SecretSinkSynced         SecretSinkConditionType = "Synced"
-	SecretSinkNotSynced      SecretSinkConditionType = "NotSynced"
-	SecretSinkError          SecretSinkConditionType = "Error"
-	SecretSinkNotImplemented SecretSinkConditionType = "NotImplemented"
+	SecretSinkReady SecretSinkConditionType = "Ready"
 )
 
 // SecretSinkStatusCondition indicates the status of the SecretSink.
@@ -82,7 +79,6 @@ type SecretSinkStatusCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // SecretSinkStatus indicates the history of the status of SecretSink.
 type SecretSinkStatus struct {
 	// +nullable
@@ -100,6 +96,7 @@ type SecretSinkStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // Secretsinks is the Schema for the secretsinks API.
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced,categories={secretsinks}
@@ -113,7 +110,7 @@ type SecretSink struct {
 }
 
 // +kubebuilder:object:root=true
-
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // SecretSinkList contains a list of SecretSink resources.
 type SecretSinkList struct {

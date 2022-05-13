@@ -3033,6 +3033,9 @@ spec:
   scope: Namespaced
   versions:
     - additionalPrinterColumns:
+        - jsonPath: .metadata.creationTimestamp
+          name: AGE
+          type: date
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
