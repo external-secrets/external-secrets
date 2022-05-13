@@ -31,7 +31,7 @@ type yandexCloudSecretsClient struct {
 
 func (c *yandexCloudSecretsClient) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, fmt.Errorf("GetAllSecrets not supported")
 }
 
 func (c *yandexCloudSecretsClient) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
