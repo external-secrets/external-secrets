@@ -30,6 +30,7 @@ type Client struct {
 	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
 	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
+	SetSecretFn     func() error
 }
 
 // New returns a fake provider/client.
@@ -61,6 +62,11 @@ func (v *Client) RegisterAs(provider *esv1beta1.SecretStoreProvider) {
 // GetAllSecrets implements the provider.Provider interface.
 func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	return v.GetAllSecretsFn(ctx, ref)
+}
+
+// Not Implemented SetSecret.
+func (v *Client) SetSecret() error {
+	return v.SetSecretFn()
 }
 
 // GetSecret implements the provider.Provider interface.
@@ -114,6 +120,11 @@ func (v *Client) WithNew(f func(context.Context, esv1beta1.GenericStore, client.
 	string) (esv1beta1.SecretsClient, error)) *Client {
 	v.NewFn = f
 	return v
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (v *Client) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 // NewClient returns a new fake provider.

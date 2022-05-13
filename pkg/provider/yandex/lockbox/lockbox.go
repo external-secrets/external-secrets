@@ -67,6 +67,11 @@ func newLockboxProvider(yandexCloudCreator client.YandexCloudCreator) *lockboxPr
 	}
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *lockboxProvider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 // NewClient constructs a Yandex Lockbox Provider.
 func (p *lockboxProvider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
@@ -228,6 +233,11 @@ func (p *lockboxProvider) ValidateStore(store esv1beta1.GenericStore) error {
 type lockboxSecretsClient struct {
 	lockboxClient client.LockboxClient
 	iamToken      string
+}
+
+// Not Implemented SetSecret.
+func (c *lockboxSecretsClient) SetSecret() error {
+	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.

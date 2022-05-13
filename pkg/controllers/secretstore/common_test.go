@@ -125,6 +125,37 @@ var _ = Describe("SecretStore reconcile", func() {
 
 	}
 
+	readOnly := func(tc *testCase) {
+		spc := tc.store.GetSpec()
+		spc.Provider.Vault = nil
+		spc.Provider.Fake = &esapi.FakeProvider{
+			Data: []esapi.FakeProviderData{},
+		}
+
+		tc.assert = func() {
+			Eventually(func() bool {
+				ss := tc.store.Copy()
+				err := k8sClient.Get(context.Background(), types.NamespacedName{
+					Name:      defaultStoreName,
+					Namespace: ss.GetNamespace(),
+				}, ss)
+				if err != nil {
+					return false
+				}
+
+				if ss.GetStatus().Capabilities != esapi.SecretStoreReadOnly {
+					return false
+				}
+
+				return true
+			}).
+				WithTimeout(time.Second * 10).
+				WithPolling(time.Second).
+				Should(BeTrue())
+		}
+
+	}
+
 	DescribeTable("Controller Reconcile logic", func(muts ...func(tc *testCase)) {
 		for _, mut := range muts {
 			mut(test)
@@ -137,11 +168,13 @@ var _ = Describe("SecretStore reconcile", func() {
 		Entry("[namespace] invalid provider with secretStore should set InvalidStore condition", invalidProvider),
 		Entry("[namespace] ignore stores with non-matching class", ignoreControllerClass),
 		Entry("[namespace] valid provider has status=ready", validProvider),
+		Entry("[namespace] valid provider has capabilities=ReadOnly", readOnly),
 
 		// cluster store
 		Entry("[cluster] invalid provider with secretStore should set InvalidStore condition", invalidProvider, useClusterStore),
 		Entry("[cluster] ignore stores with non-matching class", ignoreControllerClass, useClusterStore),
 		Entry("[cluster] valid provider has status=ready", validProvider, useClusterStore),
+		Entry("[cluster] valid provider has capabilities=ReadOnly", validProvider, useClusterStore),
 	)
 
 })
