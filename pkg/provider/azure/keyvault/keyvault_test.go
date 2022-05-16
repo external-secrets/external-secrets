@@ -526,6 +526,41 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 	}
+
+	t.Run("storeIsNil", func(t *testing.T) {
+		a := &Azure{}
+		if err := a.ValidateStore(nil); (err != nil) != true {
+			t.Errorf("Azure.ValidateStore() error = %v, wantErr %v", err, true)
+		}
+	})
+	t.Run("specIsNil", func(t *testing.T) {
+		a := &Azure{}
+		store := &esv1beta1.SecretStore{}
+		if err := a.ValidateStore(store); (err != nil) != true {
+			t.Errorf("Azure.ValidateStore() error = %v, wantErr %v", err, true)
+		}
+	})
+	t.Run("providerIsNil", func(t *testing.T) {
+		a := &Azure{}
+		store := &esv1beta1.SecretStore{
+			Spec: esv1beta1.SecretStoreSpec{},
+		}
+		if err := a.ValidateStore(store); (err != nil) != true {
+			t.Errorf("Azure.ValidateStore() error = %v, wantErr %v", err, true)
+		}
+	})
+	t.Run("azureKVIsNil", func(t *testing.T) {
+		a := &Azure{}
+		store := &esv1beta1.SecretStore{
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{},
+			},
+		}
+		if err := a.ValidateStore(store); (err != nil) != true {
+			t.Errorf("Azure.ValidateStore() error = %v, wantErr %v", err, true)
+		}
+	})
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := &Azure{}
