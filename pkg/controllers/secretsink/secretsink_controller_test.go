@@ -15,6 +15,8 @@ limitations under the License.
 package secretsink
 
 import (
+	"errors"
+
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
@@ -35,6 +37,7 @@ var _ = Describe("#Reconcile", func() {
 		statusWriter = new(internal.FakeStatusWriter)
 		client.StatusReturns(statusWriter)
 		reconciler = &Reconciler{client, logr.Discard(), nil, nil, 0, ""}
+		
 	})
 
 	It("succeeds", func() {
@@ -51,4 +54,15 @@ var _ = Describe("#Reconcile", func() {
 		_, _, patch, _ := statusWriter.PatchArgsForCall(0)
 		Expect(patch.Type()).To(Equal(types.MergePatchType))
 	})
+
+    It("notFound", func() {
+		client.GetReturnsOnCall(0, errors.New("UnknownError"))
+
+		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+		_, err := reconciler.Reconcile(nil, ctrl.Request{NamespacedName: namspacedName})
+		
+		Expect(err).To(HaveOccurred())
+		Expect(client.GetCallCount()).To(Equal(1))
+		Expect(client.StatusCallCount()).To(Equal(0))
+    })
 })
