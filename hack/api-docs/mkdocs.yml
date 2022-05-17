@@ -60,6 +60,7 @@ nav:
     - Akeyless: provider-akeyless.md
     - HashiCorp Vault: provider-hashicorp-vault.md
     - Yandex:
+        - Certificate Manager: provider-yandex-certificate-manager.md
         - Lockbox: provider-yandex-lockbox.md
     - Gitlab:
       - Gitlab Project Variables: provider-gitlab-project-variables.md

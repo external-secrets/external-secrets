@@ -11,7 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package lockbox
+package certificatemanager
 
 import (
 	"context"
@@ -23,42 +23,42 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
 )
 
-var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox")
+var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("certificatemanager")
 
 func adaptInput(store esv1beta1.GenericStore) (*common.SecretsClientInput, error) {
 	storeSpec := store.GetSpec()
-	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexLockbox == nil {
-		return nil, fmt.Errorf("received invalid Yandex Lockbox SecretStore resource")
+	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexCertificateManager == nil {
+		return nil, fmt.Errorf("received invalid Yandex Certificate Manager SecretStore resource")
 	}
-	storeSpecYandexLockbox := storeSpec.Provider.YandexLockbox
+	storeSpecYandexCertificateManager := storeSpec.Provider.YandexCertificateManager
 
-	if storeSpecYandexLockbox.Auth.AuthorizedKey.Name == "" {
-		return nil, fmt.Errorf("invalid Yandex Lockbox SecretStore resource: missing AuthorizedKey Name")
+	if storeSpecYandexCertificateManager.Auth.AuthorizedKey.Name == "" {
+		return nil, fmt.Errorf("invalid Yandex Certificate Manager SecretStore resource: missing AuthorizedKey Name")
 	}
 
 	var caCertificate *esmeta.SecretKeySelector
-	if storeSpecYandexLockbox.CAProvider != nil {
-		caCertificate = &storeSpecYandexLockbox.CAProvider.Certificate
+	if storeSpecYandexCertificateManager.CAProvider != nil {
+		caCertificate = &storeSpecYandexCertificateManager.CAProvider.Certificate
 	}
 
 	return &common.SecretsClientInput{
-		APIEndpoint:   storeSpecYandexLockbox.APIEndpoint,
-		AuthorizedKey: storeSpecYandexLockbox.Auth.AuthorizedKey,
+		APIEndpoint:   storeSpecYandexCertificateManager.APIEndpoint,
+		AuthorizedKey: storeSpecYandexCertificateManager.Auth.AuthorizedKey,
 		CACertificate: caCertificate,
 	}, nil
 }
 
 func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (common.SecretGetter, error) {
-	lockboxClient, err := client.NewGrpcLockboxClient(ctx, apiEndpoint, authorizedKey, caCertificate)
+	grpcClient, err := client.NewGrpcCertificateManagerClient(ctx, apiEndpoint, authorizedKey, caCertificate)
 	if err != nil {
 		return nil, err
 	}
-	return newLockboxSecretGetter(lockboxClient)
+	return newCertificateManagerSecretGetter(grpcClient)
 }
 
 func init() {
@@ -74,7 +74,7 @@ func init() {
 	esv1beta1.Register(
 		provider,
 		&esv1beta1.SecretStoreProvider{
-			YandexLockbox: &esv1beta1.YandexLockboxProvider{},
+			YandexCertificateManager: &esv1beta1.YandexCertificateManagerProvider{},
 		},
 	)
 }

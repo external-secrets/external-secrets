@@ -16,10 +16,10 @@ package client
 import (
 	"context"
 
-	api "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
+	api "github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1"
 )
 
-// Requests the payload of the given secret from Lockbox.
-type LockboxClient interface {
-	GetPayloadEntries(ctx context.Context, iamToken, secretID, versionID string) ([]*api.Payload_Entry, error)
+// Requests the content of the given certificate from Certificate Manager.
+type CertificateManagerClient interface {
+	GetCertificateContent(ctx context.Context, iamToken, certificateID, versionID string) (*api.GetCertificateContentResponse, error)
 }

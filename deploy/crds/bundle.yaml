@@ -2351,6 +2351,49 @@ spec:
                         - result
                         - url
                       type: object
+                    yandexcertificatemanager:
+                      description: YandexCertificateManager configures this store to sync secrets using Yandex Certificate Manager provider
+                      properties:
+                        apiEndpoint:
+                          description: Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
+                          type: string
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Yandex Certificate Manager
+                          properties:
+                            authorizedKeySecretRef:
+                              description: The authorized key used for authentication
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                        caProvider:
+                          description: The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
+                          properties:
+                            certSecretRef:
+                              description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                      required:
+                        - auth
+                      type: object
                     yandexlockbox:
                       description: YandexLockbox configures this store to sync secrets using Yandex Lockbox provider
                       properties:
@@ -4985,6 +5028,49 @@ spec:
                       required:
                         - result
                         - url
+                      type: object
+                    yandexcertificatemanager:
+                      description: YandexCertificateManager configures this store to sync secrets using Yandex Certificate Manager provider
+                      properties:
+                        apiEndpoint:
+                          description: Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
+                          type: string
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Yandex Certificate Manager
+                          properties:
+                            authorizedKeySecretRef:
+                              description: The authorized key used for authentication
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                        caProvider:
+                          description: The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
+                          properties:
+                            certSecretRef:
+                              description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                      required:
+                        - auth
                       type: object
                     yandexlockbox:
                       description: YandexLockbox configures this store to sync secrets using Yandex Lockbox provider

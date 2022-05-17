@@ -11,15 +11,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package client
+package clock
 
-import (
-	"context"
+import "time"
 
-	api "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
-)
+type RealClock struct {
+}
 
-// Requests the payload of the given secret from Lockbox.
-type LockboxClient interface {
-	GetPayloadEntries(ctx context.Context, iamToken, secretID, versionID string) ([]*api.Payload_Entry, error)
+func NewRealClock() *RealClock {
+	return &RealClock{}
+}
+
+func (c *RealClock) CurrentTime() time.Time {
+	return time.Now()
 }

@@ -31,5 +31,6 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/senhasegura"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/webhook"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox"
 )
