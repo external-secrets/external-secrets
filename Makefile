@@ -207,7 +207,7 @@ helm.generate:
 		echo "{{- end }}" >> "$$i" && \
 		rm "$$i.bkp" && \
 		if [[ "$$OSTYPE" == "darwin"* ]]; then \
-		  export SED_I="sed -i ''"; \
+		  export SED_I="gsed -i"; \
 		else \
 		  export SED_I="sed -i"; \
 		fi; \
