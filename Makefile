@@ -206,8 +206,13 @@ helm.generate:
 		cat "$$i.bkp" >> "$$i" && \
 		echo "{{- end }}" >> "$$i" && \
 		rm "$$i.bkp" && \
-		sed -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$$i" && \
-		sed -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$$i" && \
+		if [[ "$$OSTYPE" == "darwin"* ]]; then \
+		  SEDPRG="gsed"; \
+		else \
+		  SEDPRG="sed"; \
+		fi; \
+		$$SEDPRG -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$$i" && \
+		$$SEDPRG -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$$i" && \
 		mv "$$i" "$${i%.yml}.yaml"; \
 	done
 	@$(OK) Finished generating helm chart files
