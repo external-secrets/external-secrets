@@ -56,14 +56,32 @@ var _ = Describe("#Reconcile", func() {
 		Expect(patch.Type()).To(Equal(types.MergePatchType))
 	})
 
-	It("notFound", func() {
-		client.GetReturnsOnCall(0, errors.New("UnknownError"))
+	When("an error returns in get", func() {
 
-		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-		_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+		BeforeEach(func() {
+			client.GetReturnsOnCall(0, errors.New("UnknownError"))
+		})
+		It("returns the error", func() {
 
-		Expect(err).To(HaveOccurred())
-		Expect(client.GetCallCount()).To(Equal(1))
-		Expect(client.StatusCallCount()).To(Equal(0))
+			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+
+			Expect(err).To(HaveOccurred())
+			Expect(client.GetCallCount()).To(Equal(1))
+			Expect(client.StatusCallCount()).To(Equal(0))
+		})
+	})
+
+	When("an object is not found", func() {
+		BeforeEach(func() {
+			err := statusErrorNotFound{}
+			client.GetReturns(err)
+		})
+		It("returns an empty result without error", func() {
+			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+
+			Expect(err).To(BeNil())
+		})
 	})
 })
