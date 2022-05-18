@@ -60,7 +60,7 @@ type SecretsClient interface {
 	// then the secret entry will be deleted depending on the deletionPolicy.
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
-	// SetSecret willl write a single secret into the provider
+	// SetSecret will write a single secret into the provider
 	SetSecret() error
 
 	// Validate checks if the client is configured correctly
