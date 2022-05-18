@@ -21,7 +21,6 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestAPIs(t *testing.T) {
@@ -33,7 +32,7 @@ type statusErrorNotFound struct {
 }
 
 func (statusErrorNotFound) Status() metav1.Status {
-	return v1.Status{
+	return metav1.Status{
 		Reason: metav1.StatusReasonNotFound,
 	}
 }
