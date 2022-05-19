@@ -464,6 +464,23 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 
 		return secretMap, nil
 
+	case sm.CreateSecretOptionsSecretTypePrivateCertConst:
+		response, _, err := ibm.IBMClient.GetSecret(
+			&sm.GetSecretOptions{
+				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePrivateCertConst),
+				ID:         &secretName,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		secret := response.Resources[0].(*sm.SecretResource)
+		secretData := secret.SecretData.(map[string]interface{})
+
+		secretMap := byteArrayMap(secretData)
+
+		return secretMap, nil
+
 	case sm.CreateSecretOptionsSecretTypeKvConst:
 		secret, err := getKVSecret(ibm, &secretName, ref)
 		if err != nil {
