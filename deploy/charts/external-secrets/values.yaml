@@ -120,6 +120,12 @@ affinity: {}
 # -- Pod priority class name.
 priorityClassName: ""
 
+# -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+podDisruptionBudget:
+  enabled: false 
+  minAvailable: 1
+  # maxUnavailable: 1
+
 webhook:
   # -- Specifies whether a webhook deployment be created.
   create: true
@@ -160,6 +166,11 @@ webhook:
     # -- Pod priority class name.
   priorityClassName: ""
 
+  # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+  podDisruptionBudget:
+    enabled: false 
+    minAvailable: 1
+    # maxUnavailable: 1
   prometheus:
     # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
     enabled: false
@@ -243,6 +254,12 @@ certController:
 
     # -- Pod priority class name.
   priorityClassName: ""
+
+  # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+  podDisruptionBudget:
+    enabled: false 
+    minAvailable: 1
+    # maxUnavailable: 1
 
   prometheus:
     # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
