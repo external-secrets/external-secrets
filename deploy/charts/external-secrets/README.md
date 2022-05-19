@@ -51,6 +51,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.podLabels | object | `{}` |  |
 | certController.podSecurityContext | object | `{}` |  |
 | certController.priorityClassName | string | `""` | Pod priority class name. |
+| certController.podDisruptionBudget.enabled | bool | `false` | Enable Pod disruption budget. |
+| certController.podDisruptionBudget.minAvailable | int | `1` | Specifies min available pods. |
+| certController.podDisruptionBudget.maxUnavailable | int | `0` | Specifies max unavailable pods. |
 | certController.prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | certController.prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
@@ -86,6 +89,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | podLabels | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | priorityClassName | string | `""` | Pod priority class name. |
+| podDisruptionBudget.enabled | bool | `false` | Enable Pod disruption budget. |
+| podDisruptionBudget.minAvailable | int | `1` | Specifies min available pods. |
+| podDisruptionBudget.maxUnavailable | int | `0` | Specifies max unavailable pods. |
 | processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
 | prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead. |
@@ -125,6 +131,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podSecurityContext | object | `{}` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
+| webhook.podDisruptionBudget.enabled | bool | `false` | Enable Pod disruption budget. |
+| webhook.podDisruptionBudget.minAvailable | int | `1` | Specifies min available pods. |
+| webhook.podDisruptionBudget.maxUnavailable | int | `0` | Specifies max unavailable pods. |
 | webhook.prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | webhook.prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | webhook.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
