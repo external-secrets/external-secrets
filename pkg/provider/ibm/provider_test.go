@@ -303,6 +303,40 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.expectError = "remoteRef.property required for secret type public_cert"
 	}
 
+	// private cert **********
+	// good case: public_cert type with property
+	secretPrivateCert := "private_cert/test-secret"
+	setSecretPrivateCert := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypePrivateCertConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypePrivateCertConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretPrivateCert
+		smtc.ref.Property = "certificate"
+		smtc.expectedSecret = secretCertificate
+	}
+
+	// bad case: private_cert type without property
+	badSecretPrivateCert := func(smtc *secretManagerTestCase) {
+		resources := []sm.SecretResourceIntf{
+			&sm.SecretResource{
+				SecretType: utilpointer.StringPtr(sm.CreateSecretOptionsSecretTypePrivateCertConst),
+				Name:       utilpointer.StringPtr("testyname"),
+				SecretData: secretData,
+			}}
+
+		smtc.apiInput.SecretType = core.StringPtr(sm.CreateSecretOptionsSecretTypePrivateCertConst)
+		smtc.apiOutput.Resources = resources
+		smtc.ref.Key = secretPrivateCert
+		smtc.expectError = "remoteRef.property required for secret type private_cert"
+	}
+	// *********** private cert
+
 	secretDataKV := make(map[string]interface{})
 	secretKVPayload := make(map[string]interface{})
 	secretKVPayload["key1"] = "val1"
@@ -428,6 +462,8 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badSecretKV),
 		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
 		makeValidSecretManagerTestCaseCustom(badSecretPublicCert),
+		makeValidSecretManagerTestCaseCustom(setSecretPrivateCert),
+		makeValidSecretManagerTestCaseCustom(badSecretPrivateCert),
 	}
 
 	sm := providerIBM{}
