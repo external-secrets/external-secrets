@@ -37,6 +37,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | affinity | object | `{}` |  |
 | certController.affinity | object | `{}` |  |
 | certController.create | bool | `true` | Specifies whether a certificate controller deployment be created. |
+| certController.replicaCount | int | `1` |  |
 | certController.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | certController.extraArgs | object | `{}` |  |
 | certController.extraEnv | list | `[]` |  |

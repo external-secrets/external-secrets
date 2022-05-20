@@ -228,6 +228,7 @@ certController:
   # -- Specifies whether a certificate controller deployment be created.
   create: true
   requeueInterval: "5m"
+  replicaCount: 1
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
