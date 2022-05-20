@@ -57,16 +57,15 @@ var _ = Describe("#Reconcile", func() {
 	})
 
 	When("an error returns in get", func() {
-
 		BeforeEach(func() {
-			client.GetReturnsOnCall(0, errors.New("UnknownError"))
+			client.GetReturns(errors.New("UnknownError"))
 		})
-		It("returns the error", func() {
 
+		It("returns the error", func() {
 			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
 			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("get resource: UnknownError"))
 			Expect(client.GetCallCount()).To(Equal(1))
 			Expect(client.StatusCallCount()).To(Equal(0))
 		})
@@ -74,14 +73,14 @@ var _ = Describe("#Reconcile", func() {
 
 	When("an object is not found", func() {
 		BeforeEach(func() {
-			err := statusErrorNotFound{}
-			client.GetReturns(err)
+			client.GetReturns(statusErrorNotFound{})
 		})
+
 		It("returns an empty result without error", func() {
 			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
 			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })

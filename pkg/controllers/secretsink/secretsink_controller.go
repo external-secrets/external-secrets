@@ -16,6 +16,7 @@ package secretsink
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -52,7 +53,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	} else if err != nil {
 		log.Error(err, "unable to get SecretSink")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 	p := client.MergeFrom(ss.DeepCopy())
 	defer func() {
