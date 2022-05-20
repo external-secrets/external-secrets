@@ -24,6 +24,8 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 var _ = Describe("secretsink", func() {
@@ -86,6 +88,22 @@ var _ = Describe("secretsink", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 			})
+		})
+	})
+
+	Describe("#GetSecretSinkCondition", func() {
+		It("returns nil for empty secret sink status", func() {
+			secretSinkStatus := new(esapi.SecretSinkStatus)
+			secretSinkConditionType := new(esapi.SecretSinkConditionType)
+
+			Expect(GetSecretSinkCondition(*secretSinkStatus, *secretSinkConditionType)).To(BeNil())
+		})
+		It("returns correct condition for secret sink status", func() {
+			secretSinkStatusCondition := esapi.SecretSinkStatusCondition{Type: esapi.SecretSinkReady}
+			secretSinkStatus := esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{secretSinkStatusCondition}}
+			secretSinkConditionType := esapi.SecretSinkReady
+
+			Expect(GetSecretSinkCondition(secretSinkStatus, secretSinkConditionType)).To(Equal(&secretSinkStatusCondition))
 		})
 	})
 })
