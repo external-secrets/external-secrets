@@ -18,69 +18,74 @@ import (
 	"context"
 	"errors"
 
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal/fakes"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal"
 )
 
-var _ = Describe("#Reconcile", func() {
+var _ = Describe("secretsink", func() {
 	var (
-		client       *internal.FakeClient
-		statusWriter *internal.FakeStatusWriter
-		reconciler   *Reconciler
+		reconciler *Reconciler
+		client     *fakes.Client
 	)
-
 	BeforeEach(func() {
-		client = new(internal.FakeClient)
-		statusWriter = new(internal.FakeStatusWriter)
-		client.StatusReturns(statusWriter)
+		client = new(fakes.Client)
 		reconciler = &Reconciler{client, logr.Discard(), nil, nil, 0, ""}
 	})
+	Describe("#Reconcile", func() {
+		var (
+			statusWriter *fakes.StatusWriter
+		)
 
-	It("succeeds", func() {
-		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-		_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(client.GetCallCount()).To(Equal(1))
-		Expect(client.StatusCallCount()).To(Equal(1))
-
-		_, gotNamespacedName, _ := client.GetArgsForCall(0)
-		Expect(gotNamespacedName).To(Equal(namspacedName))
-
-		Expect(statusWriter.PatchCallCount()).To(Equal(1))
-		_, _, patch, _ := statusWriter.PatchArgsForCall(0)
-		Expect(patch.Type()).To(Equal(types.MergePatchType))
-	})
-
-	When("an error returns in get", func() {
 		BeforeEach(func() {
-			client.GetReturns(errors.New("UnknownError"))
+			statusWriter = new(fakes.StatusWriter)
+			client.StatusReturns(statusWriter)
 		})
 
-		It("returns the error", func() {
+		It("succeeds", func() {
 			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
 			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-
-			Expect(err).To(MatchError("get resource: UnknownError"))
-			Expect(client.GetCallCount()).To(Equal(1))
-			Expect(client.StatusCallCount()).To(Equal(0))
-		})
-	})
-
-	When("an object is not found", func() {
-		BeforeEach(func() {
-			client.GetReturns(statusErrorNotFound{})
-		})
-
-		It("returns an empty result without error", func() {
-			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-
 			Expect(err).NotTo(HaveOccurred())
+			Expect(client.GetCallCount()).To(Equal(1))
+			Expect(client.StatusCallCount()).To(Equal(1))
+
+			_, gotNamespacedName, _ := client.GetArgsForCall(0)
+			Expect(gotNamespacedName).To(Equal(namspacedName))
+
+			Expect(statusWriter.PatchCallCount()).To(Equal(1))
+			_, _, patch, _ := statusWriter.PatchArgsForCall(0)
+			Expect(patch.Type()).To(Equal(types.MergePatchType))
+		})
+
+		When("an error returns in get", func() {
+			BeforeEach(func() {
+				client.GetReturns(errors.New("UnknownError"))
+			})
+
+			It("returns the error", func() {
+				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+
+				Expect(err).To(MatchError("get resource: UnknownError"))
+				Expect(client.GetCallCount()).To(Equal(1))
+				Expect(client.StatusCallCount()).To(Equal(0))
+			})
+		})
+
+		When("an object is not found", func() {
+			BeforeEach(func() {
+				client.GetReturns(statusErrorNotFound{})
+			})
+
+			It("returns an empty result without error", func() {
+				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+
+				Expect(err).NotTo(HaveOccurred())
+			})
 		})
 	})
 })
