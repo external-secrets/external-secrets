@@ -1,4 +1,4 @@
-{{- if .Values.certController.create .Values.certController.podDisruptionBudget.enabled }}
+{{- if and .Values.certController.create .Values.certController.podDisruptionBudget.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
