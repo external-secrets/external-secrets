@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal/fakes"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -26,6 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal/fakes"
 )
 
 var _ = Describe("secretsink", func() {
