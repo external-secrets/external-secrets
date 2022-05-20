@@ -122,7 +122,7 @@ priorityClassName: ""
 
 # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
 podDisruptionBudget:
-  enabled: false 
+  enabled: false
   minAvailable: 1
   # maxUnavailable: 1
 
@@ -168,7 +168,7 @@ webhook:
 
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
-    enabled: false 
+    enabled: false
     minAvailable: 1
     # maxUnavailable: 1
   prometheus:
@@ -257,7 +257,7 @@ certController:
 
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
-    enabled: false 
+    enabled: false
     minAvailable: 1
     # maxUnavailable: 1
 
