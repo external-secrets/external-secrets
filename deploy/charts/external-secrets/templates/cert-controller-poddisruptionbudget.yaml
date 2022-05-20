@@ -15,5 +15,5 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 4 }}
+      {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
 {{- end }}

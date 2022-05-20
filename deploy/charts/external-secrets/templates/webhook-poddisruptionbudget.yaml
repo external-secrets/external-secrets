@@ -16,5 +16,5 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}
+      {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
 {{- end }}
