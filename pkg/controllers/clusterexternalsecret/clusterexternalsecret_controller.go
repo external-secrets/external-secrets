@@ -22,7 +22,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,16 +42,16 @@ type Reconciler struct {
 }
 
 const (
-	errGetCES              = "could not get ClusterExternalSecret"
-	errPatchStatus         = "unable to patch status"
-	errLabelMap            = "unable to get map from labels"
-	errNamespaces          = "could not get namespaces from selector"
-	errGetExistingES       = "could not get existing ExternalSecret"
-	errCreatingOrUpdating  = "could not create or update ExternalSecret"
-	errSetCtrlReference    = "could not set the controller owner reference"
-	errSecretAlreadyExists = "external secret already exists in namespace"
-	errNamespacesFailed    = "one or more namespaces failed"
-	errFailedToDelete      = "external secret in non matching namespace could not be deleted"
+	errGetCES               = "could not get ClusterExternalSecret"
+	errPatchStatus          = "unable to patch status"
+	errConvertLabelSelector = "unable to convert labelselector"
+	errNamespaces           = "could not get namespaces from selector"
+	errGetExistingES        = "could not get existing ExternalSecret"
+	errCreatingOrUpdating   = "could not create or update ExternalSecret"
+	errSetCtrlReference     = "could not set the controller owner reference"
+	errSecretAlreadyExists  = "external secret already exists in namespace"
+	errNamespacesFailed     = "one or more namespaces failed"
+	errFailedToDelete       = "external secret in non matching namespace could not be deleted"
 )
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -76,15 +75,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		refreshInt = clusterExternalSecret.Spec.RefreshInterval.Duration
 	}
 
-	labelMap, err := metav1.LabelSelectorAsMap(&clusterExternalSecret.Spec.NamespaceSelector)
+	labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
 	if err != nil {
-		log.Error(err, errLabelMap)
+		log.Error(err, errConvertLabelSelector)
 		return ctrl.Result{RequeueAfter: refreshInt}, err
 	}
 
 	namespaceList := v1.NamespaceList{}
-
-	err = r.List(ctx, &namespaceList, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labelMap)})
+	err = r.List(ctx, &namespaceList, &client.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		log.Error(err, errNamespaces)
 		return ctrl.Result{RequeueAfter: refreshInt}, err

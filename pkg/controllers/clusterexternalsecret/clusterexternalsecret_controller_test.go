@@ -253,6 +253,46 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		}
 	}
 
+	syncWithMatchExpressions := func(tc *testCase) {
+		tc.setup = func(tc *testCase) {
+			prefixes := []string{"foo", "bar", "baz"}
+			for _, prefix := range prefixes {
+				labels := map[string]string{
+					"e2e":    "with-label-selector",
+					"prefix": prefix,
+				}
+				ns, err := ctest.CreateNamespaceWithLabels(prefix, k8sClient, labels)
+				Expect(err).ToNot(HaveOccurred())
+				tc.externalSecretNamespaces = append(tc.externalSecretNamespaces, testNamespace{
+					namespace: v1.Namespace{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: ns,
+						},
+					},
+					containsES: true,
+				})
+			}
+			tc.clusterExternalSecret.Spec.NamespaceSelector.MatchExpressions = []metav1.LabelSelectorRequirement{
+				{
+					Key:      "prefix",
+					Operator: metav1.LabelSelectorOpIn,
+					Values:   prefixes,
+				},
+			}
+		}
+		tc.checkClusterExternalSecret = func(ces *esv1beta1.ClusterExternalSecret) {
+			for _, namespace := range tc.externalSecretNamespaces {
+				var es esv1beta1.ExternalSecret
+				err := k8sClient.Get(context.Background(), types.NamespacedName{
+					Namespace: namespace.namespace.Name,
+					Name:      ExternalSecretName,
+				}, &es)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sliceContainsString(namespace.namespace.Name, ces.Status.ProvisionedNamespaces)).To(BeTrue())
+			}
+		}
+	}
+
 	DescribeTable("When reconciling a ClusterExternal Secret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestCase()
@@ -326,7 +366,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		Entry("Should use cluster external secret name if external secret name isn't defined", syncWithoutESName),
 		Entry("Should not overwrite existing external secrets and error out if one is present", doNotOverwriteExistingES),
 		Entry("Should have list of all provisioned namespaces", populatedProvisionedNamespaces),
-		Entry("Should delete external secrets when namespaces no longer match", deleteESInNonMatchingNS))
+		Entry("Should delete external secrets when namespaces no longer match", deleteESInNonMatchingNS),
+		Entry("Should sync with label selector", syncWithMatchExpressions))
 })
 
 func sliceContainsString(toFind string, collection []string) bool {
