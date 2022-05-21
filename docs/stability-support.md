@@ -6,9 +6,9 @@ We are currently in beta and support **only the latest release** for the time be
 
 | ESO Version | Kubernetes Version |
 | ----------- | ------------------ |
-| 0.5.x       | 1.19 → 1.23        |
-| 0.4.x       | 1.16 → 1.23        |
-| 0.3.x       | 1.16 → 1.23        |
+| 0.5.x       | 1.19 → 1.24        |
+| 0.4.x       | 1.16 → 1.24        |
+| 0.3.x       | 1.16 → 1.24        |
 
 ## Provider Stability and Support Level
 
@@ -20,7 +20,8 @@ The following table describes the stability level of each provider and who's res
 | [AWS Parameter Store](https://external-secrets.io/latest/provider-aws-parameter-store/)                    |  stable   |                                                                                                                   [external-secrets](https://github.com/external-secrets) |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider-hashicorp-vault/)                            |  stable   |                                                                                                                   [external-secrets](https://github.com/external-secrets) |
 | [GCP Secret Manager](https://external-secrets.io/latest/provider-google-secrets-manager/)                  |  stable   |                                                                                                                   [external-secrets](https://github.com/external-secrets) |
-| [Azure Keyvault](https://external-secrets.io/latest/provider-azure-key-vault/)                             |   beta    | [@ahmedmus-1A](https://github.com/ahmedmus-1A) [@asnowfix](https://github.com/asnowfix) [@ncourbet-1A](https://github.com/ncourbet-1A) [@1A-mj](https://github.com/1A-mj) |
+| [Azure Keyvault](https://external-secrets.io/latest/provider-azure-key-vault/)                             |   stable    | [external-secrets](https://github.com/external-secrets) |
+| [Kubernetes](https://external-secrets.io/latest/provider-kubernetes) |   alpha   |                                                                                                                                      [external-secrets](https://github.com/external-secrets) |
 | [IBM Secrets Manager](https://external-secrets.io/latest/provider-ibm-secrets-manager/)                    |   alpha   |                            [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta) |
 | [Yandex Lockbox](https://external-secrets.io/latest/provider-yandex-lockbox/)                              |   alpha   |                                                                       [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
 | [Gitlab Project Variables](https://external-secrets.io/latest/provider-gitlab-project-variables/)          |   alpha   |                                                                                                                                    [@Jabray5](https://github.com/Jabray5) |
@@ -30,14 +31,14 @@ The following table describes the stability level of each provider and who's res
 | [1Password](https://external-secrets.io/latest/provider-1password-automation)                              |   alpha   |                                                                         [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer) |
 | [Generic Webhook](https://external-secrets.io/latest/provider-webhook)                                     |   alpha   |                                                                                                                                    [@willemm](https://github.com/willemm) |
 | [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider-senhasegura-dsm) |   alpha   |                                                                                                                                      [@lfraga](https://github.com/lfraga) |
-| [Kubernetes](https://external-secrets.io/latest/provider-kubernetes) |   alpha   |                                                                                                                                      [@rodrmartinez](https://github.com/rodrmartinez) |
 
 ## Support Policy
 
-We provide technical support and provide security & bug fixes for the above listed versions.
+We provide technical support and security / bug fixes for the above listed versions.
 
 ### Technical support
 We provide assistance for deploying/upgrading etc. on a best-effort basis. You can request support through the following channels:
+
 * [Kubernetes Slack
   #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
 * GitHub [Issues](https://github.com/external-secrets/external-secrets/issues)
