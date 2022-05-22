@@ -150,8 +150,9 @@ type ExternalSecretDataRemoteRef struct {
 type ExternalSecretConversionStrategy string
 
 const (
-	ExternalSecretConversionDefault ExternalSecretConversionStrategy = "Default"
-	ExternalSecretConversionUnicode ExternalSecretConversionStrategy = "Unicode"
+	ExternalSecretConversionDefault  ExternalSecretConversionStrategy = "Default"
+	ExternalSecretConversionUnicode  ExternalSecretConversionStrategy = "Unicode"
+	ExternalSecretConversionTrimPath ExternalSecretConversionStrategy = "TrimPath"
 )
 
 // ExternalSecretSpec defines the desired state of ExternalSecret.

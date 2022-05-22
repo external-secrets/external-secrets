@@ -194,8 +194,9 @@ const (
 type ExternalSecretConversionStrategy string
 
 const (
-	ExternalSecretConversionDefault ExternalSecretConversionStrategy = "Default"
-	ExternalSecretConversionUnicode ExternalSecretConversionStrategy = "Unicode"
+	ExternalSecretConversionDefault  ExternalSecretConversionStrategy = "Default"
+	ExternalSecretConversionUnicode  ExternalSecretConversionStrategy = "Unicode"
+	ExternalSecretConversionTrimPath ExternalSecretConversionStrategy = "TrimPath"
 )
 
 // +kubebuilder:validation:MinProperties=1

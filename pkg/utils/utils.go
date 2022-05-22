@@ -53,6 +53,9 @@ func ConvertKeys(strategy esv1beta1.ExternalSecretConversionStrategy, in map[str
 }
 
 func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) string {
+	if strategy == esv1beta1.ExternalSecretConversionTrimPath {
+		str = str[strings.LastIndex(str, "/")+1:]
+	}
 	rs := []rune(str)
 	newName := make([]string, len(rs))
 	for rk, rv := range rs {
@@ -63,6 +66,8 @@ func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) st
 			rv != '_' {
 			switch strategy {
 			case esv1beta1.ExternalSecretConversionDefault:
+				newName[rk] = "_"
+			case esv1beta1.ExternalSecretConversionTrimPath:
 				newName[rk] = "_"
 			case esv1beta1.ExternalSecretConversionUnicode:
 				newName[rk] = fmt.Sprintf("_U%04x_", rv)
