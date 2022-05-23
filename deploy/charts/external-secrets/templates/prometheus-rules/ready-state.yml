@@ -1,0 +1,18 @@
+{{- if and .Values.serviceMonitor.enabled .Values.serviceMonitor.prometheusRules.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: external-secrets-ready
+spec:
+  groups:
+    - name: external-secrets
+      rules:
+        - alert: ExternalSecretReady
+          annotations:
+            description: 'ExternalSecret "{{`{{ $labels.name }}`}}" is not ready.'
+            summary: ExternalSecret is not ready
+          expr: externalsecret_status_condition{status="True"} == 0
+          for: 5m
+          labels:
+            severity: critical
+{{- end }}

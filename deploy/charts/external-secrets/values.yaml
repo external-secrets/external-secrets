@@ -111,6 +111,10 @@ serviceMonitor:
   # -- Timeout if metrics can't be retrieved in given time interval
   scrapeTimeout: 25s
 
+  prometheusRules:
+    # -- Specify whether to create PrometheusRules
+    enabled: true
+
 nodeSelector: {}
 
 tolerations: []
