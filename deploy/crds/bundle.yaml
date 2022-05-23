@@ -1762,6 +1762,20 @@ spec:
                                       description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                       type: string
                                   type: object
+                                secretcontainerAuthSecretRef:
+                                  description: IBM Container-based auth with IAM Trusted Profile.
+                                  properties:
+                                    iamEndpoint:
+                                      type: string
+                                    profile:
+                                      description: the IBM Trusted Profile
+                                      type: string
+                                    tokenlocation:
+                                      description: Location the token is mounted on the pod
+                                      type: string
+                                  required:
+                                    - profile
+                                  type: object
                               type: object
                           required:
                             - secretRef
@@ -4445,6 +4459,20 @@ spec:
                                     namespace:
                                       description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                       type: string
+                                  type: object
+                                secretcontainerAuthSecretRef:
+                                  description: IBM Container-based auth with IAM Trusted Profile.
+                                  properties:
+                                    iamEndpoint:
+                                      type: string
+                                    profile:
+                                      description: the IBM Trusted Profile
+                                      type: string
+                                    tokenlocation:
+                                      description: Location the token is mounted on the pod
+                                      type: string
+                                  required:
+                                    - profile
                                   type: object
                               type: object
                           required:

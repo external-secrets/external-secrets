@@ -2610,6 +2610,69 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>secretcontainerAuthSecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.IBMAuthSecretcontainerAuthSecretRef">
+IBMAuthSecretcontainerAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.IBMAuthSecretcontainerAuthSecretRef">IBMAuthSecretcontainerAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.IBMAuthSecretRef">IBMAuthSecretRef</a>)
+</p>
+<p>
+<p>IBM Container-based auth with IAM Trusted Profile.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>profile</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>the IBM Trusted Profile</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenlocation</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Location the token is mounted on the pod</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iamEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.IBMProvider">IBMProvider
