@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -59,6 +59,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, "unable to get SecretSink")
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
+
 	p := client.MergeFrom(ss.DeepCopy())
 	defer func() {
 		err := r.Client.Status().Patch(ctx, &ss, p)
@@ -66,12 +67,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			log.Error(err, errPatchStatus)
 		}
 	}()
+
 	_, err = r.GetSecret(ctx, ss)
 	if err != nil {
 		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
 		ss = SetSecretSinkCondition(ss, *cond)
 	}
+
 	_, err = r.GetSecretStore(ctx, ss)
+	if err != nil {
+		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
+		ss = SetSecretSinkCondition(ss, *cond)
+	}
 
 	cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionTrue, "SecretSynced", "SecretSink synced successfully")
 	ss = SetSecretSinkCondition(ss, *cond)
@@ -92,7 +99,6 @@ func (r *Reconciler) GetSecret(ctx context.Context, ss esapi.SecretSink) (*v1.Se
 func (r *Reconciler) GetSecretStore(ctx context.Context, ss esapi.SecretSink) ([]v1beta1.GenericStore, error) {
 	stores := make([]v1beta1.GenericStore, 0)
 	for _, refStore := range ss.Spec.SecretStoreRefs {
-
 		ref := types.NamespacedName{
 			Name: refStore.Name,
 		}

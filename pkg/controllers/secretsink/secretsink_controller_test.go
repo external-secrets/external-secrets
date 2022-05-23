@@ -163,4 +163,24 @@ var _ = Describe("secretsink", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+
+	Describe("#GetSecretStore", func() {
+		It("returns a secretstore if it exists", func() {
+			sink := esapi.SecretSink{
+				Spec: esapi.SecretSinkSpec{
+					SecretStoreRefs: []esapi.SecretSinkStoreRef{
+						{
+							Name: "foo",
+						},
+					},
+				},
+			}
+			sink.Namespace = "bar"
+			_, err := reconciler.GetSecretStore(context.TODO(), sink)
+			Expect(err).To(BeNil())
+			_, name, _ := client.GetArgsForCall(0)
+			Expect(name.Namespace).To(Equal("bar"))
+			Expect(name.Name).To(Equal("foo"))
+		})
+	})
 })
