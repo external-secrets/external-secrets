@@ -79,9 +79,9 @@ require (
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220507011949-2cf3adece122
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
-	google.golang.org/api v0.75.0
-	google.golang.org/genproto v0.0.0-20220414192740-2d67ff6cf2b4
-	google.golang.org/grpc v1.45.0
+	google.golang.org/api v0.80.0
+	google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3
+	google.golang.org/grpc v1.46.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.23.5
@@ -104,7 +104,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.6.0 // indirect
+	cloud.google.com/go/compute v1.6.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.5 // indirect
@@ -265,9 +265,9 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/exp v0.0.0-20210901193431-a062eea981d2 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
+	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
