@@ -60,8 +60,8 @@ github.com/1Password/connect-sdk-go v1.2.0 h1:WbIvmbDUpA89nyH0l3LF2iRSFJAv86d2D7
 github.com/1Password/connect-sdk-go v1.2.0 h1:WbIvmbDUpA89nyH0l3LF2iRSFJAv86d2D7IjVNjw6iw=
 github.com/1Password/connect-sdk-go v1.2.0/go.mod h1:qK2bF/GweAq812xj+HGfbauaE6cKX1MXfKhpAvoHEq8=
 github.com/1Password/connect-sdk-go v1.2.0/go.mod h1:qK2bF/GweAq812xj+HGfbauaE6cKX1MXfKhpAvoHEq8=
-github.com/Azure/azure-sdk-for-go v63.4.0+incompatible h1:fle3M5Q7vr8auaiPffKyUQmLbvYeqpw30bKU6PrWJFo=
-github.com/Azure/azure-sdk-for-go v63.4.0+incompatible/go.mod h1:9XXNKU+eRnpl9moKnB4QOLf1HestfXbmab5FXxiDBjc=
+github.com/Azure/azure-sdk-for-go v64.1.0+incompatible h1:FpsZmWR9FfEr9hP6K9S7RP0EkSFgGd6P1F2scHtbhnU=
+github.com/Azure/azure-sdk-for-go v64.1.0+incompatible/go.mod h1:9XXNKU+eRnpl9moKnB4QOLf1HestfXbmab5FXxiDBjc=
 github.com/Azure/go-ansiterm v0.0.0-20210608223527-2377c96fe795/go.mod h1:LmzpDX56iTiv29bbRTIsUNlaFfuhWRQBWjQdVyAevI8=
 github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/Azure/go-autorest v14.2.0+incompatible h1:V5VMDjClD3GiElqLWO7mz2MxNAK/vTfRHdAubSIPRgs=
