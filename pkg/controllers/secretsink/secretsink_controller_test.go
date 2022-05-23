@@ -52,7 +52,7 @@ var _ = Describe("secretsink", func() {
 			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
 			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(client.GetCallCount()).To(Equal(1))
+			Expect(client.GetCallCount()).To(Equal(2))
 			Expect(client.StatusCallCount()).To(Equal(1))
 
 			_, gotNamespacedName, _ := client.GetArgsForCall(0)
@@ -136,6 +136,31 @@ var _ = Describe("secretsink", func() {
 			got := SetSecretSinkCondition(secretSinkWithCondition, secretSinkStatusConditionTrue)
 			Expect(len(got.Status.Conditions)).To(Equal(1))
 			Expect(got.Status.Conditions[0]).To(Equal(secretSinkStatusConditionTrue))
+		})
+	})
+	Describe("#GetSecret", func() {
+		It("returns a secret if it exists", func() {
+			sink := esapi.SecretSink{
+				Spec: esapi.SecretSinkSpec{
+					Selector: esapi.SecretSinkSelector{
+						Secret: esapi.SecretSinkSecret{
+							Name: "foo",
+						},
+					},
+				},
+			}
+			sink.Namespace = "bar"
+			_, err := reconciler.GetSecret(context.TODO(), sink)
+			Expect(err).To(BeNil())
+			_, name, _ := client.GetArgsForCall(0)
+			Expect(name.Namespace).To(Equal("bar"))
+			Expect(name.Name).To(Equal("foo"))
+
+		})
+		It("returns an error if it doesn't exist", func() {
+			client.GetReturns(errors.New("secret not found"))
+			_, err := reconciler.GetSecret(context.TODO(), esapi.SecretSink{})
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

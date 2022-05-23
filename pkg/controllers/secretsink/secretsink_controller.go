@@ -24,6 +24,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,8 +33,8 @@ import (
 )
 
 const (
-	errNotImplemented = "secret sink not implemented"
-	errPatchStatus    = "error merging"
+	errFailedGetSecret = "could not get source secret"
+	errPatchStatus     = "error merging"
 )
 
 type Reconciler struct {
@@ -62,10 +63,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			log.Error(err, errPatchStatus)
 		}
 	}()
-	cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "NotImplementedError", errNotImplemented)
+	_, err = r.GetSecret(ctx, ss)
+	if err != nil {
+		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
+		ss = SetSecretSinkCondition(ss, *cond)
+	}
+	cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionTrue, "SecretSynced", "SecretSink synced successfully")
 	ss = SetSecretSinkCondition(ss, *cond)
 	// Set status for SecretSink
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) GetSecret(ctx context.Context, ss esapi.SecretSink) (*v1.Secret, error) {
+	secretName := types.NamespacedName{Name: ss.Spec.Selector.Secret.Name, Namespace: ss.Namespace}
+	secret := &v1.Secret{}
+	err := r.Client.Get(ctx, secretName, secret)
+	if err != nil {
+		return nil, err
+	}
+	return secret, nil
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
