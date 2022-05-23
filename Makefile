@@ -82,7 +82,7 @@ license.check: golicenses.check
 	 grep -v -E '${LICENSES}' | \
 	 tr "," " " | awk '{print "Invalid License " $$3 " for dependency " $$1 }'|| ok=1; \
 	 if [[ $$ok -eq 1 ]]; then $(OK) dependencies are compliant; else $(FAIL); fi
-	 
+
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
 	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))

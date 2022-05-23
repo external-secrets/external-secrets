@@ -24,6 +24,8 @@ type ESO struct {
 	*HelmChart
 }
 
+const installCRDsVar = "installCRDs"
+
 func NewESO(mutators ...MutationFunc) *ESO {
 	eso := &ESO{
 		&HelmChart{
@@ -60,7 +62,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("VERSION"),
 				},
 				{
-					Key:   "installCRDs",
+					Key:   installCRDsVar,
 					Value: "false",
 				},
 			},
@@ -139,6 +141,19 @@ func WithControllerClass(class string) MutationFunc {
 	}
 }
 
+// By default ESO is installed without CRDs
+// when using WithCRDs() the CRDs will be installed before
+// and uninstalled after use.
+func WithCRDs() MutationFunc {
+	return func(eso *ESO) {
+		for i, v := range eso.HelmChart.Vars {
+			if v.Key == installCRDsVar {
+				eso.HelmChart.Vars[i].Value = "true"
+			}
+		}
+	}
+}
+
 func (l *ESO) Install() error {
 	By("Installing eso\n")
 	err := l.HelmChart.Install()
@@ -146,5 +161,17 @@ func (l *ESO) Install() error {
 		return err
 	}
 
+	return nil
+}
+
+func (l *ESO) Uninstall() error {
+	By("Uninstalling eso")
+	err := l.HelmChart.Uninstall()
+	if err != nil {
+		return err
+	}
+	if l.HelmChart.HasVar(installCRDsVar, "true") {
+		return uninstallCRDs(l.config)
+	}
 	return nil
 }

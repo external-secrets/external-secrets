@@ -20,7 +20,9 @@ deploy/charts/external-secrets/templates/crds/*.yaml
 
 site/
 e2e/k8s/deploy
-e2e/e2e.test
+e2e/suites/argocd/argocd.test
+e2e/suites/flux/flux.test
+e2e/suites/provider/provider.test
 
 # tf ignores
 # Local .terraform directories

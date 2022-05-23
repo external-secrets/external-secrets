@@ -21,9 +21,14 @@ import (
 	"os"
 	"time"
 
+	argoapp "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta1"
+	fluxsrc "github.com/fluxcd/source-controller/api/v1beta2"
+
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,9 +39,22 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 var Scheme = runtime.NewScheme()
+
+func init() {
+	_ = scheme.AddToScheme(Scheme)
+	_ = esv1beta1.AddToScheme(Scheme)
+	_ = esv1alpha1.AddToScheme(Scheme)
+	_ = argoapp.AddToScheme(Scheme)
+	_ = fluxhelm.AddToScheme(Scheme)
+	_ = fluxsrc.AddToScheme(Scheme)
+	_ = apiextensionsv1.AddToScheme(Scheme)
+}
 
 const (
 	// How often to poll for conditions.

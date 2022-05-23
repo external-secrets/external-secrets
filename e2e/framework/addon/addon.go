@@ -50,7 +50,7 @@ type Addon interface {
 func InstallGlobalAddon(addon Addon, cfg *Config) {
 	globalAddons = append(globalAddons, addon)
 
-	ginkgo.By("installing addon")
+	ginkgo.By("installing global addon")
 	err := addon.Setup(cfg)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 

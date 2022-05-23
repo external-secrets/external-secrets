@@ -191,8 +191,8 @@ jobs:
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
         PROVIDER=${{github.event.client_payload.slash_command.args.named.provider}}
-        go get github.com/onsi/ginkgo/v2/ginkgo
-        make test.e2e.managed GINKGO_LABELS="${PROVIDER}"
+        go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
+        make test.e2e.managed GINKGO_LABELS="${PROVIDER}" TEST_SUITES="provider"
 
     - name: Destroy TF
       if: always()
