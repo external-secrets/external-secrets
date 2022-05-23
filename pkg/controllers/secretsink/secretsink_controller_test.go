@@ -21,6 +21,7 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -98,6 +99,7 @@ var _ = Describe("secretsink", func() {
 
 			Expect(GetSecretSinkCondition(*secretSinkStatus, *secretSinkConditionType)).To(BeNil())
 		})
+
 		It("returns correct condition for secret sink status", func() {
 			secretSinkStatusCondition := esapi.SecretSinkStatusCondition{Type: esapi.SecretSinkReady}
 			secretSinkStatus := esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{secretSinkStatusCondition}}
@@ -106,4 +108,41 @@ var _ = Describe("secretsink", func() {
 			Expect(GetSecretSinkCondition(secretSinkStatus, secretSinkConditionType)).To(Equal(&secretSinkStatusCondition))
 		})
 	})
+
+	Describe("#SetSecretSinkCondition", func() {
+		secret := esapi.SecretSinkSecret{Name: ""}
+		selector := esapi.SecretSinkSelector{Secret: secret}
+		secretSink := esapi.SecretSink{}
+
+		secretSinkStatusCondition := esapi.SecretSinkStatusCondition{}
+		secretSinkStatus := esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{secretSinkStatusCondition}}
+		secretSinkSpec := esapi.SecretSinkSpec{SecretStoreRefs: nil, Selector: selector, Data: nil}
+
+		It("returns a secretsink", func() {
+			toEqual := esapi.SecretSink{Spec: secretSinkSpec, Status: secretSinkStatus}
+			Expect(SetSecretSinkCondition(secretSink, secretSinkStatusCondition)).To(Equal(toEqual))
+		})
+
+		It("appends secretsink condition if new", func() {
+			conditionStatusTrue := v1.ConditionTrue
+			secretSinkWithCondition := esapi.SecretSink{Status: esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{
+				{
+					Status: conditionStatusTrue,
+					Type:   esapi.SecretSinkReady,
+				},
+			}},
+			}
+			secretSinkStatusConditionTrue := esapi.SecretSinkStatusCondition{Status: conditionStatusTrue,
+				Type:    esapi.SecretSinkReady,
+				Message: "Update status",
+			}
+
+			Expect(SetSecretSinkCondition(secretSinkWithCondition, secretSinkStatusConditionTrue).Status.Conditions[0]).To(Equal(secretSinkStatusConditionTrue))
+
+		})
+
+	})
 })
+
+// currentCond != nil && currentCond.Status == condition.Status (SecretSinkReady SecretSinkConditionType = "Ready")
+// currentCond.Reason != condition.Reason && currentCond.Message != condition.Message
