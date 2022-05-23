@@ -13,7 +13,7 @@
     
     
       
-        <title>Kubernetes - External Secrets Operator</title>
+        <title>FAQ - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#authentication" class="md-skip">
+        <a href="#can-i-manually-trigger-a-secret-refresh" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Kubernetes
+              FAQ
             
           </span>
         </div>
@@ -594,14 +594,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
       
       
       
@@ -1082,75 +1080,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Kubernetes
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../provider-kubernetes/" class="md-nav__link">
         Kubernetes
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
-  </a>
-  
-    <nav class="md-nav" aria-label="Example">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#in-cluster-secrets-using-a-token" class="md-nav__link">
-    In-cluster secrets using a Token
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#remote-secret-using-a-token" class="md-nav__link">
-    Remote Secret using a Token
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1520,11 +1454,76 @@
 
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          FAQ
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         FAQ
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#can-i-manually-trigger-a-secret-refresh" class="md-nav__link">
+    Can i manually trigger a secret refresh?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-know-when-my-secret-was-last-synced" class="md-nav__link">
+    How do i know when my secret was last synced?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#differences-to-csi-secret-store" class="md-nav__link">
+    Differences to csi-secret-store
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-debug-an-external-secret-that-doesnt-sync" class="md-nav__link">
+    How do i debug an external-secret that doesn't sync?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading-from-kes-to-eso" class="md-nav__link">
+    Upgrading from KES to ESO
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1584,36 +1583,37 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
+  <a href="#can-i-manually-trigger-a-secret-refresh" class="md-nav__link">
+    Can i manually trigger a secret refresh?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
-  </a>
-  
-    <nav class="md-nav" aria-label="Example">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#in-cluster-secrets-using-a-token" class="md-nav__link">
-    In-cluster secrets using a Token
+  <a href="#how-do-i-know-when-my-secret-was-last-synced" class="md-nav__link">
+    How do i know when my secret was last synced?
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#remote-secret-using-a-token" class="md-nav__link">
-    Remote Secret using a Token
+      
+        <li class="md-nav__item">
+  <a href="#differences-to-csi-secret-store" class="md-nav__link">
+    Differences to csi-secret-store
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-debug-an-external-secret-that-doesnt-sync" class="md-nav__link">
+    How do i debug an external-secret that doesn't sync?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading-from-kes-to-eso" class="md-nav__link">
+    Upgrading from KES to ESO
+  </a>
   
 </li>
       
@@ -1629,136 +1629,72 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/provider-kubernetes.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/master/docs/faq.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-  <h1>Kubernetes</h1>
+  <h1>FAQ</h1>
 
-<p>External Secrets Operator allows to retrieve in-cluster secrets or from a remote Kubernetes Cluster.</p>
-<h3 id="authentication">Authentication</h3>
-<p>It's possible to authenticate against the Kubernetes API using client certificates or a bearer token. Authentication using a service account has not yet been implemented. The operator enforces that exactly one authentication method is used.</p>
-<p><strong>NOTE:</strong> <code>SelfSubjectAccessReview</code> permission is required for the service account in order to validation work properly.</p>
-<h2 id="example">Example</h2>
-<h3 id="in-cluster-secrets-using-a-token">In-cluster secrets using a Token</h3>
-<ol>
-<li>Create a K8s Secret with a client token for the default service account</li>
-</ol>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mydefaulttoken</span><span class="w"></span>
-<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kubernetes.io/service-account.name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
-<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/service-account-token</span><span class="w"></span>
+<h2 id="can-i-manually-trigger-a-secret-refresh">Can i manually trigger a secret refresh?</h2>
+<p>You can trigger a secret refresh by using kubectl or any other kubernetes api client.
+You just need to change an annotation, label or the spec of the resource:</p>
+<div class="highlight"><pre><span></span><code>kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 </code></pre></div>
-2. Create a SecretStore</p>
-<p>The Servers <code>url</code> won't be present as it will default to <code>kubernetes.default</code>, add a proper value if needed. In this example the Certificate Authority is fetched using the referenced <code>caProvider</code>.</p>
-<p>The <code>auth</code> section indicates that the type <code>token</code> will be used for authentication, it includes the path to fetch the token. Set <code>remoteNamespace</code> to the name of the namespace where your target secrets reside.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">caProvider</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mydefaulttoken</span><span class="w"></span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span><span class="w"></span>
-<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">token</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="nt">bearerToken</span><span class="p">:</span><span class="w"></span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mydefaulttoken</span><span class="w"></span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
+<h2 id="how-do-i-know-when-my-secret-was-last-synced">How do i know when my secret was last synced?</h2>
+<p>Every ExternalSecret resource contains a status condition that indicates the time when the secret was last synced:</p>
+<div class="highlight"><pre><span></span><code>kubectl get es my-external-secret -o yaml | grep condition -A 5
+  conditions:
+  - lastTransitionTime: &quot;2022-05-21T21:02:47Z&quot;
+    message: Secret was synced
+    reason: SecretSynced
+    status: &quot;True&quot;
+    type: Ready
 </code></pre></div>
-3. Create the local secret that will be synced</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-example</span><span class="w"></span>
-<span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">extra</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YmFyCg==</span><span class="w"></span>
+<h2 id="differences-to-csi-secret-store">Differences to csi-secret-store</h2>
+<p>Please take a look at this <a href="https://github.com/external-secrets/external-secrets/issues/478#issuecomment-964413129">issue comment here</a>.</p>
+<h2 id="how-do-i-debug-an-external-secret-that-doesnt-sync">How do i debug an external-secret that doesn't sync?</h2>
+<p>First, check the status of the ExternalSecret resource using <code>kubectl describe</code>. That displays the status conditions as well as recent events.
+You should expect a status condition with <code>Type=Ready</code>, <code>Status=True</code>. Further you shouldn't see any events with <code>Type=Warning</code>. Read carefully if they exist.</p>
+<div class="highlight"><pre><span></span><code>kubectl describe es my-external-secret
+[...]
+Status:
+  Conditions:
+    Last Transition Time:   2022-05-21T21:02:47Z
+    Message:                Secret was synced
+    Reason:                 SecretSynced
+    Status:                 True
+    Type:                   Ready
+  Refresh Time:             2022-05-21T21:06:47Z
+  Synced Resource Version:  1-5c833527afd7ba3f426cb0082ee7e083
+Events:
+  Type     Reason        Age                  From              Message
+  ----     ------        ----                 ----              -------
+  Warning  UpdateFailed  4m12s                external-secrets  secrets &quot;yyyyyyy&quot; already exists
+  Normal   Updated       12s (x4 over 3m12s)  external-secrets  Updated Secret
 </code></pre></div>
-4. Finally create the ExternalSecret resource</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w">  </span><span class="c1"># name of the k8s Secret to be created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-example</span><span class="w"></span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
+<p>If everything looks good you should check the corresponding secret store resource that is referenced from an ExternalSecret. Again, use <code>kubectl describe</code> to show status conditions and events and look for warning signs as described above.</p>
+<p>In an ideally, the store should be validated and Ready.</p>
+<div class="highlight"><pre><span></span><code>kubectl describe css kubernetes
+[...]
+Status:
+  Conditions:
+    Last Transition Time:  2022-05-21T21:02:47Z
+    Message:               store validated
+    Reason:                Valid
+    Status:                True
+    Type:                  Ready
+Events:
+  Type    Reason  Age                From                  Message
+  ----    ------  ----               ----                  -------
+  Normal  Valid   52s (x4 over 10m)  cluster-secret-store  store validated
+  Normal  Valid   52s (x4 over 10m)  cluster-secret-store  store validated
 </code></pre></div>
-<h3 id="remote-secret-using-a-token">Remote Secret using a Token</h3>
-<ol>
-<li>Create a K8s Secret with the encoded base64 ca and client token.</li>
-</ol>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets</span><span class="w"></span>
-<span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># Fill with your encoded base64 CA</span><span class="w"></span>
-<span class="w">  </span><span class="nt">certificate-authority-data</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
-<span class="nt">stringData</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># Fill with your string Token</span><span class="w"></span>
-<span class="w">  </span><span class="nt">bearerToken</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-token&quot;</span><span class="w"></span>
-</code></pre></div>
-2. Create a SecretStore</p>
-<p>The Server section specifies the <code>url</code> of the remote Kubernetes API. In this example the Certificate Authority is fetch using the encoded base64 <code>caBundle</code>.</p>
-<p>The <code>auth</code> section indicates that the  <code>token</code> type will be used for authentication, it includes the path to fetch the token.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="c1"># If not remoteNamesapce is provided, default     namespace is used</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remote-namespace</span><span class="w"></span>
-<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://remote.kubernetes.api-server.address</span><span class="w"></span>
-<span class="w">        </span><span class="c1"># Add your encoded base64 to caBundle</span><span class="w"></span>
-<span class="w">        </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
-<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="c1"># Adds referenced bearerToken</span><span class="w"></span>
-<span class="w">        </span><span class="nt">token</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="nt">bearerToken</span><span class="p">:</span><span class="w"></span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets</span><span class="w"></span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bearerToken</span><span class="w"></span>
-</code></pre></div>
-4. Finally create the ExternalSecret resource</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w">  </span><span class="c1"># name of the k8s Secret to be created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-remote-example</span><span class="w"></span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
-</code></pre></div>
+<p>If everything looks normal so far, please go ahead and ensure that the created secret has the expected value. Also, take a look at the logs of the controller.</p>
+<h2 id="upgrading-from-kes-to-eso">Upgrading from KES to ESO</h2>
+<p>Migrating from KES to ESO is quite tricky! There is a tool we built to help users out available <a href="https://github.com/external-secrets/kes-to-eso">here</a>, and there is a small migration procedure.</p>
+<p>There are some incompatibilities between KES to ESO, and while the tool tries to cover most of them, some of them will require manual intervention. We recommend to first convert the manifest files, and actually see if the tool provides a warning about any file needed to be changed.
+Beware that the tool points the SecretStores to use KES Service Account, so you'll also need to tweak that if you plan to uninstall KES after the upgrade.</p>
 
               
             </article>
@@ -1772,7 +1708,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../provider-fake/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Fake" rel="prev">
+        <a href="../roadmap/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Roadmap" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1781,20 +1717,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Fake
+              Roadmap
             </div>
           </div>
         </a>
       
       
         
-        <a href="../provider-senhasegura-dsm/" class="md-footer__link md-footer__link--next" aria-label="Next: DevOps Secrets Management (DSM)" rel="next">
+        <a href="../stability-support/" class="md-footer__link md-footer__link--next" aria-label="Next: Stability and Support" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              DevOps Secrets Management (DSM)
+              Stability and Support
             </div>
           </div>
           <div class="md-footer__button md-icon">
