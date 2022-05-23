@@ -110,20 +110,16 @@ var _ = Describe("secretsink", func() {
 	})
 
 	Describe("#SetSecretSinkCondition", func() {
-		secret := esapi.SecretSinkSecret{Name: ""}
-		selector := esapi.SecretSinkSelector{Secret: secret}
-		secretSink := esapi.SecretSink{}
+		It("appends a condition", func() {
+			secretSink := esapi.SecretSink{}
 
-		secretSinkStatusCondition := esapi.SecretSinkStatusCondition{}
-		secretSinkStatus := esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{secretSinkStatusCondition}}
-		secretSinkSpec := esapi.SecretSinkSpec{SecretStoreRefs: nil, Selector: selector, Data: nil}
-
-		It("returns a secretsink", func() {
-			toEqual := esapi.SecretSink{Spec: secretSinkSpec, Status: secretSinkStatus}
-			Expect(SetSecretSinkCondition(secretSink, secretSinkStatusCondition)).To(Equal(toEqual))
+			secretSinkStatusCondition := esapi.SecretSinkStatusCondition{}
+			secretSinkStatus := esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{secretSinkStatusCondition}}
+			expected := esapi.SecretSink{Status: secretSinkStatus}
+			Expect(SetSecretSinkCondition(secretSink, secretSinkStatusCondition)).To(Equal(expected))
 		})
 
-		It("appends secretsink condition if new", func() {
+		It("changes an existing condition", func() {
 			conditionStatusTrue := v1.ConditionTrue
 			secretSinkWithCondition := esapi.SecretSink{Status: esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{
 				{
@@ -137,12 +133,9 @@ var _ = Describe("secretsink", func() {
 				Message: "Update status",
 			}
 
-			Expect(SetSecretSinkCondition(secretSinkWithCondition, secretSinkStatusConditionTrue).Status.Conditions[0]).To(Equal(secretSinkStatusConditionTrue))
-
+			got := SetSecretSinkCondition(secretSinkWithCondition, secretSinkStatusConditionTrue)
+			Expect(len(got.Status.Conditions)).To(Equal(1))
+			Expect(got.Status.Conditions[0]).To(Equal(secretSinkStatusConditionTrue))
 		})
-
 	})
 })
-
-// currentCond != nil && currentCond.Status == condition.Status (SecretSinkReady SecretSinkConditionType = "Ready")
-// currentCond.Reason != condition.Reason && currentCond.Message != condition.Message
