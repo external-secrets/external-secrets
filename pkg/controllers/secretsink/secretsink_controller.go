@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,8 +34,10 @@ import (
 )
 
 const (
-	errFailedGetSecret = "could not get source secret"
-	errPatchStatus     = "error merging"
+	errFailedGetSecret       = "could not get source secret"
+	errPatchStatus           = "error merging"
+	errGetSecretStore        = "could not get SecretStore %q, %w"
+	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
 )
 
 type Reconciler struct {
@@ -68,6 +71,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
 		ss = SetSecretSinkCondition(ss, *cond)
 	}
+	_, err = r.GetSecretStore(ctx, ss)
+
 	cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionTrue, "SecretSynced", "SecretSink synced successfully")
 	ss = SetSecretSinkCondition(ss, *cond)
 	// Set status for SecretSink
@@ -82,6 +87,35 @@ func (r *Reconciler) GetSecret(ctx context.Context, ss esapi.SecretSink) (*v1.Se
 		return nil, err
 	}
 	return secret, nil
+}
+
+func (r *Reconciler) GetSecretStore(ctx context.Context, ss esapi.SecretSink) ([]v1beta1.GenericStore, error) {
+	stores := make([]v1beta1.GenericStore, 0)
+	for _, refStore := range ss.Spec.SecretStoreRefs {
+
+		ref := types.NamespacedName{
+			Name: refStore.Name,
+		}
+
+		if refStore.Kind == v1beta1.ClusterSecretStoreKind {
+			var store v1beta1.ClusterSecretStore
+			err := r.Get(ctx, ref, &store)
+			if err != nil {
+				return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
+			}
+			stores = append(stores, &store)
+		} else {
+			ref.Namespace = ss.Namespace
+
+			var store v1beta1.SecretStore
+			err := r.Get(ctx, ref, &store)
+			if err != nil {
+				return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
+			}
+			stores = append(stores, &store)
+		}
+	}
+	return stores, nil
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
