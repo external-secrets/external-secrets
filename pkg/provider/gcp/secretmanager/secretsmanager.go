@@ -215,21 +215,21 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 }
 
 // GetAllSecrets syncs multiple secrets from gcp provider into a single Kubernetes Secret.
-func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if ref.Name != nil {
 		return sm.findByName(ctx, ref)
 	}
 	if len(ref.Tags) > 0 {
 		return sm.findByTags(ctx, ref)
 	}
-	return nil, errors.New(errUnexpectedFindOperator)
+	return nil, esv1beta1.SecretsMetadata{}, errors.New(errUnexpectedFindOperator)
 }
 
-func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// regex matcher
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	req := &secretmanagerpb.ListSecretsRequest{
 		Parent: fmt.Sprintf("projects/%s", sm.projectID),
@@ -240,13 +240,14 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 	// Call the API.
 	it := sm.SecretManagerClient.ListSecrets(ctx, req)
 	secretMap := make(map[string][]byte)
+	var meta esv1beta1.SecretsMetadata
 	for {
 		resp, err := it.Next()
 		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to list secrets: %w", err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to list secrets: %w", err)
 		}
 		log.V(1).Info("gcp sm findByName found", "secrets", strconv.Itoa(it.PageInfo().Remaining()))
 		key := sm.trimName(resp.Name)
@@ -260,27 +261,28 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 			continue
 		}
 		log.V(1).Info("gcp sm findByName matches", "name", resp.Name)
-		secretMap[key], err = sm.getData(ctx, key)
+		secretMap[key], meta, err = sm.getData(ctx, key)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+	keys, err := utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+	return keys, meta, err
 }
 
-func (sm *ProviderGCP) getData(ctx context.Context, key string) ([]byte, error) {
+func (sm *ProviderGCP) getData(ctx context.Context, key string) ([]byte, esv1beta1.SecretsMetadata, error) {
 	dataRef := esv1beta1.ExternalSecretDataRemoteRef{
 		Key: key,
 	}
-	data, err := sm.GetSecret(ctx, dataRef)
+	data, meta, err := sm.GetSecret(ctx, dataRef)
 	if err != nil {
-		return []byte(""), err
+		return []byte(""), esv1beta1.SecretsMetadata{}, err
 	}
-	return data, nil
+	return data, meta, nil
 }
 
-func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	var tagFilter string
 	for k, v := range ref.Tags {
 		tagFilter = fmt.Sprintf("%slabels.%s=%s ", tagFilter, k, v)
@@ -297,26 +299,28 @@ func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSec
 	// Call the API.
 	it := sm.SecretManagerClient.ListSecrets(ctx, req)
 	secretMap := make(map[string][]byte)
+	var meta esv1beta1.SecretsMetadata
 	for {
 		resp, err := it.Next()
 		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to list secrets: %w", err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to list secrets: %w", err)
 		}
 		key := sm.trimName(resp.Name)
 		if ref.Path != nil && !strings.HasPrefix(key, *ref.Path) {
 			continue
 		}
 		log.V(1).Info("gcp sm findByTags matches tags", "name", resp.Name)
-		secretMap[key], err = sm.getData(ctx, key)
+		secretMap[key], meta, err = sm.getData(ctx, key)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+	keys, err := utils.ConvertKeys(ref.ConversionStrategy, secretMap)
+	return keys, meta, err
 }
 
 func (sm *ProviderGCP) trimName(name string) string {
@@ -335,9 +339,9 @@ func (sm *ProviderGCP) extractProjectIDNumber(secretFullName string) string {
 }
 
 // GetSecret returns a single secret from the provider.
-func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if utils.IsNil(sm.SecretManagerClient) || sm.projectID == "" {
-		return nil, fmt.Errorf(errUninitalizedGCPProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
 	version := ref.Version
@@ -350,14 +354,14 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecr
 	}
 	result, err := sm.SecretManagerClient.AccessSecretVersion(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf(errClientGetSecretAccess, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errClientGetSecretAccess, err)
 	}
 
 	if ref.Property == "" {
 		if result.Payload.Data != nil {
-			return result.Payload.Data, nil
+			return result.Payload.Data, esv1beta1.SecretsMetadata{}, nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
 	var payload string
@@ -370,31 +374,31 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecr
 		refProperty = strings.ReplaceAll(refProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if val.Exists() {
-			return []byte(val.String()), nil
+			return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 		}
 	}
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
-	return []byte(val.String()), nil
+	return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if sm.SecretManagerClient == nil || sm.projectID == "" {
-		return nil, fmt.Errorf(errUninitalizedGCPProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
-	data, err := sm.GetSecret(ctx, ref)
+	data, meta, err := sm.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 
 	secretData := make(map[string][]byte)
@@ -408,7 +412,7 @@ func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalS
 		}
 	}
 
-	return secretData, nil
+	return secretData, meta, nil
 }
 
 func (sm *ProviderGCP) Close(ctx context.Context) error {

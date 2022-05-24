@@ -115,7 +115,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	if shouldSkipClusterSecretStore(r, externalSecret) {
+	if shouldSkipClusterSecretStore(r, &externalSecret) {
 		log.Info("skipping cluster secret store as it is disabled")
 		return ctrl.Result{}, nil
 	}
@@ -186,16 +186,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, errGetExistingSecret)
 	}
 
-	// refresh should be skipped if
-	// 1. resource generation hasn't changed
-	// 2. refresh interval is 0
-	// 3. if we're still within refresh-interval
-	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
-		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
+	if !shouldRefresh(&externalSecret) && isSecretValid(existingSecret) {
+		log.V(1).Info("skipping refresh", "rv", getResourceVersion(&externalSecret))
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
-	if !shouldReconcile(externalSecret) {
-		log.V(1).Info("stopping reconciling", "rv", getResourceVersion(externalSecret))
+
+	if !shouldReconcile(&externalSecret) {
+		log.V(1).Info("stopping reconciling", "rv", getResourceVersion(&externalSecret))
 		return ctrl.Result{
 			RequeueAfter: 0,
 			Requeue:      false,
@@ -230,7 +227,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		Data:      make(map[string][]byte),
 	}
 
-	dataMap, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
+	dataMap, metadata, err := r.getProviderSecretData(ctx, secretClient, &externalSecret)
 	if err != nil {
 		log.Error(err, errGetSecretData)
 		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
@@ -333,7 +330,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	currCond := GetExternalSecretCondition(externalSecret.Status, esv1beta1.ExternalSecretReady)
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
-	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
+	externalSecret.Status.SyncedResourceVersion = getResourceVersion(&externalSecret)
+	if metadata.LeaseTimeout != nil {
+		externalSecret.Status.LeaseTimeout = metav1.NewTime(*metadata.LeaseTimeout)
+	}
 	syncCallsTotal.With(syncCallsMetricLabels).Inc()
 	if currCond == nil || currCond.Status != conditionSynced.Status {
 		log.Info("reconciled secret") // Log once if on success in any verbosity
@@ -418,8 +418,12 @@ func getManagedKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
 	return keys, nil
 }
 
-func getResourceVersion(es esv1beta1.ExternalSecret) string {
-	return fmt.Sprintf("%d-%s", es.ObjectMeta.GetGeneration(), hashMeta(es.ObjectMeta))
+func getResourceVersion(es *esv1beta1.ExternalSecret) string {
+	var meta metav1.ObjectMeta
+	if es != nil {
+		meta = es.ObjectMeta
+	}
+	return fmt.Sprintf("%d-%s", meta.GetGeneration(), hashMeta(meta))
 }
 
 func hashMeta(m metav1.ObjectMeta) string {
@@ -433,34 +437,52 @@ func hashMeta(m metav1.ObjectMeta) string {
 	})
 }
 
-func shouldSkipClusterSecretStore(r *Reconciler, es esv1beta1.ExternalSecret) bool {
-	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
+func shouldSkipClusterSecretStore(r *Reconciler, es *esv1beta1.ExternalSecret) bool {
+	return es != nil && !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
 }
 
-func shouldRefresh(es esv1beta1.ExternalSecret) bool {
-	// refresh if resource version changed
-	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
+// shouldRefresh finds if the secret needs to be refreshed (fetching the data from the provider and
+// updating the actuel kubernetes secret)
+//
+// refresh should be skipped if
+// 1. resource generation hasn't changed
+// 2. refresh interval is 0
+// 3. if we're still within refresh-interval
+// 4. if the secret lease expires after next refresh interval.
+func shouldRefresh(externalSecret *esv1beta1.ExternalSecret) bool {
+	if externalSecret == nil {
+		// This should not happen
 		return true
+	}
+
+	// refresh if resource version changed
+	if externalSecret.Status.SyncedResourceVersion != getResourceVersion(externalSecret) {
+		return true
+	}
+
+	// Skip refresh if lease expires after next refresh interval
+	if !externalSecret.Status.LeaseTimeout.IsZero() && externalSecret.Status.LeaseTimeout.After(time.Now().Add(externalSecret.Spec.RefreshInterval.Duration)) {
+		return false
 	}
 
 	// skip refresh if refresh interval is 0
-	if es.Spec.RefreshInterval.Duration == 0 && es.Status.SyncedResourceVersion != "" {
+	if externalSecret.Spec.RefreshInterval.Duration == 0 && externalSecret.Status.SyncedResourceVersion != "" {
 		return false
 	}
-	if es.Status.RefreshTime.IsZero() {
+	if externalSecret.Status.RefreshTime.IsZero() {
 		return true
 	}
-	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
+	return !externalSecret.Status.RefreshTime.Add(externalSecret.Spec.RefreshInterval.Duration).After(time.Now())
 }
 
-func shouldReconcile(es esv1beta1.ExternalSecret) bool {
+func shouldReconcile(es *esv1beta1.ExternalSecret) bool {
 	if es.Spec.Target.Immutable && hasSyncedCondition(es) {
 		return false
 	}
 	return true
 }
 
-func hasSyncedCondition(es esv1beta1.ExternalSecret) bool {
+func hasSyncedCondition(es *esv1beta1.ExternalSecret) bool {
 	for _, condition := range es.Status.Conditions {
 		if condition.Reason == "SecretSynced" {
 			return true
@@ -469,7 +491,7 @@ func hasSyncedCondition(es esv1beta1.ExternalSecret) bool {
 	return false
 }
 
-// isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.
+// isSecretValid checks if the secret exists, and its data is consistent with the calculated hash.
 func isSecretValid(existingSecret v1.Secret) bool {
 	// if target secret doesn't exist, or annotations as not set, we need to refresh
 	if existingSecret.UID == "" || existingSecret.Annotations == nil {
@@ -517,37 +539,39 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 }
 
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
-func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient esv1beta1.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
+func (r *Reconciler) getProviderSecretData(
+	ctx context.Context, providerClient esv1beta1.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	providerData := make(map[string][]byte)
+	var providerSecretMetadata esv1beta1.SecretsMetadata
 
 	for i, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
 		var err error
 		if remoteRef.Find != nil {
-			secretMap, err = providerClient.GetAllSecrets(ctx, *remoteRef.Find)
+			secretMap, providerSecretMetadata, err = providerClient.GetAllSecrets(ctx, *remoteRef.Find)
 			if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
 				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .dataFrom[%d]", i))
 				continue
 			}
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 			secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
 			if err != nil {
-				return nil, fmt.Errorf(errConvert, err)
+				return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errConvert, err)
 			}
 		} else if remoteRef.Extract != nil {
-			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
+			secretMap, providerSecretMetadata, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
 			if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
 				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .dataFrom[%d]", i))
 				continue
 			}
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 			secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
 			if err != nil {
-				return nil, fmt.Errorf(errConvert, err)
+				return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errConvert, err)
 			}
 		}
 
@@ -555,19 +579,27 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 	}
 
 	for i, secretRef := range externalSecret.Spec.Data {
-		secretData, err := providerClient.GetSecret(ctx, secretRef.RemoteRef)
+		var secretData []byte
+		var err error
+		secretData, providerSecretMetadata, err = providerClient.GetSecret(ctx, secretRef.RemoteRef)
 		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
 			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .data[%d] key=%s", i, secretRef.RemoteRef.Key))
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		providerData[secretRef.SecretKey] = secretData
 	}
 
-	return providerData, nil
+	// If we call the provider multiple times to get secrets
+	// We don't know what to do when multiple metadatas with differents values are returned
+	if len(externalSecret.Spec.DataFrom)+len(externalSecret.Spec.Data) > 1 {
+		providerSecretMetadata = esv1beta1.SecretsMetadata{}
+	}
+
+	return providerData, providerSecretMetadata, nil
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

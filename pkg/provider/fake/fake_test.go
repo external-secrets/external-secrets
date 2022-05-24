@@ -135,12 +135,13 @@ func TestGetSecret(t *testing.T) {
 				},
 			}, nil, "")
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			out, err := cl.GetSecret(context.Background(), row.request)
+			out, meta, err := cl.GetSecret(context.Background(), row.request)
 			if row.expErr != "" {
 				gomega.Expect(err).To(gomega.MatchError(row.expErr))
 			} else {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			}
+			gomega.Expect(meta.LeaseTimeout).To(gomega.BeNil())
 			gomega.Expect(string(out)).To(gomega.Equal(row.expValue))
 		})
 	}
@@ -216,12 +217,13 @@ func TestGetSecretMap(t *testing.T) {
 				},
 			}, nil, "")
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			out, err := cl.GetSecretMap(context.Background(), row.request)
+			out, meta, err := cl.GetSecretMap(context.Background(), row.request)
 			if row.expErr != "" {
 				gomega.Expect(err).To(gomega.MatchError(row.expErr))
 			} else {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			}
+			gomega.Expect(meta.LeaseTimeout).To(gomega.BeNil())
 			gomega.Expect(out).To(gomega.Equal(row.expValue))
 		})
 	}

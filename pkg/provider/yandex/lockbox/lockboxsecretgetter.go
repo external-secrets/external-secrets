@@ -20,6 +20,7 @@ import (
 
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
 )
@@ -35,10 +36,10 @@ func newLockboxSecretGetter(lockboxClient client.LockboxClient) (common.SecretGe
 	}, nil
 }
 
-func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceID, versionID, property string) ([]byte, error) {
+func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceID, versionID, property string) ([]byte, esv1beta1.SecretsMetadata, error) {
 	entries, err := g.lockboxClient.GetPayloadEntries(ctx, iamToken, resourceID, versionID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to request secret payload to get secret: %w", err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unable to request secret payload to get secret: %w", err)
 	}
 
 	if property == "" {
@@ -46,39 +47,40 @@ func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceI
 		for _, entry := range entries {
 			value, err := getValueAsIs(entry)
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 			keyToValue[entry.Key] = value
 		}
 		out, err := json.Marshal(keyToValue)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal secret: %w", err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to marshal secret: %w", err)
 		}
-		return out, nil
+		return out, esv1beta1.SecretsMetadata{}, nil
 	}
 
 	entry, err := findEntryByKey(entries, property)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
-	return getValueAsBinary(entry)
+	value, err := getValueAsBinary(entry)
+	return value, esv1beta1.SecretsMetadata{}, err
 }
 
-func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceID, versionID string) (map[string][]byte, error) {
+func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceID, versionID string) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	entries, err := g.lockboxClient.GetPayloadEntries(ctx, iamToken, resourceID, versionID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
 	}
 
 	secretMap := make(map[string][]byte, len(entries))
 	for _, entry := range entries {
 		value, err := getValueAsBinary(entry)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		secretMap[entry.Key] = value
 	}
-	return secretMap, nil
+	return secretMap, esv1beta1.SecretsMetadata{}, nil
 }
 
 func getValueAsIs(entry *lockbox.Payload_Entry) (interface{}, error) {

@@ -198,7 +198,7 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 
 // Implements store.Client.GetAllSecrets Interface.
 // Retrieves a map[string][]byte with the secret names as key and the secret itself as the calue.
-func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	basicClient := a.baseClient
 	secretsMap := make(map[string][]byte)
 	checkTags := len(ref.Tags) > 0
@@ -206,7 +206,7 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 
 	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), *a.provider.VaultURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	for secretListIter.NotDone() {
@@ -219,7 +219,7 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 
 			secretResp, err := basicClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, "")
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 
 			secretValue := *secretResp.Value
@@ -228,28 +228,29 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 
 		err = secretListIter.Next()
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 	}
-	return secretsMap, nil
+	return secretsMap, esv1beta1.SecretsMetadata{}, nil
 }
 
 // Retrieves a tag value if specified and all tags in JSON format if not.
-func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
+func getSecretTag(tags map[string]*string, property string) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if property == "" {
 		secretTagsData := make(map[string]string)
 		for k, v := range tags {
 			secretTagsData[k] = *v
 		}
-		return json.Marshal(secretTagsData)
+		jsonData, err := json.Marshal(secretTagsData)
+		return jsonData, esv1beta1.SecretsMetadata{}, err
 	}
 	if val, exist := tags[property]; exist {
-		return []byte(*val), nil
+		return []byte(*val), esv1beta1.SecretsMetadata{}, nil
 	}
 
 	idx := strings.Index(property, ".")
 	if idx < 0 {
-		return nil, fmt.Errorf(errTagNotExist, property)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errTagNotExist, property)
 	}
 
 	if idx > 0 {
@@ -260,34 +261,34 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 		}
 	}
 
-	return nil, fmt.Errorf(errTagNotExist, property)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errTagNotExist, property)
 }
 
 // Retrieves a property value if specified and the secret value if not.
-func getProperty(secret, property, key string) ([]byte, error) {
+func getProperty(secret, property, key string) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if property == "" {
-		return []byte(secret), nil
+		return []byte(secret), esv1beta1.SecretsMetadata{}, nil
 	}
 	res := gjson.Get(secret, property)
 	if !res.Exists() {
 		idx := strings.Index(property, ".")
 		if idx < 0 {
-			return nil, fmt.Errorf(errPropNotExist, property, key)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errPropNotExist, property, key)
 		}
 		escaped := strings.ReplaceAll(property, ".", "\\.")
 		jValue := gjson.Get(secret, escaped)
 		if jValue.Exists() {
-			return []byte(jValue.String()), nil
+			return []byte(jValue.String()), esv1beta1.SecretsMetadata{}, nil
 		}
-		return nil, fmt.Errorf(errPropNotExist, property, key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errPropNotExist, property, key)
 	}
-	return []byte(res.String()), nil
+	return []byte(res.String()), esv1beta1.SecretsMetadata{}, nil
 }
 
 // Implements store.Client.GetSecret Interface.
 // Retrieves a secret/Key/Certificate/Tag with the secret name defined in ref.Name
 // The Object Type is defined as a prefix in the ref.Name , if no prefix is defined , we assume a secret is required.
-func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	objectType, secretName := getObjType(ref)
 
 	switch objectType {
@@ -296,7 +297,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
 		secretResp, err := a.baseClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 			return getSecretTag(secretResp.Tags, ref.Property)
@@ -307,36 +308,37 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle
 		certResp, err := a.baseClient.GetCertificate(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 			return getSecretTag(certResp.Tags, ref.Property)
 		}
-		return *certResp.Cer, nil
+		return *certResp.Cer, esv1beta1.SecretsMetadata{}, nil
 	case objectTypeKey:
 		// returns a KeyBundle that contains a jwk
 		// azure kv returns only public keys
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
 		keyResp, err := a.baseClient.GetKey(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 			return getSecretTag(keyResp.Tags, ref.Property)
 		}
-		return json.Marshal(keyResp.Key)
+		jsonData, err := json.Marshal(keyResp.Key)
+		return jsonData, esv1beta1.SecretsMetadata{}, err
 	}
 
-	return nil, fmt.Errorf(errUnknownObjectType, secretName)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUnknownObjectType, secretName)
 }
 
 // returns a SecretBundle with the tags values.
-func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string]*string, error) {
+func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string]*string, esv1beta1.SecretsMetadata, error) {
 	_, secretName := getObjType(ref)
 	secretResp, err := a.baseClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
 
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	secretTagsData := make(map[string]*string)
@@ -355,34 +357,34 @@ func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[st
 			}
 		}
 	}
-	return secretTagsData, nil
+	return secretTagsData, esv1beta1.SecretsMetadata{}, nil
 }
 
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
-func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	objectType, secretName := getObjType(ref)
 
 	switch objectType {
 	case defaultObjType:
-		data, err := a.GetSecret(ctx, ref)
+		data, meta, err := a.GetSecret(ctx, ref)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-			tags, _ := a.getSecretTags(ref)
-			return getSecretMapProperties(tags, ref.Key, ref.Property), nil
+			tags, _, _ := a.getSecretTags(ref)
+			return getSecretMapProperties(tags, ref.Key, ref.Property), meta, nil
 		}
 
-		return getSecretMapMap(data)
-
+		mapData, err := getSecretMapMap(data)
+		return mapData, esv1beta1.SecretsMetadata{}, err
 	case objectTypeCert:
-		return nil, fmt.Errorf(errDataFromCert)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errDataFromCert)
 	case objectTypeKey:
-		return nil, fmt.Errorf(errDataFromKey)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errDataFromKey)
 	}
-	return nil, fmt.Errorf(errUnknownObjectType, secretName)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUnknownObjectType, secretName)
 }
 
 func getSecretMapMap(data []byte) (map[string][]byte, error) {
@@ -409,7 +411,7 @@ func getSecretMapProperties(tags map[string]*string, key, property string) map[s
 	tagByteArray := make(map[string][]byte)
 	if property != "" {
 		keyPropertyName := key + "_" + property
-		singleTag, _ := getSecretTag(tags, keyPropertyName)
+		singleTag, _, _ := getSecretTag(tags, keyPropertyName)
 		tagByteArray[keyPropertyName] = singleTag
 
 		return tagByteArray

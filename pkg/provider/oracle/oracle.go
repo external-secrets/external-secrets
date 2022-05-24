@@ -66,14 +66,14 @@ type VMInterface interface {
 }
 
 // Empty GetAllSecrets.
-func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if utils.IsNil(vms.Client) {
-		return nil, fmt.Errorf(errUninitalizedOracleProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedOracleProvider)
 	}
 
 	sec, err := vms.Client.GetSecretBundleByName(ctx, secrets.GetSecretBundleByNameRequest{
@@ -82,47 +82,47 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.
 		Stage:      secrets.GetSecretBundleByNameStageEnum(ref.Version),
 	})
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, esv1beta1.SecretsMetadata{}, util.SanitizeErr(err)
 	}
 
 	bt, ok := sec.SecretBundleContent.(secrets.Base64SecretBundleContentDetails)
 	if !ok {
-		return nil, fmt.Errorf(errUnexpectedContent)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUnexpectedContent)
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(*bt.Content)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	if ref.Property == "" {
-		return payload, nil
+		return payload, esv1beta1.SecretsMetadata{}, nil
 	}
 
 	val := gjson.Get(string(payload), ref.Property)
 
 	if !val.Exists() {
-		return nil, fmt.Errorf(errMissingKey, ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errMissingKey, ref.Key)
 	}
 
-	return []byte(val.String()), nil
+	return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 }
 
-func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := vms.GetSecret(ctx, ref)
+func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+	data, meta, err := vms.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
 		secretData[k] = []byte(v)
 	}
-	return secretData, nil
+	return secretData, meta, nil
 }
 
 // NewClient constructs a new secrets client based on the provided store.

@@ -167,14 +167,14 @@ func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
 
 // Implements store.Client.GetSecret Interface.
 // Retrieves a secret with the secret name defined in ref.Name.
-func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if utils.IsNil(a.Client) {
-		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedAkeylessProvider)
 	}
 
 	token, err := a.Client.TokenFromSecretRef(ctx)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	version := int32(0)
 	if ref.Version != "" {
@@ -185,33 +185,33 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	}
 	value, err := a.Client.GetSecretByType(ref.Key, token, version)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
-	return []byte(value), nil
+	return []byte(value), esv1beta1.SecretsMetadata{}, nil
 }
 
 // Empty GetAllSecrets.
-func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("GetAllSecrets not implemented")
 }
 
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
-func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if utils.IsNil(a.Client) {
-		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedAkeylessProvider)
 	}
 
-	val, err := a.GetSecret(ctx, ref)
+	val, meta, err := a.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	// Maps the json data to a string:string map
 	kv := make(map[string]string)
 	err = json.Unmarshal(val, &kv)
 	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 
 	// Converts values in K:V pairs into bytes, while leaving keys as strings
@@ -219,5 +219,5 @@ func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	for k, v := range kv {
 		secretData[k] = []byte(v)
 	}
-	return secretData, nil
+	return secretData, meta, nil
 }

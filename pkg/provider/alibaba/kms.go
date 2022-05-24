@@ -115,15 +115,15 @@ func (c *Client) setAuth(ctx context.Context) error {
 }
 
 // Empty GetAllSecrets.
-func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("GetAllSecrets not implemented")
 }
 
 // GetSecret returns a single secret from the provider.
-func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if utils.IsNil(kms.Client) {
-		return nil, fmt.Errorf(errUninitalizedAlibabaProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedAlibabaProvider)
 	}
 	kmsRequest := kmssdk.CreateGetSecretValueRequest()
 	kmsRequest.VersionId = ref.Version
@@ -131,13 +131,13 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.Ex
 	kmsRequest.SetScheme("https")
 	secretOut, err := kms.Client.GetSecretValue(kmsRequest)
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, esv1beta1.SecretsMetadata{}, util.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if secretOut.SecretData != "" {
-			return []byte(secretOut.SecretData), nil
+			return []byte(secretOut.SecretData), esv1beta1.SecretsMetadata{}, nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
 	var payload string
 	if secretOut.SecretData != "" {
@@ -145,27 +145,27 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.Ex
 	}
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
-	return []byte(val.String()), nil
+	return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := kms.GetSecret(ctx, ref)
+func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+	data, meta, err := kms.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
 		secretData[k] = []byte(v)
 	}
-	return secretData, nil
+	return secretData, meta, nil
 }
 
 // NewClient constructs a new secrets client based on the provided store.

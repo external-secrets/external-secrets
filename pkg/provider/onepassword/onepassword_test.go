@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/1Password/connect-sdk-go/onepassword"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -659,10 +660,11 @@ func TestValidateStore(t *testing.T) {
 //   the data or errors are properly returned
 func TestGetSecret(t *testing.T) {
 	type check struct {
-		checkNote     string
-		ref           esv1beta1.ExternalSecretDataRemoteRef
-		expectedValue string
-		expectedErr   error
+		checkNote            string
+		ref                  esv1beta1.ExternalSecretDataRemoteRef
+		expectedValue        string
+		expectedErr          error
+		expectedLeaseTimeout *time.Time
 	}
 
 	type testCase struct {
@@ -789,7 +791,7 @@ func TestGetSecret(t *testing.T) {
 	// run the tests
 	for _, tc := range testCases {
 		for _, check := range tc.checks {
-			got, err := tc.provider.GetSecret(context.Background(), check.ref)
+			got, meta, err := tc.provider.GetSecret(context.Background(), check.ref)
 			notes := fmt.Sprintf(setupCheckFormat, tc.setupNote, check.checkNote)
 			if check.expectedErr == nil && err != nil {
 				// expected no error, got one
@@ -809,6 +811,9 @@ func TestGetSecret(t *testing.T) {
 					t.Errorf(getSecretErrFormat, notes, check.expectedValue, string(got))
 				}
 			}
+			if check.expectedLeaseTimeout != meta.LeaseTimeout {
+				t.Errorf(getSecretErrFormat, notes, check.expectedLeaseTimeout, meta.LeaseTimeout)
+			}
 		}
 	}
 }
@@ -818,10 +823,11 @@ func TestGetSecret(t *testing.T) {
 //   files are loaded, and the data or errors are properly returned.
 func TestGetSecretMap(t *testing.T) {
 	type check struct {
-		checkNote   string
-		ref         esv1beta1.ExternalSecretDataRemoteRef
-		expectedMap map[string][]byte
-		expectedErr error
+		checkNote            string
+		ref                  esv1beta1.ExternalSecretDataRemoteRef
+		expectedMap          map[string][]byte
+		expectedErr          error
+		expectedLeaseTimeout *time.Time
 	}
 
 	type testCase struct {
@@ -955,7 +961,7 @@ func TestGetSecretMap(t *testing.T) {
 	// run the tests
 	for _, tc := range testCases {
 		for _, check := range tc.checks {
-			gotMap, err := tc.provider.GetSecretMap(context.Background(), check.ref)
+			gotMap, meta, err := tc.provider.GetSecretMap(context.Background(), check.ref)
 			notes := fmt.Sprintf(setupCheckFormat, tc.setupNote, check.checkNote)
 			if check.expectedErr == nil && err != nil {
 				// expected no error, got one
@@ -969,6 +975,9 @@ func TestGetSecretMap(t *testing.T) {
 				// expected an error, got the wrong one
 				t.Errorf(getSecretMapErrFormat, notes, check.expectedErr.Error(), err.Error())
 			}
+			if check.expectedLeaseTimeout != meta.LeaseTimeout {
+				t.Errorf(getSecretErrFormat, notes, check.expectedLeaseTimeout, meta.LeaseTimeout)
+			}
 			if !reflect.DeepEqual(check.expectedMap, gotMap) {
 				// expected a predefined map, got something else
 				t.Errorf(getSecretMapErrFormat, notes, check.expectedMap, gotMap)
@@ -979,10 +988,11 @@ func TestGetSecretMap(t *testing.T) {
 
 func TestGetAllSecrets(t *testing.T) {
 	type check struct {
-		checkNote   string
-		ref         esv1beta1.ExternalSecretFind
-		expectedMap map[string][]byte
-		expectedErr error
+		checkNote            string
+		ref                  esv1beta1.ExternalSecretFind
+		expectedMap          map[string][]byte
+		expectedErr          error
+		expectedLeaseTimeout *time.Time
 	}
 
 	type testCase struct {
@@ -1295,7 +1305,7 @@ func TestGetAllSecrets(t *testing.T) {
 	// run the tests
 	for _, tc := range testCases {
 		for _, check := range tc.checks {
-			gotMap, err := tc.provider.GetAllSecrets(context.Background(), check.ref)
+			gotMap, meta, err := tc.provider.GetAllSecrets(context.Background(), check.ref)
 			notes := fmt.Sprintf(setupCheckFormat, tc.setupNote, check.checkNote)
 			if check.expectedErr == nil && err != nil {
 				// expected no error, got one
@@ -1308,6 +1318,9 @@ func TestGetAllSecrets(t *testing.T) {
 			if check.expectedErr != nil && err != nil && err.Error() != check.expectedErr.Error() {
 				// expected an error, got the wrong one
 				t.Errorf(getAllSecretsErrFormat, notes, check.expectedErr.Error(), err.Error())
+			}
+			if check.expectedLeaseTimeout != meta.LeaseTimeout {
+				t.Errorf(getSecretErrFormat, notes, check.expectedLeaseTimeout, meta.LeaseTimeout)
 			}
 			if !reflect.DeepEqual(check.expectedMap, gotMap) {
 				// expected a predefined map, got something else

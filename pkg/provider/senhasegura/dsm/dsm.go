@@ -93,10 +93,10 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 /*
 	GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service
 */
-func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (resp []byte, err error) {
+func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (resp []byte, meta esv1beta1.SecretsMetadata, err error) {
 	appSecrets, err := dsm.FetchSecrets()
 	if err != nil {
-		return []byte(""), err
+		return []byte(""), esv1beta1.SecretsMetadata{}, err
 	}
 
 	for _, v := range appSecrets.Application.Secrets {
@@ -105,9 +105,9 @@ func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 			if ref.Property == "" {
 				jsonStr, err := json.Marshal(v.Data)
 				if err != nil {
-					return nil, err
+					return nil, esv1beta1.SecretsMetadata{}, err
 				}
-				return jsonStr, nil
+				return jsonStr, esv1beta1.SecretsMetadata{}, nil
 			}
 
 			// Return raw data content when ref.Property is provided
@@ -115,24 +115,24 @@ func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 				for k, v3 := range v2 {
 					if k == ref.Property {
 						resp = []byte(v3)
-						return resp, nil
+						return resp, esv1beta1.SecretsMetadata{}, nil
 					}
 				}
 			}
 		}
 	}
 
-	return []byte(""), esv1beta1.NoSecretErr
+	return []byte(""), esv1beta1.SecretsMetadata{}, esv1beta1.NoSecretErr
 }
 
 /*
 	GetSecretMap implements ESO interface and returns miltiple k/v pairs from senhasegura provider with DSM service
 */
-func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (secretData map[string][]byte, err error) {
+func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (secretData map[string][]byte, meta esv1beta1.SecretsMetadata, err error) {
 	secretData = make(map[string][]byte)
 	appSecrets, err := dsm.FetchSecrets()
 	if err != nil {
-		return secretData, err
+		return secretData, esv1beta1.SecretsMetadata{}, err
 	}
 
 	for _, v := range appSecrets.Application.Secrets {
@@ -144,7 +144,7 @@ func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 			}
 		}
 	}
-	return secretData, nil
+	return secretData, esv1beta1.SecretsMetadata{}, nil
 }
 
 /*
@@ -153,8 +153,8 @@ func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	TODO: GetAllSecrets functionality is to get secrets from either regexp-matching against the names or via metadata label matching.
 	https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107
 */
-func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (secretData map[string][]byte, err error) {
-	return nil, fmt.Errorf("GetAllSecrets not implemented yet")
+func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("GetAllSecrets not implemented yet")
 }
 
 /*

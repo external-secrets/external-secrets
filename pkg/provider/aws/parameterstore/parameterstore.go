@@ -60,21 +60,20 @@ func New(sess *session.Session) (*ParameterStore, error) {
 	}, nil
 }
 
-// Empty GetAllSecrets.
-func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if ref.Name != nil {
 		return pm.findByName(ref)
 	}
 	if ref.Tags != nil {
 		return pm.findByTags(ref)
 	}
-	return nil, errors.New(errUnexpectedFindOperator)
+	return nil, esv1beta1.SecretsMetadata{}, errors.New(errUnexpectedFindOperator)
 }
 
-func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	pathFilter := make([]*ssm.ParameterStringFilter, 0)
 	if ref.Path != nil {
@@ -92,7 +91,7 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 			ParameterFilters: pathFilter,
 		})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		for _, param := range it.Parameters {
 			if !matcher.MatchName(*param.Name) {
@@ -100,7 +99,7 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 			}
 			err = pm.fetchAndSet(data, *param.Name)
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 		}
 		nextToken = it.NextToken
@@ -109,10 +108,11 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	keys, err := utils.ConvertKeys(ref.ConversionStrategy, data)
+	return keys, esv1beta1.SecretsMetadata{}, err
 }
 
-func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	filters := make([]*ssm.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &ssm.ParameterStringFilter{
@@ -138,12 +138,12 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 			NextToken:        nextToken,
 		})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		for _, param := range it.Parameters {
 			err = pm.fetchAndSet(data, *param.Name)
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 		}
 		nextToken = it.NextToken
@@ -152,7 +152,8 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	keys, err := utils.ConvertKeys(ref.ConversionStrategy, data)
+	return keys, esv1beta1.SecretsMetadata{}, err
 }
 
 func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error {
@@ -169,7 +170,7 @@ func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error
 }
 
 // GetSecret returns a single secret from the provider.
-func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
 		Name:           &ref.Key,
 		WithDecryption: aws.Bool(true),
@@ -177,48 +178,48 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 
 	var nf *ssm.ParameterNotFound
 	if errors.As(err, &nf) {
-		return nil, esv1beta1.NoSecretErr
+		return nil, esv1beta1.SecretsMetadata{}, esv1beta1.NoSecretErr
 	}
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, esv1beta1.SecretsMetadata{}, util.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if out.Parameter.Value != nil {
-			return []byte(*out.Parameter.Value), nil
+			return []byte(*out.Parameter.Value), esv1beta1.SecretsMetadata{}, nil
 		}
-		return nil, fmt.Errorf("invalid secret received. parameter value is nil for key: %s", ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("invalid secret received. parameter value is nil for key: %s", ref.Key)
 	}
 	idx := strings.Index(ref.Property, ".")
 	if idx > 0 {
 		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
 		val := gjson.Get(*out.Parameter.Value, refProperty)
 		if val.Exists() {
-			return []byte(val.String()), nil
+			return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 		}
 	}
 	val := gjson.Get(*out.Parameter.Value, ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
-	return []byte(val.String()), nil
+	return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := pm.GetSecret(ctx, ref)
+func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+	data, meta, err := pm.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
 		secretData[k] = []byte(v)
 	}
-	return secretData, nil
+	return secretData, meta, nil
 }
 
 func (pm *ParameterStore) Close(ctx context.Context) error {

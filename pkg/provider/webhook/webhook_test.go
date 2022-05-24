@@ -272,10 +272,13 @@ func testGetSecretMap(tc testCase, t *testing.T, client esv1beta1.SecretsClient)
 		Key:     tc.Args.Key,
 		Version: tc.Args.Version,
 	}
-	secretmap, err := client.GetSecretMap(context.Background(), testRef)
+	secretmap, meta, err := client.GetSecretMap(context.Background(), testRef)
 	errStr := ""
 	if err != nil {
 		errStr = err.Error()
+	}
+	if meta.LeaseTimeout != nil {
+		t.Errorf("%s: unexpected value for LeaseTimeout: '%s' (expected 'nil')", tc.Case, meta.LeaseTimeout)
 	}
 	if (tc.Want.Err == "") != (errStr == "") || !strings.Contains(errStr, tc.Want.Err) {
 		t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)
@@ -299,10 +302,13 @@ func testGetSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	secret, err := client.GetSecret(ctx, testRef)
+	secret, meta, err := client.GetSecret(ctx, testRef)
 	errStr := ""
 	if err != nil {
 		errStr = err.Error()
+	}
+	if meta.LeaseTimeout != nil {
+		t.Errorf("%s: unexpected value for LeaseTimeout: '%s' (expected 'nil')", tc.Case, meta.LeaseTimeout)
 	}
 	if !strings.Contains(errStr, tc.Want.Err) {
 		t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)

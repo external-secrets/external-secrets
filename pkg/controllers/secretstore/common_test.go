@@ -171,7 +171,9 @@ func makeDefaultTestcase() *testCase {
 				// a testCase mutator must fill in the concrete provider
 				Provider: &esapi.SecretStoreProvider{
 					Vault: &esapi.VaultProvider{
-						Version: esapi.VaultKVStoreV1,
+						Version:         esapi.VaultKVStoreV1,
+						SecretEngine:    esapi.VaultSecretEngineKeyValue,
+						CredentialsType: esapi.VaultAWSCredentialsTypeSts,
 					},
 				},
 			},

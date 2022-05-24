@@ -411,9 +411,12 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	sm := providerIBM{}
 	for k, v := range successCases {
 		sm.IBMClient = v.mockClient
-		out, err := sm.GetSecret(context.Background(), *v.ref)
+		out, meta, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
@@ -634,9 +637,12 @@ func TestGetSecretMap(t *testing.T) {
 	sm := providerIBM{}
 	for k, v := range successCases {
 		sm.IBMClient = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, meta, err := sm.GetSecretMap(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)

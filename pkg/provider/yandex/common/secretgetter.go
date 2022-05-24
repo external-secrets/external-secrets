@@ -15,10 +15,12 @@ package common
 
 import (
 	"context"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-// Adapts the secrets received from a remote Yandex.Cloud service for the format expected by v1beta1.SecretsClient.
+// SecretGetter adapts the secrets received from a remote Yandex.Cloud service for the format expected by v1beta1.SecretsClient.
 type SecretGetter interface {
-	GetSecret(ctx context.Context, iamToken, resourceID, versionID, property string) ([]byte, error)
-	GetSecretMap(ctx context.Context, iamToken, resourceID, versionID string) (map[string][]byte, error)
+	GetSecret(ctx context.Context, iamToken, resourceID, versionID, property string) ([]byte, esv1beta1.SecretsMetadata, error)
+	GetSecretMap(ctx context.Context, iamToken, resourceID, versionID string) (map[string][]byte, esv1beta1.SecretsMetadata, error)
 }

@@ -176,7 +176,7 @@ func TestGetSecret(t *testing.T) {
 				ReviewClient: tt.fields.ReviewClient,
 				Namespace:    tt.fields.Namespace,
 			}
-			got, err := p.GetSecret(context.Background(), tt.ref)
+			got, _, err := p.GetSecret(context.Background(), tt.ref)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.GetSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -450,7 +450,7 @@ func TestGetAllSecrets(t *testing.T) {
 				ReviewClient: tt.fields.ReviewClient,
 				Namespace:    tt.fields.Namespace,
 			}
-			got, err := p.GetAllSecrets(tt.args.ctx, tt.args.ref)
+			got, _, err := p.GetAllSecrets(tt.args.ctx, tt.args.ref)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.GetAllSecrets() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -105,20 +105,20 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 }
 
 // GetAllSecrets syncs multiple secrets from aws provider into a single Kubernetes Secret.
-func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (sm *SecretsManager) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if ref.Name != nil {
 		return sm.findByName(ctx, ref)
 	}
 	if len(ref.Tags) > 0 {
 		return sm.findByTags(ctx, ref)
 	}
-	return nil, errors.New(errUnexpectedFindOperator)
+	return nil, esv1beta1.SecretsMetadata{}, errors.New(errUnexpectedFindOperator)
 }
 
-func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	filters := make([]*awssm.Filter, 0)
@@ -140,7 +140,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 			NextToken: nextToken,
 		})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		log.V(1).Info("aws sm findByName found", "secrets", len(it.SecretList))
 		for _, secret := range it.SecretList {
@@ -150,7 +150,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 			log.V(1).Info("aws sm findByName matches", "name", *secret.Name)
 			err = sm.fetchAndSet(ctx, data, *secret.Name)
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 		}
 		nextToken = it.NextToken
@@ -158,10 +158,11 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 			break
 		}
 	}
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	keys, err := utils.ConvertKeys(ref.ConversionStrategy, data)
+	return keys, esv1beta1.SecretsMetadata{}, err
 }
 
-func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	filters := make([]*awssm.Filter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &awssm.Filter{
@@ -195,13 +196,13 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 			NextToken: nextToken,
 		})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		log.V(1).Info("aws sm findByTag found", "secrets", len(it.SecretList))
 		for _, secret := range it.SecretList {
 			err = sm.fetchAndSet(ctx, data, *secret.Name)
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 		}
 		nextToken = it.NextToken
@@ -209,7 +210,8 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 			break
 		}
 	}
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	keys, err := utils.ConvertKeys(ref.ConversionStrategy, data)
+	return keys, esv1beta1.SecretsMetadata{}, err
 }
 
 func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
@@ -229,22 +231,22 @@ func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byt
 }
 
 // GetSecret returns a single secret from the provider.
-func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	secretOut, err := sm.fetch(ctx, ref)
 	if errors.Is(err, esv1beta1.NoSecretErr) {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, esv1beta1.SecretsMetadata{}, util.SanitizeErr(err)
 	}
 	if ref.Property == "" {
 		if secretOut.SecretString != nil {
-			return []byte(*secretOut.SecretString), nil
+			return []byte(*secretOut.SecretString), esv1beta1.SecretsMetadata{}, nil
 		}
 		if secretOut.SecretBinary != nil {
-			return secretOut.SecretBinary, nil
+			return secretOut.SecretBinary, esv1beta1.SecretsMetadata{}, nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
 	var payload string
 	if secretOut.SecretString != nil {
@@ -259,27 +261,27 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if val.Exists() {
-			return []byte(val.String()), nil
+			return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 		}
 	}
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
-	return []byte(val.String()), nil
+	return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	log.Info("fetching secret map", "key", ref.Key)
-	data, err := sm.GetSecret(ctx, ref)
+	data, meta, err := sm.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
@@ -291,7 +293,7 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1beta1.Extern
 			secretData[k] = v
 		}
 	}
-	return secretData, nil
+	return secretData, meta, nil
 }
 
 func (sm *SecretsManager) Close(ctx context.Context) error {

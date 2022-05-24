@@ -192,9 +192,12 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 			cache:  make(map[string]*awssm.GetSecretValueOutput),
 			client: v.fakeClient,
 		}
-		out, err := sm.GetSecret(context.Background(), *v.remoteRef)
+		out, meta, err := sm.GetSecret(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if err == nil && string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
@@ -241,12 +244,15 @@ func TestCaching(t *testing.T) {
 	}
 	for k, v := range cachedCases {
 		sm.client = v.fakeClient
-		out, err := sm.GetSecret(context.Background(), *v.remoteRef)
+		out, meta, err := sm.GetSecret(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
 		}
 		if err == nil && string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if v.expectedCounter != nil && v.fakeClient.ExecutionCounter != *v.expectedCounter {
 			t.Errorf("[%d] unexpected counter value: expected %d, got %d", k, v.expectedCounter, v.fakeClient.ExecutionCounter)
@@ -294,12 +300,15 @@ func TestGetSecretMap(t *testing.T) {
 			cache:  make(map[string]*awssm.GetSecretValueOutput),
 			client: v.fakeClient,
 		}
-		out, err := sm.GetSecretMap(context.Background(), *v.remoteRef)
+		out, meta, err := sm.GetSecretMap(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
 		}
 		if err == nil && !cmp.Equal(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if v.expectedCounter != nil && v.fakeClient.ExecutionCounter != *v.expectedCounter {
 			t.Errorf("[%d] unexpected counter value: expected %d, got %d", k, v.expectedCounter, v.fakeClient.ExecutionCounter)

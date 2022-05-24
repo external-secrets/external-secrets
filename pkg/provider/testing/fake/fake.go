@@ -27,22 +27,22 @@ var _ esv1beta1.Provider = &Client{}
 // Client is a fake client for testing.
 type Client struct {
 	NewFn           func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error)
-	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
-	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
-	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
+	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error)
+	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error)
+	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error)
 }
 
 // New returns a fake provider/client.
 func New() *Client {
 	v := &Client{
-		GetSecretFn: func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-			return nil, nil
+		GetSecretFn: func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
+			return nil, esv1beta1.SecretsMetadata{}, nil
 		},
-		GetSecretMapFn: func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-			return nil, nil
+		GetSecretMapFn: func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+			return nil, esv1beta1.SecretsMetadata{}, nil
 		},
-		GetAllSecretsFn: func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-			return nil, nil
+		GetAllSecretsFn: func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+			return nil, esv1beta1.SecretsMetadata{}, nil
 		},
 	}
 
@@ -59,25 +59,25 @@ func (v *Client) RegisterAs(provider *esv1beta1.SecretStoreProvider) {
 }
 
 // GetAllSecrets implements the provider.Provider interface.
-func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	return v.GetAllSecretsFn(ctx, ref)
 }
 
 // GetSecret implements the provider.Provider interface.
-func (v *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (v *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	return v.GetSecretFn(ctx, ref)
 }
 
 // WithGetSecret wraps secret data returned by this provider.
 func (v *Client) WithGetSecret(secData []byte, err error) *Client {
-	v.GetSecretFn = func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-		return secData, err
+	v.GetSecretFn = func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
+		return secData, esv1beta1.SecretsMetadata{}, err
 	}
 	return v
 }
 
 // GetSecretMap implements the provider.Provider interface.
-func (v *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (v *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	return v.GetSecretMapFn(ctx, ref)
 }
 
@@ -95,16 +95,16 @@ func (v *Client) ValidateStore(store esv1beta1.GenericStore) error {
 
 // WithGetSecretMap wraps the secret data map returned by this fake provider.
 func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client {
-	v.GetSecretMapFn = func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-		return secData, err
+	v.GetSecretMapFn = func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+		return secData, esv1beta1.SecretsMetadata{}, err
 	}
 	return v
 }
 
 // WithGetAllSecrets wraps the secret data map returned by this fake provider.
 func (v *Client) WithGetAllSecrets(secData map[string][]byte, err error) *Client {
-	v.GetAllSecretsFn = func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-		return secData, err
+	v.GetAllSecretsFn = func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+		return secData, esv1beta1.SecretsMetadata{}, err
 	}
 	return v
 }

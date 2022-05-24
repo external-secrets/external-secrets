@@ -31,19 +31,19 @@ func (p *PP) NewClient(ctx context.Context, store GenericStore, kube client.Clie
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *PP) GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error) {
-	return []byte("NOOP"), nil
+func (p *PP) GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, SecretsMetadata, error) {
+	return []byte("NOOP"), SecretsMetadata{}, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *PP) GetSecretMap(ctx context.Context, ref ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return map[string][]byte{}, nil
+func (p *PP) GetSecretMap(ctx context.Context, ref ExternalSecretDataRemoteRef) (map[string][]byte, SecretsMetadata, error) {
+	return map[string][]byte{}, SecretsMetadata{}, nil
 }
 
 // Empty GetAllSecrets.
-func (p *PP) GetAllSecrets(ctx context.Context, ref ExternalSecretFind) (map[string][]byte, error) {
+func (p *PP) GetAllSecrets(ctx context.Context, ref ExternalSecretFind) (map[string][]byte, SecretsMetadata, error) {
 	// TO be implemented
-	return map[string][]byte{}, nil
+	return map[string][]byte{}, SecretsMetadata{}, nil
 }
 
 func (p *PP) Close(ctx context.Context) error {

@@ -471,9 +471,12 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
-		out, err := sm.GetSecret(context.Background(), *v.ref)
+		out, meta, err := sm.GetSecret(context.Background(), *v.ref)
 		if !utils.ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
@@ -630,9 +633,12 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
-		out, err := sm.GetSecretMap(context.Background(), *v.ref)
+		out, meta, err := sm.GetSecretMap(context.Background(), *v.ref)
 		if !utils.ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
@@ -785,9 +791,12 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
-		out, err := sm.GetAllSecrets(context.Background(), *v.refFind)
+		out, meta, err := sm.GetAllSecrets(context.Background(), *v.refFind)
 		if !utils.ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedError, k, err.Error(), v.expectError)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf(unexpectedSecretData, k, v.expectedData, out)

@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -63,7 +64,7 @@ type SecretsClient interface {
 	// GetSecret returns a single secret from the provider
 	// if GetSecret returns an error with type NoSecretError
 	// then the secret entry will be deleted depending on the deletionPolicy.
-	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
+	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, SecretsMetadata, error)
 
 	// Validate checks if the client is configured correctly
 	// and is able to retrieve secrets from the provider.
@@ -71,10 +72,10 @@ type SecretsClient interface {
 	Validate() (ValidationResult, error)
 
 	// GetSecretMap returns multiple k/v pairs from the provider
-	GetSecretMap(ctx context.Context, ref ExternalSecretDataRemoteRef) (map[string][]byte, error)
+	GetSecretMap(ctx context.Context, ref ExternalSecretDataRemoteRef) (map[string][]byte, SecretsMetadata, error)
 
 	// GetAllSecrets returns multiple k/v pairs from the provider
-	GetAllSecrets(ctx context.Context, ref ExternalSecretFind) (map[string][]byte, error)
+	GetAllSecrets(ctx context.Context, ref ExternalSecretFind) (map[string][]byte, SecretsMetadata, error)
 
 	Close(ctx context.Context) error
 }
@@ -84,6 +85,20 @@ var NoSecretErr = NoSecretError{}
 // NoSecretError shall be returned when a GetSecret can not find the
 // desired secret. This is used for deletionPolicy.
 type NoSecretError struct{}
+
+// +kubebuilder:object:root=false
+// +kubebuilder:object:generate:false
+// +k8s:deepcopy-gen:interfaces=nil
+// +k8s:deepcopy-gen=nil
+
+// SecretsMetadata defines extra fields around secret data returned by the provider.
+type SecretsMetadata struct {
+	// LeaseTimeout describes when the secret returned by the provider will expire
+	// For instance, it is used by the Vault AWS provided to return the AWS credentials
+	// lease timeout
+	// If nil, no timeout is attached to the secret
+	LeaseTimeout *time.Time
+}
 
 func (NoSecretError) Error() string {
 	return "Secret does not exist"

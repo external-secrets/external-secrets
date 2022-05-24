@@ -149,24 +149,26 @@ func validateStore(store esv1beta1.GenericStore) error {
 }
 
 // GetSecret returns a single secret from the provider.
-func (provider *ProviderOnePassword) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (provider *ProviderOnePassword) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if ref.Version != "" {
-		return nil, fmt.Errorf(errVersionNotImplemented)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errVersionNotImplemented)
 	}
 
 	item, err := provider.findItem(ref.Key)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	// handle files
 	if item.Category == documentCategory {
 		// default to the first file when ref.Property is empty
-		return provider.getFile(item, ref.Property)
+		file, err := provider.getFile(item, ref.Property)
+		return file, esv1beta1.SecretsMetadata{}, err
 	}
 
 	// handle fields
-	return provider.getField(item, ref.Property)
+	field, err := provider.getField(item, ref.Property)
+	return field, esv1beta1.SecretsMetadata{}, err
 }
 
 // Validate checks if the client is configured correctly
@@ -183,29 +185,32 @@ func (provider *ProviderOnePassword) Validate() (esv1beta1.ValidationResult, err
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
-func (provider *ProviderOnePassword) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (provider *ProviderOnePassword) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if ref.Version != "" {
-		return nil, fmt.Errorf(errVersionNotImplemented)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errVersionNotImplemented)
 	}
 
 	item, err := provider.findItem(ref.Key)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	// handle files
 	if item.Category == documentCategory {
-		return provider.getFiles(item, ref.Property)
+		// default to the first file when ref.Property is empty
+		files, err := provider.getFiles(item, ref.Property)
+		return files, esv1beta1.SecretsMetadata{}, err
 	}
 
 	// handle fields
-	return provider.getFields(item, ref.Property)
+	fields, err := provider.getFields(item, ref.Property)
+	return fields, esv1beta1.SecretsMetadata{}, err
 }
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
-func (provider *ProviderOnePassword) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (provider *ProviderOnePassword) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if ref.Tags != nil {
-		return nil, fmt.Errorf(errTagsNotImplemented)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errTagsNotImplemented)
 	}
 
 	secretData := make(map[string][]byte)
@@ -213,19 +218,19 @@ func (provider *ProviderOnePassword) GetAllSecrets(ctx context.Context, ref esv1
 	for _, vaultName := range sortedVaults {
 		vaults, err := provider.client.GetVaultsByTitle(vaultName)
 		if err != nil {
-			return nil, fmt.Errorf(errGetVault, err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errGetVault, err)
 		}
 		if len(vaults) != 1 {
-			return nil, fmt.Errorf(errExpectedOneVault, fmt.Errorf(incorrectCountFormat, vaultName, len(vaults)))
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errExpectedOneVault, fmt.Errorf(incorrectCountFormat, vaultName, len(vaults)))
 		}
 
 		err = provider.getAllForVault(vaults[0].ID, ref, secretData)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 	}
 
-	return secretData, nil
+	return secretData, esv1beta1.SecretsMetadata{}, nil
 }
 
 // Close closes the client connection.

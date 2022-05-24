@@ -147,17 +147,17 @@ func (p *ProviderKubernetes) Close(ctx context.Context) error {
 	return nil
 }
 
-func (p *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	secretMap, err := p.GetSecretMap(ctx, ref)
+func (p *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
+	secretMap, meta, err := p.GetSecretMap(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	if ref.Property != "" {
 		val, ok := secretMap[ref.Property]
 		if !ok {
-			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
 		}
-		return val, nil
+		return val, meta, nil
 	}
 	strMap := make(map[string]string)
 	for k, v := range secretMap {
@@ -165,27 +165,29 @@ func (p *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1beta1.Extern
 	}
 	jsonStr, err := json.Marshal(strMap)
 	if err != nil {
-		return nil, fmt.Errorf("unabled to marshal json: %w", err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unabled to marshal json: %w", err)
 	}
-	return jsonStr, nil
+	return jsonStr, meta, nil
 }
 
-func (p *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	secret, err := p.Client.Get(ctx, ref.Key, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
-	return secret.Data, nil
+	return secret.Data, esv1beta1.SecretsMetadata{}, nil
 }
 
-func (p *ProviderKubernetes) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *ProviderKubernetes) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if ref.Tags != nil {
-		return p.findByTags(ctx, ref)
+		mapData, err := p.findByTags(ctx, ref)
+		return mapData, esv1beta1.SecretsMetadata{}, err
 	}
 	if ref.Name != nil {
-		return p.findByName(ctx, ref)
+		mapData, err := p.findByName(ctx, ref)
+		return mapData, esv1beta1.SecretsMetadata{}, err
 	}
-	return nil, fmt.Errorf("unexpected find operator: %#v", ref)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unexpected find operator: %#v", ref)
 }
 
 func (p *ProviderKubernetes) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {

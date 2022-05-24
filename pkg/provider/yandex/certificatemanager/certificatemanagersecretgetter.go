@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 )
@@ -39,10 +40,10 @@ func newCertificateManagerSecretGetter(certificateManagerClient client.Certifica
 	}, nil
 }
 
-func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken, resourceID, versionID, property string) ([]byte, error) {
+func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken, resourceID, versionID, property string) ([]byte, esv1beta1.SecretsMetadata, error) {
 	response, err := g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to request certificate content to get secret: %w", err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unable to request certificate content to get secret: %w", err)
 	}
 
 	chain := trimAndJoin(response.CertificateChain...)
@@ -50,20 +51,20 @@ func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken
 
 	switch property {
 	case "", chainAndPrivateKeyProperty:
-		return []byte(trimAndJoin(chain, privateKey)), nil
+		return []byte(trimAndJoin(chain, privateKey)), esv1beta1.SecretsMetadata{}, nil
 	case chainProperty:
-		return []byte(chain), nil
+		return []byte(chain), esv1beta1.SecretsMetadata{}, nil
 	case privateKeyProperty:
-		return []byte(privateKey), nil
+		return []byte(privateKey), esv1beta1.SecretsMetadata{}, nil
 	default:
-		return nil, fmt.Errorf("unsupported property '%s'", property)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unsupported property '%s'", property)
 	}
 }
 
-func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceID, versionID string) (map[string][]byte, error) {
+func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceID, versionID string) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	response, err := g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to request certificate content to get secret map: %w", err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unable to request certificate content to get secret map: %w", err)
 	}
 
 	chain := strings.Join(response.CertificateChain, "\n")
@@ -72,7 +73,7 @@ func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamTo
 	return map[string][]byte{
 		chainProperty:      []byte(chain),
 		privateKeyProperty: []byte(privateKey),
-	}, nil
+	}, esv1beta1.SecretsMetadata{}, nil
 }
 
 func trimAndJoin(elems ...string) string {

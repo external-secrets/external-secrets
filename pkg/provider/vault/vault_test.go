@@ -18,9 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"testing"
-
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
@@ -28,6 +25,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+	"testing"
+	"time"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -43,7 +43,7 @@ var (
 	secretStorePath = "secret"
 )
 
-func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1.SecretStore {
+func makeValidKeyValueStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1.SecretStore {
 	return &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vault-store",
@@ -52,9 +52,13 @@ func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Vault: &esv1beta1.VaultProvider{
-					Server:  "vault.example.com",
-					Path:    &secretStorePath,
-					Version: v,
+					Server: "vault.example.com",
+					SecretEngine: esv1beta1.VaultSecretEngine{
+						KeyValue: &esv1beta1.VaultKeyValueSecretEngine{
+							Path:    &secretStorePath,
+							Version: v,
+						},
+					},
 					Auth: esv1beta1.VaultAuth{
 						Kubernetes: &esv1beta1.VaultKubernetesAuth{
 							Path: "kubernetes",
@@ -70,11 +74,11 @@ func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1
 	}
 }
 
-func makeValidSecretStore() *esv1beta1.SecretStore {
-	return makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2)
+func makeValidKeyValueStore() *esv1beta1.SecretStore {
+	return makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2)
 }
 
-func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
+func makeValidAWSStore() *esv1beta1.SecretStore {
 	return &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vault-store",
@@ -83,9 +87,43 @@ func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Vault: &esv1beta1.VaultProvider{
-					Server:  "vault.example.com",
-					Path:    &secretStorePath,
-					Version: esv1beta1.VaultKVStoreV2,
+					Server: "vault.example.com",
+					SecretEngine: esv1beta1.VaultSecretEngine{
+						AWS: &esv1beta1.VaultAWSSecretEngine{
+							Path: &secretStorePath,
+						},
+					},
+					Auth: esv1beta1.VaultAuth{
+						Kubernetes: &esv1beta1.VaultKubernetesAuth{
+							Path: "kubernetes",
+							Role: "kubernetes-auth-role",
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: "example-sa",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func makeValidKeyValueStoreWithCerts() *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vault-store",
+			Namespace: "default",
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Vault: &esv1beta1.VaultProvider{
+					Server: "vault.example.com",
+					SecretEngine: esv1beta1.VaultSecretEngine{
+						KeyValue: &esv1beta1.VaultKeyValueSecretEngine{
+							Path:    &secretStorePath,
+							Version: esv1beta1.VaultKVStoreV2,
+						},
+					},
 					Auth: esv1beta1.VaultAuth{
 						Cert: &esv1beta1.VaultCertAuth{
 							ClientCert: esmeta.SecretKeySelector{
@@ -133,9 +171,13 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Vault: &esv1beta1.VaultProvider{
-					Server:  "vault.example.com",
-					Path:    &secretStorePath,
-					Version: "v2",
+					Server: "vault.example.com",
+					SecretEngine: esv1beta1.VaultSecretEngine{
+						KeyValue: &esv1beta1.VaultKeyValueSecretEngine{
+							Path:    &secretStorePath,
+							Version: esv1beta1.VaultKVStoreV2,
+						},
+					},
 					Auth: esv1beta1.VaultAuth{
 						Kubernetes: &esv1beta1.VaultKubernetesAuth{
 							Path: "kubernetes",
@@ -159,7 +201,7 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 type secretStoreTweakFn func(s *esv1beta1.SecretStore)
 
 func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.SecretStore {
-	store := makeValidSecretStore()
+	store := makeValidKeyValueStore()
 
 	for _, fn := range tweaks {
 		fn(store)
@@ -301,7 +343,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 		"SuccessfulVaultStoreWithCertAuth": {
 			reason: "Should return a Vault provider successfully",
 			args: args{
-				store: makeValidSecretStoreWithCerts(),
+				store: makeValidKeyValueStoreWithCerts(),
 				kube: &test.MockClient{
 					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
 						if o, ok := obj.(*corev1.Secret); ok {
@@ -448,7 +490,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 		"GetCertificateFormatError": {
 			reason: "Should return error if client certificate is in wrong format.",
 			args: args{
-				store: makeValidSecretStoreWithCerts(),
+				store: makeValidKeyValueStoreWithCerts(),
 				kube: &test.MockClient{
 					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
 						if o, ok := obj.(*corev1.Secret); ok {
@@ -470,7 +512,7 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 		"GetKeyFormatError": {
 			reason: "Should return error if client key is in wrong format.",
 			args: args{
-				store: makeValidSecretStoreWithCerts(),
+				store: makeValidKeyValueStoreWithCerts(),
 				kube: &test.MockClient{
 					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
 						if o, ok := obj.(*corev1.Secret); ok {
@@ -541,8 +583,9 @@ func TestGetSecret(t *testing.T) {
 	}
 
 	type want struct {
-		err error
-		val []byte
+		err          error
+		val          []byte
+		leaseTimeout *time.Time
 	}
 
 	cases := map[string]struct {
@@ -553,7 +596,7 @@ func TestGetSecret(t *testing.T) {
 		"ReadSecret": {
 			reason: "Should return the secret with property",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
 					Property: "access_key",
 				},
@@ -569,7 +612,7 @@ func TestGetSecret(t *testing.T) {
 		"ReadSecretWithNil": {
 			reason: "Should return the secret with property if it has a nil val",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
 					Property: "access_key",
 				},
@@ -585,7 +628,7 @@ func TestGetSecret(t *testing.T) {
 		"ReadSecretWithoutProperty": {
 			reason: "Should return the json encoded secret without property",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				data:  esv1beta1.ExternalSecretDataRemoteRef{},
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secret, nil),
@@ -599,7 +642,7 @@ func TestGetSecret(t *testing.T) {
 		"ReadSecretWithNestedValue": {
 			reason: "Should return a nested property",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
 					Property: "nested.foo",
 				},
@@ -615,7 +658,7 @@ func TestGetSecret(t *testing.T) {
 		"ReadSecretWithNestedValueFromData": {
 			reason: "Should return a nested property",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
 					//
 					Property: "nested.bar",
@@ -632,7 +675,7 @@ func TestGetSecret(t *testing.T) {
 		"NonexistentProperty": {
 			reason: "Should return error property does not exist.",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
 					Property: "nop.doesnt.exist",
 				},
@@ -659,7 +702,7 @@ func TestGetSecret(t *testing.T) {
 		"ReadSecretNotFound": {
 			reason: "Secret doesn't exist",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
 					Property: "access_key",
 				},
@@ -683,9 +726,12 @@ func TestGetSecret(t *testing.T) {
 				store:     tc.args.store,
 				namespace: tc.args.ns,
 			}
-			val, err := vStore.GetSecret(context.Background(), tc.args.data)
+			val, meta, err := vStore.GetSecret(context.Background(), tc.args.data)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecret(...): -want error, +got error:\n%s", tc.reason, diff)
+			}
+			if diff := cmp.Diff(tc.want.leaseTimeout, meta.LeaseTimeout); diff != "" {
+				t.Errorf("\n%s\nvault.GetSecret(...): meta, -want val, +got val:\n%s", tc.reason, diff)
 			}
 			if diff := cmp.Diff(string(tc.want.val), string(val)); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecret(...): -want val, +got val:\n%s", tc.reason, diff)
@@ -745,7 +791,7 @@ func TestGetSecretMap(t *testing.T) {
 		"ReadSecretKV1": {
 			reason: "Should map the secret even if it has a nil value",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vClient: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secret, nil),
 				},
@@ -761,7 +807,7 @@ func TestGetSecretMap(t *testing.T) {
 		"ReadSecretKV2": {
 			reason: "Should map the secret even if it has a nil value",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"data": secret,
@@ -779,7 +825,7 @@ func TestGetSecretMap(t *testing.T) {
 		"ReadSecretWithNilValueKV1": {
 			reason: "Should map the secret even if it has a nil value",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vClient: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretWithNilVal, nil),
 				},
@@ -796,7 +842,7 @@ func TestGetSecretMap(t *testing.T) {
 		"ReadSecretWithNilValueKV2": {
 			reason: "Should map the secret even if it has a nil value",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"data": secretWithNilVal}, nil),
@@ -814,7 +860,7 @@ func TestGetSecretMap(t *testing.T) {
 		"ReadSecretWithTypesKV2": {
 			reason: "Should map the secret even if it has other types",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"data": secretWithTypes}, nil),
@@ -835,7 +881,7 @@ func TestGetSecretMap(t *testing.T) {
 		"ReadNestedSecret": {
 			reason: "Should map the secret for deeply nested property",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
 					Property: "nested",
 				},
@@ -854,7 +900,7 @@ func TestGetSecretMap(t *testing.T) {
 		"ReadDeeplyNestedSecret": {
 			reason: "Should map the secret for deeply nested property",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
 					Property: "nested.foo",
 				},
@@ -893,9 +939,12 @@ func TestGetSecretMap(t *testing.T) {
 				store:     tc.args.store,
 				namespace: tc.args.ns,
 			}
-			val, err := vStore.GetSecretMap(context.Background(), tc.args.data)
+			val, meta, err := vStore.GetSecretMap(context.Background(), tc.args.data)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
+			}
+			if meta.LeaseTimeout != nil {
+				t.Errorf("\n%s\nvault.GetSecret(...): -want nil, +got val:\n%s", tc.reason, meta.LeaseTimeout)
 			}
 			if diff := cmp.Diff(tc.want.val, val); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecretMap(...): -want val, +got val:\n%s", tc.reason, diff)
@@ -1049,7 +1098,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByName": {
 			reason: "should map multiple secrets matching name",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
@@ -1071,7 +1120,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByTag": {
 			reason: "should map multiple secrets matching tags",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
@@ -1093,7 +1142,7 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPath": {
 			reason: "should filter secrets based on path",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
@@ -1113,28 +1162,10 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 		},
-		"FailIfKv1": {
-			reason: "should not work if using kv1 store",
-			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
-				vLogical: &fake.Logical{
-					ListWithContextFn:         newListWithContextFn(secret),
-					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
-				},
-				data: esv1beta1.ExternalSecretFind{
-					Tags: map[string]string{
-						"foo": "baz",
-					},
-				},
-			},
-			want: want{
-				err: errors.New(errUnsupportedKvVersion),
-			},
-		},
 		"MetadataNotFound": {
 			reason: "metadata secret not found",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn: newListWithContextFn(secret),
 					ReadWithDataWithContextFn: func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
@@ -1161,9 +1192,12 @@ func TestGetAllSecrets(t *testing.T) {
 				store:     tc.args.store,
 				namespace: tc.args.ns,
 			}
-			val, err := vStore.GetAllSecrets(context.Background(), tc.args.data)
+			val, meta, err := vStore.GetAllSecrets(context.Background(), tc.args.data)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
+			}
+			if meta.LeaseTimeout != nil {
+				t.Errorf("\n%s\nvault.GetSecret(...): -want nil, +got val:\n%s", tc.reason, meta.LeaseTimeout)
 			}
 			if diff := cmp.Diff(tc.want.val, val); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecretMap(...): -want val, +got val:\n%s", tc.reason, diff)
@@ -1173,13 +1207,18 @@ func TestGetAllSecrets(t *testing.T) {
 }
 
 func TestGetSecretPath(t *testing.T) {
-	storeV2 := makeValidSecretStore()
+	storeV2 := makeValidKeyValueStore()
 	storeV2NoPath := storeV2.DeepCopy()
-	storeV2NoPath.Spec.Provider.Vault.Path = nil
 
-	storeV1 := makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1)
+	storeV1 := makeValidKeyValueStoreWithVersion(esv1beta1.VaultKVStoreV1)
 	storeV1NoPath := storeV1.DeepCopy()
-	storeV1NoPath.Spec.Provider.Vault.Path = nil
+	storeV1NoPath.Spec.Provider.Vault.SecretEngine.KeyValue.Path = nil
+
+	storeAWS := makeValidAWSStore()
+	storeAWSSTS := storeAWS.DeepCopy()
+	storeAWSSTS.Spec.Provider.Vault.SecretEngine.AWS.CredentialsType = esv1beta1.VaultAWSCredentialsTypeSts
+	storeAWSCreds := storeAWS.DeepCopy()
+	storeAWSCreds.Spec.Provider.Vault.SecretEngine.AWS.CredentialsType = esv1beta1.VaultAWSCredentialsTypeCreds
 
 	type args struct {
 		store    *esv1beta1.VaultProvider
@@ -1246,6 +1285,22 @@ func TestGetSecretPath(t *testing.T) {
 				expected: "secret/test",
 			},
 		},
+		"AWSEngineSTS": {
+			reason: "sts needs to be found in path with the correct role",
+			args: args{
+				store:    storeAWSSTS.Spec.Provider.Vault,
+				path:     "test",
+				expected: "secret/sts/test",
+			},
+		},
+		"AWSEngineCreds": {
+			reason: "creds needs to be found in path with the correct role",
+			args: args{
+				store:    storeAWSCreds.Spec.Provider.Vault,
+				path:     "test",
+				expected: "secret/creds/test",
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -1263,7 +1318,8 @@ func TestGetSecretPath(t *testing.T) {
 
 func TestValidateStore(t *testing.T) {
 	type args struct {
-		auth esv1beta1.VaultAuth
+		auth   esv1beta1.VaultAuth
+		engine esv1beta1.VaultSecretEngine
 	}
 
 	tests := []struct {
@@ -1273,9 +1329,38 @@ func TestValidateStore(t *testing.T) {
 	}{
 		{
 			name: "empty auth",
-			args: args{},
+			args: args{
+				engine: esv1beta1.VaultSecretEngine{
+					AWS: &esv1beta1.VaultAWSSecretEngine{},
+				},
+			},
 		},
-
+		{
+			name:    "no engine specified",
+			args:    args{},
+			wantErr: true,
+		},
+		{
+			name: "multiple engine specified",
+			args: args{
+				engine: esv1beta1.VaultSecretEngine{
+					AWS:      &esv1beta1.VaultAWSSecretEngine{},
+					KeyValue: &esv1beta1.VaultKeyValueSecretEngine{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Key Value v1 should not work",
+			args: args{
+				engine: esv1beta1.VaultSecretEngine{
+					KeyValue: &esv1beta1.VaultKeyValueSecretEngine{
+						Version: esv1beta1.VaultKVStoreV1,
+					},
+				},
+			},
+			wantErr: true,
+		},
 		{
 			name: "invalid approle with namespace",
 			args: args{
@@ -1388,7 +1473,8 @@ func TestValidateStore(t *testing.T) {
 				Spec: esv1beta1.SecretStoreSpec{
 					Provider: &esv1beta1.SecretStoreProvider{
 						Vault: &esv1beta1.VaultProvider{
-							Auth: tt.args.auth,
+							Auth:         tt.args.auth,
+							SecretEngine: tt.args.engine,
 						},
 					},
 				},

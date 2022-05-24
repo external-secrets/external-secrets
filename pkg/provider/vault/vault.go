@@ -25,10 +25,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
-	approle "github.com/hashicorp/vault/api/auth/approle"
+	"github.com/hashicorp/vault/api/auth/approle"
 	authkubernetes "github.com/hashicorp/vault/api/auth/kubernetes"
 	authldap "github.com/hashicorp/vault/api/auth/ldap"
 	"github.com/tidwall/gjson"
@@ -71,6 +72,8 @@ const (
 	errVaultRequest         = "error from Vault request: %w"
 	errServiceAccount       = "cannot read Kubernetes service account token from file system: %w"
 	errJwtNoTokenSource     = "neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication"
+	errNoSecretEngine       = "cannot validate cluster store: no valid secret engine method specified"
+	errMultipleSecretEngine = "cannot validate cluster store: more than one engine method specified"
 	errUnsupportedKvVersion = "cannot perform find operations with kv version v1"
 	errNotFound             = "secret not found"
 
@@ -352,24 +355,31 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 			return fmt.Errorf(errInvalidTokenRef, err)
 		}
 	}
+	if p.SecretEngine.KeyValue == nil && p.SecretEngine.AWS == nil {
+		return errors.New(errNoSecretEngine)
+	}
+	if p.SecretEngine.KeyValue != nil && p.SecretEngine.AWS != nil {
+		return errors.New(errMultipleSecretEngine)
+	}
+
+	if p.SecretEngine.KeyValue != nil {
+		if p.SecretEngine.KeyValue.Version == esv1beta1.VaultKVStoreV1 {
+			return errors.New(errUnsupportedKvVersion)
+		}
+	}
 	return nil
 }
 
-// Empty GetAllSecrets.
-// GetAllSecrets
-// First load all secrets from secretStore path configuration.
+// GetAllSecrets loads all secrets from secretStore path configuration.
 // Then, gets secrets from a matching name or matching custom_metadata.
-func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	if v.store.Version == esv1beta1.VaultKVStoreV1 {
-		return nil, errors.New(errUnsupportedKvVersion)
-	}
+func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	searchPath := ""
 	if ref.Path != nil {
 		searchPath = *ref.Path + "/"
 	}
 	potentialSecrets, err := v.listSecrets(ctx, searchPath)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	if ref.Name != nil {
 		return v.findSecretsFromName(ctx, potentialSecrets, *ref.Name)
@@ -377,13 +387,14 @@ func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	return v.findSecretsFromTags(ctx, potentialSecrets, ref.Tags)
 }
 
-func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, tags map[string]string) (map[string][]byte, error) {
+func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, tags map[string]string) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	secrets := make(map[string][]byte)
+	var meta esv1beta1.SecretsMetadata
 	for _, name := range candidates {
 		match := true
 		metadata, err := v.readSecretMetadata(ctx, name)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		for tk, tv := range tags {
 			p, ok := metadata[tk]
@@ -393,33 +404,36 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 			}
 		}
 		if match {
-			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			var secret []byte
+			secret, meta, err = v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 			secrets[name] = secret
 		}
 	}
-	return secrets, nil
+	return secrets, meta, nil
 }
 
-func (v *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName) (map[string][]byte, error) {
+func (v *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	secrets := make(map[string][]byte)
 	matcher, err := find.New(ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
+	var meta esv1beta1.SecretsMetadata
 	for _, name := range candidates {
 		ok := matcher.MatchName(name)
 		if ok {
-			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			var secret []byte
+			secret, meta, err = v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
 			if err != nil {
-				return nil, err
+				return nil, esv1beta1.SecretsMetadata{}, err
 			}
 			secrets[name] = secret
 		}
 	}
-	return secrets, nil
+	return secrets, meta, nil
 }
 
 func (v *client) listSecrets(ctx context.Context, path string) ([]string, error) {
@@ -489,58 +503,59 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 //    by leaving the ref.Property empty.
 // 2. get a key from the secret.
 //    Nested values are supported by specifying a gjson expression
-func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, err := v.readSecret(ctx, ref.Key, ref.Version)
+func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
+	data, meta, err := v.readSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	jsonStr, err := json.Marshal(data)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	// (1): return raw json if no property is defined
 	if ref.Property == "" {
-		return jsonStr, nil
+		return jsonStr, meta, nil
 	}
 
 	// For backwards compatibility we want the
-	// actual keys to take precedence over gjson syntax
+	// actual keys to take precedence over json syntax
 	// (2): extract key from secret with property
 	if _, ok := data[ref.Property]; ok {
-		return getTypedKey(data, ref.Property)
+		key, err := getTypedKey(data, ref.Property)
+		return key, meta, err
 	}
 
 	// (3): extract key from secret using gjson
 	val := gjson.Get(string(jsonStr), ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errSecretKeyFmt, ref.Property)
 	}
-	return []byte(val.String()), nil
+	return []byte(val.String()), meta, nil
 }
 
 // GetSecretMap supports two modes of operation:
 // 1. get the full secret from the vault data payload (by leaving .property empty).
 // 2. extract key/value pairs from a (nested) object.
-func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := v.GetSecret(ctx, ref)
+func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
+	data, meta, err := v.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	var secretData map[string]interface{}
 	err = json.Unmarshal(data, &secretData)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	byteMap := make(map[string][]byte, len(secretData))
 	for k := range secretData {
 		byteMap[k], err = getTypedKey(secretData, k)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 	}
 
-	return byteMap, nil
+	return byteMap, meta, nil
 }
 
 func getTypedKey(data map[string]interface{}, key string) ([]byte, error) {
@@ -629,19 +644,31 @@ func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 
 func (v *client) buildMetadataPath(path string) (string, error) {
 	var url string
-	if v.store.Path == nil && !strings.Contains(path, "data") {
+	secretPath := v.getSecretPath()
+
+	if secretPath == nil && !strings.Contains(path, "data") {
 		return "", fmt.Errorf(errPathInvalid)
 	}
-	if v.store.Path == nil {
+	if secretPath == nil {
 		path = strings.Replace(path, "data", "metadata", 1)
 		url = path
 	} else {
-		url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
+		url = fmt.Sprintf("%s/metadata/%s", *secretPath, path)
 	}
 	return url, nil
 }
+
+func (v *client) getSecretPath() *string {
+	if v.store.SecretEngine.KeyValue != nil {
+		return v.store.SecretEngine.KeyValue.Path
+	} else if v.store.SecretEngine.AWS != nil {
+		return v.store.SecretEngine.AWS.Path
+	}
+	return nil
+}
+
 func (v *client) buildPath(path string) string {
-	optionalMount := v.store.Path
+	optionalMount := v.getSecretPath()
 	origPath := strings.Split(path, "/")
 	newPath := make([]string, 0)
 	cursor := 0
@@ -655,19 +682,29 @@ func (v *client) buildPath(path string) string {
 		cursor++
 	}
 
-	if v.store.Version == esv1beta1.VaultKVStoreV2 {
-		// Add the required `data` part of the URL for the v2 API
-		if len(origPath) < 2 || origPath[1] != "data" {
-			newPath = append(newPath, "data")
+	switch {
+	case v.store.SecretEngine.KeyValue != nil:
+		if v.store.SecretEngine.KeyValue.Version == esv1beta1.VaultKVStoreV2 {
+			// Add the required `data` part of the URL for the v2 API
+			if len(origPath) < 2 || origPath[1] != "data" {
+				newPath = append(newPath, "data")
+			}
+		}
+	case v.store.SecretEngine.AWS != nil:
+		if v.store.SecretEngine.AWS.CredentialsType == esv1beta1.VaultAWSCredentialsTypeSts {
+			newPath = append(newPath, "sts")
+		} else if v.store.SecretEngine.AWS.CredentialsType == esv1beta1.VaultAWSCredentialsTypeCreds {
+			newPath = append(newPath, "creds")
 		}
 	}
+
 	newPath = append(newPath, origPath[cursor:]...)
 	returnPath := strings.Join(newPath, "/")
 
 	return returnPath
 }
 
-func (v *client) readSecret(ctx context.Context, path, version string) (map[string]interface{}, error) {
+func (v *client) readSecret(ctx context.Context, path, version string) (map[string]interface{}, esv1beta1.SecretsMetadata, error) {
 	dataPath := v.buildPath(path)
 
 	// path formated according to vault docs for v1 and v2 API
@@ -680,27 +717,34 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 	}
 	vaultSecret, err := v.logical.ReadWithDataWithContext(ctx, dataPath, params)
 	if err != nil {
-		return nil, fmt.Errorf(errReadSecret, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errReadSecret, err)
 	}
 	if vaultSecret == nil {
-		return nil, errors.New(errNotFound)
+		return nil, esv1beta1.SecretsMetadata{}, errors.New(errNotFound)
 	}
 	secretData := vaultSecret.Data
-	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+
+	if v.store.SecretEngine.KeyValue != nil && v.store.SecretEngine.KeyValue.Version == esv1beta1.VaultKVStoreV2 {
 		// Vault KV2 has data embedded within sub-field
 		// reference - https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
 		dataInt, ok := vaultSecret.Data["data"]
 
 		if !ok {
-			return nil, errors.New(errDataField)
+			return nil, esv1beta1.SecretsMetadata{}, errors.New(errDataField)
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
-			return nil, errors.New(errJSONUnmarshall)
+			return nil, esv1beta1.SecretsMetadata{}, errors.New(errJSONUnmarshall)
 		}
 	}
 
-	return secretData, nil
+	var meta esv1beta1.SecretsMetadata
+	if v.store.SecretEngine.AWS != nil {
+		leaseExpires := time.Now().Add(time.Duration(vaultSecret.LeaseDuration) * time.Second)
+		meta.LeaseTimeout = &leaseExpires
+	}
+
+	return secretData, meta, nil
 }
 
 func (v *client) newConfig() (*vault.Config, error) {

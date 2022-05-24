@@ -112,60 +112,60 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 }
 
 // Empty GetAllSecrets.
-func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get store: %w", err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to get store: %w", err)
 	}
 	result, err := w.getWebhookData(ctx, provider, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 	// Only parse as json if we have a jsonpath set
 	if provider.Result.JSONPath != "" {
 		jsondata := interface{}(nil)
 		if err := yaml.Unmarshal(result, &jsondata); err != nil {
-			return nil, fmt.Errorf("failed to parse response json: %w", err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to parse response json: %w", err)
 		}
 		jsondata, err = jsonpath.Get(provider.Result.JSONPath, jsondata)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
 		}
 		jsonvalue, ok := jsondata.(string)
 		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
 		}
-		return []byte(jsonvalue), nil
+		return []byte(jsonvalue), esv1beta1.SecretsMetadata{}, nil
 	}
 
-	return result, nil
+	return result, esv1beta1.SecretsMetadata{}, nil
 }
 
-func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get store: %w", err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to get store: %w", err)
 	}
 	result, err := w.getWebhookData(ctx, provider, ref)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	// We always want json here, so just parse it out
 	jsondata := interface{}(nil)
 	if err := yaml.Unmarshal(result, &jsondata); err != nil {
-		return nil, fmt.Errorf("failed to parse response json: %w", err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to parse response json: %w", err)
 	}
 	// Get subdata via jsonpath, if given
 	if provider.Result.JSONPath != "" {
 		jsondata, err = jsonpath.Get(provider.Result.JSONPath, jsondata)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
 		}
 	}
 	// If the value is a string, try to parse it as json
@@ -174,13 +174,13 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 		// This could also happen if the response was a single json-encoded string
 		// but that is an extremely unlikely scenario
 		if err := yaml.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
-			return nil, fmt.Errorf("failed to parse response json from jsonpath: %w", err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to parse response json from jsonpath: %w", err)
 		}
 	}
 	// Use the data as a key-value map
 	jsonvalue, ok := jsondata.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
 	}
 
 	// Change the map of generic objects to a map of byte arrays
@@ -188,11 +188,11 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 	for rKey, rValue := range jsonvalue {
 		jVal, ok := rValue.(string)
 		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type in key '%s': %T)", rKey, rValue)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("failed to get response (wrong type in key '%s': %T)", rKey, rValue)
 		}
 		values[rKey] = []byte(jVal)
 	}
-	return values, nil
+	return values, esv1beta1.SecretsMetadata{}, nil
 }
 
 func (w *WebHook) getTemplateData(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef, secrets []esv1beta1.WebhookSecret) (map[string]map[string]string, error) {

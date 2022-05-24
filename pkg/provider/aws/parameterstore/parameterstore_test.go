@@ -143,9 +143,12 @@ func TestGetSecret(t *testing.T) {
 	ps := ParameterStore{}
 	for k, v := range successCases {
 		ps.client = v.fakeClient
-		out, err := ps.GetSecret(context.Background(), *v.remoteRef)
+		out, meta, err := ps.GetSecret(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if cmp.Equal(out, v.expectedSecret) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedSecret, out)
@@ -181,9 +184,12 @@ func TestGetSecretMap(t *testing.T) {
 	ps := ParameterStore{}
 	for k, v := range successCases {
 		ps.client = v.fakeClient
-		out, err := ps.GetSecretMap(context.Background(), *v.remoteRef)
+		out, meta, err := ps.GetSecretMap(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if meta.LeaseTimeout != nil {
+			t.Errorf("[%d]: unexpected value for LeaseTimeout: '%s' (expected 'nil')", k, meta.LeaseTimeout)
 		}
 		if cmp.Equal(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)

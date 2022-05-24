@@ -56,30 +56,30 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 }
 
 // Empty GetAllSecrets.
-func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("GetAllSecrets not implemented")
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	for _, data := range p.config.Data {
 		if data.Key == ref.Key && data.Version == ref.Version {
-			return []byte(data.Value), nil
+			return []byte(data.Value), esv1beta1.SecretsMetadata{}, nil
 		}
 	}
-	return nil, esv1beta1.NoSecretErr
+	return nil, esv1beta1.SecretsMetadata{}, esv1beta1.NoSecretErr
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	for _, data := range p.config.Data {
 		if data.Key != ref.Key || data.Version != ref.Version || data.ValueMap == nil {
 			continue
 		}
-		return convertMap(data.ValueMap), nil
+		return convertMap(data.ValueMap), esv1beta1.SecretsMetadata{}, nil
 	}
-	return nil, esv1beta1.NoSecretErr
+	return nil, esv1beta1.SecretsMetadata{}, esv1beta1.NoSecretErr
 }
 
 func convertMap(in map[string]string) map[string][]byte {

@@ -101,14 +101,14 @@ func (c *client) setAuth(ctx context.Context) error {
 }
 
 // Empty GetAllSecrets.
-func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if utils.IsNil(ibm.IBMClient) {
-		return nil, fmt.Errorf(errUninitalizedIBMProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedIBMProvider)
 	}
 
 	secretType := sm.GetSecretOptionsSecretTypeArbitraryConst
@@ -128,7 +128,7 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 	case sm.CreateSecretOptionsSecretTypeUsernamePasswordConst:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type username_password")
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("remoteRef.property required for secret type username_password")
 		}
 		return getUsernamePasswordSecret(ibm, &secretName, ref)
 
@@ -139,7 +139,7 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 	case sm.CreateSecretOptionsSecretTypeImportedCertConst:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type imported_cert")
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("remoteRef.property required for secret type imported_cert")
 		}
 
 		return getImportCertSecret(ibm, &secretName, ref)
@@ -147,7 +147,7 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 	case sm.CreateSecretOptionsSecretTypePublicCertConst:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type public_cert")
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("remoteRef.property required for secret type public_cert")
 		}
 
 		return getPublicCertSecret(ibm, &secretName, ref)
@@ -155,7 +155,7 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 	case sm.CreateSecretOptionsSecretTypePrivateCertConst:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type private_cert")
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("remoteRef.property required for secret type private_cert")
 		}
 
 		return getPrivateCertSecret(ibm, &secretName, ref)
@@ -165,123 +165,123 @@ func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 		return getKVSecret(ibm, &secretName, ref)
 
 	default:
-		return nil, fmt.Errorf("unknown secret type %s", secretType)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unknown secret type %s", secretType)
 	}
 }
 
-func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, error) {
+func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, esv1beta1.SecretsMetadata, error) {
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.GetSecretOptionsSecretTypeArbitraryConst),
 			ID:         secretName,
 		})
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
 	secretData := secret.SecretData.(map[string]interface{})
 	arbitrarySecretPayload := secretData["payload"].(string)
-	return []byte(arbitrarySecretPayload), nil
+	return []byte(arbitrarySecretPayload), esv1beta1.SecretsMetadata{}, nil
 }
 
-func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
 			ID:         secretName,
 		})
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
 	secretData := secret.SecretData.(map[string]interface{})
 
 	if val, ok := secretData[ref.Property]; ok {
-		return []byte(val.(string)), nil
+		return []byte(val.(string)), esv1beta1.SecretsMetadata{}, nil
 	}
-	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
-func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
 			ID:         secretName,
 		})
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
 	secretData := secret.SecretData.(map[string]interface{})
 
 	if val, ok := secretData[ref.Property]; ok {
-		return []byte(val.(string)), nil
+		return []byte(val.(string)), esv1beta1.SecretsMetadata{}, nil
 	}
-	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
-func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePrivateCertConst),
 			ID:         secretName,
 		})
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
 	secretData := secret.SecretData.(map[string]interface{})
 
 	if val, ok := secretData[ref.Property]; ok {
-		return []byte(val.(string)), nil
+		return []byte(val.(string)), esv1beta1.SecretsMetadata{}, nil
 	}
-	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
-func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, error) {
+func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, esv1beta1.SecretsMetadata, error) {
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst),
 			ID:         secretName,
 		})
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
 	secretData := *secret.APIKey
 
-	return []byte(secretData), nil
+	return []byte(secretData), esv1beta1.SecretsMetadata{}, nil
 }
 
-func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	response, _, err := ibm.IBMClient.GetSecret(
 		&sm.GetSecretOptions{
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
 			ID:         secretName,
 		})
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
 	secretData := secret.SecretData.(map[string]interface{})
 
 	if val, ok := secretData[ref.Property]; ok {
-		return []byte(val.(string)), nil
+		return []byte(val.(string)), esv1beta1.SecretsMetadata{}, nil
 	}
-	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
 // Returns a secret of type kv and supports json path.
-func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	secret, err := getSecretByType(ibm, secretName, sm.CreateSecretOptionsSecretTypeKvConst)
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	log.Info("fetching secret", "secretName", secretName, "key", ref.Key)
@@ -290,7 +290,7 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 
 	payload, ok := secretData["payload"]
 	if !ok {
-		return nil, fmt.Errorf("no payload returned for secret %s", ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("no payload returned for secret %s", ref.Key)
 	}
 
 	payloadJSON := payload
@@ -300,14 +300,14 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 		var payloadJSONByte []byte
 		payloadJSONByte, err = json.Marshal(payloadJSONMap)
 		if err != nil {
-			return nil, fmt.Errorf("marshaling payload from secret failed. %w", err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("marshaling payload from secret failed. %w", err)
 		}
 		payloadJSON = string(payloadJSONByte)
 	}
 
 	// no property requested, return the entire payload
 	if ref.Property == "" {
-		return []byte(payloadJSON.(string)), nil
+		return []byte(payloadJSON.(string)), esv1beta1.SecretsMetadata{}, nil
 	}
 
 	// returns the requested key
@@ -325,7 +325,7 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 
 			val := gjson.Get(payloadJSON.(string), refProperty)
 			if val.Exists() {
-				return []byte(val.String()), nil
+				return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 			}
 		}
 
@@ -333,12 +333,12 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 		// try to get value for this path
 		val := gjson.Get(payloadJSON.(string), ref.Property)
 		if !val.Exists() {
-			return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 		}
-		return []byte(val.String()), nil
+		return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 	}
 
-	return nil, fmt.Errorf("no property provided for secret %s", ref.Key)
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("no property provided for secret %s", ref.Key)
 }
 
 func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*sm.SecretResource, error) {
@@ -356,9 +356,9 @@ func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*
 	return secret, nil
 }
 
-func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	if utils.IsNil(ibm.IBMClient) {
-		return nil, fmt.Errorf(errUninitalizedIBMProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedIBMProvider)
 	}
 
 	secretType := sm.GetSecretOptionsSecretTypeArbitraryConst
@@ -378,7 +378,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				ID:         &ref.Key,
 			})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
@@ -388,12 +388,12 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		kv := make(map[string]interface{})
 		err = json.Unmarshal([]byte(arbitrarySecretPayload), &kv)
 		if err != nil {
-			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+			return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errJSONSecretUnmarshal, err)
 		}
 
 		secretMap := byteArrayMap(kv)
 
-		return secretMap, nil
+		return secretMap, esv1beta1.SecretsMetadata{}, nil
 
 	case sm.CreateSecretOptionsSecretTypeUsernamePasswordConst:
 		response, _, err := ibm.IBMClient.GetSecret(
@@ -402,7 +402,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				ID:         &secretName,
 			})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
@@ -410,7 +410,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 
 		secretMap := byteArrayMap(secretData)
 
-		return secretMap, nil
+		return secretMap, esv1beta1.SecretsMetadata{}, nil
 
 	case sm.CreateSecretOptionsSecretTypeIamCredentialsConst:
 		response, _, err := ibm.IBMClient.GetSecret(
@@ -419,7 +419,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				ID:         &secretName,
 			})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
@@ -428,7 +428,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		secretMap := make(map[string][]byte)
 		secretMap["apikey"] = []byte(secretData)
 
-		return secretMap, nil
+		return secretMap, esv1beta1.SecretsMetadata{}, nil
 
 	case sm.CreateSecretOptionsSecretTypeImportedCertConst:
 		response, _, err := ibm.IBMClient.GetSecret(
@@ -437,7 +437,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				ID:         &secretName,
 			})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
@@ -445,7 +445,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 
 		secretMap := byteArrayMap(secretData)
 
-		return secretMap, nil
+		return secretMap, esv1beta1.SecretsMetadata{}, nil
 
 	case sm.CreateSecretOptionsSecretTypePublicCertConst:
 		response, _, err := ibm.IBMClient.GetSecret(
@@ -454,7 +454,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				ID:         &secretName,
 			})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
@@ -462,7 +462,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 
 		secretMap := byteArrayMap(secretData)
 
-		return secretMap, nil
+		return secretMap, esv1beta1.SecretsMetadata{}, nil
 
 	case sm.CreateSecretOptionsSecretTypePrivateCertConst:
 		response, _, err := ibm.IBMClient.GetSecret(
@@ -471,7 +471,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				ID:         &secretName,
 			})
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
@@ -479,25 +479,25 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 
 		secretMap := byteArrayMap(secretData)
 
-		return secretMap, nil
+		return secretMap, esv1beta1.SecretsMetadata{}, nil
 
 	case sm.CreateSecretOptionsSecretTypeKvConst:
-		secret, err := getKVSecret(ibm, &secretName, ref)
+		secret, meta, err := getKVSecret(ibm, &secretName, ref)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 		m := make(map[string]interface{})
 		err = json.Unmarshal(secret, &m)
 		if err != nil {
-			return nil, err
+			return nil, esv1beta1.SecretsMetadata{}, err
 		}
 
 		secretMap := byteArrayMap(m)
 
-		return secretMap, nil
+		return secretMap, meta, nil
 
 	default:
-		return nil, fmt.Errorf("unknown secret type %s", secretType)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("unknown secret type %s", secretType)
 	}
 }
 

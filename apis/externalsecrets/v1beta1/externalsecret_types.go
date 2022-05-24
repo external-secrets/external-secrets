@@ -303,6 +303,11 @@ type ExternalSecretStatus struct {
 
 	// +optional
 	Conditions []ExternalSecretStatusCondition `json:"conditions,omitempty"`
+
+	// +nullable
+	// +optional
+	// leaseTimeout is the time and date the data fetched by the provider will expire
+	LeaseTimeout metav1.Time `json:"leaseTimeout,omitempty"`
 }
 
 // +kubebuilder:object:root=true

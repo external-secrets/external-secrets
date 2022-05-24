@@ -157,14 +157,14 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 }
 
 // Empty GetAllSecrets.
-func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, esv1beta1.SecretsMetadata, error) {
 	if utils.IsNil(g.client) {
-		return nil, fmt.Errorf(errUninitalizedGitlabProvider)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errUninitalizedGitlabProvider)
 	}
 	// Need to replace hyphens with underscores to work with Gitlab API
 	ref.Key = strings.ReplaceAll(ref.Key, "-", "_")
@@ -177,14 +177,14 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	// 	"masked": true
 	data, _, err := g.client.GetVariable(g.projectID, ref.Key, nil) // Optional 'filter' parameter could be added later
 	if err != nil {
-		return nil, err
+		return nil, esv1beta1.SecretsMetadata{}, err
 	}
 
 	if ref.Property == "" {
 		if data.Value != "" {
-			return []byte(data.Value), nil
+			return []byte(data.Value), esv1beta1.SecretsMetadata{}, nil
 		}
-		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
 	var payload string
@@ -194,23 +194,23 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
-	return []byte(val.String()), nil
+	return []byte(val.String()), esv1beta1.SecretsMetadata{}, nil
 }
 
-func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, esv1beta1.SecretsMetadata, error) {
 	// Gets a secret as normal, expecting secret value to be a json object
-	data, err := g.GetSecret(ctx, ref)
+	data, meta, err := g.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
 	}
 
 	// Maps the json data to a string:string map
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		return nil, esv1beta1.SecretsMetadata{}, fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 
 	// Converts values in K:V pairs into bytes, while leaving keys as strings
@@ -218,7 +218,7 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	for k, v := range kv {
 		secretData[k] = []byte(v)
 	}
-	return secretData, nil
+	return secretData, meta, nil
 }
 
 func (g *Gitlab) Close(ctx context.Context) error {
