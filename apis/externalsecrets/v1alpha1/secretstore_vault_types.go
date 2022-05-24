@@ -50,7 +50,7 @@ type CAProvider struct {
 	Namespace *string `json:"namespace,omitempty"`
 }
 
-// Configures an store to sync secrets using a HashiCorp Vault
+// VaultProvider Configures a store to sync secrets using a HashiCorp Vault
 // KV backend.
 type VaultProvider struct {
 	// Auth configures how secret-manager authenticates with the Vault server.
@@ -158,7 +158,7 @@ type VaultAppRole struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }
 
-// Authenticate against Vault using a Kubernetes ServiceAccount token stored in
+// VaultKubernetesAuth Authenticate against Vault using a Kubernetes ServiceAccount token stored in
 // a Secret.
 type VaultKubernetesAuth struct {
 	// Path where the Kubernetes authentication backend is mounted in Vault, e.g:
@@ -248,8 +248,8 @@ type VaultJwtAuth struct {
 	KubernetesServiceAccountToken *VaultKubernetesServiceAccountTokenAuth `json:"kubernetesServiceAccountToken,omitempty"`
 }
 
-// VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
-// method, with the role name and token stored in a Kubernetes Secret resource.
+// VaultCertAuth authenticates with Vault using Cert Vault
+// authentication method
 type VaultCertAuth struct {
 	// ClientCert is a certificate to authenticate using the Cert Vault
 	// authentication method
