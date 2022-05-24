@@ -48,11 +48,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-var (
-	_ esv1beta1.Provider      = &connector{}
-	_ esv1beta1.SecretsClient = &client{}
-)
-
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
