@@ -32,7 +32,7 @@ const (
 	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
 )
 
-// Defines a location to fetch the cert for the vault provider from.
+// CAProvider Defines a location to fetch the cert for the vault provider from.
 type CAProvider struct {
 	// The type of provider to use such as "Secret", or "ConfigMap".
 	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
