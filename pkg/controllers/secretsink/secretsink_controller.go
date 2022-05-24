@@ -34,10 +34,15 @@ import (
 )
 
 const (
-	errFailedGetSecret       = "could not get source secret"
-	errPatchStatus           = "error merging"
-	errGetSecretStore        = "could not get SecretStore %q, %w"
-	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
+	errFailedGetSecret        = "could not get source secret"
+	errPatchStatus            = "error merging"
+	errGetSecretStore         = "could not get SecretStore %q, %w"
+	errGetClusterSecretStore  = "could not get ClusterSecretStore %q, %w"
+	errGetProviderFailed      = "could not start provider"
+	errGetSecretsClientFailed = "could not start secrets client"
+	errCloseStoreClient       = "error when calling provider close method"
+	errSetSecretFailed        = "could not write remote ref %v to target secretstore %v: %v"
+	errFailedSetSecret        = "set secret failed: %v"
 )
 
 type Reconciler struct {
@@ -72,18 +77,52 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
 		ss = SetSecretSinkCondition(ss, *cond)
+		return ctrl.Result{}, err
 	}
-
-	_, err = r.GetSecretStore(ctx, ss)
+	secretStores, err := r.GetSecretStores(ctx, ss)
 	if err != nil {
-		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errGetSecretStore)
+		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", err.Error())
 		ss = SetSecretSinkCondition(ss, *cond)
 	}
-
+	err = r.SetSecretToProviders(ctx, secretStores, ss)
+	if err != nil {
+		msg := fmt.Sprintf(errFailedSetSecret, err)
+		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", msg)
+		ss = SetSecretSinkCondition(ss, *cond)
+		return ctrl.Result{}, err
+	}
 	cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionTrue, "SecretSynced", "SecretSink synced successfully")
 	ss = SetSecretSinkCondition(ss, *cond)
 	// Set status for SecretSink
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ss esapi.SecretSink) error {
+	for _, store := range stores {
+		provider, err := v1beta1.GetProvider(store)
+		if err != nil {
+			return fmt.Errorf(errGetProviderFailed)
+		}
+		client, err := provider.NewClient(ctx, store, r.Client, ss.Namespace)
+		if err != nil {
+			return fmt.Errorf(errGetSecretsClientFailed)
+		}
+		defer func() {
+			err := client.Close(ctx)
+			if err != nil {
+				r.Log.Error(err, errCloseStoreClient)
+			}
+		}()
+		for _, ref := range ss.Spec.Data {
+			for _, match := range ref.Match {
+				err := client.SetSecret()
+				if err != nil {
+					return fmt.Errorf(errSetSecretFailed, match.SecretKey, store.GetName(), err)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (r *Reconciler) GetSecret(ctx context.Context, ss esapi.SecretSink) (*v1.Secret, error) {
@@ -96,7 +135,7 @@ func (r *Reconciler) GetSecret(ctx context.Context, ss esapi.SecretSink) (*v1.Se
 	return secret, nil
 }
 
-func (r *Reconciler) GetSecretStore(ctx context.Context, ss esapi.SecretSink) ([]v1beta1.GenericStore, error) {
+func (r *Reconciler) GetSecretStores(ctx context.Context, ss esapi.SecretSink) ([]v1beta1.GenericStore, error) {
 	stores := make([]v1beta1.GenericStore, 0)
 	for _, refStore := range ss.Spec.SecretStoreRefs {
 		ref := types.NamespacedName{

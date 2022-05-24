@@ -18,15 +18,16 @@ import (
 	"context"
 	"errors"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal/fakes"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal/fakes"
 )
 
 var _ = Describe("secretsink", func() {
@@ -189,7 +190,7 @@ var _ = Describe("secretsink", func() {
 		}
 
 		It("returns a secretstore if it exists", func() {
-			_, err := reconciler.GetSecretStore(context.TODO(), sink)
+			_, err := reconciler.GetSecretStores(context.TODO(), sink)
 			Expect(err).To(BeNil())
 			Expect(client.GetCallCount()).To(Equal(1))
 			_, name, store := client.GetArgsForCall(0)
@@ -200,12 +201,12 @@ var _ = Describe("secretsink", func() {
 
 		It("returns an error if it doesn't exist", func() {
 			client.GetReturns(errors.New("secretstore not found"))
-			_, err := reconciler.GetSecretStore(context.TODO(), sink)
+			_, err := reconciler.GetSecretStores(context.TODO(), sink)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("returns a clustersecretstore if it exists", func() {
-			_, err := reconciler.GetSecretStore(context.TODO(), clusterSink)
+			_, err := reconciler.GetSecretStores(context.TODO(), clusterSink)
 			Expect(err).To(BeNil())
 			Expect(client.GetCallCount()).To(Equal(1))
 			_, name, store := client.GetArgsForCall(0)
