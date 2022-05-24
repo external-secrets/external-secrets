@@ -76,7 +76,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	_, err = r.GetSecretStore(ctx, ss)
 	if err != nil {
-		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
+		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errGetSecretStore)
 		ss = SetSecretSinkCondition(ss, *cond)
 	}
 
