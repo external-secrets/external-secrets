@@ -214,4 +214,20 @@ var _ = Describe("secretsink", func() {
 			Expect(name.Name).To(Equal("foo"))
 		})
 	})
+	Describe("#SetSecretToProviders", func() {
+		It("gets the provider and client and then sets the secret", func() {
+
+			sink := esapi.SecretSink{
+				Spec: esapi.SecretSinkSpec{
+					SecretStoreRefs: []esapi.SecretSinkStoreRef{
+						{
+							Name: "foo",
+						},
+					},
+				},
+			}
+
+			Expect(reconciler.SetSecretToProviders(context.TODO(), []v1beta1.GenericStore{}, sink)).To(BeNil())
+		})
+	})
 })
