@@ -215,19 +215,29 @@ var _ = Describe("secretsink", func() {
 		})
 	})
 	Describe("#SetSecretToProviders", func() {
-		It("gets the provider and client and then sets the secret", func() {
-
-			sink := esapi.SecretSink{
-				Spec: esapi.SecretSinkSpec{
-					SecretStoreRefs: []esapi.SecretSinkStoreRef{
-						{
-							Name: "foo",
-						},
+		sink := esapi.SecretSink{
+			Spec: esapi.SecretSinkSpec{
+				SecretStoreRefs: []esapi.SecretSinkStoreRef{
+					{
+						Name: "foo",
 					},
 				},
-			}
+			},
+		}
+		It("gets the provider and client and then sets the secret", func() {
 
 			Expect(reconciler.SetSecretToProviders(context.TODO(), []v1beta1.GenericStore{}, sink)).To(BeNil())
+		})
+		// We want a store with invalid provider information
+		// We want to return an error value
+		// Once the error is reutned we expect the error check to have occurred
+		It("returns an error if it can't get a provider", func() {
+			stores := make([]v1beta1.GenericStore, 0)
+			secretStore := v1beta1.SecretStore{}
+			stores = append(stores, &secretStore)
+			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink)
+
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })
