@@ -554,7 +554,7 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 
 	secretContainerRef := ibmSpec.Auth.SecretRef.SecretContainerAuth
 	secretKeyRef := ibmSpec.Auth.SecretRef.SecretAPIKey
-	if utils.IsNil(secretContainerRef.Profile) {
+	if utils.IsNil(secretContainerRef.Profile) || (secretContainerRef.Profile == "") {
 		// proceed with API Key Auth validation
 		err := utils.ValidateSecretSelector(store, secretKeyRef)
 		if err != nil {
@@ -568,9 +568,6 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 		}
 	} else {
 		// proceed with container auth
-		if secretContainerRef.Profile == "" {
-			return fmt.Errorf("secretContainerAuthSecretRef.profile cannot be empty")
-		}
 		if secretContainerRef.TokenLocation == "" {
 			secretContainerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
 		}

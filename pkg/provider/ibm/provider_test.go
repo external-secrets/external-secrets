@@ -134,6 +134,8 @@ func TestValidateStore(t *testing.T) {
 	}
 	url := "my-url"
 	store.Spec.Provider.IBM.ServiceURL = &url
+	var nilProfile esv1beta1.IBMAuthSecretcontainerAuthSecretRef
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretContainerAuth = nilProfile
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
@@ -149,6 +151,17 @@ func TestValidateStore(t *testing.T) {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
 		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
+	}
+
+	// add container auth test
+	store.Spec.Provider.IBM = &esv1beta1.IBMProvider{}
+	store.Spec.Provider.IBM.ServiceURL = &url
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretContainerAuth.Profile = "Trusted IAM Profile"
+	store.Spec.Provider.IBM.Auth.SecretRef.SecretContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
+	err = p.ValidateStore(store)
+	expected := "cannot read container auth token"
+	if !ErrorContains(err, expected) {
+		t.Errorf("ProfileSelector test failed: %s, expected: '%s'", err.Error(), expected)
 	}
 }
 
