@@ -227,6 +227,20 @@ var _ = Describe("secretsink", func() {
 						Name: "foo",
 					},
 				},
+				Data: []esapi.SecretSinkData{
+					{
+						Match: []esapi.SecretSinkMatch{
+							{
+								SecretKey: "foo",
+								RemoteRefs: []esapi.SecretSinkRemoteRefs{
+									{
+										RemoteKey: "bar",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		}
 		sink.Namespace = "bar"
@@ -266,6 +280,24 @@ var _ = Describe("secretsink", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(errGetSecretsClientFailed))
+		})
+		It("returns an error if set secret fails", func() {
+			specWithProvider := v1beta1.SecretStoreSpec{
+				Provider: &v1beta1.SecretStoreProvider{
+					Fake: &v1beta1.FakeProvider{},
+				},
+			}
+			fakeProvider.Reset()
+			fakeProvider.WithSetSecret(fmt.Errorf("something went wrong"))
+			secretStore = v1beta1.SecretStore{
+				Spec: specWithProvider,
+			}
+
+			stores[0] = &secretStore
+			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal(fmt.Sprintf(errSetSecretFailed, "foo", "", "something went wrong")))
 		})
 	})
 })

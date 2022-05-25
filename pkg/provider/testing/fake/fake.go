@@ -45,6 +45,9 @@ func New() *Client {
 		GetAllSecretsFn: func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 			return nil, nil
 		},
+		SetSecretFn: func() error {
+			return nil
+		},
 	}
 
 	v.NewFn = func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error) {
@@ -111,6 +114,14 @@ func (v *Client) WithGetSecretMap(secData map[string][]byte, err error) *Client 
 func (v *Client) WithGetAllSecrets(secData map[string][]byte, err error) *Client {
 	v.GetAllSecretsFn = func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 		return secData, err
+	}
+	return v
+}
+
+// WithSetSecret wraps the secret response to the fake provider.
+func (v *Client) WithSetSecret(err error) *Client {
+	v.SetSecretFn = func() error {
+		return err
 	}
 	return v
 }
