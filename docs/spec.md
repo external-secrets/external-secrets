@@ -1552,14 +1552,16 @@ string
 </tr>
 <tr>
 <td>
-<code>version</code></br>
+<code>metadataPolicy</code></br>
 <em>
-string
+<a href="#external-secrets.io/v1beta1.ExternalSecretMetadataPolicy">
+ExternalSecretMetadataPolicy
+</a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select a specific version of the Provider value, if supported</p>
+<p>Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None</p>
 </td>
 </tr>
 <tr>
@@ -1572,6 +1574,18 @@ string
 <td>
 <em>(Optional)</em>
 <p>Used to select a specific property of the Provider value (if a map), if supported</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select a specific version of the Provider value, if supported</p>
 </td>
 </tr>
 <tr>
@@ -1694,6 +1708,27 @@ ExternalSecretConversionStrategy
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretMetadataPolicy">ExternalSecretMetadataPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Fetch&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;None&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec
 </h3>
