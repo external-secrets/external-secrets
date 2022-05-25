@@ -166,19 +166,30 @@ type ExternalSecretDataRemoteRef struct {
 	// Key is the key used in the Provider, mandatory
 	Key string `json:"key"`
 
-	// Used to select a specific version of the Provider value, if supported
 	// +optional
-	Version string `json:"version,omitempty"`
+	// Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+	MetadataPolicy ExternalSecretMetadataPolicy `json:"metadataPolicy,omitempty"`
 
 	// +optional
 	// Used to select a specific property of the Provider value (if a map), if supported
 	Property string `json:"property,omitempty"`
 
 	// +optional
+	// Used to select a specific version of the Provider value, if supported
+	Version string `json:"version,omitempty"`
+
+	// +optional
 	// Used to define a conversion Strategy
 	// +kubebuilder:default="Default"
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
+
+type ExternalSecretMetadataPolicy string
+
+const (
+	ExternalSecretMetadataPolicyNone  ExternalSecretMetadataPolicy = "None"
+	ExternalSecretMetadataPolicyFetch ExternalSecretMetadataPolicy = "Fetch"
+)
 
 type ExternalSecretConversionStrategy string
 
@@ -209,6 +220,7 @@ type ExternalSecretFind struct {
 	// Find secrets based on tags.
 	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
+
 	// +optional
 	// Used to define a conversion Strategy
 	// +kubebuilder:default="Default"

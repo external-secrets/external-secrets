@@ -96,10 +96,13 @@ To create a kubernetes secret from the Azure Key vault secret a `Kind=ExternalSe
 
 You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name , the default type is a `secret`. other supported values are `cert` and `key`
 
-to select all secrets inside the key vault , you can use the `dataFrom` directive
+to select all secrets inside the key vault or all tags inside a secret, you can use the `dataFrom` directive
 
 ```yaml
 {% include 'azkv-external-secret.yaml' %}
+```
+```yaml
+{% include 'azkv-datafrom-external-secret.yaml' %}
 ```
 
 The operator will fetch the Azure Key vault secret and inject it as a `Kind=Secret`

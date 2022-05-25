@@ -82,7 +82,7 @@ license.check: golicenses.check
 	 grep -v -E '${LICENSES}' | \
 	 tr "," " " | awk '{print "Invalid License " $$3 " for dependency " $$1 }'|| ok=1; \
 	 if [[ $$ok -eq 1 ]]; then $(OK) dependencies are compliant; else $(FAIL); fi
-	 
+
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
 	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
@@ -207,12 +207,12 @@ helm.generate:
 		echo "{{- end }}" >> "$$i" && \
 		rm "$$i.bkp" && \
 		if [[ "$$OSTYPE" == "darwin"* ]]; then \
-		  export SED_I="gsed -i"; \
+		  SEDPRG="gsed"; \
 		else \
-		  export SED_I="sed -i"; \
+		  SEDPRG="sed"; \
 		fi; \
-		$$SED_I 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$$i" && \
-		$$SED_I 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$$i" && \
+		$$SEDPRG -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$$i" && \
+		$$SEDPRG -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$$i" && \
 		mv "$$i" "$${i%.yml}.yaml"; \
 	done
 	@$(OK) Finished generating helm chart files

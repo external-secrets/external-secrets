@@ -89,14 +89,33 @@ const (
 	jwkPubEC             = `{"kid":"https://example.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
 	jsonTestString       = `{"Name": "External", "LastName": "Secret", "Address": { "Street": "Myroad st.", "CP": "J4K4T4" } }`
 	jsonSingleTestString = `{"Name": "External", "LastName": "Secret" }`
+	jsonTagTestString    = `{"tagname":"tagvalue","tagname2":"tagvalue2"}`
 	keyName              = "key/keyname"
 	certName             = "cert/certname"
 	secretString         = "changedvalue"
 	unexpectedError      = "[%d] unexpected error: %s, expected: '%s'"
 	unexpectedSecretData = "[%d] unexpected secret data: expected %#v, got %#v"
+	errorNoTag           = "tag something does not exist"
+	something            = "something"
+	tagname              = "tagname"
+	tagname2             = "tagname2"
+	tagvalue             = "tagvalue"
+	tagvalue2            = "tagvalue2"
 	secretName           = "example-1"
+	testsecret           = "test-secret"
 	fakeURL              = "noop"
 )
+
+func getTagMap() map[string]*string {
+	tag1 := "tagname"
+	tag2 := "tagname2"
+	value1 := "tagvalue"
+	value2 := "tagvalue2"
+	tagMap := make(map[string]*string)
+	tagMap[tag1] = &value1
+	tagMap[tag2] = &value2
+	return tagMap
+}
 
 func newKVJWK(b []byte) *keyvault.JSONWebKey {
 	var key keyvault.JSONWebKey
@@ -112,6 +131,7 @@ func newKVJWK(b []byte) *keyvault.JSONWebKey {
 func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	secretString := "changedvalue"
 	secretCertificate := "certificate_value"
+	tagMap := getTagMap()
 
 	// good case
 	setSecretString := func(smtc *secretManagerTestCase) {
@@ -188,6 +208,136 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.ref.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
 	}
 
+	setSecretWithTag := func(smtc *secretManagerTestCase) {
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = tagname
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString, Tags: tagMap,
+		}
+		smtc.expectedSecret = tagvalue
+	}
+
+	badSecretWithTag := func(smtc *secretManagerTestCase) {
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = something
+		smtc.expectedSecret = ""
+		smtc.expectError = errorNoTag
+		smtc.apiErr = errors.New(smtc.expectError)
+	}
+
+	setSecretWithNoSpecificTag := func(smtc *secretManagerTestCase) {
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString, Tags: tagMap,
+		}
+		smtc.expectedSecret = jsonTagTestString
+	}
+
+	setSecretWithNoTags := func(smtc *secretManagerTestCase) {
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.secretOutput = keyvault.SecretBundle{}
+		smtc.expectedSecret = "{}"
+	}
+
+	setCertWithTag := func(smtc *secretManagerTestCase) {
+		byteArrString := []byte(secretCertificate)
+		smtc.secretName = certName
+		smtc.certOutput = keyvault.CertificateBundle{
+			Cer: &byteArrString, Tags: tagMap,
+		}
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = tagname
+		smtc.expectedSecret = tagvalue
+		smtc.ref.Key = smtc.secretName
+	}
+
+	badCertWithTag := func(smtc *secretManagerTestCase) {
+		byteArrString := []byte(secretCertificate)
+		smtc.secretName = certName
+		smtc.ref.Key = smtc.secretName
+		smtc.certOutput = keyvault.CertificateBundle{
+			Cer: &byteArrString,
+		}
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = something
+		smtc.expectedSecret = ""
+		smtc.expectError = errorNoTag
+		smtc.apiErr = errors.New(smtc.expectError)
+	}
+
+	setCertWithNoSpecificTag := func(smtc *secretManagerTestCase) {
+		byteArrString := []byte(secretCertificate)
+		smtc.secretName = certName
+		smtc.ref.Key = smtc.secretName
+		smtc.certOutput = keyvault.CertificateBundle{
+			Cer: &byteArrString, Tags: tagMap,
+		}
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedSecret = jsonTagTestString
+	}
+
+	setCertWithNoTags := func(smtc *secretManagerTestCase) {
+		byteArrString := []byte(secretCertificate)
+		smtc.secretName = certName
+		smtc.ref.Key = smtc.secretName
+		smtc.certOutput = keyvault.CertificateBundle{
+			Cer: &byteArrString,
+		}
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedSecret = "{}"
+	}
+
+	setKeyWithTag := func(smtc *secretManagerTestCase) {
+		smtc.secretName = keyName
+		smtc.keyOutput = keyvault.KeyBundle{
+			Key: newKVJWK([]byte(jwkPubRSA)), Tags: tagMap,
+		}
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = tagname
+		smtc.expectedSecret = tagvalue
+		smtc.ref.Key = smtc.secretName
+	}
+
+	badKeyWithTag := func(smtc *secretManagerTestCase) {
+		smtc.secretName = keyName
+		smtc.ref.Key = smtc.secretName
+		smtc.keyOutput = keyvault.KeyBundle{
+			Key: newKVJWK([]byte(jwkPubRSA)), Tags: tagMap,
+		}
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = something
+		smtc.expectedSecret = ""
+		smtc.expectError = errorNoTag
+		smtc.apiErr = errors.New(smtc.expectError)
+	}
+
+	setKeyWithNoSpecificTag := func(smtc *secretManagerTestCase) {
+		smtc.secretName = keyName
+		smtc.ref.Key = smtc.secretName
+		smtc.keyOutput = keyvault.KeyBundle{
+			Key: newKVJWK([]byte(jwkPubRSA)), Tags: tagMap,
+		}
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedSecret = jsonTagTestString
+	}
+
+	setKeyWithNoTags := func(smtc *secretManagerTestCase) {
+		smtc.secretName = keyName
+		smtc.ref.Key = smtc.secretName
+		smtc.keyOutput = keyvault.KeyBundle{
+			Key: newKVJWK([]byte(jwkPubRSA)),
+		}
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedSecret = "{}"
+	}
+
+	badPropertyTag := func(smtc *secretManagerTestCase) {
+		smtc.ref.Property = tagname
+		smtc.expectedSecret = ""
+		smtc.expectError = "property tagname does not exist in key test-secret"
+		smtc.apiErr = errors.New(smtc.expectError)
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCase(),
 		makeValidSecretManagerTestCaseCustom(setSecretString),
@@ -198,6 +348,19 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setPubECKey),
 		makeValidSecretManagerTestCaseCustom(setCertificate),
 		makeValidSecretManagerTestCaseCustom(badSecretType),
+		makeValidSecretManagerTestCaseCustom(setSecretWithTag),
+		makeValidSecretManagerTestCaseCustom(badSecretWithTag),
+		makeValidSecretManagerTestCaseCustom(setSecretWithNoSpecificTag),
+		makeValidSecretManagerTestCaseCustom(setSecretWithNoTags),
+		makeValidSecretManagerTestCaseCustom(setCertWithTag),
+		makeValidSecretManagerTestCaseCustom(badCertWithTag),
+		makeValidSecretManagerTestCaseCustom(setCertWithNoSpecificTag),
+		makeValidSecretManagerTestCaseCustom(setCertWithNoTags),
+		makeValidSecretManagerTestCaseCustom(setKeyWithTag),
+		makeValidSecretManagerTestCaseCustom(badKeyWithTag),
+		makeValidSecretManagerTestCaseCustom(setKeyWithNoSpecificTag),
+		makeValidSecretManagerTestCaseCustom(setKeyWithNoTags),
+		makeValidSecretManagerTestCaseCustom(badPropertyTag),
 	}
 
 	sm := Azure{
@@ -218,6 +381,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	secretString := "changedvalue"
 	secretCertificate := "certificate_value"
+	tagMap := getTagMap()
 
 	badSecretString := func(smtc *secretManagerTestCase) {
 		smtc.expectedSecret = secretString
@@ -286,6 +450,36 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.ref.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
 	}
 
+	setSecretTags := func(smtc *secretManagerTestCase) {
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: tagMap,
+		}
+		smtc.expectedData[testsecret+"_"+tagname] = []byte(tagvalue)
+		smtc.expectedData[testsecret+"_"+tagname2] = []byte(tagvalue2)
+	}
+
+	setSecretWithJSONTag := func(smtc *secretManagerTestCase) {
+		tagJSONMap := make(map[string]*string)
+		tagJSONData := `{"keyname":"keyvalue","x":"y"}`
+		tagJSONMap["json"] = &tagJSONData
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString, Tags: tagJSONMap,
+		}
+		smtc.expectedData[testsecret+"_json_keyname"] = []byte("keyvalue")
+		smtc.expectedData[testsecret+"_json_x"] = []byte("y")
+	}
+
+	setSecretWithNoTags := func(smtc *secretManagerTestCase) {
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		tagMapTestEmpty := make(map[string]*string)
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: tagMapTestEmpty,
+		}
+		smtc.expectedSecret = ""
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(badSecretString),
 		makeValidSecretManagerTestCaseCustom(setSecretJSON),
@@ -294,6 +488,9 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badPubRSAKey),
 		makeValidSecretManagerTestCaseCustom(badCertificate),
 		makeValidSecretManagerTestCaseCustom(badSecretType),
+		makeValidSecretManagerTestCaseCustom(setSecretTags),
+		makeValidSecretManagerTestCaseCustom(setSecretWithJSONTag),
+		makeValidSecretManagerTestCaseCustom(setSecretWithNoTags),
 	}
 
 	sm := Azure{

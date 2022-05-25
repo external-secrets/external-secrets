@@ -1,0 +1,19 @@
+{{- if and .Values.certController.create .Values.certController.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller-pdb
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.certController.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.certController.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.certController.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.certController.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
+{{- end }}

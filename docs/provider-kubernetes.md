@@ -12,7 +12,7 @@ It's possible to authenticate against the Kubernetes API using client certificat
 
 1. Create a K8s Secret with a client token for the default service account
 
-```
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -27,7 +27,7 @@ The Servers `url` won't be present as it will default to `kubernetes.default`, a
 
 The `auth` section indicates that the type `token` will be used for authentication, it includes the path to fetch the token. Set `remoteNamespace` to the name of the namespace where your target secrets reside.
 
-```
+```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
@@ -47,26 +47,25 @@ spec:
             key: token
       remoteNamespace: default
 ```
-3. Create the local secret that will be synced 
-              
-```
----
+3. Create the local secret that will be synced
+
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: secret-example
 data:
   extra: YmFyCg==
-```     
+```
 4. Finally create the ExternalSecret resource
 
-```
+```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 1h           
+  refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
     name: example               # name of the SecretStore (or kind specified)
@@ -83,8 +82,8 @@ spec:
 ### Remote Secret using a Token
 
 1. Create a K8s Secret with the encoded base64 ca and client token.
-   
-```
+
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -98,11 +97,11 @@ stringData:
 ```
 2. Create a SecretStore
 
-The Server section specifies the `url` of the remote Kubernetes API. In this example the Certificate Authority is fetch using the encoded base64 `caBundle`. 
+The Server section specifies the `url` of the remote Kubernetes API. In this example the Certificate Authority is fetch using the encoded base64 `caBundle`.
 
 The `auth` section indicates that the  `token` type will be used for authentication, it includes the path to fetch the token.
 
-```
+```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
@@ -122,16 +121,16 @@ spec:
           bearerToken:
             name: cluster-secrets
             key: bearerToken
-```     
+```
 4. Finally create the ExternalSecret resource
 
-```
+```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 1h           
+  refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
     name: example               # name of the SecretStore (or kind specified)

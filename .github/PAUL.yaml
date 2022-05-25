@@ -1,19 +1,15 @@
 maintainers:
 - knelasevero
 - gusfcarvalho
-- sebagomez
-- serdarkalayci
-- riccardomc
-- iamcaleberic
-- jonatasbaldin
-- mircea-cosbuc
-- mcavoyk
 - moolen
-- silasbw
-- Flydiverny
-- gabibeyer
-- ricardoptcosta
+- sebagomez
 - rodrmartinez
+# Emeritus Approvers
+- Flydiverny
+- silasbw
+- mcavoyk
+- riccardomc
+- jonatasbaldin
 # Allows for the /label and /remove-label commands
 # usage: /label enhancement
 # usage: /remove-label enhancement

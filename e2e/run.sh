@@ -45,14 +45,13 @@ until kubectl get secret | grep -q -e ^external-secrets-e2e-token; do \
   sleep 3; \
 done
 
-kubectl apply -f ${DIR}/k8s/deploy/crds
-
 echo -e "Starting the e2e test pod ${E2E_IMAGE_REGISTRY}:${VERSION}"
 
 kubectl run --rm \
   --attach \
   --restart=Never \
   --pod-running-timeout=5m \
+  --labels="app=eso-e2e" \
   --env="GINKGO_LABELS=${GINKGO_LABELS:-.*}" \
   --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON:-}" \
   --env="GCP_PROJECT_ID=${GCP_PROJECT_ID:-}" \
@@ -80,5 +79,6 @@ kubectl run --rm \
   --env="ORACLE_KEY=${ORACLE_KEY:-}" \
   --env="IMAGE_REGISTRY=${IMAGE_REGISTRY}" \
   --env="VERSION=${VERSION}" \
+  --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
   e2e --image=${E2E_IMAGE_REGISTRY}:${VERSION}

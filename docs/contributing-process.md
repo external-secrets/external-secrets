@@ -2,6 +2,7 @@
 The Code, our TODOs and Documentation is maintained on
 [GitHub](https://github.com/external-secrets/external-secrets). All Issues
 should be opened in that repository.
+We have a [Roadmap](roadmap.md) to track progress for our road towards GA.
 
 ## Issues
 
@@ -111,6 +112,7 @@ make test.e2e.managed GINKGO_LABELS='gcp'
 Before we introduce significant changes to the project we want to gather feedback
 from the community to ensure that we progress in the right direction before we
 develop and release big changes. Significant changes include for example:
+
 * creating new custom resources
 * proposing breaking changes
 * changing the behavior of the controller significantly
@@ -122,7 +124,11 @@ and fill in your proposal. Open a pull request in draft mode and request feedbac
 
 We have a [GitHub Project Board](https://github.com/orgs/external-secrets/projects/2/views/1) where we organize issues on a high level. We group issues by milestone. Once all issues of a given milestone are closed we should prepare a new feature release. Issues of the next milestone have priority over other issues - but that does not mean that no one is allowed to start working on them.
 
-Issues must be _manually_ added to that board (at least for now, see [GH Roadmap](https://github.com/github/roadmap/issues/286)). Milestones must be assigned manually as well. If no milestone is assigned it is basically a backlog item. It is the responsibility of the maintainers to (1) assign new issues to the GH Project, (2) add a milestone if needed and (3) add appropriate labels.
+Issues must be _manually_ added to that board (at least for now, see [GH Roadmap](https://github.com/github/roadmap/issues/286)). Milestones must be assigned manually as well. If no milestone is assigned it is basically a backlog item. It is the responsibility of the maintainers to:
+
+1. assign new issues to the GH Project
+2. add a milestone if needed
+3. add appropriate labels
 
 If you would like to raise the priority of an issue for whatever reason feel free to comment on the issue or ping a maintainer.
 
@@ -136,6 +142,7 @@ We have three different channels through which support questions arise:
 3. GitHub Issues
 
 We use labels to identify GitHub Issues. Specifically for managing support cases we use the following labels to identify the state a support case is in:
+
 * `triage/needs-information`: Indicates an issue needs more information in order to work on it.
 * `triage/not-reproducible`: Indicates an issue can not be reproduced as described.
 * `triage/support`: Indicates an issue that is a support question.
