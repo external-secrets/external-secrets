@@ -52,9 +52,10 @@ func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Vault: &esv1beta1.VaultProvider{
-					Server:  "vault.example.com",
-					Path:    &secretStorePath,
-					Version: v,
+					Server:       "vault.example.com",
+					Path:         &secretStorePath,
+					SecretEngine: esv1beta1.VaultSecretEngineKeyValue,
+					Version:      v,
 					Auth: esv1beta1.VaultAuth{
 						Kubernetes: &esv1beta1.VaultKubernetesAuth{
 							Path: "kubernetes",
@@ -83,9 +84,10 @@ func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Vault: &esv1beta1.VaultProvider{
-					Server:  "vault.example.com",
-					Path:    &secretStorePath,
-					Version: esv1beta1.VaultKVStoreV2,
+					Server:       "vault.example.com",
+					Path:         &secretStorePath,
+					Version:      esv1beta1.VaultKVStoreV2,
+					SecretEngine: esv1beta1.VaultSecretEngineKeyValue,
 					Auth: esv1beta1.VaultAuth{
 						Cert: &esv1beta1.VaultCertAuth{
 							ClientCert: esmeta.SecretKeySelector{
@@ -133,9 +135,10 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Vault: &esv1beta1.VaultProvider{
-					Server:  "vault.example.com",
-					Path:    &secretStorePath,
-					Version: "v2",
+					Server:       "vault.example.com",
+					Path:         &secretStorePath,
+					Version:      esv1beta1.VaultKVStoreV2,
+					SecretEngine: esv1beta1.VaultSecretEngineKeyValue,
 					Auth: esv1beta1.VaultAuth{
 						Kubernetes: &esv1beta1.VaultKubernetesAuth{
 							Path: "kubernetes",
@@ -1181,6 +1184,13 @@ func TestGetSecretPath(t *testing.T) {
 	storeV1NoPath := storeV1.DeepCopy()
 	storeV1NoPath.Spec.Provider.Vault.Path = nil
 
+	storeAWS := makeValidSecretStore()
+	storeAWS.Spec.Provider.Vault.SecretEngine = esv1beta1.VaultSecretEngineAWS
+	storeAWSSTS := storeAWS.DeepCopy()
+	storeAWSSTS.Spec.Provider.Vault.CredentialsType = esv1beta1.VaultAWSCredentialsTypeSts
+	storeAWSCreds := storeAWS.DeepCopy()
+	storeAWSCreds.Spec.Provider.Vault.CredentialsType = esv1beta1.VaultAWSCredentialsTypeCreds
+
 	type args struct {
 		store    *esv1beta1.VaultProvider
 		path     string
@@ -1244,6 +1254,22 @@ func TestGetSecretPath(t *testing.T) {
 				store:    storeV1.Spec.Provider.Vault,
 				path:     "test",
 				expected: "secret/test",
+			},
+		},
+		"AWSEngineSTS": {
+			reason: "Mountpoint needs to be set in addition to data",
+			args: args{
+				store:    storeAWSSTS.Spec.Provider.Vault,
+				path:     "test",
+				expected: "secret/sts/test",
+			},
+		},
+		"AWSEngineCreds": {
+			reason: "Mountpoint needs to be set in addition to data",
+			args: args{
+				store:    storeAWSCreds.Spec.Provider.Vault,
+				path:     "test",
+				expected: "secret/creds/test",
 			},
 		},
 	}
