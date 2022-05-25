@@ -82,7 +82,7 @@ require (
 	google.golang.org/api v0.80.0
 	google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3
 	google.golang.org/grpc v1.46.2
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.24.0
 	k8s.io/apiextensions-apiserver v0.24.0
@@ -94,7 +94,7 @@ require (
 	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
 
-require github.com/1Password/connect-sdk-go v1.2.0
+require github.com/1Password/connect-sdk-go v1.4.0
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.3.3
@@ -251,8 +251,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/uber/jaeger-client-go v2.25.0+incompatible // indirect
-	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
+	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
+	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/vmihailenco/go-tinylfu v0.2.1 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
