@@ -90,6 +90,11 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 	}, nil
 }
 
+// Not Implemented SetSecret.
+func (dsm *DSM) SetSecret() error {
+	return fmt.Errorf("not implemented")
+}
+
 /*
 	GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service
 */

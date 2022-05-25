@@ -69,6 +69,11 @@ type ProviderOnePassword struct {
 var _ esv1beta1.SecretsClient = &ProviderOnePassword{}
 var _ esv1beta1.Provider = &ProviderOnePassword{}
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (provider *ProviderOnePassword) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 // NewClient constructs a 1Password Provider.
 func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.OnePassword
@@ -146,6 +151,11 @@ func validateStore(store esv1beta1.GenericStore) error {
 	}
 
 	return nil
+}
+
+// Not Implemented SetSecret.
+func (provider *ProviderOnePassword) SetSecret() error {
+	return fmt.Errorf("not implemented")
 }
 
 // GetSecret returns a single secret from the provider.

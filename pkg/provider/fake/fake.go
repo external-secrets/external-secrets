@@ -34,6 +34,11 @@ type Provider struct {
 	config *esv1beta1.FakeProvider
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	cfg, err := getProvider(store)
 	if err != nil {
@@ -53,6 +58,11 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 		return nil, errMissingFakeProvider
 	}
 	return spc.Provider.Fake, nil
+}
+
+// Not Implemented SetSecret.
+func (p *Provider) SetSecret() error {
+	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
