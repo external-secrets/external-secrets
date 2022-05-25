@@ -17,6 +17,7 @@ package secretsink
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
@@ -24,11 +25,15 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal/fakes"
+	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
+
+var fakeProvider *fake.Client
 
 var _ = Describe("secretsink", func() {
 	var (
@@ -150,11 +155,11 @@ var _ = Describe("secretsink", func() {
 					},
 				},
 			}
-			sink.Namespace = "bar"
+			sink.Namespace = "foobar"
 			_, err := reconciler.GetSecret(context.TODO(), sink)
 			Expect(err).To(BeNil())
 			_, name, _ := client.GetArgsForCall(0)
-			Expect(name.Namespace).To(Equal("bar"))
+			Expect(name.Namespace).To(Equal("foobar"))
 			Expect(name.Name).To(Equal("foo"))
 
 		})
@@ -224,20 +229,50 @@ var _ = Describe("secretsink", func() {
 				},
 			},
 		}
+		sink.Namespace = "bar"
+
+		secretStore := v1beta1.SecretStore{}
+		stores := make([]v1beta1.GenericStore, 0)
+		stores = append(stores, &secretStore)
+
 		It("gets the provider and client and then sets the secret", func() {
 
 			Expect(reconciler.SetSecretToProviders(context.TODO(), []v1beta1.GenericStore{}, sink)).To(BeNil())
 		})
-		// We want a store with invalid provider information
-		// We want to return an error value
-		// Once the error is reutned we expect the error check to have occurred
+
 		It("returns an error if it can't get a provider", func() {
-			stores := make([]v1beta1.GenericStore, 0)
-			secretStore := v1beta1.SecretStore{}
-			stores = append(stores, &secretStore)
 			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink)
 
 			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal(errGetProviderFailed))
+		})
+
+		It("returns an if it can't get a client", func() {
+			specWithProvider := v1beta1.SecretStoreSpec{
+				Provider: &v1beta1.SecretStoreProvider{
+					Fake: &v1beta1.FakeProvider{},
+				},
+			}
+			fakeProvider.WithNew(func(context.Context, v1beta1.GenericStore, kubeclient.Client,
+				string) (v1beta1.SecretsClient, error) {
+				return nil, fmt.Errorf("Something went wrong")
+			})
+			secretStore = v1beta1.SecretStore{
+				Spec: specWithProvider,
+			}
+
+			stores[0] = &secretStore
+			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal(errGetSecretsClientFailed))
 		})
 	})
 })
+
+func init() {
+	fakeProvider = fake.New()
+	v1beta1.ForceRegister(fakeProvider, &v1beta1.SecretStoreProvider{
+		Fake: &v1beta1.FakeProvider{},
+	})
+}
