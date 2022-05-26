@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/onsi/gomega"
-
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestNewClient(t *testing.T) {
@@ -123,9 +123,12 @@ func TestGetSecret(t *testing.T) {
 		},
 	}
 
-	for _, row := range tbl {
+	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
 			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("secret-store-%v", i),
+				},
 				Spec: esv1beta1.SecretStoreSpec{
 					Provider: &esv1beta1.SecretStoreProvider{
 						Fake: &esv1beta1.FakeProvider{
@@ -204,9 +207,12 @@ func TestGetSecretMap(t *testing.T) {
 		},
 	}
 
-	for _, row := range tbl {
+	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
 			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("secret-store-%v", i),
+				},
 				Spec: esv1beta1.SecretStoreSpec{
 					Provider: &esv1beta1.SecretStoreProvider{
 						Fake: &esv1beta1.FakeProvider{
