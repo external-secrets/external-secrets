@@ -73,7 +73,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}()
 
-	_, err = r.GetSecret(ctx, ss)
 	if err != nil {
 		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
 		ss = SetSecretSinkCondition(ss, *cond)
@@ -113,9 +112,15 @@ func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.
 				r.Log.Error(err, errCloseStoreClient)
 			}
 		}()
+		var secretKey string
+		var remoteKey string
 		for _, ref := range ss.Spec.Data {
 			for _, match := range ref.Match {
-				err := client.SetSecret()
+				secretKey = match.SecretKey
+				for _, rK := range match.RemoteRefs {
+					remoteKey = rK.RemoteKey
+				}
+				err := client.SetSecret(remoteKey, secretKey)
 				if err != nil {
 					return fmt.Errorf(errSetSecretFailed, match.SecretKey, store.GetName(), err)
 				}

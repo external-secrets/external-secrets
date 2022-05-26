@@ -356,7 +356,7 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 // Not Implemented SetSecret.
-func (v *client) SetSecret() error {
+func (v *client) SetSecret(secretKey, remoteKey string) error {
 	return fmt.Errorf("not implemented")
 }
 

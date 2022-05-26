@@ -114,7 +114,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-func (kms *KeyManagementService) SetSecret() error {
+func (kms *KeyManagementService) SetSecret(secretKey, remoteKey string) error {
 	return fmt.Errorf("not implemented")
 }
 

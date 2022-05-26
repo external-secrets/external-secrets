@@ -101,7 +101,7 @@ func (c *client) setAuth(ctx context.Context) error {
 }
 
 // Not Implemented SetSecret.
-func (ibm *providerIBM) SetSecret() error {
+func (ibm *providerIBM) SetSecret(secretKey, remoteKey string) error {
 	return fmt.Errorf("not implemented")
 }
 

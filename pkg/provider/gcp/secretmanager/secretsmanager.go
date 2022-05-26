@@ -220,7 +220,7 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 }
 
 // Not Implemented SetSecret.
-func (sm *ProviderGCP) SetSecret() error {
+func (sm *ProviderGCP) SetSecret(secretKey, remoteKey string) error {
 	return fmt.Errorf("not implemented")
 }
 

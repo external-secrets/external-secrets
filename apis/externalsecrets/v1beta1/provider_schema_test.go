@@ -35,7 +35,7 @@ func (p *PP) NewClient(ctx context.Context, store GenericStore, kube client.Clie
 }
 
 // SetSecret writes a single secret into a provider.
-func (p *PP) SetSecret() error {
+func (p *PP) SetSecret(secretKey, remoteKey string) error {
 	return nil
 }
 

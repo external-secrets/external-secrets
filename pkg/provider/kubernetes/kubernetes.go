@@ -131,7 +131,7 @@ func (k *ProviderKubernetes) Close(ctx context.Context) error {
 }
 
 // Not Implemented SetSecret.
-func (k *ProviderKubernetes) SetSecret() error {
+func (k *ProviderKubernetes) SetSecret(secretKey, remoteKey string) error {
 	return fmt.Errorf("not implemented")
 }
 

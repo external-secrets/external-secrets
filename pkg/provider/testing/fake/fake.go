@@ -68,7 +68,7 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 }
 
 // Not Implemented SetSecret.
-func (v *Client) SetSecret() error {
+func (v *Client) SetSecret(secretKey, remoteKey string) error {
 	return v.SetSecretFn()
 }
 

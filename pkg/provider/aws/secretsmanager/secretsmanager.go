@@ -105,7 +105,7 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 }
 
 // Not Implemented SetSecret.
-func (sm *SecretsManager) SetSecret() error {
+func (sm *SecretsManager) SetSecret(secretKey, remoteKey string) error {
 	return fmt.Errorf("not implemented")
 }
 
