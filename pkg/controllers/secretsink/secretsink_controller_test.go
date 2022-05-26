@@ -58,7 +58,7 @@ var _ = Describe("secretsink", func() {
 			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
 			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(client.GetCallCount()).To(Equal(2))
+			Expect(client.GetCallCount()).To(Equal(1))
 			Expect(client.StatusCallCount()).To(Equal(1))
 
 			_, gotNamespacedName, _ := client.GetArgsForCall(0)
