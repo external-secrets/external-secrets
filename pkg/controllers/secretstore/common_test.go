@@ -125,7 +125,7 @@ var _ = Describe("SecretStore reconcile", func() {
 
 	}
 
-	readOnly := func(tc *testCase) {
+	readWrite := func(tc *testCase) {
 		spc := tc.store.GetSpec()
 		spc.Provider.Vault = nil
 		spc.Provider.Fake = &esapi.FakeProvider{
@@ -143,7 +143,7 @@ var _ = Describe("SecretStore reconcile", func() {
 					return false
 				}
 
-				if ss.GetStatus().Capabilities != esapi.SecretStoreReadOnly {
+				if ss.GetStatus().Capabilities != esapi.SecretStoreReadWrite {
 					return false
 				}
 
@@ -168,13 +168,13 @@ var _ = Describe("SecretStore reconcile", func() {
 		Entry("[namespace] invalid provider with secretStore should set InvalidStore condition", invalidProvider),
 		Entry("[namespace] ignore stores with non-matching class", ignoreControllerClass),
 		Entry("[namespace] valid provider has status=ready", validProvider),
-		Entry("[namespace] valid provider has capabilities=ReadOnly", readOnly),
+		Entry("[namespace] valid provider has capabilities=ReadWrite", readWrite),
 
 		// cluster store
 		Entry("[cluster] invalid provider with secretStore should set InvalidStore condition", invalidProvider, useClusterStore),
 		Entry("[cluster] ignore stores with non-matching class", ignoreControllerClass, useClusterStore),
 		Entry("[cluster] valid provider has status=ready", validProvider, useClusterStore),
-		Entry("[cluster] valid provider has capabilities=ReadOnly", validProvider, useClusterStore),
+		Entry("[cluster] valid provider has capabilities=ReadWrite", readWrite, useClusterStore),
 	)
 
 })
