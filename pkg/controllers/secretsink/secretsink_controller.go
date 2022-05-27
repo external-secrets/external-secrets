@@ -72,7 +72,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			log.Error(err, errPatchStatus)
 		}
 	}()
-
+	secret, err := r.GetSecret(ctx, ss)
 	if err != nil {
 		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
 		ss = SetSecretSinkCondition(ss, *cond)
@@ -83,7 +83,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", err.Error())
 		ss = SetSecretSinkCondition(ss, *cond)
 	}
-	err = r.SetSecretToProviders(ctx, secretStores, ss)
+	err = r.SetSecretToProviders(ctx, secretStores, ss, secret)
 	if err != nil {
 		msg := fmt.Sprintf(errFailedSetSecret, err)
 		cond := NewSecretSinkCondition(esapi.SecretSinkReady, v1.ConditionFalse, "SecretSyncFailed", msg)
@@ -96,7 +96,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ss esapi.SecretSink) error {
+func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ss esapi.SecretSink, secret *v1.Secret) error {
 	for _, store := range stores {
 		provider, err := v1beta1.GetProvider(store)
 		if err != nil {
@@ -117,10 +117,14 @@ func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.
 		for _, ref := range ss.Spec.Data {
 			for _, match := range ref.Match {
 				secretKey = match.SecretKey
+				secretValue, ok := secret.Data[secretKey]
+				if !ok {
+					return fmt.Errorf("secret key %v does not exist", secretKey)
+				}
 				for _, rK := range match.RemoteRefs {
 					remoteKey = rK.RemoteKey
 				}
-				err := client.SetSecret(remoteKey, secretKey)
+				err := client.SetSecret(remoteKey, string(secretValue))
 				if err != nil {
 					return fmt.Errorf(errSetSecretFailed, match.SecretKey, store.GetName(), err)
 				}

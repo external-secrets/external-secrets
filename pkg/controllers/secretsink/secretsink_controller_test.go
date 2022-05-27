@@ -58,7 +58,7 @@ var _ = Describe("secretsink", func() {
 			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
 			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(client.GetCallCount()).To(Equal(1))
+			Expect(client.GetCallCount()).To(Equal(2))
 			Expect(client.StatusCallCount()).To(Equal(1))
 
 			_, gotNamespacedName, _ := client.GetArgsForCall(0)
@@ -220,6 +220,12 @@ var _ = Describe("secretsink", func() {
 		})
 	})
 	Describe("#SetSecretToProviders", func() {
+		val := "bar"
+		secret := &v1.Secret{
+			Data: map[string][]byte{
+				"foo": []byte(val),
+			},
+		}
 		sink := esapi.SecretSink{
 			Spec: esapi.SecretSinkSpec{
 				SecretStoreRefs: []esapi.SecretSinkStoreRef{
@@ -251,11 +257,11 @@ var _ = Describe("secretsink", func() {
 
 		It("gets the provider and client and then sets the secret", func() {
 
-			Expect(reconciler.SetSecretToProviders(context.TODO(), []v1beta1.GenericStore{}, sink)).To(BeNil())
+			Expect(reconciler.SetSecretToProviders(context.TODO(), []v1beta1.GenericStore{}, sink, secret)).To(BeNil())
 		})
 
 		It("returns an error if it can't get a provider", func() {
-			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink)
+			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink, secret)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(errGetProviderFailed))
@@ -276,7 +282,7 @@ var _ = Describe("secretsink", func() {
 			}
 
 			stores[0] = &secretStore
-			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink)
+			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink, secret)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(errGetSecretsClientFailed))
@@ -294,7 +300,7 @@ var _ = Describe("secretsink", func() {
 			}
 
 			stores[0] = &secretStore
-			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink)
+			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink, secret)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(fmt.Sprintf(errSetSecretFailed, "foo", "", "something went wrong")))
