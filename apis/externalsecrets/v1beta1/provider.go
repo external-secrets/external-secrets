@@ -21,8 +21,15 @@ import (
 )
 
 const (
+	// Ready indicates that the client is confgured correctly
+	// and can be used.
 	ValidationResultReady ValidationResult = iota
+
+	// Unknown indicates that the client can be used
+	// but information is missing and it can not be validated.
 	ValidationResultUnknown
+
+	// Error indicates that there is a misconfiguration.
 	ValidationResultError
 )
 
