@@ -73,17 +73,17 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 
 // Not Implemented SetSecret.
 func (p *Provider) SetSecret(key, value string) error {
-	new := esv1beta1.FakeProviderData{
+	newData := esv1beta1.FakeProviderData{
 		Key:   key,
 		Value: value,
 	}
 	for i, data := range p.config.Data {
 		if data.Key == key {
-			p.config.Data[i] = new
+			p.config.Data[i] = newData
 			return nil
 		}
 	}
-	p.config.Data = append(p.config.Data, new)
+	p.config.Data = append(p.config.Data, newData)
 	return nil
 }
 
