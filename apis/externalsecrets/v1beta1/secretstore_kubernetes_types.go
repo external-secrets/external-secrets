@@ -32,13 +32,6 @@ type KubernetesServer struct {
 	// see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
-
-	// there's still room for impersonation or proxy settings:
-	// Impersonate-User
-	// Impersonate-Group
-	// Impersonate-Extra-( extra name )
-	// Impersonate-Uid
-	// Proxy Settings
 }
 
 // Configures a store to sync secrets with a Kubernetes instance.
@@ -69,8 +62,6 @@ type KubernetesAuth struct {
 	// points to a service account that should be used for authentication
 	// +optional
 	ServiceAccount *ServiceAccountAuth `json:"serviceAccount,omitempty"`
-
-	// possibly exec or webhook
 }
 
 type CertAuth struct {
