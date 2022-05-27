@@ -11,6 +11,7 @@
 - [Pier Insurance](https://www.pier.digital/)
 - [Heureka Group](https://heureka.group)
 - [OpenClassrooms](https://openclassrooms.com)
+- [Epidemic Sound](https://www.epidemicsound.com/)
 
 
 Countless others that can't disclose that information! :)
