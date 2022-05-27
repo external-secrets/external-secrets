@@ -26,3 +26,9 @@ Balkrishna Pandey shows us here how to use ClusterSecretStore and how to integra
 Lukonde Mwila demonstrates how ESO works and how to fetch secrets from AWS Secrets Manager into your Kubernetes cluster.
 
 [![Managing Sensitive Data in Kubernetes with Sealed Secrets and External Secrets Operator (ESO)](https://img.youtube.com/vi/FD8zzHPbhoY/0.jpg)](https://www.youtube.com/watch?v=FD8zzHPbhoY)
+
+## External Secrets Operator: A Cloud Native way to manage your secrets
+
+ Charl Klein gives an overview of the external secrets project, and a walkthrough of getting ESO up and running with Azure Key Vault  
+
+[![External Secrets Operator: A Cloud Native way to manage your secrets](https://img.youtube.com/vi/phohsHfl55A/0.jpg)](https://www.youtube.com/watch?v=phohsHfl55A)
