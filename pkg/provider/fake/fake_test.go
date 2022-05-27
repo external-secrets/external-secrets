@@ -15,6 +15,7 @@ package fake
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -146,6 +147,67 @@ func TestGetSecret(t *testing.T) {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			}
 			gomega.Expect(string(out)).To(gomega.Equal(row.expValue))
+		})
+	}
+}
+
+type setSecretTestCase struct {
+	name       string
+	input      []esv1beta1.FakeProviderData
+	requestKey string
+	expValue   string
+	expErr     string
+}
+
+func TestSetSecret(t *testing.T) {
+	gomega.RegisterTestingT(t)
+	p := &Provider{}
+	tbl := []setSecretTestCase{
+		{
+			name:       "return nil if no existing secret",
+			input:      []esv1beta1.FakeProviderData{},
+			requestKey: "/foo",
+			expValue:   "my-secret-value",
+		},
+		{
+			name: "return err if existing secret",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:   "/foo",
+					Value: "bar2",
+				},
+			},
+			requestKey: "/foo",
+			expErr:     errors.New("key already exists").Error(),
+		},
+	}
+
+	for i, row := range tbl {
+		t.Run(row.name, func(t *testing.T) {
+			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("secret-store-%v", i),
+				},
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Fake: &esv1beta1.FakeProvider{
+							Data: row.input,
+						},
+					},
+				},
+			}, nil, "")
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			err = cl.SetSecret(row.requestKey, row.expValue)
+			if row.expErr != "" {
+				gomega.Expect(err).To(gomega.MatchError(row.expErr))
+			} else {
+				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				out, err := cl.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
+					Key: row.requestKey,
+				})
+				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				gomega.Expect(string(out)).To(gomega.Equal(row.expValue))
+			}
 		})
 	}
 }

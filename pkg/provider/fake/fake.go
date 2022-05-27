@@ -77,6 +77,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 			cfg[mapKey].ValueMap = data.ValueMap
 		}
 	}
+	p.database[store.GetName()] = cfg
 	return &Provider{
 		config: cfg,
 	}, nil
