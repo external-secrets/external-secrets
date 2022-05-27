@@ -48,6 +48,8 @@ const (
 	jwtProviderSecretName   = "jwt-provider-credentials"
 	jwtK8sProviderName      = "jwt-k8s-provider"
 	kubernetesProviderName  = "kubernetes-provider"
+	referentSecretName      = "referent-secret"
+	referentKey             = "referent-secret-key"
 )
 
 var (
@@ -99,6 +101,7 @@ func (s *vaultProvider) BeforeEach() {
 	s.CreateJWTStore(v, ns)
 	s.CreateJWTK8sStore(v, ns)
 	s.CreateKubernetesAuthStore(v, ns)
+	s.CreateReferentTokenStore(v, ns)
 }
 
 func makeStore(name, ns string, v *addon.Vault) *esv1beta1.SecretStore {
@@ -117,6 +120,14 @@ func makeStore(name, ns string, v *addon.Vault) *esv1beta1.SecretStore {
 				},
 			},
 		},
+	}
+}
+
+func makeClusterStore(name, ns string, v *addon.Vault) *esv1beta1.ClusterSecretStore {
+	store := makeStore(name, ns, v)
+	return &esv1beta1.ClusterSecretStore{
+		ObjectMeta: store.ObjectMeta,
+		Spec:       store.Spec,
 	}
 }
 
@@ -173,6 +184,33 @@ func (s vaultProvider) CreateTokenStore(v *addon.Vault, ns string) {
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: "token-provider",
 			Key:  "token",
+		},
+	}
+	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+// CreateReferentTokenStore creates a secret in the ExternalSecrets
+// namespace and creates a ClusterSecretStore with an empty namespace
+// that can be used to test the referent namespace feature.
+func (s vaultProvider) CreateReferentTokenStore(v *addon.Vault, ns string) {
+	referentSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      referentSecretName,
+			Namespace: s.framework.Namespace.Name,
+		},
+		Data: map[string][]byte{
+			referentKey: []byte(v.RootToken),
+		},
+	}
+	_, err := s.framework.KubeClientSet.CoreV1().Secrets(s.framework.Namespace.Name).Create(context.Background(), referentSecret, metav1.CreateOptions{})
+	Expect(err).ToNot(HaveOccurred())
+
+	secretStore := makeClusterStore(referentSecretStoreName(s.framework), ns, v)
+	secretStore.Spec.Provider.Vault.Auth = esv1beta1.VaultAuth{
+		TokenSecretRef: &esmeta.SecretKeySelector{
+			Name: referentSecretName,
+			Key:  referentKey,
 		},
 	}
 	err = s.framework.CRClient.Create(context.Background(), secretStore)
@@ -295,4 +333,8 @@ func (s vaultProvider) CreateKubernetesAuthStore(v *addon.Vault, ns string) {
 	}
 	err := s.framework.CRClient.Create(context.Background(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
+}
+
+func referentSecretStoreName(f *framework.Framework) string {
+	return "referent-provider-" + f.Namespace.Name
 }

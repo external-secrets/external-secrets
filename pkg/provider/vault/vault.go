@@ -282,6 +282,11 @@ func (c *connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 	vStore.logical = client.Logical()
 	vStore.token = client.AuthToken()
 
+	// allow SecretStore controller validation to pass
+	// when using referent namespace.
+	if vStore.storeKind == esv1beta1.ClusterSecretStoreKind && vStore.namespace == "" {
+		return vStore, nil
+	}
 	if err := vStore.setAuth(ctx, cfg); err != nil {
 		return nil, err
 	}
@@ -305,25 +310,25 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errInvalidVaultProv)
 	}
 	if p.Auth.AppRole != nil {
-		if err := utils.ValidateSecretSelector(store, p.Auth.AppRole.SecretRef); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, p.Auth.AppRole.SecretRef); err != nil {
 			return fmt.Errorf(errInvalidAppRoleSec, err)
 		}
 	}
 	if p.Auth.Cert != nil {
-		if err := utils.ValidateSecretSelector(store, p.Auth.Cert.ClientCert); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, p.Auth.Cert.ClientCert); err != nil {
 			return fmt.Errorf(errInvalidClientCert, err)
 		}
-		if err := utils.ValidateSecretSelector(store, p.Auth.Cert.SecretRef); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, p.Auth.Cert.SecretRef); err != nil {
 			return fmt.Errorf(errInvalidCertSec, err)
 		}
 	}
 	if p.Auth.Jwt != nil {
 		if p.Auth.Jwt.SecretRef != nil {
-			if err := utils.ValidateSecretSelector(store, *p.Auth.Jwt.SecretRef); err != nil {
+			if err := utils.ValidateReferentSecretSelector(store, *p.Auth.Jwt.SecretRef); err != nil {
 				return fmt.Errorf(errInvalidJwtSec, err)
 			}
 		} else if p.Auth.Jwt.KubernetesServiceAccountToken != nil {
-			if err := utils.ValidateServiceAccountSelector(store, p.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef); err != nil {
+			if err := utils.ValidateReferentServiceAccountSelector(store, p.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef); err != nil {
 				return fmt.Errorf(errInvalidJwtK8sSA, err)
 			}
 		} else {
@@ -332,23 +337,23 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 	}
 	if p.Auth.Kubernetes != nil {
 		if p.Auth.Kubernetes.ServiceAccountRef != nil {
-			if err := utils.ValidateServiceAccountSelector(store, *p.Auth.Kubernetes.ServiceAccountRef); err != nil {
+			if err := utils.ValidateReferentServiceAccountSelector(store, *p.Auth.Kubernetes.ServiceAccountRef); err != nil {
 				return fmt.Errorf(errInvalidKubeSA, err)
 			}
 		}
 		if p.Auth.Kubernetes.SecretRef != nil {
-			if err := utils.ValidateSecretSelector(store, *p.Auth.Kubernetes.SecretRef); err != nil {
+			if err := utils.ValidateReferentSecretSelector(store, *p.Auth.Kubernetes.SecretRef); err != nil {
 				return fmt.Errorf(errInvalidKubeSec, err)
 			}
 		}
 	}
 	if p.Auth.Ldap != nil {
-		if err := utils.ValidateSecretSelector(store, p.Auth.Ldap.SecretRef); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, p.Auth.Ldap.SecretRef); err != nil {
 			return fmt.Errorf(errInvalidLdapSec, err)
 		}
 	}
 	if p.Auth.TokenSecretRef != nil {
-		if err := utils.ValidateSecretSelector(store, *p.Auth.TokenSecretRef); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, *p.Auth.TokenSecretRef); err != nil {
 			return fmt.Errorf(errInvalidTokenRef, err)
 		}
 	}
@@ -590,6 +595,32 @@ func (v *client) Close(ctx context.Context) error {
 }
 
 func (v *client) Validate() (esv1beta1.ValidationResult, error) {
+	// when using referent namespace we can not validate the token
+	// because the namespace is not known yet when Validate() is called
+	// from the SecretStore controller.
+	if v.storeKind == esv1beta1.ClusterSecretStoreKind {
+		if v.store.Auth.TokenSecretRef != nil && v.store.Auth.TokenSecretRef.Namespace == nil {
+			return esv1beta1.ValidationResultUnknown, nil
+		}
+		if v.store.Auth.AppRole != nil && v.store.Auth.AppRole.SecretRef.Namespace == nil {
+			return esv1beta1.ValidationResultUnknown, nil
+		}
+		if v.store.Auth.Kubernetes != nil && v.store.Auth.Kubernetes.SecretRef != nil && v.store.Auth.Kubernetes.SecretRef.Namespace == nil {
+			return esv1beta1.ValidationResultUnknown, nil
+		}
+		if v.store.Auth.Kubernetes != nil && v.store.Auth.Kubernetes.ServiceAccountRef != nil && v.store.Auth.Kubernetes.ServiceAccountRef.Namespace == nil {
+			return esv1beta1.ValidationResultUnknown, nil
+		}
+		if v.store.Auth.Ldap != nil && v.store.Auth.Ldap.SecretRef.Namespace == nil {
+			return esv1beta1.ValidationResultUnknown, nil
+		}
+		if v.store.Auth.Jwt != nil && v.store.Auth.Jwt.SecretRef.Namespace == nil {
+			return esv1beta1.ValidationResultUnknown, nil
+		}
+		if v.store.Auth.Cert != nil && v.store.Auth.Cert.SecretRef.Namespace == nil {
+			return esv1beta1.ValidationResultUnknown, nil
+		}
+	}
 	_, err := checkToken(context.Background(), v)
 	if err != nil {
 		return esv1beta1.ValidationResultError, fmt.Errorf(errInvalidCredentials, err)
