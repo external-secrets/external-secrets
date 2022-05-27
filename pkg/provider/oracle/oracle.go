@@ -65,6 +65,11 @@ type VMInterface interface {
 	GetSecretBundleByName(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error)
 }
 
+// Not Implemented SetSecret.
+func (vms *VaultManagementService) SetSecret(secretKey, remoteKey string) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
@@ -123,6 +128,11 @@ func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1bet
 		secretData[k] = []byte(v)
 	}
 	return secretData, nil
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (vms *VaultManagementService) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 // NewClient constructs a new secrets client based on the provided store.

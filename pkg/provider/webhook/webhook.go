@@ -61,6 +61,11 @@ func init() {
 	})
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	whClient := &WebHook{
 		kube:      kube,
@@ -109,6 +114,11 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 		return nil, fmt.Errorf("failed to get clustersecretstore webhook secret %s: %w", ref.Name, err)
 	}
 	return secret, nil
+}
+
+// Not Implemented SetSecret.
+func (w *WebHook) SetSecret(secretKey, remoteKey string) error {
+	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
