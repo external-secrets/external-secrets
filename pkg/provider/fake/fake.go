@@ -30,9 +30,23 @@ var (
 	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
 )
 
+type SourceOrigin string
+
+const (
+	FakeSecretStore SourceOrigin = "SecretStore"
+	FakeSetSecret   SourceOrigin = "SetSecret"
+)
+
+type Data struct {
+	Value    string
+	Version  string
+	ValueMap map[string]string
+	Origin   SourceOrigin
+}
+type Config map[string]*Data
 type Provider struct {
-	config   *esv1beta1.FakeProvider
-	database map[string]*esv1beta1.FakeProvider
+	config   Config
+	database map[string]Config
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -42,21 +56,29 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	if p.database == nil {
-		p.database = make(map[string]*esv1beta1.FakeProvider)
+		p.database = make(map[string]Config)
 	}
-	cfg, err := getProvider(store)
+	c, err := getProvider(store)
 	if err != nil {
 		return nil, err
 	}
-	prov, ok := p.database[store.GetName()]
-	if !ok {
-		p.database[store.GetName()] = cfg
-		return &Provider{
-			config: cfg,
-		}, nil
+	cfg := p.database[store.GetName()]
+	if cfg == nil {
+		cfg = Config{}
+	}
+	for _, data := range c.Data {
+		mapKey := fmt.Sprintf("%v%v", data.Key, data.Version)
+		cfg[mapKey] = &Data{
+			Value:   data.Value,
+			Version: data.Version,
+			Origin:  FakeSecretStore,
+		}
+		if data.ValueMap != nil {
+			cfg[mapKey].ValueMap = data.ValueMap
+		}
 	}
 	return &Provider{
-		config: prov,
+		config: cfg,
 	}, nil
 }
 
@@ -73,17 +95,18 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 
 // Not Implemented SetSecret.
 func (p *Provider) SetSecret(key, value string) error {
-	newData := esv1beta1.FakeProviderData{
-		Key:   key,
-		Value: value,
-	}
-	for i, data := range p.config.Data {
-		if data.Key == key {
-			p.config.Data[i] = newData
-			return nil
+	currentData, ok := p.config[key]
+	if !ok {
+		p.config[key] = &Data{
+			Value:  value,
+			Origin: FakeSetSecret,
 		}
+		return nil
 	}
-	p.config.Data = append(p.config.Data, newData)
+	if currentData.Origin != FakeSetSecret {
+		return fmt.Errorf("key already exists")
+	}
+	currentData.Value = value
 	return nil
 }
 
@@ -95,23 +118,22 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 
 // GetSecret returns a single secret from the provider.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	for _, data := range p.config.Data {
-		if data.Key == ref.Key && data.Version == ref.Version {
-			return []byte(data.Value), nil
-		}
+	mapKey := fmt.Sprintf("%v%v", ref.Key, ref.Version)
+	data, ok := p.config[mapKey]
+	if !ok || data.Version != ref.Version {
+		return nil, esv1beta1.NoSecretErr
 	}
-	return nil, esv1beta1.NoSecretErr
+	return []byte(data.Value), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	for _, data := range p.config.Data {
-		if data.Key != ref.Key || data.Version != ref.Version || data.ValueMap == nil {
-			continue
-		}
-		return convertMap(data.ValueMap), nil
+	mapKey := fmt.Sprintf("%v%v", ref.Key, ref.Version)
+	data, ok := p.config[mapKey]
+	if !ok || data.Version != ref.Version || data.ValueMap == nil {
+		return nil, esv1beta1.NoSecretErr
 	}
-	return nil, esv1beta1.NoSecretErr
+	return convertMap(data.ValueMap), nil
 }
 
 func convertMap(in map[string]string) map[string][]byte {
