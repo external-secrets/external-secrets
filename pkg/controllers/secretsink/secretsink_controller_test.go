@@ -220,7 +220,7 @@ var _ = Describe("secretsink", func() {
 		})
 	})
 	Describe("#SetSecretToProviders", func() {
-		val := "bar"
+		val := "supersecret"
 		secret := &v1.Secret{
 			Data: map[string][]byte{
 				"foo": []byte(val),
