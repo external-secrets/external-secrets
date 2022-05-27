@@ -60,8 +60,16 @@ var (
 	ClusterSecretStoreGroupVersionKind = SchemeGroupVersion.WithKind(ClusterSecretStoreKind)
 )
 
+var (
+	SecretSinkKind             = reflect.TypeOf(SecretSink{}).Name()
+	SecretSinkGroupKind        = schema.GroupKind{Group: Group, Kind: SecretSinkKind}.String()
+	SecretSinkKindAPIVersion   = SecretSinkKind + "." + SchemeGroupVersion.String()
+	SecretSinkGroupVersionKind = SchemeGroupVersion.WithKind(SecretSinkKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
 	SchemeBuilder.Register(&SecretStore{}, &SecretStoreList{})
 	SchemeBuilder.Register(&ClusterSecretStore{}, &ClusterSecretStoreList{})
+	SchemeBuilder.Register(&SecretSink{}, &SecretSinkList{})
 }

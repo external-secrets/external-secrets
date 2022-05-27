@@ -31,16 +31,32 @@ var (
 )
 
 type Provider struct {
-	config *esv1beta1.FakeProvider
+	config   *esv1beta1.FakeProvider
+	database map[string]*esv1beta1.FakeProvider
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	if p.database == nil {
+		p.database = make(map[string]*esv1beta1.FakeProvider)
+	}
 	cfg, err := getProvider(store)
 	if err != nil {
 		return nil, err
 	}
+	prov, ok := p.database[store.GetName()]
+	if !ok {
+		p.database[store.GetName()] = cfg
+		return &Provider{
+			config: cfg,
+		}, nil
+	}
 	return &Provider{
-		config: cfg,
+		config: prov,
 	}, nil
 }
 
@@ -53,6 +69,22 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 		return nil, errMissingFakeProvider
 	}
 	return spc.Provider.Fake, nil
+}
+
+// Not Implemented SetSecret.
+func (p *Provider) SetSecret(key, value string) error {
+	newData := esv1beta1.FakeProviderData{
+		Key:   key,
+		Value: value,
+	}
+	for i, data := range p.config.Data {
+		if data.Key == key {
+			p.config.Data[i] = newData
+			return nil
+		}
+	}
+	p.config.Data = append(p.config.Data, newData)
+	return nil
 }
 
 // Empty GetAllSecrets.

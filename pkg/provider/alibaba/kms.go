@@ -114,6 +114,10 @@ func (c *Client) setAuth(ctx context.Context) error {
 	return nil
 }
 
+func (kms *KeyManagementService) SetSecret(secretKey, remoteKey string) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
@@ -166,6 +170,11 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1
 		secretData[k] = []byte(v)
 	}
 	return secretData, nil
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (kms *KeyManagementService) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 // NewClient constructs a new secrets client based on the provided store.
