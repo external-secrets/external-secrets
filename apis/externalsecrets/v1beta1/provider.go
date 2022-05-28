@@ -68,7 +68,7 @@ type SecretsClient interface {
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// SetSecret will write a single secret into the provider
-	SetSecret(secretKey, remoteKey string) error
+	SetSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error
 
 	// Validate checks if the client is configured correctly
 	// and is able to retrieve secrets from the provider.

@@ -34,7 +34,7 @@ func (c *yandexCloudSecretsClient) GetSecret(ctx context.Context, ref esv1beta1.
 	return c.secretGetter.GetSecret(ctx, c.iamToken, ref.Key, ref.Version, ref.Property)
 }
 
-func (c *yandexCloudSecretsClient) SetSecret(secretKey, remoteKey string) error {
+func (c *yandexCloudSecretsClient) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

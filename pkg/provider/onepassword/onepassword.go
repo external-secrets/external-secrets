@@ -154,7 +154,7 @@ func validateStore(store esv1beta1.GenericStore) error {
 }
 
 // Not Implemented SetSecret.
-func (provider *ProviderOnePassword) SetSecret(secretKey, remoteKey string) error {
+func (provider *ProviderOnePassword) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

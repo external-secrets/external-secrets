@@ -48,6 +48,10 @@ type SecretSinkRemoteRefs struct {
 	RemoteKey string `json:"remoteKey"`
 }
 
+func (r SecretSinkRemoteRefs) GetRemoteKey() string {
+	return r.RemoteKey
+}
+
 type SecretSinkMatch struct {
 	SecretKey  string                 `json:"secretKey"`
 	RemoteRefs []SecretSinkRemoteRefs `json:"remoteRefs"`

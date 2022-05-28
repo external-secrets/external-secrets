@@ -91,7 +91,7 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 }
 
 // Not Implemented SetSecret.
-func (dsm *DSM) SetSecret(secretKey, remoteKey string) error {
+func (dsm *DSM) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

@@ -112,21 +112,17 @@ func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.
 				r.Log.Error(err, errCloseStoreClient)
 			}
 		}()
-		var secretKey string
-		var remoteKey string
 		for _, ref := range ss.Spec.Data {
 			for _, match := range ref.Match {
-				secretKey = match.SecretKey
-				secretValue, ok := secret.Data[secretKey]
+				secretValue, ok := secret.Data[match.SecretKey]
 				if !ok {
-					return fmt.Errorf("secret key %v does not exist", secretKey)
+					return fmt.Errorf("secret key %v does not exist", match.SecretKey)
 				}
 				for _, rK := range match.RemoteRefs {
-					remoteKey = rK.RemoteKey
-				}
-				err := client.SetSecret(remoteKey, string(secretValue))
-				if err != nil {
-					return fmt.Errorf(errSetSecretFailed, match.SecretKey, store.GetName(), err)
+					err := client.SetSecret(ctx, secretValue, rK)
+					if err != nil {
+						return fmt.Errorf(errSetSecretFailed, match.SecretKey, store.GetName(), err)
+					}
 				}
 			}
 		}

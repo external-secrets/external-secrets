@@ -162,7 +162,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 }
 
 // Not Implemented SetSecret.
-func (g *Gitlab) SetSecret(secretKey, remoteKey string) error {
+func (g *Gitlab) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

@@ -95,11 +95,11 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 }
 
 // Not Implemented SetSecret.
-func (p *Provider) SetSecret(key, value string) error {
-	currentData, ok := p.config[key]
+func (p *Provider) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	currentData, ok := p.config[remoteRef.GetRemoteKey()]
 	if !ok {
-		p.config[key] = &Data{
-			Value:  value,
+		p.config[remoteRef.GetRemoteKey()] = &Data{
+			Value:  string(value),
 			Origin: FakeSetSecret,
 		}
 		return nil
@@ -107,7 +107,7 @@ func (p *Provider) SetSecret(key, value string) error {
 	if currentData.Origin != FakeSetSecret {
 		return fmt.Errorf("key already exists")
 	}
-	currentData.Value = value
+	currentData.Value = string(value)
 	return nil
 }
 

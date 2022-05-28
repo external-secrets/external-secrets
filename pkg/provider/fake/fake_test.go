@@ -22,6 +22,7 @@ import (
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
@@ -197,7 +198,9 @@ func TestSetSecret(t *testing.T) {
 				},
 			}, nil, "")
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			err = cl.SetSecret(row.requestKey, row.expValue)
+			err = cl.SetSecret(context.TODO(), []byte(row.expValue), esv1alpha1.SecretSinkRemoteRefs{
+				RemoteKey: row.requestKey,
+			})
 			if row.expErr != "" {
 				gomega.Expect(err).To(gomega.MatchError(row.expErr))
 			} else {

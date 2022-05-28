@@ -117,7 +117,7 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 }
 
 // Not Implemented SetSecret.
-func (w *WebHook) SetSecret(secretKey, remoteKey string) error {
+func (w *WebHook) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

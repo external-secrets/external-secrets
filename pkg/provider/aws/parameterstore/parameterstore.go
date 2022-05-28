@@ -61,7 +61,7 @@ func New(sess *session.Session) (*ParameterStore, error) {
 }
 
 // Not Implemented SetSecret.
-func (pm *ParameterStore) SetSecret(secretKey, remoteKey string) error {
+func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

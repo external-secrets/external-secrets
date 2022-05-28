@@ -202,7 +202,7 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 // Not Implemented SetSecret.
-func (a *Azure) SetSecret(secretKey, remoteKey string) error {
+func (a *Azure) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

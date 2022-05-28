@@ -66,7 +66,7 @@ type VMInterface interface {
 }
 
 // Not Implemented SetSecret.
-func (vms *VaultManagementService) SetSecret(secretKey, remoteKey string) error {
+func (vms *VaultManagementService) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
