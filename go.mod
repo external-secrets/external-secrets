@@ -50,7 +50,7 @@ require (
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.16.6
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1562
-	github.com/aws/aws-sdk-go v1.44.19
+	github.com/aws/aws-sdk-go v1.44.24
 	github.com/crossplane/crossplane-runtime v0.15.1
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
@@ -72,7 +72,7 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/stretchr/testify v1.7.1
 	github.com/tidwall/gjson v1.14.1
-	github.com/xanzy/go-gitlab v0.65.0
+	github.com/xanzy/go-gitlab v0.68.0
 	github.com/yandex-cloud/go-genproto v0.0.0-20220314102905-1acaee8ca7eb
 	github.com/yandex-cloud/go-sdk v0.0.0-20220314105123-d0c2a928feb6
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
@@ -183,7 +183,7 @@ require (
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-plugin v1.4.3 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/mlock v0.1.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.2 // indirect
@@ -270,7 +270,7 @@ require (
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
+	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
 	golang.org/x/tools v0.1.10 // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
