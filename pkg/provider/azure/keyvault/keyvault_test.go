@@ -480,6 +480,18 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.expectedSecret = ""
 	}
 
+	nestedJsonNoProperty := func(smtc *secretManagerTestCase) {
+		jsonString := jsonTestString
+		smtc.expectedSecret = ""
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &jsonString,
+		}
+		smtc.ref.Property = ""
+		smtc.expectedData["Name"] = []byte("External")
+		smtc.expectedData["LastName"] = []byte("Secret")
+		smtc.expectedData["Address"] = []byte(`{ "Street": "Myroad st.", "CP": "J4K4T4" }`)
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(badSecretString),
 		makeValidSecretManagerTestCaseCustom(setSecretJSON),
@@ -491,6 +503,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretTags),
 		makeValidSecretManagerTestCaseCustom(setSecretWithJSONTag),
 		makeValidSecretManagerTestCaseCustom(setSecretWithNoTags),
+		makeValidSecretManagerTestCaseCustom(nestedJsonNoProperty),
 	}
 
 	sm := Azure{

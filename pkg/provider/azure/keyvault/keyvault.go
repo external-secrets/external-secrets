@@ -351,7 +351,7 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 			return a.getSecretTags(ref)
 		}
 
-		kv := make(map[string]string)
+		kv := make(map[string]json.RawMessage)
 		err = json.Unmarshal(data, &kv)
 		if err != nil {
 			return nil, fmt.Errorf(errUnmarshalJSONData, err)
@@ -359,10 +359,16 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 
 		secretData := make(map[string][]byte)
 		for k, v := range kv {
-			secretData[k] = []byte(v)
+			var strVal string
+			err = json.Unmarshal(v, &strVal)
+			if err == nil {
+				secretData[k] = []byte(strVal)
+			} else {
+				secretData[k] = v
+			}
 		}
-
 		return secretData, nil
+
 	case objectTypeCert:
 		return nil, fmt.Errorf(errDataFromCert)
 	case objectTypeKey:
