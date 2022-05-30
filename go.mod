@@ -99,7 +99,7 @@ require github.com/1Password/connect-sdk-go v1.2.0
 require (
 	github.com/argoproj/argo-cd/v2 v2.3.3
 	github.com/fluxcd/helm-controller/api v0.20.1
-	github.com/fluxcd/pkg/apis/meta v0.12.2
+	github.com/fluxcd/pkg/apis/meta v0.14.1
 	github.com/fluxcd/source-controller/api v0.24.1
 )
 
