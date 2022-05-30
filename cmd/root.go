@@ -37,7 +37,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink"
+	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
 
@@ -147,14 +147,14 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 			os.Exit(1)
 		}
-		if err = (&secretsink.Reconciler{
+		if err = (&pushsecret.Reconciler{
 			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("SecretSink"),
+			Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
 			Scheme:          mgr.GetScheme(),
 			ControllerClass: controllerClass,
 			RequeueInterval: time.Hour,
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateController, "controller", "SecretSink")
+			setupLog.Error(err, errCreateController, "controller", "PushSecret")
 			os.Exit(1)
 		}
 		if enableClusterExternalSecretReconciler {

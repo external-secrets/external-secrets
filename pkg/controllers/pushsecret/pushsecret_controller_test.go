@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretsink
+package pushsecret
 
 import (
 	"context"
@@ -29,13 +29,13 @@ import (
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretsink/internal/fakes"
+	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/internal/fakes"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 var fakeProvider *fake.Client
 
-var _ = Describe("secretsink", func() {
+var _ = Describe("pushsecret", func() {
 	var (
 		reconciler *Reconciler
 		client     *fakes.Client
@@ -98,58 +98,58 @@ var _ = Describe("secretsink", func() {
 		})
 	})
 
-	Describe("#GetSecretSinkCondition", func() {
+	Describe("#GetPushSecretCondition", func() {
 		It("returns nil for empty secret sink status", func() {
-			secretSinkStatus := new(esapi.SecretSinkStatus)
-			secretSinkConditionType := new(esapi.SecretSinkConditionType)
+			pushSecretStatus := new(esapi.PushSecretStatus)
+			pushSecretConditionType := new(esapi.PushSecretConditionType)
 
-			Expect(GetSecretSinkCondition(*secretSinkStatus, *secretSinkConditionType)).To(BeNil())
+			Expect(GetPushSecretCondition(*pushSecretStatus, *pushSecretConditionType)).To(BeNil())
 		})
 
 		It("returns correct condition for secret sink status", func() {
-			secretSinkStatusCondition := esapi.SecretSinkStatusCondition{Type: esapi.SecretSinkReady}
-			secretSinkStatus := esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{secretSinkStatusCondition}}
-			secretSinkConditionType := esapi.SecretSinkReady
+			pushSecretStatusCondition := esapi.PushSecretStatusCondition{Type: esapi.PushSecretReady}
+			pushSecretStatus := esapi.PushSecretStatus{Conditions: []esapi.PushSecretStatusCondition{pushSecretStatusCondition}}
+			pushSecretConditionType := esapi.PushSecretReady
 
-			Expect(GetSecretSinkCondition(secretSinkStatus, secretSinkConditionType)).To(Equal(&secretSinkStatusCondition))
+			Expect(GetPushSecretCondition(pushSecretStatus, pushSecretConditionType)).To(Equal(&pushSecretStatusCondition))
 		})
 	})
 
-	Describe("#SetSecretSinkCondition", func() {
+	Describe("#SetPushSecretCondition", func() {
 		It("appends a condition", func() {
-			secretSink := esapi.SecretSink{}
+			pushSecret := esapi.PushSecret{}
 
-			secretSinkStatusCondition := esapi.SecretSinkStatusCondition{}
-			secretSinkStatus := esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{secretSinkStatusCondition}}
-			expected := esapi.SecretSink{Status: secretSinkStatus}
-			Expect(SetSecretSinkCondition(secretSink, secretSinkStatusCondition)).To(Equal(expected))
+			pushSecretStatusCondition := esapi.PushSecretStatusCondition{}
+			pushSecretStatus := esapi.PushSecretStatus{Conditions: []esapi.PushSecretStatusCondition{pushSecretStatusCondition}}
+			expected := esapi.PushSecret{Status: pushSecretStatus}
+			Expect(SetPushSecretCondition(pushSecret, pushSecretStatusCondition)).To(Equal(expected))
 		})
 
 		It("changes an existing condition", func() {
 			conditionStatusTrue := v1.ConditionTrue
-			secretSinkWithCondition := esapi.SecretSink{Status: esapi.SecretSinkStatus{Conditions: []esapi.SecretSinkStatusCondition{
+			pushSecretWithCondition := esapi.PushSecret{Status: esapi.PushSecretStatus{Conditions: []esapi.PushSecretStatusCondition{
 				{
 					Status: conditionStatusTrue,
-					Type:   esapi.SecretSinkReady,
+					Type:   esapi.PushSecretReady,
 				},
 			}},
 			}
-			secretSinkStatusConditionTrue := esapi.SecretSinkStatusCondition{Status: conditionStatusTrue,
-				Type:    esapi.SecretSinkReady,
+			pushSecretStatusConditionTrue := esapi.PushSecretStatusCondition{Status: conditionStatusTrue,
+				Type:    esapi.PushSecretReady,
 				Message: "Update status",
 			}
 
-			got := SetSecretSinkCondition(secretSinkWithCondition, secretSinkStatusConditionTrue)
+			got := SetPushSecretCondition(pushSecretWithCondition, pushSecretStatusConditionTrue)
 			Expect(len(got.Status.Conditions)).To(Equal(1))
-			Expect(got.Status.Conditions[0]).To(Equal(secretSinkStatusConditionTrue))
+			Expect(got.Status.Conditions[0]).To(Equal(pushSecretStatusConditionTrue))
 		})
 	})
 	Describe("#GetSecret", func() {
 		It("returns a secret if it exists", func() {
-			sink := esapi.SecretSink{
-				Spec: esapi.SecretSinkSpec{
-					Selector: esapi.SecretSinkSelector{
-						Secret: esapi.SecretSinkSecret{
+			sink := esapi.PushSecret{
+				Spec: esapi.PushSecretSpec{
+					Selector: esapi.PushSecretSelector{
+						Secret: esapi.PushSecretSecret{
 							Name: "foo",
 						},
 					},
@@ -166,15 +166,15 @@ var _ = Describe("secretsink", func() {
 
 		It("returns an error if it doesn't exist", func() {
 			client.GetReturns(errors.New("secret not found"))
-			_, err := reconciler.GetSecret(context.TODO(), esapi.SecretSink{})
+			_, err := reconciler.GetSecret(context.TODO(), esapi.PushSecret{})
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
 	Describe("#GetSecretStore", func() {
-		sink := esapi.SecretSink{
-			Spec: esapi.SecretSinkSpec{
-				SecretStoreRefs: []esapi.SecretSinkStoreRef{
+		sink := esapi.PushSecret{
+			Spec: esapi.PushSecretSpec{
+				SecretStoreRefs: []esapi.PushSecretStoreRef{
 					{
 						Name: "foo",
 					},
@@ -183,9 +183,9 @@ var _ = Describe("secretsink", func() {
 		}
 		sink.Namespace = "bar"
 
-		clusterSink := esapi.SecretSink{
-			Spec: esapi.SecretSinkSpec{
-				SecretStoreRefs: []esapi.SecretSinkStoreRef{
+		clusterSink := esapi.PushSecret{
+			Spec: esapi.PushSecretSpec{
+				SecretStoreRefs: []esapi.PushSecretStoreRef{
 					{
 						Name: "foo",
 						Kind: "ClusterSecretStore",
@@ -226,19 +226,19 @@ var _ = Describe("secretsink", func() {
 				"foo": []byte(val),
 			},
 		}
-		sink := esapi.SecretSink{
-			Spec: esapi.SecretSinkSpec{
-				SecretStoreRefs: []esapi.SecretSinkStoreRef{
+		sink := esapi.PushSecret{
+			Spec: esapi.PushSecretSpec{
+				SecretStoreRefs: []esapi.PushSecretStoreRef{
 					{
 						Name: "foo",
 					},
 				},
-				Data: []esapi.SecretSinkData{
+				Data: []esapi.PushSecretData{
 					{
-						Match: []esapi.SecretSinkMatch{
+						Match: []esapi.PushSecretMatch{
 							{
 								SecretKey: "foo",
-								RemoteRefs: []esapi.SecretSinkRemoteRefs{
+								RemoteRefs: []esapi.PushSecretRemoteRefs{
 									{
 										RemoteKey: "bar",
 									},

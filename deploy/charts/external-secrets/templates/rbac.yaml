@@ -20,7 +20,7 @@ rules:
     - "clustersecretstores"
     - "externalsecrets"
     - "clusterexternalsecrets"
-    - "secretsinks"
+    - "pushsecrets"
     verbs:
     - "get"
     - "list"
@@ -40,9 +40,9 @@ rules:
     - "clusterexternalsecrets"
     - "clusterexternalsecrets/status"
     - "clusterexternalsecrets/finalizers"
-    - "secretsinks"
-    - "secretsinks/status"
-    - "secretsinks/finalizers"
+    - "pushsecrets"
+    - "pushsecrets/status"
+    - "pushsecrets/finalizers"
     verbs:
     - "update"
     - "patch"
@@ -119,7 +119,7 @@ rules:
       - "externalsecrets"
       - "secretstores"
       - "clustersecretstores"
-      - "secretsinks"
+      - "pushsecrets"
     verbs:
       - "get"
       - "watch"
@@ -147,7 +147,7 @@ rules:
       - "externalsecrets"
       - "secretstores"
       - "clustersecretstores"
-      - "secretsinks"
+      - "pushsecrets"
     verbs:
       - "create"
       - "delete"

@@ -61,15 +61,15 @@ var (
 )
 
 var (
-	SecretSinkKind             = reflect.TypeOf(SecretSink{}).Name()
-	SecretSinkGroupKind        = schema.GroupKind{Group: Group, Kind: SecretSinkKind}.String()
-	SecretSinkKindAPIVersion   = SecretSinkKind + "." + SchemeGroupVersion.String()
-	SecretSinkGroupVersionKind = SchemeGroupVersion.WithKind(SecretSinkKind)
+	PushSecretKind             = reflect.TypeOf(PushSecret{}).Name()
+	PushSecretGroupKind        = schema.GroupKind{Group: Group, Kind: PushSecretKind}.String()
+	PushSecretKindAPIVersion   = PushSecretKind + "." + SchemeGroupVersion.String()
+	PushSecretGroupVersionKind = SchemeGroupVersion.WithKind(PushSecretKind)
 )
 
 func init() {
 	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
 	SchemeBuilder.Register(&SecretStore{}, &SecretStoreList{})
 	SchemeBuilder.Register(&ClusterSecretStore{}, &ClusterSecretStoreList{})
-	SchemeBuilder.Register(&SecretSink{}, &SecretSinkList{})
+	SchemeBuilder.Register(&PushSecret{}, &PushSecretList{})
 }

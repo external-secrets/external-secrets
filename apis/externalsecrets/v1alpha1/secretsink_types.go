@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type SecretSinkStoreRef struct {
+type PushSecretStoreRef struct {
 	// Name of the SecretStore resource
 	Name string `json:"name"`
 
@@ -29,48 +29,48 @@ type SecretSinkStoreRef struct {
 	Kind string `json:"kind,omitempty"`
 }
 
-// SecretSinkSpec configures the behavior of the SecretSink.
-type SecretSinkSpec struct {
-	SecretStoreRefs []SecretSinkStoreRef `json:"secretStoreRefs"`
-	Selector        SecretSinkSelector   `json:"selector"`
-	Data            []SecretSinkData     `json:"data,omitempty"`
+// PushSecretSpec configures the behavior of the PushSecret.
+type PushSecretSpec struct {
+	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
+	Selector        PushSecretSelector   `json:"selector"`
+	Data            []PushSecretData     `json:"data,omitempty"`
 }
 
-type SecretSinkSecret struct {
+type PushSecretSecret struct {
 	Name string `json:"name"`
 }
 
-type SecretSinkSelector struct {
-	Secret SecretSinkSecret `json:"secret"`
+type PushSecretSelector struct {
+	Secret PushSecretSecret `json:"secret"`
 }
 
-type SecretSinkRemoteRefs struct {
+type PushSecretRemoteRefs struct {
 	RemoteKey string `json:"remoteKey"`
 }
 
-func (r SecretSinkRemoteRefs) GetRemoteKey() string {
+func (r PushSecretRemoteRefs) GetRemoteKey() string {
 	return r.RemoteKey
 }
 
-type SecretSinkMatch struct {
+type PushSecretMatch struct {
 	SecretKey  string                 `json:"secretKey"`
-	RemoteRefs []SecretSinkRemoteRefs `json:"remoteRefs"`
+	RemoteRefs []PushSecretRemoteRefs `json:"remoteRefs"`
 }
 
-type SecretSinkData struct {
-	Match []SecretSinkMatch `json:"match"`
+type PushSecretData struct {
+	Match []PushSecretMatch `json:"match"`
 }
 
-// SecretSinkConditionType indicates the condition of the SecretSink.
-type SecretSinkConditionType string
+// PushSecretConditionType indicates the condition of the PushSecret.
+type PushSecretConditionType string
 
 const (
-	SecretSinkReady SecretSinkConditionType = "Ready"
+	PushSecretReady PushSecretConditionType = "Ready"
 )
 
-// SecretSinkStatusCondition indicates the status of the SecretSink.
-type SecretSinkStatusCondition struct {
-	Type   SecretSinkConditionType `json:"type"`
+// PushSecretStatusCondition indicates the status of the PushSecret.
+type PushSecretStatusCondition struct {
+	Type   PushSecretConditionType `json:"type"`
 	Status corev1.ConditionStatus  `json:"status"`
 
 	// +optional
@@ -83,8 +83,8 @@ type SecretSinkStatusCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
-// SecretSinkStatus indicates the history of the status of SecretSink.
-type SecretSinkStatus struct {
+// PushSecretStatus indicates the history of the status of PushSecret.
+type PushSecretStatus struct {
 	// +nullable
 	// refreshTime is the time and date the external secret was fetched and
 	// the target secret updated
@@ -94,31 +94,31 @@ type SecretSinkStatus struct {
 	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
 
 	// +optional
-	Conditions []SecretSinkStatusCondition `json:"conditions,omitempty"`
+	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
-// Secretsinks is the Schema for the secretsinks API.
+// PushSecrets is the Schema for the PushSecrets API.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced,categories={secretsinks}
+// +kubebuilder:resource:scope=Namespaced,categories={PushSecrets}
 
-type SecretSink struct {
+type PushSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   SecretSinkSpec   `json:"spec,omitempty"`
-	Status SecretSinkStatus `json:"status,omitempty"`
+	Spec   PushSecretSpec   `json:"spec,omitempty"`
+	Status PushSecretStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
-// SecretSinkList contains a list of SecretSink resources.
-type SecretSinkList struct {
+// PushSecretList contains a list of PushSecret resources.
+type PushSecretList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []SecretSink `json:"items"`
+	Items           []PushSecret `json:"items"`
 }

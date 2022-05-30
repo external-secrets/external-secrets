@@ -198,7 +198,7 @@ func TestSetSecret(t *testing.T) {
 				},
 			}, nil, "")
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			err = cl.SetSecret(context.TODO(), []byte(row.expValue), esv1alpha1.SecretSinkRemoteRefs{
+			err = cl.SetSecret(context.TODO(), []byte(row.expValue), esv1alpha1.PushSecretRemoteRefs{
 				RemoteKey: row.requestKey,
 			})
 			if row.expErr != "" {
