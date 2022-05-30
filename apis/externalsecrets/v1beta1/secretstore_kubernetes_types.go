@@ -61,7 +61,7 @@ type KubernetesAuth struct {
 
 	// points to a service account that should be used for authentication
 	// +optional
-	ServiceAccount *ServiceAccountAuth `json:"serviceAccount,omitempty"`
+	ServiceAccount *esmeta.ServiceAccountSelector `json:"serviceAccount,omitempty"`
 }
 
 type CertAuth struct {
@@ -71,8 +71,4 @@ type CertAuth struct {
 
 type TokenAuth struct {
 	BearerToken esmeta.SecretKeySelector `json:"bearerToken,omitempty"`
-}
-
-type ServiceAccountAuth struct {
-	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccount,omitempty"`
 }

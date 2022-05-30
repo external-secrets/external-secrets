@@ -210,11 +210,9 @@ func TestValidateStore(t *testing.T) {
 								CABundle: []byte("1234"),
 							},
 							Auth: esv1beta1.KubernetesAuth{
-								ServiceAccount: &esv1beta1.ServiceAccountAuth{
-									ServiceAccountRef: v1.ServiceAccountSelector{
-										Name:      "foobar",
-										Namespace: pointer.String("foobar"),
-									},
+								ServiceAccount: &v1.ServiceAccountSelector{
+									Name:      "foobar",
+									Namespace: pointer.String("foobar"),
 								},
 							},
 						},
@@ -233,10 +231,8 @@ func TestValidateStore(t *testing.T) {
 								CABundle: []byte("1234"),
 							},
 							Auth: esv1beta1.KubernetesAuth{
-								ServiceAccount: &esv1beta1.ServiceAccountAuth{
-									ServiceAccountRef: v1.ServiceAccountSelector{
-										Name: "foobar",
-									},
+								ServiceAccount: &v1.ServiceAccountSelector{
+									Name: "foobar",
 								},
 							},
 						},

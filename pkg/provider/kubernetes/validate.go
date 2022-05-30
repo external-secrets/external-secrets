@@ -53,7 +53,7 @@ func (p *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
 		}
 	}
 	if k8sSpec.Auth.ServiceAccount != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, k8sSpec.Auth.ServiceAccount.ServiceAccountRef); err != nil {
+		if err := utils.ValidateReferentServiceAccountSelector(store, *k8sSpec.Auth.ServiceAccount); err != nil {
 			return err
 		}
 	}

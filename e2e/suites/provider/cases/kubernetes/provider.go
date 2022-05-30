@@ -139,10 +139,8 @@ func (s *Provider) CreateStore() {
 						},
 					},
 					Auth: esv1beta1.KubernetesAuth{
-						ServiceAccount: &esv1beta1.ServiceAccountAuth{
-							ServiceAccountRef: esmeta.ServiceAccountSelector{
-								Name: "default",
-							},
+						ServiceAccount: &esmeta.ServiceAccountSelector{
+							Name: "default",
 						},
 					},
 					RemoteNamespace: s.framework.Namespace.Name,

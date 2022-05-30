@@ -226,11 +226,9 @@ func TestSetAuth(t *testing.T) {
 						CABundle: []byte("1234"),
 					},
 					Auth: esv1beta1.KubernetesAuth{
-						ServiceAccount: &esv1beta1.ServiceAccountAuth{
-							ServiceAccountRef: v1.ServiceAccountSelector{
-								Name:      "my-sa",
-								Namespace: pointer.String("shouldnotberelevant"),
-							},
+						ServiceAccount: &v1.ServiceAccountSelector{
+							Name:      "my-sa",
+							Namespace: pointer.String("shouldnotberelevant"),
 						},
 					},
 				},

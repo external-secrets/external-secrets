@@ -46,7 +46,7 @@ func (k *BaseClient) setAuth(ctx context.Context) error {
 		return err
 	}
 	if k.store.Auth.ServiceAccount != nil {
-		k.BearerToken, err = k.secretKeyRefForServiceAccount(ctx, &k.store.Auth.ServiceAccount.ServiceAccountRef)
+		k.BearerToken, err = k.secretKeyRefForServiceAccount(ctx, k.store.Auth.ServiceAccount)
 		return err
 	}
 	if k.store.Auth.Cert != nil {
