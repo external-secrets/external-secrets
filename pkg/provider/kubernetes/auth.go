@@ -26,7 +26,6 @@ import (
 )
 
 const (
-	errPropertyNotFound                    = "property field not found on extrenal secrets"
 	errInvalidClusterStoreMissingNamespace = "invalid clusterStore missing Cert namespace"
 	errFetchCredentials                    = "could not fetch credentials: %w"
 	errMissingCredentials                  = "missing credentials: \"%s\""

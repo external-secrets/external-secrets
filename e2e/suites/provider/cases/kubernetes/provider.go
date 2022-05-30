@@ -49,6 +49,7 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key,
 			Namespace: s.framework.Namespace.Name,
+			Labels:    val.Tags,
 		},
 		Data: make(map[string][]byte),
 	}

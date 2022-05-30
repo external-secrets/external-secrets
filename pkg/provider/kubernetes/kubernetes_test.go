@@ -54,7 +54,9 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 )
 
 type fakeClient struct {
-	secretMap map[string]corev1.Secret
+	t                   *testing.T
+	secretMap           map[string]corev1.Secret
+	expectedListOptions metav1.ListOptions
 }
 
 func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error) {
@@ -64,6 +66,15 @@ func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOption
 		return nil, errors.New(errSomethingWentWrong)
 	}
 	return &secret, nil
+}
+
+func (fk fakeClient) List(ctx context.Context, opts metav1.ListOptions) (*corev1.SecretList, error) {
+	assert.Equal(fk.t, fk.expectedListOptions, opts)
+	list := &corev1.SecretList{}
+	for _, v := range fk.secretMap {
+		list.Items = append(list.Items, v)
+	}
+	return list, nil
 }
 
 func TestGetSecret(t *testing.T) {
@@ -81,15 +92,12 @@ func TestGetSecret(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "empty property",
-			fields:  fields{},
-			ref:     esv1beta1.ExternalSecretDataRemoteRef{},
-			wantErr: true,
-		},
-		{
 			name: "err GetSecretMap",
 			fields: fields{
-				Client:    fakeClient{secretMap: map[string]corev1.Secret{}},
+				Client: fakeClient{
+					t:         t,
+					secretMap: map[string]corev1.Secret{},
+				},
 				Namespace: "default",
 			},
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
@@ -101,13 +109,16 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "wrong property",
 			fields: fields{
-				Client: fakeClient{secretMap: map[string]corev1.Secret{
-					"mysec": {
-						Data: map[string][]byte{
-							"token": []byte(`foobar`),
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
 						},
 					},
-				}},
+				},
 				Namespace: "default",
 			},
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
@@ -119,13 +130,16 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "successful case",
 			fields: fields{
-				Client: fakeClient{secretMap: map[string]corev1.Secret{
-					"mysec": {
-						Data: map[string][]byte{
-							"token": []byte(`foobar`),
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
 						},
 					},
-				}},
+				},
 				Namespace: "default",
 			},
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
@@ -133,6 +147,26 @@ func TestGetSecret(t *testing.T) {
 				Property: "token",
 			},
 			want: []byte(`foobar`),
+		},
+		{
+			name: "successful case without property",
+			fields: fields{
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "mysec",
+			},
+			want: []byte(`{"token":"foobar"}`),
 		},
 	}
 	for _, tt := range tests {
@@ -304,22 +338,113 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestGetAllSecrets(t *testing.T) {
+	type fields struct {
+		Client       KClient
+		ReviewClient RClient
+		Namespace    string
+	}
+	type args struct {
+		ctx context.Context
+		ref esv1beta1.ExternalSecretFind
+	}
 	tests := []struct {
 		name    string
+		fields  fields
+		args    args
+		want    map[string][]byte
 		wantErr bool
 	}{
 		{
-			name:    "return not implemented",
-			wantErr: true,
+			name: "use regex",
+			fields: fields{
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "mysec",
+							},
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+						"other": {
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "other",
+							},
+							Data: map[string][]byte{
+								"token": []byte(`bar`),
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ref: esv1beta1.ExternalSecretFind{
+					Name: &esv1beta1.FindName{
+						RegExp: "other",
+					},
+				},
+			},
+			want: map[string][]byte{
+				"other": []byte(`{"token":"bar"}`),
+			},
+		},
+		{
+			name: "use tags/labels",
+			fields: fields{
+				Client: fakeClient{
+					t: t,
+					expectedListOptions: metav1.ListOptions{
+						LabelSelector: "app=foobar",
+					},
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "mysec",
+							},
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+						"other": {
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "other",
+							},
+							Data: map[string][]byte{
+								"token": []byte(`bar`),
+							},
+						},
+					},
+				},
+			},
+			args: args{
+				ref: esv1beta1.ExternalSecretFind{
+					Tags: map[string]string{
+						"app": "foobar",
+					},
+				},
+			},
+			want: map[string][]byte{
+				"mysec": []byte(`{"token":"foo"}`),
+				"other": []byte(`{"token":"bar"}`),
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &ProviderKubernetes{}
-			_, err := p.GetAllSecrets(context.Background(), esv1beta1.ExternalSecretFind{})
+			p := &ProviderKubernetes{
+				Client:       tt.fields.Client,
+				ReviewClient: tt.fields.ReviewClient,
+				Namespace:    tt.fields.Namespace,
+			}
+			got, err := p.GetAllSecrets(tt.args.ctx, tt.args.ref)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.GetAllSecrets() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ProviderKubernetes.GetAllSecrets() = %v, want %v", got, tt.want)
 			}
 		})
 	}

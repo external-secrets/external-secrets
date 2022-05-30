@@ -4,6 +4,56 @@ A `SecretStore` points to a **specific namespace** in the target Kubernetes Clus
 
 The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectAccessReview`. See below on how to set that up properly.
 
+### External Secret Spec
+
+This provider supports the use of the `Property` field. With it you point to the key of the remote secret. If you leave it empty it will json encode all key/value pairs.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: example               # name of the SecretStore (or kind specified)
+  target:
+    name: secret-to-be-created  # name of the k8s Secret to be created
+  data:
+  - secretKey: extra
+    remoteRef:
+      key: secret-example
+      property: extra
+```
+
+#### find by tag & name
+
+You can fetch secrets based on labels or names matching a regexp:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: example
+  target:
+    name: secret-to-be-created
+  dataFrom:
+  - find:
+      name:
+        # match secret name with regexp
+        regexp: "key-.*"
+  - find:
+      tags:
+        # fetch secrets based on label combination
+        app: "nginx"
+```
+
 ### Target API-Server Configuration
 
 The servers `url` can be omitted and defaults to `kubernetes.default`. You **have to** provide a CA certificate in order to connect to the API Server securely.
