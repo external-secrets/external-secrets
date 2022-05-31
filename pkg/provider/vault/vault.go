@@ -605,7 +605,7 @@ func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 		if v.store.Auth.Ldap != nil && v.store.Auth.Ldap.SecretRef.Namespace == nil {
 			return esv1beta1.ValidationResultUnknown, nil
 		}
-		if v.store.Auth.Jwt != nil && v.store.Auth.Jwt.SecretRef.Namespace == nil {
+		if v.store.Auth.Jwt != nil && ((v.store.Auth.Jwt.SecretRef != nil && v.store.Auth.Jwt.SecretRef.Namespace == nil) || (v.store.Auth.Jwt.KubernetesServiceAccountToken != nil && v.store.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef.Namespace == nil)) {
 			return esv1beta1.ValidationResultUnknown, nil
 		}
 		if v.store.Auth.Cert != nil && v.store.Auth.Cert.SecretRef.Namespace == nil {
