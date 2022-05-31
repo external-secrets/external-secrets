@@ -219,7 +219,8 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 	return sm, nil
 }
 
-// Not Implemented SetSecret.
+// SetSecret pushes a kubernetes secret key into gcp provider Secret.
+// funcName(variable type_of_variable, ...)
 func (sm *ProviderGCP) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
