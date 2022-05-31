@@ -23,6 +23,7 @@ import (
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"k8s.io/utils/pointer"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
@@ -181,6 +182,13 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	}
 }
 
+func TestSecretManagerSetSecret(t *testing.T) {
+	p := ProviderGCP{}
+	err := p.SetSecret(context.TODO(), []byte("bar"), esv1alpha1.PushSecretRemoteRefs{RemoteKey: "foo"})
+	if err != nil {
+		t.Errorf("expected nil got err: %v", err)
+	}
+}
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *secretManagerTestCase) {
