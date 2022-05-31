@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	errInvalidClusterStoreMissingNamespace = "invalid clusterStore missing Cert namespace"
+	errInvalidClusterStoreMissingNamespace = "missing namespace"
 	errFetchCredentials                    = "could not fetch credentials: %w"
 	errMissingCredentials                  = "missing credentials: \"%s\""
 	errEmptyKey                            = "key %s found but empty"
@@ -42,11 +42,17 @@ func (k *BaseClient) setAuth(ctx context.Context) error {
 	}
 	if k.store.Auth.Token != nil {
 		k.BearerToken, err = k.fetchSecretKey(ctx, k.store.Auth.Token.BearerToken)
-		return err
+		if err != nil {
+			return fmt.Errorf("could not fetch Auth.Token.BearerToken: %w", err)
+		}
+		return nil
 	}
 	if k.store.Auth.ServiceAccount != nil {
 		k.BearerToken, err = k.secretKeyRefForServiceAccount(ctx, k.store.Auth.ServiceAccount)
-		return err
+		if err != nil {
+			return fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
+		}
+		return nil
 	}
 	if k.store.Auth.Cert != nil {
 		return k.setClientCert(ctx)
@@ -71,7 +77,7 @@ func (k *BaseClient) setCA(ctx context.Context) error {
 			}
 			ca, err = k.fetchConfigMapKey(ctx, keySelector)
 			if err != nil {
-				return fmt.Errorf("unable to fetch ca provider: %w", err)
+				return fmt.Errorf("unable to fetch Server.CAProvider ConfigMap: %w", err)
 			}
 		case esv1beta1.CAProviderTypeSecret:
 			keySelector := esmeta.SecretKeySelector{
@@ -81,7 +87,7 @@ func (k *BaseClient) setCA(ctx context.Context) error {
 			}
 			ca, err = k.fetchSecretKey(ctx, keySelector)
 			if err != nil {
-				return fmt.Errorf("unable to fetch ca provider: %w", err)
+				return fmt.Errorf("unable to fetch Server.CAProvider Secret: %w", err)
 			}
 		}
 		k.CA = ca
@@ -94,11 +100,11 @@ func (k *BaseClient) setClientCert(ctx context.Context) error {
 	var err error
 	k.Certificate, err = k.fetchSecretKey(ctx, k.store.Auth.Cert.ClientCert)
 	if err != nil {
-		return fmt.Errorf("unable to fetch certificate: %w", err)
+		return fmt.Errorf("unable to fetch client certificate: %w", err)
 	}
 	k.Key, err = k.fetchSecretKey(ctx, k.store.Auth.Cert.ClientKey)
 	if err != nil {
-		return fmt.Errorf("unable to fetch certificate key: %w", err)
+		return fmt.Errorf("unable to fetch client key: %w", err)
 	}
 	return nil
 }

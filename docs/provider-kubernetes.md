@@ -70,6 +70,7 @@ metadata:
 spec:
   provider:
     kubernetes:
+      remoteNamespace: default
       server:
         url: "https://myapiserver.tld"
         caProvider:

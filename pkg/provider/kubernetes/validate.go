@@ -30,6 +30,11 @@ func (p *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
 	if k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
 		return fmt.Errorf("a CABundle or CAProvider is required")
 	}
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind &&
+		k8sSpec.Server.CAProvider != nil &&
+		k8sSpec.Server.CAProvider.Namespace == nil {
+		return fmt.Errorf("CAProvider.namespace must not be empty with ClusterSecretStore")
+	}
 	if k8sSpec.Auth.Cert != nil {
 		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
 			return fmt.Errorf("ClientCert.Name cannot be empty")
