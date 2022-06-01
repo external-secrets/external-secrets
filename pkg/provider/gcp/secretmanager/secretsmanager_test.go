@@ -201,7 +201,7 @@ func TestSecretManagerSetSecret(t *testing.T) {
 	}
 
 	secretManagerClient.DefaultCreateSecret(key)
-	secretManagerClient.DefaultSetSecret(string(want))
+	secretManagerClient.DefaultAddSecretVersion(string(want))
 
 	err = p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
 	if err != nil {
@@ -215,6 +215,8 @@ func TestSecretManagerSetSecret(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected err got nil")
 	}
+
+	// TODO: Same as above but making the AccessSecretVersion break with wrong version name (if possible)
 }
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization

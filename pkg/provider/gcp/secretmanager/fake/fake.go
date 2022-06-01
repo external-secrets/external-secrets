@@ -84,7 +84,7 @@ func (mc *MockSMClient) DefaultCreateSecret(wantedKey string) {
 	}
 }
 
-func (mc *MockSMClient) DefaultSetSecret(wantedValue string) {
+func (mc *MockSMClient) DefaultAddSecretVersion(wantedValue string) {
 	mc.addSecretFn = func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
 		if string(req.Payload.Data) == wantedValue {
 			return &secretmanagerpb.SecretVersion{
@@ -95,11 +95,7 @@ func (mc *MockSMClient) DefaultSetSecret(wantedValue string) {
 	}
 }
 
-// func (mc *MockSMClient) AccessSpecificSecret() {
-// 	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
-
-// 	}
-// }
+// TODO: func (mc...) DefaultAccessSecretVersion (similar to above)
 
 func (mc *MockSMClient) WithValue(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
 	if mc != nil {
