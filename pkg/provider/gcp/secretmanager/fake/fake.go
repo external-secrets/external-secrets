@@ -73,25 +73,43 @@ func (mc *MockSMClient) CreateSecretGetError() {
 	}
 }
 
-func (mc *MockSMClient) DefaultCreateSecret(wantedKey string) {
+func (mc *MockSMClient) DefaultCreateSecret(wantedSecretId, wantedParent string) {
 	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
-		if req.SecretId == wantedKey {
-			return &secretmanagerpb.Secret{
-				Name: wantedKey,
-			}, nil
+		if req.SecretId != wantedSecretId {
+			return nil, fmt.Errorf("create secret req wrong key: got %v want %v", req.SecretId, wantedSecretId)
 		}
-		return nil, fmt.Errorf("error creating secret key %v ", req.SecretId)
+		if req.Parent != wantedParent {
+			return nil, fmt.Errorf("create secret req wrong parent: got %v want %v", req.Parent, wantedParent)
+		}
+		return &secretmanagerpb.Secret{
+			Name: fmt.Sprintf("%s/%s", req.Parent, req.SecretId),
+		}, nil
 	}
 }
 
-func (mc *MockSMClient) DefaultAddSecretVersion(wantedValue string) {
+func (mc *MockSMClient) DefaultAddSecretVersion(wantedData, wantedParent, versionName string) {
 	mc.addSecretFn = func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
-		if string(req.Payload.Data) == wantedValue {
-			return &secretmanagerpb.SecretVersion{
-				Name: "done",
-			}, nil
+		if string(req.Payload.Data) != wantedData {
+			return nil, fmt.Errorf("add version req wrong data got: %v want %v ", req.Payload.Data, wantedData)
 		}
-		return nil, fmt.Errorf("secret %s not found", wantedValue)
+		if req.Parent != wantedParent {
+			return nil, fmt.Errorf("add version req has wrong parent: got %v want %v", req.Parent, wantedParent)
+		}
+		return &secretmanagerpb.SecretVersion{
+			Name: versionName,
+		}, nil
+	}
+}
+
+func (mc *MockSMClient) DefaultAccessSecretVersion(wantedVersionName string) {
+	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+
+		if req.Name != wantedVersionName {
+			return nil, fmt.Errorf("access req has wrong version name: got %v want %v", req.Name, wantedVersionName)
+		}
+		return &secretmanagerpb.AccessSecretVersionResponse{
+			Name: "latest",
+		}, nil
 	}
 }
 

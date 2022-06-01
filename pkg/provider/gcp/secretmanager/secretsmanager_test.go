@@ -190,18 +190,24 @@ func TestSecretManagerSetSecret(t *testing.T) {
 
 	key := "foo"
 	want := []byte("bar")
+	projectID := "default"
+
+	wantedSecretParent := fmt.Sprintf("projects/%s", projectID)
+	wantedVersionParent := fmt.Sprintf("%s/%s", wantedSecretParent, key)
+	wantedVersion := "latest"
 
 	p := ProviderGCP{
 		SecretManagerClient: &secretManagerClient,
-		projectID:           "default",
+		projectID:           projectID,
 	}
 	err := p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
 	if err == nil {
 		t.Errorf("expected err got nil from SetSecret")
 	}
 
-	secretManagerClient.DefaultCreateSecret(key)
-	secretManagerClient.DefaultAddSecretVersion(string(want))
+	secretManagerClient.DefaultCreateSecret(key, wantedSecretParent)
+	secretManagerClient.DefaultAddSecretVersion(string(want), wantedVersionParent, wantedVersion)
+	secretManagerClient.DefaultAccessSecretVersion(wantedVersion)
 
 	err = p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
 	if err != nil {

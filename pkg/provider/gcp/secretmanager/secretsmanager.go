@@ -229,17 +229,30 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 		SecretId: remoteRef.GetRemoteKey(),
 	}
 
-	if _, err := sm.SecretManagerClient.CreateSecret(ctx, createSecretReq); err != nil {
+	secret, err := sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
+
+	if err != nil {
 		return err
 	}
 
 	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: secret.Name,
 		Payload: &secretmanagerpb.SecretPayload{
 			Data: payload,
 		},
 	}
 
-	if _, err := sm.SecretManagerClient.AddSecretVersion(ctx, addSecretVersionReq); err != nil {
+	version, err := sm.SecretManagerClient.AddSecretVersion(ctx, addSecretVersionReq)
+
+	if err != nil {
+		return err
+	}
+
+	accessRequest := secretmanagerpb.AccessSecretVersionRequest{
+		Name: version.Name,
+	}
+
+	if _, err := sm.SecretManagerClient.AccessSecretVersion(ctx, &accessRequest); err != nil {
 		return err
 	}
 
