@@ -71,6 +71,8 @@ var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager
 type GoogleSecretManagerClient interface {
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
+	AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
+	CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	Close() error
 }
 
@@ -222,7 +224,13 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 // SetSecret pushes a kubernetes secret key into gcp provider Secret.
 // funcName(variable type_of_variable, ...)
 func (sm *ProviderGCP) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	req := secretmanagerpb.CreateSecretRequest{
+		Parent:   "foo",
+		SecretId: remoteRef.GetRemoteKey(),
+	}
+	_, err := sm.SecretManagerClient.CreateSecret(ctx, &req)
+	return err
+
 }
 
 // GetAllSecrets syncs multiple secrets from gcp provider into a single Kubernetes Secret.

@@ -183,10 +183,17 @@ func TestSecretManagerGetSecret(t *testing.T) {
 }
 
 func TestSecretManagerSetSecret(t *testing.T) {
-	p := ProviderGCP{}
+	secretManagerClient := fakesm.MockSMClient{}
+	secretManagerClient.NilClose()
+	secretManagerClient.WithValue(context.Background(), nil, nil, nil)
+	secretManagerClient.CreateSecretError()
+	p := ProviderGCP{
+		SecretManagerClient: &secretManagerClient,
+		projectID:           "default",
+	}
 	err := p.SetSecret(context.TODO(), []byte("bar"), esv1alpha1.PushSecretRemoteRefs{RemoteKey: "foo"})
-	if err != nil {
-		t.Errorf("expected nil got err: %v", err)
+	if err == nil {
+		t.Errorf("expected err got nil")
 	}
 }
 func TestGetSecretMap(t *testing.T) {

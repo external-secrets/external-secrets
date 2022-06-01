@@ -15,6 +15,7 @@ package fake
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -27,6 +28,8 @@ import (
 type MockSMClient struct {
 	accessSecretFn func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	ListSecretsFn  func(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
+	addSecretFn    func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
+	createSecretFn func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	closeFn        func() error
 }
 
@@ -41,9 +44,23 @@ func (mc *MockSMClient) Close() error {
 	return mc.closeFn()
 }
 
+func (mc *MockSMClient) AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+	return mc.addSecretFn(ctx, req)
+}
+
+func (mc *MockSMClient) CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+	return mc.createSecretFn(ctx, req)
+}
+
 func (mc *MockSMClient) NilClose() {
 	mc.closeFn = func() error {
 		return nil
+	}
+}
+
+func (mc *MockSMClient) CreateSecretError() {
+	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+		return nil, errors.New("Something went wrong")
 	}
 }
 
