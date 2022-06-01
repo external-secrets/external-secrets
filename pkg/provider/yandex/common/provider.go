@@ -88,6 +88,7 @@ func InitYandexCloudProvider(
 	return provider
 }
 
+type NewSecretSetterFunc func()
 type AdaptInputFunc func(store esv1beta1.GenericStore) (*SecretsClientInput, error)
 type NewSecretGetterFunc func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (SecretGetter, error)
 type NewIamTokenFunc func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (*IamToken, error)
@@ -101,6 +102,10 @@ type SecretsClientInput struct {
 	APIEndpoint   string
 	AuthorizedKey esmeta.SecretKeySelector
 	CACertificate *esmeta.SecretKeySelector
+}
+
+func (p *YandexCloudProvider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 // NewClient constructs a Yandex.Cloud Provider.
@@ -177,7 +182,7 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1beta1.Gen
 		return nil, fmt.Errorf("failed to create IAM token: %w", err)
 	}
 
-	return &yandexCloudSecretsClient{secretGetter, iamToken.Token}, nil
+	return &yandexCloudSecretsClient{secretGetter, nil, iamToken.Token}, nil
 }
 
 func (p *YandexCloudProvider) getOrCreateSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (SecretGetter, error) {
