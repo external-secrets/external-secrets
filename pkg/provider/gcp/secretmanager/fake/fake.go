@@ -107,7 +107,7 @@ func (mc *MockSMClient) DefaultAccessSecretVersion(wantedVersionName string) {
 			return nil, fmt.Errorf("access req has wrong version name: got %v want %v", req.Name, wantedVersionName)
 		}
 		return &secretmanagerpb.AccessSecretVersionResponse{
-			Name: "latest",
+			Name: req.Name,
 		}, nil
 	}
 }
