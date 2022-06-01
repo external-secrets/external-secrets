@@ -187,11 +187,31 @@ func TestSecretManagerSetSecret(t *testing.T) {
 	secretManagerClient.NilClose()
 	secretManagerClient.WithValue(context.Background(), nil, nil, nil)
 	secretManagerClient.CreateSecretError()
+
+	key := "foo"
+	want := []byte("bar")
+
 	p := ProviderGCP{
 		SecretManagerClient: &secretManagerClient,
 		projectID:           "default",
 	}
-	err := p.SetSecret(context.TODO(), []byte("bar"), esv1alpha1.PushSecretRemoteRefs{RemoteKey: "foo"})
+	err := p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
+	if err == nil {
+		t.Errorf("expected err got nil from SetSecret")
+	}
+
+	secretManagerClient.DefaultCreateSecret(key)
+	secretManagerClient.DefaultSetSecret(string(want))
+
+	err = p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
+	if err != nil {
+		t.Errorf("expected nil got err from SetSecret: %v", err)
+	}
+	err = p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: "wrong"})
+	if err == nil {
+		t.Errorf("expected err got nil")
+	}
+	err = p.SetSecret(context.TODO(), []byte("potato"), esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
 	if err == nil {
 		t.Errorf("expected err got nil")
 	}

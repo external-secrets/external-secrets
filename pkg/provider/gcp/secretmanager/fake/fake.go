@@ -64,6 +64,43 @@ func (mc *MockSMClient) CreateSecretError() {
 	}
 }
 
+func (mc *MockSMClient) CreateSecretGetError() {
+	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+		mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+			return nil, errors.New("no.")
+		}
+		return nil, nil
+	}
+}
+
+func (mc *MockSMClient) DefaultCreateSecret(wantedKey string) {
+	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+		if req.SecretId == wantedKey {
+			return &secretmanagerpb.Secret{
+				Name: wantedKey,
+			}, nil
+		}
+		return nil, fmt.Errorf("error creating secret key %v ", req.SecretId)
+	}
+}
+
+func (mc *MockSMClient) DefaultSetSecret(wantedValue string) {
+	mc.addSecretFn = func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+		if string(req.Payload.Data) == wantedValue {
+			return &secretmanagerpb.SecretVersion{
+				Name: "done",
+			}, nil
+		}
+		return nil, fmt.Errorf("secret %s not found", wantedValue)
+	}
+}
+
+// func (mc *MockSMClient) AccessSpecificSecret() {
+// 	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+
+// 	}
+// }
+
 func (mc *MockSMClient) WithValue(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
 	if mc != nil {
 		mc.accessSecretFn = func(paramCtx context.Context, paramReq *secretmanagerpb.AccessSecretVersionRequest, paramOpts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
