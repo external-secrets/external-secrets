@@ -60,14 +60,14 @@ func (mc *MockSMClient) NilClose() {
 
 func (mc *MockSMClient) CreateSecretError() {
 	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
-		return nil, errors.New("Something went wrong")
+		return nil, errors.New("something went wrong")
 	}
 }
 
 func (mc *MockSMClient) CreateSecretGetError() {
 	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 		mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
-			return nil, errors.New("no.")
+			return nil, errors.New("no, this broke")
 		}
 		return nil, nil
 	}
