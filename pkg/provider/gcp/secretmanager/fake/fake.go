@@ -73,10 +73,10 @@ func (mc *MockSMClient) CreateSecretGetError() {
 	}
 }
 
-func (mc *MockSMClient) DefaultCreateSecret(wantedSecretId, wantedParent string) {
+func (mc *MockSMClient) DefaultCreateSecret(wantedSecretID, wantedParent string) {
 	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
-		if req.SecretId != wantedSecretId {
-			return nil, fmt.Errorf("create secret req wrong key: got %v want %v", req.SecretId, wantedSecretId)
+		if req.SecretId != wantedSecretID {
+			return nil, fmt.Errorf("create secret req wrong key: got %v want %v", req.SecretId, wantedSecretID)
 		}
 		if req.Parent != wantedParent {
 			return nil, fmt.Errorf("create secret req wrong parent: got %v want %v", req.Parent, wantedParent)
@@ -103,7 +103,6 @@ func (mc *MockSMClient) DefaultAddSecretVersion(wantedData, wantedParent, versio
 
 func (mc *MockSMClient) DefaultAccessSecretVersion(wantedVersionName string) {
 	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
-
 		if req.Name != wantedVersionName {
 			return nil, fmt.Errorf("access req has wrong version name: got %v want %v", req.Name, wantedVersionName)
 		}
