@@ -256,7 +256,6 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 		return err
 	}
 
-	// TODO: AccessSecretVersion as above
 	return nil
 }
 

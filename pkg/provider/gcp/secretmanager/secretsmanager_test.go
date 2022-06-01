@@ -221,8 +221,6 @@ func TestSecretManagerSetSecret(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected err got nil")
 	}
-
-	// TODO: Same as above but making the AccessSecretVersion break with wrong version name (if possible)
 }
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
