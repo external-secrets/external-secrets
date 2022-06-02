@@ -38,21 +38,34 @@ func NewMockClient() *OnePasswordMockClient {
 	}
 }
 
+// GetVaults unused fake.
+func (mockClient *OnePasswordMockClient) GetVaults() ([]onepassword.Vault, error) {
+	return []onepassword.Vault{}, nil
+}
+
+// GetVault unused fake.
+func (mockClient *OnePasswordMockClient) GetVault(uuid string) (*onepassword.Vault, error) {
+	return &onepassword.Vault{}, nil
+}
+
+// GetVaultByUUID unused fake.
+func (mockClient *OnePasswordMockClient) GetVaultByUUID(uuid string) (*onepassword.Vault, error) {
+	return &onepassword.Vault{}, nil
+}
+
+// GetVaultByTitle unused fake.
+func (mockClient *OnePasswordMockClient) GetVaultByTitle(uuid string) (*onepassword.Vault, error) {
+	return &onepassword.Vault{}, nil
+}
+
 // GetVaultsByTitle returns a list of vaults, you must preload.
 func (mockClient *OnePasswordMockClient) GetVaultsByTitle(uuid string) ([]onepassword.Vault, error) {
 	return mockClient.MockVaults[uuid], nil
 }
 
-// GetItemsByTitle returns a list of items, you must preload.
-func (mockClient *OnePasswordMockClient) GetItemsByTitle(itemUUID, vaultUUID string) ([]onepassword.Item, error) {
-	items := []onepassword.Item{}
-	for _, item := range mockClient.MockItems[vaultUUID] {
-		if item.Title == itemUUID {
-			items = append(items, item)
-		}
-	}
-
-	return items, nil
+// GetItems returns []onepassword.Item, you must preload.
+func (mockClient *OnePasswordMockClient) GetItems(vaultUUID string) ([]onepassword.Item, error) {
+	return mockClient.MockItems[vaultUUID], nil
 }
 
 // GetItem returns a *onepassword.Item, you must preload.
@@ -69,9 +82,56 @@ func (mockClient *OnePasswordMockClient) GetItem(itemUUID, vaultUUID string) (*o
 	return &onepassword.Item{}, errors.New("status 400: Invalid Item UUID")
 }
 
-// GetItems returns []onepassword.Item, you must preload.
-func (mockClient *OnePasswordMockClient) GetItems(vaultUUID string) ([]onepassword.Item, error) {
-	return mockClient.MockItems[vaultUUID], nil
+// GetItemByUUID unused fake.
+func (mockClient *OnePasswordMockClient) GetItemByUUID(uuid, vaultQuery string) (*onepassword.Item, error) {
+	return &onepassword.Item{}, nil
+}
+
+// GetItemByTitle unused fake.
+func (mockClient *OnePasswordMockClient) GetItemByTitle(title, vaultUUID string) (*onepassword.Item, error) {
+	return &onepassword.Item{}, nil
+}
+
+// GetItemsByTitle returns a list of items, you must preload.
+func (mockClient *OnePasswordMockClient) GetItemsByTitle(itemUUID, vaultUUID string) ([]onepassword.Item, error) {
+	items := []onepassword.Item{}
+	for _, item := range mockClient.MockItems[vaultUUID] {
+		if item.Title == itemUUID {
+			items = append(items, item)
+		}
+	}
+
+	return items, nil
+}
+
+// CreateItem unused fake.
+func (mockClient *OnePasswordMockClient) CreateItem(item *onepassword.Item, vaultUUID string) (*onepassword.Item, error) {
+	return &onepassword.Item{}, nil
+}
+
+// UpdateItem unused fake.
+func (mockClient *OnePasswordMockClient) UpdateItem(item *onepassword.Item, vaultUUID string) (*onepassword.Item, error) {
+	return &onepassword.Item{}, nil
+}
+
+// DeleteItem unused fake.
+func (mockClient *OnePasswordMockClient) DeleteItem(item *onepassword.Item, vaultUUID string) error {
+	return nil
+}
+
+// DeleteItemByID unused fake.
+func (mockClient *OnePasswordMockClient) DeleteItemByID(itemUUID, vaultQuery string) error {
+	return nil
+}
+
+// GetFiles unused fake.
+func (mockClient *OnePasswordMockClient) GetFiles(itemQuery, vaultQuery string) ([]onepassword.File, error) {
+	return []onepassword.File{}, nil
+}
+
+// GetFile unused fake.
+func (mockClient *OnePasswordMockClient) GetFile(fileUUID, itemUUID, vaultUUID string) (*onepassword.File, error) {
+	return &onepassword.File{}, nil
 }
 
 // GetFileContent returns file data, you must preload.
@@ -84,39 +144,29 @@ func (mockClient *OnePasswordMockClient) GetFileContent(file *onepassword.File) 
 	return value, nil
 }
 
-// GetVaults fake.
-func (mockClient *OnePasswordMockClient) GetVaults() ([]onepassword.Vault, error) {
-	return []onepassword.Vault{}, nil
+// DownloadFile unused fake.
+func (mockClient *OnePasswordMockClient) DownloadFile(file *onepassword.File, targetDirectory string, overwrite bool) (string, error) {
+	return "", nil
 }
 
-// GetVault fake.
-func (mockClient *OnePasswordMockClient) GetVault(uuid string) (*onepassword.Vault, error) {
-	return &onepassword.Vault{}, nil
-}
-
-// GetItemByTitle fake.
-func (mockClient *OnePasswordMockClient) GetItemByTitle(title, vaultUUID string) (*onepassword.Item, error) {
-	return &onepassword.Item{}, nil
-}
-
-// CreateItem fake.
-func (mockClient *OnePasswordMockClient) CreateItem(item *onepassword.Item, vaultUUID string) (*onepassword.Item, error) {
-	return &onepassword.Item{}, nil
-}
-
-// UpdateItem fake.
-func (mockClient *OnePasswordMockClient) UpdateItem(item *onepassword.Item, vaultUUID string) (*onepassword.Item, error) {
-	return &onepassword.Item{}, nil
-}
-
-// DeleteItem fake.
-func (mockClient *OnePasswordMockClient) DeleteItem(item *onepassword.Item, vaultUUID string) error {
+// LoadStructFromItemByUUID unused fake.
+func (mockClient *OnePasswordMockClient) LoadStructFromItemByUUID(config interface{}, itemUUID, vaultQuery string) error {
 	return nil
 }
 
-// GetFile fake.
-func (mockClient *OnePasswordMockClient) GetFile(fileUUID, itemUUID, vaultUUID string) (*onepassword.File, error) {
-	return &onepassword.File{}, nil
+// LoadStructFromItemByTitle unused fake.
+func (mockClient *OnePasswordMockClient) LoadStructFromItemByTitle(config interface{}, itemTitle, vaultQuery string) error {
+	return nil
+}
+
+// LoadStructFromItem unused fake.
+func (mockClient *OnePasswordMockClient) LoadStructFromItem(config interface{}, itemQuery, vaultQuery string) error {
+	return nil
+}
+
+// LoadStructunused fake.
+func (mockClient *OnePasswordMockClient) LoadStruct(config interface{}) error {
+	return nil
 }
 
 // // For rigging test cases
