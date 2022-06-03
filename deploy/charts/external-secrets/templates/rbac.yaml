@@ -1,4 +1,65 @@
 {{- if .Values.rbac.create -}}
+{{- if .Values.rbac.basic -}}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+kind: Role
+{{- else }}
+kind: ClusterRole
+{{- end }}
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-controller-basic
+  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- end }}
+  labels:
+    {{- include "external-secrets.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+    - "external-secrets.io"
+    resources:
+    - "secretstores"
+    - "clustersecretstores"
+    - "externalsecrets"
+    - "clusterexternalsecrets"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  - apiGroups:
+    - ""
+    resources:
+    - "secrets"
+    verbs:
+    - "list"
+    - "watch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+kind: RoleBinding
+{{- else }}
+kind: ClusterRoleBinding
+{{- end }}
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-controller-basic
+  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- end }}
+  labels:
+    {{- include "external-secrets.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  kind: Role
+  {{- else }}
+  kind: ClusterRole
+  {{- end }}
+  name: {{ include "external-secrets.fullname" . }}-controller-basic
+subjects:
+  - name: {{ include "external-secrets.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace | quote }}
+    kind: ServiceAccount
+---
+{{- end }}
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
 kind: Role
@@ -149,6 +210,7 @@ rules:
       - "patch"
       - "update"
 ---
+{{- if .Values.rbac.fullRB }}
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
 kind: RoleBinding
@@ -175,6 +237,7 @@ subjects:
     namespace: {{ .Release.Namespace | quote }}
     kind: ServiceAccount
 ---
+{{- end }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
