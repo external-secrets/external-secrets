@@ -60,6 +60,10 @@ serviceAccount:
 rbac:
   # -- Specifies whether role and rolebinding resources should be created.
   create: true
+  # -- Specifies whether basic role and rolebinding resources should be created.
+  basic: false
+  # -- Specifies whether full rolebinding resource should be created.
+  fullRB: true
 
 ## -- Extra environment variables to add to container.
 extraEnv: []
