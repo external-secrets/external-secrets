@@ -103,7 +103,7 @@ type PushSecretStatus struct {
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced,categories={PushSecrets}
+// +kubebuilder:resource:scope=Namespaced,categories={pushsecrets}
 
 type PushSecret struct {
 	metav1.TypeMeta   `json:",inline"`
