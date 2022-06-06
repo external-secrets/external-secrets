@@ -50,7 +50,7 @@ type KClient interface {
 }
 
 type RClient interface {
-	Create(ctx context.Context, SelfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error)
+	Create(ctx context.Context, selfSubjectRulesReview *authv1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*authv1.SelfSubjectRulesReview, error)
 }
 
 // ProviderKubernetes is a provider for Kubernetes.
@@ -116,7 +116,7 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.Gene
 
 	k.Client = kubeClientSet.CoreV1().Secrets(bStore.store.RemoteNamespace)
 	k.Namespace = bStore.store.RemoteNamespace
-	k.ReviewClient = kubeClientSet.AuthorizationV1().SelfSubjectAccessReviews()
+	k.ReviewClient = kubeClientSet.AuthorizationV1().SelfSubjectRulesReviews()
 
 	return k, nil
 }
@@ -241,28 +241,34 @@ func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySel
 	return val, nil
 }
 
+func contains(sub string, args []string) bool {
+	for _, k := range args {
+		if k == sub {
+			return true
+		}
+	}
+	return false
+}
 func (k *ProviderKubernetes) Validate() (esv1beta1.ValidationResult, error) {
 	ctx := context.Background()
-
-	authReview, err := k.ReviewClient.Create(ctx, &authv1.SelfSubjectAccessReview{
-		Spec: authv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Resource:  "secrets",
-				Namespace: k.Namespace,
-				Verb:      "get",
-			},
+	t := authv1.SelfSubjectRulesReview{
+		Spec: authv1.SelfSubjectRulesReviewSpec{
+			Namespace: k.Namespace,
 		},
-	}, metav1.CreateOptions{})
+	}
+	authReview, err := k.ReviewClient.Create(ctx, &t, metav1.CreateOptions{})
 
 	if err != nil {
 		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}
 
-	if !authReview.Status.Allowed {
-		return esv1beta1.ValidationResultError, fmt.Errorf("client is not allowed to get secrets")
+	for _, rev := range authReview.Status.ResourceRules {
+		if contains("secrets", rev.Resources) && contains("get", rev.Verbs) {
+			return esv1beta1.ValidationResultReady, nil
+		}
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1beta1.ValidationResultError, fmt.Errorf("client is not allowed to get secrets")
 }
 
 func (k *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {

@@ -51,10 +51,10 @@ func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOption
 }
 
 type fakeReviewClient struct {
-	authReview *authv1.SelfSubjectAccessReview
+	authReview *authv1.SelfSubjectRulesReview
 }
 
-func (fk fakeReviewClient) Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error) {
+func (fk fakeReviewClient) Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*authv1.SelfSubjectRulesReview, error) {
 	if fk.authReview == nil {
 		return nil, errors.New(errSomethingWentWrong)
 	}
@@ -366,9 +366,14 @@ func ErrorContains(out error, want string) bool {
 }
 
 func TestValidate(t *testing.T) {
-	authReview := authv1.SelfSubjectAccessReview{
-		Status: authv1.SubjectAccessReviewStatus{
-			Allowed: true,
+	authReview := authv1.SelfSubjectRulesReview{
+		Status: authv1.SubjectRulesReviewStatus{
+			ResourceRules: []authv1.ResourceRule{
+				{
+					Verbs:     []string{"get"},
+					Resources: []string{"secrets"},
+				},
+			},
 		},
 	}
 	fakeClient := fakeReviewClient{authReview: &authReview}
@@ -381,11 +386,7 @@ func TestValidate(t *testing.T) {
 		t.Errorf("Test Failed! Wanted could not indicate validationResult is %s, got: %s", esv1beta1.ValidationResultReady, validationResult)
 	}
 
-	authReview = authv1.SelfSubjectAccessReview{
-		Status: authv1.SubjectAccessReviewStatus{
-			Allowed: false,
-		},
-	}
+	authReview = authv1.SelfSubjectRulesReview{}
 	fakeClient = fakeReviewClient{authReview: &authReview}
 	k = ProviderKubernetes{ReviewClient: fakeClient}
 	validationResult, err = k.Validate()
