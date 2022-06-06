@@ -159,8 +159,8 @@ github.com/ahmetb/gen-crd-api-reference-docs v0.3.0/go.mod h1:TdjdkYhlOifCQWPs1U
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4 h1:vTckjyBhHOBiOWSC/oaEU2Oo4OH5eAlQiwKu2RMxsFg=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4/go.mod h1:As/RomC2w/fa3y+yHRlVHPmkbP+zrKBFRow41y5dk+E=
-github.com/akeylesslabs/akeyless-go/v2 v2.16.6 h1:d8L/kAGA/wiLHDfKMdGAI7A/w3ibDp/PiLF340bywYQ=
-github.com/akeylesslabs/akeyless-go/v2 v2.16.6/go.mod h1:uOdXD49NCCe4rexeSc2aBU5Qv4KZgJE6YlbtYalvb+I=
+github.com/akeylesslabs/akeyless-go/v2 v2.16.7 h1:/sSA9bn+QpeUORcHQdSvy6ErqMxD/7FpWHzfNLl/NIk=
+github.com/akeylesslabs/akeyless-go/v2 v2.16.7/go.mod h1:uOdXD49NCCe4rexeSc2aBU5Qv4KZgJE6YlbtYalvb+I=
 github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7 h1:uSoVVbwJiQipAclBbw+8quDsfcvFjOpI5iCf4p/cqCs=
 github.com/alcortesm/tgz v0.0.0-20161220082320-9c5fe88206d7/go.mod h1:6zEj6s6u/ghQa61ZWa/C2Aw3RkjiTBOix7dkqa1VLIs=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
