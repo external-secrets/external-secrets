@@ -2614,8 +2614,8 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>secretcontainerAuthSecretRef</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.IBMAuthSecretcontainerAuthSecretRef">
-IBMAuthSecretcontainerAuthSecretRef
+<a href="#external-secrets.io/v1beta1.IBMAuthSecretContainerAuthSecretRef">
+IBMAuthSecretContainerAuthSecretRef
 </a>
 </em>
 </td>
@@ -2624,7 +2624,7 @@ IBMAuthSecretcontainerAuthSecretRef
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.IBMAuthSecretcontainerAuthSecretRef">IBMAuthSecretcontainerAuthSecretRef
+<h3 id="external-secrets.io/v1beta1.IBMAuthSecretContainerAuthSecretRef">IBMAuthSecretContainerAuthSecretRef
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -2654,7 +2654,7 @@ string
 </tr>
 <tr>
 <td>
-<code>tokenlocation</code></br>
+<code>tokenLocation</code></br>
 <em>
 string
 </em>

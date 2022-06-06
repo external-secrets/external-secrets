@@ -1770,7 +1770,7 @@ spec:
                                     profile:
                                       description: the IBM Trusted Profile
                                       type: string
-                                    tokenlocation:
+                                    tokenLocation:
                                       description: Location the token is mounted on the pod
                                       type: string
                                   required:
@@ -4468,7 +4468,7 @@ spec:
                                     profile:
                                       description: the IBM Trusted Profile
                                       type: string
-                                    tokenlocation:
+                                    tokenLocation:
                                       description: Location the token is mounted on the pod
                                       type: string
                                   required:

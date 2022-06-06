@@ -134,7 +134,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	url := "my-url"
 	store.Spec.Provider.IBM.ServiceURL = &url
-	var nilProfile esv1beta1.IBMAuthSecretcontainerAuthSecretRef
+	var nilProfile esv1beta1.IBMAuthSecretContainerAuthSecretRef
 	store.Spec.Provider.IBM.Auth.SecretRef.SecretContainerAuth = nilProfile
 	err = p.ValidateStore(store)
 	if err == nil {
