@@ -71,6 +71,8 @@ var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager
 type GoogleSecretManagerClient interface {
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
+	AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
+	CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	Close() error
 }
 
@@ -160,6 +162,11 @@ func serviceAccountTokenSource(ctx context.Context, store esv1beta1.GenericStore
 	return config.TokenSource(ctx), nil
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (sm *ProviderGCP) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 // NewClient constructs a GCP Provider.
 func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
@@ -212,6 +219,44 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 	}
 	sm.SecretManagerClient = clientGCPSM
 	return sm, nil
+}
+
+// SetSecret pushes a kubernetes secret key into gcp provider Secret.
+// funcName(variable type_of_variable, ...)
+func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	createSecretReq := &secretmanagerpb.CreateSecretRequest{
+		Parent:   fmt.Sprintf("projects/%s", sm.projectID),
+		SecretId: remoteRef.GetRemoteKey(),
+	}
+
+	secret, err := sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
+
+	if err != nil {
+		return err
+	}
+
+	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: secret.Name,
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: payload,
+		},
+	}
+
+	version, err := sm.SecretManagerClient.AddSecretVersion(ctx, addSecretVersionReq)
+
+	if err != nil {
+		return err
+	}
+
+	accessRequest := secretmanagerpb.AccessSecretVersionRequest{
+		Name: version.Name,
+	}
+
+	if _, err := sm.SecretManagerClient.AccessSecretVersion(ctx, &accessRequest); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetAllSecrets syncs multiple secrets from gcp provider into a single Kubernetes Secret.
