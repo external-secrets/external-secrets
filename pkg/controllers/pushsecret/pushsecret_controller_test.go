@@ -91,12 +91,13 @@ var _ = Describe("pushsecret", func() {
 		})
 		When("an error returns in get secret", func() {
 			BeforeEach(func() {
-				// get r.GetSecret to return error "GetSecretError"
 				client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
-					if name.Name == "" && name.Namespace == "" {
+					switch obj.(type) {
+					case *v1.Secret:
 						return fmt.Errorf("GetSecretError")
+					default:
+						return nil
 					}
-					return nil
 				}
 			})
 
@@ -117,11 +118,13 @@ var _ = Describe("pushsecret", func() {
 							{Name: "a", Kind: "secretstore"},
 						}
 					}
-					fmt.Fprintf(GinkgoWriter, "client.Get: %v/%v\n", name.Namespace, name.Name)
-					if name.Name == "a" && name.Namespace == "" {
+					switch obj.(type) {
+					case *v1beta1.SecretStore:
 						return fmt.Errorf("BORK")
+					default:
+						return nil
 					}
-					return nil
+
 				}
 			})
 
