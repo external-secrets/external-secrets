@@ -39,11 +39,11 @@ var _ = Describe("pushsecret", func() {
 	var (
 		reconciler *Reconciler
 		client     *fakes.Client
-		recorder   *fakes.FakeRecorder
+		recorder   *fakes.FakeEventRecorder
 	)
 	BeforeEach(func() {
 		client = new(fakes.Client)
-		recorder = &fakes.FakeRecorder{}
+		recorder = &fakes.FakeEventRecorder{}
 		reconciler = &Reconciler{client, logr.Discard(), nil, recorder, 0, ""}
 	})
 	Describe("#Reconcile", func() {
@@ -70,6 +70,9 @@ var _ = Describe("pushsecret", func() {
 			_, _, patch, _ := statusWriter.PatchArgsForCall(0)
 			Expect(patch.Type()).To(Equal(types.MergePatchType))
 			Expect(recorder.EventCallCount()).To(Equal(1))
+			_, _, reason, message := recorder.EventArgsForCall(0)
+			Expect(reason).To(Equal(esapi.ReasonSynced))
+			Expect(message).To(Equal("PushSecret synced successfully"))
 		})
 
 		When("an error returns in get", func() {
