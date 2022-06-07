@@ -85,6 +85,51 @@ var _ = Describe("pushsecret", func() {
 				Expect(client.StatusCallCount()).To(Equal(0))
 			})
 		})
+		// When("an error returns in get secret", func() {
+		// 	BeforeEach(func() {
+		// 		// TODO: get r.GetSecret to return error "GetSecretError"
+
+		// 	})
+
+		// 	It("returns the error", func() {
+		// 		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+		// 		_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+
+		// 		Expect(err).To(MatchError("GetSecretError"))
+		// 		// Expect(client.GetCallCount()).To(Equal(1))
+		// 		// Expect(client.StatusCallCount()).To(Equal(0))
+		// 	})
+		// })
+
+		// When("an error returns in get secret stores", func() {
+		// 	BeforeEach(func() {
+		// 		// TODO: get r.GetSecretStores to return error "GetSecretStoresError"
+		// 	})
+
+		// 	It("returns the error", func() {
+		// 		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+		// 		_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+
+		// 		Expect(err).To(MatchError("GetSecretStoresError"))
+		// 		// Expect(client.GetCallCount()).To(Equal(1))
+		// 		// Expect(client.StatusCallCount()).To(Equal(0))
+		// 	})
+		// })
+
+		// When("an error returns in set secret to providers", func() {
+		// 	BeforeEach(func() {
+		// 		// TODO: get r.SetSecretToProviders to return error "SetSecretToProviders"
+		// 	})
+
+		// 	It("returns the error", func() {
+		// 		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+		// 		_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+
+		// 		Expect(err).To(MatchError("SetSecretToProviders"))
+		// 		// Expect(client.GetCallCount()).To(Equal(1))
+		// 		// Expect(client.StatusCallCount()).To(Equal(0))
+		// 	})
+		// })
 
 		When("an object is not found", func() {
 			BeforeEach(func() {
