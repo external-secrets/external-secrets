@@ -98,7 +98,7 @@ require github.com/1Password/connect-sdk-go v1.4.0
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.3.3
-	github.com/fluxcd/helm-controller/api v0.20.1
+	github.com/fluxcd/helm-controller/api v0.22.0
 	github.com/fluxcd/pkg/apis/meta v0.14.1
 	github.com/fluxcd/source-controller/api v0.24.1
 )
@@ -141,7 +141,7 @@ require (
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fluxcd/pkg/apis/acl v0.0.3 // indirect
-	github.com/fluxcd/pkg/apis/kustomize v0.3.3 // indirect
+	github.com/fluxcd/pkg/apis/kustomize v0.4.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/fvbommel/sortorder v1.0.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
