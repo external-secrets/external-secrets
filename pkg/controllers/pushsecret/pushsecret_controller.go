@@ -84,6 +84,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, err.Error())
 		ss = SetPushSecretCondition(ss, *cond)
 		r.recorder.Event(&ss, v1.EventTypeWarning, esapi.ReasonErrored, err.Error())
+		return ctrl.Result{}, err
 	}
 	err = r.SetSecretToProviders(ctx, secretStores, ss, secret)
 	if err != nil {
