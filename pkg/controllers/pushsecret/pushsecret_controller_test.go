@@ -136,20 +136,32 @@ var _ = Describe("pushsecret", func() {
 			})
 		})
 
-		// When("an error returns in set secret to providers", func() {
-		// 	BeforeEach(func() {
-		// 		// TODO: get r.SetSecretToProviders to return error "SetSecretToProviders"
-		// 	})
+		When("an error returns in set secret to providers", func() {
+			BeforeEach(func() {
+				client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
+					switch v := obj.(type) {
+					case *esapi.PushSecret:
+						v.Spec.SecretStoreRefs = []esapi.PushSecretStoreRef{
+							{Name: "a", Kind: "secretstore"},
+						}
+					case *v1beta1.SecretStore:
+						v.Kind = "PotatoStore"
+					}
+					switch obj.(type) {
+					default:
+						return nil
+					}
 
-		// 	It("returns the error", func() {
-		// 		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-		// 		_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+				}
+			})
 
-		// 		Expect(err).To(MatchError("SetSecretToProviders"))
-		// 		// Expect(client.GetCallCount()).To(Equal(1))
-		// 		// Expect(client.StatusCallCount()).To(Equal(0))
-		// 	})
-		// })
+			It("returns the error", func() {
+				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+
+				Expect(err).To(MatchError("could not start provider"))
+			})
+		})
 
 		When("an object is not found", func() {
 			BeforeEach(func() {
