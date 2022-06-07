@@ -44,7 +44,11 @@ type Config struct {
 	APIRetries int
 }
 
-var log = ctrl.Log.WithName("provider").WithName("aws")
+var (
+	log          = ctrl.Log.WithName("provider").WithName("aws")
+	sess         *session.Session
+	savedSession *session.Session
+)
 
 const (
 	roleARNAnnotation = "eks.amazonaws.com/role-arn"
@@ -95,16 +99,24 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	if prov.Region != "" {
 		config.WithRegion(prov.Region)
 	}
-	handlers := defaults.Handlers()
-	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            *config,
-		Handlers:          handlers,
-		SharedConfigState: session.SharedConfigDisable,
-	})
-	if err != nil {
-		return nil, err
+
+	if savedSession != nil {
+		sess = savedSession
+	} else {
+
+		handlers := defaults.Handlers()
+		handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
+		sess, err = session.NewSessionWithOptions(session.Options{
+			Config:            *config,
+			Handlers:          handlers,
+			SharedConfigState: session.SharedConfigDisable,
+		})
+		if err != nil {
+			return nil, err
+		}
+		savedSession = sess
 	}
+
 	if prov.Role != "" {
 		stsclient := assumeRoler(sess)
 		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role))
@@ -209,14 +221,23 @@ func DefaultJWTProvider(name, namespace, roleArn, region string) (credentials.Pr
 	if region != "" {
 		awscfg.WithRegion(region)
 	}
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            *awscfg,
-		SharedConfigState: session.SharedConfigDisable,
-		Handlers:          handlers,
-	})
-	if err != nil {
-		return nil, err
+
+	if savedSession != nil {
+		sess = savedSession
+	} else {
+
+		sess, err = session.NewSessionWithOptions(session.Options{
+			Config:            *awscfg,
+			SharedConfigState: session.SharedConfigDisable,
+			Handlers:          handlers,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+		savedSession = sess
 	}
+
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,
 		ServiceAccount: name,
