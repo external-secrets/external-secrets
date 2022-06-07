@@ -69,6 +69,7 @@ var _ = Describe("pushsecret", func() {
 			Expect(statusWriter.PatchCallCount()).To(Equal(1))
 			_, _, patch, _ := statusWriter.PatchArgsForCall(0)
 			Expect(patch.Type()).To(Equal(types.MergePatchType))
+			Expect(recorder.EventCallCount()).To(Equal(1))
 		})
 
 		When("an error returns in get", func() {
