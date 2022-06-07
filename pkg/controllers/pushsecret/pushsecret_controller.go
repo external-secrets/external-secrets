@@ -74,25 +74,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}()
 	secret, err := r.GetSecret(ctx, ss)
 	if err != nil {
-		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, "SecretSyncFailed", errFailedGetSecret)
+		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, errFailedGetSecret)
 		ss = SetPushSecretCondition(ss, *cond)
+		r.recorder.Event(&ss, v1.EventTypeWarning, esapi.ReasonErrored, errFailedGetSecret)
 		return ctrl.Result{}, err
 	}
 	secretStores, err := r.GetSecretStores(ctx, ss)
 	if err != nil {
-		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, "SecretSyncFailed", err.Error())
+		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, err.Error())
 		ss = SetPushSecretCondition(ss, *cond)
+		r.recorder.Event(&ss, v1.EventTypeWarning, esapi.ReasonErrored, err.Error())
 	}
 	err = r.SetSecretToProviders(ctx, secretStores, ss, secret)
 	if err != nil {
 		msg := fmt.Sprintf(errFailedSetSecret, err)
-		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, "SecretSyncFailed", msg)
+		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 		ss = SetPushSecretCondition(ss, *cond)
+		r.recorder.Event(&ss, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 		return ctrl.Result{}, err
 	}
-	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, "SecretSynced", "PushSecret synced successfully")
+	msg := "PushSecret synced successfully"
+	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
 	ss = SetPushSecretCondition(ss, *cond)
 	// Set status for PushSecret
+	r.recorder.Event(&ss, v1.EventTypeNormal, esapi.ReasonSynced, msg)
 	return ctrl.Result{}, nil
 }
 

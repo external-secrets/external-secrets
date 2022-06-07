@@ -19,6 +19,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ReasonSynced    = "Synced"
+	ReasonNotSynced = "NotSynced"
+	ReasonErrored   = "Errored"
+)
+
 type PushSecretStoreRef struct {
 	// Name of the SecretStore resource
 	Name string `json:"name"`
