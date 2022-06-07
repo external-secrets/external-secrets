@@ -39,10 +39,12 @@ var _ = Describe("pushsecret", func() {
 	var (
 		reconciler *Reconciler
 		client     *fakes.Client
+		recorder   *fakes.FakeRecorder
 	)
 	BeforeEach(func() {
 		client = new(fakes.Client)
-		reconciler = &Reconciler{client, logr.Discard(), nil, nil, 0, ""}
+		recorder = &fakes.FakeRecorder{}
+		reconciler = &Reconciler{client, logr.Discard(), nil, recorder, 0, ""}
 	})
 	Describe("#Reconcile", func() {
 		var (
