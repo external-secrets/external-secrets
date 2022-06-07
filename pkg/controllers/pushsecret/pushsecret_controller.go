@@ -56,8 +56,8 @@ type Reconciler struct {
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("pushsecret", req.NamespacedName)
-	var ss esapi.PushSecret
-	err := r.Get(ctx, req.NamespacedName, &ss)
+	var ps esapi.PushSecret
+	err := r.Get(ctx, req.NamespacedName, &ps)
 	if apierrors.IsNotFound(err) {
 		return ctrl.Result{}, nil
 	} else if err != nil {
@@ -65,50 +65,50 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 
-	p := client.MergeFrom(ss.DeepCopy())
+	p := client.MergeFrom(ps.DeepCopy())
 	defer func() {
-		err := r.Client.Status().Patch(ctx, &ss, p)
+		err := r.Client.Status().Patch(ctx, &ps, p)
 		if err != nil {
 			log.Error(err, errPatchStatus)
 		}
 	}()
-	secret, err := r.GetSecret(ctx, ss)
+	secret, err := r.GetSecret(ctx, ps)
 	if err != nil {
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, errFailedGetSecret)
-		ss = SetPushSecretCondition(ss, *cond)
-		r.recorder.Event(&ss, v1.EventTypeWarning, esapi.ReasonErrored, errFailedGetSecret)
+		ps = SetPushSecretCondition(ps, *cond)
+		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, errFailedGetSecret)
 		return ctrl.Result{}, err
 	}
-	secretStores, err := r.GetSecretStores(ctx, ss)
+	secretStores, err := r.GetSecretStores(ctx, ps)
 	if err != nil {
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, err.Error())
-		ss = SetPushSecretCondition(ss, *cond)
-		r.recorder.Event(&ss, v1.EventTypeWarning, esapi.ReasonErrored, err.Error())
+		ps = SetPushSecretCondition(ps, *cond)
+		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, err.Error())
 		return ctrl.Result{}, err
 	}
-	err = r.SetSecretToProviders(ctx, secretStores, ss, secret)
+	err = r.SetSecretToProviders(ctx, secretStores, ps, secret)
 	if err != nil {
 		msg := fmt.Sprintf(errFailedSetSecret, err)
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
-		ss = SetPushSecretCondition(ss, *cond)
-		r.recorder.Event(&ss, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+		ps = SetPushSecretCondition(ps, *cond)
+		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 		return ctrl.Result{}, err
 	}
 	msg := "PushSecret synced successfully"
 	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
-	ss = SetPushSecretCondition(ss, *cond)
+	ps = SetPushSecretCondition(ps, *cond)
 	// Set status for PushSecret
-	r.recorder.Event(&ss, v1.EventTypeNormal, esapi.ReasonSynced, msg)
+	r.recorder.Event(&ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ss esapi.PushSecret, secret *v1.Secret) error {
+func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) error {
 	for _, store := range stores {
 		provider, err := v1beta1.GetProvider(store)
 		if err != nil {
 			return fmt.Errorf(errGetProviderFailed)
 		}
-		client, err := provider.NewClient(ctx, store, r.Client, ss.Namespace)
+		client, err := provider.NewClient(ctx, store, r.Client, ps.Namespace)
 		if err != nil {
 			return fmt.Errorf(errGetSecretsClientFailed)
 		}
@@ -118,7 +118,7 @@ func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.
 				r.Log.Error(err, errCloseStoreClient)
 			}
 		}()
-		for _, ref := range ss.Spec.Data {
+		for _, ref := range ps.Spec.Data {
 			for _, match := range ref.Match {
 				secretValue, ok := secret.Data[match.SecretKey]
 				if !ok {
@@ -136,8 +136,8 @@ func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.
 	return nil
 }
 
-func (r *Reconciler) GetSecret(ctx context.Context, ss esapi.PushSecret) (*v1.Secret, error) {
-	secretName := types.NamespacedName{Name: ss.Spec.Selector.Secret.Name, Namespace: ss.Namespace}
+func (r *Reconciler) GetSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Secret, error) {
+	secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
 	secret := &v1.Secret{}
 	err := r.Client.Get(ctx, secretName, secret)
 	if err != nil {
@@ -146,9 +146,9 @@ func (r *Reconciler) GetSecret(ctx context.Context, ss esapi.PushSecret) (*v1.Se
 	return secret, nil
 }
 
-func (r *Reconciler) GetSecretStores(ctx context.Context, ss esapi.PushSecret) ([]v1beta1.GenericStore, error) {
+func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) ([]v1beta1.GenericStore, error) {
 	stores := make([]v1beta1.GenericStore, 0)
-	for _, refStore := range ss.Spec.SecretStoreRefs {
+	for _, refStore := range ps.Spec.SecretStoreRefs {
 		ref := types.NamespacedName{
 			Name: refStore.Name,
 		}
@@ -161,7 +161,7 @@ func (r *Reconciler) GetSecretStores(ctx context.Context, ss esapi.PushSecret) (
 			}
 			stores = append(stores, &store)
 		} else {
-			ref.Namespace = ss.Namespace
+			ref.Namespace = ps.Namespace
 
 			var store v1beta1.SecretStore
 			err := r.Get(ctx, ref, &store)
