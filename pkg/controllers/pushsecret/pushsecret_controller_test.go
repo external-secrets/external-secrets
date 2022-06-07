@@ -89,36 +89,49 @@ var _ = Describe("pushsecret", func() {
 				Expect(client.StatusCallCount()).To(Equal(0))
 			})
 		})
-		// When("an error returns in get secret", func() {
-		// 	BeforeEach(func() {
-		// 		// TODO: get r.GetSecret to return error "GetSecretError"
+		When("an error returns in get secret", func() {
+			BeforeEach(func() {
+				// get r.GetSecret to return error "GetSecretError"
+				client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
+					if name.Name == "" && name.Namespace == "" {
+						return fmt.Errorf("GetSecretError")
+					}
+					return nil
+				}
+			})
 
-		// 	})
+			It("returns the error", func() {
+				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 
-		// 	It("returns the error", func() {
-		// 		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-		// 		_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+				Expect(err).To(MatchError("GetSecretError"))
+			})
+		})
 
-		// 		Expect(err).To(MatchError("GetSecretError"))
-		// 		// Expect(client.GetCallCount()).To(Equal(1))
-		// 		// Expect(client.StatusCallCount()).To(Equal(0))
-		// 	})
-		// })
+		When("an error returns in get secret store", func() {
+			BeforeEach(func() {
+				client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
+					switch v := obj.(type) {
+					case *esapi.PushSecret:
+						v.Spec.SecretStoreRefs = []esapi.PushSecretStoreRef{
+							{Name: "a", Kind: "secretstore"},
+						}
+					}
+					fmt.Fprintf(GinkgoWriter, "client.Get: %v/%v\n", name.Namespace, name.Name)
+					if name.Name == "a" && name.Namespace == "" {
+						return fmt.Errorf("BORK")
+					}
+					return nil
+				}
+			})
 
-		// When("an error returns in get secret stores", func() {
-		// 	BeforeEach(func() {
-		// 		// TODO: get r.GetSecretStores to return error "GetSecretStoresError"
-		// 	})
+			It("returns the error", func() {
+				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 
-		// 	It("returns the error", func() {
-		// 		namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-		// 		_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-
-		// 		Expect(err).To(MatchError("GetSecretStoresError"))
-		// 		// Expect(client.GetCallCount()).To(Equal(1))
-		// 		// Expect(client.StatusCallCount()).To(Equal(0))
-		// 	})
-		// })
+				Expect(err).To(MatchError("could not get SecretStore \"a\", BORK"))
+			})
+		})
 
 		// When("an error returns in set secret to providers", func() {
 		// 	BeforeEach(func() {
