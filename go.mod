@@ -101,6 +101,7 @@ require (
 	github.com/fluxcd/helm-controller/api v0.22.0
 	github.com/fluxcd/pkg/apis/meta v0.14.1
 	github.com/fluxcd/source-controller/api v0.24.1
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
 )
 
 require (
@@ -217,6 +218,7 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
