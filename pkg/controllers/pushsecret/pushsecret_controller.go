@@ -61,7 +61,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if apierrors.IsNotFound(err) {
 		return ctrl.Result{}, nil
 	} else if err != nil {
-		log.Error(err, "unable to get PushSecret")
+		msg := "unable to get PushSecret"
+		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+		log.Error(err, msg)
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 

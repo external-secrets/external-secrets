@@ -87,6 +87,9 @@ var _ = Describe("pushsecret", func() {
 				Expect(err).To(MatchError("get resource: UnknownError"))
 				Expect(client.GetCallCount()).To(Equal(1))
 				Expect(client.StatusCallCount()).To(Equal(0))
+				_, _, reason, message := recorder.EventArgsForCall(0)
+				Expect(reason).To(Equal(esapi.ReasonErrored))
+				Expect(message).To(Equal("unable to get PushSecret"))
 			})
 		})
 		When("an error returns in get secret", func() {
@@ -106,6 +109,9 @@ var _ = Describe("pushsecret", func() {
 				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 
 				Expect(err).To(MatchError("GetSecretError"))
+				_, _, reason, message := recorder.EventArgsForCall(0)
+				Expect(reason).To(Equal(esapi.ReasonErrored))
+				Expect(message).To(Equal(errFailedGetSecret))
 			})
 		})
 
@@ -133,6 +139,9 @@ var _ = Describe("pushsecret", func() {
 				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 
 				Expect(err).To(MatchError("could not get SecretStore \"a\", BORK"))
+				_, _, reason, message := recorder.EventArgsForCall(0)
+				Expect(reason).To(Equal(esapi.ReasonErrored))
+				Expect(message).To(Equal("could not get SecretStore \"a\", BORK"))
 			})
 		})
 
@@ -160,6 +169,9 @@ var _ = Describe("pushsecret", func() {
 				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 
 				Expect(err).To(MatchError("could not start provider"))
+				_, _, reason, message := recorder.EventArgsForCall(0)
+				Expect(reason).To(Equal(esapi.ReasonErrored))
+				Expect(message).To(Equal("set secret failed: could not start provider"))
 			})
 		})
 
