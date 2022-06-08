@@ -1748,6 +1748,8 @@ spec:
                           description: Auth configures how secret-manager authenticates with the IBM secrets manager.
                           properties:
                             secretRef:
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -4446,6 +4448,8 @@ spec:
                           description: Auth configures how secret-manager authenticates with the IBM secrets manager.
                           properties:
                             secretRef:
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
