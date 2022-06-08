@@ -28,10 +28,10 @@ import (
 )
 
 type fakeReviewClient struct {
-	authReview *authv1.SelfSubjectAccessReview
+	authReview *authv1.SelfSubjectRulesReview
 }
 
-func (fk fakeReviewClient) Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error) {
+func (fk fakeReviewClient) Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*authv1.SelfSubjectRulesReview, error) {
 	if fk.authReview == nil {
 		return nil, errors.New(errSomethingWentWrong)
 	}
@@ -257,10 +257,33 @@ func TestValidateStore(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
+	successReview := authv1.SelfSubjectRulesReview{
+		Status: authv1.SubjectRulesReviewStatus{
+			ResourceRules: []authv1.ResourceRule{
+				{
+					Verbs:     []string{"get"},
+					Resources: []string{"secrets"},
+				},
+			},
+		},
+	}
+	failReview := authv1.SelfSubjectRulesReview{
+		Status: authv1.SubjectRulesReviewStatus{
+			ResourceRules: []authv1.ResourceRule{
+				{
+					Verbs:     []string{"update"},
+					Resources: []string{"secrets"},
+				},
+			},
+		},
+	}
+
 	type fields struct {
 		Client       KClient
 		ReviewClient RClient
 		Namespace    string
+		store        *esv1beta1.KubernetesProvider
+		storeKind    string
 	}
 	tests := []struct {
 		name    string
@@ -269,8 +292,18 @@ func TestValidate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "empty ns should return unknown for referent auth",
-			fields:  fields{},
+			name: "empty ns should return unknown for referent auth",
+			fields: fields{
+				storeKind: esv1beta1.ClusterSecretStoreKind,
+				store: &esv1beta1.KubernetesProvider{
+					Auth: esv1beta1.KubernetesAuth{
+						ServiceAccount: &v1.ServiceAccountSelector{
+							Name: "foobar",
+						},
+					},
+				},
+				ReviewClient: fakeReviewClient{authReview: &successReview},
+			},
 			want:    esv1beta1.ValidationResultUnknown,
 			wantErr: false,
 		},
@@ -286,10 +319,8 @@ func TestValidate(t *testing.T) {
 		{
 			name: "not allowed results in error",
 			fields: fields{
-				Namespace: "default",
-				ReviewClient: fakeReviewClient{authReview: &authv1.SelfSubjectAccessReview{
-					Status: authv1.SubjectAccessReviewStatus{Allowed: false},
-				}},
+				Namespace:    "default",
+				ReviewClient: fakeReviewClient{authReview: &failReview},
 			},
 			want:    esv1beta1.ValidationResultError,
 			wantErr: true,
@@ -297,10 +328,8 @@ func TestValidate(t *testing.T) {
 		{
 			name: "allowed results in no error",
 			fields: fields{
-				Namespace: "default",
-				ReviewClient: fakeReviewClient{authReview: &authv1.SelfSubjectAccessReview{
-					Status: authv1.SubjectAccessReviewStatus{Allowed: true},
-				}},
+				Namespace:    "default",
+				ReviewClient: fakeReviewClient{authReview: &successReview},
 			},
 			want:    esv1beta1.ValidationResultReady,
 			wantErr: false,
@@ -312,6 +341,8 @@ func TestValidate(t *testing.T) {
 				Client:       tt.fields.Client,
 				ReviewClient: tt.fields.ReviewClient,
 				Namespace:    tt.fields.Namespace,
+				store:        tt.fields.store,
+				storeKind:    tt.fields.storeKind,
 			}
 			got, err := k.Validate()
 			if (err != nil) != tt.wantErr {

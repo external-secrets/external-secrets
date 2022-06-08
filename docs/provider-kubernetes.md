@@ -2,7 +2,7 @@ External Secrets Operator allows to retrieve secrets from a Kubernetes Cluster -
 
 A `SecretStore` points to a **specific namespace** in the target Kubernetes Cluster. You are able to retrieve all secrets from that particular namespace given you have the correct set of RBAC permissions.
 
-The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectAccessReview`. See below on how to set that up properly.
+The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectRulesReview`. See below on how to set that up properly.
 
 ### External Secret Spec
 
@@ -83,7 +83,7 @@ spec:
 
 It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or service account. The operator enforces that exactly one authentication method is used. You can not use the service account that is mounted inside the operator, this is by design to avoid reading secrets across namespaces.
 
-**NOTE:** `SelfSubjectAccessReview` permission is required in order to validation work properly. Please use the following role as reference:
+**NOTE:** `SelfSubjectRulesReview` permission is required in order to validation work properly. Please use the following role as reference:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -102,7 +102,6 @@ rules:
 - apiGroups:
   - authorization.k8s.io
   resources:
-  - selfsubjectaccessreviews
   - selfsubjectrulesreviews
   verbs:
   - create
@@ -149,7 +148,7 @@ Create a Kubernetes Service Account, please refer to the [Service Account Tokens
 $ kubectl create serviceaccount my-store
 ```
 
-This Service Account needs permissions to read `Secret` and create `SelfSubjectAccessReview` resources. Please see the above role.
+This Service Account needs permissions to read `Secret` and create `SelfSubjectRulesReview` resources. Please see the above role.
 
 ```
 $ kubectl create rolebinding my-store --role=eso-store-role --serviceaccount=default:my-store

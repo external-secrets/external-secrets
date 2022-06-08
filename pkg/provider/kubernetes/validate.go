@@ -69,24 +69,32 @@ func (p *ProviderKubernetes) Validate() (esv1beta1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called
 	// from the SecretStore controller.
-	if p.Namespace == "" {
+	if p.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(p.store) {
 		return esv1beta1.ValidationResultUnknown, nil
 	}
 	ctx := context.Background()
-	authReview, err := p.ReviewClient.Create(ctx, &authv1.SelfSubjectAccessReview{
-		Spec: authv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Resource:  "secrets",
-				Namespace: p.Namespace,
-				Verb:      "get",
-			},
+	t := authv1.SelfSubjectRulesReview{
+		Spec: authv1.SelfSubjectRulesReviewSpec{
+			Namespace: p.Namespace,
 		},
-	}, metav1.CreateOptions{})
+	}
+	authReview, err := p.ReviewClient.Create(ctx, &t, metav1.CreateOptions{})
 	if err != nil {
 		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}
-	if !authReview.Status.Allowed {
-		return esv1beta1.ValidationResultError, fmt.Errorf("client is not allowed to get secrets")
+	for _, rev := range authReview.Status.ResourceRules {
+		if contains("secrets", rev.Resources) && contains("get", rev.Verbs) {
+			return esv1beta1.ValidationResultReady, nil
+		}
 	}
-	return esv1beta1.ValidationResultReady, nil
+	return esv1beta1.ValidationResultError, fmt.Errorf("client is not allowed to get secrets")
+}
+
+func contains(sub string, args []string) bool {
+	for _, k := range args {
+		if k == sub {
+			return true
+		}
+	}
+	return false
 }

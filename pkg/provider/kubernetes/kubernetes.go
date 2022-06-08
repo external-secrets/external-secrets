@@ -42,7 +42,7 @@ type KClient interface {
 }
 
 type RClient interface {
-	Create(ctx context.Context, SelfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error)
+	Create(ctx context.Context, selfSubjectRulesReview *authv1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*authv1.SelfSubjectRulesReview, error)
 }
 
 // ProviderKubernetes is a provider for Kubernetes.
@@ -50,6 +50,8 @@ type ProviderKubernetes struct {
 	Client       KClient
 	ReviewClient RClient
 	Namespace    string
+	store        *esv1beta1.KubernetesProvider
+	storeKind    string
 }
 
 var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
@@ -57,8 +59,8 @@ var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
 type BaseClient struct {
 	kube        kclient.Client
 	store       *esv1beta1.KubernetesProvider
-	namespace   string
 	storeKind   string
+	namespace   string
 	Certificate []byte
 	Key         []byte
 	CA          []byte
@@ -79,31 +81,34 @@ func (p *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.Gene
 	}
 	storeSpecKubernetes := storeSpec.Provider.Kubernetes
 
-	bStore := BaseClient{
+	client := BaseClient{
 		kube:      kube,
 		store:     storeSpecKubernetes,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
+	p.Namespace = client.store.RemoteNamespace
+	p.store = storeSpecKubernetes
+	p.storeKind = store.GetObjectKind().GroupVersionKind().Kind
 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
-	if bStore.storeKind == esv1beta1.ClusterSecretStoreKind && bStore.namespace == "" {
+	if client.storeKind == esv1beta1.ClusterSecretStoreKind && client.namespace == "" && isReferentSpec(storeSpecKubernetes) {
 		return p, nil
 	}
 
-	if err := bStore.setAuth(ctx); err != nil {
+	if err := client.setAuth(ctx); err != nil {
 		return nil, err
 	}
 
 	config := &rest.Config{
-		Host:        bStore.store.Server.URL,
-		BearerToken: string(bStore.BearerToken),
+		Host:        client.store.Server.URL,
+		BearerToken: string(client.BearerToken),
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: false,
-			CertData: bStore.Certificate,
-			KeyData:  bStore.Key,
-			CAData:   bStore.CA,
+			CertData: client.Certificate,
+			KeyData:  client.Key,
+			CAData:   client.CA,
 		},
 	}
 
@@ -111,11 +116,31 @@ func (p *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.Gene
 	if err != nil {
 		return nil, fmt.Errorf("error configuring clientset: %w", err)
 	}
-
-	p.Client = kubeClientSet.CoreV1().Secrets(bStore.store.RemoteNamespace)
-	p.Namespace = bStore.store.RemoteNamespace
-	p.ReviewClient = kubeClientSet.AuthorizationV1().SelfSubjectAccessReviews()
+	p.Client = kubeClientSet.CoreV1().Secrets(client.store.RemoteNamespace)
+	p.ReviewClient = kubeClientSet.AuthorizationV1().SelfSubjectRulesReviews()
 	return p, nil
+}
+
+func isReferentSpec(prov *esv1beta1.KubernetesProvider) bool {
+	if prov.Auth.Cert != nil {
+		if prov.Auth.Cert.ClientCert.Namespace == nil {
+			return true
+		}
+		if prov.Auth.Cert.ClientKey.Namespace == nil {
+			return true
+		}
+	}
+	if prov.Auth.ServiceAccount != nil {
+		if prov.Auth.ServiceAccount.Namespace == nil {
+			return true
+		}
+	}
+	if prov.Auth.Token != nil {
+		if prov.Auth.Token.BearerToken.Namespace == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *ProviderKubernetes) Close(ctx context.Context) error {

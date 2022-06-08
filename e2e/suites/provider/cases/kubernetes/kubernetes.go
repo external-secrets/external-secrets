@@ -26,6 +26,8 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/suites/provider/cases/common"
 )
 
+const referentAuth = "with referent auth"
+
 var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
 	f := framework.New("eso-kubernetes")
 	prov := NewProvider(f)
@@ -41,8 +43,16 @@ var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
 		Entry(common.JSONDataFromSync(f)),
 		Entry(FindByTag(f)),
 		Entry(FindByName(f)),
+
+		framework.Compose(referentAuth, f, common.JSONDataWithProperty, withReferentStore),
+		framework.Compose(referentAuth, f, common.JSONDataWithoutTargetName, withReferentStore),
 	)
 })
+
+func withReferentStore(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentStoreName(tc.Framework)
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterSecretStoreKind
+}
 
 const (
 	secretValue1 = "{\"foo1\":\"foo1-val\"}"

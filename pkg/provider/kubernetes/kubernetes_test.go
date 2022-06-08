@@ -232,7 +232,19 @@ func TestNewClient(t *testing.T) {
 					},
 					Spec: esv1beta1.SecretStoreSpec{
 						Provider: &esv1beta1.SecretStoreProvider{
-							Kubernetes: &esv1beta1.KubernetesProvider{},
+							Kubernetes: &esv1beta1.KubernetesProvider{
+								Server: esv1beta1.KubernetesServer{
+									CABundle: []byte(testCertificate),
+								},
+								Auth: esv1beta1.KubernetesAuth{
+									Token: &esv1beta1.TokenAuth{
+										BearerToken: v1.SecretKeySelector{
+											Name: "foo",
+											Key:  "token",
+										},
+									},
+								},
+							},
 						},
 					},
 				},
