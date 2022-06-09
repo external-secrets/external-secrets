@@ -164,7 +164,7 @@ func serviceAccountTokenSource(ctx context.Context, store esv1beta1.GenericStore
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (sm *ProviderGCP) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+	return esv1beta1.SecretStoreReadWrite
 }
 
 // NewClient constructs a GCP Provider.
