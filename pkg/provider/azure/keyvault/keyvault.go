@@ -16,6 +16,9 @@ package keyvault
 
 import (
 	"context"
+	"crypto/sha1"
+	"crypto/x509"
+	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -38,6 +41,7 @@ import (
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"software.sslmate.com/src/go-pkcs12"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -90,6 +94,9 @@ type SecretClient interface {
 	GetSecret(ctx context.Context, vaultBaseURL string, secretName string, secretVersion string) (result keyvault.SecretBundle, err error)
 	GetSecretsComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error)
 	GetCertificate(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
+	SetSecret(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error)
+	CreateKey(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error)
+	ImportCertificate(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error)
 }
 
 type Azure struct {
@@ -109,7 +116,7 @@ func init() {
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (a *Azure) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+	return esv1beta1.SecretStoreReadWrite
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -201,9 +208,80 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
+func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
+	_, localCert, err := pkcs12.Decode(value, "")
+	if err != nil {
+		return x509.ParseCertificate(value)
+	}
+	return localCert, err
+}
+
 // Not Implemented SetSecret.
-func (a *Azure) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+func (a *Azure) SetSecret(ctx context.Context, value []byte, ref esv1beta1.PushRemoteRef) error {
+	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: ref.GetRemoteKey()})
+	val := string(value)
+	enabled := true
+	manager := "external-secrets"
+	switch objectType {
+	case defaultObjType:
+		// returns a SecretBundle with the secret value
+		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
+		secretParams := keyvault.SecretSetParameters{
+			Value: &val,
+			Tags: map[string]*string{
+				"managed-by": &manager,
+			},
+			SecretAttributes: &keyvault.SecretAttributes{
+				Enabled: &enabled,
+			},
+		}
+		_, err := a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
+		if err != nil {
+			return fmt.Errorf("could not set secret %v: %v", ref.GetRemoteKey(), err)
+		}
+	case objectTypeCert:
+
+		val := b64.StdEncoding.EncodeToString(value)
+		localCert, err := getCertificateFromValue(value)
+		if err != nil {
+			return fmt.Errorf("value from secret is not a valid certificate:%v", err)
+		}
+		b := sha1.Sum(localCert.Raw)
+		sha1Fingerprint := b64.RawURLEncoding.EncodeToString(b[:])
+		cert, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, "")
+		if err != nil && err.(autorest.DetailedError).StatusCode != 404 {
+			return err
+		}
+		if err == nil {
+			man, ok := cert.Tags["managed-by"]
+			if !ok || man == nil || *man != manager {
+				return fmt.Errorf("certificate not managed by external-secrets")
+			}
+
+			if cert.X509Thumbprint != nil && *cert.X509Thumbprint == sha1Fingerprint {
+				return nil //Certificate is the same. No need to update
+			}
+		}
+		// returns a CertBundle. We return CER contents of x509 certificate
+		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle
+		params := keyvault.CertificateImportParameters{
+			Base64EncodedCertificate: &val,
+			Tags: map[string]*string{
+				"managed-by": &manager,
+			},
+		}
+		_, err = a.baseClient.ImportCertificate(ctx, *a.provider.VaultURL, secretName, params)
+		if err != nil {
+			return fmt.Errorf("could not import certificate %v: %v", secretName, err)
+		}
+	case objectTypeKey:
+		// returns a KeyBundle that contains a jwk
+		// azure kv returns only public keys
+		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
+	}
+
+	return nil
+
 }
 
 // Implements store.Client.GetAllSecrets Interface.
