@@ -177,7 +177,7 @@ func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.recorder = mgr.GetEventRecorderFor("push-secret")
+	r.recorder = mgr.GetEventRecorderFor("pushsecret")
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&esapi.PushSecret{}).
