@@ -43,6 +43,11 @@ const (
 	errMissingClientID            = "missing senhasegura authentication Client ID"
 )
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 /*
 	Construct a new secrets client based on provided store
 */

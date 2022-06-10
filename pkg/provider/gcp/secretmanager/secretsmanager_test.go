@@ -23,6 +23,7 @@ import (
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"k8s.io/utils/pointer"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
@@ -181,6 +182,46 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	}
 }
 
+func TestSecretManagerSetSecret(t *testing.T) {
+	secretManagerClient := fakesm.MockSMClient{}
+	secretManagerClient.NilClose()
+	secretManagerClient.WithValue(context.Background(), nil, nil, nil)
+	secretManagerClient.CreateSecretError()
+
+	key := "foo"
+	want := []byte("bar")
+	projectID := "default"
+
+	wantedSecretParent := fmt.Sprintf("projects/%s", projectID)
+	wantedVersionParent := fmt.Sprintf("%s/%s", wantedSecretParent, key)
+	wantedVersion := "latest"
+
+	p := ProviderGCP{
+		SecretManagerClient: &secretManagerClient,
+		projectID:           projectID,
+	}
+	err := p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
+	if err == nil {
+		t.Errorf("expected err got nil from SetSecret")
+	}
+
+	secretManagerClient.DefaultCreateSecret(key, wantedSecretParent)
+	secretManagerClient.DefaultAddSecretVersion(string(want), wantedVersionParent, wantedVersion)
+	secretManagerClient.DefaultAccessSecretVersion(wantedVersion)
+
+	err = p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
+	if err != nil {
+		t.Errorf("expected nil got err from SetSecret: %v", err)
+	}
+	err = p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: "wrong"})
+	if err == nil {
+		t.Errorf("expected err got nil")
+	}
+	err = p.SetSecret(context.TODO(), []byte("potato"), esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
+	if err == nil {
+		t.Errorf("expected err got nil")
+	}
+}
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *secretManagerTestCase) {
