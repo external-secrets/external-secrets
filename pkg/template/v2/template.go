@@ -33,8 +33,8 @@ var tplFuncs = tpl.FuncMap{
 	"jwkPublicKeyPem":  jwkPublicKeyPem,
 	"jwkPrivateKeyPem": jwkPrivateKeyPem,
 
-	"toYaml":        toYAML,
-	"fromYaml":      fromYAML,
+	"toYaml":   toYAML,
+	"fromYaml": fromYAML,
 }
 
 // So other templating calls can use the same extra functions.
