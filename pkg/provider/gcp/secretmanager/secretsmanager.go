@@ -27,6 +27,7 @@ import (
 	"github.com/tidwall/gjson"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
@@ -238,7 +239,7 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 
 	secret, err := sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
 
-	if err != nil {
+	if err != nil && err.(*googleapi.Error).Code != 409 { //nolint
 		return err
 	}
 
@@ -320,6 +321,10 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 
 	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
 }
+
+// func (sm *ProviderGCP) OverwriteSecret(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+
+// }
 
 func (sm *ProviderGCP) getData(ctx context.Context, key string) ([]byte, error) {
 	dataRef := esv1beta1.ExternalSecretDataRemoteRef{
