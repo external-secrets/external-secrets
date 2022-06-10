@@ -44,10 +44,11 @@ make build
 make docker.build IMG=external-secrets:latest
 ```
 
-Run tests and lint the code:
+Run tests and lint the code: *(golangci-lint@1.45.2 is needed.)*
 ```shell
 make test
-make lint
+make lint # OR
+docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.42.1 golangci-lint run
 ```
 
 Build the documentation:

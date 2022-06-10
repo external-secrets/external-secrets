@@ -105,6 +105,7 @@ const (
 	secretName           = "example-1"
 	testsecret           = "test-secret"
 	fakeURL              = "noop"
+	errStore             = "Azure.ValidateStore() error = %v, wantErr %v"
 )
 
 func getTagMap() map[string]*string {
@@ -813,7 +814,7 @@ func makeValidFind() *esv1beta1.ExternalSecretFind {
 
 func TestValidateStore(t *testing.T) {
 	type args struct {
-		auth esv1beta1.AzureKVAuth
+		store *esv1beta1.SecretStore
 	}
 	tests := []struct {
 		name    string
@@ -821,23 +822,79 @@ func TestValidateStore(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name:    "storeIsNil",
+			wantErr: true,
+		},
+		{
+			name:    "specIsNil",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{},
+			},
+		},
+		{
+			name:    "providerIsNil",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{},
+				},
+			},
+		},
+		{
+			name:    "azureKVIsNil",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{},
+					},
+				},
+			},
+		},
+		{
 			name:    "empty auth",
 			wantErr: false,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AzureKV: &esv1beta1.AzureKVProvider{},
+						},
+					},
+				},
+			},
 		},
 		{
 			name:    "empty client id",
 			wantErr: false,
 			args: args{
-				auth: esv1beta1.AzureKVAuth{},
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AzureKV: &esv1beta1.AzureKVProvider{
+								AuthSecretRef: &esv1beta1.AzureKVAuth{},
+							},
+						},
+					},
+				},
 			},
 		},
 		{
 			name:    "invalid client id",
 			wantErr: true,
 			args: args{
-				auth: esv1beta1.AzureKVAuth{
-					ClientID: &v1.SecretKeySelector{
-						Namespace: pointer.StringPtr("invalid"),
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AzureKV: &esv1beta1.AzureKVProvider{
+								AuthSecretRef: &esv1beta1.AzureKVAuth{
+									ClientID: &v1.SecretKeySelector{
+										Namespace: pointer.StringPtr("invalid"),
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -846,28 +903,32 @@ func TestValidateStore(t *testing.T) {
 			name:    "invalid client secret",
 			wantErr: true,
 			args: args{
-				auth: esv1beta1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{
-						Namespace: pointer.StringPtr("invalid"),
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AzureKV: &esv1beta1.AzureKVProvider{
+								AuthSecretRef: &esv1beta1.AzureKVAuth{
+									ClientSecret: &v1.SecretKeySelector{
+										Namespace: pointer.StringPtr("invalid"),
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := &Azure{}
-			store := &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						AzureKV: &esv1beta1.AzureKVProvider{
-							AuthSecretRef: &tt.args.auth,
-						},
-					},
-				},
-			}
-			if err := a.ValidateStore(store); (err != nil) != tt.wantErr {
-				t.Errorf("Azure.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
+			if tt.name == "storeIsNil" {
+				if err := a.ValidateStore(nil); (err != nil) != tt.wantErr {
+					t.Errorf(errStore, err, tt.wantErr)
+				}
+			} else if err := a.ValidateStore(tt.args.store); (err != nil) != tt.wantErr {
+				t.Errorf(errStore, err, tt.wantErr)
 			}
 		})
 	}
