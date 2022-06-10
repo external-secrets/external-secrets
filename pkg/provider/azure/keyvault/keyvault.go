@@ -246,6 +246,35 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	if val, exist := tags[property]; exist {
 		return []byte(*val), nil
 	}
+
+	idx := strings.Index(property, ".")
+	if idx < 0 {
+		return nil, fmt.Errorf(errTagNotExist, property)
+	}
+
+	if idx > 0 {
+		tagName := string(property[0:idx])
+		if val, exist := tags[tagName]; exist {
+			for idx > 0 {
+				tagName = strings.Replace(property, tagName+".", "", 1)
+				jValue := gjson.Get(*val, tagName)
+				if jValue.Exists() {
+					return []byte(jValue.String()), nil
+				} else {
+					escaped := strings.ReplaceAll(tagName, ".", "\\.")
+					jValue := gjson.Get(*val, escaped)
+					if jValue.Exists() {
+						return []byte(jValue.String()), nil
+					} else {
+						idx = strings.Index(tagName, ".")
+					}
+				}
+			}
+		} else {
+			return nil, fmt.Errorf(errTagNotExist, property)
+		}
+	}
+
 	return nil, fmt.Errorf(errTagNotExist, property)
 }
 
@@ -256,6 +285,15 @@ func getProperty(secret, property, key string) ([]byte, error) {
 	}
 	res := gjson.Get(secret, property)
 	if !res.Exists() {
+		idx := strings.Index(property, ".")
+		if idx < 0 {
+			return nil, fmt.Errorf(errPropNotExist, property, key)
+		}
+		escaped := strings.ReplaceAll(property, ".", "\\.")
+		jValue := gjson.Get(secret, escaped)
+		if jValue.Exists() {
+			return []byte(jValue.String()), nil
+		}
 		return nil, fmt.Errorf(errPropNotExist, property, key)
 	}
 	return []byte(res.String()), nil
@@ -348,7 +386,22 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		}
 
 		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-			return a.getSecretTags(ref)
+			tags, _ := a.getSecretTags(ref)
+			if ref.Property != "" {
+				keyPropertyName := ref.Key + "_" + ref.Property
+				pointerMap := make(map[string]*string)
+				for k, v := range tags {
+					val := string(v)
+					pointerMap[k] = &val
+				}
+				singleTag, _ := getSecretTag(pointerMap, keyPropertyName)
+				tagByteArray := make(map[string][]byte)
+				tagByteArray[keyPropertyName] = singleTag
+
+				return tagByteArray, nil
+			}
+
+			return tags, nil
 		}
 
 		kv := make(map[string]json.RawMessage)
