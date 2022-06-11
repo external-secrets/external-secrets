@@ -203,7 +203,7 @@ func TestExecute(t *testing.T) {
 				"secret": []byte(`foo: bar`),
 			},
 			expetedData: map[string][]byte{
-				"foo": []byte(`{"foo": "bar"}`),
+				"foo": []byte(`{"foo":"bar"}`),
 			},
 		},
 		{
