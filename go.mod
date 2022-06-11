@@ -101,6 +101,7 @@ require (
 	github.com/fluxcd/helm-controller/api v0.22.0
 	github.com/fluxcd/pkg/apis/meta v0.14.1
 	github.com/fluxcd/source-controller/api v0.24.1
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
 )
 
 require (
