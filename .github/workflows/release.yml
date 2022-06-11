@@ -126,9 +126,7 @@ jobs:
 
       - name: Install cosign
         if: env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@main
-        with:
-          cosign-release: 'v1.6.0'
+        uses: sigstore/cosign-installer@v2.4.0
 
       - name: Sign Container Image
         if: env.GHCR_USERNAME != ''
@@ -136,4 +134,4 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.inputs.version }}
           SOURCE_TAG: main
-          COSIGN_EXPERIMENTAL: 1
+          COSIGN_EXPERIMENTAL: true
