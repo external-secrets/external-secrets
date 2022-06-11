@@ -1901,7 +1901,9 @@ NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
 </tbody>
 </table>
 <p>| jwkPublicKeyPem | Takes an json-serialized JWK and returns an PEM block of type <code>PUBLIC KEY</code> that contains the public key. <a href="https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey">See here</a> for details. |
-| jwkPrivateKeyPem | Takes an json-serialized JWK as <code>string</code> and returns an PEM block of type <code>PRIVATE KEY</code> that contains the private key in PKCS #8 format. <a href="https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey">See here</a> for details. |</p>
+| jwkPrivateKeyPem | Takes an json-serialized JWK as <code>string</code> and returns an PEM block of type <code>PRIVATE KEY</code> that contains the private key in PKCS #8 format. <a href="https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey">See here</a> for details. |
+| toYaml | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string). |
+| fromYaml | Function converts a YAML document into a map[string]interface{}. |</p>
 <h2 id="migrating-from-v1">Migrating from v1</h2>
 <p>If you are still using <code>v1alpha1</code>, You have to opt-in to use the new engine version by specifying <code>template.engineVersion=v2</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
