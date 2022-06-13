@@ -237,30 +237,37 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 		},
 	}
 
-	secret, err := sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
+	gcpSecret, err := sm.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{
+		Key: remoteRef.GetRemoteKey(),
+	})
 
-	if err != nil && err.(*googleapi.Error).Code != 409 { //nolint
-		return err
+	gErr, ok := err.(*googleapi.Error)
+
+	if err != nil && ok && gErr.Code == 404 {
+		_, err := sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
+		if err != nil {
+			return err
+		}
 	}
-
-	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
-		Parent: secret.Name,
-		Payload: &secretmanagerpb.SecretPayload{
-			Data: payload,
-		},
-	}
-
-	version, err := sm.SecretManagerClient.AddSecretVersion(ctx, addSecretVersionReq)
 
 	if err != nil {
 		return err
 	}
 
-	accessRequest := secretmanagerpb.AccessSecretVersionRequest{
-		Name: version.Name,
+	if string(payload) == string(gcpSecret) {
+		return nil
 	}
 
-	if _, err := sm.SecretManagerClient.AccessSecretVersion(ctx, &accessRequest); err != nil {
+	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: fmt.Sprintf("projects/%s/secrets/%s", sm.projectID, remoteRef.GetRemoteKey()),
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: payload,
+		},
+	}
+
+	_, err = sm.SecretManagerClient.AddSecretVersion(ctx, addSecretVersionReq)
+
+	if err != nil {
 		return err
 	}
 
@@ -321,10 +328,6 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 
 	return utils.ConvertKeys(ref.ConversionStrategy, secretMap)
 }
-
-// func (sm *ProviderGCP) OverwriteSecret(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-
-// }
 
 func (sm *ProviderGCP) getData(ctx context.Context, key string) ([]byte, error) {
 	dataRef := esv1beta1.ExternalSecretDataRemoteRef{

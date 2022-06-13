@@ -194,7 +194,7 @@ func TestSecretManagerSetSecret(t *testing.T) {
 
 	wantedSecretParent := fmt.Sprintf("projects/%s", projectID)
 	wantedVersionParent := fmt.Sprintf("%s/%s", wantedSecretParent, key)
-	wantedVersion := "latest"
+	wantedVersion := "projects/default/secrets/foo/versions/latest"
 
 	p := ProviderGCP{
 		SecretManagerClient: &secretManagerClient,
