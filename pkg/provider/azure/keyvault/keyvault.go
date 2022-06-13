@@ -372,40 +372,10 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 
 		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 			tags, _ := a.getSecretTags(ref)
-			tagByteArray := make(map[string][]byte)
-
-			if ref.Property != "" {
-				keyPropertyName := ref.Key + "_" + ref.Property
-				singleTag, _ := getSecretTag(tags, keyPropertyName)
-				tagByteArray[keyPropertyName] = singleTag
-
-				return tagByteArray, nil
-			}
-
-			for k, v := range tags {
-				tagByteArray[k] = []byte(*v)
-			}
-
-			return tagByteArray, nil
+			return getSecretMapProperties(tags, ref.Key, ref.Property), nil
 		}
 
-		kv := make(map[string]json.RawMessage)
-		err = json.Unmarshal(data, &kv)
-		if err != nil {
-			return nil, fmt.Errorf(errUnmarshalJSONData, err)
-		}
-
-		secretData := make(map[string][]byte)
-		for k, v := range kv {
-			var strVal string
-			err = json.Unmarshal(v, &strVal)
-			if err == nil {
-				secretData[k] = []byte(strVal)
-			} else {
-				secretData[k] = v
-			}
-		}
-		return secretData, nil
+		return getSecretMapMap(data)
 
 	case objectTypeCert:
 		return nil, fmt.Errorf(errDataFromCert)
@@ -413,6 +383,43 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		return nil, fmt.Errorf(errDataFromKey)
 	}
 	return nil, fmt.Errorf(errUnknownObjectType, secretName)
+}
+
+func getSecretMapMap(data []byte) (map[string][]byte, error) {
+	kv := make(map[string]json.RawMessage)
+	err := json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf(errUnmarshalJSONData, err)
+	}
+
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+	return secretData, nil
+}
+
+func getSecretMapProperties(tags map[string]*string, key, property string) map[string][]byte {
+	tagByteArray := make(map[string][]byte)
+	if property != "" {
+		keyPropertyName := key + "_" + property
+		singleTag, _ := getSecretTag(tags, keyPropertyName)
+		tagByteArray[keyPropertyName] = singleTag
+
+		return tagByteArray
+	}
+
+	for k, v := range tags {
+		tagByteArray[k] = []byte(*v)
+	}
+
+	return tagByteArray
 }
 
 func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider tokenProviderFunc) (autorest.Authorizer, error) {
