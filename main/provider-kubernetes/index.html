@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#authentication" class="md-skip">
+        <a href="#external-secret-spec" class="md-skip">
           Skip to content
         </a>
       
@@ -1114,30 +1114,57 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
+  <a href="#external-secret-spec" class="md-nav__link">
+    External Secret Spec
+  </a>
+  
+    <nav class="md-nav" aria-label="External Secret Spec">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#find-by-tag-name" class="md-nav__link">
+    find by tag &amp; name
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#target-api-server-configuration" class="md-nav__link">
+    Target API-Server Configuration
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
+  <a href="#authentication" class="md-nav__link">
+    Authentication
   </a>
   
-    <nav class="md-nav" aria-label="Example">
+    <nav class="md-nav" aria-label="Authentication">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#in-cluster-secrets-using-a-token" class="md-nav__link">
-    In-cluster secrets using a Token
+  <a href="#authenticating-with-bearertoken" class="md-nav__link">
+    Authenticating with BearerToken
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#remote-secret-using-a-token" class="md-nav__link">
-    Remote Secret using a Token
+  <a href="#authenticating-with-serviceaccount" class="md-nav__link">
+    Authenticating with ServiceAccount
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authenticating-with-client-certificates" class="md-nav__link">
+    Authenticating with Client Certificates
   </a>
   
 </li>
@@ -1584,30 +1611,57 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
+  <a href="#external-secret-spec" class="md-nav__link">
+    External Secret Spec
+  </a>
+  
+    <nav class="md-nav" aria-label="External Secret Spec">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#find-by-tag-name" class="md-nav__link">
+    find by tag &amp; name
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#target-api-server-configuration" class="md-nav__link">
+    Target API-Server Configuration
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
+  <a href="#authentication" class="md-nav__link">
+    Authentication
   </a>
   
-    <nav class="md-nav" aria-label="Example">
+    <nav class="md-nav" aria-label="Authentication">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#in-cluster-secrets-using-a-token" class="md-nav__link">
-    In-cluster secrets using a Token
+  <a href="#authenticating-with-bearertoken" class="md-nav__link">
+    Authenticating with BearerToken
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#remote-secret-using-a-token" class="md-nav__link">
-    Remote Secret using a Token
+  <a href="#authenticating-with-serviceaccount" class="md-nav__link">
+    Authenticating with ServiceAccount
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authenticating-with-client-certificates" class="md-nav__link">
+    Authenticating with Client Certificates
   </a>
   
 </li>
@@ -1636,27 +1690,106 @@
 
   <h1>Kubernetes</h1>
 
-<p>External Secrets Operator allows to retrieve in-cluster secrets or from a remote Kubernetes Cluster.</p>
+<p>External Secrets Operator allows to retrieve secrets from a Kubernetes Cluster - this can be either a remote cluster or the local where the operator runs in.</p>
+<p>A <code>SecretStore</code> points to a <strong>specific namespace</strong> in the target Kubernetes Cluster. You are able to retrieve all secrets from that particular namespace given you have the correct set of RBAC permissions.</p>
+<p>The <code>SecretStore</code> reconciler checks if you have read access for secrets in that namespace using <code>SelfSubjectRulesReview</code>. See below on how to set that up properly.</p>
+<h3 id="external-secret-spec">External Secret Spec</h3>
+<p>This provider supports the use of the <code>Property</code> field. With it you point to the key of the remote secret. If you leave it empty it will json encode all key/value pairs.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w">  </span><span class="c1"># name of the k8s Secret to be created</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-example</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
+</code></pre></div>
+<h4 id="find-by-tag-name">find by tag &amp; name</h4>
+<p>You can fetch secrets based on labels or names matching a regexp:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># match secret name with regexp</span><span class="w"></span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;key-.*&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># fetch secrets based on label combination</span><span class="w"></span>
+<span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;nginx&quot;</span><span class="w"></span>
+</code></pre></div>
+<h3 id="target-api-server-configuration">Target API-Server Configuration</h3>
+<p>The servers <code>url</code> can be omitted and defaults to <code>kubernetes.default</code>. You <strong>have to</strong> provide a CA certificate in order to connect to the API Server securely.
+For your convenience, each namespace has a ConfigMap <code>kube-root-ca.crt</code> that contains the CA certificate of the internal API Server (see <code>RootCAConfigMap</code> <a href="https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/">feature gate</a>).
+Use that if you want to connect to the same API server.
+If you want to connect to a remote API Server you need to fetch it and store it inside the cluster as ConfigMap or Secret.
+You may also define it inline as base64 encoded value using the <code>caBundle</code> property.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://myapiserver.tld&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">caProvider</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kube-root-ca.crt</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span><span class="w"></span>
+</code></pre></div>
 <h3 id="authentication">Authentication</h3>
-<p>It's possible to authenticate against the Kubernetes API using client certificates or a bearer token. Authentication using a service account has not yet been implemented. The operator enforces that exactly one authentication method is used.</p>
-<p><strong>NOTE:</strong> <code>SelfSubjectAccessReview</code> permission is required for the service account in order to validation work properly.</p>
-<h2 id="example">Example</h2>
-<h3 id="in-cluster-secrets-using-a-token">In-cluster secrets using a Token</h3>
-<ol>
-<li>Create a K8s Secret with a client token for the default service account</li>
-</ol>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<p>It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or service account. The operator enforces that exactly one authentication method is used. You can not use the service account that is mounted inside the operator, this is by design to avoid reading secrets across namespaces.</p>
+<p><strong>NOTE:</strong> <code>SelfSubjectRulesReview</code> permission is required in order to validation work properly. Please use the following role as reference:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io/v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Role</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-store-role</span><span class="w"></span>
+<span class="nt">rules</span><span class="p">:</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;&quot;</span><span class="p p-Indicator">]</span><span class="w"></span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">verbs</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">get</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">list</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">watch</span><span class="w"></span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiGroups</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">authorization.k8s.io</span><span class="w"></span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">selfsubjectrulesreviews</span><span class="w"></span>
+<span class="w">  </span><span class="nt">verbs</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">create</span><span class="w"></span>
+</code></pre></div>
+<h4 id="authenticating-with-bearertoken">Authenticating with BearerToken</h4>
+<p>Create a Kubernetes secret with a client token. There are many ways to acquire such a token, please refer to the <a href="https://kubernetes.io/docs/reference/access-authn-authz/authentication/#authentication-strategies">Kubernetes Authentication docs</a>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mydefaulttoken</span><span class="w"></span>
-<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kubernetes.io/service-account.name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
-<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/service-account-token</span><span class="w"></span>
+<span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;....&quot;</span><span class="w"></span>
 </code></pre></div>
-2. Create a SecretStore</p>
-<p>The Servers <code>url</code> won't be present as it will default to <code>kubernetes.default</code>, add a proper value if needed. In this example the Certificate Authority is fetched using the referenced <code>caProvider</code>.</p>
-<p>The <code>auth</code> section indicates that the type <code>token</code> will be used for authentication, it includes the path to fetch the token. Set <code>remoteNamespace</code> to the name of the namespace where your target secrets reside.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<p>Create a SecretStore: The <code>auth</code> section indicates that the type <code>token</code> will be used for authentication, it includes the path to fetch the token. Set <code>remoteNamespace</code> to the name of the namespace where your target secrets reside.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
@@ -1664,10 +1797,7 @@
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
 <span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">caProvider</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mydefaulttoken</span><span class="w"></span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># ...</span><span class="w"></span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">token</span><span class="p">:</span><span class="w"></span>
 <span class="w">          </span><span class="nt">bearerToken</span><span class="p">:</span><span class="w"></span>
@@ -1675,89 +1805,54 @@
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span><span class="w"></span>
 <span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
 </code></pre></div>
-3. Create the local secret that will be synced</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-example</span><span class="w"></span>
-<span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">extra</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YmFyCg==</span><span class="w"></span>
+<h4 id="authenticating-with-serviceaccount">Authenticating with ServiceAccount</h4>
+<p>Create a Kubernetes Service Account, please refer to the <a href="https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens">Service Account Tokens Documentation</a> on how they work and how to create them.</p>
+<div class="highlight"><pre><span></span><code>$ kubectl create serviceaccount my-store
 </code></pre></div>
-4. Finally create the ExternalSecret resource</p>
+<p>This Service Account needs permissions to read <code>Secret</code> and create <code>SelfSubjectRulesReview</code> resources. Please see the above role.</p>
+<div class="highlight"><pre><span></span><code>$ kubectl create rolebinding my-store --role=eso-store-role --serviceaccount=default:my-store
+</code></pre></div>
+<p>Create a SecretStore: the <code>auth</code> section indicates that the type <code>serviceAccount</code> will be used for authentication.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w">  </span><span class="c1"># name of the k8s Secret to be created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-example</span><span class="w"></span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
-</code></pre></div>
-<h3 id="remote-secret-using-a-token">Remote Secret using a Token</h3>
-<ol>
-<li>Create a K8s Secret with the encoded base64 ca and client token.</li>
-</ol>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets</span><span class="w"></span>
-<span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># Fill with your encoded base64 CA</span><span class="w"></span>
-<span class="w">  </span><span class="nt">certificate-authority-data</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
-<span class="nt">stringData</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># Fill with your string Token</span><span class="w"></span>
-<span class="w">  </span><span class="nt">bearerToken</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-token&quot;</span><span class="w"></span>
-</code></pre></div>
-2. Create a SecretStore</p>
-<p>The Server section specifies the <code>url</code> of the remote Kubernetes API. In this example the Certificate Authority is fetch using the encoded base64 <code>caBundle</code>.</p>
-<p>The <code>auth</code> section indicates that the  <code>token</code> type will be used for authentication, it includes the path to fetch the token.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
 <span class="nt">spec</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
 <span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="c1"># If not remoteNamesapce is provided, default     namespace is used</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remote-namespace</span><span class="w"></span>
 <span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://remote.kubernetes.api-server.address</span><span class="w"></span>
-<span class="w">        </span><span class="c1"># Add your encoded base64 to caBundle</span><span class="w"></span>
-<span class="w">        </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># ...</span><span class="w"></span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="c1"># Adds referenced bearerToken</span><span class="w"></span>
-<span class="w">        </span><span class="nt">token</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="nt">bearerToken</span><span class="p">:</span><span class="w"></span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets</span><span class="w"></span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bearerToken</span><span class="w"></span>
+<span class="w">        </span><span class="nt">serviceAccount</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-store&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="c1"># only ClusterSecretStore</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
 </code></pre></div>
-4. Finally create the ExternalSecret resource</p>
+<h4 id="authenticating-with-client-certificates">Authenticating with Client Certificates</h4>
+<p>Create a Kubernetes secret which contains the client key and certificate. See <a href="https://kubernetes.io/docs/tasks/administer-cluster/certificates/">Generate Certificates Documentations</a> on how to create them.</p>
+<div class="highlight"><pre><span></span><code>$ kubectl create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls.key
+</code></pre></div>
+<p>Reference the <code>tls-secret</code> in the SecretStore</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
 <span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w">  </span><span class="c1"># name of the k8s Secret to be created</span><span class="w"></span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-remote-example</span><span class="w"></span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">extra</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># ...</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">cert</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">clientCert</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls.crt&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;foobar&quot;</span><span class="w"> </span><span class="c1"># only ClusterSecretStore</span><span class="w"></span>
+<span class="w">          </span><span class="nt">clientKey</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls.key&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;foobar&quot;</span><span class="w"> </span><span class="c1"># only ClusterSecretStore</span><span class="w"></span>
+<span class="w">      </span><span class="nt">remoteNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
 </code></pre></div>
 
               
