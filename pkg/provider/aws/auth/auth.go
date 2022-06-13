@@ -243,11 +243,9 @@ func DefaultJWTProvider(name, namespace, roleArn, region string) (credentials.Pr
 		SharedConfigState: session.SharedConfigDisable,
 		Handlers:          handlers,
 	})
-
 	if err != nil {
 		return nil, err
 	}
-
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,
 		ServiceAccount: name,
