@@ -88,7 +88,6 @@ const (
 	jwkPubRSA            = `{"kid":"ex","kty":"RSA","key_ops":["sign","verify","wrapKey","unwrapKey","encrypt","decrypt"],"n":"p2VQo8qCfWAZmdWBVaYuYb-a-tWWm78K6Sr9poCvNcmv8rUPSLACxitQWR8gZaSH1DklVkqz-Ed8Cdlf8lkDg4Ex5tkB64jRdC1Uvn4CDpOH6cp-N2s8hTFLqy9_YaDmyQS7HiqthOi9oVjil1VMeWfaAbClGtFt6UnKD0Vb_DvLoWYQSqlhgBArFJi966b4E1pOq5Ad02K8pHBDThlIIx7unibLehhDU6q3DCwNH_OOLx6bgNtmvGYJDd1cywpkLQ3YzNCUPWnfMBJRP3iQP_WI21uP6cvo0DqBPBM4wvVzHbCT0vnIflwkbgEWkq1FprqAitZlop9KjLqzjp9vyQ","e":"AQAB"}`
 	jwkPubEC             = `{"kid":"https://example.vault.azure.net/keys/ec-p-521/e3d0e9c179b54988860c69c6ae172c65","kty":"EC","key_ops":["sign","verify"],"crv":"P-521","x":"AedOAtb7H7Oz1C_cPKI_R4CN_eai5nteY6KFW07FOoaqgQfVCSkQDK22fCOiMT_28c8LZYJRsiIFz_IIbQUW7bXj","y":"AOnchHnmBphIWXvanmMAmcCDkaED6ycW8GsAl9fQ43BMVZTqcTkJYn6vGnhn7MObizmkNSmgZYTwG-vZkIg03HHs"}`
 	jsonTestString       = `{"Name": "External", "LastName": "Secret", "Address": { "Street": "Myroad st.", "CP": "J4K4T4" } }`
-	jsonDotedTestString  = `{"Name": "External", "LastName": "Secret", "User.Address": { "Street": "Myroad st.", "CP": "J4K4T4" } }`
 	jsonSingleTestString = `{"Name": "External", "LastName": "Secret" }`
 	jsonTagTestString    = `{"tagname":"tagvalue","tagname2":"tagvalue2"}`
 	keyName              = "key/keyname"
@@ -105,6 +104,8 @@ const (
 	secretName           = "example-1"
 	testsecret           = "test-secret"
 	fakeURL              = "noop"
+	foo                  = "foo"
+	bar                  = "bar"
 	errStore             = "Azure.ValidateStore() error = %v, wantErr %v"
 )
 
@@ -342,38 +343,38 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 
 	fetchSingleTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
-		smtc.expectedSecret = "bar"
+		smtc.expectedSecret = bar
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
-		tagValue := "bar"
-		secretTags["foo"] = &tagValue
+		tagValue := bar
+		secretTags[foo] = &tagValue
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 			Tags:  secretTags,
 		}
-		smtc.ref.Property = "foo"
+		smtc.ref.Property = foo
 	}
 
-	fetchJsonTag := func(smtc *secretManagerTestCase) {
+	fetchJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"key\":\"value\"}"
-		secretTags["foo"] = &tagValue
+		secretTags[foo] = &tagValue
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 			Tags:  secretTags,
 		}
-		smtc.ref.Property = "foo"
+		smtc.ref.Property = foo
 		smtc.expectedSecret = tagValue
 	}
 
-	fetchDottedJsonTag := func(smtc *secretManagerTestCase) {
+	fetchDottedJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"key\":\"value\"}"
-		secretTags["foo"] = &tagValue
+		secretTags[foo] = &tagValue
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 			Tags:  secretTags,
@@ -382,7 +383,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = "value"
 	}
 
-	fetchNestedJsonTag := func(smtc *secretManagerTestCase) {
+	fetchNestedJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
@@ -396,41 +397,41 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = "{\"foo\":\"bar\"}"
 	}
 
-	fetchNestedDottedJsonTag := func(smtc *secretManagerTestCase) {
+	fetchNestedDottedJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"key\":\"value\", \"nested\": {\"foo\":\"bar\"}}"
-		secretTags["foo"] = &tagValue
+		secretTags[foo] = &tagValue
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 			Tags:  secretTags,
 		}
 		smtc.ref.Property = "foo.nested.foo"
-		smtc.expectedSecret = "bar"
+		smtc.expectedSecret = bar
 	}
 
-	fetchDottedKeyJsonTag := func(smtc *secretManagerTestCase) {
+	fetchDottedKeyJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"foo.json\":\"bar\"}"
-		secretTags["foo"] = &tagValue
+		secretTags[foo] = &tagValue
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 			Tags:  secretTags,
 		}
 		smtc.ref.Property = "foo.foo.json"
-		smtc.expectedSecret = "bar"
+		smtc.expectedSecret = bar
 	}
 
-	fetchDottedSecretJsonTag := func(smtc *secretManagerTestCase) {
+	fetchDottedSecretJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := "{\"foo.json\":\"bar\"}"
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &jsonString,
 		}
 		smtc.ref.Property = "foo.json"
-		smtc.expectedSecret = "bar"
+		smtc.expectedSecret = bar
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -457,12 +458,12 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setKeyWithNoTags),
 		makeValidSecretManagerTestCaseCustom(badPropertyTag),
 		makeValidSecretManagerTestCaseCustom(fetchSingleTag),
-		makeValidSecretManagerTestCaseCustom(fetchJsonTag),
-		makeValidSecretManagerTestCaseCustom(fetchDottedJsonTag),
-		makeValidSecretManagerTestCaseCustom(fetchNestedJsonTag),
-		makeValidSecretManagerTestCaseCustom(fetchNestedDottedJsonTag),
-		makeValidSecretManagerTestCaseCustom(fetchDottedKeyJsonTag),
-		makeValidSecretManagerTestCaseCustom(fetchDottedSecretJsonTag),
+		makeValidSecretManagerTestCaseCustom(fetchJSONTag),
+		makeValidSecretManagerTestCaseCustom(fetchDottedJSONTag),
+		makeValidSecretManagerTestCaseCustom(fetchNestedJSONTag),
+		makeValidSecretManagerTestCaseCustom(fetchNestedDottedJSONTag),
+		makeValidSecretManagerTestCaseCustom(fetchDottedKeyJSONTag),
+		makeValidSecretManagerTestCaseCustom(fetchDottedSecretJSONTag),
 	}
 
 	sm := Azure{
@@ -582,7 +583,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.expectedSecret = ""
 	}
 
-	nestedJsonNoProperty := func(smtc *secretManagerTestCase) {
+	nestedJSONNoProperty := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
 		smtc.expectedSecret = ""
 		smtc.secretOutput = keyvault.SecretBundle{
@@ -607,7 +608,6 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		}
 		smtc.ref.Property = "dev"
 		smtc.expectedData[testsecret+"_dev"] = []byte(tagValue)
-		// smtc.expectedData[testsecret+"_bug"] = []byte(bug)
 	}
 
 	successCases := []*secretManagerTestCase{
@@ -621,7 +621,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretTags),
 		makeValidSecretManagerTestCaseCustom(setSecretWithJSONTag),
 		makeValidSecretManagerTestCaseCustom(setSecretWithNoTags),
-		makeValidSecretManagerTestCaseCustom(nestedJsonNoProperty),
+		makeValidSecretManagerTestCaseCustom(nestedJSONNoProperty),
 		makeValidSecretManagerTestCaseCustom(setNestedJSONTag),
 	}
 
