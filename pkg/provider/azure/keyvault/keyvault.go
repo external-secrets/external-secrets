@@ -253,25 +253,10 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	}
 
 	if idx > 0 {
-		tagName := string(property[0:idx])
+		tagName := property[0:idx]
 		if val, exist := tags[tagName]; exist {
-			for idx > 0 {
-				tagName = strings.Replace(property, tagName+".", "", 1)
-				jValue := gjson.Get(*val, tagName)
-				if jValue.Exists() {
-					return []byte(jValue.String()), nil
-				} else {
-					escaped := strings.ReplaceAll(tagName, ".", "\\.")
-					jValue := gjson.Get(*val, escaped)
-					if jValue.Exists() {
-						return []byte(jValue.String()), nil
-					} else {
-						idx = strings.Index(tagName, ".")
-					}
-				}
-			}
-		} else {
-			return nil, fmt.Errorf(errTagNotExist, property)
+			key := strings.Replace(property, tagName+".", "", 1)
+			return getProperty(*val, key, property)
 		}
 	}
 
