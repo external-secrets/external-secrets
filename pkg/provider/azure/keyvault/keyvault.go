@@ -331,7 +331,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 }
 
 // returns a SecretBundle with the tags values.
-func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string]*string, error) {
 	_, secretName := getObjType(ref)
 	secretResp, err := a.baseClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
 
@@ -339,7 +339,7 @@ func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[st
 		return nil, err
 	}
 
-	secretTagsData := make(map[string][]byte)
+	secretTagsData := make(map[string]*string)
 
 	for tagname, tagval := range secretResp.Tags {
 		name := secretName + "_" + tagname
@@ -347,11 +347,11 @@ func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[st
 		err = json.Unmarshal([]byte(*tagval), &kv)
 		// if the tagvalue is not in JSON format then we added to secretTagsData we added as it is
 		if err != nil {
-			secretTagsData[name] = []byte(*tagval)
+			secretTagsData[name] = tagval
 		} else {
 			for k, v := range kv {
-				keyName := name + "_" + k
-				secretTagsData[keyName] = []byte(v)
+				value := v
+				secretTagsData[name+"_"+k] = &value
 			}
 		}
 	}
@@ -372,21 +372,21 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 
 		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 			tags, _ := a.getSecretTags(ref)
+			tagByteArray := make(map[string][]byte)
+
 			if ref.Property != "" {
 				keyPropertyName := ref.Key + "_" + ref.Property
-				pointerMap := make(map[string]*string)
-				for k, v := range tags {
-					val := string(v)
-					pointerMap[k] = &val
-				}
-				singleTag, _ := getSecretTag(pointerMap, keyPropertyName)
-				tagByteArray := make(map[string][]byte)
+				singleTag, _ := getSecretTag(tags, keyPropertyName)
 				tagByteArray[keyPropertyName] = singleTag
 
 				return tagByteArray, nil
 			}
 
-			return tags, nil
+			for k, v := range tags {
+				tagByteArray[k] = []byte(*v)
+			}
+
+			return tagByteArray, nil
 		}
 
 		kv := make(map[string]json.RawMessage)
