@@ -86,7 +86,7 @@ require (
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.24.0
 	k8s.io/apiextensions-apiserver v0.24.0
-	k8s.io/apimachinery v0.24.0
+	k8s.io/apimachinery v0.24.1
 	k8s.io/client-go v0.23.5
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	sigs.k8s.io/controller-runtime v0.11.2
@@ -99,7 +99,7 @@ require github.com/1Password/connect-sdk-go v1.4.0
 require (
 	github.com/argoproj/argo-cd/v2 v2.4.0
 	github.com/fluxcd/helm-controller/api v0.22.0
-	github.com/fluxcd/pkg/apis/meta v0.14.1
+	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/source-controller/api v0.24.1
 	sigs.k8s.io/yaml v1.3.0
 )
