@@ -44,10 +44,16 @@ type Config struct {
 	APIRetries int
 }
 
+type SessionCache struct {
+	Name            string
+	Namespace       string
+	Kind            string
+	ResourceVersion string
+}
+
 var (
-	log          = ctrl.Log.WithName("provider").WithName("aws")
-	sess         *session.Session
-	savedSession *session.Session
+	log      = ctrl.Log.WithName("provider").WithName("aws")
+	sessions = make(map[SessionCache]*session.Session)
 )
 
 const (
@@ -100,10 +106,21 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		config.WithRegion(prov.Region)
 	}
 
-	if savedSession != nil {
-		sess = savedSession
-	} else {
+	var sess *session.Session
 
+	// check if session can be reused
+	tmpSession := SessionCache{
+		Name:            store.GetObjectMeta().Name,
+		Namespace:       namespace,
+		Kind:            store.GetTypeMeta().Kind,
+		ResourceVersion: store.GetObjectMeta().ResourceVersion,
+	}
+
+	_, ok := sessions[tmpSession]
+	if ok {
+		log.Info("reusing aws session", "SecretStore", tmpSession.Name, "namespace", tmpSession.Namespace, "kind", tmpSession.Kind, "resourceversion", tmpSession.ResourceVersion)
+		sess = sessions[tmpSession]
+	} else {
 		handlers := defaults.Handlers()
 		handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
 		sess, err = session.NewSessionWithOptions(session.Options{
@@ -114,7 +131,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		if err != nil {
 			return nil, err
 		}
-		savedSession = sess
+		sessions[tmpSession] = sess
 	}
 
 	if prov.Role != "" {
@@ -221,21 +238,14 @@ func DefaultJWTProvider(name, namespace, roleArn, region string) (credentials.Pr
 	if region != "" {
 		awscfg.WithRegion(region)
 	}
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config:            *awscfg,
+		SharedConfigState: session.SharedConfigDisable,
+		Handlers:          handlers,
+	})
 
-	if savedSession != nil {
-		sess = savedSession
-	} else {
-
-		sess, err = session.NewSessionWithOptions(session.Options{
-			Config:            *awscfg,
-			SharedConfigState: session.SharedConfigDisable,
-			Handlers:          handlers,
-		})
-
-		if err != nil {
-			return nil, err
-		}
-		savedSession = sess
+	if err != nil {
+		return nil, err
 	}
 
 	tokenFetcher := &authTokenFetcher{
