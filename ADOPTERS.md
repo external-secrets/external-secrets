@@ -14,6 +14,7 @@
 - [Pier Insurance](https://www.pier.digital/)
 - [Polarpoint](https://www.polarpoint.io/)
 - [Radio France](https://www.radiofrance.fr/)
+- [Amadeus](https://amadeus.com/)
 
 
 Countless others that can't disclose that information! :)
