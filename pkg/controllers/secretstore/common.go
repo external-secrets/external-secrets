@@ -64,6 +64,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	log.V(1).Info("validating")
 	err := validateStore(ctx, req.Namespace, ss, cl, recorder)
 	if err != nil {
+		log.Error(err, "unable to validate store")
 		return ctrl.Result{}, err
 	}
 

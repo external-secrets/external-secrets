@@ -25,13 +25,14 @@ import (
 )
 
 const (
-	withTokenAuth = "with token auth"
-	withCertAuth  = "with cert auth"
-	withApprole   = "with approle auth"
-	withV1        = "with v1 provider"
-	withJWT       = "with jwt provider"
-	withJWTK8s    = "with jwt k8s provider"
-	withK8s       = "with kubernetes provider"
+	withTokenAuth    = "with token auth"
+	withCertAuth     = "with cert auth"
+	withApprole      = "with approle auth"
+	withV1           = "with v1 provider"
+	withJWT          = "with jwt provider"
+	withJWTK8s       = "with jwt k8s provider"
+	withK8s          = "with kubernetes provider"
+	withReferentAuth = "with referent provider"
 )
 
 var _ = Describe("[vault]", Label("vault"), func() {
@@ -88,6 +89,8 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withK8s, f, common.JSONDataWithTemplate, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.DataPropertyDockerconfigJSON, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataWithoutTargetName, useKubernetesProvider),
+		// use referent auth
+		framework.Compose(withReferentAuth, f, common.JSONDataFromSync, useReferentAuth),
 		// vault-specific test cases
 		Entry("secret value via data without property should return json-encoded string", Label("json"), testJSONWithoutProperty),
 		Entry("secret value via data with property should return json-encoded string", Label("json"), testJSONWithProperty),
@@ -122,6 +125,11 @@ func useJWTK8sProvider(tc *framework.TestCase) {
 
 func useKubernetesProvider(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = kubernetesProviderName
+}
+
+func useReferentAuth(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentSecretStoreName(tc.Framework)
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterSecretStoreKind
 }
 
 const jsonVal = `{"foo":{"nested":{"bar":"mysecret","baz":"bang"}}}`
