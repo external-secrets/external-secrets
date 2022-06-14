@@ -40,7 +40,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.27
 	github.com/Azure/go-autorest/autorest/adal v0.9.19
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
-	github.com/AzureAD/microsoft-authentication-library-for-go v0.5.0
+	github.com/AzureAD/microsoft-authentication-library-for-go v0.5.1
 	github.com/IBM/go-sdk-core/v5 v5.10.0
 	github.com/IBM/secrets-manager-go-sdk v1.0.44
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -49,7 +49,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.16.7
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1628
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1638
 	github.com/aws/aws-sdk-go v1.44.28
 	github.com/crossplane/crossplane-runtime v0.15.1
 	github.com/go-logr/logr v1.2.3
@@ -86,7 +86,7 @@ require (
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.24.0
 	k8s.io/apiextensions-apiserver v0.24.0
-	k8s.io/apimachinery v0.24.0
+	k8s.io/apimachinery v0.24.1
 	k8s.io/client-go v0.24.0
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	sigs.k8s.io/controller-runtime v0.12.1
@@ -99,7 +99,7 @@ require github.com/1Password/connect-sdk-go v1.4.0
 require (
 	github.com/argoproj/argo-cd/v2 v2.4.0
 	github.com/fluxcd/helm-controller/api v0.22.0
-	github.com/fluxcd/pkg/apis/meta v0.14.1
+	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/source-controller/api v0.24.1
 	sigs.k8s.io/yaml v1.3.0
 )

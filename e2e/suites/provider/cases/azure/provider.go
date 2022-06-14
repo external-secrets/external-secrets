@@ -15,6 +15,7 @@ package azure
 import (
 	"context"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
@@ -47,23 +48,26 @@ type azureProvider struct {
 func newazureProvider(f *framework.Framework, clientID, clientSecret, tenantID, vaultURL string) *azureProvider {
 	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
 	clientCredentialsConfig.Resource = "https://vault.azure.net"
-	authorizer, err := clientCredentialsConfig.Authorizer()
-	if err != nil {
-		Fail(err.Error())
-	}
 	basicClient := keyvault.New()
-	basicClient.Authorizer = authorizer
-
 	prov := &azureProvider{
 		framework:    f,
+		client:       &basicClient,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		tenantID:     tenantID,
 		vaultURL:     vaultURL,
-		client:       &basicClient,
 	}
 
+	o := &sync.Once{}
 	BeforeEach(func() {
+		// run authorizor only if this spec is called
+		o.Do(func() {
+			authorizer, err := clientCredentialsConfig.Authorizer()
+			if err != nil {
+				Fail(err.Error())
+			}
+			prov.client.Authorizer = authorizer
+		})
 		prov.CreateSecretStore()
 	})
 
