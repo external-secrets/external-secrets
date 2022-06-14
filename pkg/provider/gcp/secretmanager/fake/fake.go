@@ -33,6 +33,10 @@ type MockSMClient struct {
 	closeFn        func() error
 }
 
+func (mc *MockSMClient) GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+	return nil, nil
+}
+
 func (mc *MockSMClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 	return mc.accessSecretFn(ctx, req)
 }
@@ -110,6 +114,12 @@ func (mc *MockSMClient) DefaultAccessSecretVersion(wantedVersionName string) {
 			Name:    req.Name,
 			Payload: &secretmanagerpb.SecretPayload{Data: []byte("bar")},
 		}, nil
+	}
+}
+
+func (mc *MockSMClient) AccessSecretVersionWithError(err error) {
+	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return nil, err
 	}
 }
 
