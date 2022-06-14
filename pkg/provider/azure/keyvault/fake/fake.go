@@ -81,6 +81,30 @@ func (mc *AzureMockClient) WithCertificate(serviceURL, secretName, secretVersion
 	}
 }
 
+func (mc *AzureMockClient) WithImportCertificate(apiOutput keyvault.CertificateBundle, err error) {
+	if mc != nil {
+		mc.importCertificate = func(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (keyvault.CertificateBundle, error) {
+			return apiOutput, err
+		}
+	}
+}
+
+func (mc *AzureMockClient) WithCreateKey(output keyvault.KeyBundle, err error) {
+	if mc != nil {
+		mc.createKey = func(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error) {
+			return output, err
+		}
+	}
+}
+
+func (mc *AzureMockClient) WithSetSecret(output keyvault.SecretBundle, err error) {
+	if mc != nil {
+		mc.setSecret = func(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error) {
+			return output, err
+		}
+	}
+}
+
 func (mc *AzureMockClient) WithList(serviceURL string, apiOutput keyvault.SecretListResultIterator, err error) {
 	if mc != nil {
 		mc.getSecretsComplete = func(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error) {

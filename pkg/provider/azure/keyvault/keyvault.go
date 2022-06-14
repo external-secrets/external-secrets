@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	b64 "encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
@@ -211,7 +212,11 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 	_, localCert, err := pkcs12.Decode(value, "")
 	if err != nil {
-		return x509.ParseCertificate(value)
+		pemBlock, _ := pem.Decode(value)
+		if pemBlock == nil {
+			return x509.ParseCertificate(value)
+		}
+		return x509.ParseCertificate(pemBlock.Bytes)
 	}
 	return localCert, err
 }
@@ -244,13 +249,13 @@ func (a *Azure) SetSecret(ctx context.Context, value []byte, ref esv1beta1.PushR
 		val := b64.StdEncoding.EncodeToString(value)
 		localCert, err := getCertificateFromValue(value)
 		if err != nil {
-			return fmt.Errorf("value from secret is not a valid certificate:%v", err)
+			return fmt.Errorf("value from secret is not a valid certificate: %v", err)
 		}
 		b := sha1.Sum(localCert.Raw)
 		sha1Fingerprint := b64.RawURLEncoding.EncodeToString(b[:])
 		cert, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, "")
 		if err != nil && err.(autorest.DetailedError).StatusCode != 404 {
-			return err
+			return fmt.Errorf("could not get certificate from keyvault: %v", err)
 		}
 		if err == nil {
 			man, ok := cert.Tags["managed-by"]
