@@ -1813,18 +1813,14 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
-                                serviceAccount:
-                                  description: A reference to a ServiceAccount resource.
-                                  properties:
-                                    name:
-                                      description: The name of the ServiceAccount resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  required:
-                                    - name
-                                  type: object
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              required:
+                                - name
                               type: object
                             token:
                               description: use static token to authenticate with
@@ -4635,18 +4631,14 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
-                                serviceAccount:
-                                  description: A reference to a ServiceAccount resource.
-                                  properties:
-                                    name:
-                                      description: The name of the ServiceAccount resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  required:
-                                    - name
-                                  type: object
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              required:
+                                - name
                               type: object
                             token:
                               description: use static token to authenticate with

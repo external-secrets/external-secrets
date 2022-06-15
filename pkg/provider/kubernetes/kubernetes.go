@@ -16,29 +16,20 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	labels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-)
-
-const (
-	errPropertyNotFound                    = "property field not found on extrenal secrets"
-	errKubernetesCredSecretName            = "kubernetes credentials are empty"
-	errInvalidClusterStoreMissingNamespace = "invalid clusterStore missing Cert namespace"
-	errFetchCredentialsSecret              = "could not fetch Credentials secret: %w"
-	errMissingCredentials                  = "missing Credentials: %v"
-	errUninitalizedKubernetesProvider      = "provider kubernetes is not initialized"
-	errEmptyKey                            = "key %s found but empty"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -47,10 +38,11 @@ var _ esv1beta1.Provider = &ProviderKubernetes{}
 
 type KClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*corev1.SecretList, error)
 }
 
 type RClient interface {
-	Create(ctx context.Context, SelfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error)
+	Create(ctx context.Context, selfSubjectRulesReview *authv1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*authv1.SelfSubjectRulesReview, error)
 }
 
 // ProviderKubernetes is a provider for Kubernetes.
@@ -58,6 +50,8 @@ type ProviderKubernetes struct {
 	Client       KClient
 	ReviewClient RClient
 	Namespace    string
+	store        *esv1beta1.KubernetesProvider
+	storeKind    string
 }
 
 var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
@@ -65,8 +59,8 @@ var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
 type BaseClient struct {
 	kube        kclient.Client
 	store       *esv1beta1.KubernetesProvider
-	namespace   string
 	storeKind   string
+	namespace   string
 	Certificate []byte
 	Key         []byte
 	CA          []byte
@@ -85,32 +79,41 @@ func (k *ProviderKubernetes) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 // NewClient constructs a Kubernetes Provider.
-func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Kubernetes == nil {
 		return nil, fmt.Errorf("no store type or wrong store type")
 	}
 	storeSpecKubernetes := storeSpec.Provider.Kubernetes
 
-	bStore := BaseClient{
+	client := BaseClient{
 		kube:      kube,
 		store:     storeSpecKubernetes,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
+	p.Namespace = client.store.RemoteNamespace
+	p.store = storeSpecKubernetes
+	p.storeKind = store.GetObjectKind().GroupVersionKind().Kind
 
-	if err := bStore.setAuth(ctx); err != nil {
+	// allow SecretStore controller validation to pass
+	// when using referent namespace.
+	if client.storeKind == esv1beta1.ClusterSecretStoreKind && client.namespace == "" && isReferentSpec(storeSpecKubernetes) {
+		return p, nil
+	}
+
+	if err := client.setAuth(ctx); err != nil {
 		return nil, err
 	}
 
 	config := &rest.Config{
-		Host:        bStore.store.Server.URL,
-		BearerToken: string(bStore.BearerToken),
+		Host:        client.store.Server.URL,
+		BearerToken: string(client.BearerToken),
 		TLSClientConfig: rest.TLSClientConfig{
 			Insecure: false,
-			CertData: bStore.Certificate,
-			KeyData:  bStore.Key,
-			CAData:   bStore.CA,
+			CertData: client.Certificate,
+			KeyData:  client.Key,
+			CAData:   client.CA,
 		},
 	}
 
@@ -118,15 +121,34 @@ func (k *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.Gene
 	if err != nil {
 		return nil, fmt.Errorf("error configuring clientset: %w", err)
 	}
-
-	k.Client = kubeClientSet.CoreV1().Secrets(bStore.store.RemoteNamespace)
-	k.Namespace = bStore.store.RemoteNamespace
-	k.ReviewClient = kubeClientSet.AuthorizationV1().SelfSubjectAccessReviews()
-
-	return k, nil
+	p.Client = kubeClientSet.CoreV1().Secrets(client.store.RemoteNamespace)
+	p.ReviewClient = kubeClientSet.AuthorizationV1().SelfSubjectRulesReviews()
+	return p, nil
 }
 
-func (k *ProviderKubernetes) Close(ctx context.Context) error {
+func isReferentSpec(prov *esv1beta1.KubernetesProvider) bool {
+	if prov.Auth.Cert != nil {
+		if prov.Auth.Cert.ClientCert.Namespace == nil {
+			return true
+		}
+		if prov.Auth.Cert.ClientKey.Namespace == nil {
+			return true
+		}
+	}
+	if prov.Auth.ServiceAccount != nil {
+		if prov.Auth.ServiceAccount.Namespace == nil {
+			return true
+		}
+	}
+	if prov.Auth.Token != nil {
+		if prov.Auth.Token.BearerToken.Namespace == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *ProviderKubernetes) Close(ctx context.Context) error {
 	return nil
 }
 
@@ -135,180 +157,95 @@ func (k *ProviderKubernetes) SetSecret(ctx context.Context, value []byte, remote
 	return fmt.Errorf("not implemented")
 }
 
-func (k *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if ref.Property == "" {
-		return nil, fmt.Errorf(errPropertyNotFound)
-	}
-
-	payload, err := k.GetSecretMap(ctx, ref)
-
+func (p *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	secretMap, err := p.GetSecretMap(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-
-	val, ok := payload[ref.Property]
-	if !ok {
-		return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+	if ref.Property != "" {
+		val, ok := secretMap[ref.Property]
+		if !ok {
+			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+		}
+		return val, nil
 	}
-	return val, nil
+	strMap := make(map[string]string)
+	for k, v := range secretMap {
+		strMap[k] = string(v)
+	}
+	jsonStr, err := json.Marshal(strMap)
+	if err != nil {
+		return nil, fmt.Errorf("unabled to marshal json: %w", err)
+	}
+	return jsonStr, nil
 }
 
-func (k *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	if utils.IsNil(k.Client) {
-		return nil, fmt.Errorf(errUninitalizedKubernetesProvider)
-	}
-	opts := metav1.GetOptions{}
-	secretOut, err := k.Client.Get(ctx, ref.Key, opts)
-
+func (p *ProviderKubernetes) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	secret, err := p.Client.Get(ctx, ref.Key, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-
-	var payload map[string][]byte
-	if len(secretOut.Data) != 0 {
-		payload = secretOut.Data
-	}
-
-	return payload, nil
+	return secret.Data, nil
 }
 
-func (k *ProviderKubernetes) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf("not implemented")
+func (p *ProviderKubernetes) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	if ref.Tags != nil {
+		return p.findByTags(ctx, ref)
+	}
+	if ref.Name != nil {
+		return p.findByName(ctx, ref)
+	}
+	return nil, fmt.Errorf("unexpected find operator: %#v", ref)
 }
 
-func (k *BaseClient) setAuth(ctx context.Context) error {
-	var err error
-	if len(k.store.Server.CABundle) > 0 {
-		k.CA = k.store.Server.CABundle
-	} else if k.store.Server.CAProvider != nil {
-		keySelector := esmeta.SecretKeySelector{
-			Name:      k.store.Server.CAProvider.Name,
-			Namespace: k.store.Server.CAProvider.Namespace,
-			Key:       k.store.Server.CAProvider.Key,
-		}
-		k.CA, err = k.fetchSecretKey(ctx, keySelector, "CA")
-		if err != nil {
-			return err
-		}
-	} else {
-		return fmt.Errorf("no Certificate Authority provided")
-	}
-
-	if k.store.Auth.Token != nil {
-		k.BearerToken, err = k.fetchSecretKey(ctx, k.store.Auth.Token.BearerToken, "bearerToken")
-		if err != nil {
-			return err
-		}
-	} else if k.store.Auth.ServiceAccount != nil {
-		return fmt.Errorf("not implemented yet")
-	} else if k.store.Auth.Cert != nil {
-		k.Certificate, err = k.fetchSecretKey(ctx, k.store.Auth.Cert.ClientCert, "cert")
-		if err != nil {
-			return err
-		}
-		k.Key, err = k.fetchSecretKey(ctx, k.store.Auth.Cert.ClientKey, "key")
-		if err != nil {
-			return err
-		}
-	} else {
-		return fmt.Errorf("no credentials provided")
-	}
-
-	return nil
-}
-
-func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySelector, component string) ([]byte, error) {
-	keySecret := &corev1.Secret{}
-	keySecretName := key.Name
-	if keySecretName == "" {
-		return nil, fmt.Errorf(errKubernetesCredSecretName)
-	}
-	objectKey := types.NamespacedName{
-		Name:      keySecretName,
-		Namespace: k.namespace,
-	}
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if k.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if key.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingNamespace)
-		}
-		objectKey.Namespace = *key.Namespace
-	}
-
-	err := k.kube.Get(ctx, objectKey, keySecret)
+func (p *ProviderKubernetes) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	// empty/nil tags = everything
+	sel, err := labels.ValidatedSelectorFromSet(ref.Tags)
 	if err != nil {
-		return nil, fmt.Errorf(errFetchCredentialsSecret, err)
+		return nil, fmt.Errorf("unable to validate selector tags: %w", err)
 	}
-
-	val, ok := keySecret.Data[key.Key]
-	if !ok {
-		return nil, fmt.Errorf(errMissingCredentials, component)
-	}
-
-	if len(val) == 0 {
-		return nil, fmt.Errorf(errEmptyKey, component)
-	}
-	return val, nil
-}
-
-func (k *ProviderKubernetes) Validate() (esv1beta1.ValidationResult, error) {
-	ctx := context.Background()
-
-	authReview, err := k.ReviewClient.Create(ctx, &authv1.SelfSubjectAccessReview{
-		Spec: authv1.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &authv1.ResourceAttributes{
-				Resource:  "secrets",
-				Namespace: k.Namespace,
-				Verb:      "get",
-			},
-		},
-	}, metav1.CreateOptions{})
-
+	secrets, err := p.Client.List(ctx, metav1.ListOptions{LabelSelector: sel.String()})
 	if err != nil {
-		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
+		return nil, fmt.Errorf("unable to list secrets: %w", err)
 	}
-
-	if !authReview.Status.Allowed {
-		return esv1beta1.ValidationResultError, fmt.Errorf("client is not allowed to get secrets")
+	data := make(map[string][]byte)
+	for _, secret := range secrets.Items {
+		jsonStr, err := json.Marshal(convertMap(secret.Data))
+		if err != nil {
+			return nil, err
+		}
+		data[secret.Name] = jsonStr
 	}
-
-	return esv1beta1.ValidationResultReady, nil
+	return utils.ConvertKeys(ref.ConversionStrategy, data)
 }
 
-func (k *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
-	storeSpec := store.GetSpec()
-	k8sSpec := storeSpec.Provider.Kubernetes
-	if k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
-		return fmt.Errorf("a CABundle or CAProvider is required")
+func (p *ProviderKubernetes) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	secrets, err := p.Client.List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("unable to list secrets: %w", err)
 	}
-
-	if k8sSpec.Auth.Cert != nil {
-		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
-			return fmt.Errorf("ClientCert.Name cannot be empty")
-		}
-		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
-			return fmt.Errorf("ClientCert.Key cannot be empty")
-		}
-		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
-			return err
-		}
-	} else if k8sSpec.Auth.Token != nil {
-		if k8sSpec.Auth.Token.BearerToken.Name == "" {
-			return fmt.Errorf("BearerToken.Name cannot be empty")
-		}
-		if k8sSpec.Auth.Token.BearerToken.Key == "" {
-			return fmt.Errorf("BearerToken.Key cannot be empty")
-		}
-		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
-			return err
-		}
-	} else {
-		return fmt.Errorf("an Auth type must be specified")
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
 	}
-
-	if k8sSpec.Auth.Cert != nil && k8sSpec.Auth.Token != nil {
-		return fmt.Errorf("only one authentication method is allowed")
+	data := make(map[string][]byte)
+	for _, secret := range secrets.Items {
+		if !matcher.MatchName(secret.Name) {
+			continue
+		}
+		jsonStr, err := json.Marshal(convertMap(secret.Data))
+		if err != nil {
+			return nil, err
+		}
+		data[secret.Name] = jsonStr
 	}
+	return utils.ConvertKeys(ref.ConversionStrategy, data)
+}
 
-	return nil
+func convertMap(in map[string][]byte) map[string]string {
+	out := make(map[string]string)
+	for k, v := range in {
+		out[k] = string(v)
+	}
+	return out
 }
