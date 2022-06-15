@@ -25,7 +25,6 @@ import (
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"k8s.io/utils/pointer"
 
-	// esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1".
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakeprr "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1/fakes"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -104,6 +103,16 @@ var setAPIErr = func(smtc *secretManagerTestCase) {
 var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.mockClient = nil
 	smtc.expectError = "provider GCP is not initialized"
+}
+
+// Variables for counterfeiter generated interfaces.
+var client = new(fakes.GoogleSecretManagerClient)
+var pushRemoteRef = new(fakeprr.PushRemoteRef)
+var projectID = "default"
+
+var p = secretmanager.ProviderGCP{
+	SecretManagerClient: client,
+	ProjectID:           projectID,
 }
 
 // test the sm<->gcp interface
@@ -228,17 +237,26 @@ func TestSecretManagerGetSecret(t *testing.T) {
 // 	}
 // }
 
-func TestSecretNotFound(t *testing.T) {
-	client := new(fakes.GoogleSecretManagerClient)
-	pushRemoteRef := new(fakeprr.PushRemoteRef)
-
-	projectID := "default"
-
-	p := secretmanager.ProviderGCP{
-		SecretManagerClient: client,
-		ProjectID:           projectID,
+func TestSetSecret(t *testing.T) {
+	secret := secretmanagerpb.Secret{
+		Name: "projects/default/secrets/foo-bar",
+		Replication: &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		},
+		Labels: map[string]string{
+			"managed-by": "external-secrets",
+		},
 	}
 
+	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
+	client.GetSecretReturns(&secret, nil)
+	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
+	assert.Equal(t, err, nil)
+}
+
+func TestSetSecretGetSecret404(t *testing.T) {
 	client.AccessSecretVersionReturns(nil, &googleapi.Error{Code: 404})
 	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
 	client.GetSecretReturns(nil, &googleapi.Error{Code: 404})
@@ -254,17 +272,8 @@ func TestSecretNotFound(t *testing.T) {
 	}
 }
 
-func TestSecretWrongLabel(t *testing.T) {
-	client := new(fakes.GoogleSecretManagerClient)
-	pushRemoteRef := new(fakeprr.PushRemoteRef)
+func TestSetSecretWrongLabel(t *testing.T) {
 	expectedErr := "secret foo-bar is not managed by external secrets"
-	projectID := "default"
-
-	p := secretmanager.ProviderGCP{
-		SecretManagerClient: client,
-		ProjectID:           projectID,
-	}
-
 	secret := secretmanagerpb.Secret{
 		Name: "projects/default/secrets/foo-bar",
 		Replication: &secretmanagerpb.Replication{
