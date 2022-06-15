@@ -26,7 +26,7 @@ type AzureMockClient struct {
 	getCertificate     func(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
 	setSecret          func(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error)
 	importCertificate  func(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error)
-	createKey          func(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error)
+	importKey          func(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (result keyvault.KeyBundle, err error)
 }
 
 func (mc *AzureMockClient) GetSecret(ctx context.Context, vaultBaseURL, secretName, secretVersion string) (result keyvault.SecretBundle, err error) {
@@ -53,8 +53,8 @@ func (mc *AzureMockClient) ImportCertificate(ctx context.Context, vaultBaseURL s
 	return mc.importCertificate(ctx, vaultBaseURL, certificateName, parameters)
 }
 
-func (mc *AzureMockClient) CreateKey(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error) {
-	return mc.createKey(ctx, vaultBaseURL, keyName, parameters)
+func (mc *AzureMockClient) ImportKey(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (result keyvault.KeyBundle, err error) {
+	return mc.importKey(ctx, vaultBaseURL, keyName, parameters)
 }
 
 func (mc *AzureMockClient) WithValue(serviceURL, secretName, secretVersion string, apiOutput keyvault.SecretBundle, err error) {
@@ -89,9 +89,9 @@ func (mc *AzureMockClient) WithImportCertificate(apiOutput keyvault.CertificateB
 	}
 }
 
-func (mc *AzureMockClient) WithCreateKey(output keyvault.KeyBundle, err error) {
+func (mc *AzureMockClient) WithImportKey(output keyvault.KeyBundle, err error) {
 	if mc != nil {
-		mc.createKey = func(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error) {
+		mc.importKey = func(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (keyvault.KeyBundle, error) {
 			return output, err
 		}
 	}
@@ -99,7 +99,7 @@ func (mc *AzureMockClient) WithCreateKey(output keyvault.KeyBundle, err error) {
 
 func (mc *AzureMockClient) WithSetSecret(output keyvault.SecretBundle, err error) {
 	if mc != nil {
-		mc.setSecret = func(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error) {
+		mc.setSecret = func(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (keyvault.SecretBundle, error) {
 			return output, err
 		}
 	}
@@ -107,7 +107,7 @@ func (mc *AzureMockClient) WithSetSecret(output keyvault.SecretBundle, err error
 
 func (mc *AzureMockClient) WithList(serviceURL string, apiOutput keyvault.SecretListResultIterator, err error) {
 	if mc != nil {
-		mc.getSecretsComplete = func(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error) {
+		mc.getSecretsComplete = func(ctx context.Context, vaultBaseURL string, maxresults *int32) (keyvault.SecretListResultIterator, error) {
 			return apiOutput, err
 		}
 	}

@@ -90,7 +90,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	smtc.mockClient.WithCertificate(smtc.serviceURL, smtc.secretName, smtc.secretVersion, smtc.certOutput, smtc.apiErr)
 	smtc.mockClient.WithList(smtc.serviceURL, smtc.listOutput, smtc.apiErr)
 	smtc.mockClient.WithImportCertificate(smtc.importOutput, smtc.setErr)
-	smtc.mockClient.WithCreateKey(smtc.createKeyOutput, smtc.setErr)
+	smtc.mockClient.WithImportKey(smtc.createKeyOutput, smtc.setErr)
 	smtc.mockClient.WithSetSecret(smtc.setSecretOutput, smtc.setErr)
 
 	return smtc
@@ -149,7 +149,77 @@ func (f fakeRef) GetRemoteKey() string {
 
 func TestAzureKeyVaultSetSecret(t *testing.T) {
 	p12Cert, _ := base64.StdEncoding.DecodeString("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")
-	p12Success := func(smtc *secretManagerTestCase) {
+	goodKey, _ := base64.StdEncoding.DecodeString("LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUpRZ0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQ1N3d2dna29BZ0VBQW9JQ0FRQ1pITzRvNkpteU9aZGYKQXQ3RFdqR2tHdzdENVVIU1BHZXQyTjg2cnBGWXcrZThnL3dSeDBnZDBzRk9pelBBREdjcnpmdWE5Z3ZFcDRWcwpXb2FHbmN3UXhqdnMrZ1orWmQ2UkVPNHRLNzRURmYxaWZibmowUHE2OENlQlFpaG8xbDNwM2UwQy8yemVJMjNiCnZWRHZlMm13VXE5aDY4UTFFUmdWMU1LaWJHU1Naak5DQzdkRGFQWmpKazViMFlWVFdxREViemREVnh2ZVVMNVIKcUZnL0RKQTMzVnE2VFQzQ2U5RjBIcEorb3graSs4cUxmWU5qZExSUDZlbEtLTU5naVhhNTFvdnQ5MjF4UkVGdgpYRXYvTUtqWTlhNkppNndIRSs0NmdvbFY4V2puK2xMRkRKVHh6WEFEN2p2NzVzaHY0WEczdFlaQ2J4cTMzZ2JtCm96c0VQZ3lTRGtCMm5zc0tIUEFhSVNPaWpjNDhiSXhwbDVocFJPWUZFblJDWnhablhQNjdLZVF1VWZXQkpoVWcKYWltc0JRK3p6cFB6ZjVUbjRnVExkWll2NU41V1V2djJJdUF5Qktha0ZhR1ZYTzFpZ2FDeVQvUTNBcEE2ZGx4Sgo1VW44SzY4dS9KSGFmWWZ5engwVnVoZk5zbmtiWkxWSEZsR2Rxd3JrU0tCWSs1eS9WWlpkeC9hSHNWWndVN3ZECmNlaGxlWlFNNGV2cm5tMUY3dk5xSHBUK3BHSnpNVWVUNGZMVFpabTBra1Y3ZXl5RGRMMDFEWXRXQk1TM2NEb1EKdU5vWElBMCtDeFZPOHcxcC9wbXF2UFQ3cmpad2pwYkVMUkp3MWs4R3ozU2FKb2VqaFBzWC9xNzNGWWdBc09PRApwTXJuK3ZpU2U0ZnJmR0VmZlEvYXJUVE5qK1BUb3dJREFRQUJBb0lDQUM3ek1CUmJQc1huNHdLL1hvK0ltTEE1Cm04MTEvemo0VE5LQ0xmRlFsa0VoMFcxOUMwNW9UVFRYNjI2cVFMUWpHWC9WS2RIYW9NRXNuVDBjaFNQQ1AxRGwKZUhxeU1FdVI4UzJLZzM1V2EzSnV5OFBueVppUi9GQldVOGJQQXBVakpxa1A1QjJITlZyb2drZGZSZklwWmI4cgptNXZyTDc4Vi9zeXk4UHZkUVBtalhSUmpnMDZvWU9VR1dnRE52cFJRdGZ1R0h1d0hTZ1JodmZwTUpNTXdsd2lLClY4Zkk1NmM3VUg3SzRTRHo1RCtWOWdYUDl2b0lUMEl4OTlkRnFLTnhnM1o0MDIrazcycE1BOFNpQ0t1M3dBN0gKUnozbUZsb1ZRbmV1ajI1TEdHQUo0bGVLQkNJaFhMZlgxWXpvdDQyWEU4ZkJZZW45SjdRNTRPUFlLY0NqUmpjSgp1M2NkamtIbmFWVFc1dDdLTDFuYVAxRmF0S0ZxSjY1V1Y0c3pxWDhPVkpzbWhLalNsNUhqTk1VeERuaFUraWRTCmsxaGNaa00zOWd2RGR1ekRHeHF0L2hHMWNJS3VtamxZb01WNDV4VWFoVHdhTjZnamlrTUxNdFgrb2c0MVAxU3cKa09hZTZ4enJFQmU1eXhqSnVDWFJzK2FFOXZhTmpIWmpnSTNKREJ0enNjeCtvRFZBMXoxWVBpR2t1NXBNYmxYUQpFMWlRQnlJOVRjeHMrazN0NWdIQ0d3Z2lOcXVnOVZJaXY1cTQ2R2VGRVdnQS8wZ2hEZ0hIRnNRSDJ4VEpGU2d6ClluTkRVNlZtQ1RYZEQ0QU5jS085Z0loQzdxYk9iazlUeS9zZkZIQjBrYUdCVjFFZGZ3a0R4LytYdXRacHNUN3IKdkl6SUVDd2JPTEUzZCtLb1grUUJBb0lCQVFESG9SVU42U1VmQ3I4Z2FsOFM3UDhscU1kZnhsQVNRcWRqOHY2WAp3V1o1MFJKVE9TRmxqN3dlb2FnTStDT3pEUHpoU3pMbE4vcVdnK2h1RFJGcXBWb08xTmlrZVdvZEVwajFyZG5qCmlLeFlEVUJKNjFCMk5GT3R6Qm9CZUgyOFpDR3dRUW93clZSNUh5dUlqOTRhTzBiRlNUWEJTdWx2d3NQeDZhR2cKaTV2Q0VITHB6ODZKV1BzcjYwSmxVSDk2Z2U3NXJNZEFuRTJ1UE5JVlRnR2grMHpOenZ2a21yZHRYRVR4QXpFZwo5d0RaNVFZTUNYTGVjV0RxaWtmQUpoaUFJTjdVWEtvajN0b1ZMMzh6Sm95WmNWT3ZLaVRIQXY1MCtyNGhVTzhiCjJmL1J2VllKMngybnJuSVR4L0s2Y2N3UUttb1dFNmJRdmg4SXJGTEI3aWN2cVJzUEFvSUJBUURFV1VGemRyRHgKN2w4VGg2bVV5ZlBIWWtOUU0vdDBqM3l3RDROQ2JuSlEvZGd2OGNqMVhGWTNkOWptdWZreGtrQ01WVC8rcVNrOQp1cm1JVVJDeGo5ZDJZcUtMYXZVcUVFWCtNVStIZ0VDOW4yTHluN0xXdVNyK2dFWVdkNllXUVNSVXpoS0xaN2RUCnliTnhmcnNtczNFSVJEZTkwcFV4ZGJ0eWpJSTlZd1NaRDdMUHVOQmc1cWNaTW1xWG9vSnQxdnJld1JINncwam8KM1pxTWMrVGFtNGxYc0xmU0pqTlAzd2IzZEE0ZDFvWWFIb29WWTVyK0dER1F5YnVKYllQZSt6d01NTkJhZ2dTVQpCL3J5NlBldVBTWVJnby9kTlR2TERDamJjbytXdFpncjRJaWxCVmpCbmwycEhzakVHYjZDV2Q2bXZCdlk3SWM5ClM3cXJLUGQrWE00dEFvSUJBR08wRkN2cWNkdmJKakl1Ym1XcGNKV0NnbkZYUHM2Zjg3Sjd2cVJVdDdYSHNmdFcKNFZNMFFxU1o0TEQ1amZyelZhbkFRUjh5b2psaWtFZkd4eGdZbGE0cXFEa2RXdDVDVjVyOHhZSmExSmoxcFZKRgo4TjNZcktKMCtkZ2FNZEpSd0hHalNrK2RnajhzVGpYYWhQZGMrNisxTE4vcFprV25aTzRCM2ZPdFJwSGFYVXBoCnU2bmxneTBnUnYwTEEyQlFYT2JlWUhYb212T1c5T1luRzdHbkxXanRJK205VERlV2llaEZ5OWZIQmVuTjlRTTIKQk9VTWczY2dzVTFLdVpuazBPWUhrZ0p3WDBPTmdWNHV0ckk4WTZ0c3hRbVFlVDQ3clpJK05lNFhKeW0rQXFiUgpoVEltY2x0bTFkaEExY2FOS0liMk1hNjRCZy95NFRKeW02ZTJNZ2tDZ2dFQkFKTGt5NmljVllqSjh1dGpoU1ZCCmFWWHpWN1M3RHhhRytwdWxIMmdseFBSKzFLd1owV1J1N2ptVk9mcHppOURnUDlZOU9TRkdZUXBEbGVZNzc2ZEgKbThSL3ltZFBYNWRXa1dhNGNXMUlNQ2N0QlJQTEVqcStVVUlScVYzSnFjSGdmbFBMeitmbmNpb0hMbTVzaDR0TwpsL085Ulk2SDZ3SVR1R2JjWTl1VkpxMTBKeXhzY2NqdEJubzlVNjJaOE1aSUhXdGxPaFJHNFZjRjQwZk10Snd2CjNMSjBEVEgxVGxJazRzdGlVZVZVeHdMbmNocktaL3hORVZmbTlKeStCL2hjTVBKVjJxcTd0cjBnczBmanJ0ajEKK25NRElLbzMxMEh6R09ZRWNSUXBTMjBZRUdLVSsyL3ZFTmNqcHNPL0Z0M2lha2FIV0xZVFRxSTI4N0oxZGFOZAp2d2tDZ2dFQUNqWTJIc0ErSlQvWlU1Q0k1NlFRNmlMTkdJeFNUYkxUMGJNbGNWTDJraGFFNTRMVGtld0I5enFTCk5xNVFacUhxbGk2anZiKzM4Q1FPUWxPWmd6clVtZlhIemNWQ1FwMUk1RjRmSGkyWUVVa3FJL2dWdlVGMUxCNUUKZE1KR1FZa3Jick83Qjc0eE50RUV3Mmh3UFUwcTRmby92eFZXV0pFdTNoMGpSL0llMDA3UGtPZ0p1K1R5ZWZBNwpQVkM4OFlQbmsyZ3ArUFpRdDljanhOL0V4enRweDZ4cUJzT0MvQWZIYU5BdFA0azM5MVc5NjN3eHVwbUE5SkdiCk4yM0NCRmVIZDJmTUViTWJuWDk1Q1NYNjNJVWNaNVRhZTdwQS9OZ094YkdzaGRSMHdFZldTMGNyT1VTdGt6aE0KT3lCekNZSk53d3Bld3cyOFpIMGgybHh6VVRHWStRPT0KLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=")
+	keySuccess := func(smtc *secretManagerTestCase) {
+		smtc.setValue = goodKey
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.keyOutput = keyvault.KeyBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.StringPtr("external-secrets"),
+			},
+			Key: &keyvault.JSONWebKey{},
+		}
+	}
+	noTags := func(smtc *secretManagerTestCase) {
+		smtc.setValue = goodKey
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.keyOutput = keyvault.KeyBundle{
+			Tags: map[string]*string{},
+			Key:  &keyvault.JSONWebKey{},
+		}
+		smtc.expectError = "key not managed by external-secrets"
+	}
+	wrongTags := func(smtc *secretManagerTestCase) {
+		smtc.setValue = goodKey
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.keyOutput = keyvault.KeyBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.StringPtr("internal-secrets"),
+			},
+			Key: &keyvault.JSONWebKey{},
+		}
+		smtc.expectError = "key not managed by external-secrets"
+	}
+	invalidKey := func(smtc *secretManagerTestCase) {
+		invalid := []byte("nope")
+		smtc.setValue = invalid
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.expectError = "could not load private key keyname: format not compatible with PCKS8"
+	}
+	errorGetKey := func(smtc *secretManagerTestCase) {
+		smtc.setValue = goodKey
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.apiErr = autorest.DetailedError{StatusCode: 403, Method: "GET", Message: "Forbidden"}
+		smtc.expectError = "could not get key keyname: #GET: Forbidden: StatusCode=403"
+	}
+	keyNotFound := func(smtc *secretManagerTestCase) {
+		smtc.setValue = goodKey
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.apiErr = autorest.DetailedError{StatusCode: 404, Method: "GET", Message: "Not Found"}
+		smtc.expectError = ""
+	}
+	importKeyFailed := func(smtc *secretManagerTestCase) {
+		smtc.setValue = goodKey
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.apiErr = autorest.DetailedError{StatusCode: 404, Method: "GET", Message: "Not Found"}
+		smtc.setErr = autorest.DetailedError{StatusCode: 403, Method: "POST", Message: "Forbidden"}
+		smtc.expectError = "could not import key keyname: #POST: Forbidden: StatusCode=403"
+	}
+	certP12Success := func(smtc *secretManagerTestCase) {
 		smtc.setValue = p12Cert
 		smtc.pushRef = fakeRef{
 			key: certName,
@@ -161,7 +231,7 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 			},
 		}
 	}
-	PEMSuccess := func(smtc *secretManagerTestCase) {
+	certPEMSuccess := func(smtc *secretManagerTestCase) {
 		pemCert, _ := base64.StdEncoding.DecodeString("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZwekNDQTQrZ0F3SUJBZ0lVTUhhVDZtZG8vd2Urbit0NFB2R0JZaUdDSXE0d0RRWUpLb1pJaHZjTkFRRUwKQlFBd1l6RUxNQWtHQTFVRUJoTUNRVlV4RXpBUkJnTlZCQWdNQ2xOdmJXVXRVM1JoZEdVeElUQWZCZ05WQkFvTQpHRWx1ZEdWeWJtVjBJRmRwWkdkcGRITWdVSFI1SUV4MFpERWNNQm9HQTFVRUF3d1RZVzV2ZEdobGNpMW1iMjh0ClltRnlMbU52YlRBZUZ3MHlNakEyTURreE56UTFNelphRncweU16QTJNRGt4TnpRMU16WmFNR014Q3pBSkJnTlYKQkFZVEFrRlZNUk13RVFZRFZRUUlEQXBUYjIxbExWTjBZWFJsTVNFd0h3WURWUVFLREJoSmJuUmxjbTVsZENCWAphV1JuYVhSeklGQjBlU0JNZEdReEhEQWFCZ05WQkFNTUUyRnViM1JvWlhJdFptOXZMV0poY2k1amIyMHdnZ0lpCk1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQ0R3QXdnZ0lLQW9JQ0FRQ1pITzRvNkpteU9aZGZBdDdEV2pHa0d3N0QKNVVIU1BHZXQyTjg2cnBGWXcrZThnL3dSeDBnZDBzRk9pelBBREdjcnpmdWE5Z3ZFcDRWc1dvYUduY3dReGp2cworZ1orWmQ2UkVPNHRLNzRURmYxaWZibmowUHE2OENlQlFpaG8xbDNwM2UwQy8yemVJMjNidlZEdmUybXdVcTloCjY4UTFFUmdWMU1LaWJHU1Naak5DQzdkRGFQWmpKazViMFlWVFdxREViemREVnh2ZVVMNVJxRmcvREpBMzNWcTYKVFQzQ2U5RjBIcEorb3graSs4cUxmWU5qZExSUDZlbEtLTU5naVhhNTFvdnQ5MjF4UkVGdlhFdi9NS2pZOWE2SgppNndIRSs0NmdvbFY4V2puK2xMRkRKVHh6WEFEN2p2NzVzaHY0WEczdFlaQ2J4cTMzZ2Jtb3pzRVBneVNEa0IyCm5zc0tIUEFhSVNPaWpjNDhiSXhwbDVocFJPWUZFblJDWnhablhQNjdLZVF1VWZXQkpoVWdhaW1zQlErenpwUHoKZjVUbjRnVExkWll2NU41V1V2djJJdUF5Qktha0ZhR1ZYTzFpZ2FDeVQvUTNBcEE2ZGx4SjVVbjhLNjh1L0pIYQpmWWZ5engwVnVoZk5zbmtiWkxWSEZsR2Rxd3JrU0tCWSs1eS9WWlpkeC9hSHNWWndVN3ZEY2VobGVaUU00ZXZyCm5tMUY3dk5xSHBUK3BHSnpNVWVUNGZMVFpabTBra1Y3ZXl5RGRMMDFEWXRXQk1TM2NEb1F1Tm9YSUEwK0N4Vk8KOHcxcC9wbXF2UFQ3cmpad2pwYkVMUkp3MWs4R3ozU2FKb2VqaFBzWC9xNzNGWWdBc09PRHBNcm4rdmlTZTRmcgpmR0VmZlEvYXJUVE5qK1BUb3dJREFRQUJvMU13VVRBZEJnTlZIUTRFRmdRVWJPQk14azJ5UkNkR1N4eEZGMzBUCkZORFhHS3N3SHdZRFZSMGpCQmd3Rm9BVWJPQk14azJ5UkNkR1N4eEZGMzBURk5EWEdLc3dEd1lEVlIwVEFRSC8KQkFVd0F3RUIvekFOQmdrcWhraUc5dzBCQVFzRkFBT0NBZ0VBQXdudUtxOThOQ2hUMlUzU2RSNEFVem1MTjFCVwowNHIwMTA3TjlKdW9LbzJycjhoZ21mRmd0MDgrdFNDYzR5ajZSNStyY1hudXpqeEZLaWJVYnFncFpvd0pSSGEyCjF0NUJicEwxeWcybGZyZnhIb3YvRjh0VnNTbUE4d3loNlVpV1J3RTlrdlBXUm5LblR1a3Y1enpzcVNsTlNpbG0KNDl6UTdTV05sK0lBRnkvc3dacnRKUTEwVlQ5czRuUGVHM29XUU1vdE9QUCtsbFNpeW5LTFpxUTRnU0tSaTNmZQpQTGlXcHQ5WGZYb0dVQ0VqN3E1cGhibExQZ2RLVUNyaEdQMW4yalltWHNjV0xNeWtBbmEyMGNobHJxVlluQ2E4CkpVcDRMZnRGRHA4OVlUb1hPRkhuRm1uTkN2Y0lyRGZGeURmaGw0VU1GcEswT1VLcVRUeFdhSzl1cU9JcGFySXMKS1l3c3ArZkxlV0xiUTZrR2Ztbk81aURSZCtvT2hyTllvb1RaVks5ZlFSNXJEMmU0QitlYTByelFGWEFBVWpKNQpPWGFieGJEclErT01landjNEhxcXN4enRKZ0QyYVAyZUsyL0w1UFdQdWcwRSsxZzhBQlpmVmJvaC9NM01IZ2J6ClBnYVRxZ3V6R0Zka0czRVh1K09oR2JVMC8rNzdWTW5aaTJJUVpuL2F3R1VhN1grTVAwQkR2alZZNWtWcE1aMWgKYzJDbERqZ3hOc0xHdGlrTzRjV2I1c1FSUjJHWU0zZE1rNTBWUWN0SjVScXNSczZwT0NYRFhFM1JlVlFqNGhOQgplV3ZhRFdRMktteU9haTU1ZGJEcmxKK251ODNPbUNwNTlSelA1azU4WmFEWG5sQzM4VXdUdDBxMUQ3K3pGMHRzCjFHOTMydUVCSFdZSHVPQT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=")
 		smtc.setValue = pemCert
 		smtc.pushRef = fakeRef{
@@ -175,7 +245,7 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		}
 	}
 
-	DERSuccess := func(smtc *secretManagerTestCase) {
+	certDERSuccess := func(smtc *secretManagerTestCase) {
 		derCert, _ := base64.StdEncoding.DecodeString("MIIFpzCCA4+gAwIBAgIUMHaT6mdo/we+n+t4PvGBYiGCIq4wDQYJKoZIhvcNAQELBQAwYzELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEcMBoGA1UEAwwTYW5vdGhlci1mb28tYmFyLmNvbTAeFw0yMjA2MDkxNzQ1MzZaFw0yMzA2MDkxNzQ1MzZaMGMxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxHDAaBgNVBAMME2Fub3RoZXItZm9vLWJhci5jb20wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCZHO4o6JmyOZdfAt7DWjGkGw7D5UHSPGet2N86rpFYw+e8g/wRx0gd0sFOizPADGcrzfua9gvEp4VsWoaGncwQxjvs+gZ+Zd6REO4tK74TFf1ifbnj0Pq68CeBQiho1l3p3e0C/2zeI23bvVDve2mwUq9h68Q1ERgV1MKibGSSZjNCC7dDaPZjJk5b0YVTWqDEbzdDVxveUL5RqFg/DJA33Vq6TT3Ce9F0HpJ+ox+i+8qLfYNjdLRP6elKKMNgiXa51ovt921xREFvXEv/MKjY9a6Ji6wHE+46golV8Wjn+lLFDJTxzXAD7jv75shv4XG3tYZCbxq33gbmozsEPgySDkB2nssKHPAaISOijc48bIxpl5hpROYFEnRCZxZnXP67KeQuUfWBJhUgaimsBQ+zzpPzf5Tn4gTLdZYv5N5WUvv2IuAyBKakFaGVXO1igaCyT/Q3ApA6dlxJ5Un8K68u/JHafYfyzx0VuhfNsnkbZLVHFlGdqwrkSKBY+5y/VZZdx/aHsVZwU7vDcehleZQM4evrnm1F7vNqHpT+pGJzMUeT4fLTZZm0kkV7eyyDdL01DYtWBMS3cDoQuNoXIA0+CxVO8w1p/pmqvPT7rjZwjpbELRJw1k8Gz3SaJoejhPsX/q73FYgAsOODpMrn+viSe4frfGEffQ/arTTNj+PTowIDAQABo1MwUTAdBgNVHQ4EFgQUbOBMxk2yRCdGSxxFF30TFNDXGKswHwYDVR0jBBgwFoAUbOBMxk2yRCdGSxxFF30TFNDXGKswDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAgEAAwnuKq98NChT2U3SdR4AUzmLN1BW04r0107N9JuoKo2rr8hgmfFgt08+tSCc4yj6R5+rcXnuzjxFKibUbqgpZowJRHa21t5BbpL1yg2lfrfxHov/F8tVsSmA8wyh6UiWRwE9kvPWRnKnTukv5zzsqSlNSilm49zQ7SWNl+IAFy/swZrtJQ10VT9s4nPeG3oWQMotOPP+llSiynKLZqQ4gSKRi3fePLiWpt9XfXoGUCEj7q5phblLPgdKUCrhGP1n2jYmXscWLMykAna20chlrqVYnCa8JUp4LftFDp89YToXOFHnFmnNCvcIrDfFyDfhl4UMFpK0OUKqTTxWaK9uqOIparIsKYwsp+fLeWLbQ6kGfmnO5iDRd+oOhrNYooTZVK9fQR5rD2e4B+ea0rzQFXAAUjJ5OXabxbDrQ+OMejwc4HqqsxztJgD2aP2eK2/L5PWPug0E+1g8ABZfVboh/M3MHgbzPgaTqguzGFdkG3EXu+OhGbU0/+77VMnZi2IQZn/awGUa7X+MP0BDvjVY5kVpMZ1hc2ClDjgxNsLGtikO4cWb5sQRR2GYM3dMk50VQctJ5RqsRs6pOCXDXE3ReVQj4hNBeWvaDWQ2KmyOai55dbDrlJ+nu83OmCp59RzP5k58ZaDXnlC38UwTt0q1D7+zF0ts1G932uEBHWYHuOA=")
 		smtc.setValue = derCert
 		smtc.pushRef = fakeRef{
@@ -189,7 +259,7 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		}
 	}
 
-	importCertificateError := func(smtc *secretManagerTestCase) {
+	certImportCertificateError := func(smtc *secretManagerTestCase) {
 		smtc.setErr = errors.New("error")
 		smtc.setValue = p12Cert
 		smtc.pushRef = fakeRef{
@@ -204,7 +274,8 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		smtc.expectError = "could not import certificate certname: error"
 	}
 
-	fingerprintMatches := func(smtc *secretManagerTestCase) {
+	certFingerprintMatches := func(smtc *secretManagerTestCase) {
+		smtc.setErr = errors.New("error")
 		smtc.setValue = p12Cert
 		smtc.pushRef = fakeRef{
 			key: certName,
@@ -217,7 +288,7 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		}
 	}
 
-	notManagedByES := func(smtc *secretManagerTestCase) {
+	certNotManagedByES := func(smtc *secretManagerTestCase) {
 		smtc.setValue = p12Cert
 		smtc.pushRef = fakeRef{
 			key: certName,
@@ -231,7 +302,7 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		smtc.expectError = "certificate not managed by external-secrets"
 	}
 
-	noManagerTags := func(smtc *secretManagerTestCase) {
+	certNoManagerTags := func(smtc *secretManagerTestCase) {
 		smtc.setValue = p12Cert
 		smtc.pushRef = fakeRef{
 			key: certName,
@@ -242,7 +313,7 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		smtc.expectError = "certificate not managed by external-secrets"
 	}
 
-	notACertificate := func(smtc *secretManagerTestCase) {
+	certNotACertificate := func(smtc *secretManagerTestCase) {
 		smtc.setValue = []byte("foobar")
 		smtc.pushRef = fakeRef{
 			key: certName,
@@ -253,7 +324,7 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		smtc.expectError = "value from secret is not a valid certificate: x509: malformed certificate"
 	}
 
-	noPermissions := func(smtc *secretManagerTestCase) {
+	certNoPermissions := func(smtc *secretManagerTestCase) {
 		smtc.apiErr = autorest.DetailedError{
 			StatusCode: 403,
 			Method:     "GET",
@@ -268,16 +339,24 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		}
 		smtc.expectError = "could not get certificate from keyvault: #GET: Insufficient Permissions: StatusCode=403"
 	}
+
 	successCases := []*secretManagerTestCase{
-		makeValidSecretManagerTestCaseCustom(p12Success),
-		makeValidSecretManagerTestCaseCustom(PEMSuccess),
-		makeValidSecretManagerTestCaseCustom(DERSuccess),
-		makeValidSecretManagerTestCaseCustom(importCertificateError),
-		makeValidSecretManagerTestCaseCustom(fingerprintMatches),
-		makeValidSecretManagerTestCaseCustom(notManagedByES),
-		makeValidSecretManagerTestCaseCustom(noManagerTags),
-		makeValidSecretManagerTestCaseCustom(notACertificate),
-		makeValidSecretManagerTestCaseCustom(noPermissions),
+		makeValidSecretManagerTestCaseCustom(certP12Success),
+		makeValidSecretManagerTestCaseCustom(certPEMSuccess),
+		makeValidSecretManagerTestCaseCustom(certDERSuccess),
+		makeValidSecretManagerTestCaseCustom(certImportCertificateError),
+		makeValidSecretManagerTestCaseCustom(certFingerprintMatches),
+		makeValidSecretManagerTestCaseCustom(certNotManagedByES),
+		makeValidSecretManagerTestCaseCustom(certNoManagerTags),
+		makeValidSecretManagerTestCaseCustom(certNotACertificate),
+		makeValidSecretManagerTestCaseCustom(certNoPermissions),
+		makeValidSecretManagerTestCaseCustom(keySuccess),
+		makeValidSecretManagerTestCaseCustom(invalidKey),
+		makeValidSecretManagerTestCaseCustom(errorGetKey),
+		makeValidSecretManagerTestCaseCustom(keyNotFound),
+		makeValidSecretManagerTestCaseCustom(importKeyFailed),
+		makeValidSecretManagerTestCaseCustom(noTags),
+		makeValidSecretManagerTestCaseCustom(wrongTags),
 	}
 
 	sm := Azure{
@@ -287,7 +366,11 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		sm.baseClient = v.mockClient
 		err := sm.SetSecret(context.Background(), v.setValue, v.pushRef)
 		if !utils.ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			if err == nil {
+				t.Errorf("[%d] unexpected error: <nil>, expected: '%s'", k, v.expectError)
+			} else {
+				t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			}
 		}
 	}
 
