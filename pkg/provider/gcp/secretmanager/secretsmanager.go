@@ -253,6 +253,7 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 	if errors.As(err, &gErr) {
 		if err != nil && gErr.Code == 404 {
 			gcpSecret, err = sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
+			fmt.Println("Create secret has executed")
 			if err != nil {
 				return err
 			}

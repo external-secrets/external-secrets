@@ -109,6 +109,17 @@ var setNilMockClient = func(smtc *secretManagerTestCase) {
 var client = new(fakes.GoogleSecretManagerClient)
 var pushRemoteRef = new(fakeprr.PushRemoteRef)
 var projectID = "default"
+var secret = secretmanagerpb.Secret{
+	Name: "projects/default/secrets/foo-bar",
+	Replication: &secretmanagerpb.Replication{
+		Replication: &secretmanagerpb.Replication_Automatic_{
+			Automatic: &secretmanagerpb.Replication_Automatic{},
+		},
+	},
+	Labels: map[string]string{
+		"managed-by": "external-secrets",
+	},
+}
 
 var p = secretmanager.ProviderGCP{
 	SecretManagerClient: client,
@@ -214,16 +225,16 @@ func TestSecretManagerGetSecret(t *testing.T) {
 // 		SecretManagerClient: &secretManagerClient,
 // 		ProjectID:           projectID,
 // 	}
-// 	err := p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
-// 	if err == nil {
-// 		t.Errorf("expected err got nil from SetSecret")
-// 	}
+// 	// err := p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
+// 	// if err == nil {
+// 	// 	t.Errorf("expected err got nil from SetSecret")
+// 	// }
 
 // 	secretManagerClient.DefaultCreateSecret(key, wantedSecretParent)
 // 	secretManagerClient.DefaultAddSecretVersion(string(want), wantedVersionParent, wantedVersion)
 // 	secretManagerClient.DefaultAccessSecretVersion(wantedVersion)
 
-// 	err = p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
+// 	err := p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
 // 	if err != nil {
 // 		t.Errorf("expected nil got err from SetSecret: %v", err)
 // 	}
@@ -238,22 +249,27 @@ func TestSecretManagerGetSecret(t *testing.T) {
 // }
 
 func TestSetSecret(t *testing.T) {
-	secret := secretmanagerpb.Secret{
-		Name: "projects/default/secrets/foo-bar",
-		Replication: &secretmanagerpb.Replication{
-			Replication: &secretmanagerpb.Replication_Automatic_{
-				Automatic: &secretmanagerpb.Replication_Automatic{},
-			},
-		},
-		Labels: map[string]string{
-			"managed-by": "external-secrets",
-		},
-	}
-
 	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
 	client.GetSecretReturns(&secret, nil)
 	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
 	assert.Equal(t, err, nil)
+}
+
+func TestSetSecretAccessSecretVersion(t *testing.T) {
+	expectedErr := "googleapi: got HTTP response code 500 with body: "
+	client.AccessSecretVersionReturns(nil, &googleapi.Error{Code: 500})
+	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
+	client.GetSecretReturns(nil, &googleapi.Error{Code: 500})
+	client.CreateSecretReturns(&secretmanagerpb.Secret{
+		Labels: map[string]string{
+			"managed-by": "external-secrets",
+		},
+	}, nil)
+
+	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
+	if assert.Error(t, err) {
+		assert.Equal(t, err.Error(), expectedErr)
+	}
 }
 
 func TestSetSecretGetSecret404(t *testing.T) {
@@ -274,7 +290,7 @@ func TestSetSecretGetSecret404(t *testing.T) {
 
 func TestSetSecretWrongLabel(t *testing.T) {
 	expectedErr := "secret foo-bar is not managed by external secrets"
-	secret := secretmanagerpb.Secret{
+	secret = secretmanagerpb.Secret{
 		Name: "projects/default/secrets/foo-bar",
 		Replication: &secretmanagerpb.Replication{
 			Replication: &secretmanagerpb.Replication_Automatic_{
