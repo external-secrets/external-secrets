@@ -281,7 +281,9 @@ func TestSecretWrongLabel(t *testing.T) {
 	client.GetSecretReturns(&secret, nil)
 	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
 
-	assert.Equal(t, err.Error(), expectedErr, "Should be raised")
+	if assert.Error(t, err) {
+		assert.Equal(t, err.Error(), expectedErr)
+	}
 }
 
 func TestGetSecretMap(t *testing.T) {
