@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/googleapi"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"k8s.io/utils/pointer"
@@ -227,7 +228,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 // 	}
 // }
 
-func TestSecretManagerSecretNotFound(t *testing.T) {
+func TestSecretNotFound(t *testing.T) {
 	client := new(fakes.GoogleSecretManagerClient)
 	pushRemoteRef := new(fakeprr.PushRemoteRef)
 
@@ -251,6 +252,36 @@ func TestSecretManagerSecretNotFound(t *testing.T) {
 	if client.CreateSecretCallCount() != 1 {
 		t.Error("expected CreateSecret to be called")
 	}
+}
+
+func TestSecretWrongLabel(t *testing.T) {
+	client := new(fakes.GoogleSecretManagerClient)
+	pushRemoteRef := new(fakeprr.PushRemoteRef)
+	expectedErr := "secret foo-bar is not managed by external secrets"
+	projectID := "default"
+
+	p := secretmanager.ProviderGCP{
+		SecretManagerClient: client,
+		ProjectID:           projectID,
+	}
+
+	secret := secretmanagerpb.Secret{
+		Name: "projects/default/secrets/foo-bar",
+		Replication: &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		},
+		Labels: map[string]string{
+			"managed-by": "not-external-secrets",
+		},
+	}
+
+	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
+	client.GetSecretReturns(&secret, nil)
+	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
+
+	assert.Equal(t, err.Error(), expectedErr, "Should be raised")
 }
 
 func TestGetSecretMap(t *testing.T) {

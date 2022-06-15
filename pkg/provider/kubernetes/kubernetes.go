@@ -74,7 +74,7 @@ func init() {
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (k *ProviderKubernetes) Capabilities() esv1beta1.SecretStoreCapabilities {
+func (p *ProviderKubernetes) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
@@ -153,7 +153,7 @@ func (p *ProviderKubernetes) Close(ctx context.Context) error {
 }
 
 // Not Implemented SetSecret.
-func (k *ProviderKubernetes) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (p *ProviderKubernetes) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

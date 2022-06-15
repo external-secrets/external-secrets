@@ -306,6 +306,7 @@ func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1beta1.External
 	if len(ref.Tags) > 0 {
 		return sm.findByTags(ctx, ref)
 	}
+
 	return nil, errors.New(errUnexpectedFindOperator)
 }
 
