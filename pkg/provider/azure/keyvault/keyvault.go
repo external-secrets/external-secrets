@@ -256,6 +256,20 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	if val, exist := tags[property]; exist {
 		return []byte(*val), nil
 	}
+
+	idx := strings.Index(property, ".")
+	if idx < 0 {
+		return nil, fmt.Errorf(errTagNotExist, property)
+	}
+
+	if idx > 0 {
+		tagName := property[0:idx]
+		if val, exist := tags[tagName]; exist {
+			key := strings.Replace(property, tagName+".", "", 1)
+			return getProperty(*val, key, property)
+		}
+	}
+
 	return nil, fmt.Errorf(errTagNotExist, property)
 }
 
@@ -266,6 +280,15 @@ func getProperty(secret, property, key string) ([]byte, error) {
 	}
 	res := gjson.Get(secret, property)
 	if !res.Exists() {
+		idx := strings.Index(property, ".")
+		if idx < 0 {
+			return nil, fmt.Errorf(errPropNotExist, property, key)
+		}
+		escaped := strings.ReplaceAll(property, ".", "\\.")
+		jValue := gjson.Get(secret, escaped)
+		if jValue.Exists() {
+			return []byte(jValue.String()), nil
+		}
 		return nil, fmt.Errorf(errPropNotExist, property, key)
 	}
 	return []byte(res.String()), nil
@@ -318,7 +341,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 }
 
 // returns a SecretBundle with the tags values.
-func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string]*string, error) {
 	_, secretName := getObjType(ref)
 	secretResp, err := a.baseClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
 
@@ -326,7 +349,7 @@ func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[st
 		return nil, err
 	}
 
-	secretTagsData := make(map[string][]byte)
+	secretTagsData := make(map[string]*string)
 
 	for tagname, tagval := range secretResp.Tags {
 		name := secretName + "_" + tagname
@@ -334,11 +357,11 @@ func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[st
 		err = json.Unmarshal([]byte(*tagval), &kv)
 		// if the tagvalue is not in JSON format then we added to secretTagsData we added as it is
 		if err != nil {
-			secretTagsData[name] = []byte(*tagval)
+			secretTagsData[name] = tagval
 		} else {
 			for k, v := range kv {
-				keyName := name + "_" + k
-				secretTagsData[keyName] = []byte(v)
+				value := v
+				secretTagsData[name+"_"+k] = &value
 			}
 		}
 	}
@@ -358,27 +381,55 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		}
 
 		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-			return a.getSecretTags(ref)
+			tags, _ := a.getSecretTags(ref)
+			return getSecretMapProperties(tags, ref.Key, ref.Property), nil
 		}
 
-		kv := make(map[string]string)
-		err = json.Unmarshal(data, &kv)
-		if err != nil {
-			return nil, fmt.Errorf(errUnmarshalJSONData, err)
-		}
+		return getSecretMapMap(data)
 
-		secretData := make(map[string][]byte)
-		for k, v := range kv {
-			secretData[k] = []byte(v)
-		}
-
-		return secretData, nil
 	case objectTypeCert:
 		return nil, fmt.Errorf(errDataFromCert)
 	case objectTypeKey:
 		return nil, fmt.Errorf(errDataFromKey)
 	}
 	return nil, fmt.Errorf(errUnknownObjectType, secretName)
+}
+
+func getSecretMapMap(data []byte) (map[string][]byte, error) {
+	kv := make(map[string]json.RawMessage)
+	err := json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf(errUnmarshalJSONData, err)
+	}
+
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+	return secretData, nil
+}
+
+func getSecretMapProperties(tags map[string]*string, key, property string) map[string][]byte {
+	tagByteArray := make(map[string][]byte)
+	if property != "" {
+		keyPropertyName := key + "_" + property
+		singleTag, _ := getSecretTag(tags, keyPropertyName)
+		tagByteArray[keyPropertyName] = singleTag
+
+		return tagByteArray
+	}
+
+	for k, v := range tags {
+		tagByteArray[k] = []byte(*v)
+	}
+
+	return tagByteArray
 }
 
 func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider tokenProviderFunc) (autorest.Authorizer, error) {
