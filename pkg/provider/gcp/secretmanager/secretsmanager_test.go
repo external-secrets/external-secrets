@@ -107,27 +107,6 @@ var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.expectError = "provider GCP is not initialized"
 }
 
-// Variables for counterfeiter generated interfaces.
-var client = new(fakes.GoogleSecretManagerClient)
-var pushRemoteRef = new(fakeprr.PushRemoteRef)
-var projectID = "default"
-var secret = secretmanagerpb.Secret{
-	Name: "projects/default/secrets/foo-bar",
-	Replication: &secretmanagerpb.Replication{
-		Replication: &secretmanagerpb.Replication_Automatic_{
-			Automatic: &secretmanagerpb.Replication_Automatic{},
-		},
-	},
-	Labels: map[string]string{
-		"managed-by": "external-secrets",
-	},
-}
-
-var p = secretmanager.ProviderGCP{
-	SecretManagerClient: client,
-	ProjectID:           projectID,
-}
-
 // test the sm<->gcp interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestSecretManagerGetSecret(t *testing.T) {
@@ -210,18 +189,30 @@ func TestSecretManagerGetSecret(t *testing.T) {
 }
 
 func TestSetSecret(t *testing.T) {
-	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
+
 	client.GetSecretReturns(&secret, nil)
+
 	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
 	assert.Equal(t, err, nil)
 }
 
 func TestSetSecretAddSecretVersion(t *testing.T) {
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
+
 	expectedErr := "rpc error: code = Aborted desc = failed"
 	newStatus := status.Error(codes.Aborted, "failed")
 	err, _ := apierror.FromError(newStatus)
+
 	client.GetSecretReturns(&secret, nil)
 	client.AddSecretVersionReturns(nil, err)
+
 	expect := p.SetSecret(context.TODO(), nil, pushRemoteRef)
 	if assert.Error(t, expect) {
 		assert.Equal(t, expect.Error(), expectedErr)
@@ -229,17 +220,18 @@ func TestSetSecretAddSecretVersion(t *testing.T) {
 }
 
 func TestSetSecretAccessSecretVersion(t *testing.T) {
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
+
 	expectedErr := "rpc error: code = Aborted desc = failed"
 	newStatus := status.Error(codes.Aborted, "failed")
 	err, _ := apierror.FromError(newStatus)
+
 	client.AccessSecretVersionReturns(nil, err)
-	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
 	client.GetSecretReturns(nil, err)
-	client.CreateSecretReturns(&secretmanagerpb.Secret{
-		Labels: map[string]string{
-			"managed-by": "external-secrets",
-		},
-	}, nil)
+	client.CreateSecretReturns(&secret, nil)
 
 	expect := p.SetSecret(context.Background(), nil, pushRemoteRef)
 	if assert.Error(t, expect) {
@@ -248,15 +240,16 @@ func TestSetSecretAccessSecretVersion(t *testing.T) {
 }
 
 func TestSetSecretGetSecret404(t *testing.T) {
-	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
-	newStatus := status.Error(codes.NotFound, "")
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
+
+	newStatus := status.Error(codes.NotFound, "failed")
 	err, _ := apierror.FromError(newStatus)
+
 	client.GetSecretReturns(nil, err)
-	client.CreateSecretReturns(&secretmanagerpb.Secret{
-		Labels: map[string]string{
-			"managed-by": "external-secrets",
-		},
-	}, nil)
+	client.CreateSecretReturns(&secret, nil)
 	client.AccessSecretVersionReturns(nil, err)
 
 	p.SetSecret(context.Background(), nil, pushRemoteRef)
@@ -269,8 +262,10 @@ func TestSetSecretGetSecret404(t *testing.T) {
 }
 
 func TestSetSecretWrongLabel(t *testing.T) {
-	expectedErr := "secret foo-bar is not managed by external secrets"
-	secret = secretmanagerpb.Secret{
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	p := newProvider(client)
+	secret := secretmanagerpb.Secret{
 		Name: "projects/default/secrets/foo-bar",
 		Replication: &secretmanagerpb.Replication{
 			Replication: &secretmanagerpb.Replication_Automatic_{
@@ -284,6 +279,8 @@ func TestSetSecretWrongLabel(t *testing.T) {
 
 	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
 	client.GetSecretReturns(&secret, nil)
+
+	expectedErr := "secret foo-bar is not managed by external secrets"
 	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
 
 	if assert.Error(t, err) {
@@ -292,13 +289,18 @@ func TestSetSecretWrongLabel(t *testing.T) {
 }
 
 func TestSetSecretAlreadyExists(t *testing.T) {
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
 	payload := &secretmanagerpb.SecretPayload{Data: []byte("bar")}
+
 	client.AccessSecretVersionReturns(&secretmanagerpb.AccessSecretVersionResponse{
 		Name:    "projects/default/secrets/foo-bar",
 		Payload: payload,
 	}, nil)
 	client.GetSecretReturns(&secret, nil)
-	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
+
 	err := p.SetSecret(context.TODO(), []byte("bar"), pushRemoteRef)
 	if client.AddSecretVersionCallCount() != 0 {
 		t.Error("expected addSecretVersion to not be called")
@@ -419,5 +421,35 @@ func TestValidateStore(t *testing.T) {
 				t.Errorf("ProviderGCP.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+// counterfeiter helper methods.
+func newClient() *fakes.GoogleSecretManagerClient {
+	return new(fakes.GoogleSecretManagerClient)
+}
+
+func newPushRemoteRef() *fakeprr.PushRemoteRef {
+	return new(fakeprr.PushRemoteRef)
+}
+
+func newSecret() secretmanagerpb.Secret {
+	return secretmanagerpb.Secret{
+		Name: "projects/default/secrets/foo-bar",
+		Replication: &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		},
+		Labels: map[string]string{
+			"managed-by": "external-secrets",
+		},
+	}
+}
+
+func newProvider(client secretmanager.GoogleSecretManagerClient) secretmanager.ProviderGCP {
+	return secretmanager.ProviderGCP{
+		SecretManagerClient: client,
+		ProjectID:           "default",
 	}
 }
