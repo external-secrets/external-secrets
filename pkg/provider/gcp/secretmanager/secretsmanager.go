@@ -24,13 +24,14 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go/v2"
+	"github.com/googleapis/gax-go/v2/apierror"
 	"github.com/tidwall/gjson"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	"google.golang.org/grpc/codes"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -248,12 +249,11 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 		Name: fmt.Sprintf("projects/%s/secrets/%s", sm.ProjectID, remoteRef.GetRemoteKey()),
 	})
 
-	var gErr *googleapi.Error
+	var gErr *apierror.APIError
 
 	if errors.As(err, &gErr) {
-		if err != nil && gErr.Code == 404 {
+		if err != nil && gErr.GRPCStatus().Code() == codes.NotFound {
 			gcpSecret, err = sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
-			fmt.Println("Create secret has executed")
 			if err != nil {
 				return err
 			}
@@ -275,27 +275,28 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 	})
 
 	if errors.As(err, &gErr) {
-		if err != nil && gErr.Code != 404 {
-			return err
-		}
-
-		if gcpVersion != nil && gcpVersion.Payload != nil && string(payload) == string(gcpVersion.Payload.Data) {
-			return nil
-		}
-
-		addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
-			Parent: fmt.Sprintf("projects/%s/secrets/%s", sm.ProjectID, remoteRef.GetRemoteKey()),
-			Payload: &secretmanagerpb.SecretPayload{
-				Data: payload,
-			},
-		}
-
-		_, err = sm.SecretManagerClient.AddSecretVersion(ctx, addSecretVersionReq)
-
-		if err != nil {
+		if err != nil && gErr.GRPCStatus().Code() != codes.NotFound {
 			return err
 		}
 	}
+
+	if gcpVersion != nil && gcpVersion.Payload != nil && string(payload) == string(gcpVersion.Payload.Data) {
+		return nil
+	}
+
+	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: fmt.Sprintf("projects/%s/secrets/%s", sm.ProjectID, remoteRef.GetRemoteKey()),
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: payload,
+		},
+	}
+
+	_, err = sm.SecretManagerClient.AddSecretVersion(ctx, addSecretVersionReq)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

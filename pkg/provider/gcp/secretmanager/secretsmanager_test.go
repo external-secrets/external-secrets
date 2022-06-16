@@ -20,9 +20,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/googleapis/gax-go/v2/apierror"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/api/googleapi"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/utils/pointer"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -207,47 +209,6 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	}
 }
 
-// func TestSecretManagerSetSecret(t *testing.T) {
-// 	secretManagerClient := fakesm.MockSMClient{}
-// 	secretManagerClient.NilClose()
-// 	secretManagerClient.WithValue(context.Background(), nil, nil, nil)
-// 	secretManagerClient.CreateSecretError()
-
-// 	key := "foo"
-// 	want := []byte("bar")
-// 	projectID := "default"
-
-// 	wantedSecretParent := fmt.Sprintf("projects/%s", projectID)
-// 	wantedVersionParent := fmt.Sprintf("%s/%s", wantedSecretParent, key)
-// 	wantedVersion := "projects/default/secrets/foo/versions/latest"
-
-// 	p := secretmanager.ProviderGCP{
-// 		SecretManagerClient: &secretManagerClient,
-// 		ProjectID:           projectID,
-// 	}
-// 	// err := p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
-// 	// if err == nil {
-// 	// 	t.Errorf("expected err got nil from SetSecret")
-// 	// }
-
-// 	secretManagerClient.DefaultCreateSecret(key, wantedSecretParent)
-// 	secretManagerClient.DefaultAddSecretVersion(string(want), wantedVersionParent, wantedVersion)
-// 	secretManagerClient.DefaultAccessSecretVersion(wantedVersion)
-
-// 	err := p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
-// 	if err != nil {
-// 		t.Errorf("expected nil got err from SetSecret: %v", err)
-// 	}
-// 	err = p.SetSecret(context.TODO(), want, esv1alpha1.PushSecretRemoteRefs{RemoteKey: "wrong"})
-// 	if err == nil {
-// 		t.Errorf("expected err got nil")
-// 	}
-// 	err = p.SetSecret(context.TODO(), []byte("potato"), esv1alpha1.PushSecretRemoteRefs{RemoteKey: key})
-// 	if err == nil {
-// 		t.Errorf("expected err got nil")
-// 	}
-// }
-
 func TestSetSecret(t *testing.T) {
 	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
 	client.GetSecretReturns(&secret, nil)
@@ -255,34 +216,53 @@ func TestSetSecret(t *testing.T) {
 	assert.Equal(t, err, nil)
 }
 
+func TestSetSecretAddSecretVersion(t *testing.T) {
+	expectedErr := "rpc error: code = Aborted desc = failed"
+	newStatus := status.Error(codes.Aborted, "failed")
+	err, _ := apierror.FromError(newStatus)
+	client.GetSecretReturns(&secret, nil)
+	client.AddSecretVersionReturns(nil, err)
+	expect := p.SetSecret(context.TODO(), nil, pushRemoteRef)
+	if assert.Error(t, expect) {
+		assert.Equal(t, expect.Error(), expectedErr)
+	}
+}
+
 func TestSetSecretAccessSecretVersion(t *testing.T) {
-	expectedErr := "googleapi: got HTTP response code 500 with body: "
-	client.AccessSecretVersionReturns(nil, &googleapi.Error{Code: 500})
+	expectedErr := "rpc error: code = Aborted desc = failed"
+	newStatus := status.Error(codes.Aborted, "failed")
+	err, _ := apierror.FromError(newStatus)
+	client.AccessSecretVersionReturns(nil, err)
 	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
-	client.GetSecretReturns(nil, &googleapi.Error{Code: 500})
+	client.GetSecretReturns(nil, err)
 	client.CreateSecretReturns(&secretmanagerpb.Secret{
 		Labels: map[string]string{
 			"managed-by": "external-secrets",
 		},
 	}, nil)
 
-	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
-	if assert.Error(t, err) {
-		assert.Equal(t, err.Error(), expectedErr)
+	expect := p.SetSecret(context.Background(), nil, pushRemoteRef)
+	if assert.Error(t, expect) {
+		assert.Equal(t, expect.Error(), expectedErr)
 	}
 }
 
 func TestSetSecretGetSecret404(t *testing.T) {
-	client.AccessSecretVersionReturns(nil, &googleapi.Error{Code: 404})
 	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
-	client.GetSecretReturns(nil, &googleapi.Error{Code: 404})
+	newStatus := status.Error(codes.NotFound, "")
+	err, _ := apierror.FromError(newStatus)
+	client.GetSecretReturns(nil, err)
 	client.CreateSecretReturns(&secretmanagerpb.Secret{
 		Labels: map[string]string{
 			"managed-by": "external-secrets",
 		},
 	}, nil)
+	client.AccessSecretVersionReturns(nil, err)
 
 	p.SetSecret(context.Background(), nil, pushRemoteRef)
+	if client.AddSecretVersionCallCount() != 1 {
+		t.Error("expected addSecretVersion to be called")
+	}
 	if client.CreateSecretCallCount() != 1 {
 		t.Error("expected CreateSecret to be called")
 	}
@@ -308,6 +288,23 @@ func TestSetSecretWrongLabel(t *testing.T) {
 
 	if assert.Error(t, err) {
 		assert.Equal(t, err.Error(), expectedErr)
+	}
+}
+
+func TestSetSecretAlreadyExists(t *testing.T) {
+	payload := &secretmanagerpb.SecretPayload{Data: []byte("bar")}
+	client.AccessSecretVersionReturns(&secretmanagerpb.AccessSecretVersionResponse{
+		Name:    "projects/default/secrets/foo-bar",
+		Payload: payload,
+	}, nil)
+	client.GetSecretReturns(&secret, nil)
+	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
+	err := p.SetSecret(context.TODO(), []byte("bar"), pushRemoteRef)
+	if client.AddSecretVersionCallCount() != 0 {
+		t.Error("expected addSecretVersion to not be called")
+	}
+	if err != nil {
+		t.Errorf("expected nil got error")
 	}
 }
 
