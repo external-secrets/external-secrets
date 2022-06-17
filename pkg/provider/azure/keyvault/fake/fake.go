@@ -45,15 +45,15 @@ func (mc *AzureMockClient) GetSecretsComplete(ctx context.Context, vaultBaseURL 
 	return mc.getSecretsComplete(ctx, vaultBaseURL, maxresults)
 }
 
-func (mc *AzureMockClient) SetSecret(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error) {
+func (mc *AzureMockClient) SetSecret(ctx context.Context, vaultBaseURL, secretName string, parameters keyvault.SecretSetParameters) (keyvault.SecretBundle, error) {
 	return mc.setSecret(ctx, vaultBaseURL, secretName, parameters)
 }
 
-func (mc *AzureMockClient) ImportCertificate(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error) {
+func (mc *AzureMockClient) ImportCertificate(ctx context.Context, vaultBaseURL, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error) {
 	return mc.importCertificate(ctx, vaultBaseURL, certificateName, parameters)
 }
 
-func (mc *AzureMockClient) ImportKey(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (result keyvault.KeyBundle, err error) {
+func (mc *AzureMockClient) ImportKey(ctx context.Context, vaultBaseURL, keyName string, parameters keyvault.KeyImportParameters) (result keyvault.KeyBundle, err error) {
 	return mc.importKey(ctx, vaultBaseURL, keyName, parameters)
 }
 

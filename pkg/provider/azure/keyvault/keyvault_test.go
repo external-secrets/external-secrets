@@ -16,13 +16,12 @@ package keyvault
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
 	"testing"
-
-	"encoding/base64"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	"github.com/Azure/go-autorest/autorest"
@@ -225,8 +224,8 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		smtc.pushRef = fakeRef{
 			key: secretName,
 		}
-		smtc.apiErr = fmt.Errorf("Crash!")
-		smtc.expectError = "could not get secret example-1: could not parse error: Crash!"
+		smtc.apiErr = fmt.Errorf("crash")
+		smtc.expectError = "could not get secret example-1: could not parse error: crash"
 	}
 	failedSetSecret := func(smtc *secretManagerTestCase) {
 		smtc.setValue = []byte(goodSecret)
@@ -244,11 +243,61 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.StringPtr("external-secrets"),
+				"managed-by": pointer.StringPtr(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
 	}
+	symmetricKeySuccess := func(smtc *secretManagerTestCase) {
+		smtc.setValue = []byte("secret")
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.keyOutput = keyvault.KeyBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.StringPtr(managerLabel),
+			},
+			Key: &keyvault.JSONWebKey{},
+		}
+	}
+	RSAKeySuccess := func(smtc *secretManagerTestCase) {
+		smtc.setValue, _ = base64.StdEncoding.DecodeString("LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlKS1FJQkFBS0NBZ0VBdmIxYjM2YlpyaFNFYm5YWGtRL1pjR3VLY05HMDBGa2U1SkVOaWU4UzFHTG1uK1N0CndmdittVFRUN2xyVkdpVkplV3ZhQnRkMUVLRll0aWdlVlhJQjA0MllzeHRmMlM5WkNzNlUxaFZDWFZQc3BobEUKOUVyOHNHa0Ewa1lKdmxWejR2eFA2NTNzNjFGYTBpclRvUGlJTFZwMU1jdGRxVnB0VnJFV1JadzQ2NEF4MzhNNgpCMjFvN2NaUmlZN3VGZTA4UEllbEd3VGc0cHJRdEg2VXVuK09BV3MrNFNDTU5xT2xDRkNzSDBLK0NZZUMyZmpXClplaURsbjBTUDdkZ3puMmJsbk9VQzZ0Z3VtQ3grdW1ISVdmV1hzUDVQR0hoWFBwYlpGbDA4ZktaelNqbytCOWkKVzVsbWhrRE1HM0dsU0JPMmEvcEtjck1uTFVWbE15OVdWLy9LUmw3ZWFtdmJ5dWFzSnZHbVJ4L3d1NXlpYVhwSwprZG4xL0E2VFhBRnVvbU4xb3NvaGVyMjR2MHZ0YzBGZmxJM3h4WVpVTXIwazhLV0VlM1Nhdk83NkdrZTJhbEppCnVtZ20wTmhtK2pqNmlXajl1V1ZzV215MmFDMHc0aTRDS1d2YU56K0NDek5kWk8vcFpPTmlmTzVSSUZpZ2RzTVgKUHgvWU5nSkVKdmEyUVZ2MU9kcWZTdW1CMS8zRldFYmg5V2tFYXRGOElJRDI5TS9qVktiRm9BaktYeVZhUTI5eQpOOFRWR3Axc2pzOW5sSWdjN0JRUFhBZTVPQUExdnc5SWV4N09QZjhPZENBbDluQzlEaDdaK3MyV2lOVlRxb2dwCk1VbE1GUWxGVXpMWGVCUmp0ay9rL3lWT20yWkhBT2RuR1k4bSthRWlTV0ExYXhpa0RYMG9HWjhjbHFzQ0F3RUEKQVFLQ0FnRUFwZDZBRG9pQ0M1aU1IVFNQZXBUc2RVYk9BOHFQMHdQVjZlS1VmMXlzalZiWVhqYy9Yekc0Wko2MgpGc3o1TnA0YUdUZWJwaGQ4azBrNWtDU0tRQkFtWUphTVF5ZFBKMElwQ1RXSEQ1QU9NQ0JKNVBwNk9VWEVtVU55CklHQng3QjR2N09LOXl6Q0lDVDlac2hrV1lNWmo1YUlLaWJsSzY5M05iOWZuckhyaGw1NjkrdXRrTTFJR1JMYjIKV05iR2RBeXNlQTNzM0Mzcm1xM1VmYldhdDE4QytXS1QyYUxtY0cybXZCb3FIam51Zjg0aktnSkxDMU8wbFQ1SgpVY0l4c3RKRHpjYkVTVjlNZENKTDlSbHB0RjVlSFFJZFJCZ2ROM2IxcGtnOTM3VkJsd1NJaFVDS2I2RXU2M2FCCitBdmxmWmtlQkU4Ti9pOTN0Qy9TUkdqQmhyUnFVcEVOOVYrOHBJczVxTE5keC9RanF4TEpMMUtwMXQ0L0hVTkEKOVVTZVNrVDZTZ09OZ1NnQktCemFCYzUyTXRoWWYrZDk2YTJkN0N0dCt1amJBT0JKTkdKMytGenJoc3pzUTMzWQpkalBWTGQxSzBQSHZ0WDNrSWRKbFNWSmYxS3d5bDVKVm1Cck1wb2ZDQ2dsNnhyR0puYVJPb1A3bDZNb1BFZ21hClNRWWFIQVIvVGIzM2lBeTNLdlBuUkNMQlM2MEJCYitIcVd3c0RhczM0Uk9WUE05bUI2ZldkTUo0TG5kZmVpZm0KTGZ3Sy9GMXpRdFRaczNpYUYyMGEvY0EvdjRENWJCUldYSEQvTDA3Mks5TGxoMGNRRFVZY1V1ZUdwRWUycEZHRApxa1pCL08wSXNBOXAyTnNCekdvRWl1eHJwd0JBaXpiOUdCcU9DZUlGS1hKeU5heGU3YUVDZ2dFQkFOeG9zQ2cyCngwTWQzajRtWVhvWVpMMVBOUklwNlpuN2VLbThzK0tIRFdMUTlXWmtFbUwyODNXNzJFd2dDbmc2VjdsUHVYVlEKVTJXR0xjNDNvUU95U3JlNEZXbnZhTVhnWk42Wis2T0wvQ1J2VHZSbFhVNXJlYVNCT2tyZUJYK1g2dFo2Q1dORgpLWjkxTERvVVR5TlJVTTFUL3lwbS85SlE4MTJ1VUxnYUlQZGl5cCtPYmRoZWdBUE5CS0lxR3Nva0tKRlpjRDNyCjRwSVdHT0U3RVJrbU14MnFZMk54VGtuUGxOVUJzR01jS25qeTdycER5WmpDR0U3eldoRE5XRGdMUkJOc1liaHIKa0p4ZlNVVlBOb2RLaE8xVHQ3bDJRMnplcWxlV05pcktRbWdMY3JJRU9MRUdYcEY3U250eEx3N1pvYWlQU0FWWApQMTVqNXNkZlUzV1ZOdzhDZ2dFQkFOeGcyOGw5TllHUmwwU1JCZFJEakJhV21IK0pWYWdpdG0zNnorcnB1MWdZClZ4dFJ0N0FGTzF1QVphTys1aWd1d0JKcFhSUWJXVmZUcWppaTM1bUV2UENkZjhPcTZBQVlzeXg5WXVmUUdOUnEKZG1VNlcvdWhCMnVURDBrL0dQdjVFb2hBTlRjQmkyS1ROS2p0S1Z2bHFtbWZ4Tis5YTl4NjVEdWRHWUFRNGplNwpGaHZJSlU5WFA5VnRUc0ZGL1dqbE54enJNQURqSzNJekRvQTMwaU1XQXZkeTFjUDgxUzJzeGtwa0ZoL1QrNVVFCjYwZkNOSGFFemtQWWhKUmxYaUZtWXpqc3AyWjZpUERyMllHd1FWbURoMFFGeFVqZnoxdk1ONFdnVlVVeDlmNnUKR3QxeDdHblZFSGhzQ0VjQlFCUkhFbzJRcXY0VDVXbmNTNUVTN2hqK1JxVUNnZ0VBRDVUVEJ6VEFKMjJBSFpLbgpCM09jQTRvSzdXckxHZGllTWhtbCtkaWtTSjBQREJyODljUVJkL3c4a1QwZW9GczNnbUV4Y2lxb2lwL09zeXBaCmxxSlBCK2ZhazYrYUQ0c0tkbllhUlBpTGJhUDB4L0EyaFdteG9zQ0Q5M0Qwb0kyRHkzKzdGQ3A2Zzh4THdSdFkKY04yNXdab3ppckxYV08zaUZuaFJPb0tXWEFhKzNrSzZYelpuQkYzRSt4WFE2UU5mWHM4YzBUUFF3NVVPVXpYUwp3cDFodGJJcTdvZS9DaGJEcGI5RjBldlcwTkFUc2xWQ2Rpc2FmdEpUUnFiTm1zQ3BJbHBpR2lCNGk2VnN6NXFHCjkwOThVQzYvNlR1RURyazYvNUFkNmk1OFBWQzUzZjNRYUN0VUdpTEdKQzNmTHNTUjJoR3UvTG1yUUNmOTA1QlkKblJKY1h3S0NBUUVBbjJkQUV5SUtEY3B0akI4S0JGdEhmUjg0OXljeldnYWh4ak5oS1I0ZmNMMUtaR3hiWFdxcgpZS2dpM0tvOGVGdzRlaGpVUnJMeGtPRjlnckhzNG5KczUrNUVlQmVxOEVidGN3VFBBYlkzLzQxeVRnNUVjbUlyCnA5Z2Jlbk8xY3F6YWhzdEtzcHJmWTFIdkNURmlkU0pPZlZBZmEyYnNHZkthRzdTcXVVTjlIYXFwZHpieUpjMksKVXFwYUNOckRUWmhlb1FCTkhKYzAyY21zZDNubytZLzJYVjRtMlRpTVNobHE1R3c0eEpUa3FRbUIxY25YZ05MWApENlFSWWZWZ2ZQQStYUEp3czJOMm9pMDJpdVFlb016T2pwbE45a1JOREsxT2k4MUpZRitlKzdTYm9nbkJZMXZHCktoU2FlQ0dqWkFkMG1BbElaYmVtZlVmbk1PeHNaSStvTVFLQ0FRQmdETzBkTEt2Z3k0OFFwNzdzU3FkeGRRdTEKb2pqYm9rMGY4VVo5ZDJZWWl1WHMwb0k2WFQ4cmpESmJYUGZSUmFVUU1JYWRrL1VZOWxRdHZRRThHbW9aR2ozbgpXYTVXWGVkcUR3YUR4aHpmVnZQUzFMVm1VdkhsbllPWVBVT0JPc1ZUaU4yWXk1L0Y5WEpxMWRlVW0xVnVOZCs1ClVuK3d0YWVHVGR5K1pyQjF2RUFRT3M3R1REVFI2MjgwV1BPZ1JsenVRejhkYllYR29iajJrd3N1empCa0EvSjAKc2dkeEF0dExBWmIzQlVSQ2NmenkrdHJCd0Y3S1ZYek5EQnhmcit3MklRR0hINXR5NmNvcExTVDNXb2Y4WVRuTQpMdHBCVDNZTmgwTm5hS25HTlRGc3pZRldIRlJqSjRZU1BrcW85TkdWa0tiblZyOTllMDFjLys1VjBYY00KLS0tLS1FTkQgUlNBIFBSSVZBVEUgS0VZLS0tLS0K")
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.keyOutput = keyvault.KeyBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.StringPtr(managerLabel),
+			},
+			Key: &keyvault.JSONWebKey{},
+		}
+	}
+	ECKeySuccess := func(smtc *secretManagerTestCase) {
+		smtc.setValue, _ = base64.StdEncoding.DecodeString("LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1JR2tBZ0VCQkRBWTk0L0NYOGo4UDNBakZXUkZYR0pWMFNWT1ErU1ZpV01nd0VFdy9rV2ZXcHF1OGtidllVTnAKVTQyN1Fubk5NV3VnQndZRks0RUVBQ0toWkFOaUFBU1FyOXAvcytDWHpFY2RUZ2t0aVFhTkxuVzJnNmQ1QkF4cQpBQXNaQms2UW11WngrZTZMUUdra080Uit0SVVaZCtWTGJlV3pLeEl3dk9xSVA3bkp0QldtTjZ4N3JsMjJibnhNCm5QWVQyNy9wSXM1RTk1L2dPV2RhOGMyUStHQTd5RTQ9Ci0tLS0tRU5EIEVDIFBSSVZBVEUgS0VZLS0tLS0K")
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.keyOutput = keyvault.KeyBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.StringPtr(managerLabel),
+			},
+			Key: &keyvault.JSONWebKey{},
+		}
+	}
+	invalidKey := func(smtc *secretManagerTestCase) {
+		smtc.setValue, _ = base64.StdEncoding.DecodeString("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZhekNDQTFPZ0F3SUJBZ0lVUHZKZ21wcTBKUWVRNkJuL0hmVTcvUDhRTFlFd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1JURUxNQWtHQTFVRUJoTUNRVlV4RXpBUkJnTlZCQWdNQ2xOdmJXVXRVM1JoZEdVeElUQWZCZ05WQkFvTQpHRWx1ZEdWeWJtVjBJRmRwWkdkcGRITWdVSFI1SUV4MFpEQWVGdzB5TWpBMk1UY3lNREEwTWpSYUZ3MHlNekEyCk1UY3lNREEwTWpSYU1FVXhDekFKQmdOVkJBWVRBa0ZWTVJNd0VRWURWUVFJREFwVGIyMWxMVk4wWVhSbE1TRXcKSHdZRFZRUUtEQmhKYm5SbGNtNWxkQ0JYYVdSbmFYUnpJRkIwZVNCTWRHUXdnZ0lpTUEwR0NTcUdTSWIzRFFFQgpBUVVBQTRJQ0R3QXdnZ0lLQW9JQ0FRRGlEditEVENBL0xaZjZiNnlVYnliQUxlSUViOHh0aHd1dnRFZk5aZ1dOClN3ZWNMZXY0QXF1N3lSUWRidlQ1cnRKOGs3TnJ0TUE0RDNVN1BQamkwOXVpdjFnSGRockY0VlloTjhiRFllc1UKaEpxZXZSVFBVQ0hRek9xMmNhT3ViRnBUN3JxN3lsMVFTQTFlbkptMUQxNnc0UnlJcEtTLzhvVDNQaGtXM1YydwpkWmFjblZSV1RXZE5MTy9iVWdseDd1YzJMS0wwd2pIMzNSbkZiWUUrTTdiZFVDUXlsSXFwcDM2ZWNvL0Y1Ym1xCjdRdzJ2VkRENENGY0g5aUp4N1FDYjc4Skp5WWlMNzRycjJNVXVzMzR5RlhpMUk5RDR0ajdtQTM2VmNHRk9OZUsKdEtLMnlOYWNrWm1VeTlLQUdGWnIxU2c0ODZTcWw2Y2VpTlAvVGpsb3dQaDNMOTFHOEUxaGJSM3dDS2J6MUR1bQpmaEZOSUdNZmNERkNRcXpEUlU4OEpuUlcyYnF2bGpGanFla0NkcncyeHcrOWp1K1NieXkxeVlrN3ZSM015ZHovCmJ1YUY1S29YUlVzUzhxOHIwSEg1TVAzR3ZYVVY3eXU4bE5kUUtzMXhnVVpmL2JYM0ZjS2xjazhNU3ZZbjNMQWoKbDNRNHMwMXZQY1JnaUMyTUZmajlzV0pueW16YVhYUk1qNFpaY0RuVHlFUmhOcHpXSmNMelh3bFcydTVKdkpVTQpRVEdxUlpXYkErMHF5Y0dBOENBTHRRTXc2ZU5sLzI0Mlo5ZnZ0U0JPc3VkWTdEWTFXckFTWTNhbVV1WWU4RjFBCjhNMlg2N0xBc1lGNkY5YW9JNk00S2dVSXdHYm81OGFVTU1qdzJibGkzdHZIaVNSSjduejFXU1VGOHZnZThIYkEKcFFJREFRQUJvMU13VVRBZEJnTlZIUTRFRmdRVWd0Y0xTUXpaUkRmQkFsSWh5b2pJTHNLYXBwc3dId1lEVlIwagpCQmd3Rm9BVWd0Y0xTUXpaUkRmQkFsSWh5b2pJTHNLYXBwc3dEd1lEVlIwVEFRSC9CQVV3QXdFQi96QU5CZ2txCmhraUc5dzBCQVFzRkFBT0NBZ0VBcy96OWNOT1ZSUzZFMmJVZm9GZS9lQW5OZlJjTmNaaW05VkdCWUFtRjc0MDgKSVEvVjhDK3g3cEloR1NGZ2VFNncxS1BRVXF0Z3dldUxFK0psOVhEYlAvMUdhcmgvN0xDWTVBUXk5eEdTVTNkcAp5VWs3SWE2a0wxRENkS3M0dXdGZ24wVjE1SytSM01Ud2FsemhVb1NVS2tDYVVSeU4vNTZXYk9OanhzRUhUbFhnClBBTEVYKzZVNDMzdktkYnNZdTJXZ2hXSmNwMytSZkI2MU90VmdvYTJYaThhL2pSbFpKVUJ1ZURESGEwVTE0L2EKaFRKcVdQWElROFlTY1BCbndsTzFyRjJkaEtMU0hiczZBd3d6VEVHUE5SUVpGRXF4YTJlb3VvV0NWUmxHTGVueQpMcWxnb1FSQ1pGRTdNNnBJazE5b0ZwV2tTSmNXYjFRMjJRWE03SFdKNjNtM2VBRjBUNThXcE45UzBsYXFNbnZCClZxNVpueUs1YVNDNjV3MGp1YzJteWM2K1RyUmNQSmM0UHJCY3VSZ0gvS1M1bkQvVFlKSStOSVBjU0NVZ2VKWFgKR003THNZanVuY1pCQmJkbFByRXJJN3pkYVNGdVJJbWYrSmh3T2p4OThSZjg3WkQ3d05pRmtzd1ZQYWZFQzFXQQoxc3ZMZDI0Nk0vR3I0RFVDK2Y2MUx4eFNKUkRWMDNySmdsZnY2cWlrL3hjaVlKU2lDdkZzR0hqYzBJaEtyTXBNCnFKRW03dWQxK3VTM3NHWTR6SkVUMUhleEJudjJ4RVlESjZhbGErV3FsNDdZTllSNm4yNlAvUWpNYjdSSGE1ZWMKUEhPMW5HaTY5L1U1dmVMRVlmZmtIV01qSTlKa1dhQzFiREcrMDl0clpSdXNUQWJCZHhqbWxzZ3o0UUFDeFd3PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==")
+		smtc.pushRef = fakeRef{
+			key: keyName,
+		}
+		smtc.keyOutput = keyvault.KeyBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.StringPtr(managerLabel),
+			},
+			Key: &keyvault.JSONWebKey{},
+		}
+		smtc.expectError = "could not load private key keyname: key type CERTIFICATE is not supported"
+	}
+
 	noTags := func(smtc *secretManagerTestCase) {
 		smtc.setValue = goodKey
 		smtc.pushRef = fakeRef{
@@ -272,14 +321,6 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 			Key: &keyvault.JSONWebKey{},
 		}
 		smtc.expectError = "key not managed by external-secrets"
-	}
-	invalidKey := func(smtc *secretManagerTestCase) {
-		invalid := []byte("nope")
-		smtc.setValue = invalid
-		smtc.pushRef = fakeRef{
-			key: keyName,
-		}
-		smtc.expectError = "could not load private key keyname: format not compatible with PCKS8"
 	}
 	errorGetKey := func(smtc *secretManagerTestCase) {
 		smtc.setValue = goodKey
@@ -438,6 +479,9 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(certNotACertificate),
 		makeValidSecretManagerTestCaseCustom(certNoPermissions),
 		makeValidSecretManagerTestCaseCustom(keySuccess),
+		makeValidSecretManagerTestCaseCustom(symmetricKeySuccess),
+		makeValidSecretManagerTestCaseCustom(RSAKeySuccess),
+		makeValidSecretManagerTestCaseCustom(ECKeySuccess),
 		makeValidSecretManagerTestCaseCustom(invalidKey),
 		makeValidSecretManagerTestCaseCustom(errorGetKey),
 		makeValidSecretManagerTestCaseCustom(keyNotFound),
@@ -469,7 +513,6 @@ func TestAzureKeyVaultSetSecret(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 // test the sm<->azurekv interface
