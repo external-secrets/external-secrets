@@ -242,11 +242,9 @@ func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 // getAWSSession check if an AWS session should be reused
 // it returns the aws session or an error.
 func getAWSSession(config *aws.Config, prov *esv1beta1.AWSProvider, store esv1beta1.GenericStore, namespace string) (*session.Session, error) {
-
 	sessionCache := prov.SessionCache
 
 	if sessionCache {
-
 		tmpSession := SessionCache{
 			Name:            store.GetObjectMeta().Name,
 			Namespace:       namespace,
@@ -258,24 +256,9 @@ func getAWSSession(config *aws.Config, prov *esv1beta1.AWSProvider, store esv1be
 
 		if ok {
 			log.Info("reusing aws session", "SecretStore", tmpSession.Name, "namespace", tmpSession.Namespace, "kind", tmpSession.Kind, "resourceversion", tmpSession.ResourceVersion)
-			return sessions[tmpSession], nil
-		} else {
-			handlers := defaults.Handlers()
-			handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-			sess, err := session.NewSessionWithOptions(session.Options{
-				Config:            *config,
-				Handlers:          handlers,
-				SharedConfigState: session.SharedConfigDisable,
-			})
-
-			if err != nil {
-				return nil, err
-			}
-			sessions[tmpSession] = sess
+			sess := sessions[tmpSession]
 			return sess, nil
 		}
-
-	} else {
 		handlers := defaults.Handlers()
 		handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
 		sess, err := session.NewSessionWithOptions(session.Options{
@@ -283,10 +266,21 @@ func getAWSSession(config *aws.Config, prov *esv1beta1.AWSProvider, store esv1be
 			Handlers:          handlers,
 			SharedConfigState: session.SharedConfigDisable,
 		})
-
 		if err != nil {
 			return nil, err
 		}
+		sessions[tmpSession] = sess
 		return sess, nil
 	}
+	handlers := defaults.Handlers()
+	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config:            *config,
+		Handlers:          handlers,
+		SharedConfigState: session.SharedConfigDisable,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return sess, nil
 }
