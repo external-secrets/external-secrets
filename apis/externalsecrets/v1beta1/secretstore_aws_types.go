@@ -73,4 +73,9 @@ type AWSProvider struct {
 
 	// AWS Region to be used for the provider
 	Region string `json:"region"`
+
+	// SessionCache defines if the AWS session should be reused,
+	// if not set the operator will issues a fresh session for each request.
+	// +optional
+	SessionCache bool `json:"sessionCache,omitempty"`
 }
