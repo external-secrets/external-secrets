@@ -68,5 +68,4 @@ var _ = Describe("[azuremanaged] with pod identity", Label("azure", "keyvault", 
 
 func usePodIDESReference(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1beta1.ClusterSecretStoreKind
-
 }
