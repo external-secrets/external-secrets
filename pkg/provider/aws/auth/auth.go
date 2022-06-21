@@ -52,8 +52,9 @@ type SessionCache struct {
 }
 
 var (
-	log      = ctrl.Log.WithName("provider").WithName("aws")
-	sessions = make(map[SessionCache]*session.Session)
+	log         = ctrl.Log.WithName("provider").WithName("aws")
+	sessions    = make(map[SessionCache]*session.Session)
+	EnableCache bool
 )
 
 const (
@@ -242,9 +243,7 @@ func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 // getAWSSession check if an AWS session should be reused
 // it returns the aws session or an error.
 func getAWSSession(config *aws.Config, prov *esv1beta1.AWSProvider, store esv1beta1.GenericStore, namespace string) (*session.Session, error) {
-	sessionCache := prov.SessionCache
-
-	if sessionCache {
+	if EnableCache {
 		tmpSession := SessionCache{
 			Name:            store.GetObjectMeta().Name,
 			Namespace:       namespace,
