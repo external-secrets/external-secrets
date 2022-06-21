@@ -107,7 +107,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		config.WithRegion(prov.Region)
 	}
 
-	sess, err := getAWSSession(config, prov, store, namespace)
+	sess, err := getAWSSession(config, store, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 
 // getAWSSession check if an AWS session should be reused
 // it returns the aws session or an error.
-func getAWSSession(config *aws.Config, prov *esv1beta1.AWSProvider, store esv1beta1.GenericStore, namespace string) (*session.Session, error) {
+func getAWSSession(config *aws.Config, store esv1beta1.GenericStore, namespace string) (*session.Session, error) {
 	if EnableCache {
 		tmpSession := SessionCache{
 			Name:            store.GetObjectMeta().Name,
