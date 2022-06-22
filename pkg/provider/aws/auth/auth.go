@@ -44,7 +44,18 @@ type Config struct {
 	APIRetries int
 }
 
-var log = ctrl.Log.WithName("provider").WithName("aws")
+type SessionCache struct {
+	Name            string
+	Namespace       string
+	Kind            string
+	ResourceVersion string
+}
+
+var (
+	log         = ctrl.Log.WithName("provider").WithName("aws")
+	sessions    = make(map[SessionCache]*session.Session)
+	EnableCache bool
+)
 
 const (
 	roleARNAnnotation = "eks.amazonaws.com/role-arn"
@@ -95,16 +106,12 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	if prov.Region != "" {
 		config.WithRegion(prov.Region)
 	}
-	handlers := defaults.Handlers()
-	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            *config,
-		Handlers:          handlers,
-		SharedConfigState: session.SharedConfigDisable,
-	})
+
+	sess, err := getAWSSession(config, store, namespace)
 	if err != nil {
 		return nil, err
 	}
+
 	if prov.Role != "" {
 		stsclient := assumeRoler(sess)
 		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role))
@@ -231,4 +238,39 @@ type STSProvider func(*session.Session) stsiface.STSAPI
 
 func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 	return sts.New(sess)
+}
+
+// getAWSSession check if an AWS session should be reused
+// it returns the aws session or an error.
+func getAWSSession(config *aws.Config, store esv1beta1.GenericStore, namespace string) (*session.Session, error) {
+	tmpSession := SessionCache{
+		Name:            store.GetObjectMeta().Name,
+		Namespace:       namespace,
+		Kind:            store.GetTypeMeta().Kind,
+		ResourceVersion: store.GetObjectMeta().ResourceVersion,
+	}
+
+	if EnableCache {
+		sess, ok := sessions[tmpSession]
+		if ok {
+			log.Info("reusing aws session", "SecretStore", tmpSession.Name, "namespace", tmpSession.Namespace, "kind", tmpSession.Kind, "resourceversion", tmpSession.ResourceVersion)
+			return sess, nil
+		}
+	}
+
+	handlers := defaults.Handlers()
+	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config:            *config,
+		Handlers:          handlers,
+		SharedConfigState: session.SharedConfigDisable,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if EnableCache {
+		sessions[tmpSession] = sess
+	}
+	return sess, nil
 }
