@@ -64,7 +64,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 // GetSecret returns a single secret from the provider.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	for _, data := range p.config.Data {
-		if data.Key == ref.Key && data.Version == ref.Version {
+		if data.Key == ref.Key && data.Version == ref.Version && data.Property == ref.Property {
 			return []byte(data.Value), nil
 		}
 	}
