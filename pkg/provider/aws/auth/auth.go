@@ -243,34 +243,21 @@ func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 // getAWSSession check if an AWS session should be reused
 // it returns the aws session or an error.
 func getAWSSession(config *aws.Config, store esv1beta1.GenericStore, namespace string) (*session.Session, error) {
+	tmpSession := SessionCache{
+		Name:            store.GetObjectMeta().Name,
+		Namespace:       namespace,
+		Kind:            store.GetTypeMeta().Kind,
+		ResourceVersion: store.GetObjectMeta().ResourceVersion,
+	}
+
 	if EnableCache {
-		tmpSession := SessionCache{
-			Name:            store.GetObjectMeta().Name,
-			Namespace:       namespace,
-			Kind:            store.GetTypeMeta().Kind,
-			ResourceVersion: store.GetObjectMeta().ResourceVersion,
-		}
-
-		_, ok := sessions[tmpSession]
-
+		sess, ok := sessions[tmpSession]
 		if ok {
 			log.Info("reusing aws session", "SecretStore", tmpSession.Name, "namespace", tmpSession.Namespace, "kind", tmpSession.Kind, "resourceversion", tmpSession.ResourceVersion)
-			sess := sessions[tmpSession]
 			return sess, nil
 		}
-		handlers := defaults.Handlers()
-		handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-		sess, err := session.NewSessionWithOptions(session.Options{
-			Config:            *config,
-			Handlers:          handlers,
-			SharedConfigState: session.SharedConfigDisable,
-		})
-		if err != nil {
-			return nil, err
-		}
-		sessions[tmpSession] = sess
-		return sess, nil
 	}
+
 	handlers := defaults.Handlers()
 	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -280,6 +267,10 @@ func getAWSSession(config *aws.Config, store esv1beta1.GenericStore, namespace s
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if EnableCache {
+		sessions[tmpSession] = sess
 	}
 	return sess, nil
 }

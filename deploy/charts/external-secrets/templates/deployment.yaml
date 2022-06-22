@@ -69,9 +69,6 @@ spec:
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
-          {{- if .Values.enableAWSSession }}
-          - --experimental-enable-aws-session-cache={{ .Values.enableAWSSession }}
-          {{- end }}
           {{- range $key, $value := .Values.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}

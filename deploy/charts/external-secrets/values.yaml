@@ -48,9 +48,6 @@ createOperator: true
 # a time.
 concurrent: 1
 
-# -- If set External secret will reuse the AWS session without creating a new one on each request.
-enableAWSSession: false
-
 serviceAccount:
   # -- Specifies whether a service account should be created.
   create: true
