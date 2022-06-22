@@ -68,6 +68,7 @@ func newazureProvider(f *framework.Framework, clientID, clientSecret, tenantID, 
 			}
 			prov.client.Authorizer = authorizer
 		})
+		prov.CreateSecretStoreWithWI()
 		prov.CreateSecretStore()
 	})
 
@@ -195,7 +196,6 @@ func (s *azureProvider) CreateSecretStore() {
 	}
 	err := s.framework.CRClient.Create(context.Background(), azureCreds)
 	Expect(err).ToNot(HaveOccurred())
-
 	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
@@ -221,5 +221,30 @@ func (s *azureProvider) CreateSecretStore() {
 		},
 	}
 	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *azureProvider) CreateSecretStoreWithWI() {
+	authType := esv1beta1.AzureWorkloadIdentity
+	namespace := "external-secrets-operator"
+	ClusterSecretStore := &esv1beta1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: s.framework.Namespace.Name,
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				AzureKV: &esv1beta1.AzureKVProvider{
+					TenantID: &s.tenantID,
+					VaultURL: &s.vaultURL,
+					AuthType: &authType,
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name:      "external-secrets-operator",
+						Namespace: &namespace,
+					},
+				},
+			},
+		},
+	}
+	err := s.framework.CRClient.Create(context.Background(), ClusterSecretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
