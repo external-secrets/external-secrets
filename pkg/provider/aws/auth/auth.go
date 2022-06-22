@@ -58,7 +58,9 @@ var (
 )
 
 const (
-	roleARNAnnotation = "eks.amazonaws.com/role-arn"
+	roleARNAnnotation    = "eks.amazonaws.com/role-arn"
+	audienceAnnotation   = "eks.amazonaws.com/audience"
+	defaultTokenAudience = "sts.amazonaws.com"
 
 	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterSecretStore: missing AWS AccessKeyID Namespace"
 	errInvalidClusterStoreMissingSAKNamespace  = "invalid ClusterSecretStore: missing AWS SecretAccessKey Namespace"
@@ -187,7 +189,12 @@ func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider,
 	if roleArn == "" {
 		return nil, fmt.Errorf("an IAM role must be associated with service account %s (namespace: %s)", name, namespace)
 	}
-	jwtProv, err := jwtProvider(name, namespace, roleArn, prov.Region)
+
+	tokenAud := sa.Annotations[audienceAnnotation]
+	if tokenAud == "" {
+		tokenAud = defaultTokenAudience
+	}
+	jwtProv, err := jwtProvider(name, namespace, roleArn, tokenAud, prov.Region)
 	if err != nil {
 		return nil, err
 	}
@@ -196,12 +203,12 @@ func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider,
 	return credentials.NewCredentials(jwtProv), nil
 }
 
-type jwtProviderFactory func(name, namespace, roleArn, region string) (credentials.Provider, error)
+type jwtProviderFactory func(name, namespace, roleArn, aud, region string) (credentials.Provider, error)
 
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
 // controller-runtime/client does not support TokenRequest or other subresource APIs
 // so we need to construct our own client and use it to fetch tokens.
-func DefaultJWTProvider(name, namespace, roleArn, region string) (credentials.Provider, error) {
+func DefaultJWTProvider(name, namespace, roleArn, aud, region string) (credentials.Provider, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -226,6 +233,7 @@ func DefaultJWTProvider(name, namespace, roleArn, region string) (credentials.Pr
 	}
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,
+		Audience:       aud,
 		ServiceAccount: name,
 		k8sClient:      clientset.CoreV1(),
 	}
