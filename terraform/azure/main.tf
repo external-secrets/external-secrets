@@ -54,8 +54,17 @@ resource "azurerm_role_assignment" "current" {
   principal_id         = module.test_sp.sp_id
 }
 
-resource "azurerm_key_vault_secret" "test" {
-  name         = "secret-sauce"
-  value        = "szechuan"
-  key_vault_id = module.test_key_vault.key_vault_id
+resource "kubernetes_service_account" "current" {
+  metadata {
+    name      = "external-secrets-operator"
+    namespace = "external-secrets-operator"
+    annotations = {
+      "azure.workload.identity/client-id" = module.test_sp.application_id
+      "azure.workload.identity/tenant-id" = data.azurerm_client_config.current.tenant_id
+    }
+    labels = {
+      "azure.workload.identity/use" = "true"
+    }
+  }
+
 }
