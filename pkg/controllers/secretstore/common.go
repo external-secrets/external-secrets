@@ -67,6 +67,15 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		log.Error(err, "unable to validate store")
 		return ctrl.Result{}, err
 	}
+	storeProvider, err := esapi.GetProvider(ss)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	capStatus := esapi.SecretStoreStatus{
+		Capabilities: storeProvider.Capabilities(),
+		Conditions:   ss.GetStatus().Conditions,
+	}
+	ss.SetStatus(capStatus)
 
 	recorder.Event(ss, v1.EventTypeNormal, esapi.ReasonStoreValid, msgStoreValidated)
 	cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonStoreValid, msgStoreValidated)
