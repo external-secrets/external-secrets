@@ -89,13 +89,13 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- if .Values.webhook.extraVolumeMounts }}
+          {{- if .Values.extraVolumeMounts }}
           volumeMounts:
-          {{- toYaml .Values.webhook.extraVolumeMounts | nindent 12 }}
+          {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
           {{- end }}
       {{- if .Values.extraVolumes }}
       volumes:
-      {{ toYaml .Values.extraVolumes | nindent 8 }}
+      {{- toYaml .Values.extraVolumes | nindent 8 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

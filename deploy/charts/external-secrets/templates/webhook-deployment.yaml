@@ -91,7 +91,7 @@ spec:
         secret:
           secretName: {{ include "external-secrets.fullname" . }}-webhook
       {{- if .Values.webhook.extraVolumes }}
-      {{ toYaml .Values.webhook.extraVolumes | nindent 8 }}
+      {{- toYaml .Values.webhook.extraVolumes | nindent 8 }}
       {{- end }}
       {{- with .Values.webhook.nodeSelector }}
       nodeSelector:
