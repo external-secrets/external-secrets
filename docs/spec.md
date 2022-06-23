@@ -2615,42 +2615,12 @@ IBMAuthSecretRef
 <td>
 </td>
 </tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.IBMAuthSecretRef">IBMAuthSecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.IBMAuth">IBMAuth</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
 <tr>
 <td>
-<code>secretApiKeySecretRef</code></br>
+<code>containerAuth</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>The SecretAccessKey is used for authentication</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>secretcontainerAuthSecretRef</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.IBMAuthSecretContainerAuthSecretRef">
-IBMAuthSecretContainerAuthSecretRef
+<a href="#external-secrets.io/v1beta1.IBMAuthContainerAuth">
+IBMAuthContainerAuth
 </a>
 </em>
 </td>
@@ -2659,11 +2629,11 @@ IBMAuthSecretContainerAuthSecretRef
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.IBMAuthSecretContainerAuthSecretRef">IBMAuthSecretContainerAuthSecretRef
+<h3 id="external-secrets.io/v1beta1.IBMAuthContainerAuth">IBMAuthContainerAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.IBMAuthSecretRef">IBMAuthSecretRef</a>)
+<a href="#external-secrets.io/v1beta1.IBMAuth">IBMAuth</a>)
 </p>
 <p>
 <p>IBM Container-based auth with IAM Trusted Profile.</p>
@@ -2706,6 +2676,35 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.IBMAuthSecretRef">IBMAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.IBMAuth">IBMAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretApiKeySecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
 </tbody>

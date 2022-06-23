@@ -98,7 +98,7 @@ Be sure the `ibm` provider is listed in the `Kind=SecretStore`
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretApiKeySecretRef` with the namespace where the secret resides.
 
-**NOTE:** Only `secretApiKeySecretRef` or `secretcontainerAuthSecretRef` should be specified, depending on authentication me
+**NOTE:** Only `secretApiKeySecretRef` or `containerAuth` should be specified, depending on authentication me
 thod being used.
 
 To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" on the left.

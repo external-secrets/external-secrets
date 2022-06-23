@@ -134,8 +134,8 @@ func TestValidateStore(t *testing.T) {
 	}
 	url := "my-url"
 	store.Spec.Provider.IBM.ServiceURL = &url
-	var nilProfile esv1beta1.IBMAuthSecretContainerAuthSecretRef
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretContainerAuth = nilProfile
+	var nilProfile esv1beta1.IBMAuthContainerAuth
+	store.Spec.Provider.IBM.Auth.ContainerAuth = nilProfile
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
@@ -156,8 +156,8 @@ func TestValidateStore(t *testing.T) {
 	// add container auth test
 	store.Spec.Provider.IBM = &esv1beta1.IBMProvider{}
 	store.Spec.Provider.IBM.ServiceURL = &url
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretContainerAuth.Profile = "Trusted IAM Profile"
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
+	store.Spec.Provider.IBM.Auth.ContainerAuth.Profile = "Trusted IAM Profile"
+	store.Spec.Provider.IBM.Auth.ContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
 	err = p.ValidateStore(store)
 	expected := "cannot read container auth token"
 	if !ErrorContains(err, expected) {

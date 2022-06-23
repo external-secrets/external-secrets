@@ -552,9 +552,9 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf("serviceURL is required")
 	}
 
-	secretContainerRef := ibmSpec.Auth.SecretRef.SecretContainerAuth
+	containerRef := ibmSpec.Auth.ContainerAuth
 	secretKeyRef := ibmSpec.Auth.SecretRef.SecretAPIKey
-	if utils.IsNil(secretContainerRef.Profile) || (secretContainerRef.Profile == "") {
+	if utils.IsNil(containerRef.Profile) || (containerRef.Profile == "") {
 		// proceed with API Key Auth validation
 		err := utils.ValidateSecretSelector(store, secretKeyRef)
 		if err != nil {
@@ -568,11 +568,11 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 		}
 	} else {
 		// proceed with container auth
-		if secretContainerRef.TokenLocation == "" {
-			secretContainerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
+		if containerRef.TokenLocation == "" {
+			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
 		}
-		if _, err := os.Open(secretContainerRef.TokenLocation); err != nil {
-			return fmt.Errorf("cannot read container auth token %s. %w", secretContainerRef.TokenLocation, err)
+		if _, err := os.Open(containerRef.TokenLocation); err != nil {
+			return fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
 		}
 	}
 	return nil
@@ -591,25 +591,25 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericSt
 
 	var err error
 	var secretsManager *sm.SecretsManagerV1
-	secretContainerAuthProfile := iStore.store.Auth.SecretRef.SecretContainerAuth.Profile
-	if secretContainerAuthProfile != "" {
+	containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
+	if containerAuthProfile != "" {
 		// container-based auth
-		secretContainerAuthToken := iStore.store.Auth.SecretRef.SecretContainerAuth.TokenLocation
-		secretContainerAuthEndpoint := iStore.store.Auth.SecretRef.SecretContainerAuth.IAMEndpoint
+		containerAuthToken := iStore.store.Auth.ContainerAuth.TokenLocation
+		containerAuthEndpoint := iStore.store.Auth.ContainerAuth.IAMEndpoint
 
-		if secretContainerAuthToken == "" {
+		if containerAuthToken == "" {
 			// API default path
-			secretContainerAuthToken = "/var/run/secrets/tokens/vault-token"
+			containerAuthToken = "/var/run/secrets/tokens/vault-token"
 		}
-		if secretContainerAuthEndpoint == "" {
+		if containerAuthEndpoint == "" {
 			// API default path
-			secretContainerAuthToken = "https://iam.cloud.ibm.com"
+			containerAuthToken = "https://iam.cloud.ibm.com"
 		}
 
 		authenticator, err := core.NewContainerAuthenticatorBuilder().
-			SetIAMProfileName(secretContainerAuthProfile).
-			SetCRTokenFilename(secretContainerAuthToken).
-			SetURL(secretContainerAuthEndpoint).
+			SetIAMProfileName(containerAuthProfile).
+			SetCRTokenFilename(containerAuthToken).
+			SetURL(containerAuthEndpoint).
 			Build()
 		if err != nil {
 			return nil, fmt.Errorf(errIBMClient, err)
