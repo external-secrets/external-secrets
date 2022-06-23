@@ -2,14 +2,19 @@
 
 <!-- Add yourself here if you are using ESO in your company or your project! -->
 
-- [Polarpoint](https://www.polarpoint.io/)
-- [Pento](https://www.pento.io/)
-- [Mixpanel](https://mixpanel.com)
-- [K8S Website Infra](https://k8s.io/)
 - [Container Solutions](http://container-solutions.com/)
+- [Epidemic Sound](https://www.epidemicsound.com/)
 - [Form3](https://www.form3.tech/)
-- [Pier Insurance](https://www.pier.digital/)
 - [Heureka Group](https://heureka.group)
+- [K8S Website Infra](https://k8s.io/)
+- [Mixpanel](https://mixpanel.com)
+- [OpenClassrooms](https://openclassrooms.com)
+- [Pento](https://www.pento.io/)
+- [Petco Health and Wellness Company, Inc](https://www.petco.com/)
+- [Pier Insurance](https://www.pier.digital/)
+- [Polarpoint](https://www.polarpoint.io/)
+- [Radio France](https://www.radiofrance.fr/)
+- [Amadeus](https://amadeus.com/)
 
 
 Countless others that can't disclose that information! :)

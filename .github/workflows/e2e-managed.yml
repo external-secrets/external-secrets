@@ -144,18 +144,24 @@ jobs:
         make tf.show.${PROVIDER}
 
     - name: Setup Infracost
-      uses: infracost/actions/setup@v1
+      uses: infracost/actions/setup@v2
       with:
         api-key: ${{ secrets.INFRACOST_API_KEY }}
 
     - name: Generate Infracost JSON for provider
-      run: infracost breakdown --path terraform/${{github.event.client_payload.slash_command.args.named.provider}}/plan.json --format json --out-file /tmp/infracost.json
+      run: |
+        infracost breakdown \
+          --path terraform/${{github.event.client_payload.slash_command.args.named.provider}}/plan.json \
+          --format json \
+          --out-file /tmp/infracost.json
 
     - name: Post Infracost comment
-      uses: infracost/actions/comment@v1
-      with:
-        path: /tmp/infracost.json
-        behavior: update
+      run: |
+        infracost comment github --path=/tmp/infracost.json \
+          --repo=$GITHUB_REPOSITORY \
+          --github-token=${{ secrets.GITHUB_TOKEN }} \
+          --pull-request=${{ github.event.client_payload.pull_request.number }} \
+          --behavior=update
 
     - name: Apply TF
       run: |-

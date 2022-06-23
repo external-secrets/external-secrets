@@ -1552,14 +1552,16 @@ string
 </tr>
 <tr>
 <td>
-<code>version</code></br>
+<code>metadataPolicy</code></br>
 <em>
-string
+<a href="#external-secrets.io/v1beta1.ExternalSecretMetadataPolicy">
+ExternalSecretMetadataPolicy
+</a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select a specific version of the Provider value, if supported</p>
+<p>Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None</p>
 </td>
 </tr>
 <tr>
@@ -1572,6 +1574,18 @@ string
 <td>
 <em>(Optional)</em>
 <p>Used to select a specific property of the Provider value (if a map), if supported</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select a specific version of the Provider value, if supported</p>
 </td>
 </tr>
 <tr>
@@ -1694,6 +1708,27 @@ ExternalSecretConversionStrategy
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretMetadataPolicy">ExternalSecretMetadataPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Fetch&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;None&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec
 </h3>
@@ -2767,9 +2802,7 @@ TokenAuth
 <td>
 <code>serviceAccount</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.ServiceAccountAuth">
-ServiceAccountAuth
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
@@ -3939,34 +3972,6 @@ bool
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.ServiceAccountAuth">ServiceAccountAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.KubernetesAuth">KubernetesAuth</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>serviceAccount</code></br>
-<em>
-github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1beta1.TemplateEngineVersion">TemplateEngineVersion
 (<code>string</code> alias)</p></h3>
 <p>
@@ -4138,11 +4143,16 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </tr>
 </thead>
 <tbody><tr><td><p>2</p></td>
-<td></td>
+<td><p>Error indicates that there is a misconfiguration.</p>
+</td>
 </tr><tr><td><p>0</p></td>
-<td></td>
+<td><p>Ready indicates that the client is confgured correctly
+and can be used.</p>
+</td>
 </tr><tr><td><p>1</p></td>
-<td></td>
+<td><p>Unknown indicates that the client can be used
+but information is missing and it can not be validated.</p>
+</td>
 </tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.VaultAppRole">VaultAppRole

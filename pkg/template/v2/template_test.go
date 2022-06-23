@@ -159,7 +159,7 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "fromJSON func",
+			name: "fromJson func",
 			tpl: map[string][]byte{
 				"foo": []byte("{{ $var := .secret | fromJson }}{{ $var.foo }}"),
 			},
@@ -171,7 +171,7 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "from & toJSON func",
+			name: "from & toJson func",
 			tpl: map[string][]byte{
 				"foo": []byte("{{ $var := .secret | fromJson }}{{ $var.foo | toJson }}"),
 			},
@@ -180,6 +180,30 @@ func TestExecute(t *testing.T) {
 			},
 			expetedData: map[string][]byte{
 				"foo": []byte(`{"baz":"bang"}`),
+			},
+		},
+		{
+			name: "fromJson & toYaml func",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ $var := .secret | fromJson | toYaml }}{{ $var }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte(`{"foo": "bar"}`),
+			},
+			expetedData: map[string][]byte{
+				"foo": []byte(`foo: bar`),
+			},
+		},
+		{
+			name: "fromYaml & toJson func",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ $var := .secret | fromYaml | toJson }}{{ $var }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte(`foo: bar`),
+			},
+			expetedData: map[string][]byte{
+				"foo": []byte(`{"foo":"bar"}`),
 			},
 		},
 		{
@@ -302,7 +326,7 @@ func TestExecute(t *testing.T) {
 			expErr: "unable to decode pkcs12",
 		},
 		{
-			name: "fromJSON error",
+			name: "fromJson error",
 			tpl: map[string][]byte{
 				"key": []byte(`{{ "{ # no json # }" | fromJson }}`),
 			},

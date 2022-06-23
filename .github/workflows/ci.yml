@@ -259,13 +259,11 @@ jobs:
 
       - name: Install cosign
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@main
-        with:
-          cosign-release: 'v1.6.0'
+        uses: sigstore/cosign-installer@v2.4.0
 
       - name: Sign Artifacts to main release channel
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
         run: make docker.sign
         env:
           RELEASE_TAG: main
-          COSIGN_EXPERIMENTAL: 1
+          COSIGN_EXPERIMENTAL: true

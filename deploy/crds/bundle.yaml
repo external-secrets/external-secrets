@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.9.0
   creationTimestamp: null
   name: clusterexternalsecrets.external-secrets.io
 spec:
@@ -329,18 +329,12 @@ spec:
           name: kubernetes
           namespace: default
           path: /convert
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.9.0
   creationTimestamp: null
   name: clustersecretstores.external-secrets.io
 spec:
@@ -1829,18 +1823,14 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
-                                serviceAccount:
-                                  description: A reference to a ServiceAccount resource.
-                                  properties:
-                                    name:
-                                      description: The name of the ServiceAccount resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  required:
-                                    - name
-                                  type: object
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              required:
+                                - name
                               type: object
                             token:
                               description: use static token to authenticate with
@@ -2513,18 +2503,12 @@ spec:
           name: kubernetes
           namespace: default
           path: /convert
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.9.0
   creationTimestamp: null
   name: externalsecrets.external-secrets.io
 spec:
@@ -3026,18 +3010,12 @@ spec:
           name: kubernetes
           namespace: default
           path: /convert
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.9.0
   creationTimestamp: null
   name: secretstores.external-secrets.io
 spec:
@@ -4529,18 +4507,14 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
-                                serviceAccount:
-                                  description: A reference to a ServiceAccount resource.
-                                  properties:
-                                    name:
-                                      description: The name of the ServiceAccount resource being referred to.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
-                                      type: string
-                                  required:
-                                    - name
-                                  type: object
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              required:
+                                - name
                               type: object
                             token:
                               description: use static token to authenticate with
@@ -5213,9 +5187,3 @@ spec:
           name: kubernetes
           namespace: default
           path: /convert
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
