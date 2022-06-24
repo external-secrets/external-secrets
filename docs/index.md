@@ -44,6 +44,7 @@ How to get involved:
 - [Kubernetes Slack
   #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
 - [Contributing Process](contributing-process.md)
+- [Twitter](https://twitter.com/ExtSecretsOptr)
 
 ### Kicked off by
 
