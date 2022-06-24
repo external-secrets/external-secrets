@@ -27,7 +27,7 @@ It is hard to administer key creation without having weird names that convolutes
 - CRD Design for dataFrom key rewrite
 
 ### Non-Goals
-Do not implement secret values rewrite, nor handle with conversion.
+Do not implement secret values rewrite - this should be done with templating - nor handle initial secret value conversion (see [#920](https://github.com/external-secrets/external-secrets/issues/920)). 
 
 ### Terminology
 - Secret Key: the kubernetes secret key, aka the `string` in `map[string][]byte` in the codebase used to render Kubernetes Secrets.
