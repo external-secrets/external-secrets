@@ -61,27 +61,32 @@ spec:
     - extract:
         key: /foo/bar
       rewrite:
-      -  origin: my-known-key
-         target: new_key_name
-      -  origin: my-unknown-(.*)
-         target: unknown-$1
+      - regexp:
+          source: my-known-key
+          target: new_key_name
+      - regexp: 
+          source: my-unknown-(.*)
+          target: unknown-$1
     - find:
         conversionStrategy: Unicode
         path: "my/path/"
         name:
           regexp: "my-pattern"
       rewrite:
-      -  origin: my/path/(.*)
-         target: $1
-      -  origin: creds/(db|system)/(.*)
-         target: $2-$1
+      -  regexp: 
+            source: my/path/(.*)
+            target: $1
+      -  regexp:          
+            source: creds/(db|system)/(.*)
+            target: $2-$1
     - find:
         conversionStrategy: Default
         path: "my/path/"
         tags:
           env: dev
       rewrite:
-      -  origin: my/path/(.*)
+      - regexp:
+         source: my/path/(.*)
          target: dev-$1
 
 ```
@@ -89,9 +94,73 @@ spec:
 ### Behavior
 After applying `GetAllSecrets` or `GetSecretMap`, a rewrite logic is applied by using regular expressions capture groups. This will convert the Secret Keys according to a given standard, possibly even up to a well known key for the `GetSecretMap`. After the key rewrite is done, the `ConversionStrategy` should be applied, and then the new collection of Secret Keys (`map[string][]byte`) can be rendered to template.
 
+#### Examples
+
+* adding a prefix/suffix - will transform `my-secret` in `my-preffix-my-secret-my-suffix`
+```
+      rewrite:
+      - regexp:
+         source: (.*)
+         target: my-preffix-$1-my-suffix
+```
+* removing a prefix/suffix - will transform `my-preffix-my-secret-my-suffix` into `my-secret`
+```
+      rewrite:
+      - regexp:
+         source: my-preffix-(.*)-my-suffix
+         target: $1
+```
+* Replacing characters - will transform `my/path/reader_db.creds-webapp` into `my-path-reader-db-creds-webapp`
+```
+      rewrite:
+      - regexp:
+         source: \.|-|_|/ #standardizing separation with '-'
+         target: -
+
+```
+
+* Removing path from the key name - will transform `my/path/reader-db-creds-webapp` into `reader-db-creds-webapp`
+```
+    - find:
+        conversionStrategy: Default
+        path: "my/path/"
+        tags:
+          env: dev
+      rewrite:
+      - regexp:
+         source: my/path/(.*)
+         target: $1
+### 
+```
+
+* Combining operations - will transform `my/path/reader-db-creds-webapp` into `db-creds-reader`
+```
+    - find:
+        conversionStrategy: Default
+        path: "my/path/"
+        tags:
+          env: dev
+      rewrite:
+      - regexp:
+         source: my/path/(?P<secret>.*)
+         target: $secret
+      - regexp:
+         source: (?U)(?P<role>.*)-(?P<app>.*)-webapp
+         target: $app-$role
+```
+
+
 ### Drawbacks
 
-It would not be trivial to replace existing characters for new characters with this strategy. This could be implemented with a `replace` method afterwards.
+It would not be trivial to replace a specific set of existing characters for new characters with this strategy. This could be implemented with a `replace` method afterwards.
+
+There are also some known limitations to golang regexp library, which implementes RE2. Some of the known limitations include:
+* Lack of ability to do lookaheads or lookbehinds
+* Lack of negation expressions
+* Lack of support to conditionl branches.
+* Lack of support to possessive repetitions.
+  
+A list of compatibility and known limitations considering other commonly used regexp frameworks (such as PCRE and PERL) are listed here https://github.com/google/re2/wiki/Syntax
 
 ### Acceptance Criteria
 + If multiple keys have the same name an error should happen to the user referencing the original Secret Keys.
