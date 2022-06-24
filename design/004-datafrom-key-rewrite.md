@@ -34,7 +34,7 @@ Do not implement secret values rewrite - this should be done with templating - n
 
 ## Proposal
 
-Add a rewrite step after applying either `GetSecretMap` or `GetAllSecrets`, but before applying any conversion logic.
+Add a rewrite step after applying either `GetSecretMap` or `GetAllSecrets`, but before applying any conversion logic. This allows us to apply individual mappings to different `dataFrom` groups so they can be composed well together in combination with `data` (see example below).
 
 ### User Stories
 1. As an user I want to be able to remove paths from my Secret Keys
