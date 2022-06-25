@@ -42,6 +42,7 @@ nav:
     - Common K8S Secret Types: guides-common-k8s-secret-types.md
     - Controller Classes: guides-controller-class.md
     - "Lifecycle: ownership & deletion": guides-ownership-deletion-policy.md
+    - Decoding Strategies: guides-decoding-strategy.md
     - Getting Multiple Secrets: guides-getallsecrets.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md

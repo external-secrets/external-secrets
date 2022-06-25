@@ -605,3 +605,55 @@ func DeletionPolicyDelete(f *framework.Framework) (string, func(*framework.TestC
 		}
 	}
 }
+
+func DecodingPolicySync(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should decode secrets with data and dataFrom", func(tc *framework.TestCase) {
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		targetSecretKey1 := "name"
+		targetSecretValue1 := "Z3JlYXQtbmFtZQ=="
+		targetSecretKey2 := "surname"
+		targetSecretValue2 := "Z3JlYXQtc3VybmFtZQ=="
+		targetSecretKey3 := "address"
+		targetSecretValue3 := "happy calm street No. 1"
+		secretValue := fmt.Sprintf("{ %q: %q, %q: %q, %q: %q }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2, targetSecretKey3, targetSecretValue3)
+		tc.Secrets = map[string]framework.SecretEntry{
+			secretKey1: {Value: secretValue},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				targetSecretKey1: []byte("great-name"),
+				targetSecretKey2: []byte("great-surname"),
+				targetSecretKey3: []byte(targetSecretValue3),
+				"base64":         []byte("great-name"),
+				"none":           []byte(targetSecretValue1),
+			},
+		}
+		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key:              secretKey1,
+					DecodingStrategy: esv1beta1.ExternalSecretDecodeAuto,
+				},
+			},
+		}
+		tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
+			{
+				SecretKey: "base64",
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+					Key:              secretKey1,
+					Property:         targetSecretKey1,
+					DecodingStrategy: esv1beta1.ExternalSecretDecodeBase64,
+				},
+			},
+			{
+				SecretKey: "none",
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+					Key:              secretKey1,
+					Property:         targetSecretKey1,
+					DecodingStrategy: esv1beta1.ExternalSecretDecodeNone,
+				},
+			},
+		}
+	}
+}

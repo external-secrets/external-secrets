@@ -18,6 +18,7 @@ import (
 
 	// nolint:gosec
 	"crypto/md5"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -37,6 +38,50 @@ func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
 		dst[k] = v
 	}
 	return dst
+}
+
+// DecodeValues decodes values from a secretMap.
+func DecodeMap(strategy esv1beta1.ExternalSecretDecodingStrategy, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte, len(in))
+	for k, v := range in {
+		val, err := Decode(strategy, v)
+		if err != nil {
+			return nil, fmt.Errorf("failure decoding key %v: %w", k, err)
+		}
+		out[k] = val
+	}
+	return out, nil
+}
+
+func Decode(strategy esv1beta1.ExternalSecretDecodingStrategy, in []byte) ([]byte, error) {
+	switch strategy {
+	case esv1beta1.ExternalSecretDecodeBase64:
+		out, err := base64.StdEncoding.DecodeString(string(in))
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	case esv1beta1.ExternalSecretDecodeBase64URL:
+		out, err := base64.URLEncoding.DecodeString(string(in))
+		if err != nil {
+			return nil, err
+		}
+		return out, nil
+	case esv1beta1.ExternalSecretDecodeNone:
+		return in, nil
+	case esv1beta1.ExternalSecretDecodeAuto:
+		out, err := Decode(esv1beta1.ExternalSecretDecodeBase64, in)
+		if err != nil {
+			out, err := Decode(esv1beta1.ExternalSecretDecodeBase64URL, in)
+			if err != nil {
+				return Decode(esv1beta1.ExternalSecretDecodeNone, in)
+			}
+			return out, nil
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("decoding strategy %v is not supported", strategy)
+	}
 }
 
 // ConvertKeys converts a secret map into a valid key.

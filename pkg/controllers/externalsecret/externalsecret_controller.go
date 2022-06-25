@@ -50,6 +50,7 @@ const (
 	fieldOwnerTemplate       = "externalsecrets.external-secrets.io/%v"
 	errGetES                 = "could not get ExternalSecret"
 	errConvert               = "could not apply conversion strategy to keys: %v"
+	errDecode                = "could not apply decoding strategy to %v[%d]: %v"
 	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
@@ -536,6 +537,10 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 			if err != nil {
 				return nil, fmt.Errorf(errConvert, err)
 			}
+			secretMap, err = utils.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
+			if err != nil {
+				return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
+			}
 		} else if remoteRef.Extract != nil {
 			secretMap, err = providerClient.GetSecretMap(ctx, *remoteRef.Extract)
 			if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
@@ -548,6 +553,10 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 			secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
 			if err != nil {
 				return nil, fmt.Errorf(errConvert, err)
+			}
+			secretMap, err = utils.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
+			if err != nil {
+				return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
 			}
 		}
 
@@ -563,7 +572,10 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 		if err != nil {
 			return nil, err
 		}
-
+		secretData, err = utils.Decode(secretRef.RemoteRef.DecodingStrategy, secretData)
+		if err != nil {
+			return nil, fmt.Errorf(errDecode, "spec.data", i, err)
+		}
 		providerData[secretRef.SecretKey] = secretData
 	}
 
