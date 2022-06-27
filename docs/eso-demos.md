@@ -2,6 +2,12 @@
 
 A list of demos given by people going through simple setups with ESO. Feel free to let us know if you have a demo that you want to include here!
 
+## Manage Kubernetes Secrets With External Secrets Operator on DevOps Toolkit
+
+Viktor Farvik show us how to use ESO with GCP provider and explores a simple workflow with the project.
+
+[![Manage Kubernetes Secrets With External Secrets Operator on DevOps Toolkit](https://img.youtube.com/vi/SyRZe5YVCVk/0.jpg)](https://www.youtube.com/watch?v=SyRZe5YVCVk)
+
 ## Managing Kubernetes Secrets: Comparing External Secrets Operator and Secrets Store CSI Driver
 
 Kim Schlesinger and Daniel Hix show us how to install and use both projects, comparing their features and limitations in different situations.
