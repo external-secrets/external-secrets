@@ -62,6 +62,7 @@ var (
 	secretName, secretNamespace           string
 	crdRequeueInterval                    time.Duration
 	certCheckInterval                     time.Duration
+	certLookaheadInterval                 time.Duration
 	enableAWSSession                      bool
 )
 
