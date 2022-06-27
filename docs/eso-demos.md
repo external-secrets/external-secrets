@@ -4,7 +4,7 @@ A list of demos given by people going through simple setups with ESO. Feel free 
 
 ## Manage Kubernetes Secrets With External Secrets Operator on DevOps Toolkit
 
-Viktor Farvik show us how to use ESO with GCP provider and explores a simple workflow with the project.
+Viktor Farvik shows us how to use ESO with GCP provider and explores a simple workflow with the project.
 
 [![Manage Kubernetes Secrets With External Secrets Operator on DevOps Toolkit](https://img.youtube.com/vi/SyRZe5YVCVk/0.jpg)](https://www.youtube.com/watch?v=SyRZe5YVCVk)
 
