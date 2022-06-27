@@ -66,6 +66,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if cfg == nil {
 		cfg = Config{}
 	}
+	// When running new Client, we should only have FakeSetSecret saved.
+	// So we need to recreate FakeSecretStore entries entirely.
+	for key, data := range cfg {
+		if data.Origin == FakeSecretStore {
+			delete(cfg, key)
+		}
+	}
 	for _, data := range c.Data {
 		mapKey := fmt.Sprintf("%v%v", data.Key, data.Version)
 		cfg[mapKey] = &Data{
