@@ -19,6 +19,14 @@ Then create a ExternalSecret resource taking advantage of templating to populate
 {% include 'gcpsm-docker-config-externalsecret.yaml' %}
 ```
 
+For Helm users: since Helm interprets the template above, the ExternalSecret resource can be written this way:
+
+```yaml
+{% include 'gcpsm-docker-config-helm-externalsecret.yaml' %}
+```
+
+For more information, please see [this issue](https://github.com/helm/helm/issues/2798)
+
 This will generate a valid dockerconfigjson secret for you to use!
 
 You can get the final value with:
@@ -73,5 +81,5 @@ kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data.ssh
 
 ## More examples
 
-!!! note "We need more examples here" 
+!!! note "We need more examples here"
     Feel free to contribute with our docs and add more examples here!
