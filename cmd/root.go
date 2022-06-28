@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 )
 
 var (
@@ -61,6 +62,7 @@ var (
 	secretName, secretNamespace           string
 	crdRequeueInterval                    time.Duration
 	certCheckInterval                     time.Duration
+	enableAWSSession                      bool
 )
 
 const (
@@ -159,6 +161,9 @@ var rootCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+		if enableAWSSession {
+			awsauth.EnableCache = true
+		}
 		setupLog.Info("starting manager")
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 			setupLog.Error(err, "problem running manager")
@@ -185,4 +190,5 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
+	rootCmd.Flags().BoolVar(&enableAWSSession, "experimental-enable-aws-session-cache", false, "Enable experimental AWS session cache. External secret will reuse the AWS session without creating a new one on each request.")
 }

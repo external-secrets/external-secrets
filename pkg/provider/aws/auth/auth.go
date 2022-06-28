@@ -44,10 +44,23 @@ type Config struct {
 	APIRetries int
 }
 
-var log = ctrl.Log.WithName("provider").WithName("aws")
+type SessionCache struct {
+	Name            string
+	Namespace       string
+	Kind            string
+	ResourceVersion string
+}
+
+var (
+	log         = ctrl.Log.WithName("provider").WithName("aws")
+	sessions    = make(map[SessionCache]*session.Session)
+	EnableCache bool
+)
 
 const (
-	roleARNAnnotation = "eks.amazonaws.com/role-arn"
+	roleARNAnnotation    = "eks.amazonaws.com/role-arn"
+	audienceAnnotation   = "eks.amazonaws.com/audience"
+	defaultTokenAudience = "sts.amazonaws.com"
 
 	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterSecretStore: missing AWS AccessKeyID Namespace"
 	errInvalidClusterStoreMissingSAKNamespace  = "invalid ClusterSecretStore: missing AWS SecretAccessKey Namespace"
@@ -95,16 +108,12 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	if prov.Region != "" {
 		config.WithRegion(prov.Region)
 	}
-	handlers := defaults.Handlers()
-	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            *config,
-		Handlers:          handlers,
-		SharedConfigState: session.SharedConfigDisable,
-	})
+
+	sess, err := getAWSSession(config, store, namespace)
 	if err != nil {
 		return nil, err
 	}
+
 	if prov.Role != "" {
 		stsclient := assumeRoler(sess)
 		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role))
@@ -180,7 +189,12 @@ func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider,
 	if roleArn == "" {
 		return nil, fmt.Errorf("an IAM role must be associated with service account %s (namespace: %s)", name, namespace)
 	}
-	jwtProv, err := jwtProvider(name, namespace, roleArn, prov.Region)
+
+	tokenAud := sa.Annotations[audienceAnnotation]
+	if tokenAud == "" {
+		tokenAud = defaultTokenAudience
+	}
+	jwtProv, err := jwtProvider(name, namespace, roleArn, tokenAud, prov.Region)
 	if err != nil {
 		return nil, err
 	}
@@ -189,12 +203,12 @@ func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider,
 	return credentials.NewCredentials(jwtProv), nil
 }
 
-type jwtProviderFactory func(name, namespace, roleArn, region string) (credentials.Provider, error)
+type jwtProviderFactory func(name, namespace, roleArn, aud, region string) (credentials.Provider, error)
 
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
 // controller-runtime/client does not support TokenRequest or other subresource APIs
 // so we need to construct our own client and use it to fetch tokens.
-func DefaultJWTProvider(name, namespace, roleArn, region string) (credentials.Provider, error) {
+func DefaultJWTProvider(name, namespace, roleArn, aud, region string) (credentials.Provider, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -219,6 +233,7 @@ func DefaultJWTProvider(name, namespace, roleArn, region string) (credentials.Pr
 	}
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,
+		Audience:       aud,
 		ServiceAccount: name,
 		k8sClient:      clientset.CoreV1(),
 	}
@@ -231,4 +246,39 @@ type STSProvider func(*session.Session) stsiface.STSAPI
 
 func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 	return sts.New(sess)
+}
+
+// getAWSSession check if an AWS session should be reused
+// it returns the aws session or an error.
+func getAWSSession(config *aws.Config, store esv1beta1.GenericStore, namespace string) (*session.Session, error) {
+	tmpSession := SessionCache{
+		Name:            store.GetObjectMeta().Name,
+		Namespace:       namespace,
+		Kind:            store.GetTypeMeta().Kind,
+		ResourceVersion: store.GetObjectMeta().ResourceVersion,
+	}
+
+	if EnableCache {
+		sess, ok := sessions[tmpSession]
+		if ok {
+			log.Info("reusing aws session", "SecretStore", tmpSession.Name, "namespace", tmpSession.Namespace, "kind", tmpSession.Kind, "resourceversion", tmpSession.ResourceVersion)
+			return sess, nil
+		}
+	}
+
+	handlers := defaults.Handlers()
+	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config:            *config,
+		Handlers:          handlers,
+		SharedConfigState: session.SharedConfigDisable,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if EnableCache {
+		sessions[tmpSession] = sess
+	}
+	return sess, nil
 }

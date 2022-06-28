@@ -67,6 +67,12 @@ extraEnv: []
 ## -- Map of extra arguments to pass to container.
 extraArgs: {}
 
+## -- Extra volumes to pass to pod.
+extraVolumes: []
+
+## -- Extra volumes to mount to the container.
+extraVolumeMounts: []
+
 # -- Annotations to add to Deployment
 deploymentAnnotations: {}
 
@@ -197,6 +203,12 @@ webhook:
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
 
+    ## -- Extra volumes to pass to pod.
+  extraVolumes: []
+
+    ## -- Extra volumes to mount to the container.
+  extraVolumeMounts: []
+
     # -- Annotations to add to Secret
   secretAnnotations: {}
 
@@ -287,6 +299,12 @@ certController:
 
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
+
+    ## -- Extra volumes to pass to pod.
+  extraVolumes: []
+
+    ## -- Extra volumes to mount to the container.
+  extraVolumeMounts: []
 
     # -- Annotations to add to Deployment
   deploymentAnnotations: {}
