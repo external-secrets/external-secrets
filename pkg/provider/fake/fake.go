@@ -66,6 +66,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if cfg == nil {
 		cfg = Config{}
 	}
+	// We want to remove any FakeSecretStore entry from memory
+	// this will ensure SecretStores can delete from memory.
+	for key, data := range cfg {
+		if data.Origin == FakeSecretStore {
+			delete(cfg, key)
+		}
+	}
 	for _, data := range c.Data {
 		mapKey := fmt.Sprintf("%v%v", data.Key, data.Version)
 		cfg[mapKey] = &Data{

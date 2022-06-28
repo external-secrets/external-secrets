@@ -57,7 +57,7 @@ var (
 	namespace                             string
 	enableClusterStoreReconciler          bool
 	enableClusterExternalSecretReconciler bool
-	enablePushSecretReconciler 			  bool
+	enablePushSecretReconciler            bool
 	enableFloodGate                       bool
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
