@@ -62,6 +62,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| certController.serviceAccount.automountServiceAccountToken | bool | `true` | Specify whether to mount the API access credentials in container |
 | certController.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
 | certController.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
 | certController.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
@@ -102,6 +103,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| serviceAccount.automountServiceAccountToken | bool | `true` | Specify whether to mount the API access credentials in container |
 | serviceMonitor.additionalLabels | object | `{}` | Additional labels |
 | serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
 | serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
@@ -139,6 +141,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| webhook.serviceAccount.automountServiceAccountToken | bool | `true` | Specify whether to mount the API access credentials in container |
+
 | webhook.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
 | webhook.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
 | webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |

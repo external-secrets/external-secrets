@@ -33,6 +33,7 @@ spec:
       {{- end }}
       hostNetwork: {{ .Values.webhook.hostNetwork}}
       serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
       {{- with .Values.webhook.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
