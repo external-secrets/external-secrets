@@ -35,3 +35,7 @@ Tiexin Guo Writes about Kubernetes hardening in this series of blogs. He mention
 ## [Tutorial: How to manage secrets in OpenShift using Vault and External Secrets Operator](https://youtu.be/PgiXKBTel1E)
 
 Balkrishna Pandey published a video tutorial and a [blog post](https://goglides.io/how-to-manage-secrets-in-openshift-using-vault-and-external-secrets/1164/) on integrating HashiCorp Vault and External Secret Operator (ESO) to manage application secrets on OpenShift Cluster. In this blog, he demonstrates the strength of the `ClusterSecretStore` functionality, a cluster scoped SecretStore and is global to the Cluster that all `ExternalSecrets` can reference from all namespaces.
+
+## [Tutorial: Leverage AWS secrets stores from EKS Fargate with External Secrets Operator](https://aws.amazon.com/blogs/containers/leverage-aws-secrets-stores-from-eks-fargate-with-external-secrets-operator/)
+
+In this AWS Containers blog post, Ryan writes about how to leverage External Secret Operator with an EKS Fargate cluster using IAM Roles for Service Accounts (IRSA). This setup supports the requirements of Fargate based workloads. [Leverage AWS secrets stores from EKS Fargate with External Secrets Operator](https://aws.amazon.com/blogs/containers/leverage-aws-secrets-stores-from-eks-fargate-with-external-secrets-operator/)
