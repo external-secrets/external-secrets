@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,28 +46,7 @@ var _ = Describe("pushsecret", func() {
 	BeforeEach(func() {
 		client = new(fakes.Client)
 		recorder = &fakes.FakeEventRecorder{}
-		reconciler = &Reconciler{client, logr.Discard(), nil, recorder, 0, ""}
-	})
-
-	Describe("RefreshInterval", func() {
-		var (
-			statusWriter *fakes.StatusWriter
-		)
-
-		BeforeEach(func() {
-			statusWriter = new(fakes.StatusWriter)
-			client.StatusReturns(statusWriter)
-
-		})
-
-		It("Passes", func() {
-			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-			refreshInt := time.Duration(5000)
-			reconciler.RequeueInterval = refreshInt
-			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-			Expect(result).To(Equal(ctrl.Result{RequeueAfter: refreshInt}))
-			Expect(err).NotTo(HaveOccurred())
-		})
+		reconciler = &Reconciler{client, logr.Discard(), nil, recorder, time.Minute, ""}
 	})
 
 	Describe("#Reconcile", func() {
@@ -80,6 +60,37 @@ var _ = Describe("pushsecret", func() {
 		})
 
 		It("succeeds", func() {
+			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: time.Minute}))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(client.GetCallCount()).To(Equal(2))
+			Expect(client.StatusCallCount()).To(Equal(1))
+
+			_, gotNamespacedName, _ := client.GetArgsForCall(0)
+			Expect(gotNamespacedName).To(Equal(namspacedName))
+
+			Expect(statusWriter.PatchCallCount()).To(Equal(1))
+			_, _, patch, _ := statusWriter.PatchArgsForCall(0)
+			Expect(patch.Type()).To(Equal(types.MergePatchType))
+			Expect(recorder.EventCallCount()).To(Equal(1))
+			_, _, reason, message := recorder.EventArgsForCall(0)
+			Expect(reason).To(Equal(esapi.ReasonSynced))
+			Expect(message).To(Equal("PushSecret synced successfully"))
+		})
+		It("requeues after specified time", func() {
+			client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
+				myObj := obj
+				switch obj.(type) {
+				case *esapi.PushSecret:
+					t := myObj.(*esapi.PushSecret)
+					t.Spec.RefreshInterval = &metav1.Duration{Duration: 0 * time.Second}
+					return nil
+				default:
+					return nil
+				}
+			}
+
 			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
 			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 0, Requeue: false}))
@@ -421,13 +432,6 @@ var _ = Describe("pushsecret", func() {
 			Expect(err.Error()).To(Equal(fmt.Sprintf(errSetSecretFailed, "foo", "", "something went wrong")))
 		})
 	})
-
-	// Secrets should not be updated when refreshInterval is not equals to zero
-	// RequeueInterval shouldn't be updated if spec.refreshInterval is zero
-	// Checking if requeue interval is zero does an error occur
-	// requeue interval not zero
-	//
-	//Describe("#")
 })
 
 func init() {

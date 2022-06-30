@@ -68,7 +68,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	refreshInt := r.RequeueInterval
-	if ps.Spec.RefreshInterval != nil && ps.Spec.RefreshInterval.Duration != 0 {
+	if ps.Spec.RefreshInterval != nil {
 		refreshInt = ps.Spec.RefreshInterval.Duration
 	}
 
