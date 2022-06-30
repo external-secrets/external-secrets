@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
@@ -46,6 +47,28 @@ var _ = Describe("pushsecret", func() {
 		recorder = &fakes.FakeEventRecorder{}
 		reconciler = &Reconciler{client, logr.Discard(), nil, recorder, 0, ""}
 	})
+
+	Describe("RefreshInterval", func() {
+		var (
+			statusWriter *fakes.StatusWriter
+		)
+
+		BeforeEach(func() {
+			statusWriter = new(fakes.StatusWriter)
+			client.StatusReturns(statusWriter)
+
+		})
+
+		It("Passes", func() {
+			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
+			refreshInt := time.Duration(5000)
+			reconciler.RequeueInterval = refreshInt
+			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: refreshInt}))
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
 	Describe("#Reconcile", func() {
 		var (
 			statusWriter *fakes.StatusWriter
@@ -58,7 +81,8 @@ var _ = Describe("pushsecret", func() {
 
 		It("succeeds", func() {
 			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 0, Requeue: false}))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(client.GetCallCount()).To(Equal(2))
 			Expect(client.StatusCallCount()).To(Equal(1))
@@ -397,6 +421,13 @@ var _ = Describe("pushsecret", func() {
 			Expect(err.Error()).To(Equal(fmt.Sprintf(errSetSecretFailed, "foo", "", "something went wrong")))
 		})
 	})
+
+	// Secrets should not be updated when refreshInterval is not equals to zero
+	// RequeueInterval shouldn't be updated if spec.refreshInterval is zero
+	// Checking if requeue interval is zero does an error occur
+	// requeue interval not zero
+	//
+	//Describe("#")
 })
 
 func init() {

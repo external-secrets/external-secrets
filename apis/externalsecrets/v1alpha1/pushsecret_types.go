@@ -37,6 +37,7 @@ type PushSecretStoreRef struct {
 
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
+	RefreshInterval *metav1.Duration     `json:"refreshInterval,omitempty"`
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
 	Selector        PushSecretSelector   `json:"selector"`
 	Data            []PushSecretData     `json:"data,omitempty"`

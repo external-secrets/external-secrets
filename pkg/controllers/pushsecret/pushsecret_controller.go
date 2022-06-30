@@ -67,6 +67,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 
+	refreshInt := r.RequeueInterval
+	if ps.Spec.RefreshInterval != nil && ps.Spec.RefreshInterval.Duration != 0 {
+		refreshInt = ps.Spec.RefreshInterval.Duration
+	}
+
 	p := client.MergeFrom(ps.DeepCopy())
 	defer func() {
 		err := r.Client.Status().Patch(ctx, &ps, p)
@@ -101,7 +106,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	ps = SetPushSecretCondition(ps, *cond)
 	// Set status for PushSecret
 	r.recorder.Event(&ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
-	return ctrl.Result{}, nil
+
+	if refreshInt == 0 {
+		return ctrl.Result{
+			RequeueAfter: 0,
+			Requeue:      false,
+		}, nil
+	}
+
+	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
 func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) error {
