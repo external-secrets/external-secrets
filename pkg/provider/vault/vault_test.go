@@ -22,16 +22,15 @@ import (
 	"testing"
 
 	"github.com/crossplane/crossplane-runtime/pkg/test"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 )
 
 const (
@@ -1397,5 +1396,30 @@ func TestValidateStore(t *testing.T) {
 				t.Errorf("connector.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+func TestSetSecret(t *testing.T) {
+	path := "secret"
+	client := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: fake.Logical{
+			WriteWithContextFn: fake.NewWriteWithContextFn(nil, fmt.Errorf("error")),
+		},
+	}
+	ref := fakeRef{key: "I'm a key"}
+	err := client.SetSecret(context.Background(), []byte("HI"), ref)
+	if err != nil {
+		t.Errorf("%v", err)
 	}
 }

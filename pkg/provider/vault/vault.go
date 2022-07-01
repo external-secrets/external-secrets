@@ -360,9 +360,22 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-// Not Implemented SetSecret.
+// create a test
 func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	secretData := map[string]interface{}{
+		remoteRef.GetRemoteKey(): value,
+	}
+
+	path := v.buildPath(remoteRef.GetRemoteKey())
+	_, err := v.logical.WriteWithContext(ctx, path, secretData)
+
+	if err != nil {
+		return err
+	}
+	// This is the address of our vault on our local cluster
+	//cfg.Address = "vault.vault-ns.svc.cluster.local.8200"
+
+	return nil
 }
 
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
