@@ -38,7 +38,7 @@ require (
 	cloud.google.com/go/secretmanager v1.4.0
 	github.com/Azure/azure-sdk-for-go v66.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.27
-	github.com/Azure/go-autorest/autorest/adal v0.9.19
+	github.com/Azure/go-autorest/autorest/adal v0.9.20
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.5.2
 	github.com/IBM/go-sdk-core/v5 v5.10.1
