@@ -91,7 +91,7 @@ require (
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/controller-tools v0.9.0
-	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
+	software.sslmate.com/src/go-pkcs12 v0.2.0
 )
 
 require github.com/1Password/connect-sdk-go v1.4.0
@@ -101,6 +101,8 @@ require (
 	github.com/fluxcd/helm-controller/api v0.22.1
 	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/source-controller/api v0.25.6
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
+	gotest.tools/v3 v3.0.3
 	sigs.k8s.io/yaml v1.3.0
 )
 
