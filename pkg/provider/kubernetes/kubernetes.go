@@ -73,6 +73,11 @@ func init() {
 	})
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *ProviderKubernetes) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 // NewClient constructs a Kubernetes Provider.
 func (p *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
@@ -145,6 +150,11 @@ func isReferentSpec(prov *esv1beta1.KubernetesProvider) bool {
 
 func (p *ProviderKubernetes) Close(ctx context.Context) error {
 	return nil
+}
+
+// Not Implemented SetSecret.
+func (p *ProviderKubernetes) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
 }
 
 func (p *ProviderKubernetes) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {

@@ -100,6 +100,11 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
+// Not Implemented SetSecret.
+func (ibm *providerIBM) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
@@ -562,6 +567,11 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf("secretAPIKey.key cannot be empty")
 	}
 	return nil
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (ibm *providerIBM) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
