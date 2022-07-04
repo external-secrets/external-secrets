@@ -360,10 +360,11 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-// create a test
 func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretData := map[string]interface{}{
-		remoteRef.GetRemoteKey(): value,
+		"data": map[string]interface{}{
+			remoteRef.GetRemoteKey(): string(value),
+		},
 	}
 
 	path := v.buildPath(remoteRef.GetRemoteKey())

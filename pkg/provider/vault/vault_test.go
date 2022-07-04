@@ -27,6 +27,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
+	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -1414,12 +1415,11 @@ func TestSetSecret(t *testing.T) {
 			Path: &path,
 		},
 		logical: fake.Logical{
-			WriteWithContextFn: fake.NewWriteWithContextFn(nil, fmt.Errorf("error")),
+			WriteWithContextFn: fake.NewWriteWithContextFn(nil, nil),
 		},
 	}
 	ref := fakeRef{key: "I'm a key"}
 	err := client.SetSecret(context.Background(), []byte("HI"), ref)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
+	
+	assert.Equal(t, err, nil)
 }
