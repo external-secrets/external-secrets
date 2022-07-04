@@ -70,7 +70,7 @@ require (
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/client_model v0.2.0
 	github.com/spf13/cobra v1.4.0
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.0
 	github.com/tidwall/gjson v1.14.1
 	github.com/xanzy/go-gitlab v0.68.2
 	github.com/yandex-cloud/go-genproto v0.0.0-20220314102905-1acaee8ca7eb
@@ -82,7 +82,7 @@ require (
 	google.golang.org/api v0.82.0
 	google.golang.org/genproto v0.0.0-20220527130721-00d5c0f3be58
 	google.golang.org/grpc v1.46.2
-	gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99
+	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.24.0
 	k8s.io/apiextensions-apiserver v0.24.1
