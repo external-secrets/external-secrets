@@ -177,7 +177,7 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 
 	client := &http.Client{Transport: tr}
 
-	r, err := http.NewRequest("GET", u.String(), nil)
+	r, err := http.NewRequest("GET", u.String(), http.NewRequest("GET", u.String(), http.NoBody))
 	if err != nil {
 		return respObj, errCannotCreateRequest
 	}

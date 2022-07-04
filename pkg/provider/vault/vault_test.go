@@ -1420,6 +1420,10 @@ func TestSetSecret(t *testing.T) {
 	}
 	ref := fakeRef{key: "I'm a key"}
 	err := client.SetSecret(context.Background(), []byte("HI"), ref)
+
+	secretData := map[string]interface{}{}
+	_, noDataClient := client.logical.WriteWithContext(context.TODO(), path, secretData)
 	
+	assert.Equal(t, noDataClient, nil)
 	assert.Equal(t, err, nil)
 }
