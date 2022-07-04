@@ -38,7 +38,7 @@ require (
 	cloud.google.com/go/secretmanager v1.4.0
 	github.com/Azure/azure-sdk-for-go v66.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.27
-	github.com/Azure/go-autorest/autorest/adal v0.9.19
+	github.com/Azure/go-autorest/autorest/adal v0.9.20
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.5.2
 	github.com/IBM/go-sdk-core/v5 v5.10.1
@@ -78,7 +78,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
-	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
+	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
 	google.golang.org/api v0.82.0
 	google.golang.org/genproto v0.0.0-20220527130721-00d5c0f3be58
 	google.golang.org/grpc v1.46.2
@@ -97,7 +97,7 @@ require (
 require github.com/1Password/connect-sdk-go v1.4.0
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.4.0
+	github.com/argoproj/argo-cd/v2 v2.4.3
 	github.com/fluxcd/helm-controller/api v0.22.1
 	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/source-controller/api v0.25.6
@@ -269,7 +269,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/exp v0.0.0-20210901193431-a062eea981d2 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
-	golang.org/x/net v0.0.0-20220526153639-5463443f8c37 // indirect
+	golang.org/x/net v0.0.0-20220621193019-9d032be2e588 // indirect
 	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29 // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
