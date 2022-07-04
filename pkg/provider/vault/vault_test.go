@@ -22,16 +22,16 @@ import (
 	"testing"
 
 	"github.com/crossplane/crossplane-runtime/pkg/test"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
+	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 )
 
 const (
@@ -1398,4 +1398,32 @@ func TestValidateStore(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+func TestSetSecret(t *testing.T) {
+	path := "secret"
+	client := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: fake.Logical{
+			WriteWithContextFn: fake.NewWriteWithContextFn(nil, nil),
+		},
+	}
+	ref := fakeRef{key: "I'm a key"}
+	err := client.SetSecret(context.Background(), []byte("HI"), ref)
+
+	secretData := map[string]interface{}{}
+	_, noDataClient := client.logical.WriteWithContext(context.TODO(), path, secretData)
+	
+	assert.Equal(t, noDataClient, nil)
+	assert.Equal(t, err, nil)
 }

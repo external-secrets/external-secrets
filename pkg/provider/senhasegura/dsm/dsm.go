@@ -90,6 +90,11 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 	}, nil
 }
 
+// Not Implemented SetSecret.
+func (dsm *DSM) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 /*
 	GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service
 */
@@ -172,7 +177,7 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 
 	client := &http.Client{Transport: tr}
 
-	r, err := http.NewRequest("GET", u.String(), nil)
+	r, err := http.NewRequest("GET", u.String(), http.NewRequest("GET", u.String(), http.NoBody))
 	if err != nil {
 		return respObj, errCannotCreateRequest
 	}
