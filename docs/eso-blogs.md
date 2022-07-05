@@ -2,6 +2,10 @@
 
 A list of blogs written by people all over the community. Feel free to let us know if you are writing about ESO at some place! We would be happy to mention you here!
 
+## [Comparing External Secrets Operator with Secret Storage CSI as Kubernetes External Secrets is Deprecated](https://mixi-developers.mixi.co.jp/compare-eso-with-secret-csi-402bf37f20bc)
+
+@riddle writes about choosing ESO when comparing with Secret Store CSI Driver in their specific use case. They show us the relevant differences between the projects when looking at their scenario and requirements while integrating with ArgoCD. [Comparing External Secrets Operator with Secret Storage CSI as Kubernetes External Secrets is Deprecated](https://mixi-developers.mixi.co.jp/compare-eso-with-secret-csi-402bf37f20bc)
+
 ## [Tutorial: Getting Started with External Secrets Operator on Kubernetes using AWS Secrets Manager](https://ptuladhar3.medium.com/getting-started-with-external-secrets-operator-on-kubernetes-using-aws-secrets-manager-6dc403d9630c)
 
 Puru writes about getting started using ESO with AWS Secrets Manager. He uses illustrations to explain ESO to new users and get's you to quickly start using ESO, as article is easy to follow along. [Getting Started with External Secrets Operator on Kubernetes using AWS Secrets Manager](https://ptuladhar3.medium.com/getting-started-with-external-secrets-operator-on-kubernetes-using-aws-secrets-manager-6dc403d9630c)
