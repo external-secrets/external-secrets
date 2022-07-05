@@ -24,12 +24,14 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go/v2"
+	"github.com/googleapis/gax-go/v2/apierror"
 	"github.com/tidwall/gjson"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	"google.golang.org/grpc/codes"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -71,7 +73,10 @@ var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager
 type GoogleSecretManagerClient interface {
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
+	AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
+	CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	Close() error
+	GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 }
 
 /*
@@ -89,7 +94,7 @@ var _ esv1beta1.Provider = &ProviderGCP{}
 
 // ProviderGCP is a provider for GCP Secret Manager.
 type ProviderGCP struct {
-	projectID           string
+	ProjectID           string
 	SecretManagerClient GoogleSecretManagerClient
 	gClient             *gClient
 }
@@ -160,6 +165,11 @@ func serviceAccountTokenSource(ctx context.Context, store esv1beta1.GenericStore
 	return config.TokenSource(ctx), nil
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (sm *ProviderGCP) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadWrite
+}
+
 // NewClient constructs a GCP Provider.
 func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
@@ -190,7 +200,7 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 		}
 	}()
 
-	sm.projectID = cliStore.store.ProjectID
+	sm.ProjectID = cliStore.store.ProjectID
 
 	ts, err := cliStore.getTokenSource(ctx, store, kube, namespace)
 	if err != nil {
@@ -214,6 +224,82 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 	return sm, nil
 }
 
+// SetSecret pushes a kubernetes secret key into gcp provider Secret.
+// funcName(variable type_of_variable, ...)
+func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	createSecretReq := &secretmanagerpb.CreateSecretRequest{
+		Parent:   fmt.Sprintf("projects/%s", sm.ProjectID),
+		SecretId: remoteRef.GetRemoteKey(),
+		Secret: &secretmanagerpb.Secret{
+			Labels: map[string]string{
+				"managed-by": "external-secrets",
+			},
+			Replication: &secretmanagerpb.Replication{
+				Replication: &secretmanagerpb.Replication_Automatic_{
+					Automatic: &secretmanagerpb.Replication_Automatic{},
+				},
+			},
+		},
+	}
+
+	var gcpSecret *secretmanagerpb.Secret
+	var err error
+
+	gcpSecret, err = sm.SecretManagerClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s", sm.ProjectID, remoteRef.GetRemoteKey()),
+	})
+
+	var gErr *apierror.APIError
+
+	if errors.As(err, &gErr) {
+		if err != nil && gErr.GRPCStatus().Code() == codes.NotFound {
+			gcpSecret, err = sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
+			if err != nil {
+				return err
+			}
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	manager, ok := gcpSecret.Labels["managed-by"]
+
+	if !ok || manager != "external-secrets" {
+		return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
+	}
+
+	gcpVersion, err := sm.SecretManagerClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", sm.ProjectID, remoteRef.GetRemoteKey()),
+	})
+
+	if errors.As(err, &gErr) {
+		if err != nil && gErr.GRPCStatus().Code() != codes.NotFound {
+			return err
+		}
+	}
+
+	if gcpVersion != nil && gcpVersion.Payload != nil && bytes.Equal(payload, gcpVersion.Payload.Data) {
+		return nil
+	}
+
+	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: fmt.Sprintf("projects/%s/secrets/%s", sm.ProjectID, remoteRef.GetRemoteKey()),
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: payload,
+		},
+	}
+
+	_, err = sm.SecretManagerClient.AddSecretVersion(ctx, addSecretVersionReq)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetAllSecrets syncs multiple secrets from gcp provider into a single Kubernetes Secret.
 func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
@@ -222,6 +308,7 @@ func (sm *ProviderGCP) GetAllSecrets(ctx context.Context, ref esv1beta1.External
 	if len(ref.Tags) > 0 {
 		return sm.findByTags(ctx, ref)
 	}
+
 	return nil, errors.New(errUnexpectedFindOperator)
 }
 
@@ -232,7 +319,7 @@ func (sm *ProviderGCP) findByName(ctx context.Context, ref esv1beta1.ExternalSec
 		return nil, err
 	}
 	req := &secretmanagerpb.ListSecretsRequest{
-		Parent: fmt.Sprintf("projects/%s", sm.projectID),
+		Parent: fmt.Sprintf("projects/%s", sm.ProjectID),
 	}
 	if ref.Path != nil {
 		req.Filter = fmt.Sprintf("name:%s", *ref.Path)
@@ -290,7 +377,7 @@ func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSec
 		tagFilter = fmt.Sprintf("%s name:%s", tagFilter, *ref.Path)
 	}
 	req := &secretmanagerpb.ListSecretsRequest{
-		Parent: fmt.Sprintf("projects/%s", sm.projectID),
+		Parent: fmt.Sprintf("projects/%s", sm.ProjectID),
 	}
 	log.V(1).Info("gcp sm findByTags", "tagFilter", tagFilter)
 	req.Filter = tagFilter
@@ -320,8 +407,8 @@ func (sm *ProviderGCP) findByTags(ctx context.Context, ref esv1beta1.ExternalSec
 }
 
 func (sm *ProviderGCP) trimName(name string) string {
-	projectIDNumuber := sm.extractProjectIDNumber(name)
-	key := strings.TrimPrefix(name, fmt.Sprintf("projects/%s/secrets/", projectIDNumuber))
+	ProjectIDNumuber := sm.extractProjectIDNumber(name)
+	key := strings.TrimPrefix(name, fmt.Sprintf("projects/%s/secrets/", ProjectIDNumuber))
 	return key
 }
 
@@ -330,13 +417,13 @@ func (sm *ProviderGCP) trimName(name string) string {
 // (and users would always use the name, while requests accept both).
 func (sm *ProviderGCP) extractProjectIDNumber(secretFullName string) string {
 	s := strings.Split(secretFullName, "/")
-	projectIDNumuber := s[1]
-	return projectIDNumuber
+	ProjectIDNumuber := s[1]
+	return ProjectIDNumuber
 }
 
 // GetSecret returns a single secret from the provider.
 func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(sm.SecretManagerClient) || sm.projectID == "" {
+	if utils.IsNil(sm.SecretManagerClient) || sm.ProjectID == "" {
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
@@ -346,7 +433,7 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecr
 	}
 
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", sm.projectID, ref.Key, version),
+		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", sm.ProjectID, ref.Key, version),
 	}
 	result, err := sm.SecretManagerClient.AccessSecretVersion(ctx, req)
 	if err != nil {
@@ -382,7 +469,7 @@ func (sm *ProviderGCP) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecr
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (sm *ProviderGCP) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	if sm.SecretManagerClient == nil || sm.projectID == "" {
+	if sm.SecretManagerClient == nil || sm.ProjectID == "" {
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
