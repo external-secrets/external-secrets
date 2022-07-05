@@ -170,7 +170,7 @@ func TestGetSecretWithProperty(t *testing.T) {
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
-		strings.TrimSpace(certificate1 + "\n" + certificate2),
+		strings.TrimSpace(strings.Join([]string{certificate1, certificate2}, "\n")),
 		strings.TrimSpace(string(chainData)),
 	)
 
@@ -576,7 +576,7 @@ func TestGetSecretMap(t *testing.T) {
 	tassert.Equal(
 		t,
 		map[string][]byte{
-			chainProperty:      []byte(certificate1 + "\n" + certificate2),
+			chainProperty:      []byte(strings.Join([]string{certificate1, certificate2}, "\n")),
 			privateKeyProperty: []byte(privateKey),
 		},
 		data,

@@ -374,7 +374,7 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 		return err
 	}
 	// This is the address of our vault on our local cluster
-	// cfg.Address = "vault.vault-ns.svc.cluster.local.8200"
+	//cfg.Address = "vault.vault-ns.svc.cluster.local.8200"
 
 	return nil
 }
