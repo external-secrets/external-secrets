@@ -1849,7 +1849,7 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
 <h2 id="aws-authentication">AWS Authentication</h2>
 <h3 id="controllers-pod-identity">Controller's Pod Identity</h3>
 <p><img alt="Pod Identity Authentication" src="../pictures/diagrams-provider-aws-auth-pod-identity.png" /></p>
-<p>Note: If you are using Paramater Store replace <code>service: SecretsManager</code> with <code>service: ParamaterStore</code> in all examples below.</p>
+<p>Note: If you are using Parameter Store replace <code>service: SecretsManager</code> with <code>service: ParameterStore</code> in all examples below.</p>
 <p>This is basicially a zero-configuration authentication method that inherits the credentials from the runtime environment using the <a href="https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default">aws sdk default credential chain</a>.</p>
 <p>You can attach a role to the pod using <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a>, <a href="https://github.com/uswitch/kiam">kiam</a> or <a href="https://github.com/jtblin/kube2iam">kube2iam</a>. When no other authentication method is configured in the <code>Kind=Secretstore</code> this role is used to make all API calls against AWS Secrets Manager or SSM Parameter Store.</p>
 <p>Based on the Pod's identity you can do a <code>sts:assumeRole</code> before fetching the secrets to limit access to certain keys in your provider. This is optional.</p>
