@@ -1410,7 +1410,24 @@ func (f fakeRef) GetRemoteKey() string {
 
 func TestSetSecret(t *testing.T) {
 	path := "secret"
-	client := client{
+
+	// Testing for when SetSecret returns an error
+	client1 := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: fake.Logical{
+			WriteWithContextFn: fake.NewWriteWithContextFn(nil, fmt.Errorf("error")),
+		},
+	}
+	ref := fakeRef{key: "I'm a key"}
+
+	err := client1.SetSecret(context.Background(), []byte("HI"), ref)
+
+	assert.Equal(t, err.Error(), "error")
+
+	// Testing for when SetSecret returns nil
+	client2 := client{
 		store: &esv1beta1.VaultProvider{
 			Path: &path,
 		},
@@ -1418,12 +1435,8 @@ func TestSetSecret(t *testing.T) {
 			WriteWithContextFn: fake.NewWriteWithContextFn(nil, nil),
 		},
 	}
-	ref := fakeRef{key: "I'm a key"}
-	err := client.SetSecret(context.Background(), []byte("HI"), ref)
 
-	secretData := map[string]interface{}{}
-	_, noDataClient := client.logical.WriteWithContext(context.TODO(), path, secretData)
+	err = client2.SetSecret(context.Background(), []byte("HI"), ref)
 
-	assert.Equal(t, noDataClient, nil)
 	assert.Equal(t, err, nil)
 }
