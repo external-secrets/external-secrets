@@ -52,7 +52,7 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string) (string,
 	} else {
 		cloudID, err := a.getCloudID(accType, accTypeParam)
 		if err != nil {
-			return "", fmt.Errorf("Require Cloud ID " + err.Error())
+			return "", errors.New("Require Cloud ID " + err.Error())
 		}
 		authBody.AccessType = akeyless.PtrString(accType)
 		authBody.CloudId = akeyless.PtrString(cloudID)
