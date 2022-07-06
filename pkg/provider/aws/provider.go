@@ -17,8 +17,12 @@ package aws
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -95,6 +99,8 @@ func validateRegion(prov *esv1beta1.AWSProvider) error {
 
 func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {
 	prov, err := util.GetAWSProvider(store)
+	storeSpec := store.GetSpec()
+	var cfg *aws.Config
 	if err != nil {
 		return nil, err
 	}
@@ -104,11 +110,37 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		return nil, fmt.Errorf(errUnableCreateSession, err)
 	}
 
+	// Setup retry options, but only if present
+	if storeSpec.RetrySettings != nil {
+		var retryAmount int
+		var retryDuration time.Duration
+
+		if storeSpec.RetrySettings.MaxRetries != nil {
+			retryAmount = int(*storeSpec.RetrySettings.MaxRetries)
+		} else {
+			retryAmount = 3
+		}
+
+		if storeSpec.RetrySettings.RetryInterval != nil {
+			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+		} else {
+			retryDuration = 5 * time.Second
+		}
+		if err == nil {
+			awsRetryer := awsclient.DefaultRetryer{
+				NumMaxRetries:    retryAmount,
+				MinRetryDelay:    retryDuration,
+				MaxThrottleDelay: 180 * time.Second,
+			}
+			cfg = request.WithRetryer(aws.NewConfig(), awsRetryer)
+		}
+	}
+
 	switch prov.Service {
 	case esv1beta1.AWSServiceSecretsManager:
-		return secretsmanager.New(sess)
+		return secretsmanager.New(sess, cfg)
 	case esv1beta1.AWSServiceParameterStore:
-		return parameterstore.New(sess)
+		return parameterstore.New(sess, cfg)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
