@@ -43,6 +43,7 @@ const (
 	errUnableCreateSession    = "unable to create session: %w"
 	errUnknownProviderService = "unknown AWS Provider Service: %s"
 	errRegionNotFound         = "region not found: %s"
+	errInitAWSProvider        = "unable to initialize aws provider: %s"
 )
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -99,18 +100,21 @@ func validateRegion(prov *esv1beta1.AWSProvider) error {
 
 func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {
 	prov, err := util.GetAWSProvider(store)
-	storeSpec := store.GetSpec()
-	var cfg *aws.Config
 	if err != nil {
 		return nil, err
 	}
+	if store == nil {
+		return nil, fmt.Errorf(errInitAWSProvider, "nil store")
+	}
+	storeSpec := store.GetSpec()
+	var cfg *aws.Config
 
 	sess, err := awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateSession, err)
 	}
 
-	// Setup retry options, but only if present
+	// Setup retry options, if present in storeSpec
 	if storeSpec.RetrySettings != nil {
 		var retryAmount int
 		var retryDuration time.Duration
@@ -123,17 +127,17 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 
 		if storeSpec.RetrySettings.RetryInterval != nil {
 			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
-		} else {
-			retryDuration = 5 * time.Second
+
 		}
-		if err == nil {
-			awsRetryer := awsclient.DefaultRetryer{
-				NumMaxRetries:    retryAmount,
-				MinRetryDelay:    retryDuration,
-				MaxThrottleDelay: 180 * time.Second,
-			}
-			cfg = request.WithRetryer(aws.NewConfig(), awsRetryer)
+		if err != nil {
+			return nil, fmt.Errorf(errInitAWSProvider, err)
 		}
+		awsRetryer := awsclient.DefaultRetryer{
+			NumMaxRetries:    retryAmount,
+			MinRetryDelay:    retryDuration,
+			MaxThrottleDelay: 120 * time.Second,
+		}
+		cfg = request.WithRetryer(aws.NewConfig(), awsRetryer)
 	}
 
 	switch prov.Service {
