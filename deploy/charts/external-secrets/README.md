@@ -11,7 +11,7 @@ External secret management for Kubernetes
 ## TL;DR
 ```bash
 helm repo add external-secrets https://charts.external-secrets.io
-helm install external-secrets/external-secrets
+helm install external-secrets external-secrets/external-secrets
 ```
 
 ## Installing the Chart
