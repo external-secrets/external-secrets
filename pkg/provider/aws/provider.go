@@ -127,7 +127,6 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 
 		if storeSpec.RetrySettings.RetryInterval != nil {
 			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
-
 		}
 		if err != nil {
 			return nil, fmt.Errorf(errInitAWSProvider, err)
