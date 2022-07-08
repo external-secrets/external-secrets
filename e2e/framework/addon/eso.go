@@ -17,7 +17,7 @@ import (
 	"os"
 
 	// nolint
-	. "github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 )
 
 type ESO struct {
@@ -155,7 +155,7 @@ func WithCRDs() MutationFunc {
 }
 
 func (l *ESO) Install() error {
-	By("Installing eso\n")
+	ginkgo.By("Installing eso\n")
 	err := l.HelmChart.Install()
 	if err != nil {
 		return err
@@ -165,7 +165,7 @@ func (l *ESO) Install() error {
 }
 
 func (l *ESO) Uninstall() error {
-	By("Uninstalling eso")
+	ginkgo.By("Uninstalling eso")
 	err := l.HelmChart.Uninstall()
 	if err != nil {
 		return err
