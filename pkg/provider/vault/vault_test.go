@@ -24,6 +24,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
+	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -1398,4 +1399,45 @@ func TestValidateStore(t *testing.T) {
 			}
 		})
 	}
+}
+
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+func TestSetSecret(t *testing.T) {
+	path := "secret"
+
+	// Testing for when SetSecret returns an error
+	client1 := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: fake.Logical{
+			WriteWithContextFn: fake.NewWriteWithContextFn(nil, fmt.Errorf("error")),
+		},
+	}
+	ref := fakeRef{key: "I'm a key"}
+
+	err := client1.SetSecret(context.Background(), []byte("HI"), ref)
+
+	assert.Equal(t, err.Error(), "error")
+
+	// Testing for when SetSecret returns nil
+	client2 := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: fake.Logical{
+			WriteWithContextFn: fake.NewWriteWithContextFn(nil, nil),
+		},
+	}
+
+	err = client2.SetSecret(context.Background(), []byte("HI"), ref)
+
+	assert.Equal(t, err, nil)
 }
