@@ -90,7 +90,6 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 | pkcs12cert     | Extracts all certificates from a PKCS#12 archive and orders them if possible. If disjunct or multiple leaf certs are provided they are returned as-is. <br/> Sort order: `leaf / intermediate(s) / root`. |
 | pkcs12certPass | Same as `pkcs12cert`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                          |
 | filterPEM      | Filters PEM blocks with a specific type from a list of PEM blocks.                                                                                                                                        |
-
 | jwkPublicKeyPem | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details. |
 | jwkPrivateKeyPem | Takes an json-serialized JWK as `string` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey) for details. |
 | toYaml | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string). |

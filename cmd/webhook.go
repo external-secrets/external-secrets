@@ -83,7 +83,7 @@ var webhookCmd = &cobra.Command{
 					cancel()
 				case <-ticker.C:
 					setupLog.Info("validating certs")
-					err = crds.CheckCerts(c, dnsName, time.Now().Add(crds.LookaheadInterval+time.Minute))
+					err = crds.CheckCerts(c, dnsName, time.Now().Add(certLookaheadInterval))
 					if err != nil {
 						cancel()
 					}
@@ -176,4 +176,5 @@ func init() {
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "path to check for certs")
 	webhookCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	webhookCmd.Flags().DurationVar(&certCheckInterval, "check-interval", 5*time.Minute, "certificate check interval")
+	webhookCmd.Flags().DurationVar(&certLookaheadInterval, "lookahead-interval", crds.LookaheadInterval, "certificate check interval")
 }

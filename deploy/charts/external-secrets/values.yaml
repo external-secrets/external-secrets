@@ -137,7 +137,10 @@ podDisruptionBudget:
 webhook:
   # -- Specifies whether a webhook deployment be created.
   create: true
+  # -- Specifices the time to check if the cert is valid
   certCheckInterval: "5m"
+  # -- Specifices the lookaheadInterval for certificate validity
+  lookaheadInterval: ""
   replicaCount: 1
   certDir: /tmp/certs
   # -- specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
