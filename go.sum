@@ -185,8 +185,8 @@ github.com/alicebob/miniredis v2.5.0+incompatible h1:yBHoLpsyjupjz3NL3MhKMVkR41j
 github.com/alicebob/miniredis v2.5.0+incompatible/go.mod h1:8HZjEj4yU0dwhYHky+DxYx+6BMjkBbe5ONFIF1MXffk=
 github.com/alicebob/miniredis/v2 v2.14.2 h1:VeoqKUAsJfT2af61nDE7qhBzqn3J6xjnt9MFAbdrEtg=
 github.com/alicebob/miniredis/v2 v2.14.2/go.mod h1:gquAfGbzn92jvtrSC69+6zZnwSODVXVpYDRaGhWaL6I=
-github.com/aliyun/alibaba-cloud-sdk-go v1.61.1643 h1:A0DCIszvxkPPfYSslyStov5oFT1wu27Jp+6NjGoWKXQ=
-github.com/aliyun/alibaba-cloud-sdk-go v1.61.1643/go.mod h1:RcDobYh8k5VP6TNybz9m++gL3ijVI5wueVr0EM10VsU=
+github.com/aliyun/alibaba-cloud-sdk-go v1.61.1673 h1:vedok/qPFb693XakwG856IxkS4GHtxFR+Gvx2XgrZ1E=
+github.com/aliyun/alibaba-cloud-sdk-go v1.61.1673/go.mod h1:RcDobYh8k5VP6TNybz9m++gL3ijVI5wueVr0EM10VsU=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 h1:kFOfPq6dUM1hTo4JG6LR5AXSUEsOjtdm0kw0FtQtMJA=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
