@@ -14,7 +14,7 @@
 ## TL;DR
 ```bash
 helm repo add {{ $org }} {{ $chartRepo }}
-helm install {{ $org }}/{{ template "chart.name" . }}
+helm install external-secrets {{ $org }}/{{ template "chart.name" . }}
 ```
 
 ## Installing the Chart
