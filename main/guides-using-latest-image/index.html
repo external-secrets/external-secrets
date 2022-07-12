@@ -67,6 +67,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#helm" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -578,9 +583,45 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Using Latest Image
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Using Latest Image
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#helm" class="md-nav__link">
+    Helm
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual" class="md-nav__link">
+    Manual
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1505,6 +1546,44 @@
               </div>
             
             
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#helm" class="md-nav__link">
+    Helm
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual" class="md-nav__link">
+    Manual
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
@@ -1517,32 +1596,43 @@
 
   <h1>Using Latest Image</h1>
 
-<p>You can test a feature that was not yet released using the following method, use it at your own discretion:</p>
+<p>You can test a feature that was not yet released using the following methods, use them at your own discretion:</p>
+<h3 id="helm">Helm</h3>
 <ol>
-<li>Create a <code>values.yaml</code> file with the following content:</li>
-</ol>
-<div class="highlight"><pre><span></span><code>replicaCount: 1
+<li>Create a <code>values.yaml</code> file with the following content:
+<div class="highlight"><pre><span></span><code><span class="nt">replicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
 
-image:
-  repository: ghcr.io/external-secrets/external-secrets
-  pullPolicy: IfNotPresent
-  # -- The image tag to use. The default is the chart appVersion.
-  tag: &quot;main&quot;
+<span class="nt">image</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">repository</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/external-secrets/external-secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">pullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IfNotPresent</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># -- The image tag to use. The default is the chart appVersion.</span><span class="w"></span>
+<span class="w">  </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;main&quot;</span><span class="w"></span>
 
-# -- If set, install and upgrade CRDs through helm chart.
-installCRDs: false
-</code></pre></div>
-<ol>
-<li>
-<p>Install the crds
+<span class="c1"># -- If set, install and upgrade CRDs through helm chart.</span><span class="w"></span>
+<span class="nt">installCRDs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"></span>
+</code></pre></div></li>
+<li>Install the crds
 <div class="highlight"><pre><span></span><code>make crds.install
-</code></pre></div></p>
-</li>
-<li>
-<p>Install the external-secrets Helm chart indicating the values file created before:
+</code></pre></div></li>
+<li>Install the external-secrets Helm chart indicating the values file created before:
 <div class="highlight"><pre><span></span><code>helm install external-secrets external-secrets/external-secrets -f values.yaml
-</code></pre></div></p>
-</li>
+</code></pre></div></li>
+</ol>
+<h3 id="manual">Manual</h3>
+<ol>
+<li>Build the Docker image
+<div class="highlight"><pre><span></span><code>docker build -f Dockerfile.standalone -t my-org/external-secrets:latest .
+</code></pre></div></li>
+<li>Apply the <code>bundle.yaml</code>
+<div class="highlight"><pre><span></span><code>kubectl apply -f deploy/crds/bundle.yaml
+</code></pre></div></li>
+<li>Modify your configs to use the image
+<div class="highlight"><pre><span></span><code><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets|external-secrets-webhook|external-secrets-cert-controller</span><span class="w"></span>
+<span class="nn">...</span><span class="w"></span>
+<span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-org/external-secrets:latest</span><span class="w"></span>
+</code></pre></div></li>
 </ol>
 
               
