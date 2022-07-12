@@ -571,6 +571,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../guides-decoding-strategy/" class="md-nav__link">
+        Decoding Strategies
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guides-getallsecrets/" class="md-nav__link">
         Getting Multiple Secrets
       </a>
@@ -1709,6 +1723,7 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key</span><span class="w"></span>
 <span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-version</span><span class="w"></span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-property</span><span class="w"></span>
+<span class="w">        </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">None</span><span class="w"> </span><span class="c1"># can be None, Base64, Base64URL or Auto</span><span class="w"></span>
 
 <span class="w">  </span><span class="c1"># Used to fetch all properties from the Provider key</span><span class="w"></span>
 <span class="w">  </span><span class="c1"># If multiple dataFrom are specified, secrets are merged in the specified order</span><span class="w"></span>
@@ -1718,6 +1733,7 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-version</span><span class="w"></span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-property</span><span class="w"></span>
 <span class="w">      </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Default</span><span class="w"></span>
+<span class="w">      </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Auto</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path-to-filter</span><span class="w"></span>
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"></span>
@@ -1725,6 +1741,7 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">foo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bar</span><span class="w"></span>
 <span class="w">      </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Unicode</span><span class="w"></span>
+<span class="w">      </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Base64</span><span class="w"></span>
 
 <span class="nt">status</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="c1"># refreshTime is the time and date the external secret was fetched and</span><span class="w"></span>
