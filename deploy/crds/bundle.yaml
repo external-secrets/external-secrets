@@ -52,6 +52,10 @@ spec:
                                 default: Default
                                 description: Used to define a conversion Strategy
                                 type: string
+                              decodingStrategy:
+                                default: None
+                                description: Used to define a conversion Strategy
+                                type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
@@ -87,6 +91,10 @@ spec:
                                 default: Default
                                 description: Used to define a conversion Strategy
                                 type: string
+                              decodingStrategy:
+                                default: None
+                                description: Used to define a conversion Strategy
+                                type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
@@ -107,6 +115,10 @@ spec:
                             properties:
                               conversionStrategy:
                                 default: Default
+                                description: Used to define a conversion Strategy
+                                type: string
+                              decodingStrategy:
+                                default: None
                                 description: Used to define a conversion Strategy
                                 type: string
                               name:
@@ -2762,6 +2774,10 @@ spec:
                             default: Default
                             description: Used to define a conversion Strategy
                             type: string
+                          decodingStrategy:
+                            default: None
+                            description: Used to define a conversion Strategy
+                            type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -2797,6 +2813,10 @@ spec:
                             default: Default
                             description: Used to define a conversion Strategy
                             type: string
+                          decodingStrategy:
+                            default: None
+                            description: Used to define a conversion Strategy
+                            type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -2817,6 +2837,10 @@ spec:
                         properties:
                           conversionStrategy:
                             default: Default
+                            description: Used to define a conversion Strategy
+                            type: string
+                          decodingStrategy:
+                            default: None
                             description: Used to define a conversion Strategy
                             type: string
                           name:

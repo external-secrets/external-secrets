@@ -182,6 +182,11 @@ type ExternalSecretDataRemoteRef struct {
 	// Used to define a conversion Strategy
 	// +kubebuilder:default="Default"
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
+
+	// +optional
+	// Used to define a conversion Strategy
+	// +kubebuilder:default="None"
+	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 }
 
 type ExternalSecretMetadataPolicy string
@@ -196,6 +201,15 @@ type ExternalSecretConversionStrategy string
 const (
 	ExternalSecretConversionDefault ExternalSecretConversionStrategy = "Default"
 	ExternalSecretConversionUnicode ExternalSecretConversionStrategy = "Unicode"
+)
+
+type ExternalSecretDecodingStrategy string
+
+const (
+	ExternalSecretDecodeAuto      ExternalSecretDecodingStrategy = "Auto"
+	ExternalSecretDecodeBase64    ExternalSecretDecodingStrategy = "Base64"
+	ExternalSecretDecodeBase64URL ExternalSecretDecodingStrategy = "Base64URL"
+	ExternalSecretDecodeNone      ExternalSecretDecodingStrategy = "None"
 )
 
 // +kubebuilder:validation:MinProperties=1
@@ -225,6 +239,11 @@ type ExternalSecretFind struct {
 	// Used to define a conversion Strategy
 	// +kubebuilder:default="Default"
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
+
+	// +optional
+	// Used to define a conversion Strategy
+	// +kubebuilder:default="None"
+	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 }
 
 type FindName struct {
