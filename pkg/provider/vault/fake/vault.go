@@ -48,6 +48,15 @@ func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithData
 	}
 }
 
+func NewWriteWithContextFn(secret map[string]interface{}, err error) WriteWithContextFn {
+	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		vault := &vault.Secret{
+			Data: secret,
+		}
+		return vault, err
+	}
+}
+
 func (f Logical) ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 	return f.ReadWithDataWithContextFn(ctx, path, data)
 }
