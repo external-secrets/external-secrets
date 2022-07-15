@@ -18,7 +18,20 @@ spec:
     singular: clusterexternalsecret
   scope: Cluster
   versions:
-    - name: v1beta1
+    - additionalPrinterColumns:
+        - jsonPath: .spec.secretStoreRef.name
+          name: Store
+          type: string
+        - jsonPath: .spec.refreshInterval
+          name: Refresh Interval
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Status
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
+      name: v1beta1
       schema:
         openAPIV3Schema:
           description: ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
@@ -1370,6 +1383,12 @@ spec:
         - jsonPath: .metadata.creationTimestamp
           name: AGE
           type: date
+        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Status
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -2746,6 +2765,9 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
+          type: string
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -4049,6 +4071,9 @@ spec:
           type: date
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
+          type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].status
+          name: Ready
           type: string
       name: v1beta1
       schema:
