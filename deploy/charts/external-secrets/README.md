@@ -63,6 +63,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.securityContext | object | `{}` |  |
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
+| certController.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | certController.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
 | certController.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
@@ -105,6 +106,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | securityContext | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
+| serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | serviceMonitor.additionalLabels | object | `{}` | Additional labels |
 | serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
@@ -145,6 +147,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.securityContext | object | `{}` |  |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
+| webhook.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | webhook.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
 | webhook.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
