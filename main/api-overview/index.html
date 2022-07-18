@@ -1734,7 +1734,7 @@ secret from the external API changes, the controller will reconcile the state in
 the cluster and update the secrets accordingly.</p>
 <h2 id="resource-model">Resource model</h2>
 <p>To understand the mechanics of the operator let's start with the data model. The
-SecretStore references an bucket of key/value pairs. But because every external
+SecretStore references a bucket of key/value pairs. But because every external
 API is slightly different this bucket may be e.g. an instance of an Azure
 KeyVault or a AWS Secrets Manager in a certain AWS Account and region. Please
 take a look at the provider documentation to see what the Bucket actually maps
