@@ -169,7 +169,6 @@ spec:
       auth:
         serviceAccount:
           name: "my-store"
-          namespace: "" # only ClusterSecretStore
       remoteNamespace: default
 ```
 
