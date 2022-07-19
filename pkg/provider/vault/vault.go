@@ -368,13 +368,22 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 	}
 
 	path := v.buildPath(remoteRef.GetRemoteKey())
-	_, err := v.logical.WriteWithContext(ctx, path, secretData)
 
-	if err != nil {
-		return err
+	_, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
+
+	var vaultErr *vault.ResponseError
+
+	if errors.As(err, &vaultErr) {
+		if err != nil && vaultErr.StatusCode == 404 {
+			_, err = v.logical.WriteWithContext(ctx, path, secretData)
+			if err != nil {
+				return err
+			}
+		}
+		if err != nil {
+			return err
+		}
 	}
-	// This is the address of our vault on our local cluster
-	// cfg.Address = "vault.vault-ns.svc.cluster.local.8200"
 
 	return nil
 }
