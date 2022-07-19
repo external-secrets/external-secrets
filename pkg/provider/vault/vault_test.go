@@ -1441,3 +1441,28 @@ func TestSetSecret(t *testing.T) {
 
 	assert.Equal(t, err, nil)
 }
+
+func TestSetSecretUpdate(t *testing.T) {
+    // if an identical secret is found (ie not 404) throw error
+    path := "secret"
+    secretData := map[string]interface{}{
+        "data": map[string]interface{}{
+            "fake key": "fake value",
+        },
+    }
+    client1 := client{
+        store: &esv1beta1.VaultProvider{
+            Path: &path,
+        },
+        logical: fake.Logical{
+            WriteWithContextFn: fake.NewWriteWithContextFn(secretData, fmt.Errorf("error")),
+            ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretData, fmt.Errorf("error can't read data")),
+        },
+    }
+    ref := fakeRef{key: "I'm a key"}
+	
+    err := client1.SetSecret(context.Background(), []byte("HI"), ref)
+    err = client1.SetSecret(context.Background(), []byte("HI"), ref)
+
+    assert.Equal(t, err, "not equal to nil")
+}

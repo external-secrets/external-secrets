@@ -371,20 +371,18 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 
 	_, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
 
-	var vaultErr *vault.ResponseError
+	if err == nil {
+		return errors.New("cannot push - secret already exists")
+	}
+	
+	pError := err.Error()
 
-	if errors.As(err, &vaultErr) {
-		if err != nil && vaultErr.StatusCode == 404 {
-			_, err = v.logical.WriteWithContext(ctx, path, secretData)
-			if err != nil {
-				return err
-			}
-		}
+	if pError == "secret not found" {
+		_, err = v.logical.WriteWithContext(ctx, path, secretData)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
