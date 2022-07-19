@@ -200,6 +200,8 @@ helm.generate:
 		cp "$$i" "$$i.bkp"; \
 		if [[ "$$CRDS_FLAG_NAME" == *"Cluster"* ]]; then \
 			echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i"; \
+		elif [[ "$$CRDS_FLAG_NAME" == *"PushSecret"* ]]; then \
+			echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i"; \
 		else \
 			echo "{{- if .Values.installCRDs }}" > "$$i"; \
 		fi; \
