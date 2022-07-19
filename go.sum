@@ -196,8 +196,8 @@ github.com/antonmedv/expr v1.8.9/go.mod h1:5qsM3oLGDND7sDmQGDXHkYfkjYMUX14qsgqmH
 github.com/apache/thrift v0.12.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/apache/thrift v0.13.0/go.mod h1:cp2SuWMxlEZw2r+iP2GNCdIi4C1qmUzdZFSVb+bacwQ=
 github.com/appscode/go v0.0.0-20190808133642-1d4ef1f1c1e0/go.mod h1:iy07dV61Z7QQdCKJCIvUoDL21u6AIceRhZzyleh2ymc=
-github.com/argoproj/argo-cd/v2 v2.4.3 h1:fDxI3igc6u0QZXOzXCrAyU/CDmNpNprnefkGimkdbsY=
-github.com/argoproj/argo-cd/v2 v2.4.3/go.mod h1:CnD0D1JGTSFxkALblVZiSm8sVgEKH1oaFQoMtpC7EaE=
+github.com/argoproj/argo-cd/v2 v2.4.6 h1:n3Y0UaAUVbdd8tBpSzwpH3iuLtzAbK1hmGXyk7ueKT4=
+github.com/argoproj/argo-cd/v2 v2.4.6/go.mod h1:CnD0D1JGTSFxkALblVZiSm8sVgEKH1oaFQoMtpC7EaE=
 github.com/argoproj/gitops-engine v0.7.0 h1:X6W8VP9bWTe74wWxAV3i8KZ0yBmre5DU8g+GWH09FCo=
 github.com/argoproj/gitops-engine v0.7.0/go.mod h1:pRgVpLW7pZqf7n3COJ7UcDepk4cI61LAcJd64Q3Jq/c=
 github.com/argoproj/notifications-engine v0.3.1-0.20220430155844-567361917320/go.mod h1:R3zlopt+/juYlebQc9Jarn9vBQ2xZruWOWjUNkfGY9M=
@@ -420,8 +420,8 @@ github.com/fluxcd/pkg/apis/kustomize v0.4.1/go.mod h1:U9rfSgDHaQd74PgPKt9DprtuzT
 github.com/fluxcd/pkg/apis/meta v0.14.1/go.mod h1:1uJkTJGSZWrZxL5PFpx1IxGLrFmT1Cd0C2fFWrbv77I=
 github.com/fluxcd/pkg/apis/meta v0.14.2 h1:/Hf7I/Vz01vv3m7Qx7DtQvrzAL1oVt0MJcLb/I1Y1HE=
 github.com/fluxcd/pkg/apis/meta v0.14.2/go.mod h1:ijZ61VG/8T3U17gj0aFL3fdtZL+mulD6V8VrLLUCAgM=
-github.com/fluxcd/source-controller/api v0.25.6 h1:+wdA6SfOrUFW0sWNSHS5X4i4tgWZgySatJ+OT0Gxt6I=
-github.com/fluxcd/source-controller/api v0.25.6/go.mod h1:/e7YRDOqb8z8I3N8ifbDF1mknf8zFsoADtS/Q93iWPs=
+github.com/fluxcd/source-controller/api v0.25.10 h1:nwOB6Awy6mLlysEHfmqmk6Ek5yebYQ8kYq0lv+bSKb8=
+github.com/fluxcd/source-controller/api v0.25.10/go.mod h1:5kihSWjg+gIXLPTTXbe6AnY+g+iDmP+CY4g6nFqublc=
 github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568/go.mod h1:xEzjJPgXI435gkrCt3MPfRiAkVrwSbHsst4LCFVfpJc=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/form3tech-oss/jwt-go v3.2.2+incompatible/go.mod h1:pbq4aXjuKjdthFRnoDwaVPLA+WlJuPGy+QneDUgJi2k=
