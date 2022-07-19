@@ -1736,8 +1736,8 @@ The following property values are possible:<ul>
 </li>
 </ul>
 <p>The operator will fetch the Yandex Certificate Manager certificate and inject it as a <code>Kind=Secret</code>
-<div class="highlight"><pre><span></span><code><span class="l l-Scalar l-Scalar-Plain">kubectl get secret k8s-secret -ojson | jq &#39;.&quot;data&quot;.&quot;tls\.crt&quot;&#39; -r | base64 --decode</span><span class="w"></span>
-<span class="l l-Scalar l-Scalar-Plain">kubectl get secret k8s-secret -ojson | jq &#39;.&quot;data&quot;.&quot;tls\.key&quot;&#39; -r | base64 --decode</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code><span class="l l-Scalar l-Scalar-Plain">kubectl get secret k8s-secret -ojson | jq &#39;.&quot;data&quot;.&quot;tls.crt&quot;&#39; -r | base64 --decode</span><span class="w"></span>
+<span class="l l-Scalar l-Scalar-Plain">kubectl get secret k8s-secret -ojson | jq &#39;.&quot;data&quot;.&quot;tls.key&quot;&#39; -r | base64 --decode</span><span class="w"></span>
 </code></pre></div></p>
 
               
