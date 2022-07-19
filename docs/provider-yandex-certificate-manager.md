@@ -90,6 +90,6 @@ The following property values are possible:
 
 The operator will fetch the Yandex Certificate Manager certificate and inject it as a `Kind=Secret`
 ```yaml
-kubectl get secret k8s-secret -ojson | jq '."data"."tls\.crt"' -r | base64 --decode
-kubectl get secret k8s-secret -ojson | jq '."data"."tls\.key"' -r | base64 --decode
+kubectl get secret k8s-secret -ojson | jq '."data"."tls.crt"' -r | base64 --decode
+kubectl get secret k8s-secret -ojson | jq '."data"."tls.key"' -r | base64 --decode
 ```
