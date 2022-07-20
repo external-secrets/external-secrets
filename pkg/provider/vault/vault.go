@@ -369,15 +369,27 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 
 	path := v.buildPath(remoteRef.GetRemoteKey())
 
-	_, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
+	// Retrieve the secret map from vault and convert the secret value in string form.
+	vaultSecret, err := v.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
+	vaultSecretValue := string(vaultSecret[remoteRef.GetRemoteKey()])
+	// Retrieve the secret value to be pushed and convert it to string form.
+	secretToPush := secretData["data"].(map[string]interface{})[remoteRef.GetRemoteKey()]
+	pushSecretValue := fmt.Sprintf("%v", secretToPush)
 
-	if err == nil {
+	if vaultSecretValue == pushSecretValue {
 		return errors.New("cannot push - secret already exists")
 	}
-	
-	stringError := err.Error()
 
-	if stringError == "secret not found" {
+	// If error is nil this will error out
+	if err != nil {
+		stringError := err.Error()
+		if stringError == "secret not found" {
+			_, err = v.logical.WriteWithContext(ctx, path, secretData)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
 		_, err = v.logical.WriteWithContext(ctx, path, secretData)
 		if err != nil {
 			return err
