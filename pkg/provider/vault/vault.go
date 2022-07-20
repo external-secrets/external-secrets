@@ -375,9 +375,9 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 		return errors.New("cannot push - secret already exists")
 	}
 	
-	pError := err.Error()
+	stringError := err.Error()
 
-	if pError == "secret not found" {
+	if stringError == "secret not found" {
 		_, err = v.logical.WriteWithContext(ctx, path, secretData)
 		if err != nil {
 			return err

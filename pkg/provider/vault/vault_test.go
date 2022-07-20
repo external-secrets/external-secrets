@@ -33,6 +33,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/internal/fakes"
 )
 
 const (
@@ -1443,26 +1444,33 @@ func TestSetSecret(t *testing.T) {
 }
 
 func TestSetSecretUpdate(t *testing.T) {
-    // if an identical secret is found (ie not 404) throw error
-    path := "secret"
-    secretData := map[string]interface{}{
-        "data": map[string]interface{}{
-            "fake key": "fake value",
-        },
-    }
-    client1 := client{
-        store: &esv1beta1.VaultProvider{
-            Path: &path,
-        },
-        logical: fake.Logical{
-            WriteWithContextFn: fake.NewWriteWithContextFn(secretData, fmt.Errorf("error")),
-            ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretData, fmt.Errorf("error can't read data")),
-        },
-    }
-    ref := fakeRef{key: "I'm a key"}
-	
-    err := client1.SetSecret(context.Background(), []byte("HI"), ref)
-    err = client1.SetSecret(context.Background(), []byte("HI"), ref)
+	// if an identical secret is found (ie not 404) throw error
+	// path := "secret"
+	// secretData := map[string]interface{}{
+	// 	"data": map[string]interface{}{
+	// 		"fake key": "fake value",
+	// 	},
+	// }
+	client1 := newClient()
+	// client1 = client{
+	// 	store: &esv1beta1.VaultProvider{
+	// 		Path: &path,
+	// 	},
+	// 	logical: fake.Logical{
+	// 		WriteWithContextFn:        fake.NewWriteWithContextFn(secretData, fmt.Errorf("error")),
+	// 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretData, fmt.Errorf("error can't read data")),
+	// 	},
+	// }
+	client1
+	ref := fakeRef{key: "I'm a key"}
 
-    assert.Equal(t, err, "not equal to nil")
+	client1.SetSecret(context.Background(), []byte("HI"), ref)
+	err := client1.SetSecret(context.Background(), []byte("HI"), ref)
+
+	assert.Equal(t, err, "cannot push - secret already exists")
+}
+
+// counterfeiter helper methods.
+func newClient() *fakes.VaultClient {
+	return new(fakes.VaultClient)
 }
