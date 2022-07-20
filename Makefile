@@ -145,15 +145,7 @@ fmt: lint.check ## Ensure consistent code style
 	@$(OK) Ensured consistent code style
 
 generate: ## Generate code and crds
-	@go run sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	@go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths="./..." output:crd:artifacts:config=$(CRD_DIR)/bases
-# Remove extra header lines in generated CRDs
-	@for i in $(CRD_DIR)/bases/*.yaml; do \
-  		tail -n +2 <"$$i" >"$$i.bkp" && \
-  		cp "$$i.bkp" "$$i" && \
-  		rm "$$i.bkp"; \
-  	done
-	@yq e '.spec.conversion.strategy = "Webhook" | .spec.conversion.webhook.conversionReviewVersions = ["v1"] | .spec.conversion.webhook.clientConfig.service.name = "kubernetes" | .spec.conversion.webhook.clientConfig.service.namespace = "default" |	.spec.conversion.webhook.clientConfig.service.path = "/convert"' $(CRD_DIR)/bases/*  > $(BUNDLE_DIR)/bundle.yaml
+	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
