@@ -125,18 +125,12 @@ func TestGetSecret(t *testing.T) {
 			name: "get correct value from multiple properties",
 			input: []esv1beta1.FakeProviderData{
 				{
-					Key:      "/foo",
-					Value:    "bar2",
-					Property: "p2",
-				},
-				{
 					Key:   "junk",
 					Value: "xxxxx",
 				},
 				{
-					Key:      "/foo",
-					Value:    "bar1",
-					Property: "p1",
+					Key:   "/foo",
+					Value: `{"p1":"bar","p2":"bar2"}`,
 				},
 			},
 			request: esv1beta1.ExternalSecretDataRemoteRef{

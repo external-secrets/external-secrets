@@ -1634,8 +1634,6 @@ spec:
                             properties:
                               key:
                                 type: string
-                              property:
-                                type: string
                               value:
                                 type: string
                               valueMap:
@@ -4303,8 +4301,6 @@ spec:
                           items:
                             properties:
                               key:
-                                type: string
-                              property:
                                 type: string
                               value:
                                 type: string

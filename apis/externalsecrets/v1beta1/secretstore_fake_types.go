@@ -24,5 +24,4 @@ type FakeProviderData struct {
 	Value    string            `json:"value,omitempty"`
 	ValueMap map[string]string `json:"valueMap,omitempty"`
 	Version  string            `json:"version,omitempty"`
-	Property string            `json:"property,omitempty"`
 }

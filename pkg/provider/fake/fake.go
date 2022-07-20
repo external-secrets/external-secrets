@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tidwall/gjson"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -28,6 +29,7 @@ var (
 	errMissingFakeProvider = fmt.Errorf("missing store provider fake")
 	errMissingKeyField     = "key must be set in data %v"
 	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
+	errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
 )
 
 type Provider struct {
@@ -64,8 +66,15 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 // GetSecret returns a single secret from the provider.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	for _, data := range p.config.Data {
-		if data.Key == ref.Key && data.Version == ref.Version && data.Property == ref.Property {
-			return []byte(data.Value), nil
+		if data.Key == ref.Key && data.Version == ref.Version {
+			if ref.Property == "" {
+				return []byte(data.Value), nil
+			}
+
+			val := gjson.Get(data.Value, ref.Property)
+			if val.Exists() {
+				return []byte(val.String()), nil
+			}
 		}
 	}
 	return nil, esv1beta1.NoSecretErr
@@ -77,7 +86,6 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 		if data.Key != ref.Key || data.Version != ref.Version || data.ValueMap == nil {
 			continue
 		}
-		return convertMap(data.ValueMap), nil
 	}
 	return nil, esv1beta1.NoSecretErr
 }
