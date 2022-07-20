@@ -182,31 +182,7 @@ helm.build: helm.generate ## Build helm chart
 	@$(OK) helm package
 
 helm.generate:
-# Split the generated bundle yaml file to inject control flags
-	@for i in $(BUNDLE_DIR)/*.yaml; do \
-		yq e -Ns '"$(HELM_DIR)/templates/crds/" + .spec.names.singular' "$$i"; \
-	done
-# Add helm if statement for controlling the install of CRDs
-	@for i in $(HELM_DIR)/templates/crds/*.yml; do \
-		export CRDS_FLAG_NAME="create$$(yq e '.spec.names.kind' $$i)"; \
-		cp "$$i" "$$i.bkp"; \
-		if [[ "$$CRDS_FLAG_NAME" == *"Cluster"* ]]; then \
-			echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i"; \
-		else \
-			echo "{{- if .Values.installCRDs }}" > "$$i"; \
-		fi; \
-		cat "$$i.bkp" >> "$$i" && \
-		echo "{{- end }}" >> "$$i" && \
-		rm "$$i.bkp" && \
-		if [[ "$$OSTYPE" == "darwin"* ]]; then \
-		  SEDPRG="gsed"; \
-		else \
-		  SEDPRG="sed"; \
-		fi; \
-		$$SEDPRG -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$$i" && \
-		$$SEDPRG -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$$i" && \
-		mv "$$i" "$${i%.yml}.yaml"; \
-	done
+	./hack/helm.generate.sh $(BUNDLE_DIR) $(HELM_DIR)
 	@$(OK) Finished generating helm chart files
 
 # ====================================================================================
