@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/tidwall/gjson"
@@ -57,10 +58,10 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(sess *session.Session) (*SecretsManager, error) {
+func New(sess *session.Session, cfg *aws.Config) (*SecretsManager, error) {
 	return &SecretsManager{
 		sess:   sess,
-		client: awssm.New(sess),
+		client: awssm.New(sess, cfg),
 		cache:  make(map[string]*awssm.GetSecretValueOutput),
 	}, nil
 }
