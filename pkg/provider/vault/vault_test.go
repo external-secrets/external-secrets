@@ -1443,7 +1443,6 @@ func TestSetSecret(t *testing.T) {
 }
 
 func TestSetSecretUpdate(t *testing.T) {
-
 	path := "secret"
 	secretData := map[string]interface{}{
 		"data": map[string]interface{}{
