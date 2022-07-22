@@ -15,6 +15,7 @@ package fake
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -27,7 +28,13 @@ import (
 type MockSMClient struct {
 	accessSecretFn func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	ListSecretsFn  func(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
+	addSecretFn    func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
+	createSecretFn func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	closeFn        func() error
+}
+
+func (mc *MockSMClient) GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+	return nil, nil
 }
 
 func (mc *MockSMClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
@@ -41,11 +48,82 @@ func (mc *MockSMClient) Close() error {
 	return mc.closeFn()
 }
 
+func (mc *MockSMClient) AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+	return mc.addSecretFn(ctx, req)
+}
+
+func (mc *MockSMClient) CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+	return mc.createSecretFn(ctx, req)
+}
+
 func (mc *MockSMClient) NilClose() {
 	mc.closeFn = func() error {
 		return nil
 	}
 }
+
+func (mc *MockSMClient) CreateSecretError() {
+	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+		return nil, errors.New("something went wrong")
+	}
+}
+
+func (mc *MockSMClient) CreateSecretGetError() {
+	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+		mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+			return nil, errors.New("no, this broke")
+		}
+		return nil, nil
+	}
+}
+
+func (mc *MockSMClient) DefaultCreateSecret(wantedSecretID, wantedParent string) {
+	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+		if req.SecretId != wantedSecretID {
+			return nil, fmt.Errorf("create secret req wrong key: got %v want %v", req.SecretId, wantedSecretID)
+		}
+		if req.Parent != wantedParent {
+			return nil, fmt.Errorf("create secret req wrong parent: got %v want %v", req.Parent, wantedParent)
+		}
+		return &secretmanagerpb.Secret{
+			Name: fmt.Sprintf("%s/%s", req.Parent, req.SecretId),
+		}, nil
+	}
+}
+
+func (mc *MockSMClient) DefaultAddSecretVersion(wantedData, wantedParent, versionName string) {
+	mc.addSecretFn = func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+		if string(req.Payload.Data) != wantedData {
+			return nil, fmt.Errorf("add version req wrong data got: %v want %v ", req.Payload.Data, wantedData)
+		}
+		if req.Parent != wantedParent {
+			return nil, fmt.Errorf("add version req has wrong parent: got %v want %v", req.Parent, wantedParent)
+		}
+		return &secretmanagerpb.SecretVersion{
+			Name: versionName,
+		}, nil
+	}
+}
+
+func (mc *MockSMClient) DefaultAccessSecretVersion(wantedVersionName string) {
+	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		if req.Name != wantedVersionName {
+			return nil, fmt.Errorf("access req has wrong version name: got %v want %v", req.Name, wantedVersionName)
+		}
+		return &secretmanagerpb.AccessSecretVersionResponse{
+			Name:    req.Name,
+			Payload: &secretmanagerpb.SecretPayload{Data: []byte("bar")},
+		}, nil
+	}
+}
+
+func (mc *MockSMClient) AccessSecretVersionWithError(err error) {
+	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return nil, err
+	}
+}
+
+// TODO: func (mc...) DefaultAccessSecretVersion (similar to above)
 
 func (mc *MockSMClient) WithValue(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
 	if mc != nil {

@@ -24,6 +24,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
+	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -1399,3 +1400,75 @@ func TestValidateStore(t *testing.T) {
 		})
 	}
 }
+
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+func TestSetSecret(t *testing.T) {
+	path := "secret"
+
+	// Testing for when SetSecret returns an error
+	client1 := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: fake.Logical{
+			WriteWithContextFn: fake.NewWriteWithContextFn(nil, fmt.Errorf("error")),
+		},
+	}
+	ref := fakeRef{key: "I'm a key"}
+
+	err := client1.SetSecret(context.Background(), []byte("HI"), ref)
+
+	assert.Equal(t, err.Error(), "error")
+
+	// Testing for when SetSecret returns nil
+	client2 := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: fake.Logical{
+			WriteWithContextFn: fake.NewWriteWithContextFn(nil, nil),
+		},
+	}
+
+	err = client2.SetSecret(context.Background(), []byte("HI"), ref)
+
+	assert.Equal(t, err, nil)
+}
+
+func TestSetSecretUpdate(t *testing.T) {
+	path := "secret"
+	secretData := map[string]interface{}{
+		"data": map[string]interface{}{
+			"fake key": "fake value",
+		},
+	}
+	f := fake.Logical{
+		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+	}
+	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
+	client := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: f,
+	}
+	ref := fakeRef{key: "I'm a key"}
+
+	client.SetSecret(context.Background(), []byte("HI"), ref)
+	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
+	err := client.SetSecret(context.Background(), []byte("HI"), ref)
+
+	assert.Equal(t, err, "cannot push - secret already exists")
+}
+
+// Above test pushing same exact secret twice.
+// It will also
+// Next test pushing a secret then pushing again with same key and different value
+// Test if secret is managed by eso

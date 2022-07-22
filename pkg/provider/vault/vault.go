@@ -224,6 +224,11 @@ type connector struct {
 	newVaultClient func(c *vault.Config) (Client, error)
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (c *connector) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadWrite
+}
+
 func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to fetch tokens
@@ -355,9 +360,46 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-// Empty GetAllSecrets.
-// GetAllSecrets
-// First load all secrets from secretStore path configuration.
+func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	secretData := map[string]interface{}{
+		"data": map[string]interface{}{
+			remoteRef.GetRemoteKey(): string(value),
+		},
+	}
+
+	path := v.buildPath(remoteRef.GetRemoteKey())
+
+	// Retrieve the secret map from vault and convert the secret value in string form.
+	vaultSecret, err := v.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
+	vaultSecretValue := string(vaultSecret[remoteRef.GetRemoteKey()])
+	// Retrieve the secret value to be pushed and convert it to string form.
+	secretToPush := secretData["data"].(map[string]interface{})[remoteRef.GetRemoteKey()]
+	pushSecretValue := fmt.Sprintf("%v", secretToPush)
+
+	if vaultSecretValue == pushSecretValue {
+		return nil
+	}
+
+	// If error is nil this will error out
+	if err != nil {
+		stringError := err.Error()
+		if stringError == "secret not found" {
+			_, err = v.logical.WriteWithContext(ctx, path, secretData)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		_, err = v.logical.WriteWithContext(ctx, path, secretData)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
+// First load all secrets from secretStore path configuration
 // Then, gets secrets from a matching name or matching custom_metadata.
 func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if v.store.Version == esv1beta1.VaultKVStoreV1 {
