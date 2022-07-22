@@ -338,9 +338,3 @@ certController:
       # requests:
       #   cpu: 10m
       #   memory: 32Mi
-
-
-dnsOptions:
-  options:
-    - name: ndots
-      value: "1"
