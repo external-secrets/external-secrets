@@ -1455,8 +1455,8 @@ func TestSetSecretUpdate(t *testing.T) {
 			Path: &path,
 		},
 		logical: fake.Logical{
-			WriteWithContextFn:        fake.NewWriteWithContextFn(secretData, fmt.Errorf("error")),
-			ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretData, fmt.Errorf("error can't read data")),
+			WriteWithContextFn:        fake.NewWriteWithContextFn(secretData, nil),
+			ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretData, nil),
 		},
 	}
 	ref := fakeRef{key: "I'm a key"}
@@ -1468,10 +1468,11 @@ func TestSetSecretUpdate(t *testing.T) {
 }
 
 // Above test pushing same exact secret twice.
+// It will also
 // Next test pushing a secret then pushing again with same key and different value
 // Test if secret is managed by eso
 
-// // counterfeiter helper methods.
+// counterfeiter helper methods.
 // func newClient() *fakes.VaultClient {
 // 	return new(fakes.VaultClient)
 // }

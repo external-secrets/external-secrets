@@ -377,7 +377,7 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 	pushSecretValue := fmt.Sprintf("%v", secretToPush)
 
 	if vaultSecretValue == pushSecretValue {
-		return errors.New("cannot push - secret already exists")
+		return nil
 	}
 
 	// If error is nil this will error out
