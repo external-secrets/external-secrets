@@ -1449,18 +1449,20 @@ func TestSetSecretUpdate(t *testing.T) {
 			"fake key": "fake value",
 		},
 	}
+	f := fake.Logical{
+		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+	}
+	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
 	client := client{
 		store: &esv1beta1.VaultProvider{
 			Path: &path,
 		},
-		logical: fake.Logical{
-			WriteWithContextFn:        fake.NewWriteWithContextFn(secretData, nil),
-			ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretData, nil),
-		},
+		logical: f,
 	}
 	ref := fakeRef{key: "I'm a key"}
 
 	client.SetSecret(context.Background(), []byte("HI"), ref)
+	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
 	err := client.SetSecret(context.Background(), []byte("HI"), ref)
 
 	assert.Equal(t, err, "cannot push - secret already exists")
@@ -1470,8 +1472,3 @@ func TestSetSecretUpdate(t *testing.T) {
 // It will also
 // Next test pushing a secret then pushing again with same key and different value
 // Test if secret is managed by eso
-
-// counterfeiter helper methods.
-// func newClient() *fakes.VaultClient {
-// 	return new(fakes.VaultClient)
-// }

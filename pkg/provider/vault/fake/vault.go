@@ -57,6 +57,18 @@ func NewWriteWithContextFn(secret map[string]interface{}, err error) WriteWithCo
 	}
 }
 
+func WriteChangingReadContext(secret map[string]interface{}, l Logical) WriteWithContextFn {
+	v := &vault.Secret{
+		Data: secret,
+	}
+	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		l.ReadWithDataWithContextFn = func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+			return v, nil
+		}
+		return v, nil
+	}
+}
+
 func (f Logical) ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 	return f.ReadWithDataWithContextFn(ctx, path, data)
 }
