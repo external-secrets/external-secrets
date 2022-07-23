@@ -309,6 +309,7 @@ certController:
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
 
+
     ## -- Extra volumes to pass to pod.
   extraVolumes: []
 
@@ -338,3 +339,6 @@ certController:
       # requests:
       #   cpu: 10m
       #   memory: 32Mi
+
+# -- Specifies `dnsOptions` to deployment
+dnsConfig: {}
