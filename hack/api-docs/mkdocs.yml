@@ -46,6 +46,7 @@ nav:
     - Getting Multiple Secrets: guides-getallsecrets.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md
+    - Rewriting Keys: guides-datafrom-rewrite.md
     - Upgrading to v1beta1: guides-v1beta1.md
     - Using Latest Image: guides-using-latest-image.md
   - Provider:

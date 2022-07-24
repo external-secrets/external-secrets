@@ -335,3 +335,161 @@ func TestValidate(t *testing.T) {
 		t.Errorf("Connection problem: %v", err)
 	}
 }
+
+func TestRewriteRegexp(t *testing.T) {
+	type args struct {
+		operations []esv1beta1.ExternalSecretRewrite
+		in         map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "replace of a single key",
+			args: args{
+				operations: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "-",
+							Target: "_",
+						},
+					},
+				},
+				in: map[string][]byte{
+					"foo-bar": []byte("bar"),
+				},
+			},
+			want: map[string][]byte{
+				"foo_bar": []byte("bar"),
+			},
+		},
+		{
+			name: "no operation",
+			args: args{
+				operations: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "hello",
+							Target: "world",
+						},
+					},
+				},
+				in: map[string][]byte{
+					"foo": []byte("bar"),
+				},
+			},
+			want: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name: "removing prefix from keys",
+			args: args{
+				operations: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "^my/initial/path/",
+							Target: "",
+						},
+					},
+				},
+				in: map[string][]byte{
+					"my/initial/path/foo": []byte("bar"),
+				},
+			},
+			want: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name: "using un-named capture groups",
+			args: args{
+				operations: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "f(.*)o",
+							Target: "a_new_path_$1",
+						},
+					},
+				},
+				in: map[string][]byte{
+					"foo":      []byte("bar"),
+					"foodaloo": []byte("barr"),
+				},
+			},
+			want: map[string][]byte{
+				"a_new_path_o":      []byte("bar"),
+				"a_new_path_oodalo": []byte("barr"),
+			},
+		},
+		{
+			name: "using named and numbered capture groups",
+			args: args{
+				operations: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "f(?P<content>.*)o",
+							Target: "a_new_path_${content}_${1}",
+						},
+					},
+				},
+				in: map[string][]byte{
+					"foo":  []byte("bar"),
+					"floo": []byte("barr"),
+				},
+			},
+			want: map[string][]byte{
+				"a_new_path_o_o":   []byte("bar"),
+				"a_new_path_lo_lo": []byte("barr"),
+			},
+		},
+		{
+			name: "using sequenced rewrite operations",
+			args: args{
+				operations: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "my/(.*?)/bar/(.*)",
+							Target: "$1-$2",
+						},
+					},
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "-",
+							Target: "_",
+						},
+					},
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "ass",
+							Target: "***",
+						},
+					},
+				},
+				in: map[string][]byte{
+					"my/app/bar/key":      []byte("bar"),
+					"my/app/bar/password": []byte("barr"),
+				},
+			},
+			want: map[string][]byte{
+				"app_key":      []byte("bar"),
+				"app_p***word": []byte("barr"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := RewriteMap(tt.args.operations, tt.args.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RewriteMap() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RewriteMap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

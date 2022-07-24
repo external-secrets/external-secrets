@@ -41,6 +41,7 @@ var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
 		Entry(common.DataPropertyDockerconfigJSON(f)),
 		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry(common.JSONDataFromSync(f)),
+		Entry(common.JSONDataFromRewrite(f)),
 		Entry(FindByTag(f)),
 		Entry(FindByName(f)),
 
