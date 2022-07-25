@@ -1766,6 +1766,10 @@
 <h3 id="authentication">Authentication</h3>
 <p>We support Service Principals, Managed Identity and Workload Identity authentication.</p>
 <p>To use Managed Identity authentication, you should use <a href="https://azure.github.io/aad-pod-identity/docs/">aad-pod-identity</a> to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use <code>podLabels</code> in your values.yaml in case of Helm installation of external-secrets.</p>
+<p>Minimum required permissions are <code>Get</code> over secret and certificate permissions. This can be done by adding a Key Vault access policy:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">KUBELET_IDENTITY_OBJECT_ID</span><span class="o">=</span><span class="k">$(</span>az aks show --resource-group &lt;AKS_CLUSTER_RG_NAME&gt; --name &lt;AKS_CLUSTER_NAME&gt; --query <span class="s1">&#39;identityProfile.kubeletidentity.objectId&#39;</span> -o tsv<span class="k">)</span>
+az keyvault set-policy --name kv-name-with-certs --object-id <span class="s2">&quot;</span><span class="nv">$KUBELET_IDENTITY_OBJECT_ID</span><span class="s2">&quot;</span> --certificate-permissions get --secret-permissions get
+</code></pre></div>
 <h4 id="service-principal-key-authentication">Service Principal key authentication</h4>
 <p>A service Principal client and Secret is created and the JSON keyfile is stored in a <code>Kind=Secret</code>. The <code>ClientID</code> and <code>ClientSecret</code> should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator</p>
 <h4 id="managed-identity-authentication">Managed Identity authentication</h4>
@@ -1910,9 +1914,8 @@
 </table>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To create a kubernetes secret from the Azure Key vault secret a <code>Kind=ExternalSecret</code> is needed.</p>
-<p>You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name , the default type is a <code>secret</code>. other supported values are <code>cert</code> and <code>key</code></p>
-<p>to select all secrets inside the key vault or all tags inside a secret, you can use the <code>dataFrom</code> directive</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<p>You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name, the default type is a <code>secret</code>. Other supported values are <code>cert</code> and <code>key</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-external-secret</span><span class="w"></span>
@@ -1962,6 +1965,10 @@
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key/dev-key-test</span><span class="w"></span>
 </code></pre></div>
+<p>The operator will fetch the Azure Key vault secret and inject it as a <code>Kind=Secret</code>. Then the Kubernetes secret can be fetched by issuing:</p>
+<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; <span class="p">|</span> -o <span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.dev-secret-test}&#39;</span> <span class="p">|</span> base64 -d
+</code></pre></div>
+<p>To select all secrets inside the key vault or all tags inside a secret, you can use the <code>dataFrom</code> directive:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
@@ -1989,10 +1996,30 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span><span class="w"> </span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span><span class="w"></span>
 <span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w"></span>
-</code></pre></div></p>
-<p>The operator will fetch the Azure Key vault secret and inject it as a <code>Kind=Secret</code>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
-</code></pre></div></p>
+</code></pre></div>
+<p>To get a PKCS#12 certificate from Azure Key Vault and inject it as a <code>Kind=Secret</code> of type <code>kubernetes.io/tls</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mycert</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">24h</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv-mycert</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/tls</span><span class="w"></span>
+<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span><span class="w"></span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">tls.crt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mycert</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">b64dec</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12cert</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">tls.key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mycert</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">b64dec</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12key</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mycert</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Azure Key Vault certificates must be fetched as secret/cert-name</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret/mycert</span><span class="w"></span>
+</code></pre></div>
 
               
             </article>
