@@ -93,6 +93,10 @@ spec:
           volumeMounts:
           {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
           {{- end }}
+      {{- if .Values.dnsConfig }}
+      dnsConfig:
+          {{- toYaml .Values.dnsConfig | nindent 8 }}
+      {{- end }}
       {{- if .Values.extraVolumes }}
       volumes:
       {{- toYaml .Values.extraVolumes | nindent 8 }}
