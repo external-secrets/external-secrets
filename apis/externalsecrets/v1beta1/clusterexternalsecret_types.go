@@ -76,10 +76,14 @@ type ClusterExternalSecretStatus struct {
 	Conditions []ClusterExternalSecretStatusCondition `json:"conditions,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Cluster,categories={externalsecrets},shortName=ces
-//+kubebuilder:subresource:status
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Store",type=string,JSONPath=`.spec.secretStoreRef.name`
+// +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshInterval`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
 type ClusterExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`

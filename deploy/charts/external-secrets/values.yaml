@@ -53,6 +53,8 @@ serviceAccount:
   create: true
   # -- Annotations to add to the service account.
   annotations: {}
+  # -- Extra Labels to add to the service account.
+  extraLabels: {}
   # -- The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template.
   name: ""
@@ -135,7 +137,10 @@ podDisruptionBudget:
 webhook:
   # -- Specifies whether a webhook deployment be created.
   create: true
+  # -- Specifices the time to check if the cert is valid
   certCheckInterval: "5m"
+  # -- Specifices the lookaheadInterval for certificate validity
+  lookaheadInterval: ""
   replicaCount: 1
   certDir: /tmp/certs
   # -- specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
@@ -160,6 +165,8 @@ webhook:
     create: true
     # -- Annotations to add to the service account.
     annotations: {}
+    # -- Extra Labels to add to the service account.
+    extraLabels: {}
     # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template.
     name: ""
@@ -256,6 +263,8 @@ certController:
     create: true
     # -- Annotations to add to the service account.
     annotations: {}
+    # -- Extra Labels to add to the service account.
+    extraLabels: {}
     # -- The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template.
     name: ""
@@ -300,6 +309,7 @@ certController:
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
 
+
     ## -- Extra volumes to pass to pod.
   extraVolumes: []
 
@@ -329,3 +339,6 @@ certController:
       # requests:
       #   cpu: 10m
       #   memory: 32Mi
+
+# -- Specifies `dnsOptions` to deployment
+dnsConfig: {}

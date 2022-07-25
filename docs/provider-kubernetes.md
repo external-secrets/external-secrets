@@ -169,7 +169,6 @@ spec:
       auth:
         serviceAccount:
           name: "my-store"
-          namespace: "" # only ClusterSecretStore
       remoteNamespace: default
 ```
 
@@ -198,10 +197,8 @@ spec:
           clientCert:
             name: "tls-secret"
             key: "tls.crt"
-            namespace: "foobar" # only ClusterSecretStore
           clientKey:
             name: "tls-secret"
             key: "tls.key"
-            namespace: "foobar" # only ClusterSecretStore
       remoteNamespace: default
 ```

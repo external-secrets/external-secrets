@@ -305,7 +305,9 @@ or `Kind=ClusterSecretStore` resource.
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
-### Vault Enterprise and Eventual Consistency
+### Vault Enterprise
+
+#### Eventual Consistency and Performance Standby Nodes
 
 When using Vault Enterprise with [performance standby nodes](https://www.vaultproject.io/docs/enterprise/consistency#performance-standby-nodes),
 any follower can handle read requests immediately after the provider has
@@ -315,6 +317,27 @@ state.
 
 Below are two different solutions to this scenario. You'll need to review them
 and pick the best fit for your environment and Vault configuration.
+
+#### Vault Namespaces
+
+[Vault namespaces](https://www.vaultproject.io/docs/enterprise/namespaces) are an enterprise feature that support multi-tenancy. You can specify a vault namespace using the `namespace` property when you define a SecretStore:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      # See https://www.vaultproject.io/docs/enterprise/namespaces
+      namespace: "ns1"
+      path: "secret"
+      version: "v2"
+      auth:
+        # ...
+```
 
 #### Read Your Writes
 

@@ -25,6 +25,12 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
+const (
+	base64DecodedValue    string = "foo%_?bar"
+	base64EncodedValue    string = "Zm9vJV8/YmFy"
+	base64URLEncodedValue string = "Zm9vJV8_YmFy"
+)
+
 func TestObjectHash(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -226,6 +232,103 @@ func TestConvertKeys(t *testing.T) {
 	}
 }
 
+func TestDecode(t *testing.T) {
+	type args struct {
+		strategy esv1beta1.ExternalSecretDecodingStrategy
+		in       map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "base64 decoded",
+			args: args{
+				strategy: esv1beta1.ExternalSecretDecodeBase64,
+				in: map[string][]byte{
+					"foo": []byte("YmFy"),
+				},
+			},
+			want: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name: "invalid base64",
+			args: args{
+				strategy: esv1beta1.ExternalSecretDecodeBase64,
+				in: map[string][]byte{
+					"foo": []byte("foo"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "base64url decoded",
+			args: args{
+				strategy: esv1beta1.ExternalSecretDecodeBase64URL,
+				in: map[string][]byte{
+					"foo": []byte(base64URLEncodedValue),
+				},
+			},
+			want: map[string][]byte{
+				"foo": []byte(base64DecodedValue),
+			},
+		},
+		{
+			name: "invalid base64url",
+			args: args{
+				strategy: esv1beta1.ExternalSecretDecodeBase64URL,
+				in: map[string][]byte{
+					"foo": []byte("foo"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "none",
+			args: args{
+				strategy: esv1beta1.ExternalSecretDecodeNone,
+				in: map[string][]byte{
+					"foo": []byte(base64URLEncodedValue),
+				},
+			},
+			want: map[string][]byte{
+				"foo": []byte(base64URLEncodedValue),
+			},
+		},
+		{
+			name: "auto",
+			args: args{
+				strategy: esv1beta1.ExternalSecretDecodeAuto,
+				in: map[string][]byte{
+					"b64":        []byte(base64EncodedValue),
+					"invalidb64": []byte("foo"),
+					"b64url":     []byte(base64URLEncodedValue),
+				},
+			},
+			want: map[string][]byte{
+				"b64":        []byte(base64DecodedValue),
+				"invalidb64": []byte("foo"),
+				"b64url":     []byte(base64DecodedValue),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := DecodeMap(tt.args.strategy, tt.args.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DecodeMap() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("DecodeMap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 func TestValidate(t *testing.T) {
 	err := NetworkValidate("http://google.com", 10*time.Second)
 	if err != nil {

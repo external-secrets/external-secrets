@@ -2,6 +2,7 @@
 
 <!-- Add yourself here if you are using ESO in your company or your project! -->
 
+- [Amadeus](https://amadeus.com/)
 - [Container Solutions](http://container-solutions.com/)
 - [Epidemic Sound](https://www.epidemicsound.com/)
 - [Form3](https://www.form3.tech/)
@@ -14,7 +15,6 @@
 - [Pier Insurance](https://www.pier.digital/)
 - [Polarpoint](https://www.polarpoint.io/)
 - [Radio France](https://www.radiofrance.fr/)
-- [Amadeus](https://amadeus.com/)
 
 
 Countless others that can't disclose that information! :)

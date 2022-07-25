@@ -53,10 +53,10 @@ const (
 )
 
 // New constructs a ParameterStore Provider that is specific to a store.
-func New(sess *session.Session) (*ParameterStore, error) {
+func New(sess *session.Session, cfg *aws.Config) (*ParameterStore, error) {
 	return &ParameterStore{
 		sess:   sess,
-		client: ssm.New(sess),
+		client: ssm.New(sess, cfg),
 	}, nil
 }
 
