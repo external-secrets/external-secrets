@@ -11,6 +11,13 @@ We support Service Principals, Managed Identity and Workload Identity authentica
 
 To use Managed Identity authentication, you should use [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/) to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use `podLabels` in your values.yaml in case of Helm installation of external-secrets.
 
+Minimum required permissions are `Get` over secret and certificate permissions. This can be done by adding a Key Vault access policy:
+
+```sh
+KUBELET_IDENTITY_OBJECT_ID=$(az aks show --resource-group <AKS_CLUSTER_RG_NAME> --name <AKS_CLUSTER_NAME> --query 'identityProfile.kubeletidentity.objectId' -o tsv)
+az keyvault set-policy --name kv-name-with-certs --object-id "$KUBELET_IDENTITY_OBJECT_ID" --certificate-permissions get --secret-permissions get
+```
+
 #### Service Principal key authentication
 
 A service Principal client and Secret is created and the JSON keyfile is stored in a `Kind=Secret`. The `ClientID` and `ClientSecret` should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator
@@ -89,23 +96,30 @@ Azure KeyVault manages different [object types](https://docs.microsoft.com/en-us
 | `key`         | A JWK which contains the public key. Azure KeyVault does **not** export the private key. You may want to use [template functions](guides-templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
 | `certificate` | The raw CER contents of the x509 certificate. You may want to use [template functions](guides-templating.md) to transform this into your desired encoding                                                             |
 
-
 ### Creating external secret
 
 To create a kubernetes secret from the Azure Key vault secret a `Kind=ExternalSecret` is needed.
 
-You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name , the default type is a `secret`. other supported values are `cert` and `key`
-
-to select all secrets inside the key vault or all tags inside a secret, you can use the `dataFrom` directive
+You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name, the default type is a `secret`. Other supported values are `cert` and `key`.
 
 ```yaml
 {% include 'azkv-external-secret.yaml' %}
 ```
+
+The operator will fetch the Azure Key vault secret and inject it as a `Kind=Secret`. Then the Kubernetes secret can be fetched by issuing:
+
+```sh
+kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
+```
+
+To select all secrets inside the key vault or all tags inside a secret, you can use the `dataFrom` directive:
+
 ```yaml
 {% include 'azkv-datafrom-external-secret.yaml' %}
 ```
 
-The operator will fetch the Azure Key vault secret and inject it as a `Kind=Secret`
-```
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
+To get a PKCS#12 certificate from Azure Key Vault and inject it as a `Kind=Secret` of type `kubernetes.io/tls`:
+
+```yaml
+{% include 'azkv-pkcs12-cert-external-secret.yaml' %}
 ```
