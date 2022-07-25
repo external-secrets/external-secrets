@@ -241,6 +241,12 @@ func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore,
 	if err != nil {
 		return nil, err
 	}
+
+	// Setting a label to tag these secrets under ESO
+	label := make(map[string]string)
+	label["managed-by"] = "external-secrets"
+	store.SetLabels(label)
+
 	return c.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
