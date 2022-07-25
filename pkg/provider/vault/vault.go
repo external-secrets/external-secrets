@@ -242,11 +242,6 @@ func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore,
 		return nil, err
 	}
 
-	// Setting a label to tag these secrets under ESO
-	label := make(map[string]string)
-	label["managed-by"] = "external-secrets"
-	store.SetLabels(label)
-
 	return c.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
@@ -367,10 +362,12 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	secretData := map[string]interface{}{
-		"data": map[string]interface{}{
-			remoteRef.GetRemoteKey(): string(value),
-		},
+	label := make(map[string]string)
+	label["managed-by"] = "external-secrets"
+
+	secretRequest := vault.Secret{
+		Data: map[string]interface{}{remoteRef.GetRemoteKey(): string(value)},
+		Auth: &vault.SecretAuth{Metadata: label},
 	}
 
 	path := v.buildPath(remoteRef.GetRemoteKey())
@@ -379,8 +376,8 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 	vaultSecret, err := v.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
 	vaultSecretValue := string(vaultSecret[remoteRef.GetRemoteKey()])
 	// Retrieve the secret value to be pushed and convert it to string form.
-	secretToPush := secretData["data"].(map[string]interface{})[remoteRef.GetRemoteKey()]
-	pushSecretValue := fmt.Sprintf("%v", secretToPush)
+	secretToPush := secretRequest.Data
+	pushSecretValue := fmt.Sprintf("%v", secretToPush[remoteRef.GetRemoteKey()])
 
 	if vaultSecretValue == pushSecretValue {
 		return nil
@@ -390,17 +387,25 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 	if err != nil {
 		stringError := err.Error()
 		if stringError == "secret not found" {
-			_, err = v.logical.WriteWithContext(ctx, path, secretData)
+			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		_, err = v.logical.WriteWithContext(ctx, path, secretData)
+		_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
 		if err != nil {
 			return err
 		}
 	}
+
+	manager := secretRequest.Auth.Metadata
+	fmt.Println(manager["managed-by"])
+
+	if manager["managed-by"] != "external-secrets" {
+		return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
+	}
+
 	return nil
 }
 
