@@ -94,7 +94,7 @@ require (
 	software.sslmate.com/src/go-pkcs12 v0.0.0-20210415151418-c5206de65a78
 )
 
-require github.com/1Password/connect-sdk-go v1.4.0
+require github.com/1Password/connect-sdk-go v1.5.0
 
 require (
 	github.com/argoproj/argo-cd/v2 v2.4.6
