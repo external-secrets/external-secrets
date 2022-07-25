@@ -603,7 +603,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericSt
 		}
 		if containerAuthEndpoint == "" {
 			// API default path
-			containerAuthToken = "https://iam.cloud.ibm.com"
+			containerAuthEndpoint = "https://iam.cloud.ibm.com"
 		}
 
 		authenticator, err := core.NewContainerAuthenticatorBuilder().
