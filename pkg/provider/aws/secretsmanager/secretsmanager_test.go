@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
+	"gotest.tools/v3/assert"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
@@ -326,7 +327,11 @@ func (f fakeRef) GetRemoteKey() string {
 }
 
 func TestSetSecret(t *testing.T) {
-	sm := SecretsManager{}
+	sm := SecretsManager{
+		client: &fakesm.Client{},
+	}
 	ref := fakeRef{key: "I'm a key"}
-	sm.SetSecret(context.Background(), []byte("HI"), ref)
+	err := sm.SetSecret(context.Background(), []byte("HI"), ref)
+
+	assert.Equal(t, err, nil)
 }

@@ -17,6 +17,8 @@ package fake
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
 )
@@ -32,6 +34,14 @@ func NewClient() *Client {
 	return &Client{
 		valFn: make(map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)),
 	}
+}
+
+func (sm *Client) CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error) {
+	value := "I'm a key"
+	output := awssm.CreateSecretOutput {
+		Name: &value,
+	}
+	return &output, nil
 }
 
 func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {

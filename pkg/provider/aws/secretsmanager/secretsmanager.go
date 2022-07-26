@@ -107,7 +107,6 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 	return secretOut, nil
 }
 
-// Not Implemented SetSecret.
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	secretRequest := awssm.CreateSecretInput{
@@ -115,8 +114,8 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 		SecretBinary: value,
 	}
 
-	secretOutput, err := sm.client.CreateSecretWithContext(ctx, &secretRequest)
-	fmt.Println(secretOutput)
+	_, err := sm.client.CreateSecretWithContext(ctx, &secretRequest)
+
 	if err != nil {
 		return err
 	}
