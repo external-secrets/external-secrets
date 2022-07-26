@@ -1455,6 +1455,7 @@ func TestSetSecretEqualsPushSecret(t *testing.T) {
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 			"key": "fake value",
+
 		}, nil),
 	}
 	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
@@ -1508,7 +1509,35 @@ func TestSetSecretErrorReadingSecret(t *testing.T) {
 	assert.ErrorContains(t, err, "you shall not pass")
 }
 
-// Above test pushing same exact secret twice.
-// It will also
-// Next test pushing a secret then pushing again with same key and different value
 // Test if secret is managed by eso
+func TestSetSecretNotManagedByESO(t *testing.T) {
+	path := secretPath
+
+	f := fake.Logical{
+		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+			"key": "fake value",
+		}, nil),
+	}
+
+	f.WriteWithContextFn = fake.NewWriteWithContextFn(map[string]interface{}{
+		// how to add custom metadata to the secret
+		"data": map[string]interface{}{
+			"custom_metadata": map[string]string{
+				"managed-by": "not-external-secrets",
+			},
+		},
+	}, fmt.Errorf("secret not managed by external-secrets"))
+
+	client := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: f,
+	}
+	ref := fakeRef{key: "key"}
+
+	client.SetSecret(context.Background(), []byte("fake value"), ref)
+	_, err := client.readSecretMetadata(context.Background(), path)
+
+	assert.Equal(t, err.Error(), "secret not managed by external-secrets")
+}
