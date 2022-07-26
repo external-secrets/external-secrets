@@ -316,3 +316,17 @@ func ErrorContains(out error, want string) bool {
 	}
 	return strings.Contains(out.Error(), want)
 }
+
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+func TestSetSecret(t *testing.T) {
+	sm := SecretsManager{}
+	ref := fakeRef{key: "I'm a key"}
+	sm.SetSecret(context.Background(), []byte("HI"), ref)
+}

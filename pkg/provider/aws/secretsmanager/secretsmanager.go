@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/tidwall/gjson"
@@ -49,6 +50,7 @@ type SecretsManager struct {
 type SMInterface interface {
 	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error)
+	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
 }
 
 const (
@@ -107,7 +109,18 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 
 // Not Implemented SetSecret.
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	secretName := remoteRef.GetRemoteKey()
+	secretRequest := awssm.CreateSecretInput{
+		Name:         &secretName,
+		SecretBinary: value,
+	}
+
+	secretOutput, err := sm.client.CreateSecretWithContext(ctx, &secretRequest)
+	fmt.Println(secretOutput)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetAllSecrets syncs multiple secrets from aws provider into a single Kubernetes Secret.
