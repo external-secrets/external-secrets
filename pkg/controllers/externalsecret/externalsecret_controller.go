@@ -317,7 +317,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
-		_, err = ctrl.CreateOrUpdate(ctx, r.Client, secret, mutationFunc)
+		op, opErr := ctrl.CreateOrUpdate(ctx, r.Client, secret, mutationFunc)
+		err = opErr
+
+		if op == controllerutil.OperationResultCreated {
+			children := &v1.SecretList{}
+
+			err = r.Client.List(ctx, children,
+				client.InNamespace(externalSecret.Namespace),
+				client.MatchingLabels(map[string]string{
+					esv1beta1.AnnotationSecretOwner: externalSecret.Name,
+				}),
+			)
+
+			for _, secItem := range children.Items {
+				if secItem.Name != secret.Name {
+					err = r.Client.Delete(ctx, &secItem)
+				}
+				if err != nil {
+					break
+				}
+			}
+		}
 	}
 
 	if err != nil {

@@ -344,6 +344,8 @@ type ExternalSecret struct {
 const (
 	// AnnotationDataHash is used to ensure consistency.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
+	// AnnotationSecretOwner is used to prevent orphaned resources.
+	AnnotationSecretOwner = "reconcile.external-secrets.io/owner"
 )
 
 // +kubebuilder:object:root=true
