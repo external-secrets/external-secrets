@@ -311,33 +311,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	// nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
-	case esv1beta1.CreatePolicyMerge:
-		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 	case esv1beta1.CreatePolicyNone:
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
+	case esv1beta1.CreatePolicyMerge:
+		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 	default:
 		op, opErr := ctrl.CreateOrUpdate(ctx, r.Client, secret, mutationFunc)
 		err = opErr
 
-		if op == controllerutil.OperationResultCreated {
-			children := &v1.SecretList{}
-
-			err = r.Client.List(ctx, children,
-				client.InNamespace(externalSecret.Namespace),
-				client.MatchingLabels(map[string]string{
-					esv1beta1.AnnotationSecretOwner: externalSecret.Name,
-				}),
-			)
-
-			for _, secItem := range children.Items {
-				if secItem.Name != secret.Name {
-					err = r.Client.Delete(ctx, &secItem)
-				}
-				if err != nil {
-					break
-				}
-			}
+		if op == controllerutil.OperationResultCreated && isOrphanSecret(externalSecret, secret) {
+			err = r.Delete(ctx, &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      externalSecret.Status.CreatedSecretReference.Name,
+					Namespace: externalSecret.Status.CreatedSecretReference.Namespace,
+				},
+			})
 		}
 	}
 
@@ -356,6 +345,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
 	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
+	externalSecret.Status.CreatedSecretReference = &esv1beta1.NamespacedReference{
+		Namespace: secret.Namespace,
+		Name:      secret.Name,
+	}
 	syncCallsTotal.With(syncCallsMetricLabels).Inc()
 	if currCond == nil || currCond.Status != conditionSynced.Status {
 		log.Info("reconciled secret") // Log once if on success in any verbosity
@@ -366,6 +359,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{
 		RequeueAfter: refreshInt,
 	}, nil
+}
+
+func isOrphanSecret(externalSecret esv1beta1.ExternalSecret, newSecret *v1.Secret) bool {
+	secretRef := externalSecret.Status.CreatedSecretReference
+	if externalSecret.Status.CreatedSecretReference == nil || newSecret == nil {
+		return false
+	}
+	if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner {
+		return false
+	}
+
+	return secretRef.Name != newSecret.Name ||
+		secretRef.Namespace != newSecret.Namespace
 }
 
 func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, secret *v1.Secret, mutationFunc func() error, fieldOwner string) error {

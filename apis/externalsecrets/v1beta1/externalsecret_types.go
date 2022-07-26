@@ -311,6 +311,11 @@ const (
 	ReasonDeleted              = "Deleted"
 )
 
+type NamespacedReference struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+}
+
 type ExternalSecretStatus struct {
 	// +nullable
 	// refreshTime is the time and date the external secret was fetched and
@@ -319,6 +324,9 @@ type ExternalSecretStatus struct {
 
 	// SyncedResourceVersion keeps track of the last synced version
 	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
+
+	// CreatedSecretReference keeps track to the actual created reference
+	CreatedSecretReference *NamespacedReference `json:"createdSecretReference,omitempty"`
 
 	// +optional
 	Conditions []ExternalSecretStatusCondition `json:"conditions,omitempty"`
@@ -344,8 +352,6 @@ type ExternalSecret struct {
 const (
 	// AnnotationDataHash is used to ensure consistency.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
-	// AnnotationSecretOwner is used to prevent orphaned resources.
-	AnnotationSecretOwner = "reconcile.external-secrets.io/owner"
 )
 
 // +kubebuilder:object:root=true

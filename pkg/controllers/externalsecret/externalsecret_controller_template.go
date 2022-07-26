@@ -71,7 +71,6 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 		secret.Data = dataMap
 	}
 	secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
-	secret.Annotations[esv1beta1.AnnotationSecretOwner] = es.Name
 
 	return nil
 }
