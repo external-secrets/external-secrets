@@ -363,10 +363,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 func isOrphanSecret(externalSecret esv1beta1.ExternalSecret, newSecret *v1.Secret) bool {
 	secretRef := externalSecret.Status.CreatedSecretReference
-	if externalSecret.Status.CreatedSecretReference == nil || newSecret == nil {
-		return false
-	}
-	if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner {
+	if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner ||
+		externalSecret.Status.CreatedSecretReference == nil ||
+		newSecret == nil {
 		return false
 	}
 
