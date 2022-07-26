@@ -311,3 +311,7 @@ func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
 	}
 	return esv1beta1.ValidationResultReady, nil
 }
+
+func (sm *SecretsManager) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
