@@ -38,6 +38,7 @@ import (
 const (
 	tokenSecretName  = "example-secret-token"
 	secretDataString = "some-creds"
+	secretPath       = "secret"
 )
 
 var (
@@ -1409,11 +1410,8 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
-
-
-
 func TestSetSecretUpdateSecretNotFound(t *testing.T) {
-	path := "secret"
+	path := secretPath
 	secretData := map[string]interface{}{
 		"data": map[string]interface{}{
 			"fake key": "fake value",
@@ -1436,7 +1434,7 @@ func TestSetSecretUpdateSecretNotFound(t *testing.T) {
 }
 
 func TestSetSecretUpdateSecretNotFoundWithError(t *testing.T) {
-	path := "secret"
+	path := secretPath
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
 	}
@@ -1452,8 +1450,8 @@ func TestSetSecretUpdateSecretNotFoundWithError(t *testing.T) {
 	err := client.SetSecret(context.Background(), []byte("HI"), ref)
 	assert.Equal(t, err.Error(), "no permissions")
 }
-func TestSetSecretEqualsPushSecret(t *testing.T){
-	path := "secret"
+func TestSetSecretEqualsPushSecret(t *testing.T) {
+	path := secretPath
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 			"key": "fake value",
@@ -1470,12 +1468,11 @@ func TestSetSecretEqualsPushSecret(t *testing.T){
 
 	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
 
-
 	assert.Equal(t, err, nil)
 }
 
-func TestSetSecretEqualsPushSecretWithError(t *testing.T){
-	path := "secret"
+func TestSetSecretEqualsPushSecretWithError(t *testing.T) {
+	path := secretPath
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 			"key": "wrong-key",
@@ -1493,8 +1490,8 @@ func TestSetSecretEqualsPushSecretWithError(t *testing.T){
 	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
 	assert.Equal(t, err.Error(), "boom")
 }
-func TestSetSecretErrorReadingSecret(t *testing.T){
-	path := "secret"
+func TestSetSecretErrorReadingSecret(t *testing.T) {
+	path := secretPath
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("you shall not pass")),
 	}
@@ -1508,7 +1505,7 @@ func TestSetSecretErrorReadingSecret(t *testing.T){
 	ref := fakeRef{key: "key"}
 
 	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
-	assert.ErrorContains(t,err,"you shall not pass")
+	assert.ErrorContains(t, err, "you shall not pass")
 }
 
 // Above test pushing same exact secret twice.

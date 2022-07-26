@@ -362,30 +362,49 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	label := make(map[string]string)
-	label["managed-by"] = "external-secrets"
-	// remoteRef.GetRemoteKey() -> "foo"
-	secretRequest := vault.Secret{
-		Data: map[string]interface{}{remoteRef.GetRemoteKey(): string(value)},
-		Auth: &vault.SecretAuth{Metadata: label},
+	label := map[string]interface{}{
+		"custom_metadata": map[string]string{
+			"managed-by": "external-secrets",
+		},
 	}
-
+	secretToPush := map[string]interface{}{
+		"data": map[string]string{
+			remoteRef.GetRemoteKey(): string(value),
+		},
+	}
 	path := v.buildPath(remoteRef.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
 
 	// Retrieve the secret map from vault and convert the secret value in string form.
 	vaultSecret, err := v.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
 	vaultSecretValue := string(vaultSecret[remoteRef.GetRemoteKey()])
+	// If error is not of type secret not found, we should error
+	if err != nil && !strings.Contains(err.Error(), "secret not found") {
+		return err
+	}
+	// If the secret exists (err == nil), we should check if it is managed by external-secrets
+	if err == nil {
+		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+		if err != nil {
+			return err
+		}
+		manager, ok := metadata["managed-by"]
+		if !ok || manager != "external-secrets" {
+			return fmt.Errorf("secret not managed by external-secrets")
+		}
+	}
 
 	// Retrieve the secret value to be pushed and convert it to string form.
-	secretToPush := secretRequest.Data
 	pushSecretValue := string(value)
 
 	if vaultSecretValue == pushSecretValue {
 		return nil
 	}
-
-	// If error is not of type secret not found, we should error
-	if err != nil && !strings.Contains(err.Error(), "secret not found") {
+	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
+	if err != nil {
 		return err
 	}
 	// Otherwise, create or update the version.
