@@ -1771,7 +1771,23 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the IBM secrets manager.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
+                            containerAuth:
+                              description: IBM Container-based auth with IAM Trusted Profile.
+                              properties:
+                                iamEndpoint:
+                                  type: string
+                                profile:
+                                  description: the IBM Trusted Profile
+                                  type: string
+                                tokenLocation:
+                                  description: Location the token is mounted on the pod
+                                  type: string
+                              required:
+                                - profile
+                              type: object
                             secretRef:
                               properties:
                                 secretApiKeySecretRef:
@@ -1788,8 +1804,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                         serviceUrl:
                           description: ServiceURL is the Endpoint URL that is specific to the Secrets Manager service instance
@@ -4457,7 +4471,23 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the IBM secrets manager.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
+                            containerAuth:
+                              description: IBM Container-based auth with IAM Trusted Profile.
+                              properties:
+                                iamEndpoint:
+                                  type: string
+                                profile:
+                                  description: the IBM Trusted Profile
+                                  type: string
+                                tokenLocation:
+                                  description: Location the token is mounted on the pod
+                                  type: string
+                              required:
+                                - profile
+                              type: object
                             secretRef:
                               properties:
                                 secretApiKeySecretRef:
@@ -4474,8 +4504,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                         serviceUrl:
                           description: ServiceURL is the Endpoint URL that is specific to the Secrets Manager service instance
