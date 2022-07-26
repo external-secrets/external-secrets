@@ -364,7 +364,7 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	label := make(map[string]string)
 	label["managed-by"] = "external-secrets"
-
+	// remoteRef.GetRemoteKey() -> "foo"
 	secretRequest := vault.Secret{
 		Data: map[string]interface{}{remoteRef.GetRemoteKey(): string(value)},
 		Auth: &vault.SecretAuth{Metadata: label},
@@ -375,38 +375,22 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 	// Retrieve the secret map from vault and convert the secret value in string form.
 	vaultSecret, err := v.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
 	vaultSecretValue := string(vaultSecret[remoteRef.GetRemoteKey()])
+
 	// Retrieve the secret value to be pushed and convert it to string form.
 	secretToPush := secretRequest.Data
-	pushSecretValue := fmt.Sprintf("%v", secretToPush[remoteRef.GetRemoteKey()])
+	pushSecretValue := string(value)
 
 	if vaultSecretValue == pushSecretValue {
 		return nil
 	}
 
-	// If error is nil this will error out
-	if err != nil {
-		stringError := err.Error()
-		if stringError == "secret not found" {
-			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
-		if err != nil {
-			return err
-		}
+	// If error is not of type secret not found, we should error
+	if err != nil && !strings.Contains(err.Error(), "secret not found") {
+		return err
 	}
-
-	manager := secretRequest.Auth.Metadata
-	fmt.Println(manager["managed-by"])
-
-	if manager["managed-by"] != "external-secrets" {
-		return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
-	}
-
-	return nil
+	// Otherwise, create or update the version.
+	_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
+	return err
 }
 
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.

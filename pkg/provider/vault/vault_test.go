@@ -1409,64 +1409,107 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
-func TestSetSecret(t *testing.T) {
-	path := "secret"
 
-	// Testing for when SetSecret returns an error
-	client1 := client{
+
+
+func TestSetSecretUpdateSecretNotFound(t *testing.T) {
+	path := "secret"
+	secretData := map[string]interface{}{
+		"data": map[string]interface{}{
+			"fake key": "fake value",
+		},
+	}
+	f := fake.Logical{
+		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
+	}
+	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
+	client := client{
 		store: &esv1beta1.VaultProvider{
 			Path: &path,
 		},
-		logical: fake.Logical{
-			WriteWithContextFn: fake.NewWriteWithContextFn(nil, fmt.Errorf("error")),
-		},
+		logical: f,
 	}
 	ref := fakeRef{key: "I'm a key"}
 
-	err := client1.SetSecret(context.Background(), []byte("HI"), ref)
+	err := client.SetSecret(context.Background(), []byte("HI"), ref)
+	assert.Equal(t, err, nil)
+}
 
-	assert.Equal(t, err.Error(), "error")
-
-	// Testing for when SetSecret returns nil
-	client2 := client{
+func TestSetSecretUpdateSecretNotFoundWithError(t *testing.T) {
+	path := "secret"
+	f := fake.Logical{
+		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
+	}
+	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, fmt.Errorf("no permissions"))
+	client := client{
 		store: &esv1beta1.VaultProvider{
 			Path: &path,
 		},
-		logical: fake.Logical{
-			WriteWithContextFn: fake.NewWriteWithContextFn(nil, nil),
-		},
+		logical: f,
 	}
+	ref := fakeRef{key: "I'm a key"}
 
-	err = client2.SetSecret(context.Background(), []byte("HI"), ref)
+	err := client.SetSecret(context.Background(), []byte("HI"), ref)
+	assert.Equal(t, err.Error(), "no permissions")
+}
+func TestSetSecretEqualsPushSecret(t *testing.T){
+	path := "secret"
+	f := fake.Logical{
+		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+			"key": "fake value",
+		}, nil),
+	}
+	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
+	client := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: f,
+	}
+	ref := fakeRef{key: "key"}
+
+	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
+
 
 	assert.Equal(t, err, nil)
 }
 
-// func TestSetSecretUpdate(t *testing.T) {
-// 	path := "secret"
-// 	secretData := map[string]interface{}{
-// 		"data": map[string]interface{}{
-// 			"fake key": "fake value",
-// 		},
-// 	}
-// 	f := fake.Logical{
-// 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
-// 	}
-// 	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
-// 	client := client{
-// 		store: &esv1beta1.VaultProvider{
-// 			Path: &path,
-// 		},
-// 		logical: f,
-// 	}
-// 	ref := fakeRef{key: "I'm a key"}
+func TestSetSecretEqualsPushSecretWithError(t *testing.T){
+	path := "secret"
+	f := fake.Logical{
+		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+			"key": "wrong-key",
+		}, nil),
+	}
+	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, fmt.Errorf("boom"))
+	client := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: f,
+	}
+	ref := fakeRef{key: "key"}
 
-// 	client.SetSecret(context.Background(), []byte("HI"), ref)
-// 	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
-// 	err := client.SetSecret(context.Background(), []byte("HI"), ref)
+	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
+	assert.Equal(t, err.Error(), "boom")
+}
+func TestSetSecretErrorReadingSecret(t *testing.T){
+	path := "secret"
+	f := fake.Logical{
+		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("you shall not pass")),
+	}
+	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
+	client := client{
+		store: &esv1beta1.VaultProvider{
+			Path: &path,
+		},
+		logical: f,
+	}
+	ref := fakeRef{key: "key"}
 
-// 	assert.Equal(t, err, "cannot push - secret already exists")
-// }
+	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
+	assert.ErrorContains(t,err,"you shall not pass")
+}
 
 // Above test pushing same exact secret twice.
 // It will also
