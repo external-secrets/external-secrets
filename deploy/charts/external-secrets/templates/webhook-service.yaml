@@ -26,7 +26,7 @@ spec:
     protocol: TCP
     name: webhook
   {{- if or .Values.webhook.prometheus.enabled .Values.webhook.metrics.service.enabled }}
-  {{- if or .Values.webhook.prometheus.enabled }}
+  {{- if .Values.webhook.prometheus.enabled }}
   - port: {{ .Values.webhook.prometheus.service.port }}
     targetPort: {{ .Values.webhook.prometheus.service.port }}
   {{- else }}
