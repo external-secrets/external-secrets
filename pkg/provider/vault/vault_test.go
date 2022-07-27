@@ -1455,7 +1455,6 @@ func TestSetSecretEqualsPushSecret(t *testing.T) {
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 			"key": "fake value",
-
 		}, nil),
 	}
 	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
@@ -1509,7 +1508,7 @@ func TestSetSecretErrorReadingSecret(t *testing.T) {
 	assert.ErrorContains(t, err, "you shall not pass")
 }
 
-// Test if secret is managed by eso
+// Test if secret is managed by eso.
 func TestSetSecretNotManagedByESO(t *testing.T) {
 	path := secretPath
 
@@ -1520,7 +1519,6 @@ func TestSetSecretNotManagedByESO(t *testing.T) {
 	}
 
 	f.WriteWithContextFn = fake.NewWriteWithContextFn(map[string]interface{}{
-		// how to add custom metadata to the secret
 		"data": map[string]interface{}{
 			"custom_metadata": map[string]string{
 				"managed-by": "not-external-secrets",
