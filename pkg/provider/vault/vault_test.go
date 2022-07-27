@@ -1519,12 +1519,10 @@ func TestSetSecretNotManagedByESO(t *testing.T) {
 	}
 
 	f.WriteWithContextFn = fake.NewWriteWithContextFn(map[string]interface{}{
-		"data": map[string]interface{}{
-			"custom_metadata": map[string]string{
-				"managed-by": "not-external-secrets",
-			},
+		"custom_metadata": map[string]string{
+			"managed-by": "not-external-secrets",
 		},
-	}, fmt.Errorf("secret not managed by external-secrets"))
+	}, nil)
 
 	client := client{
 		store: &esv1beta1.VaultProvider{
@@ -1534,8 +1532,7 @@ func TestSetSecretNotManagedByESO(t *testing.T) {
 	}
 	ref := fakeRef{key: "key"}
 
-	client.SetSecret(context.Background(), []byte("fake value"), ref)
-	_, err := client.readSecretMetadata(context.Background(), path)
+	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
 
 	assert.Equal(t, err.Error(), "secret not managed by external-secrets")
 }
