@@ -1412,15 +1412,10 @@ func (f fakeRef) GetRemoteKey() string {
 
 func TestSetSecretUpdateSecretNotFound(t *testing.T) {
 	path := secretPath
-	secretData := map[string]interface{}{
-		"data": map[string]interface{}{
-			"fake key": "fake value",
-		},
-	}
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
 	}
-	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
+	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
 	client := client{
 		store: &esv1beta1.VaultProvider{
 			Path: &path,
@@ -1430,7 +1425,7 @@ func TestSetSecretUpdateSecretNotFound(t *testing.T) {
 	ref := fakeRef{key: "I'm a key"}
 
 	err := client.SetSecret(context.Background(), []byte("HI"), ref)
-	assert.Equal(t, err, nil)
+	assert.NilError(t, err)
 }
 
 func TestSetSecretUpdateSecretNotFoundWithError(t *testing.T) {
@@ -1448,13 +1443,16 @@ func TestSetSecretUpdateSecretNotFoundWithError(t *testing.T) {
 	ref := fakeRef{key: "I'm a key"}
 
 	err := client.SetSecret(context.Background(), []byte("HI"), ref)
-	assert.Equal(t, err.Error(), "no permissions")
+	assert.Error(t, err, "no permissions")
 }
 func TestSetSecretEqualsPushSecret(t *testing.T) {
 	path := secretPath
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 			"key": "fake value",
+			"custom_metadata": map[string]interface{}{
+				"managed-by": "external-secrets",
+			},
 		}, nil),
 	}
 	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
@@ -1468,7 +1466,7 @@ func TestSetSecretEqualsPushSecret(t *testing.T) {
 
 	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
 
-	assert.Equal(t, err, nil)
+	assert.NilError(t, err)
 }
 
 func TestSetSecretEqualsPushSecretWithError(t *testing.T) {
@@ -1476,6 +1474,9 @@ func TestSetSecretEqualsPushSecretWithError(t *testing.T) {
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 			"key": "wrong-key",
+			"custom_metadata": map[string]interface{}{
+				"managed-by": "external-secrets",
+			},
 		}, nil),
 	}
 	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, fmt.Errorf("boom"))
@@ -1488,7 +1489,7 @@ func TestSetSecretEqualsPushSecretWithError(t *testing.T) {
 	ref := fakeRef{key: "key"}
 
 	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
-	assert.Equal(t, err.Error(), "boom")
+	assert.Error(t, err, "boom")
 }
 func TestSetSecretErrorReadingSecret(t *testing.T) {
 	path := secretPath
@@ -1515,14 +1516,13 @@ func TestSetSecretNotManagedByESO(t *testing.T) {
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 			"key": "fake value",
+			"custom_metadata": map[string]interface{}{
+				"managed-by": "not-external-secrets",
+			},
 		}, nil),
 	}
 
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(map[string]interface{}{
-		"custom_metadata": map[string]string{
-			"managed-by": "not-external-secrets",
-		},
-	}, nil)
+	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
 
 	client := client{
 		store: &esv1beta1.VaultProvider{
@@ -1534,5 +1534,5 @@ func TestSetSecretNotManagedByESO(t *testing.T) {
 
 	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
 
-	assert.Equal(t, err.Error(), "secret not managed by external-secrets")
+	assert.Error(t, err, "secret not managed by external-secrets")
 }
