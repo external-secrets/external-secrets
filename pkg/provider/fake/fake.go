@@ -29,7 +29,6 @@ var (
 	errMissingFakeProvider = fmt.Errorf("missing store provider fake")
 	errMissingKeyField     = "key must be set in data %v"
 	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
-	errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
 )
 
 type Provider struct {
@@ -86,6 +85,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 		if data.Key != ref.Key || data.Version != ref.Version || data.ValueMap == nil {
 			continue
 		}
+		return convertMap(data.ValueMap), nil
 	}
 	return nil, esv1beta1.NoSecretErr
 }
