@@ -107,6 +107,34 @@ type SecretStoreProvider struct {
 	Senhasegura *SenhaseguraProvider `json:"senhasegura,omitempty"`
 }
 
+type CAProviderType string
+
+const (
+	CAProviderTypeSecret    CAProviderType = "Secret"
+	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
+)
+
+// Used to provide custom certificate authority (CA) certificates
+// for a secret store. The CAProvider points to a Secret or ConfigMap resource
+// that contains a PEM-encoded certificate.
+type CAProvider struct {
+	// The type of provider to use such as "Secret", or "ConfigMap".
+	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
+	Type CAProviderType `json:"type"`
+
+	// The name of the object located at the provider type.
+	Name string `json:"name"`
+
+	// The key where the CA certificate can be found in the Secret or ConfigMap.
+	// +kubebuilder:validation:Optional
+	Key string `json:"key,omitempty"`
+
+	// The namespace the Provider type is in.
+	// Can only be defined when used in a ClusterSecretStore.
+	// +optional
+	Namespace *string `json:"namespace,omitempty"`
+}
+
 type SecretStoreRetrySettings struct {
 	MaxRetries    *int32  `json:"maxRetries,omitempty"`
 	RetryInterval *string `json:"retryInterval,omitempty"`
