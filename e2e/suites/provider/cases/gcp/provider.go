@@ -72,6 +72,7 @@ func NewGCPProvider(f *framework.Framework, credentials, projectID string,
 
 	BeforeEach(func() {
 		prov.CreateSAKeyStore(f.Namespace.Name)
+		prov.CreateReferentKeyStore()
 		prov.CreateSpecifcSASecretStore(f.Namespace.Name)
 		prov.CreatePodIDStore(f.Namespace.Name)
 	})
@@ -163,6 +164,21 @@ func makeStore(s *GcpProvider) *esv1beta1.SecretStore {
 	}
 }
 
+func makeClusterStore(s *GcpProvider) *esv1beta1.ClusterSecretStore {
+	return &esv1beta1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("referent-%v", s.framework.Namespace.Name),
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Controller: s.controllerClass,
+			Provider: &esv1beta1.SecretStoreProvider{
+				GCPSM: &esv1beta1.GCPSMProvider{
+					ProjectID: s.projectID,
+				},
+			},
+		},
+	}
+}
 func (s *GcpProvider) CreateSAKeyStore(ns string) {
 	gcpCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -179,6 +195,34 @@ func (s *GcpProvider) CreateSAKeyStore(ns string) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 	secretStore := makeStore(s)
+	secretStore.Spec.Provider.GCPSM.Auth = esv1beta1.GCPSMAuth{
+		SecretRef: &esv1beta1.GCPSMAuthSecretRef{
+			SecretAccessKey: esmeta.SecretKeySelector{
+				Name: staticCredentialsSecretName,
+				Key:  "secret-access-credentials",
+			},
+		},
+	}
+	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *GcpProvider) CreateReferentKeyStore() {
+	gcpCreds := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      staticCredentialsSecretName,
+			Namespace: s.framework.Namespace.Name,
+		},
+		StringData: map[string]string{
+			"secret-access-credentials": s.credentials,
+		},
+	}
+	err := s.framework.CRClient.Create(context.Background(), gcpCreds)
+	if err != nil {
+		err = s.framework.CRClient.Update(context.Background(), gcpCreds)
+		Expect(err).ToNot(HaveOccurred())
+	}
+	secretStore := makeClusterStore(s)
 	secretStore.Spec.Provider.GCPSM.Auth = esv1beta1.GCPSMAuth{
 		SecretRef: &esv1beta1.GCPSMAuthSecretRef{
 			SecretAccessKey: esmeta.SecretKeySelector{

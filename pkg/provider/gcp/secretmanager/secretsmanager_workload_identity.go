@@ -107,12 +107,11 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.Gene
 		Namespace: namespace,
 	}
 
-	// only ClusterStore is allowed to set namespace (and then it's required)
+	// only ClusterStore is allowed to set namespace. If not provided, use the referent.
 	if storeKind == esv1beta1.ClusterSecretStoreKind {
-		if wi.ServiceAccountRef.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingSANamespace)
+		if wi.ServiceAccountRef.Namespace != nil {
+			saKey.Namespace = *wi.ServiceAccountRef.Namespace
 		}
-		saKey.Namespace = *wi.ServiceAccountRef.Namespace
 	}
 
 	clusterProjectID, err := clusterProjectID(spec)

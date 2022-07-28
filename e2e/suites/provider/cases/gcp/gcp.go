@@ -29,12 +29,34 @@ import (
 	"github.com/external-secrets/external-secrets/e2e/suites/provider/cases/common"
 )
 
+const (
+	withReferent = "using referent Cluster Secret Store"
+)
+
 // This test uses the global ESO.
 var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 	f := framework.New("eso-gcp")
 	prov := NewFromEnv(f, "")
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
+		// using referent cluster secret store
+		framework.Compose(withReferent, f, common.SimpleDataSync, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.JSONDataWithProperty, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.JSONDataFromSync, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.NestedJSONWithGJSON, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.JSONDataWithTemplate, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.DockerJSONConfig, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.DataPropertyDockerconfigJSON, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.SSHKeySync, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.SSHKeySyncDataProperty, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.SyncWithoutTargetName, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.JSONDataWithoutTargetName, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.FindByName, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.FindByNameWithPath, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.FindByTag, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.FindByTagWithPath, useReferentKeyStore),
+		framework.Compose(withReferent, f, common.SyncV1Alpha1, useReferentKeyStore),
+		// using simple secret store
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataFromSync(f)),
@@ -54,6 +76,11 @@ var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 		Entry("should sync p12 encoded cert secret", p12Cert),
 	)
 })
+
+func useReferentKeyStore(f *framework.TestCase) {
+	f.ExternalSecret.Spec.SecretStoreRef.Kind = "ClusterSecretStore"
+	f.ExternalSecret.Spec.SecretStoreRef.Name = fmt.Sprintf("referent-%v", f.ExternalSecret.Namespace)
+}
 
 // P12Cert case creates a secret with a p12 cert containing a privkey and cert bundled together.
 // It uses templating to generate a k8s secret of type tls with pem values.

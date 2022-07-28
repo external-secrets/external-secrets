@@ -41,21 +41,19 @@ import (
 )
 
 const (
-	CloudPlatformRole                         = "https://www.googleapis.com/auth/cloud-platform"
-	defaultVersion                            = "latest"
-	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
-	errUnableGetCredentials                   = "unable to get credentials: %w"
-	errClientClose                            = "unable to close SecretManager client: %w"
-	errMissingStoreSpec                       = "invalid: missing store spec"
-	errInvalidClusterStoreMissingSAKNamespace = "invalid ClusterSecretStore: missing GCP SecretAccessKey Namespace"
-	errInvalidClusterStoreMissingSANamespace  = "invalid ClusterSecretStore: missing GCP Service Account Namespace"
-	errFetchSAKSecret                         = "could not fetch SecretAccessKey secret: %w"
-	errMissingSAK                             = "missing SecretAccessKey"
-	errUnableProcessJSONCredentials           = "failed to process the provided JSON credentials: %w"
-	errUnableCreateGCPSMClient                = "failed to create GCP secretmanager client: %w"
-	errUninitalizedGCPProvider                = "provider GCP is not initialized"
-	errClientGetSecretAccess                  = "unable to access Secret from SecretManager Client: %w"
-	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
+	CloudPlatformRole               = "https://www.googleapis.com/auth/cloud-platform"
+	defaultVersion                  = "latest"
+	errGCPSMStore                   = "received invalid GCPSM SecretStore resource"
+	errUnableGetCredentials         = "unable to get credentials: %w"
+	errClientClose                  = "unable to close SecretManager client: %w"
+	errMissingStoreSpec             = "invalid: missing store spec"
+	errFetchSAKSecret               = "could not fetch SecretAccessKey secret: %w"
+	errMissingSAK                   = "missing SecretAccessKey"
+	errUnableProcessJSONCredentials = "failed to process the provided JSON credentials: %w"
+	errUnableCreateGCPSMClient      = "failed to create GCP secretmanager client: %w"
+	errUninitalizedGCPProvider      = "provider GCP is not initialized"
+	errClientGetSecretAccess        = "unable to access Secret from SecretManager Client: %w"
+	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
 
 	errInvalidStore           = "invalid store"
 	errInvalidStoreSpec       = "invalid store spec"
@@ -137,11 +135,9 @@ func serviceAccountTokenSource(ctx context.Context, store esv1beta1.GenericStore
 		Namespace: namespace,
 	}
 
-	// only ClusterStore is allowed to set namespace (and then it's required)
+	// only ClusterStore is allowed to set namespace. If none provided, use the referent.
 	if storeKind == esv1beta1.ClusterSecretStoreKind {
-		if credentialsSecretName != "" && sr.SecretAccessKey.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
-		} else if credentialsSecretName != "" {
+		if sr.SecretAccessKey.Namespace != nil {
 			objectKey.Namespace = *sr.SecretAccessKey.Namespace
 		}
 	}
@@ -191,7 +187,10 @@ func (sm *ProviderGCP) NewClient(ctx context.Context, store esv1beta1.GenericSto
 	}()
 
 	sm.projectID = cliStore.store.ProjectID
-
+	// if reconciling a ClusterSecretStore with referent configuration, don't generate credentials.
+	if sm.gClient.storeKind == esv1beta1.ClusterSecretStoreKind && isReferent(sm.gClient.store) && namespace == "" {
+		return sm, nil
+	}
 	ts, err := cliStore.getTokenSource(ctx, store, kube, namespace)
 	if err != nil {
 		useMu.Unlock()
@@ -443,12 +442,12 @@ func (sm *ProviderGCP) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errInvalidGCPProv)
 	}
 	if p.Auth.SecretRef != nil {
-		if err := utils.ValidateSecretSelector(store, p.Auth.SecretRef.SecretAccessKey); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, p.Auth.SecretRef.SecretAccessKey); err != nil {
 			return fmt.Errorf(errInvalidAuthSecretRef, err)
 		}
 	}
 	if p.Auth.WorkloadIdentity != nil {
-		if err := utils.ValidateServiceAccountSelector(store, p.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
+		if err := utils.ValidateReferentServiceAccountSelector(store, p.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
 			return fmt.Errorf(errInvalidWISARef, err)
 		}
 	}
@@ -459,4 +458,14 @@ func init() {
 	esv1beta1.Register(&ProviderGCP{}, &esv1beta1.SecretStoreProvider{
 		GCPSM: &esv1beta1.GCPSMProvider{},
 	})
+}
+
+func isReferent(spec *esv1beta1.GCPSMProvider) bool {
+	if spec.Auth.SecretRef != nil && spec.Auth.SecretRef.SecretAccessKey.Namespace == nil {
+		return true
+	}
+	if spec.Auth.WorkloadIdentity != nil && spec.Auth.WorkloadIdentity.ServiceAccountRef.Namespace == nil {
+		return true
+	}
+	return false
 }

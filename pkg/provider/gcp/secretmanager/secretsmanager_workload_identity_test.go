@@ -88,8 +88,9 @@ func TestWorkloadIdentity(t *testing.T) {
 			}),
 		),
 		composeTestcase(
-			defaultTestCase("invalid ClusterSecretStore: missing service account namespace"),
-			expErr("invalid ClusterSecretStore: missing GCP Service Account Namespace"),
+			defaultTestCase("Referent ClusterSecretStore: missing service account namespace points to default bind"),
+			expTokenSource(),
+			expectToken(defaultIDBindToken),
 			withStore(
 				composeStore(defaultClusterStore()),
 			),
@@ -236,12 +237,6 @@ func expectToken(token string) testCaseMutator {
 		tc.expToken = &oauth2.Token{
 			AccessToken: token,
 		}
-	}
-}
-
-func expErr(err string) testCaseMutator {
-	return func(tc *workloadIdentityTest) {
-		tc.expErr = err
 	}
 }
 
