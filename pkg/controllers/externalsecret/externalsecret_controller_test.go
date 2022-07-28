@@ -1223,7 +1223,9 @@ var _ = Describe("ExternalSecret controller", func() {
 
 	checkOrphanSecretsDeletion := func(tc *testCase) {
 		const secretVal = "someValue"
+		const newSecretName = "new-test-secret"
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Minute * 10}
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyOwner
 		tc.externalSecret.Status.CreatedSecretReference = &esv1beta1.NamespacedReference{
@@ -1235,22 +1237,24 @@ var _ = Describe("ExternalSecret controller", func() {
 			cleanEs := tc.externalSecret.DeepCopy()
 
 			// now update ExternalSecret
-			tc.externalSecret.Spec.Target.Name = "newName"
-			Expect(k8sClient.Patch(context.Background(), tc.externalSecret, client.MergeFrom(cleanEs))).To(Succeed())
+			es.Spec.Target.Name = newSecretName
+			Expect(k8sClient.Patch(context.Background(), es, client.MergeFrom(cleanEs))).To(Succeed())
 
 			// wait for secret
-			sec := &v1.Secret{}
+			var orphanSecret *v1.Secret
+			var createdSecret *v1.Secret
+
 			orphanSecretLookupKey := types.NamespacedName{
 				Name:      ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
 			}
 			createdSecretLookupKey := types.NamespacedName{
-				Name:      "newName",
+				Name:      newSecretName,
 				Namespace: ExternalSecretNamespace,
 			}
 			Eventually(func() bool {
-				createdSecretError := k8sClient.Get(context.Background(), createdSecretLookupKey, sec)
-				orphanSecretError := k8sClient.Get(context.Background(), orphanSecretLookupKey, sec)
+				orphanSecretError := k8sClient.Get(context.Background(), orphanSecretLookupKey, orphanSecret)
+				createdSecretError := k8sClient.Get(context.Background(), createdSecretLookupKey, createdSecret)
 
 				// ensure previously existing secret has been deleted and new has been created
 				return apierrors.IsNotFound(orphanSecretError) &&
@@ -1301,6 +1305,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				tc.checkSecret(createdES, syncedSecret)
 			}
 		},
+		Entry("should not keep orphan secrets when creationPolicy=Owner", checkOrphanSecretsDeletion),
 		Entry("should recreate deleted secret", checkDeletion),
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
@@ -1332,7 +1337,6 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should eventually delete target secret with deletionPolicy=Delete", deleteSecretPolicy),
 		Entry("should not delete target secret with deletionPolicy=Retain", deleteSecretPolicyRetain),
 		Entry("should not delete pre-existing secret with deletionPolicy=Merge", deleteSecretPolicyMerge),
-		Entry("should not keep orphan secrets when creationPolicy=Owner", checkOrphanSecretsDeletion),
 	)
 })
 
