@@ -1386,6 +1386,9 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+        - jsonPath: .status.capabilities
+          name: Capabilities
+          type: string
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
@@ -4223,6 +4226,7 @@ spec:
           type: string
         - jsonPath: .status.capabilities
           name: Capabilities
+          type: string
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
