@@ -3,6 +3,7 @@ repo_url: https://github.com/external-secrets/external-secrets
 repo_name: External Secrets Operator
 site_dir: ../../site
 docs_dir: ../../docs
+edit_uri: ./edit/main/docs/
 remote_branch: gh-pages
 theme:
   name: material
