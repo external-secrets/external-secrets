@@ -1410,41 +1410,6 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
-func TestSetSecretUpdateSecretNotFound(t *testing.T) {
-	path := secretPath
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
-	}
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "I'm a key"}
-
-	err := client.SetSecret(context.Background(), []byte("HI"), ref)
-	assert.NilError(t, err)
-}
-
-func TestSetSecretUpdateSecretNotFoundWithError(t *testing.T) {
-	path := secretPath
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
-	}
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, fmt.Errorf("no permissions"))
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "I'm a key"}
-
-	err := client.SetSecret(context.Background(), []byte("HI"), ref)
-	assert.Error(t, err, "no permissions")
-}
 func TestSetSecretEqualsPushSecret(t *testing.T) {
 	path := secretPath
 	f := fake.Logical{
@@ -1535,9 +1500,7 @@ func TestSetSecretNotManagedByESO(t *testing.T) {
 func TestSetSecret(t *testing.T) {
 	type args struct {
 		store    *esv1beta1.VaultProvider
-		kube     kclient.Client
 		vLogical Logical
-		ns       string
 	}
 
 	type want struct {
@@ -1551,18 +1514,30 @@ func TestSetSecret(t *testing.T) {
 		want   want
 	}{
 		"SetSecret": {
-			reason: "secret is successfully set.",
+			reason: "secret is successfully set, with no existing vault secret",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{},
-					}, nil),
-					WriteWithContextFn: fake.NewWriteWithContextFn(nil, nil),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, nil),
 				},
 			},
 			want: want{
 				err: nil,
+			},
+		},
+
+		"SetSecretWithWriteError": {
+			reason: "secret cannot be pushed if write fails",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, fmt.Errorf("no permission to write")),
+				},
+			},
+			want: want{
+				err: errors.New("no permission to write"),
 			},
 		},
 	}
@@ -1571,10 +1546,8 @@ func TestSetSecret(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ref := fakeRef{key: "fake-key2"}
 			client := &client{
-				kube:      tc.args.kube,
-				logical:   tc.args.vLogical,
-				store:     tc.args.store,
-				namespace: tc.args.ns,
+				logical: tc.args.vLogical,
+				store:   tc.args.store,
 			}
 			err := client.SetSecret(context.Background(), []byte("fake-value2"), ref)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {

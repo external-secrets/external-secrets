@@ -394,7 +394,7 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 	}
 
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
-	if err == nil && vaultSecretValue != "" {
+	if err == nil {
 		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
 		if err != nil {
 			return err
