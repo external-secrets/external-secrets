@@ -1455,7 +1455,6 @@ func TestSetSecretEqualsPushSecret(t *testing.T) {
 			},
 		}, nil),
 	}
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
 	client := client{
 		store: &esv1beta1.VaultProvider{
 			Path: &path,
@@ -1496,7 +1495,6 @@ func TestSetSecretErrorReadingSecret(t *testing.T) {
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("you shall not pass")),
 	}
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
 	client := client{
 		store: &esv1beta1.VaultProvider{
 			Path: &path,
@@ -1512,7 +1510,6 @@ func TestSetSecretErrorReadingSecret(t *testing.T) {
 // Test if secret is managed by eso.
 func TestSetSecretNotManagedByESO(t *testing.T) {
 	path := secretPath
-
 	f := fake.Logical{
 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 			"key": "fake value",
@@ -1521,8 +1518,6 @@ func TestSetSecretNotManagedByESO(t *testing.T) {
 			},
 		}, nil),
 	}
-
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
 
 	client := client{
 		store: &esv1beta1.VaultProvider{
@@ -1535,4 +1530,63 @@ func TestSetSecretNotManagedByESO(t *testing.T) {
 	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
 
 	assert.Error(t, err, "secret not managed by external-secrets")
+}
+
+func TestSetSecret(t *testing.T) {
+	type args struct {
+		store    *esv1beta1.VaultProvider
+		kube     kclient.Client
+		vLogical Logical
+		ns       string
+	}
+
+	type want struct {
+		err error
+		val map[string][]byte
+	}
+
+	tests := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"SetSecret": {
+			reason: "secret is succesfully set.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": map[string]string{
+							"random key": "random value",
+						},
+					}, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+	}
+
+	// (map[string]interface{}{
+	// 	"key": "fake value",
+	// 	"custom_metadata": map[string]interface{}{
+	// 		"managed-by": "not-external-secrets",
+	// 	},
+	// }, nil),
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "I'm a key"}
+			client := &client{
+				kube:      tc.args.kube,
+				logical:   tc.args.vLogical,
+				store:     tc.args.store,
+				namespace: tc.args.ns,
+			}
+			if err := client.SetSecret(context.Background(), []byte("fake value"), ref); err != tc.want.err {
+				t.Errorf("client.SetSecret() error = %v, wantErr %v", err, tc.want.err)
+			}
+		})
+	}
 }
