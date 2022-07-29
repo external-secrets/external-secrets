@@ -1556,13 +1556,9 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
-							"fake-key": "fake-value",
-							"custom_metadata": map[string]interface{}{ //Needs to have data for key
-								"managed-by": "external-secrets",
-							},
-						},
+						"data": map[string]interface{}{},
 					}, nil),
+					WriteWithContextFn: fake.NewWriteWithContextFn(nil, nil),
 				},
 			},
 			want: want{
