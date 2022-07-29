@@ -46,6 +46,7 @@ var (
 	setupLog                              = ctrl.Log.WithName("setup")
 	dnsName                               string
 	certDir                               string
+	conversionWebhookDebug                bool
 	metricsAddr                           string
 	healthzAddr                           string
 	controllerClass                       string

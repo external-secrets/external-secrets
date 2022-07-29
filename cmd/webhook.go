@@ -136,6 +136,10 @@ var webhookCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if conversionWebhookDebug {
+			esv1alpha1.EnableWebhookDebug()
+		}
+
 		setupLog.Info("starting manager")
 		if err := mgr.Start(ctx); err != nil {
 			setupLog.Error(err, "problem running manager")
@@ -177,4 +181,5 @@ func init() {
 	webhookCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	webhookCmd.Flags().DurationVar(&certCheckInterval, "check-interval", 5*time.Minute, "certificate check interval")
 	webhookCmd.Flags().DurationVar(&certLookaheadInterval, "lookahead-interval", crds.LookaheadInterval, "certificate check interval")
+	webhookCmd.Flags().BoolVar(&conversionWebhookDebug, "experimental-conversion-webhook-debug", false, "dumps requests and responses in the conversion webhook")
 }

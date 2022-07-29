@@ -23,6 +23,7 @@ import (
 )
 
 func (c *SecretStore) ConvertTo(betaRaw conversion.Hub) error {
+	logDebug("v1alpha1/convertTo input", c)
 	beta := betaRaw.(*esv1beta1.SecretStore)
 	tmp := &esv1beta1.SecretStore{}
 	alphajson, err := json.Marshal(c)
@@ -36,10 +37,12 @@ func (c *SecretStore) ConvertTo(betaRaw conversion.Hub) error {
 	beta.Spec = tmp.Spec
 	beta.ObjectMeta = tmp.ObjectMeta
 	beta.Status = tmp.Status
+	logDebug("v1alpha1/convertTo output", beta)
 	return nil
 }
 
 func (c *SecretStore) ConvertFrom(betaRaw conversion.Hub) error {
+	logDebug("v1alpha1/convertFrom input", betaRaw)
 	beta := betaRaw.(*esv1beta1.SecretStore)
 	tmp := &SecretStore{}
 	betajson, err := json.Marshal(beta)
@@ -53,10 +56,12 @@ func (c *SecretStore) ConvertFrom(betaRaw conversion.Hub) error {
 	c.Spec = tmp.Spec
 	c.ObjectMeta = tmp.ObjectMeta
 	c.Status = tmp.Status
+	logDebug("v1alpha1/convertFrom output", betaRaw)
 	return nil
 }
 
 func (c *ClusterSecretStore) ConvertTo(betaRaw conversion.Hub) error {
+	logDebug("v1alpha1/convertTo input", c)
 	beta := betaRaw.(*esv1beta1.ClusterSecretStore)
 	tmp := &esv1beta1.ClusterSecretStore{}
 	alphajson, err := json.Marshal(c)
@@ -70,10 +75,12 @@ func (c *ClusterSecretStore) ConvertTo(betaRaw conversion.Hub) error {
 	beta.Spec = tmp.Spec
 	beta.ObjectMeta = tmp.ObjectMeta
 	beta.Status = tmp.Status
+	logDebug("v1alpha1/convertTo output", beta)
 	return nil
 }
 
 func (c *ClusterSecretStore) ConvertFrom(betaRaw conversion.Hub) error {
+	logDebug("v1alpha1/convertFrom input", betaRaw)
 	beta := betaRaw.(*esv1beta1.ClusterSecretStore)
 	tmp := &ClusterSecretStore{}
 	betajson, err := json.Marshal(beta)
@@ -87,5 +94,6 @@ func (c *ClusterSecretStore) ConvertFrom(betaRaw conversion.Hub) error {
 	c.Spec = tmp.Spec
 	c.ObjectMeta = tmp.ObjectMeta
 	c.Status = tmp.Status
+	logDebug("v1alpha1/convertFrom output", c)
 	return nil
 }

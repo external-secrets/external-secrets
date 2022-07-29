@@ -23,6 +23,7 @@ import (
 )
 
 func (alpha *ExternalSecret) ConvertTo(betaRaw conversion.Hub) error {
+	logDebug("v1alpha1/convertTo input", alpha)
 	beta := betaRaw.(*esv1beta1.ExternalSecret)
 	// Actual converted code that needs to be like this
 	v1beta1DataFrom := make([]esv1beta1.ExternalSecretDataFromRemoteRef, 0)
@@ -71,10 +72,12 @@ func (alpha *ExternalSecret) ConvertTo(betaRaw conversion.Hub) error {
 		return err
 	}
 	beta.Status = status
+	logDebug("v1alpha1/convertTo output", beta)
 	return nil
 }
 
 func (alpha *ExternalSecret) ConvertFrom(betaRaw conversion.Hub) error {
+	logDebug("v1alpha1/convertFrom", betaRaw)
 	beta := betaRaw.(*esv1beta1.ExternalSecret)
 	v1alpha1DataFrom := make([]ExternalSecretDataRemoteRef, 0)
 	for _, v1beta1RemoteRef := range beta.Spec.DataFrom {
@@ -125,5 +128,6 @@ func (alpha *ExternalSecret) ConvertFrom(betaRaw conversion.Hub) error {
 		return err
 	}
 	alpha.Status = status
+	logDebug("v1alpha1/convertFrom", alpha)
 	return nil
 }
