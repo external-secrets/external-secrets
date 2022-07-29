@@ -1484,7 +1484,7 @@ func TestSetSecret(t *testing.T) {
 		err error
 		// val map[string][]byte
 	}
-
+	noPermission := "no permission to write"
 	tests := map[string]struct {
 		reason string
 		args   args
@@ -1534,7 +1534,47 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		// "SetSecretEqualPushSecretWithError": {
+		// 	reason: "vault secret kv equals secret to push kv with write error",
+		// 	args: args{
+		// 		store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+		// 		vLogical: &fake.Logical{
+		// 			WriteWithContextFn: fake.NewWriteWithContextFn(nil, fmt.Errorf(noPermission)),
+		// 			ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+		// 				"data": map[string]interface{}{
+		// 					"fake-key": "fake-value",
+		// 				},
+		// 			}, nil),
+		// 		},
+		// 	},
+		// 	want: want{
+		// 		err: errors.New(noPermission),
+		// 	},
+		// },
 	}
+
+	// func TestSetSecretEqualsPushSecretWithError(t *testing.T) {
+	// 	path := secretPath
+	// 	f := fake.Logical{
+	// 		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+	// 			"key": "wrong-key",
+	// 			"custom_metadata": map[string]interface{}{
+	// 				"managed-by": "external-secrets",
+	// 			},
+	// 		}, nil),
+	// 	}
+	// 	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, fmt.Errorf("boom"))
+	// 	client := client{
+	// 		store: &esv1beta1.VaultProvider{
+	// 			Path: &path,
+	// 		},
+	// 		logical: f,
+	// 	}
+	// 	ref := fakeRef{key: "key"}
+
+	// 	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
+	// 	assert.Error(t, err, "boom")
+	// }
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
