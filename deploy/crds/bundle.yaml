@@ -1657,6 +1657,18 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    conjur:
+                      description: Conjur configures this store to sync secrets using conjur provider
+                      properties:
+                        serviceAccount:
+                          type: string
+                        serviceApiKey:
+                          type: string
+                        serviceUrl:
+                          type: string
+                        serviceUser:
+                          type: string
+                      type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
                       properties:
@@ -4356,6 +4368,18 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    conjur:
+                      description: Conjur configures this store to sync secrets using conjur provider
+                      properties:
+                        serviceAccount:
+                          type: string
+                        serviceApiKey:
+                          type: string
+                        serviceUrl:
+                          type: string
+                        serviceUser:
+                          type: string
                       type: object
                     fake:
                       description: Fake configures a store with static key/value pairs

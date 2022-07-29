@@ -52,6 +52,7 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1673
 	github.com/aws/aws-sdk-go v1.44.52
 	github.com/crossplane/crossplane-runtime v0.16.0
+	github.com/cyberark/conjur-api-go v0.10.1
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2
@@ -128,6 +129,7 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bombsimon/logrusr/v2 v2.0.1 // indirect
 	github.com/bradleyfalzon/ghinstallation/v2 v2.0.4 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect

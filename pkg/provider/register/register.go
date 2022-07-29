@@ -33,4 +33,5 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/webhook"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/conjur"
 )

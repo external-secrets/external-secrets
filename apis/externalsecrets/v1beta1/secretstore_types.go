@@ -105,6 +105,11 @@ type SecretStoreProvider struct {
 	// Senhasegura configures this store to sync secrets using senhasegura provider
 	// +optional
 	Senhasegura *SenhaseguraProvider `json:"senhasegura,omitempty"`
+
+	// Conjur configures this store to sync secrets using conjur provider
+	// +optional
+	Conjur *ConjurProvider `json:"conjur,omitempty"`
+
 }
 
 type CAProviderType string
