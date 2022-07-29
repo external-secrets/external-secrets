@@ -1542,7 +1542,7 @@ func TestSetSecret(t *testing.T) {
 
 	type want struct {
 		err error
-		val map[string][]byte
+		// val map[string][]byte
 	}
 
 	tests := map[string]struct {
@@ -1551,7 +1551,7 @@ func TestSetSecret(t *testing.T) {
 		want   want
 	}{
 		"SetSecret": {
-			reason: "secret is succesfully set.",
+			reason: "secret is successfully set.",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
@@ -1584,8 +1584,9 @@ func TestSetSecret(t *testing.T) {
 				store:     tc.args.store,
 				namespace: tc.args.ns,
 			}
-			if err := client.SetSecret(context.Background(), []byte("fake value"), ref); err != tc.want.err {
-				t.Errorf("client.SetSecret() error = %v, wantErr %v", err, tc.want.err)
+			err := client.SetSecret(context.Background(), []byte("fake value"), ref)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\nName: %v\n Reason: %s\n Want error: %v\n Got error: %s", name, tc.reason, tc.want.err, diff)
 			}
 		})
 	}
