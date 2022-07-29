@@ -1556,8 +1556,11 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]string{
-							"random key": "random value",
+						"data": map[string]interface{}{
+							"fake-key": "fake-value",
+							"custom_metadata": map[string]interface{}{ //Needs to have data for key
+								"managed-by": "external-secrets",
+							},
 						},
 					}, nil),
 				},
@@ -1568,25 +1571,18 @@ func TestSetSecret(t *testing.T) {
 		},
 	}
 
-	// (map[string]interface{}{
-	// 	"key": "fake value",
-	// 	"custom_metadata": map[string]interface{}{
-	// 		"managed-by": "not-external-secrets",
-	// 	},
-	// }, nil),
-
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "I'm a key"}
+			ref := fakeRef{key: "fake-key2"}
 			client := &client{
 				kube:      tc.args.kube,
 				logical:   tc.args.vLogical,
 				store:     tc.args.store,
 				namespace: tc.args.ns,
 			}
-			err := client.SetSecret(context.Background(), []byte("fake value"), ref)
+			err := client.SetSecret(context.Background(), []byte("fake-value2"), ref)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-				t.Errorf("\nName: %v\n Reason: %s\n Want error: %v\n Got error: %s", name, tc.reason, tc.want.err, diff)
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
 			}
 		})
 	}

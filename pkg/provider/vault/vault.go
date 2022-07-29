@@ -385,8 +385,16 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 	if err != nil && !strings.Contains(err.Error(), "secret not found") {
 		return err
 	}
+
+	// Retrieve the secret value to be pushed and convert it to string form.
+	pushSecretValue := string(value)
+
+	if vaultSecretValue == pushSecretValue {
+		return nil
+	}
+
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
-	if err == nil {
+	if err == nil && vaultSecretValue != "" {
 		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
 		if err != nil {
 			return err
@@ -395,13 +403,6 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 		if !ok || manager != "external-secrets" {
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
-	}
-
-	// Retrieve the secret value to be pushed and convert it to string form.
-	pushSecretValue := string(value)
-
-	if vaultSecretValue == pushSecretValue {
-		return nil
 	}
 	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
 	if err != nil {
