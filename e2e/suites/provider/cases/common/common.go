@@ -21,6 +21,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -654,6 +655,48 @@ func DecodingPolicySync(f *framework.Framework) (string, func(*framework.TestCas
 					DecodingStrategy: esv1beta1.ExternalSecretDecodeNone,
 				},
 			},
+		}
+	}
+}
+
+func CollectingOrphanSecrets(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should delete orphaned secrets with Owner creation policy", func(tc *framework.TestCase) {
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "foo")
+		secretValue := "value"
+
+		tc.Secrets = map[string]framework.SecretEntry{
+			secretKey1: {Value: secretValue},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				secretKey1: []byte(secretValue),
+			},
+		}
+
+		tc.ExternalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyOwner
+		tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
+			{
+				SecretKey: secretKey1,
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+					Key: secretKey1,
+				},
+			},
+		}
+
+		tc.AfterSync = func(prov framework.SecretStoreProvider, secret *v1.Secret) {
+			cleanEs := tc.ExternalSecret.DeepCopy()
+
+			// now update ExternalSecret
+			tc.ExternalSecret.Spec.Target.Name = fmt.Sprintf("%s-%s", f.Namespace.Name, "foo")
+			gomega.Expect(f.CRClient.
+				Patch(context.Background(), tc.ExternalSecret, client.MergeFrom(cleanEs)),
+			).To(gomega.Succeed())
+
+			gomega.Eventually(func() bool {
+				_, err := f.KubeClientSet.CoreV1().Secrets(f.Namespace.Name).Get(context.Background(), secret.Name, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, time.Minute, time.Second*5).Should(gomega.BeTrue())
 		}
 	}
 }

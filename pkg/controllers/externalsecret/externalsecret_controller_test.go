@@ -1221,48 +1221,6 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
-	checkOrphanSecretsDeletion := func(tc *testCase) {
-		const secretVal = "someValue"
-		const newSecretName = "new-test-secret"
-		fakeProvider.WithGetSecret([]byte(secretVal), nil)
-
-		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Minute * 10}
-		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyOwner
-		tc.externalSecret.Status.CreatedSecretReference = &esv1beta1.NamespacedReference{
-			Namespace: ExternalSecretTargetSecretName,
-			Name:      ExternalSecretNamespace,
-		}
-
-		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-			cleanEs := tc.externalSecret.DeepCopy()
-
-			// now update ExternalSecret
-			es.Spec.Target.Name = newSecretName
-			Expect(k8sClient.Patch(context.Background(), es, client.MergeFrom(cleanEs))).To(Succeed())
-
-			// wait for secret
-			var orphanSecret *v1.Secret
-			var createdSecret *v1.Secret
-
-			orphanSecretLookupKey := types.NamespacedName{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-			}
-			createdSecretLookupKey := types.NamespacedName{
-				Name:      newSecretName,
-				Namespace: ExternalSecretNamespace,
-			}
-			Eventually(func() bool {
-				orphanSecretError := k8sClient.Get(context.Background(), orphanSecretLookupKey, orphanSecret)
-				createdSecretError := k8sClient.Get(context.Background(), createdSecretLookupKey, createdSecret)
-
-				// ensure previously existing secret has been deleted and new has been created
-				return apierrors.IsNotFound(orphanSecretError) &&
-					createdSecretError == nil
-			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
-		}
-	}
-
 	DescribeTable("When reconciling an ExternalSecret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestcase()
@@ -1305,7 +1263,6 @@ var _ = Describe("ExternalSecret controller", func() {
 				tc.checkSecret(createdES, syncedSecret)
 			}
 		},
-		Entry("should not keep orphan secrets when creationPolicy=Owner", checkOrphanSecretsDeletion),
 		Entry("should recreate deleted secret", checkDeletion),
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
