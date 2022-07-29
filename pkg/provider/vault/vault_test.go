@@ -1410,29 +1410,6 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
-func TestSetSecretEqualsPushSecret(t *testing.T) {
-	path := secretPath
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-			"key": "fake value",
-			"custom_metadata": map[string]interface{}{
-				"managed-by": "external-secrets",
-			},
-		}, nil),
-	}
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "key"}
-
-	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
-
-	assert.NilError(t, err)
-}
-
 func TestSetSecretEqualsPushSecretWithError(t *testing.T) {
 	path := secretPath
 	f := fake.Logical{
@@ -1540,16 +1517,33 @@ func TestSetSecret(t *testing.T) {
 				err: errors.New("no permission to write"),
 			},
 		},
+
+		"SetSecretEqualsPushSecret": {
+			reason: "vault secret kv equals secret to push kv",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": map[string]interface{}{
+							"fake-key": "fake-value",
+						},
+					}, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "fake-key2"}
+			ref := fakeRef{key: "fake-key"}
 			client := &client{
 				logical: tc.args.vLogical,
 				store:   tc.args.store,
 			}
-			err := client.SetSecret(context.Background(), []byte("fake-value2"), ref)
+			err := client.SetSecret(context.Background(), []byte("fake-value"), ref)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
 			}
