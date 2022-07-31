@@ -85,15 +85,24 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 		if data.Key != ref.Key || data.Version != ref.Version || data.ValueMap == nil {
 			continue
 		}
-		return convertMap(data.ValueMap), nil
+
+		return convertToSecretMap(data.ValueMap, ref.Property), nil
 	}
 	return nil, esv1beta1.NoSecretErr
 }
 
-func convertMap(in map[string]string) map[string][]byte {
+func convertToSecretMap(in map[string]string, property string) map[string][]byte {
 	m := make(map[string][]byte)
 	for k, v := range in {
-		m[k] = []byte(v)
+		if property == "" {
+			m[k] = []byte(v)
+			continue
+		}
+
+		result := gjson.Get(v, property)
+		if result.Exists() {
+			m[k] = []byte(result.String())
+		}
 	}
 	return m
 }

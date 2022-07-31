@@ -220,6 +220,33 @@ func TestGetSecretMap(t *testing.T) {
 				"baz": []byte("bang"),
 			},
 		},
+		{
+			name: "get correct value with property",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key: "junk",
+					ValueMap: map[string]string{
+						"junk": "ok",
+					},
+				},
+				{
+					Key: "/foo",
+					ValueMap: map[string]string{
+						"foo": `{"p1":"foo1","p2":"foo2"}`,
+						"bar": "bang",
+						"baz": `{"p1":"baz1","p2":"baz2"}`,
+					},
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "/foo",
+				Property: "p2",
+			},
+			expValue: map[string][]byte{
+				"foo": []byte("foo2"),
+				"baz": []byte("baz2"),
+			},
+		},
 	}
 
 	for _, row := range tbl {
