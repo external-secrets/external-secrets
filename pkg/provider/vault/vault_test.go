@@ -1428,6 +1428,9 @@ func TestSetSecretErrorReadingSecret(t *testing.T) {
 }
 
 func TestSetSecret(t *testing.T) {
+	noPermission := errors.New("no permission")
+	secretNotFound := errors.New("secret not found")
+
 	type args struct {
 		store    *esv1beta1.VaultProvider
 		vLogical Logical
@@ -1435,7 +1438,6 @@ func TestSetSecret(t *testing.T) {
 
 	type want struct {
 		err error
-		// val map[string][]byte
 	}
 	tests := map[string]struct {
 		reason string
@@ -1447,7 +1449,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, secretNotFound),
 					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, nil),
 				},
 			},
@@ -1461,12 +1463,12 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
-					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, fmt.Errorf("no permission to write")),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, secretNotFound),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, noPermission),
 				},
 			},
 			want: want{
-				err: errors.New("no permission to write"),
+				err: noPermission,
 			},
 		},
 
@@ -1487,18 +1489,18 @@ func TestSetSecret(t *testing.T) {
 			},
 		},
 
-		// "SetSecretErrorReadingSecret": {
-		// 	reason: "vault secret kv equals secret to push kv",
-		// 	args: args{
-		// 		store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
-		// 		vLogical: &fake.Logical{
-		// 			ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("")),
-		// 		},
-		// 	},
-		// 	want: want{
-		// 		err: errors.New("cannot read secret data from Vault: "),
-		// 	},
-		// },
+		"SetSecretErrorReadingSecret": {
+			reason: "error occurs if secret cannot be read",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errReadSecret, noPermission),
+			},
+		},
 
 		"SetSecretNotManagedByESO": {
 			reason: "a secret not managed by ESO cannot be updated",
@@ -1529,13 +1531,6 @@ func TestSetSecret(t *testing.T) {
 				store:   tc.args.store,
 			}
 			err := client.SetSecret(context.Background(), []byte("fake-value"), ref)
-			// if !errors.Is(err, tc.want.err) {
-			//     unwrapped := errors.Unwrap(err)
-
-			// 	if diff := cmp.Diff(tc.want.err, unwrapped, test.EquateErrors()); diff != "" {
-			//     	t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
-			// 	}
-			// }
 
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
