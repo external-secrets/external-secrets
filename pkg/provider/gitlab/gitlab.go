@@ -27,7 +27,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/e2e/framework/log"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -146,7 +145,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 	// Create a new Gitlab client using credentials and options
 	gitlabClient, err := gitlab.NewClient(string(cliStore.credentials), opts...)
 	if err != nil {
-		log.Logf("Failed to create client: %v", err)
+		return nil, err
 	}
 
 	g.client = gitlabClient.ProjectVariables

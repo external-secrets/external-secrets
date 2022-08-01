@@ -26,11 +26,13 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 )
 
@@ -172,6 +174,7 @@ type args struct {
 	newClientFunc func(c *vault.Config) (Client, error)
 	store         esv1beta1.GenericStore
 	kube          kclient.Client
+	corev1        typedcorev1.CoreV1Interface
 	ns            string
 }
 
@@ -227,13 +230,12 @@ func kubeMockWithSecretTokenAndServiceAcc(obj kclient.Object) error {
 
 func TestNewVault(t *testing.T) {
 	errBoom := errors.New("boom")
-	secretClientKey := []byte(`-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEArfZ4HV1obFVlVNiA24tX/UOakqRnEtWXpIvaOsMaPGvvODgGe4XnyJGO32idPv85sIr7vDH9p+OhactVlJV1fu5SZoZ7pg4jTCLqVDCb3IRD++yik2Sw58YayNe3HiaCTsJQWeMXLzfaqOeyk6bEpBCJo09+3QxUWxijgJ7YZCb+Gi8pf3ZWeSZG+rGNNvXHmTs1Yu1H849SYXu+uJOd/R3ZSTw8CxFe4eTLgbCnPf6tgA8Sg2hc+CAZxunPP2JLZWbiJXxjNRoypso6MAJ1FRkx5sTJiLg6UoLvd95/S/lCVOR2PDlM1hg7ox8VEd4QHky7tLx7gji/5hHQKJQSTwIDAQABAoIBAQCYPICQ8hVX+MNcpLrfZenycR7sBYNOMC0silbH5cUn6yzFfgHuRxi3pOnrCJnTb3cE0BvMbdMVAVdYReD2znSsR9NEdZvvjZ/GGSgH1SIQsI7t//+mDQ/jRLJb4KsXb4vJcLLwdpLrd22bMmhMXjzndrF8gSz8NLX9omozPM8RlLxjzPzYOdlX/Zw8V68qQH2Ic04KbtnCwyAUIgAJxYtn/uYB8lzILBkyzQqwhQKkDDZQ0wbZT0hP6z+HgsdifwQvHG1GZAgCuzzyXrL/4TgDaDhYdMVoBA4+HPmzqm5MkBvjH4oqroxjRofUroVix0OGXZJMI1OJ0z/ubzmwCq5BAoGBANqbwzAydUJs0P+GFL94K/Y6tXULKA2c9N0crbxoxheobRpuJvhpW1ZE/9UGpaYX1Rw3nW4x+Jwvt83YkgHAlR4LgEwDvdJPZobybfqifQDiraUO0t62Crn8mSxOsFCugtRIFniwnX67w3uKxiSdCZYbJGs9JEDTpxRG/PSWq3QlAoGBAMu3zOv1PJAhOky7VcxFxWQPEMY+t2PA/sneD01/qgGuhlTwL4QlpywmBqXcI070dcvcBkP0flnWI7y5cnuE1+55twmsrvfaS8s1+AYje0b35DsaF2vtKuJrXC0AGKP+/eiycd9cbvVW2GWOxE7Ui76Mj95MARK8ZNjt0wJagQhjAoGASm9dD80uhhadN1RFPkjB1054OMk6sx/tdFhug8e9I5MSyzwUguME2aQW5EcmIh7dToVVUo8rUqsgz7NdS8FyRM+vuLJRcQneJDbp4bxwCdwlOh2JCZI8psVutlp4yJATNgrxs9iXV+7BChDflNnvyK+nP+iKrpQiwNHHEdU3vg0CgYEAvEpwD4+loJn1psJn9NxwK6F5IaMKIhtZ4/9pKXpcCh3jb1JouL2MnFOxRVAJGor87aW57Mlol2RDt8W4OM56PqMlOL3xIokUEQka66GT6e5pdu8QwuJ9BrWwhq9WFw4yZQe6FHb836qbbJLegvYVC9QjjZW2UDjtBUwcAkrghH0CgYBUMmMOCwIfMEtMaWxZRGdxRabazLhn7TXhBpVTuv7WouPaXYd7ZGjCTMKAuVa/E4afBlxgemnqBuX90gHpK/dDmn9l+lp8GZey0grJ7G0x5HEMiKziaX5PrgAcKbQ70m9ZNZ1deYhsC05X8rHNexZB6ns7Yms9L7qnlAy51ZH2zw==
------END RSA PRIVATE KEY-----`)
+	secretClientKey := []byte(`-----BEGIN PRIVATE KEY-----
+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
+-----END PRIVATE KEY-----`)
 	clientCrt := []byte(`-----BEGIN CERTIFICATE-----
-MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZhdWx0LWNhMB4XDTIxMDcyMDA4MTQxM1oXDTIyMDcyMDA4MTQxM1owFzEVMBMGA1UEAwwMdmF1bHQtY2xpZW50MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArfZ4HV1obFVlVNiA24tX/UOakqRnEtWXpIvaOsMaPGvvODgGe4XnyJGO32idPv85sIr7vDH9p+OhactVlJV1fu5SZoZ7pg4jTCLqVDCb3IRD++yik2Sw58YayNe3HiaCTsJQWeMXLzfaqOeyk6bEpBCJo09+3QxUWxijgJ7YZCb+Gi8pf3ZWeSZG+rGNNvXHmTs1Yu1H849SYXu+uJOd/R3ZSTw8CxFe4eTLgbCnPf6tgA8Sg2hc+CAZxunPP2JLZWbiJXxjNRoypso6MAJ1FRkx5sTJiLg6UoLvd95/S/lCVOR2PDlM1hg7ox8VEd4QHky7tLx7gji/5hHQKJQSTwIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQAsDYKtzScIA7bqIOmqF8rr+oLSjRhPt5OfT+KGNdXk8G3VAy1ED2tyCHaRNC7dPLq4EvcxbIXQnXPy1iZMofriGbFPAcQ2fyWUesAD6bYSpI+bYxwz6Ebb93hU5nc/FyXg8yh0kgiGbY3MrACPjxqP2+z5kcOC3u3hx3SZylgW7TeOXDTdqSbNfH1b+1rR/bVNgQQshjhU9d+c4Yv/t0u07uykBhHLWZDSnYiAeOZ8+mWuOSDkcZHE1zznx74fWgtN0zRDtr0L0w9evT9R2CnNSZGxXcEQxAlQ7SL/Jyw82TFCGEw0L4jj7jjvx0N5J8KX/DulUDE9vuVyQEJ88Epe
------END CERTIFICATE-----
-`)
+MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDERMA8GA1UEAwwIdmF1bHQtY2EwHhcNMjIwNzI5MjEyMjE4WhcNMzkwMTAxMjEyMjE4WjBYMQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMREwDwYDVQQDDAh2YXVsdC1jYTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKLhwbYLEd6M5dpZbReuLg9tbK5qKe6sJm5Qs8sLSMmwkXTOSrvvw7smV5bOHtCGpUEooiFbos1RVL22YYd8cLu59oev1i1p3NWSIPNAq0DQKBxyj3wJ9ftvOfmlmf/J+dtE39pPLFPnffkMWEdzT8UImfZD/kf1S1fotHcffNtP0ijfZPQHo4BQooH/e7PEAQIXDBIrxSoZR57wkoYGtTXRdEAwbE5zUE5ZikIdZlEfYVEYiBL5vBgc5dSM+/oUfurH7AIzOXGp30sa+JzYKkUTQGISw4siJj+oSqjO93Zo4tWEE+NP/0tNe9FnBf+oDuHhgiyerk3yU3jK2vJvXc3191FWDKZXKQaRoCaHnMDgMiDjxQtbM590/BFDWRWrZNGaPciVwmw2foyAclNtGq8J0kzIDn0VRkL35Ad8LfTuxXZpY+hVPC5TIPek4W7grQtX44ohVDw5M6oClucv104tXHjAVVgTfaVMLi1F3FRTwwqI8ShPX0D5ssw+tkeepcIhHMvDB97AgKBM1g24MdX3c6aokrghdwXxQbTS/6lHD66apc3E2STTHeCt9fnDSwEZlvK6iNgedBDHrBl9SXeYTMnbOWYIHX/YYq1efq0gOZHHN4nZuBopOMb+4K/04a2nVUuafdv/eoL6F7h+/+UaH/N3+LkkxWAxcz0w9GVZAgMBAAGjUzBRMB0GA1UdDgQWBBQuIVwmjMZvkq+jf6ViTelH5KDBVDAfBgNVHSMEGDAWgBQuIVwmjMZvkq+jf6ViTelH5KDBVDAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQAk4kNyFzmiKnREmi5PPj7xGAtv2aJIdMEfcZJ9e+H0Nb2aCvMvZsDodduXu6G5+1opd45v0AeTjLBkXDO6/8vnyM32VZEEKCAwMCLcOLD1z0+r+gaurDYMOGU5qr8hQadHKFsxEDYnR/9KdHhBg6A8qE2cOQa1ryu34DnWQ3m0CBApClf1YBRp/4T8BmHumfH6odD96H30HVzINrd9WM2hR9GRE3xqQyfwlvqmGn9S6snSVa+mcJ6w2wNE2LPGx0kOtBeOIUdfSsEgvSRjbowSHz9lohFZ0LxJYyizCA5vnMmYyhhkfJqm7YtjHkGWgXmqpH9BFt0D3gfORlIh787nuWfxtZ+554rDyQmPjYQG/qF4+Awehr4RxiGWTox1C67G/RzA6TOXX09xuFY+3U1ich90/KffvhoHvRVfhzxx+HUUY2qSU3HqQDzgieQQBaMuOhd1i6pua+/kPSXkuXqnIs8daao/goR5iU/lPLs7M8Dy7xZ9adzbIPuNuzHir2UuvtPlW+x/sSvOnVL9r/7TrAuWhdScglQ70EInPDVX7BgDWKrZUh86N4d7fu2f/T+6VoUSGEjq8obCj3BQ61mNEoftKVECUO4MMUdat6pY/4Xh6Dwc+FnbvR2+sX7IzI7FtgOrfO6abT+LCAR0R+UXyvnqZcjK2zkHz4DfXFbCQg==
+-----END CERTIFICATE-----`)
 	secretData := []byte(secretDataString)
 
 	cases := map[string]testCase{
@@ -271,13 +273,12 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 		"GetKubeServiceAccountError": {
 			reason: "Should return error if fetching kubernetes secret fails.",
 			args: args{
-				store: makeSecretStore(),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(errBoom),
-				},
+				newClientFunc: clientWithLoginMock,
+				store:         makeSecretStore(),
+				corev1:        utilfake.NewCreateTokenMock().WithError(errBoom),
 			},
 			want: want{
-				err: fmt.Errorf(errGetKubeSA, "example-sa", errBoom),
+				err: fmt.Errorf(errGetKubeSATokenRequest, "example-sa", errBoom),
 			},
 		},
 		"GetKubeSecretError": {
@@ -333,18 +334,10 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 							}
 							return nil
 						}
-
-						if o, ok := obj.(*corev1.ServiceAccount); ok {
-							o.Secrets = []corev1.ObjectReference{
-								{
-									Name: tokenSecretName,
-								},
-							}
-							return nil
-						}
 						return nil
 					}),
 				},
+				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
 				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
@@ -389,25 +382,10 @@ MIICsTCCAZkCFEJJ4daz5sxkFlzq9n1djLEuG7bmMA0GCSqGSIb3DQEBCwUAMBMxETAPBgNVBAMMCHZh
 							return nil
 						}
 
-						if o, ok := obj.(*corev1.ServiceAccount); ok {
-							o.Secrets = []corev1.ObjectReference{
-								{
-									Name: tokenSecretName,
-								},
-							}
-							return nil
-						}
-
-						if o, ok := obj.(*corev1.Secret); ok {
-							o.Data = map[string][]byte{
-								"token": secretData,
-							}
-							return nil
-						}
-
 						return nil
 					}),
 				},
+				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
 				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
@@ -505,7 +483,7 @@ func vaultTest(t *testing.T, name string, tc testCase) {
 	if tc.args.newClientFunc == nil {
 		conn.newVaultClient = newVaultClient
 	}
-	_, err := conn.newClient(context.Background(), tc.args.store, tc.args.kube, nil, tc.args.ns)
+	_, err := conn.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
 	if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}

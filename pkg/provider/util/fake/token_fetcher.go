@@ -21,10 +21,8 @@ import (
 	k8sv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-func NewCreateTokenMock(token string) *MockK8sV1 {
-	return &MockK8sV1{
-		token: token,
-	}
+func NewCreateTokenMock() *MockK8sV1 {
+	return &MockK8sV1{}
 }
 
 // Mock K8s client for creating tokens.
@@ -32,6 +30,17 @@ type MockK8sV1 struct {
 	k8sv1.CoreV1Interface
 
 	token string
+	err   error
+}
+
+func (m *MockK8sV1) WithToken(token string) *MockK8sV1 {
+	m.token = token
+	return m
+}
+
+func (m *MockK8sV1) WithError(err error) *MockK8sV1 {
+	m.err = err
+	return m
 }
 
 func (m *MockK8sV1) ServiceAccounts(namespace string) k8sv1.ServiceAccountInterface {
@@ -50,6 +59,9 @@ func (ma *MockK8sV1SA) CreateToken(
 	tokenRequest *authv1.TokenRequest,
 	opts metav1.CreateOptions,
 ) (*authv1.TokenRequest, error) {
+	if ma.v1mock.err != nil {
+		return nil, ma.v1mock.err
+	}
 	return &authv1.TokenRequest{
 		Status: authv1.TokenRequestStatus{
 			Token: ma.v1mock.token,

@@ -18,7 +18,9 @@ import (
 	"context"
 	"fmt"
 
+	v1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -30,9 +32,7 @@ const (
 	errFetchCredentials                    = "could not fetch credentials: %w"
 	errMissingCredentials                  = "missing credentials: \"%s\""
 	errEmptyKey                            = "key %s found but empty"
-	errGetKubeSA                           = "cannot get Kubernetes service account %q: %w"
-	errGetKubeSASecrets                    = "cannot find secrets bound to service account: %q"
-	errGetKubeSANoToken                    = "cannot find token in secrets bound to service account: %q"
+	errUnableCreateToken                   = "cannot create service account token: %q"
 )
 
 func (k *BaseClient) setAuth(ctx context.Context) error {
@@ -110,34 +110,16 @@ func (k *BaseClient) setClientCert(ctx context.Context) error {
 }
 
 func (k *BaseClient) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) ([]byte, error) {
-	serviceAccount := &corev1.ServiceAccount{}
-	ref := types.NamespacedName{
-		Namespace: k.namespace,
-		Name:      serviceAccountRef.Name,
-	}
+	namespace := k.namespace
 	if (k.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
-		ref.Namespace = *serviceAccountRef.Namespace
+		namespace = *serviceAccountRef.Namespace
 	}
-	err := k.kube.Get(ctx, ref, serviceAccount)
+	tr, err := k.kubeClientset.ServiceAccounts(namespace).CreateToken(ctx, serviceAccountRef.Name, &v1.TokenRequest{}, metav1.CreateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf(errGetKubeSA, ref.Name, err)
+		return nil, fmt.Errorf(errUnableCreateToken, err)
 	}
-	if len(serviceAccount.Secrets) == 0 {
-		return nil, fmt.Errorf(errGetKubeSASecrets, ref.Name)
-	}
-	for _, tokenRef := range serviceAccount.Secrets {
-		retval, err := k.fetchSecretKey(ctx, esmeta.SecretKeySelector{
-			Name:      tokenRef.Name,
-			Namespace: &ref.Namespace,
-			Key:       "token",
-		})
-		if err != nil {
-			continue
-		}
-		return retval, nil
-	}
-	return nil, fmt.Errorf(errGetKubeSANoToken, ref.Name)
+	return []byte(tr.Status.Token), nil
 }
 
 func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {

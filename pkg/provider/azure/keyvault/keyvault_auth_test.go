@@ -32,7 +32,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	awsauthfake "github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake"
+	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 )
 
 var vaultURL = "https://local.vault.url"
@@ -190,7 +190,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 				store:      &store,
 				namespace:  namespace,
 				crClient:   k8sClient,
-				kubeClient: awsauthfake.NewCreateTokenMock(saToken),
+				kubeClient: utilfake.NewCreateTokenMock().WithToken(saToken),
 				provider:   store.Spec.Provider.AzureKV,
 			}
 			tokenProvider := func(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error) {

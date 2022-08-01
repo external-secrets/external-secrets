@@ -1,7 +1,7 @@
 ARG GO_VERSION=1.17
 FROM golang:$GO_VERSION-buster as builder
 
-ENV KUBECTL_VERSION="v1.23.6"
+ENV KUBECTL_VERSION="v1.24.3"
 ENV HELM_VERSION="v3.7.1"
 
 RUN go get -u github.com/onsi/ginkgo/v2/ginkgo

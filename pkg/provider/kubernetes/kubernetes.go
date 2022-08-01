@@ -24,8 +24,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
@@ -57,14 +59,15 @@ type ProviderKubernetes struct {
 var _ esv1beta1.SecretsClient = &ProviderKubernetes{}
 
 type BaseClient struct {
-	kube        kclient.Client
-	store       *esv1beta1.KubernetesProvider
-	storeKind   string
-	namespace   string
-	Certificate []byte
-	Key         []byte
-	CA          []byte
-	BearerToken []byte
+	kube          kclient.Client
+	kubeClientset typedcorev1.CoreV1Interface
+	store         *esv1beta1.KubernetesProvider
+	storeKind     string
+	namespace     string
+	Certificate   []byte
+	Key           []byte
+	CA            []byte
+	BearerToken   []byte
 }
 
 func init() {
@@ -80,12 +83,20 @@ func (p *ProviderKubernetes) NewClient(ctx context.Context, store esv1beta1.Gene
 		return nil, fmt.Errorf("no store type or wrong store type")
 	}
 	storeSpecKubernetes := storeSpec.Provider.Kubernetes
-
+	restCfg, err := ctrlcfg.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return nil, err
+	}
 	client := BaseClient{
-		kube:      kube,
-		store:     storeSpecKubernetes,
-		namespace: namespace,
-		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+		kubeClientset: clientset.CoreV1(),
+		kube:          kube,
+		store:         storeSpecKubernetes,
+		namespace:     namespace,
+		storeKind:     store.GetObjectKind().GroupVersionKind().Kind,
 	}
 	p.Namespace = client.store.RemoteNamespace
 	p.store = storeSpecKubernetes
