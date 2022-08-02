@@ -47,6 +47,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
+| certController.metrics.service.annotations | object | `{}` | Additional service annotations |
+| certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
+| certController.metrics.service.port | int | `8080` | Metrics service port to scrape |
 | certController.nameOverride | string | `""` |  |
 | certController.nodeSelector | object | `{}` |  |
 | certController.podAnnotations | object | `{}` | Annotations to add to Pod |
@@ -76,6 +79,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. |
 | createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
+| dnsConfig | object | `{}` | Specifies `dnsOptions` to deployment |
 | extraArgs | object | `{}` |  |
 | extraEnv | list | `[]` |  |
 | extraVolumeMounts | list | `[]` |  |
@@ -87,6 +91,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
+| metrics.service.annotations | object | `{}` | Additional service annotations |
+| metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
+| metrics.service.port | int | `8080` | Metrics service port to scrape |
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | podAnnotations | object | `{}` | Annotations to add to Pod |
@@ -130,6 +137,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.lookaheadInterval | string | `""` | Specifices the lookaheadInterval for certificate validity |
+| webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
+| webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
+| webhook.metrics.service.port | int | `8080` | Metrics service port to scrape |
 | webhook.nameOverride | string | `""` |  |
 | webhook.nodeSelector | object | `{}` |  |
 | webhook.podAnnotations | object | `{}` | Annotations to add to Pod |

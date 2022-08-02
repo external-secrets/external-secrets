@@ -53,8 +53,11 @@ func (mockClient *OnePasswordMockClient) GetVaultByUUID(uuid string) (*onepasswo
 	return &onepassword.Vault{}, nil
 }
 
-// GetVaultByTitle unused fake.
+// GetVaultByTitle returns a vault, you must preload, only one.
 func (mockClient *OnePasswordMockClient) GetVaultByTitle(uuid string) (*onepassword.Vault, error) {
+	if len(mockClient.MockVaults[uuid]) != 0 {
+		return &mockClient.MockVaults[uuid][0], nil
+	}
 	return &onepassword.Vault{}, nil
 }
 
@@ -82,9 +85,18 @@ func (mockClient *OnePasswordMockClient) GetItem(itemUUID, vaultUUID string) (*o
 	return &onepassword.Item{}, errors.New("status 400: Invalid Item UUID")
 }
 
-// GetItemByUUID unused fake.
-func (mockClient *OnePasswordMockClient) GetItemByUUID(uuid, vaultQuery string) (*onepassword.Item, error) {
-	return &onepassword.Item{}, nil
+// GetItemByUUID returns a *onepassword.Item, you must preload.
+func (mockClient *OnePasswordMockClient) GetItemByUUID(itemUUID, vaultUUID string) (*onepassword.Item, error) {
+	for _, item := range mockClient.MockItems[vaultUUID] {
+		if item.ID == itemUUID {
+			// load the fields that GetItemsByTitle does not
+			item.Fields = mockClient.MockItemFields[vaultUUID][itemUUID]
+
+			return &item, nil
+		}
+	}
+
+	return &onepassword.Item{}, errors.New("status 400: Invalid Item UUID")
 }
 
 // GetItemByTitle unused fake.
@@ -121,6 +133,11 @@ func (mockClient *OnePasswordMockClient) DeleteItem(item *onepassword.Item, vaul
 
 // DeleteItemByID unused fake.
 func (mockClient *OnePasswordMockClient) DeleteItemByID(itemUUID, vaultQuery string) error {
+	return nil
+}
+
+// DeleteItemByTitle unused fake.
+func (mockClient *OnePasswordMockClient) DeleteItemByTitle(title, vaultQuery string) error {
 	return nil
 }
 

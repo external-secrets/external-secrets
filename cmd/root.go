@@ -51,8 +51,12 @@ var (
 	healthzAddr                           string
 	controllerClass                       string
 	enableLeaderElection                  bool
+	enableSecretsCache                    bool
+	enableConfigMapsCache                 bool
 	concurrent                            int
 	port                                  int
+	clientQPS                             float32
+	clientBurst                           int
 	loglevel                              string
 	namespace                             string
 	enableClusterStoreReconciler          bool
@@ -85,6 +89,19 @@ var rootCmd = &cobra.Command{
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var lvl zapcore.Level
+		// the client creates a ListWatch for all resource kinds that
+		// are requested with .Get().
+		// We want to avoid to cache all secrets or configmaps in memory.
+		// The ES controller uses v1.PartialObjectMetadata for the secrets
+		// that he owns.
+		// see #721
+		cacheList := make([]client.Object, 0)
+		if !enableSecretsCache {
+			cacheList = append(cacheList, &v1.Secret{})
+		}
+		if !enableConfigMapsCache {
+			cacheList = append(cacheList, &v1.ConfigMap{})
+		}
 		err := lvl.UnmarshalText([]byte(loglevel))
 		if err != nil {
 			setupLog.Error(err, "error unmarshalling loglevel")
@@ -92,24 +109,17 @@ var rootCmd = &cobra.Command{
 		}
 		logger := zap.New(zap.Level(lvl))
 		ctrl.SetLogger(logger)
-
-		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:             scheme,
-			MetricsBindAddress: metricsAddr,
-			Port:               9443,
-			LeaderElection:     enableLeaderElection,
-			LeaderElectionID:   "external-secrets-controller",
-			ClientDisableCacheFor: []client.Object{
-				// the client creates a ListWatch for all resource kinds that
-				// are requested with .Get().
-				// We want to avoid to cache all secrets or configmaps in memory.
-				// The ES controller uses v1.PartialObjectMetadata for the secrets
-				// that he owns.
-				// see #721
-				&v1.Secret{},
-				&v1.ConfigMap{},
-			},
-			Namespace: namespace,
+		config := ctrl.GetConfigOrDie()
+		config.QPS = clientQPS
+		config.Burst = clientBurst
+		mgr, err := ctrl.NewManager(config, ctrl.Options{
+			Scheme:                scheme,
+			MetricsBindAddress:    metricsAddr,
+			Port:                  9443,
+			LeaderElection:        enableLeaderElection,
+			LeaderElectionID:      "external-secrets-controller",
+			ClientDisableCacheFor: cacheList,
+			Namespace:             namespace,
 		})
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
@@ -199,11 +209,15 @@ func init() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent ExternalSecret reconciles.")
+	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 0, "QPS configuration to be passed to rest.Client")
+	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 0, "Maximum Burst allowed to be passed to rest.Client")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
 	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
 	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
 	rootCmd.Flags().BoolVar(&enablePushSecretReconciler, "experimental-enable-push-secret-reconciler", false, "Enable push secret reconciler.")
+	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enable secrets caching for external-secrets pod.")
+	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable secrets caching for external-secrets pod.")
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableAWSSession, "experimental-enable-aws-session-cache", false, "Enable experimental AWS session cache. External secret will reuse the AWS session without creating a new one on each request.")

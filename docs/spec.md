@@ -1602,7 +1602,47 @@ ExternalSecretConversionStrategy
 <p>Used to define a conversion Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>decodingStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecodingStrategy">
+ExternalSecretDecodingStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a conversion Strategy</p>
+</td>
+</tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretDecodingStrategy">ExternalSecretDecodingStrategy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Auto&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Base64&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Base64URL&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;None&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretDeletionPolicy">ExternalSecretDeletionPolicy
 (<code>string</code> alias)</p></h3>
@@ -1699,6 +1739,20 @@ map[string]string
 <em>
 <a href="#external-secrets.io/v1beta1.ExternalSecretConversionStrategy">
 ExternalSecretConversionStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a conversion Strategy</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>decodingStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecodingStrategy">
+ExternalSecretDecodingStrategy
 </a>
 </em>
 </td>
@@ -2615,6 +2669,69 @@ IBMAuthSecretRef
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>containerAuth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.IBMAuthContainerAuth">
+IBMAuthContainerAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.IBMAuthContainerAuth">IBMAuthContainerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.IBMAuth">IBMAuth</a>)
+</p>
+<p>
+<p>IBM Container-based auth with IAM Trusted Profile.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>profile</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>the IBM Trusted Profile</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenLocation</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Location the token is mounted on the pod</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iamEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.IBMAuthSecretRef">IBMAuthSecretRef
@@ -2641,7 +2758,6 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<em>(Optional)</em>
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
