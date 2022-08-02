@@ -19,6 +19,11 @@ plugins:
       lang: en
   - macros:
       include_dir: docs/snippets
+copyright: |
+  &copy; 2022 The external-secrets Authors.<br/>
+  &copy; 2022 The Linux Foundation. All rights reserved.<br/><br/>
+  The Linux Foundation has registered trademarks and uses trademarks.<br/>
+  For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 extra:
   version:
     provider: mike

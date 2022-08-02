@@ -653,7 +653,9 @@ string
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
-<p>Defines a location to fetch the cert for the vault provider from.</p>
+<p>Used to provide custom certificate authority (CA) certificates
+for a secret store. The CAProvider points to a Secret or ConfigMap resource
+that contains a PEM-encoded certificate.</p>
 </p>
 <table>
 <thead>
@@ -695,7 +697,7 @@ string
 </em>
 </td>
 <td>
-<p>The key the value inside of the provider type to use, only used with &ldquo;Secret&rdquo; type</p>
+<p>The key where the CA certificate can be found in the Secret or ConfigMap.</p>
 </td>
 </tr>
 <tr>
@@ -707,7 +709,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>The namespace the Provider type is in.</p>
+<p>The namespace the Provider type is in.
+Can only be defined when used in a ClusterSecretStore.</p>
 </td>
 </tr>
 </tbody>
