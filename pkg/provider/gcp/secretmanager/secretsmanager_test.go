@@ -20,6 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/crossplane/crossplane-runtime/pkg/test"
+	"github.com/google/go-cmp/cmp"
 	"github.com/googleapis/gax-go/v2/apierror"
 	"github.com/stretchr/testify/assert"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
@@ -188,13 +190,84 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	}
 }
 
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+// We need to add the NewGetSecretFn into our args struct so that they modifiable.
+func TestSetSecretTable(t *testing.T) {
+	smtc := secretManagerTestCase{
+		mockClient:     &fakesm.MockSMClient{},
+		apiInput:       makeValidAPIInput(),
+		ref:            makeValidRef(),
+		apiOutput:      makeValidAPIOutput(),
+		projectID:      "default",
+		apiErr:         nil,
+		expectError:    "",
+		expectedSecret: "",
+		expectedData:   map[string][]byte{},
+	}
+
+	var payload = secretmanagerpb.SecretPayload{
+		Data: []byte("payload"),
+	}
+
+	var res = secretmanagerpb.AccessSecretVersionResponse{
+		Name:    "projects/default/secrets/foo-bar",
+		Payload: &payload,
+	}
+
+	var secretVersion = secretmanagerpb.SecretVersion{}
+
+	type args struct {
+		provider secretmanager.ProviderGCP
+	}
+
+	type want struct {
+		err error
+	}
+	tests := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"SetSecret": {
+			reason: "SetSecret successfully pushes a secret",
+			args: args{
+				provider: secretmanager.ProviderGCP{
+					SecretManagerClient: smtc.mockClient,
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "/baz"}
+			smtc.mockClient.NewGetSecretFn(newSecret(), nil)
+			smtc.mockClient.NewAccessSecretVersionFn(&res, nil)
+			smtc.mockClient.NewAddSecretVersion(&secretVersion, nil)
+			err := tc.args.provider.SetSecret(context.Background(), []byte("fake-value"), ref)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			}
+		})
+	}
+}
+
 func TestSetSecret(t *testing.T) {
 	client := newClient()
 	pushRemoteRef := newPushRemoteRef()
 	secret := newSecret()
 	p := newProvider(client)
 
-	client.GetSecretReturns(&secret, nil)
+	client.GetSecretReturns(secret, nil)
 
 	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
 	assert.Equal(t, err, nil)
@@ -210,7 +283,7 @@ func TestSetSecretAddSecretVersion(t *testing.T) {
 	newStatus := status.Error(codes.Aborted, "failed")
 	err, _ := apierror.FromError(newStatus)
 
-	client.GetSecretReturns(&secret, nil)
+	client.GetSecretReturns(secret, nil)
 	client.AddSecretVersionReturns(nil, err)
 
 	expect := p.SetSecret(context.TODO(), nil, pushRemoteRef)
@@ -231,7 +304,7 @@ func TestSetSecretAccessSecretVersion(t *testing.T) {
 
 	client.AccessSecretVersionReturns(nil, err)
 	client.GetSecretReturns(nil, err)
-	client.CreateSecretReturns(&secret, nil)
+	client.CreateSecretReturns(secret, nil)
 
 	expect := p.SetSecret(context.Background(), nil, pushRemoteRef)
 	if assert.Error(t, expect) {
@@ -249,7 +322,7 @@ func TestSetSecretGetSecret404(t *testing.T) {
 	err, _ := apierror.FromError(newStatus)
 
 	client.GetSecretReturns(nil, err)
-	client.CreateSecretReturns(&secret, nil)
+	client.CreateSecretReturns(secret, nil)
 	client.AccessSecretVersionReturns(nil, err)
 
 	p.SetSecret(context.Background(), nil, pushRemoteRef)
@@ -299,7 +372,7 @@ func TestSetSecretAlreadyExists(t *testing.T) {
 		Name:    "projects/default/secrets/foo-bar",
 		Payload: payload,
 	}, nil)
-	client.GetSecretReturns(&secret, nil)
+	client.GetSecretReturns(secret, nil)
 
 	err := p.SetSecret(context.TODO(), []byte("bar"), pushRemoteRef)
 	if client.AddSecretVersionCallCount() != 0 {
@@ -433,8 +506,8 @@ func newPushRemoteRef() *fakeprr.PushRemoteRef {
 	return new(fakeprr.PushRemoteRef)
 }
 
-func newSecret() secretmanagerpb.Secret {
-	return secretmanagerpb.Secret{
+func newSecret() *secretmanagerpb.Secret {
+	return &secretmanagerpb.Secret{
 		Name: "projects/default/secrets/foo-bar",
 		Replication: &secretmanagerpb.Replication{
 			Replication: &secretmanagerpb.Replication_Automatic_{

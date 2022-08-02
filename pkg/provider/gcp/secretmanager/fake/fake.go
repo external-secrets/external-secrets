@@ -31,14 +31,21 @@ type MockSMClient struct {
 	addSecretFn    func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
 	createSecretFn func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	closeFn        func() error
+	GetSecretFn    func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 }
 
 func (mc *MockSMClient) GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
-	return nil, nil
+	return mc.GetSecretFn(ctx, req)
 }
 
 func (mc *MockSMClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 	return mc.accessSecretFn(ctx, req)
+}
+
+func (mc *MockSMClient) NewAccessSecretVersionFn(res *secretmanagerpb.AccessSecretVersionResponse, err error) {
+	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+		return res, err
+	}
 }
 
 func (mc *MockSMClient) ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator {
@@ -52,6 +59,12 @@ func (mc *MockSMClient) AddSecretVersion(ctx context.Context, req *secretmanager
 	return mc.addSecretFn(ctx, req)
 }
 
+func (mc *MockSMClient) NewAddSecretVersion(secretVersion *secretmanagerpb.SecretVersion, err error) {
+	mc.addSecretFn = func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+		return secretVersion, err
+	}
+}
+
 func (mc *MockSMClient) CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 	return mc.createSecretFn(ctx, req)
 }
@@ -59,6 +72,12 @@ func (mc *MockSMClient) CreateSecret(ctx context.Context, req *secretmanagerpb.C
 func (mc *MockSMClient) NilClose() {
 	mc.closeFn = func() error {
 		return nil
+	}
+}
+
+func (mc *MockSMClient) NewGetSecretFn(secret *secretmanagerpb.Secret, err error) {
+	mc.GetSecretFn = func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+		return secret, err
 	}
 }
 
