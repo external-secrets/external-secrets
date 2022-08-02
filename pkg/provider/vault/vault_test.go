@@ -24,7 +24,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
-	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -38,7 +37,6 @@ import (
 const (
 	tokenSecretName  = "example-secret-token"
 	secretDataString = "some-creds"
-	secretPath       = "secret"
 )
 
 var (
@@ -1408,23 +1406,6 @@ type fakeRef struct {
 
 func (f fakeRef) GetRemoteKey() string {
 	return f.key
-}
-
-func TestSetSecretErrorReadingSecret(t *testing.T) {
-	path := secretPath
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("you shall not pass")),
-	}
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "key"}
-
-	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
-	assert.ErrorContains(t, err, "you shall not pass")
 }
 
 func TestSetSecret(t *testing.T) {

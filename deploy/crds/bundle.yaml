@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: clusterexternalsecrets.external-secrets.io
 spec:
@@ -294,6 +294,7 @@ spec:
                       description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
                       type: object
                   type: object
+                  x-kubernetes-map-type: atomic
                 refreshTime:
                   description: The time in which the controller should reconcile it's objects and recheck namespaces for labels.
                   type: string
@@ -359,7 +360,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: clustersecretstores.external-secrets.io
 spec:
@@ -1774,7 +1775,23 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the IBM secrets manager.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
+                            containerAuth:
+                              description: IBM Container-based auth with IAM Trusted Profile.
+                              properties:
+                                iamEndpoint:
+                                  type: string
+                                profile:
+                                  description: the IBM Trusted Profile
+                                  type: string
+                                tokenLocation:
+                                  description: Location the token is mounted on the pod
+                                  type: string
+                              required:
+                                - profile
+                              type: object
                             secretRef:
                               properties:
                                 secretApiKeySecretRef:
@@ -1791,8 +1808,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                         serviceUrl:
                           description: ServiceURL is the Endpoint URL that is specific to the Secrets Manager service instance
@@ -1883,13 +1898,13 @@ spec:
                               description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
                               properties:
                                 key:
-                                  description: The key the value inside of the provider type to use, only used with "Secret" type
+                                  description: The key where the CA certificate can be found in the Secret or ConfigMap.
                                   type: string
                                 name:
                                   description: The name of the object located at the provider type.
                                   type: string
                                 namespace:
-                                  description: The namespace the Provider type is in.
+                                  description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
                                   type: string
                                 type:
                                   description: The type of provider to use such as "Secret", or "ConfigMap".
@@ -2255,13 +2270,13 @@ spec:
                           description: The provider for the CA bundle to use to validate Vault server certificate.
                           properties:
                             key:
-                              description: The key the value inside of the provider type to use, only used with "Secret" type
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
                               type: string
                             name:
                               description: The name of the object located at the provider type.
                               type: string
                             namespace:
-                              description: The namespace the Provider type is in.
+                              description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
                               type: string
                             type:
                               description: The type of provider to use such as "Secret", or "ConfigMap".
@@ -2529,7 +2544,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: externalsecrets.external-secrets.io
 spec:
@@ -3051,7 +3066,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: pushsecrets.external-secrets.io
 spec:
@@ -3197,7 +3212,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: secretstores.external-secrets.io
 spec:
@@ -4612,7 +4627,23 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the IBM secrets manager.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
+                            containerAuth:
+                              description: IBM Container-based auth with IAM Trusted Profile.
+                              properties:
+                                iamEndpoint:
+                                  type: string
+                                profile:
+                                  description: the IBM Trusted Profile
+                                  type: string
+                                tokenLocation:
+                                  description: Location the token is mounted on the pod
+                                  type: string
+                              required:
+                                - profile
+                              type: object
                             secretRef:
                               properties:
                                 secretApiKeySecretRef:
@@ -4629,8 +4660,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                         serviceUrl:
                           description: ServiceURL is the Endpoint URL that is specific to the Secrets Manager service instance
@@ -4721,13 +4750,13 @@ spec:
                               description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
                               properties:
                                 key:
-                                  description: The key the value inside of the provider type to use, only used with "Secret" type
+                                  description: The key where the CA certificate can be found in the Secret or ConfigMap.
                                   type: string
                                 name:
                                   description: The name of the object located at the provider type.
                                   type: string
                                 namespace:
-                                  description: The namespace the Provider type is in.
+                                  description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
                                   type: string
                                 type:
                                   description: The type of provider to use such as "Secret", or "ConfigMap".
@@ -5093,13 +5122,13 @@ spec:
                           description: The provider for the CA bundle to use to validate Vault server certificate.
                           properties:
                             key:
-                              description: The key the value inside of the provider type to use, only used with "Secret" type
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
                               type: string
                             name:
                               description: The name of the object located at the provider type.
                               type: string
                             namespace:
-                              description: The namespace the Provider type is in.
+                              description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
                               type: string
                             type:
                               description: The type of provider to use such as "Secret", or "ConfigMap".

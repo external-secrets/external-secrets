@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -555,16 +556,29 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 	if ibmSpec.ServiceURL == nil {
 		return fmt.Errorf("serviceURL is required")
 	}
-	secretRef := ibmSpec.Auth.SecretRef.SecretAPIKey
-	err := utils.ValidateSecretSelector(store, secretRef)
-	if err != nil {
-		return err
-	}
-	if secretRef.Name == "" {
-		return fmt.Errorf("secretAPIKey.name cannot be empty")
-	}
-	if secretRef.Key == "" {
-		return fmt.Errorf("secretAPIKey.key cannot be empty")
+
+	containerRef := ibmSpec.Auth.ContainerAuth
+	secretKeyRef := ibmSpec.Auth.SecretRef.SecretAPIKey
+	if utils.IsNil(containerRef.Profile) || (containerRef.Profile == "") {
+		// proceed with API Key Auth validation
+		err := utils.ValidateSecretSelector(store, secretKeyRef)
+		if err != nil {
+			return err
+		}
+		if secretKeyRef.Name == "" {
+			return fmt.Errorf("secretAPIKey.name cannot be empty")
+		}
+		if secretKeyRef.Key == "" {
+			return fmt.Errorf("secretAPIKey.key cannot be empty")
+		}
+	} else {
+		// proceed with container auth
+		if containerRef.TokenLocation == "" {
+			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
+		}
+		if _, err := os.Open(containerRef.TokenLocation); err != nil {
+			return fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
+		}
 	}
 	return nil
 }
@@ -585,16 +599,51 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericSt
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
 
-	if err := iStore.setAuth(ctx); err != nil {
-		return nil, err
-	}
+	var err error
+	var secretsManager *sm.SecretsManagerV1
+	containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
+	if containerAuthProfile != "" {
+		// container-based auth
+		containerAuthToken := iStore.store.Auth.ContainerAuth.TokenLocation
+		containerAuthEndpoint := iStore.store.Auth.ContainerAuth.IAMEndpoint
 
-	secretsManager, err := sm.NewSecretsManagerV1(&sm.SecretsManagerV1Options{
-		URL: *storeSpec.Provider.IBM.ServiceURL,
-		Authenticator: &core.IamAuthenticator{
-			ApiKey: string(iStore.credentials),
-		},
-	})
+		if containerAuthToken == "" {
+			// API default path
+			containerAuthToken = "/var/run/secrets/tokens/vault-token"
+		}
+		if containerAuthEndpoint == "" {
+			// API default path
+			containerAuthEndpoint = "https://iam.cloud.ibm.com"
+		}
+
+		authenticator, err := core.NewContainerAuthenticatorBuilder().
+			SetIAMProfileName(containerAuthProfile).
+			SetCRTokenFilename(containerAuthToken).
+			SetURL(containerAuthEndpoint).
+			Build()
+		if err != nil {
+			return nil, fmt.Errorf(errIBMClient, err)
+		}
+		secretsManager, err = sm.NewSecretsManagerV1(&sm.SecretsManagerV1Options{
+			URL:           *storeSpec.Provider.IBM.ServiceURL,
+			Authenticator: authenticator,
+		})
+		if err != nil {
+			return nil, fmt.Errorf(errIBMClient, err)
+		}
+	} else {
+		// API Key-based auth
+		if err := iStore.setAuth(ctx); err != nil {
+			return nil, err
+		}
+
+		secretsManager, err = sm.NewSecretsManagerV1(&sm.SecretsManagerV1Options{
+			URL: *storeSpec.Provider.IBM.ServiceURL,
+			Authenticator: &core.IamAuthenticator{
+				ApiKey: string(iStore.credentials),
+			},
+		})
+	}
 
 	// Setup retry options, but only if present
 	if storeSpec.RetrySettings != nil {

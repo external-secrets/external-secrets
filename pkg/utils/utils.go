@@ -69,6 +69,9 @@ func Decode(strategy esv1beta1.ExternalSecretDecodingStrategy, in []byte) ([]byt
 		return out, nil
 	case esv1beta1.ExternalSecretDecodeNone:
 		return in, nil
+	// default when stored version is v1alpha1
+	case "":
+		return in, nil
 	case esv1beta1.ExternalSecretDecodeAuto:
 		out, err := Decode(esv1beta1.ExternalSecretDecodeBase64, in)
 		if err != nil {
