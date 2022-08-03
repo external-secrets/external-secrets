@@ -35,7 +35,7 @@ jobs:
   # Branch-based pull request
   integration-trusted:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.author !='dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
     steps:
 
     - name: Branch based PR checkout
