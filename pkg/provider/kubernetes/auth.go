@@ -48,7 +48,7 @@ func (k *BaseClient) setAuth(ctx context.Context) error {
 		return nil
 	}
 	if k.store.Auth.ServiceAccount != nil {
-		k.BearerToken, err = k.secretKeyRefForServiceAccount(ctx, k.store.Auth.ServiceAccount)
+		k.BearerToken, err = k.serviceAccountToken(ctx, k.store.Auth.ServiceAccount)
 		if err != nil {
 			return fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
 		}
@@ -109,7 +109,7 @@ func (k *BaseClient) setClientCert(ctx context.Context) error {
 	return nil
 }
 
-func (k *BaseClient) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) ([]byte, error) {
+func (k *BaseClient) serviceAccountToken(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) ([]byte, error) {
 	namespace := k.namespace
 	if (k.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {

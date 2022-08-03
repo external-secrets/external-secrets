@@ -274,8 +274,11 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return error if fetching kubernetes secret fails.",
 			args: args{
 				newClientFunc: clientWithLoginMock,
-				store:         makeSecretStore(),
-				corev1:        utilfake.NewCreateTokenMock().WithError(errBoom),
+				kube: &test.MockClient{
+					MockGet: test.NewMockGetFn(errBoom),
+				},
+				store:  makeSecretStore(),
+				corev1: utilfake.NewCreateTokenMock().WithError(errBoom),
 			},
 			want: want{
 				err: fmt.Errorf(errGetKubeSATokenRequest, "example-sa", errBoom),

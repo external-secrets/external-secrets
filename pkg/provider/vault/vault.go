@@ -74,6 +74,9 @@ const (
 	errUnsupportedKvVersion = "cannot perform find operations with kv version v1"
 	errNotFound             = "secret not found"
 
+	errGetKubeSA             = "cannot get Kubernetes service account %q: %w"
+	errGetKubeSASecrets      = "cannot find secrets bound to service account: %q"
+	errGetKubeSANoToken      = "cannot find token in secrets bound to service account: %q"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
 
 	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
@@ -909,6 +912,39 @@ func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, 
 	return false, nil
 }
 
+func (v *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
+	serviceAccount := &corev1.ServiceAccount{}
+	ref := types.NamespacedName{
+		Namespace: v.namespace,
+		Name:      serviceAccountRef.Name,
+	}
+	if (v.storeKind == esv1beta1.ClusterSecretStoreKind) &&
+		(serviceAccountRef.Namespace != nil) {
+		ref.Namespace = *serviceAccountRef.Namespace
+	}
+	err := v.kube.Get(ctx, ref, serviceAccount)
+	if err != nil {
+		return "", fmt.Errorf(errGetKubeSA, ref.Name, err)
+	}
+	if len(serviceAccount.Secrets) == 0 {
+		return "", fmt.Errorf(errGetKubeSASecrets, ref.Name)
+	}
+	for _, tokenRef := range serviceAccount.Secrets {
+		retval, err := v.secretKeyRef(ctx, &esmeta.SecretKeySelector{
+			Name:      tokenRef.Name,
+			Namespace: &ref.Namespace,
+			Key:       "token",
+		})
+
+		if err != nil {
+			continue
+		}
+
+		return retval, nil
+	}
+	return "", fmt.Errorf(errGetKubeSANoToken, ref.Name)
+}
+
 func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
 	secret := &corev1.Secret{}
 	ref := types.NamespacedName{
@@ -1010,7 +1046,19 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 
 func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
-		jwt, err := v.serviceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
+		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
+		// this behaviour was removed in v1.24 and we must use TokenRequest API (see below)
+		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		if jwt != "" {
+			return jwt, err
+		}
+		if err != nil {
+			v.log.V(1).Info("unable to fetch jwt from service account secret")
+		}
+		// Kubernetes >=v1.24: fetch token via TokenRequest API
+		// note: this is a massive change from vault perspective: the `iss` claim will very likely change.
+		// Vault 1.9 deprecated issuer validation by default, and authentication with Vault clusters <1.9 will likely fail.
+		jwt, err = v.serviceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
 		if err != nil {
 			return "", err
 		}
