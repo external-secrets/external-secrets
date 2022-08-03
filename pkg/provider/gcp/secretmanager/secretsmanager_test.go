@@ -200,6 +200,8 @@ func (f fakeRef) GetRemoteKey() string {
 
 // We need to add the NewGetSecretFn into our args struct so that they modifiable.
 func TestSetSecret(t *testing.T) {
+	errAddSecretVersion := fmt.Errorf("API Error")
+
 	smtc := secretManagerTestCase{
 		mockClient:     &fakesm.MockSMClient{},
 		apiInput:       makeValidAPIInput(),
@@ -224,7 +226,7 @@ func TestSetSecret(t *testing.T) {
 	var secretVersion = secretmanagerpb.SecretVersion{}
 
 	type args struct {
-		provider                      secretmanager.ProviderGCP
+		mock                          *fakesm.MockSMClient
 		GetSecretMockReturn           fakesm.GetSecretMockReturn
 		AccessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
 		AddSecretVersionMockReturn    fakesm.AddSecretVersionMockReturn
@@ -241,22 +243,37 @@ func TestSetSecret(t *testing.T) {
 		"SetSecret": {
 			reason: "SetSecret successfully pushes a secret",
 			args: args{
-				provider: secretmanager.ProviderGCP{
-					SecretManagerClient: smtc.mockClient,
-				},
-				GetSecretMockReturn:           smtc.mockClient.NewGetSecretFn(newSecret(), nil),
-				AccessSecretVersionMockReturn: smtc.mockClient.NewAccessSecretVersionFn(&res, nil),
-				AddSecretVersionMockReturn:    smtc.mockClient.NewAddSecretVersion(&secretVersion, nil),
-			},
+				mock:                          smtc.mockClient,
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: newSecret(), Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
 			want: want{
 				err: nil,
+			},
+		},
+		"AddSecretVersion": {
+			reason: "secret not pushed if AddSecretVersion errors",
+			args: args{
+				mock:                          smtc.mockClient,
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: newSecret(), Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: nil, Err: errAddSecretVersion},
+			},
+			want: want{
+				err: errAddSecretVersion,
 			},
 		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			tc.args.mock.NewGetSecretFn(tc.args.GetSecretMockReturn)
+			tc.args.mock.NewAccessSecretVersionFn(tc.args.AccessSecretVersionMockReturn)
+			tc.args.mock.NewAddSecretVersion(tc.args.AddSecretVersionMockReturn)
+			p := secretmanager.ProviderGCP{
+				SecretManagerClient: tc.args.mock,
+			}
 			ref := fakeRef{key: "/baz"}
-			err := tc.args.provider.SetSecret(context.Background(), []byte("fake-value"), ref)
+			err := p.SetSecret(context.Background(), []byte("fake-value"), ref)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
 			}
