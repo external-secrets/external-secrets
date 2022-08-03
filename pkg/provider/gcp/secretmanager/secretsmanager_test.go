@@ -200,7 +200,7 @@ func (f fakeRef) GetRemoteKey() string {
 
 // We need to add the NewGetSecretFn into our args struct so that they modifiable.
 func TestSetSecret(t *testing.T) {
-	errAddSecretVersion := fmt.Errorf("API Error")
+	APIerror := fmt.Errorf("API Error")
 
 	smtc := secretManagerTestCase{
 		mockClient:     &fakesm.MockSMClient{},
@@ -257,10 +257,21 @@ func TestSetSecret(t *testing.T) {
 				mock:                          smtc.mockClient,
 				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: newSecret(), Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: nil, Err: errAddSecretVersion},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: nil, Err: APIerror},
 			},
 			want: want{
-				err: errAddSecretVersion,
+				err: APIerror,
+			},
+		},
+		"AccessSecretVersion": {
+			reason: "secret not pushed if AccessSecretVersion errors",
+			args: args{
+				mock:                          smtc.mockClient,
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: newSecret(), Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: nil, Err: APIerror},
+			},
+			want: want{
+				err: APIerror,
 			},
 		},
 	}
@@ -278,45 +289,6 @@ func TestSetSecret(t *testing.T) {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
 			}
 		})
-	}
-}
-
-func TestSetSecretAddSecretVersion(t *testing.T) {
-	client := newClient()
-	pushRemoteRef := newPushRemoteRef()
-	secret := newSecret()
-	p := newProvider(client)
-
-	expectedErr := "rpc error: code = Aborted desc = failed"
-	newStatus := status.Error(codes.Aborted, "failed")
-	err, _ := apierror.FromError(newStatus)
-
-	client.GetSecretReturns(secret, nil)
-	client.AddSecretVersionReturns(nil, err)
-
-	expect := p.SetSecret(context.TODO(), nil, pushRemoteRef)
-	if assert.Error(t, expect) {
-		assert.Equal(t, expect.Error(), expectedErr)
-	}
-}
-
-func TestSetSecretAccessSecretVersion(t *testing.T) {
-	client := newClient()
-	pushRemoteRef := newPushRemoteRef()
-	secret := newSecret()
-	p := newProvider(client)
-
-	expectedErr := "rpc error: code = Aborted desc = failed"
-	newStatus := status.Error(codes.Aborted, "failed")
-	err, _ := apierror.FromError(newStatus)
-
-	client.AccessSecretVersionReturns(nil, err)
-	client.GetSecretReturns(nil, err)
-	client.CreateSecretReturns(secret, nil)
-
-	expect := p.SetSecret(context.Background(), nil, pushRemoteRef)
-	if assert.Error(t, expect) {
-		assert.Equal(t, expect.Error(), expectedErr)
 	}
 }
 

@@ -280,6 +280,10 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 		}
 	}
 
+	if err != nil {
+		return err
+	}
+
 	if gcpVersion != nil && gcpVersion.Payload != nil && string(payload) == string(gcpVersion.Payload.Data) {
 		return nil
 	}
