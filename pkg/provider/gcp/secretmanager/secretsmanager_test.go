@@ -11,7 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package secretmanager
+package secretmanager_test
 
 import (
 	"context"
@@ -20,12 +20,21 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/crossplane/crossplane-runtime/pkg/test"
+	"github.com/google/go-cmp/cmp"
+	"github.com/googleapis/gax-go/v2/apierror"
+	"github.com/stretchr/testify/assert"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/utils/pointer"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	fakeprr "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1/fakes"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/internal/fakes"
 )
 
 type secretManagerTestCase struct {
@@ -97,7 +106,7 @@ var setAPIErr = func(smtc *secretManagerTestCase) {
 
 var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.mockClient = nil
-	smtc.expectError = errUninitalizedGCPProvider
+	smtc.expectError = "provider GCP is not initialized"
 }
 
 // test the sm<->gcp interface
@@ -167,9 +176,9 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 	}
 
-	sm := ProviderGCP{}
+	sm := secretmanager.ProviderGCP{}
 	for k, v := range successCases {
-		sm.projectID = v.projectID
+		sm.ProjectID = v.projectID
 		sm.SecretManagerClient = v.mockClient
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
@@ -178,6 +187,190 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		if err == nil && string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
 		}
+	}
+}
+
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+// We need to add the NewGetSecretFn into our args struct so that they modifiable.
+func TestSetSecret(t *testing.T) {
+	smtc := secretManagerTestCase{
+		mockClient:     &fakesm.MockSMClient{},
+		apiInput:       makeValidAPIInput(),
+		ref:            makeValidRef(),
+		apiOutput:      makeValidAPIOutput(),
+		projectID:      "default",
+		apiErr:         nil,
+		expectError:    "",
+		expectedSecret: "",
+		expectedData:   map[string][]byte{},
+	}
+
+	var payload = secretmanagerpb.SecretPayload{
+		Data: []byte("payload"),
+	}
+
+	var res = secretmanagerpb.AccessSecretVersionResponse{
+		Name:    "projects/default/secrets/foo-bar",
+		Payload: &payload,
+	}
+
+	var secretVersion = secretmanagerpb.SecretVersion{}
+
+	type args struct {
+		provider                      secretmanager.ProviderGCP
+		GetSecretMockReturn           fakesm.GetSecretMockReturn
+		AccessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
+		AddSecretVersionMockReturn    fakesm.AddSecretVersionMockReturn
+	}
+
+	type want struct {
+		err error
+	}
+	tests := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"SetSecret": {
+			reason: "SetSecret successfully pushes a secret",
+			args: args{
+				provider: secretmanager.ProviderGCP{
+					SecretManagerClient: smtc.mockClient,
+				},
+				GetSecretMockReturn:           smtc.mockClient.NewGetSecretFn(newSecret(), nil),
+				AccessSecretVersionMockReturn: smtc.mockClient.NewAccessSecretVersionFn(&res, nil),
+				AddSecretVersionMockReturn:    smtc.mockClient.NewAddSecretVersion(&secretVersion, nil),
+			},
+			want: want{
+				err: nil,
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "/baz"}
+			err := tc.args.provider.SetSecret(context.Background(), []byte("fake-value"), ref)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			}
+		})
+	}
+}
+
+func TestSetSecretAddSecretVersion(t *testing.T) {
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
+
+	expectedErr := "rpc error: code = Aborted desc = failed"
+	newStatus := status.Error(codes.Aborted, "failed")
+	err, _ := apierror.FromError(newStatus)
+
+	client.GetSecretReturns(secret, nil)
+	client.AddSecretVersionReturns(nil, err)
+
+	expect := p.SetSecret(context.TODO(), nil, pushRemoteRef)
+	if assert.Error(t, expect) {
+		assert.Equal(t, expect.Error(), expectedErr)
+	}
+}
+
+func TestSetSecretAccessSecretVersion(t *testing.T) {
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
+
+	expectedErr := "rpc error: code = Aborted desc = failed"
+	newStatus := status.Error(codes.Aborted, "failed")
+	err, _ := apierror.FromError(newStatus)
+
+	client.AccessSecretVersionReturns(nil, err)
+	client.GetSecretReturns(nil, err)
+	client.CreateSecretReturns(secret, nil)
+
+	expect := p.SetSecret(context.Background(), nil, pushRemoteRef)
+	if assert.Error(t, expect) {
+		assert.Equal(t, expect.Error(), expectedErr)
+	}
+}
+
+func TestSetSecretGetSecret404(t *testing.T) {
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
+
+	newStatus := status.Error(codes.NotFound, "failed")
+	err, _ := apierror.FromError(newStatus)
+
+	client.GetSecretReturns(nil, err)
+	client.CreateSecretReturns(secret, nil)
+	client.AccessSecretVersionReturns(nil, err)
+
+	p.SetSecret(context.Background(), nil, pushRemoteRef)
+	if client.AddSecretVersionCallCount() != 1 {
+		t.Error("expected addSecretVersion to be called")
+	}
+	if client.CreateSecretCallCount() != 1 {
+		t.Error("expected CreateSecret to be called")
+	}
+}
+
+func TestSetSecretWrongLabel(t *testing.T) {
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	p := newProvider(client)
+	secret := secretmanagerpb.Secret{
+		Name: "projects/default/secrets/foo-bar",
+		Replication: &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		},
+		Labels: map[string]string{
+			"managed-by": "not-external-secrets",
+		},
+	}
+
+	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
+	client.GetSecretReturns(&secret, nil)
+
+	expectedErr := "secret foo-bar is not managed by external secrets"
+	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
+
+	if assert.Error(t, err) {
+		assert.Equal(t, err.Error(), expectedErr)
+	}
+}
+
+func TestSetSecretAlreadyExists(t *testing.T) {
+	client := newClient()
+	pushRemoteRef := newPushRemoteRef()
+	secret := newSecret()
+	p := newProvider(client)
+	payload := &secretmanagerpb.SecretPayload{Data: []byte("bar")}
+
+	client.AccessSecretVersionReturns(&secretmanagerpb.AccessSecretVersionResponse{
+		Name:    "projects/default/secrets/foo-bar",
+		Payload: payload,
+	}, nil)
+	client.GetSecretReturns(secret, nil)
+
+	err := p.SetSecret(context.TODO(), []byte("bar"), pushRemoteRef)
+	if client.AddSecretVersionCallCount() != 0 {
+		t.Error("expected addSecretVersion to not be called")
+	}
+	if err != nil {
+		t.Errorf("expected nil got error")
 	}
 }
 
@@ -209,9 +402,9 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setNestedJSON),
 	}
 
-	sm := ProviderGCP{}
+	sm := secretmanager.ProviderGCP{}
 	for k, v := range successCases {
-		sm.projectID = v.projectID
+		sm.ProjectID = v.projectID
 		sm.SecretManagerClient = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
@@ -278,7 +471,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sm := &ProviderGCP{}
+			sm := &secretmanager.ProviderGCP{}
 			store := &esv1beta1.SecretStore{
 				Spec: esv1beta1.SecretStoreSpec{
 					Provider: &esv1beta1.SecretStoreProvider{
@@ -292,5 +485,35 @@ func TestValidateStore(t *testing.T) {
 				t.Errorf("ProviderGCP.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+// counterfeiter helper methods.
+func newClient() *fakes.GoogleSecretManagerClient {
+	return new(fakes.GoogleSecretManagerClient)
+}
+
+func newPushRemoteRef() *fakeprr.PushRemoteRef {
+	return new(fakeprr.PushRemoteRef)
+}
+
+func newSecret() *secretmanagerpb.Secret {
+	return &secretmanagerpb.Secret{
+		Name: "projects/default/secrets/foo-bar",
+		Replication: &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		},
+		Labels: map[string]string{
+			"managed-by": "external-secrets",
+		},
+	}
+}
+
+func newProvider(client secretmanager.GoogleSecretManagerClient) secretmanager.ProviderGCP {
+	return secretmanager.ProviderGCP{
+		SecretManagerClient: client,
+		ProjectID:           "default",
 	}
 }
