@@ -60,7 +60,12 @@ func New(sess *session.Session, cfg *aws.Config) (*ParameterStore, error) {
 	}, nil
 }
 
-// Empty GetAllSecrets.
+// Not Implemented SetSecret.
+func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+// GetAllSecrets fetches information from multiple secrets into a single kubernetes secret.
 func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
 		return pm.findByName(ref)
