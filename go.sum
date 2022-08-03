@@ -421,8 +421,8 @@ github.com/fluxcd/pkg/apis/kustomize v0.4.1/go.mod h1:U9rfSgDHaQd74PgPKt9DprtuzT
 github.com/fluxcd/pkg/apis/meta v0.14.1/go.mod h1:1uJkTJGSZWrZxL5PFpx1IxGLrFmT1Cd0C2fFWrbv77I=
 github.com/fluxcd/pkg/apis/meta v0.14.2 h1:/Hf7I/Vz01vv3m7Qx7DtQvrzAL1oVt0MJcLb/I1Y1HE=
 github.com/fluxcd/pkg/apis/meta v0.14.2/go.mod h1:ijZ61VG/8T3U17gj0aFL3fdtZL+mulD6V8VrLLUCAgM=
-github.com/fluxcd/source-controller/api v0.25.10 h1:nwOB6Awy6mLlysEHfmqmk6Ek5yebYQ8kYq0lv+bSKb8=
-github.com/fluxcd/source-controller/api v0.25.10/go.mod h1:5kihSWjg+gIXLPTTXbe6AnY+g+iDmP+CY4g6nFqublc=
+github.com/fluxcd/source-controller/api v0.25.11 h1:1YbH5vlQ1k96tbRKTdQHCBsBVMgpp/QaRpKG/r29koQ=
+github.com/fluxcd/source-controller/api v0.25.11/go.mod h1:5kihSWjg+gIXLPTTXbe6AnY+g+iDmP+CY4g6nFqublc=
 github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568/go.mod h1:xEzjJPgXI435gkrCt3MPfRiAkVrwSbHsst4LCFVfpJc=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/form3tech-oss/jwt-go v3.2.2+incompatible/go.mod h1:pbq4aXjuKjdthFRnoDwaVPLA+WlJuPGy+QneDUgJi2k=
