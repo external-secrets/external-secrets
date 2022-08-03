@@ -199,7 +199,7 @@ func (f fakeRef) GetRemoteKey() string {
 }
 
 // We need to add the NewGetSecretFn into our args struct so that they modifiable.
-func TestSetSecretTable(t *testing.T) {
+func TestSetSecret(t *testing.T) {
 	smtc := secretManagerTestCase{
 		mockClient:     &fakesm.MockSMClient{},
 		apiInput:       makeValidAPIInput(),
@@ -224,7 +224,10 @@ func TestSetSecretTable(t *testing.T) {
 	var secretVersion = secretmanagerpb.SecretVersion{}
 
 	type args struct {
-		provider secretmanager.ProviderGCP
+		provider                      secretmanager.ProviderGCP
+		GetSecretMockReturn           fakesm.GetSecretMockReturn
+		AccessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
+		AddSecretVersionMockReturn    fakesm.AddSecretVersionMockReturn
 	}
 
 	type want struct {
@@ -241,6 +244,9 @@ func TestSetSecretTable(t *testing.T) {
 				provider: secretmanager.ProviderGCP{
 					SecretManagerClient: smtc.mockClient,
 				},
+				GetSecretMockReturn:           smtc.mockClient.NewGetSecretFn(newSecret(), nil),
+				AccessSecretVersionMockReturn: smtc.mockClient.NewAccessSecretVersionFn(&res, nil),
+				AddSecretVersionMockReturn:    smtc.mockClient.NewAddSecretVersion(&secretVersion, nil),
 			},
 			want: want{
 				err: nil,
@@ -250,27 +256,12 @@ func TestSetSecretTable(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ref := fakeRef{key: "/baz"}
-			smtc.mockClient.NewGetSecretFn(newSecret(), nil)
-			smtc.mockClient.NewAccessSecretVersionFn(&res, nil)
-			smtc.mockClient.NewAddSecretVersion(&secretVersion, nil)
 			err := tc.args.provider.SetSecret(context.Background(), []byte("fake-value"), ref)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
 			}
 		})
 	}
-}
-
-func TestSetSecret(t *testing.T) {
-	client := newClient()
-	pushRemoteRef := newPushRemoteRef()
-	secret := newSecret()
-	p := newProvider(client)
-
-	client.GetSecretReturns(secret, nil)
-
-	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
-	assert.Equal(t, err, nil)
 }
 
 func TestSetSecretAddSecretVersion(t *testing.T) {
