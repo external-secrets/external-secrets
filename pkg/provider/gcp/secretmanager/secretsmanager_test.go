@@ -198,9 +198,20 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
-// We need to add the NewGetSecretFn into our args struct so that they modifiable.
+
 func TestSetSecret(t *testing.T) {
 	APIerror := fmt.Errorf("API Error")
+	testSecret := secretmanagerpb.Secret{
+		Name: "projects/default/secrets/baz",
+		Replication: &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		},
+		Labels: map[string]string{
+			"managed-by": "external-secrets",
+		},
+	}
 
 	smtc := secretManagerTestCase{
 		mockClient:     &fakesm.MockSMClient{},
@@ -244,7 +255,7 @@ func TestSetSecret(t *testing.T) {
 			reason: "SetSecret successfully pushes a secret",
 			args: args{
 				mock:                          smtc.mockClient,
-				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: newSecret(), Err: nil},
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &testSecret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
 				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
 			want: want{
@@ -255,7 +266,7 @@ func TestSetSecret(t *testing.T) {
 			reason: "secret not pushed if AddSecretVersion errors",
 			args: args{
 				mock:                          smtc.mockClient,
-				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: newSecret(), Err: nil},
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &testSecret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
 				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: nil, Err: APIerror},
 			},
@@ -267,7 +278,7 @@ func TestSetSecret(t *testing.T) {
 			reason: "secret not pushed if AccessSecretVersion errors",
 			args: args{
 				mock:                          smtc.mockClient,
-				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: newSecret(), Err: nil},
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &testSecret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: nil, Err: APIerror},
 			},
 			want: want{
