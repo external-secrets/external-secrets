@@ -271,6 +271,7 @@ type FindName struct {
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	SecretStoreRef SecretStoreRef `json:"secretStoreRef"`
+	// +kubebuilder:default={creationPolicy:Owner,deletionPolicy:Retain}
 	// +optional
 	Target ExternalSecretTarget `json:"target,omitempty"`
 
