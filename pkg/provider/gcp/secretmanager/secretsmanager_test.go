@@ -300,7 +300,7 @@ func TestSetSecret(t *testing.T) {
 			},
 		},
 		"NotManagedByESO": {
-			reason: "secret not pushed if label not managed-by external-secrets",
+			reason: "secret not pushed if not managed-by external-secrets",
 			args: args{
 				mock: smtc.mockClient,
 				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &wrongLabelSecret, Err: nil},
@@ -345,33 +345,6 @@ func TestSetSecretGetSecret404(t *testing.T) {
 	}
 	if client.CreateSecretCallCount() != 1 {
 		t.Error("expected CreateSecret to be called")
-	}
-}
-
-func TestSetSecretWrongLabel(t *testing.T) {
-	client := newClient()
-	pushRemoteRef := newPushRemoteRef()
-	p := newProvider(client)
-	secret := secretmanagerpb.Secret{
-		Name: "projects/default/secrets/foo-bar",
-		Replication: &secretmanagerpb.Replication{
-			Replication: &secretmanagerpb.Replication_Automatic_{
-				Automatic: &secretmanagerpb.Replication_Automatic{},
-			},
-		},
-		Labels: map[string]string{
-			"managed-by": "not-external-secrets",
-		},
-	}
-
-	pushRemoteRef.GetRemoteKeyReturns("foo-bar")
-	client.GetSecretReturns(&secret, nil)
-
-	expectedErr := "secret foo-bar is not managed by external secrets"
-	err := p.SetSecret(context.Background(), nil, pushRemoteRef)
-
-	if assert.Error(t, err) {
-		assert.Equal(t, err.Error(), expectedErr)
 	}
 }
 
