@@ -23,7 +23,8 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	"github.com/googleapis/gax-go/v2/apierror"
-	"github.com/stretchr/testify/assert"
+
+	// "github.com/stretchr/testify/assert".
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -203,6 +204,7 @@ func TestSetSecret(t *testing.T) {
 
 	APIerror := fmt.Errorf("API Error")
 	labelError := fmt.Errorf("secret %v is not managed by external secrets", ref.GetRemoteKey())
+	duplicateError := fmt.Errorf("expected addSecretVersion to not be called")
 
 	secret := secretmanagerpb.Secret{
 		Name: "projects/default/secrets/baz",
@@ -302,11 +304,24 @@ func TestSetSecret(t *testing.T) {
 		"NotManagedByESO": {
 			reason: "secret not pushed if not managed-by external-secrets",
 			args: args{
-				mock: smtc.mockClient,
-				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &wrongLabelSecret, Err: nil},
+				mock:                smtc.mockClient,
+				GetSecretMockReturn: fakesm.GetSecretMockReturn{Secret: &wrongLabelSecret, Err: nil},
 			},
 			want: want{
 				err: labelError,
+			},
+		},
+		// Is this the same as the AddSecretVersion test
+		"SecretAlreadyExists": {
+			reason: "don't push a secret with the same key and value",
+			args: args{
+				mock:                          smtc.mockClient,
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &secret, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: nil, Err: duplicateError},
+			},
+			want: want{
+				err: duplicateError,
 			},
 		},
 	}
@@ -359,6 +374,7 @@ func TestSetSecretAlreadyExists(t *testing.T) {
 		Name:    "projects/default/secrets/foo-bar",
 		Payload: payload,
 	}, nil)
+
 	client.GetSecretReturns(secret, nil)
 
 	err := p.SetSecret(context.TODO(), []byte("bar"), pushRemoteRef)
