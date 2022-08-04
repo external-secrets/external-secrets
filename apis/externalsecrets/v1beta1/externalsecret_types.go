@@ -184,7 +184,7 @@ type ExternalSecretDataRemoteRef struct {
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 
 	// +optional
-	// Used to define a conversion Strategy
+	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 }
@@ -212,8 +212,6 @@ const (
 	ExternalSecretDecodeNone      ExternalSecretDecodingStrategy = "None"
 )
 
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type ExternalSecretDataFromRemoteRef struct {
 	// Used to extract multiple key/value pairs from one secret
 	// +optional
@@ -221,8 +219,26 @@ type ExternalSecretDataFromRemoteRef struct {
 	// Used to find secrets based on tags or regular expressions
 	// +optional
 	Find *ExternalSecretFind `json:"find,omitempty"`
+
+	// Used to rewrite secret Keys after getting them from the secret Provider
+	// Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
+	// +optional
+	Rewrite []ExternalSecretRewrite `json:"rewrite,omitempty"`
 }
 
+type ExternalSecretRewrite struct {
+	// Used to rewrite with regular expressions.
+	// The resulting key will be the output of a regexp.ReplaceAll operation.
+	// +optional
+	Regexp *ExternalSecretRewriteRegexp `json:"regexp,omitempty"`
+}
+
+type ExternalSecretRewriteRegexp struct {
+	// Used to define the regular expression of a re.Compiler.
+	Source string `json:"source"`
+	// Used to define the target pattern of a ReplaceAll operation.
+	Target string `json:"target"`
+}
 type ExternalSecretFind struct {
 	// A root path to start the find operations.
 	// +optional
@@ -241,7 +257,7 @@ type ExternalSecretFind struct {
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 
 	// +optional
-	// Used to define a conversion Strategy
+	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 }
@@ -307,6 +323,7 @@ const (
 	ReasonUnavailableStore     = "UnavailableStore"
 	ReasonProviderClientConfig = "InvalidProviderClientConfig"
 	ReasonUpdateFailed         = "UpdateFailed"
+	ReasonDeprecated           = "ParameterDeprecated"
 	ReasonUpdated              = "Updated"
 	ReasonDeleted              = "Deleted"
 )

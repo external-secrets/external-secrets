@@ -67,7 +67,7 @@ spec:
                                 type: string
                               decodingStrategy:
                                 default: None
-                                description: Used to define a conversion Strategy
+                                description: Used to define a decoding Strategy
                                 type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
@@ -94,8 +94,6 @@ spec:
                     dataFrom:
                       description: DataFrom is used to fetch all properties from a specific Provider data If multiple entries are specified, the Secret keys are merged in the specified order
                       items:
-                        maxProperties: 1
-                        minProperties: 1
                         properties:
                           extract:
                             description: Used to extract multiple key/value pairs from one secret
@@ -106,7 +104,7 @@ spec:
                                 type: string
                               decodingStrategy:
                                 default: None
-                                description: Used to define a conversion Strategy
+                                description: Used to define a decoding Strategy
                                 type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
@@ -132,7 +130,7 @@ spec:
                                 type: string
                               decodingStrategy:
                                 default: None
-                                description: Used to define a conversion Strategy
+                                description: Used to define a decoding Strategy
                                 type: string
                               name:
                                 description: Finds secrets based on the name.
@@ -150,6 +148,25 @@ spec:
                                 description: Find secrets based on tags.
                                 type: object
                             type: object
+                          rewrite:
+                            description: Used to rewrite secret Keys after getting them from the secret Provider Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
+                            items:
+                              properties:
+                                regexp:
+                                  description: Used to rewrite with regular expressions. The resulting key will be the output of a regexp.ReplaceAll operation.
+                                  properties:
+                                    source:
+                                      description: Used to define the regular expression of a re.Compiler.
+                                      type: string
+                                    target:
+                                      description: Used to define the target pattern of a ReplaceAll operation.
+                                      type: string
+                                  required:
+                                    - source
+                                    - target
+                                  type: object
+                              type: object
+                            type: array
                         type: object
                       type: array
                     refreshInterval:
@@ -2813,7 +2830,7 @@ spec:
                             type: string
                           decodingStrategy:
                             default: None
-                            description: Used to define a conversion Strategy
+                            description: Used to define a decoding Strategy
                             type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
@@ -2840,8 +2857,6 @@ spec:
                 dataFrom:
                   description: DataFrom is used to fetch all properties from a specific Provider data If multiple entries are specified, the Secret keys are merged in the specified order
                   items:
-                    maxProperties: 1
-                    minProperties: 1
                     properties:
                       extract:
                         description: Used to extract multiple key/value pairs from one secret
@@ -2852,7 +2867,7 @@ spec:
                             type: string
                           decodingStrategy:
                             default: None
-                            description: Used to define a conversion Strategy
+                            description: Used to define a decoding Strategy
                             type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
@@ -2878,7 +2893,7 @@ spec:
                             type: string
                           decodingStrategy:
                             default: None
-                            description: Used to define a conversion Strategy
+                            description: Used to define a decoding Strategy
                             type: string
                           name:
                             description: Finds secrets based on the name.
@@ -2896,6 +2911,25 @@ spec:
                             description: Find secrets based on tags.
                             type: object
                         type: object
+                      rewrite:
+                        description: Used to rewrite secret Keys after getting them from the secret Provider Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
+                        items:
+                          properties:
+                            regexp:
+                              description: Used to rewrite with regular expressions. The resulting key will be the output of a regexp.ReplaceAll operation.
+                              properties:
+                                source:
+                                  description: Used to define the regular expression of a re.Compiler.
+                                  type: string
+                                target:
+                                  description: Used to define the target pattern of a ReplaceAll operation.
+                                  type: string
+                              required:
+                                - source
+                                - target
+                              type: object
+                          type: object
+                        type: array
                     type: object
                   type: array
                 refreshInterval:

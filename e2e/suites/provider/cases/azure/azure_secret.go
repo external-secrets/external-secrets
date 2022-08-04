@@ -30,6 +30,7 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "secret"), func() {
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.NestedJSONWithGJSON(f)),
 		Entry(common.JSONDataFromSync(f)),
+		Entry(common.JSONDataFromRewrite(f)),
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry(common.DockerJSONConfig(f)),

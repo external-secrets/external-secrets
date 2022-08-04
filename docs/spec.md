@@ -1522,6 +1522,20 @@ ExternalSecretFind
 <p>Used to find secrets based on tags or regular expressions</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>rewrite</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">
+[]ExternalSecretRewrite
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to rewrite secret Keys after getting them from the secret Provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef
@@ -1786,6 +1800,78 @@ ExternalSecretDecodingStrategy
 </tr><tr><td><p>&#34;None&#34;</p></td>
 <td></td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewriteRegexp">
+ExternalSecretRewriteRegexp
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Rewrite using regular expressions</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretRewriteRegexp">ExternalSecretRewriteRegexp
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>source</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Regular expression to use as a re.Compiler.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>target</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Target output for a replace operation.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec
 </h3>

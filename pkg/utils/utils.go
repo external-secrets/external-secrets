@@ -24,6 +24,7 @@ import (
 	"net"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -38,6 +39,34 @@ func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
 		dst[k] = v
 	}
 	return dst
+}
+
+func RewriteMap(operations []esv1beta1.ExternalSecretRewrite, in map[string][]byte) (map[string][]byte, error) {
+	out := in
+	var err error
+	for i, op := range operations {
+		if op.Regexp != nil {
+			out, err = RewriteRegexp(*op.Regexp, out)
+			if err != nil {
+				return nil, fmt.Errorf("failed rewriting operation[%v]: %w", i, err)
+			}
+		}
+	}
+	return out, nil
+}
+
+// RewriteRegexp rewrites a single Regexp Rewrite Operation.
+func RewriteRegexp(operation esv1beta1.ExternalSecretRewriteRegexp, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	re, err := regexp.Compile(operation.Source)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range in {
+		newKey := re.ReplaceAllString(key, operation.Target)
+		out[newKey] = value
+	}
+	return out, nil
 }
 
 // DecodeValues decodes values from a secretMap.
@@ -87,6 +116,21 @@ func Decode(strategy esv1beta1.ExternalSecretDecodingStrategy, in []byte) ([]byt
 	}
 }
 
+func ValidateKeys(in map[string][]byte) bool {
+	for key := range in {
+		for _, v := range key {
+			if !unicode.IsNumber(v) &&
+				!unicode.IsLetter(v) &&
+				v != '-' &&
+				v != '.' &&
+				v != '_' {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // ConvertKeys converts a secret map into a valid key.
 // Replaces any non-alphanumeric characters depending on convert strategy.
 func ConvertKeys(strategy esv1beta1.ExternalSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
@@ -115,6 +159,8 @@ func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) st
 				newName[rk] = "_"
 			case esv1beta1.ExternalSecretConversionUnicode:
 				newName[rk] = fmt.Sprintf("_U%04x_", rv)
+			default:
+				newName[rk] = string(rv)
 			}
 		} else {
 			newName[rk] = string(rv)
