@@ -204,7 +204,6 @@ func TestSetSecret(t *testing.T) {
 
 	APIerror := fmt.Errorf("API Error")
 	labelError := fmt.Errorf("secret %v is not managed by external secrets", ref.GetRemoteKey())
-	duplicateError := fmt.Errorf("expected addSecretVersion to not be called")
 
 	secret := secretmanagerpb.Secret{
 		Name: "projects/default/secrets/baz",
@@ -245,9 +244,18 @@ func TestSetSecret(t *testing.T) {
 		Data: []byte("payload"),
 	}
 
+	var payload2 = secretmanagerpb.SecretPayload{
+		Data: []byte("fake-value"),
+	}
+
 	var res = secretmanagerpb.AccessSecretVersionResponse{
 		Name:    "projects/default/secrets/foo-bar",
 		Payload: &payload,
+	}
+
+	var res2 = secretmanagerpb.AccessSecretVersionResponse{
+		Name:    "projects/default/secrets/baz",
+		Payload: &payload2,
 	}
 
 	var secretVersion = secretmanagerpb.SecretVersion{}
@@ -311,17 +319,15 @@ func TestSetSecret(t *testing.T) {
 				err: labelError,
 			},
 		},
-		// Is this the same as the AddSecretVersion test
 		"SecretAlreadyExists": {
 			reason: "don't push a secret with the same key and value",
 			args: args{
 				mock:                          smtc.mockClient,
-				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res2, Err: nil},
 				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &secret, Err: nil},
-				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: nil, Err: duplicateError},
 			},
 			want: want{
-				err: duplicateError,
+				err: nil,
 			},
 		},
 	}
@@ -360,29 +366,6 @@ func TestSetSecretGetSecret404(t *testing.T) {
 	}
 	if client.CreateSecretCallCount() != 1 {
 		t.Error("expected CreateSecret to be called")
-	}
-}
-
-func TestSetSecretAlreadyExists(t *testing.T) {
-	client := newClient()
-	pushRemoteRef := newPushRemoteRef()
-	secret := newSecret()
-	p := newProvider(client)
-	payload := &secretmanagerpb.SecretPayload{Data: []byte("bar")}
-
-	client.AccessSecretVersionReturns(&secretmanagerpb.AccessSecretVersionResponse{
-		Name:    "projects/default/secrets/foo-bar",
-		Payload: payload,
-	}, nil)
-
-	client.GetSecretReturns(secret, nil)
-
-	err := p.SetSecret(context.TODO(), []byte("bar"), pushRemoteRef)
-	if client.AddSecretVersionCallCount() != 0 {
-		t.Error("expected addSecretVersion to not be called")
-	}
-	if err != nil {
-		t.Errorf("expected nil got error")
 	}
 }
 
