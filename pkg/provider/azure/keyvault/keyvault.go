@@ -465,7 +465,11 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	if !ok {
 		return nil, fmt.Errorf(errMissingSAAnnotation, annotationTenantID)
 	}
-	token, err := fetchSAToken(ctx, ns, a.provider.ServiceAccountRef.Name, a.kubeClient)
+	audiences := []string{azureDefaultAudience}
+	if len(a.provider.ServiceAccountRef.Audiences) > 0 {
+		audiences = append(audiences, a.provider.ServiceAccountRef.Audiences...)
+	}
+	token, err := fetchSAToken(ctx, ns, a.provider.ServiceAccountRef.Name, audiences, a.kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -476,10 +480,10 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	return autorest.NewBearerAuthorizer(tp), nil
 }
 
-func fetchSAToken(ctx context.Context, ns, name string, kubeClient kcorev1.CoreV1Interface) (string, error) {
+func fetchSAToken(ctx context.Context, ns, name string, audiences []string, kubeClient kcorev1.CoreV1Interface) (string, error) {
 	token, err := kubeClient.ServiceAccounts(ns).CreateToken(ctx, name, &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
-			Audiences: []string{azureDefaultAudience},
+			Audiences: audiences,
 		},
 	}, metav1.CreateOptions{})
 	if err != nil {

@@ -970,7 +970,11 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	return valueStr, nil
 }
 
-func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, audiences []string, expirationSeconds int64) (string, error) {
+func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
+	audiences := serviceAccountRef.Audiences
+	if len(additionalAud) > 0 {
+		audiences = append(audiences, additionalAud...)
+	}
 	tokenRequest := &authenticationv1.TokenRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: v.namespace,
@@ -1047,7 +1051,7 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
 		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
-		// this behaviour was removed in v1.24 and we must use TokenRequest API (see below)
+		// this behavior was removed in v1.24 and we must use TokenRequest API (see below)
 		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
 		if jwt != "" {
 			return jwt, err

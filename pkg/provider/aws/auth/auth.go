@@ -194,7 +194,12 @@ func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider,
 	if tokenAud == "" {
 		tokenAud = defaultTokenAudience
 	}
-	jwtProv, err := jwtProvider(name, namespace, roleArn, tokenAud, prov.Region)
+	audiences := []string{tokenAud}
+	if len(prov.Auth.JWTAuth.ServiceAccountRef.Audiences) > 0 {
+		audiences = append(audiences, prov.Auth.JWTAuth.ServiceAccountRef.Audiences...)
+	}
+
+	jwtProv, err := jwtProvider(name, namespace, roleArn, audiences, prov.Region)
 	if err != nil {
 		return nil, err
 	}
@@ -203,12 +208,12 @@ func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider,
 	return credentials.NewCredentials(jwtProv), nil
 }
 
-type jwtProviderFactory func(name, namespace, roleArn, aud, region string) (credentials.Provider, error)
+type jwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error)
 
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
 // controller-runtime/client does not support TokenRequest or other subresource APIs
 // so we need to construct our own client and use it to fetch tokens.
-func DefaultJWTProvider(name, namespace, roleArn, aud, region string) (credentials.Provider, error) {
+func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err

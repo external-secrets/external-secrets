@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/authentication/v1"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -115,7 +115,13 @@ func (k *BaseClient) serviceAccountToken(ctx context.Context, serviceAccountRef 
 		(serviceAccountRef.Namespace != nil) {
 		namespace = *serviceAccountRef.Namespace
 	}
-	tr, err := k.kubeClientset.ServiceAccounts(namespace).CreateToken(ctx, serviceAccountRef.Name, &v1.TokenRequest{}, metav1.CreateOptions{})
+	expirationSeconds := int64(3600)
+	tr, err := k.kubeClientset.ServiceAccounts(namespace).CreateToken(ctx, serviceAccountRef.Name, &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         serviceAccountRef.Audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateToken, err)
 	}
