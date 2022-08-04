@@ -198,10 +198,13 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
-
 func TestSetSecret(t *testing.T) {
+	ref := fakeRef{key: "/baz"}
+
 	APIerror := fmt.Errorf("API Error")
-	testSecret := secretmanagerpb.Secret{
+	labelError := fmt.Errorf("secret %v is not managed by external secrets", ref.GetRemoteKey())
+
+	secret := secretmanagerpb.Secret{
 		Name: "projects/default/secrets/baz",
 		Replication: &secretmanagerpb.Replication{
 			Replication: &secretmanagerpb.Replication_Automatic_{
@@ -210,6 +213,17 @@ func TestSetSecret(t *testing.T) {
 		},
 		Labels: map[string]string{
 			"managed-by": "external-secrets",
+		},
+	}
+	wrongLabelSecret := secretmanagerpb.Secret{
+		Name: "projects/default/secrets/foo-bar",
+		Replication: &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		},
+		Labels: map[string]string{
+			"managed-by": "not-external-secrets",
 		},
 	}
 
@@ -255,7 +269,7 @@ func TestSetSecret(t *testing.T) {
 			reason: "SetSecret successfully pushes a secret",
 			args: args{
 				mock:                          smtc.mockClient,
-				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &testSecret, Err: nil},
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &secret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
 				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
 			want: want{
@@ -266,7 +280,7 @@ func TestSetSecret(t *testing.T) {
 			reason: "secret not pushed if AddSecretVersion errors",
 			args: args{
 				mock:                          smtc.mockClient,
-				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &testSecret, Err: nil},
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &secret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
 				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: nil, Err: APIerror},
 			},
@@ -278,11 +292,21 @@ func TestSetSecret(t *testing.T) {
 			reason: "secret not pushed if AccessSecretVersion errors",
 			args: args{
 				mock:                          smtc.mockClient,
-				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &testSecret, Err: nil},
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &secret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: nil, Err: APIerror},
 			},
 			want: want{
 				err: APIerror,
+			},
+		},
+		"NotManagedByESO": {
+			reason: "secret not pushed if label not managed-by external-secrets",
+			args: args{
+				mock: smtc.mockClient,
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &wrongLabelSecret, Err: nil},
+			},
+			want: want{
+				err: labelError,
 			},
 		},
 	}
@@ -294,7 +318,6 @@ func TestSetSecret(t *testing.T) {
 			p := secretmanager.ProviderGCP{
 				SecretManagerClient: tc.args.mock,
 			}
-			ref := fakeRef{key: "/baz"}
 			err := p.SetSecret(context.Background(), []byte("fake-value"), ref)
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
