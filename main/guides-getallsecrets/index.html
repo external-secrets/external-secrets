@@ -638,6 +638,20 @@
   
   
     <li class="md-nav__item">
+      <a href="../guides-datafrom-rewrite/" class="md-nav__link">
+        Rewriting Keys
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../guides-v1beta1/" class="md-nav__link">
         Upgrading to v1beta1
       </a>
@@ -1646,7 +1660,7 @@
 <p>In some use cases, it might be impractical to bundle all sensitive information into a single secret, or even it is not possible to fully know a given secret name. In such cases, it is possible that an user might need to sync multiple secrets from an external provider into a single Kubernetes Secret. This is possible to be done in external-secrets with the <code>dataFrom.find</code> option.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it is not possible to apply any decoding Strategy during a find operation.</p>
+<p>The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it possible to apply a decoding Strategy during a find operation, but only at the secret level (e.g. if a secret is a JSON with some B64 encoded data within, <code>decodingStrategy: Auto</code> would not decode it)</p>
 </div>
 <h3 id="fetching-secrets-matching-a-given-name-pattern">Fetching secrets matching a given name pattern</h3>
 <p>To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
@@ -1695,7 +1709,8 @@ This will match any secrets containing all of the metadata labels in the <code>t
 <p>Some providers support filtering out a find operation only to a given path, instead of the root path. In order to use this feature, you can pass <code>find.path</code> to filter out these secrets into only this path, instead of the root path.</p>
 <h3 id="avoiding-name-conflicts">Avoiding name conflicts</h3>
 <p>By default, kubernetes Secrets accepts only a given range of characters. <code>Find</code> operations will automatically replace any not allowed character with a <code>_</code>. So if we have a given secret <code>a_c</code> and <code>a/c</code> would lead to a naming conflict. </p>
-<p>It is not entirely possible to avoid this behavior, but setting <code>dataFrom.find.conversionStrategy: Unicode</code> reduces the collision probability. When using <code>Unicode</code>, any invalid character will be replaced by its unicode, in the form of <code>_UXXXX_</code>. In this case, the available kubernetes keys would be <code>a_c</code> and <code>a_U2215_c</code>, hence avoiding most of possible conflicts.</p>
+<p>If you happen to have a case where a conflict is happening, you can use the <code>rewrite</code> block to apply a regexp on one of the find operations (for more information please refer to <a href="../guides-datafrom-rewrite/">Rewriting Keys from DataFrom</a>).</p>
+<p>You can also set  <code>dataFrom.find.conversionStrategy: Unicode</code> to reduce the collistion probability. When using <code>Unicode</code>, any invalid character will be replaced by its unicode, in the form of <code>_UXXXX_</code>. In this case, the available kubernetes keys would be <code>a_c</code> and <code>a_U2215_c</code>, hence avoiding most of possible conflicts.</p>
 <div class="admonition note">
 <p class="admonition-title">PRs welcome</p>
 <p>Some providers might not have the implementation needed for fetching multiple secrets. If that's your case, please feel free to contribute!</p>
