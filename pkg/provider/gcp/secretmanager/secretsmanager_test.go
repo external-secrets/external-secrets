@@ -332,7 +332,7 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"SetSecretGetSecretReturns404": {
+		"GetSecretNotFound": {
 			reason: "secret is created if one doesn't already exist",
 			args: args{
 				mock:                          smtc.mockClient,
@@ -343,6 +343,17 @@ func TestSetSecret(t *testing.T) {
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"CreateSecretReturnsError": {
+			reason: "secret not created if CreateSecret returns error",
+			args: args{
+				mock:                          smtc.mockClient,
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: nil, Err: notFoundError},
+				CreateSecretMockReturn:        fakesm.CreateSecretMockReturn{Secret: &secret, Err: notFoundError},
+			},
+			want: want{
+				err: notFoundError,
 			},
 		},
 	}
