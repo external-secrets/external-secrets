@@ -258,7 +258,6 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 				return err
 			}
 		}
-
 		if err != nil {
 			return err
 		}
@@ -278,9 +277,7 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 		if err != nil && gErr.GRPCStatus().Code() != codes.NotFound {
 			return err
 		}
-	}
-
-	if err != nil {
+	} else if err != nil {
 		return err
 	}
 

@@ -202,6 +202,9 @@ func (f fakeRef) GetRemoteKey() string {
 func TestSetSecret(t *testing.T) {
 	ref := fakeRef{key: "/baz"}
 
+	notFoundStatusError := status.Error(codes.NotFound, "failed")
+	notFoundError, _ := apierror.FromError(notFoundStatusError)
+
 	APIerror := fmt.Errorf("API Error")
 	labelError := fmt.Errorf("secret %v is not managed by external secrets", ref.GetRemoteKey())
 
@@ -265,6 +268,7 @@ func TestSetSecret(t *testing.T) {
 		GetSecretMockReturn           fakesm.GetSecretMockReturn
 		AccessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
 		AddSecretVersionMockReturn    fakesm.AddSecretVersionMockReturn
+		CreateSecretMockReturn        fakesm.CreateSecretMockReturn
 	}
 
 	type want struct {
@@ -330,12 +334,27 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretGetSecretReturns404": {
+			reason: "secret is created if one doesn't already exist",
+			args: args{
+				mock:                          smtc.mockClient,
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: nil, Err: notFoundError},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: nil, Err: notFoundError},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+				CreateSecretMockReturn:        fakesm.CreateSecretMockReturn{Secret: &secret, Err: nil},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			tc.args.mock.NewGetSecretFn(tc.args.GetSecretMockReturn)
+			tc.args.mock.NewCreateSecretFn(tc.args.CreateSecretMockReturn)
 			tc.args.mock.NewAccessSecretVersionFn(tc.args.AccessSecretVersionMockReturn)
-			tc.args.mock.NewAddSecretVersion(tc.args.AddSecretVersionMockReturn)
+			tc.args.mock.NewAddSecretVersionFn(tc.args.AddSecretVersionMockReturn)
+
 			p := secretmanager.ProviderGCP{
 				SecretManagerClient: tc.args.mock,
 			}
