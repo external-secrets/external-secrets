@@ -1,0 +1,20 @@
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: secretstore-sample
+spec:
+  provider:
+    aws:
+      service: ParameterStore
+      # define a specific role to limit access
+      # to certain secrets
+      role: iam-role
+      region: eu-central-1
+      auth:
+        secretRef:
+          accessKeyIDSecretRef:
+            name: awssm-secret
+            key: access-key
+          secretAccessKeySecretRef:
+            name: awssm-secret
+            key: secret-access-key
