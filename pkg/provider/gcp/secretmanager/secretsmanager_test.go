@@ -31,11 +31,9 @@ import (
 	"k8s.io/utils/pointer"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	fakeprr "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1/fakes"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
-	"github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/internal/fakes"
 )
 
 type secretManagerTestCase struct {
@@ -366,28 +364,6 @@ func TestSetSecret(t *testing.T) {
 	}
 }
 
-func TestSetSecretGetSecret404(t *testing.T) {
-	client := newClient()
-	pushRemoteRef := newPushRemoteRef()
-	secret := newSecret()
-	p := newProvider(client)
-
-	newStatus := status.Error(codes.NotFound, "failed")
-	err, _ := apierror.FromError(newStatus)
-
-	client.GetSecretReturns(nil, err)
-	client.CreateSecretReturns(secret, nil)
-	client.AccessSecretVersionReturns(nil, err)
-
-	p.SetSecret(context.Background(), nil, pushRemoteRef)
-	if client.AddSecretVersionCallCount() != 1 {
-		t.Error("expected addSecretVersion to be called")
-	}
-	if client.CreateSecretCallCount() != 1 {
-		t.Error("expected CreateSecret to be called")
-	}
-}
-
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *secretManagerTestCase) {
@@ -499,35 +475,5 @@ func TestValidateStore(t *testing.T) {
 				t.Errorf("ProviderGCP.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
-	}
-}
-
-// counterfeiter helper methods.
-func newClient() *fakes.GoogleSecretManagerClient {
-	return new(fakes.GoogleSecretManagerClient)
-}
-
-func newPushRemoteRef() *fakeprr.PushRemoteRef {
-	return new(fakeprr.PushRemoteRef)
-}
-
-func newSecret() *secretmanagerpb.Secret {
-	return &secretmanagerpb.Secret{
-		Name: "projects/default/secrets/foo-bar",
-		Replication: &secretmanagerpb.Replication{
-			Replication: &secretmanagerpb.Replication_Automatic_{
-				Automatic: &secretmanagerpb.Replication_Automatic{},
-			},
-		},
-		Labels: map[string]string{
-			"managed-by": "external-secrets",
-		},
-	}
-}
-
-func newProvider(client secretmanager.GoogleSecretManagerClient) secretmanager.ProviderGCP {
-	return secretmanager.ProviderGCP{
-		SecretManagerClient: client,
-		ProjectID:           "default",
 	}
 }
