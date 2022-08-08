@@ -367,6 +367,17 @@ func TestSetSecret(t *testing.T) {
 				err: canceledError,
 			},
 		},
+		"AccessSecretVersionReturnsError": {
+			reason: "access secret version for an existing secret returns error",
+			args: args{
+				mock:                smtc.mockClient,
+				GetSecretMockReturn: fakesm.GetSecretMockReturn{Secret: &secret, Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: nil, Err: canceledError},
+			},
+			want: want{
+				err: canceledError,
+			},
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
