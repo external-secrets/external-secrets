@@ -20,9 +20,8 @@ import (
 )
 
 const (
-	ReasonSynced    = "Synced"
-	ReasonNotSynced = "NotSynced"
-	ReasonErrored   = "Errored"
+	ReasonSynced  = "Synced"
+	ReasonErrored = "Errored"
 )
 
 type PushSecretStoreRef struct {
