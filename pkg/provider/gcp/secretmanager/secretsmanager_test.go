@@ -198,8 +198,11 @@ func (f fakeRef) GetRemoteKey() string {
 func TestSetSecret(t *testing.T) {
 	ref := fakeRef{key: "/baz"}
 
-	notFoundStatusError := status.Error(codes.NotFound, "failed")
-	notFoundError, _ := apierror.FromError(notFoundStatusError)
+	notFoundError := status.Error(codes.NotFound, "failed")
+	notFoundError, _ = apierror.FromError(notFoundError)
+
+	canceledError := status.Error(codes.Canceled, "canceled")
+	canceledError, _ = apierror.FromError(canceledError)
 
 	APIerror := fmt.Errorf("API Error")
 	labelError := fmt.Errorf("secret %v is not managed by external secrets", ref.GetRemoteKey())
@@ -343,8 +346,8 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"CreateSecretReturnsError": {
-			reason: "secret not created if CreateSecret returns error",
+		"CreateSecretReturnsNotFoundError": {
+			reason: "secret not created if CreateSecret returns not found error",
 			args: args{
 				mock:                   smtc.mockClient,
 				GetSecretMockReturn:    fakesm.GetSecretMockReturn{Secret: nil, Err: notFoundError},
@@ -352,6 +355,16 @@ func TestSetSecret(t *testing.T) {
 			},
 			want: want{
 				err: notFoundError,
+			},
+		},
+		"CreateSecretReturnsError": {
+			reason: "secret not created if CreateSecret returns error",
+			args: args{
+				mock:                smtc.mockClient,
+				GetSecretMockReturn: fakesm.GetSecretMockReturn{Secret: nil, Err: canceledError},
+			},
+			want: want{
+				err: canceledError,
 			},
 		},
 	}

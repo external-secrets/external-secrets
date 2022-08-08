@@ -251,14 +251,13 @@ func (sm *ProviderGCP) SetSecret(ctx context.Context, payload []byte, remoteRef 
 
 	var gErr *apierror.APIError
 
-	if errors.As(err, &gErr) {
-		if err != nil && gErr.GRPCStatus().Code() == codes.NotFound {
+	if err != nil && errors.As(err, &gErr) {
+		if gErr.GRPCStatus().Code() == codes.NotFound {
 			gcpSecret, err = sm.SecretManagerClient.CreateSecret(ctx, createSecretReq)
 			if err != nil {
 				return err
 			}
-		}
-		if err != nil {
+		} else {
 			return err
 		}
 	}
