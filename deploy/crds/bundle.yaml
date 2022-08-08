@@ -186,6 +186,9 @@ spec:
                         - name
                       type: object
                     target:
+                      default:
+                        creationPolicy: Owner
+                        deletionPolicy: Retain
                       description: ExternalSecretTarget defines the Kubernetes Secret to be created There can be only one target per ExternalSecret.
                       properties:
                         creationPolicy:
@@ -2949,6 +2952,9 @@ spec:
                     - name
                   type: object
                 target:
+                  default:
+                    creationPolicy: Owner
+                    deletionPolicy: Retain
                   description: ExternalSecretTarget defines the Kubernetes Secret to be created There can be only one target per ExternalSecret.
                   properties:
                     creationPolicy:
