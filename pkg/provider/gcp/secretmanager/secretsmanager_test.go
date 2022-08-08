@@ -23,8 +23,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	"github.com/googleapis/gax-go/v2/apierror"
-
-	// "github.com/stretchr/testify/assert".
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -348,9 +346,9 @@ func TestSetSecret(t *testing.T) {
 		"CreateSecretReturnsError": {
 			reason: "secret not created if CreateSecret returns error",
 			args: args{
-				mock:                          smtc.mockClient,
-				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: nil, Err: notFoundError},
-				CreateSecretMockReturn:        fakesm.CreateSecretMockReturn{Secret: &secret, Err: notFoundError},
+				mock:                   smtc.mockClient,
+				GetSecretMockReturn:    fakesm.GetSecretMockReturn{Secret: nil, Err: notFoundError},
+				CreateSecretMockReturn: fakesm.CreateSecretMockReturn{Secret: &secret, Err: notFoundError},
 			},
 			want: want{
 				err: notFoundError,
