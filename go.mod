@@ -69,7 +69,7 @@ require (
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/client_model v0.2.0
-	github.com/spf13/cobra v1.4.0
+	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	github.com/tidwall/gjson v1.14.1
 	github.com/xanzy/go-gitlab v0.70.0
