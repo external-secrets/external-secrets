@@ -370,8 +370,8 @@ func TestSetSecret(t *testing.T) {
 		"AccessSecretVersionReturnsError": {
 			reason: "access secret version for an existing secret returns error",
 			args: args{
-				mock:                smtc.mockClient,
-				GetSecretMockReturn: fakesm.GetSecretMockReturn{Secret: &secret, Err: nil},
+				mock:                          smtc.mockClient,
+				GetSecretMockReturn:           fakesm.GetSecretMockReturn{Secret: &secret, Err: nil},
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: nil, Err: canceledError},
 			},
 			want: want{
