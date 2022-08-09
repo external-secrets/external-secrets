@@ -238,7 +238,7 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 	}
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,
-		Audience:       aud,
+		Audiences:      aud,
 		ServiceAccount: name,
 		k8sClient:      clientset.CoreV1(),
 	}
