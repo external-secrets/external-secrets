@@ -64,7 +64,7 @@ type PushSecretMatch struct {
 }
 
 type PushSecretData struct {
-	Match []PushSecretMatch `json:"match"`
+	Match PushSecretMatch `json:"match"`
 }
 
 // PushSecretConditionType indicates the condition of the PushSecret.

@@ -361,13 +361,11 @@ var _ = Describe("pushsecret", func() {
 				},
 				Data: []esapi.PushSecretData{
 					{
-						Match: []esapi.PushSecretMatch{
-							{
-								SecretKey: "foo",
-								RemoteRefs: []esapi.PushSecretRemoteRefs{
-									{
-										RemoteKey: "bar",
-									},
+						Match: esapi.PushSecretMatch{
+							SecretKey: "foo",
+							RemoteRefs: []esapi.PushSecretRemoteRefs{
+								{
+									RemoteKey: "bar",
 								},
 							},
 						},
