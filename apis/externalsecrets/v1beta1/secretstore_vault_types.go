@@ -194,6 +194,7 @@ type VaultKubernetesServiceAccountTokenAuth struct {
 	// Optional expiration time in seconds that will be used to request a temporary
 	// Kubernetes service account token for the service account referenced by
 	// `serviceAccountRef`.
+	// Deprecated: this will be removed in the future.
 	// Defaults to 10 minutes.
 	// +optional
 	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
