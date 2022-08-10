@@ -27,7 +27,7 @@ const (
 	// Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.
 	AzureServicePrincipal AzureAuthType = "ServicePrincipal"
 
-	// Using Managed Identity to authenticate. Used with aad-pod-identity installed in the clister.
+	// Using Managed Identity to authenticate. Used with aad-pod-identity installed in the cluster.
 	AzureManagedIdentity AzureAuthType = "ManagedIdentity"
 
 	// Using Workload Identity service accounts to authenticate.

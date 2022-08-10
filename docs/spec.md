@@ -494,7 +494,7 @@ is ServicePrincipal.</p>
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;ManagedIdentity&#34;</p></td>
-<td><p>Using Managed Identity to authenticate. Used with aad-pod-identity installed in the clister.</p>
+<td><p>Using Managed Identity to authenticate. Used with aad-pod-identity installed in the cluster.</p>
 </td>
 </tr><tr><td><p>&#34;ServicePrincipal&#34;</p></td>
 <td><p>Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.</p>
@@ -649,7 +649,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>,
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -1388,7 +1388,7 @@ ExternalSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -1542,7 +1542,7 @@ ExternalSecretFind
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
@@ -1639,7 +1639,7 @@ ExternalSecretDecodingStrategy
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -1877,7 +1877,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -3799,7 +3799,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -3871,7 +3871,7 @@ int
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
