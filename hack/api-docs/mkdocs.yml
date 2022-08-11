@@ -3,6 +3,7 @@ repo_url: https://github.com/external-secrets/external-secrets
 repo_name: External Secrets Operator
 site_dir: ../../site
 docs_dir: ../../docs
+edit_uri: ./edit/main/docs/
 remote_branch: gh-pages
 theme:
   name: material
@@ -18,6 +19,11 @@ plugins:
       lang: en
   - macros:
       include_dir: docs/snippets
+copyright: |
+  &copy; 2022 The external-secrets Authors.<br/>
+  &copy; 2022 The Linux Foundation. All rights reserved.<br/><br/>
+  The Linux Foundation has registered trademarks and uses trademarks.<br/>
+  For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 extra:
   version:
     provider: mike
@@ -46,6 +52,7 @@ nav:
     - Getting Multiple Secrets: guides-getallsecrets.md
     - Multi Tenancy: guides-multi-tenancy.md
     - Metrics: guides-metrics.md
+    - Rewriting Keys: guides-datafrom-rewrite.md
     - Upgrading to v1beta1: guides-v1beta1.md
     - Using Latest Image: guides-using-latest-image.md
   - Provider:

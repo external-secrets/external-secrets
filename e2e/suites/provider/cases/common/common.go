@@ -291,6 +291,43 @@ func JSONDataFromSync(f *framework.Framework) (string, func(*framework.TestCase)
 	}
 }
 
+// This case creates one secret with json values and syncs them using a single .Spec.DataFrom block.
+func JSONDataFromRewrite(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should sync and rewrite secrets with dataFrom", func(tc *framework.TestCase) {
+		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
+		targetSecretKey1 := "username"
+		targetSecretValue1 := "myuser.name"
+		targetSecretKey2 := "address"
+		targetSecretValue2 := "happy street"
+		secretValue := fmt.Sprintf("{ %q: %q, %q: %q }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
+		tc.Secrets = map[string]framework.SecretEntry{
+			secretKey1: {Value: secretValue},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				"my_username": []byte(targetSecretValue1),
+				"my_address":  []byte(targetSecretValue2),
+			},
+		}
+		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: secretKey1,
+				},
+				Rewrite: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "(.*)",
+							Target: "my_$1",
+						},
+					},
+				},
+			},
+		}
+	}
+}
+
 // This case creates a secret with a nested json value. It is synced into two secrets.
 // The values from the nested data are extracted using gjson.
 // not supported by: vault.

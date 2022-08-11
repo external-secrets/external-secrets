@@ -132,8 +132,12 @@ func (a *akeylessBase) GetRotatedSecrets(secretName, token string, version int32
 		return "", fmt.Errorf("can't get rotated secret value: %w", err)
 	}
 
-	val, ok := gsvOut["value"]
+	valI, ok := gsvOut["value"]
 	if ok {
+		val, convert := valI.(map[string]interface{})
+		if !convert {
+			return "", fmt.Errorf("failure converting key from gsvOut")
+		}
 		if _, ok := val["payload"]; ok {
 			return fmt.Sprintf("%v", val["payload"]), nil
 		} else if _, ok := val["target_value"]; ok {

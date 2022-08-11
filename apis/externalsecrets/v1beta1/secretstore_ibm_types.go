@@ -28,12 +28,25 @@ type IBMProvider struct {
 	ServiceURL *string `json:"serviceUrl,omitempty"`
 }
 
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type IBMAuth struct {
-	SecretRef IBMAuthSecretRef `json:"secretRef"`
+	SecretRef     IBMAuthSecretRef     `json:"secretRef,omitempty"`
+	ContainerAuth IBMAuthContainerAuth `json:"containerAuth,omitempty"`
 }
 
 type IBMAuthSecretRef struct {
 	// The SecretAccessKey is used for authentication
-	// +optional
 	SecretAPIKey esmeta.SecretKeySelector `json:"secretApiKeySecretRef,omitempty"`
+}
+
+// IBM Container-based auth with IAM Trusted Profile.
+type IBMAuthContainerAuth struct {
+	// the IBM Trusted Profile
+	Profile string `json:"profile"`
+
+	// Location the token is mounted on the pod
+	TokenLocation string `json:"tokenLocation,omitempty"`
+
+	IAMEndpoint string `json:"iamEndpoint,omitempty"`
 }

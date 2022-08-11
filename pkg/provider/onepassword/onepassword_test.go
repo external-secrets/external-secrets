@@ -172,7 +172,7 @@ func TestFindItem(t *testing.T) {
 				{
 					checkNote:    "two vaults",
 					findItemName: myItem,
-					expectedErr:  fmt.Errorf(errExpectedOneVault, fmt.Errorf("'my-vault', got 2")),
+					expectedErr:  fmt.Errorf("key not found in 1Password Vaults: my-item in: map[my-shared-vault:2 my-vault:1]"),
 				},
 			},
 		},

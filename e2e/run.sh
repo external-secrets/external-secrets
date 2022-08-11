@@ -46,7 +46,6 @@ until kubectl get secret | grep -q -e ^external-secrets-e2e-token; do \
 done
 
 echo -e "Starting the e2e test pod ${E2E_IMAGE_REGISTRY}:${VERSION}"
-
 kubectl run --rm \
   --attach \
   --restart=Never \

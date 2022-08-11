@@ -3,7 +3,7 @@
 In some use cases, it might be impractical to bundle all sensitive information into a single secret, or even it is not possible to fully know a given secret name. In such cases, it is possible that an user might need to sync multiple secrets from an external provider into a single Kubernetes Secret. This is possible to be done in external-secrets with the `dataFrom.find` option.
 
 !!! note
-    The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it is not possible to apply any decoding Strategy during a find operation.
+    The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it possible to apply a decoding Strategy during a find operation, but only at the secret level (e.g. if a secret is a JSON with some B64 encoded data within, `decodingStrategy: Auto` would not decode it)
 
 
 ### Fetching secrets matching a given name pattern
@@ -33,7 +33,12 @@ Some providers support filtering out a find operation only to a given path, inst
 ### Avoiding name conflicts
 By default, kubernetes Secrets accepts only a given range of characters. `Find` operations will automatically replace any not allowed character with a `_`. So if we have a given secret `a_c` and `a/c` would lead to a naming conflict. 
 
-It is not entirely possible to avoid this behavior, but setting `dataFrom.find.conversionStrategy: Unicode` reduces the collision probability. When using `Unicode`, any invalid character will be replaced by its unicode, in the form of `_UXXXX_`. In this case, the available kubernetes keys would be `a_c` and `a_U2215_c`, hence avoiding most of possible conflicts.
+
+If you happen to have a case where a conflict is happening, you can use the `rewrite` block to apply a regexp on one of the find operations (for more information please refer to [Rewriting Keys from DataFrom](guides-datafrom-rewrite.md)).
+
+You can also set  `dataFrom.find.conversionStrategy: Unicode` to reduce the collistion probability. When using `Unicode`, any invalid character will be replaced by its unicode, in the form of `_UXXXX_`. In this case, the available kubernetes keys would be `a_c` and `a_U2215_c`, hence avoiding most of possible conflicts.
+
+
 
 !!! note "PRs welcome"
     Some providers might not have the implementation needed for fetching multiple secrets. If that's your case, please feel free to contribute!
