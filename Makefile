@@ -17,7 +17,7 @@ all: $(addprefix build-,$(ARCH))
 export IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
 #Valid licenses for license.check
-LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause|Unknown
+LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause
 BUNDLE_DIR     ?= deploy/crds
 CRD_DIR     ?= config/crds
 
