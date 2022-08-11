@@ -24,7 +24,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
-	"gotest.tools/v3/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -38,7 +37,6 @@ import (
 const (
 	tokenSecretName  = "example-secret-token"
 	secretDataString = "some-creds"
-	secretPath       = "secret"
 )
 
 var (
@@ -1410,129 +1408,114 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
-func TestSetSecretUpdateSecretNotFound(t *testing.T) {
-	path := secretPath
-	secretData := map[string]interface{}{
-		"data": map[string]interface{}{
-			"fake key": "fake value",
+func TestSetSecret(t *testing.T) {
+	noPermission := errors.New("no permission")
+	secretNotFound := errors.New("secret not found")
+
+	type args struct {
+		store    *esv1beta1.VaultProvider
+		vLogical Logical
+	}
+
+	type want struct {
+		err error
+	}
+	tests := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"SetSecret": {
+			reason: "secret is successfully set, with no existing vault secret",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, secretNotFound),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+
+		"SetSecretWithWriteError": {
+			reason: "secret cannot be pushed if write fails",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, secretNotFound),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+
+		"SetSecretEqualsPushSecret": {
+			reason: "vault secret kv equals secret to push kv",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": map[string]interface{}{
+							"fake-key": "fake-value",
+						},
+					}, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+
+		"SetSecretErrorReadingSecret": {
+			reason: "error occurs if secret cannot be read",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errReadSecret, noPermission),
+			},
+		},
+
+		"SetSecretNotManagedByESO": {
+			reason: "a secret not managed by ESO cannot be updated",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": map[string]interface{}{
+							"fake-key": "fake-value2",
+							"custom_metadata": map[string]interface{}{
+								"managed-by": "not-external-secrets",
+							},
+						},
+					}, nil),
+				},
+			},
+			want: want{
+				err: errors.New("secret not managed by external-secrets"),
+			},
 		},
 	}
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			client := &client{
+				logical: tc.args.vLogical,
+				store:   tc.args.store,
+			}
+			err := client.SetSecret(context.Background(), []byte("fake-value"), ref)
+
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			}
+		})
 	}
-	f.WriteWithContextFn = fake.WriteChangingReadContext(secretData, f)
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "I'm a key"}
-
-	err := client.SetSecret(context.Background(), []byte("HI"), ref)
-	assert.Equal(t, err, nil)
-}
-
-func TestSetSecretUpdateSecretNotFoundWithError(t *testing.T) {
-	path := secretPath
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("secret not found")),
-	}
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, fmt.Errorf("no permissions"))
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "I'm a key"}
-
-	err := client.SetSecret(context.Background(), []byte("HI"), ref)
-	assert.Equal(t, err.Error(), "no permissions")
-}
-func TestSetSecretEqualsPushSecret(t *testing.T) {
-	path := secretPath
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-			"key": "fake value",
-		}, nil),
-	}
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "key"}
-
-	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
-
-	assert.Equal(t, err, nil)
-}
-
-func TestSetSecretEqualsPushSecretWithError(t *testing.T) {
-	path := secretPath
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-			"key": "wrong-key",
-		}, nil),
-	}
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, fmt.Errorf("boom"))
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "key"}
-
-	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
-	assert.Equal(t, err.Error(), "boom")
-}
-func TestSetSecretErrorReadingSecret(t *testing.T) {
-	path := secretPath
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("you shall not pass")),
-	}
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(nil, nil)
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "key"}
-
-	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
-	assert.ErrorContains(t, err, "you shall not pass")
-}
-
-// Test if secret is managed by eso.
-func TestSetSecretNotManagedByESO(t *testing.T) {
-	path := secretPath
-
-	f := fake.Logical{
-		ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-			"key": "fake value",
-		}, nil),
-	}
-
-	f.WriteWithContextFn = fake.NewWriteWithContextFn(map[string]interface{}{
-		"custom_metadata": map[string]string{
-			"managed-by": "not-external-secrets",
-		},
-	}, nil)
-
-	client := client{
-		store: &esv1beta1.VaultProvider{
-			Path: &path,
-		},
-		logical: f,
-	}
-	ref := fakeRef{key: "key"}
-
-	err := client.SetSecret(context.Background(), []byte("fake value"), ref)
-
-	assert.Equal(t, err.Error(), "secret not managed by external-secrets")
 }

@@ -38,7 +38,7 @@ func NewClient() *Client {
 
 func (sm *Client) CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error) {
 	value := "I'm a key"
-	output := awssm.CreateSecretOutput {
+	output := awssm.CreateSecretOutput{
 		Name: &value,
 	}
 	return &output, nil
