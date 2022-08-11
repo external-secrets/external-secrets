@@ -385,6 +385,14 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 	if err != nil && !strings.Contains(err.Error(), "secret not found") {
 		return err
 	}
+
+	// Retrieve the secret value to be pushed and convert it to string form.
+	pushSecretValue := string(value)
+
+	if vaultSecretValue == pushSecretValue {
+		return nil
+	}
+
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
 	if err == nil {
 		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
@@ -395,13 +403,6 @@ func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 		if !ok || manager != "external-secrets" {
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
-	}
-
-	// Retrieve the secret value to be pushed and convert it to string form.
-	pushSecretValue := string(value)
-
-	if vaultSecretValue == pushSecretValue {
-		return nil
 	}
 	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
 	if err != nil {
@@ -749,7 +750,6 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		// Vault KV2 has data embedded within sub-field
 		// reference - https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
 		dataInt, ok := vaultSecret.Data["data"]
-
 		if !ok {
 			return nil, errors.New(errDataField)
 		}

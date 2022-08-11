@@ -1407,6 +1407,9 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].reason
           name: Status
           type: string
+        - jsonPath: .status.capabilities
+          name: Capabilities
+          type: string
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
@@ -3143,24 +3146,22 @@ spec:
                   items:
                     properties:
                       match:
-                        items:
-                          properties:
-                            remoteRefs:
-                              items:
-                                properties:
-                                  remoteKey:
-                                    type: string
-                                required:
-                                  - remoteKey
-                                type: object
-                              type: array
-                            secretKey:
-                              type: string
-                          required:
-                            - remoteRefs
-                            - secretKey
-                          type: object
-                        type: array
+                        properties:
+                          remoteRefs:
+                            items:
+                              properties:
+                                remoteKey:
+                                  type: string
+                              required:
+                                - remoteKey
+                              type: object
+                            type: array
+                          secretKey:
+                            type: string
+                        required:
+                          - remoteRefs
+                          - secretKey
+                        type: object
                     required:
                       - match
                     type: object
@@ -3249,7 +3250,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: secretstores.external-secrets.io
 spec:
@@ -4278,6 +4279,7 @@ spec:
           type: string
         - jsonPath: .status.capabilities
           name: Capabilities
+          type: string
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string

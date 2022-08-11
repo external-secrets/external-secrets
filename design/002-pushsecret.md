@@ -2,7 +2,7 @@
 ---
 title: PushSecret
 version: v1alpha1
-authors: 
+authors:
 creation-date: 2022-01-25
 status: draft
 ---
@@ -26,7 +26,7 @@ Secret Sink allows some inCluster generated secrets to also be available on a gi
 ### Goals
 - CRD Design for the PushSecret
 - Define the need for a SinkStore
-- 
+-
 ### Non-Goals
 Do not implement full compatibility mechanisms with each provider (we are not Terraform neither Crossplane)
 
@@ -130,17 +130,17 @@ spec:
     secret:
       name: foobar
   data:
-    match:
-    - secretKey: foobar
+  - match:
+      secretKey: foobar
       remoteRefs:
-      - remoteKey: my/path/foobar 
+      - remoteKey: my/path/foobar
         property: my-property #optional. To allow coming back from a 'dataFrom'
       - remoteKey: secret/my-path-foobar
         property: another-property
     rewrite:
-    - secretKey: game-(.+).(.+)
+      secretKey: game-(.+).(.+)
       remoteRefs:
-      - remoteKey: my/path/($1) 
+      - remoteKey: my/path/($1)
         property: prop-($2)
       - remoteKey: my-path-($1)-($2) #Applies this way to all other secretStores
 
@@ -148,7 +148,7 @@ status:
   refreshTime: "2019-08-12T12:33:02Z"
   conditions:
   - type: Ready
-    status: "True" 
+    status: "True"
     reason: "SecretSynced"
     message: "Secret was synced" #Fully synced
     lastTransitionTime: "2019-08-12T12:33:02Z"
