@@ -71,6 +71,14 @@ NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
 
 You can achieve that by using the `filterPEM` function to extract a specific type of PEM block from that secret. If multiple blocks of that type (here: `CERTIFICATE`) exist then all of them are returned in the order they are specified.
 
+### Handling secretKeys with non-alphanumeric characters
+
+golang templates do not allow keys that contain various names you may wish to use in your secretKey names. For example, you can't use `-` or `.` anywhere in a `secretKey` value, or any `secretKey` value that begins with a number. However, you can work around this using the `index` function:
+
+```yaml
+{% include 'template-v2-handling-secret-keys-with-non-alphanumeric-characters.yaml' %}
+```
+
 ## Helper functions
 
 !!! info inline end
