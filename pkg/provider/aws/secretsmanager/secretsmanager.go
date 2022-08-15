@@ -256,7 +256,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	}
 	// We need to search if a given key with a . exists before using gjson operations.
 	idx := strings.Index(ref.Property, ".")
-	if idx > 0 {
+	if idx > -1 {
 		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if val.Exists() {
