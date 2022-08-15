@@ -189,7 +189,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		return nil, fmt.Errorf("invalid secret received. parameter value is nil for key: %s", ref.Key)
 	}
 	idx := strings.Index(ref.Property, ".")
-	if idx > 0 {
+	if idx > -1 {
 		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
 		val := gjson.Get(*out.Parameter.Value, refProperty)
 		if val.Exists() {
