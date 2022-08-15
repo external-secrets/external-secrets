@@ -97,7 +97,7 @@ require (
 require github.com/1Password/connect-sdk-go v1.5.0
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.4.6
+	github.com/argoproj/argo-cd/v2 v2.4.9
 	github.com/fluxcd/helm-controller/api v0.22.2
 	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/source-controller/api v0.25.11
@@ -122,7 +122,7 @@ require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
-	github.com/argoproj/gitops-engine v0.7.0 // indirect
+	github.com/argoproj/gitops-engine v0.7.1 // indirect
 	github.com/argoproj/pkg v0.11.1-0.20211203175135-36c59d8fafe0 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
