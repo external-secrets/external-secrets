@@ -68,6 +68,8 @@ var (
 	certCheckInterval                     time.Duration
 	certLookaheadInterval                 time.Duration
 	enableAWSSession                      bool
+	tlsCiphers                            string
+	tlsMinVersion                         string
 )
 
 const (
