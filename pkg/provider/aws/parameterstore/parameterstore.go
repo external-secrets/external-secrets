@@ -29,7 +29,6 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -109,7 +108,7 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	return data, nil
 }
 
 func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -152,7 +151,7 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 		}
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	return data, nil
 }
 
 func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error {
