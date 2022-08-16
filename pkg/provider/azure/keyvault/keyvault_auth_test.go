@@ -193,7 +193,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 				kubeClient: awsauthfake.NewCreateTokenMock(saToken),
 				provider:   store.Spec.Provider.AzureKV,
 			}
-			tokenProvider := func(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error) {
+			tokenProvider := func(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error) {
 				tassert.Equal(t, token, saToken)
 				tassert.Equal(t, clientID, clientID)
 				tassert.Equal(t, tenantID, tenantID)

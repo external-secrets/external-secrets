@@ -11,6 +11,20 @@ We support Service Principals, Managed Identity and Workload Identity authentica
 
 To use Managed Identity authentication, you should use [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/) to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use `podLabels` in your values.yaml in case of Helm installation of external-secrets.
 
+We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud` and `GermanCloud`. You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
+
+```
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: azure-backend
+spec:
+  provider:
+    azurekv:
+      # PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+      environmentType: PublicCloud # default
+```
+
 Minimum required permissions are `Get` over secret and certificate permissions. This can be done by adding a Key Vault access policy:
 
 ```sh
