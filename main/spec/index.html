@@ -2051,6 +2051,35 @@ is ServicePrincipal.</p>
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.AzureEnvironmentType">AzureEnvironmentType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>AzureEnvironmentType specifies the Azure cloud environment endpoints to use for
+connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ChinaCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;GermanCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;PublicCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;USGovernmentCloud&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.AzureKVAuth">AzureKVAuth
 </h3>
 <p>
@@ -2149,6 +2178,22 @@ string
 <td>
 <em>(Optional)</em>
 <p>TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environmentType</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AzureEnvironmentType">
+AzureEnvironmentType
+</a>
+</em>
+</td>
+<td>
+<p>EnvironmentType specifies the Azure cloud environment endpoints to use for
+connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
 </td>
 </tr>
 <tr>

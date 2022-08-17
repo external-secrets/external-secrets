@@ -1780,6 +1780,17 @@
 <h3 id="authentication">Authentication</h3>
 <p>We support Service Principals, Managed Identity and Workload Identity authentication.</p>
 <p>To use Managed Identity authentication, you should use <a href="https://azure.github.io/aad-pod-identity/docs/">aad-pod-identity</a> to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use <code>podLabels</code> in your values.yaml in case of Helm installation of external-secrets.</p>
+<p>We support connecting to different cloud flavours azure supports: <code>PublicCloud</code>, <code>USGovernmentCloud</code>, <code>ChinaCloud</code> and <code>GermanCloud</code>. You have to specify the <code>environmentType</code> and point to the correct cloud flavour. This defaults to <code>PublicCloud</code>.</p>
+<div class="highlight"><pre><span></span><code>apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: azure-backend
+spec:
+  provider:
+    azurekv:
+      # PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+      environmentType: PublicCloud # default
+</code></pre></div>
 <p>Minimum required permissions are <code>Get</code> over secret and certificate permissions. This can be done by adding a Key Vault access policy:</p>
 <div class="highlight"><pre><span></span><code><span class="nv">KUBELET_IDENTITY_OBJECT_ID</span><span class="o">=</span><span class="k">$(</span>az aks show --resource-group &lt;AKS_CLUSTER_RG_NAME&gt; --name &lt;AKS_CLUSTER_NAME&gt; --query <span class="s1">&#39;identityProfile.kubeletidentity.objectId&#39;</span> -o tsv<span class="k">)</span>
 az keyvault set-policy --name kv-name-with-certs --object-id <span class="s2">&quot;</span><span class="nv">$KUBELET_IDENTITY_OBJECT_ID</span><span class="s2">&quot;</span> --certificate-permissions get --secret-permissions get
