@@ -27,6 +27,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/autorest/azure"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/tidwall/gjson"
@@ -48,7 +49,6 @@ const (
 	defaultObjType       = "secret"
 	objectTypeCert       = "cert"
 	objectTypeKey        = "key"
-	vaultResource        = "https://vault.azure.net"
 	azureDefaultAudience = "api://AzureADTokenExchange"
 	annotationClientID   = "azure.workload.identity/client-id"
 	annotationTenantID   = "azure.workload.identity/tenant-id"
@@ -423,6 +423,8 @@ func getSecretMapProperties(tags map[string]*string, key, property string) map[s
 }
 
 func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider tokenProviderFunc) (autorest.Authorizer, error) {
+	aadEndpoint := aadEndpointForProviderConfig(a.provider)
+	kvResource := kvResourceForProviderConfig(a.provider)
 	// if no serviceAccountRef was provided
 	// we expect certain env vars to be present.
 	// They are set by the azure workload identity webhook.
@@ -437,7 +439,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		if err != nil {
 			return nil, fmt.Errorf(errReadTokenFile, tokenFilePath, err)
 		}
-		tp, err := tokenProvider(ctx, string(token), clientID, tenantID)
+		tp, err := tokenProvider(ctx, string(token), clientID, tenantID, aadEndpoint, kvResource)
 		if err != nil {
 			return nil, err
 		}
@@ -467,7 +469,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	if err != nil {
 		return nil, err
 	}
-	tp, err := tokenProvider(ctx, token, clientID, tenantID)
+	tp, err := tokenProvider(ctx, token, clientID, tenantID, aadEndpoint, kvResource)
 	if err != nil {
 		return nil, err
 	}
@@ -491,26 +493,27 @@ type tokenProvider struct {
 	accessToken string
 }
 
-type tokenProviderFunc func(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error)
+type tokenProviderFunc func(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error)
 
-func newTokenProvider(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error) {
+func newTokenProvider(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error) {
 	// exchange token with Azure AccessToken
 	cred, err := confidential.NewCredFromAssertion(token)
 	if err != nil {
 		return nil, err
 	}
-
-	// AZURE_AUTHORITY_HOST
-
 	cClient, err := confidential.New(clientID, cred, confidential.WithAuthority(
-		fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/token", tenantID),
+		fmt.Sprintf("%s%s/oauth2/token", aadEndpoint, tenantID),
 	))
 	if err != nil {
 		return nil, err
 	}
-
+	scope := kvResource
+	// .default needs to be added to the scope
+	if !strings.Contains(kvResource, ".default") {
+		scope = fmt.Sprintf("%s/.default", kvResource)
+	}
 	authRes, err := cClient.AcquireTokenByCredential(ctx, []string{
-		"https://vault.azure.net/.default",
+		scope,
 	})
 	if err != nil {
 		return nil, err
@@ -526,7 +529,7 @@ func (t *tokenProvider) OAuthToken() string {
 
 func (a *Azure) authorizerForManagedIdentity() (autorest.Authorizer, error) {
 	msiConfig := kvauth.NewMSIConfig()
-	msiConfig.Resource = vaultResource
+	msiConfig.Resource = kvResourceForProviderConfig(a.provider)
 	if a.provider.IdentityID != nil {
 		msiConfig.ClientID = *a.provider.IdentityID
 	}
@@ -555,9 +558,9 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	if err != nil {
 		return nil, err
 	}
-
 	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, *a.provider.TenantID)
-	clientCredentialsConfig.Resource = vaultResource
+	clientCredentialsConfig.Resource = kvResourceForProviderConfig(a.provider)
+	clientCredentialsConfig.AADEndpoint = aadEndpointForProviderConfig(a.provider)
 	return clientCredentialsConfig.Authorizer()
 }
 
@@ -589,6 +592,38 @@ func (a *Azure) Close(ctx context.Context) error {
 
 func (a *Azure) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
+}
+
+func aadEndpointForProviderConfig(prov *esv1beta1.AzureKVProvider) string {
+	switch prov.EnvironmentType {
+	case esv1beta1.AzureEnvironmentPublicCloud:
+		return azure.PublicCloud.ActiveDirectoryEndpoint
+	case esv1beta1.AzureEnvironmentChinaCloud:
+		return azure.ChinaCloud.ActiveDirectoryEndpoint
+	case esv1beta1.AzureEnvironmentUSGovernmentCloud:
+		return azure.USGovernmentCloud.ActiveDirectoryEndpoint
+	case esv1beta1.AzureEnvironmentGermanCloud:
+		return azure.GermanCloud.ActiveDirectoryEndpoint
+	default:
+		return azure.PublicCloud.ActiveDirectoryEndpoint
+	}
+}
+
+func kvResourceForProviderConfig(prov *esv1beta1.AzureKVProvider) string {
+	var res string
+	switch prov.EnvironmentType {
+	case esv1beta1.AzureEnvironmentPublicCloud:
+		res = azure.PublicCloud.KeyVaultEndpoint
+	case esv1beta1.AzureEnvironmentChinaCloud:
+		res = azure.ChinaCloud.KeyVaultEndpoint
+	case esv1beta1.AzureEnvironmentUSGovernmentCloud:
+		res = azure.USGovernmentCloud.KeyVaultEndpoint
+	case esv1beta1.AzureEnvironmentGermanCloud:
+		res = azure.GermanCloud.KeyVaultEndpoint
+	default:
+		res = azure.PublicCloud.KeyVaultEndpoint
+	}
+	return strings.TrimSuffix(res, "/")
 }
 
 func getObjType(ref esv1beta1.ExternalSecretDataRemoteRef) (string, string) {

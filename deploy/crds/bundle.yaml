@@ -1654,6 +1654,15 @@ spec:
                             - ManagedIdentity
                             - WorkloadIdentity
                           type: string
+                        environmentType:
+                          default: PublicCloud
+                          description: 'EnvironmentType specifies the Azure cloud environment endpoints to use for connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint. The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152 PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud'
+                          enum:
+                            - PublicCloud
+                            - USGovernmentCloud
+                            - ChinaCloud
+                            - GermanCloud
+                          type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
@@ -4373,6 +4382,15 @@ spec:
                             - ServicePrincipal
                             - ManagedIdentity
                             - WorkloadIdentity
+                          type: string
+                        environmentType:
+                          default: PublicCloud
+                          description: 'EnvironmentType specifies the Azure cloud environment endpoints to use for connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint. The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152 PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud'
+                          enum:
+                            - PublicCloud
+                            - USGovernmentCloud
+                            - ChinaCloud
+                            - GermanCloud
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
