@@ -24,7 +24,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-func (p *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
 	if k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
@@ -65,20 +65,20 @@ func (p *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (p *ProviderKubernetes) Validate() (esv1beta1.ValidationResult, error) {
+func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called
 	// from the SecretStore controller.
-	if p.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(p.store) {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(c.store) {
 		return esv1beta1.ValidationResultUnknown, nil
 	}
 	ctx := context.Background()
 	t := authv1.SelfSubjectRulesReview{
 		Spec: authv1.SelfSubjectRulesReviewSpec{
-			Namespace: p.Namespace,
+			Namespace: c.store.RemoteNamespace,
 		},
 	}
-	authReview, err := p.ReviewClient.Create(ctx, &t, metav1.CreateOptions{})
+	authReview, err := c.userReviewClient.Create(ctx, &t, metav1.CreateOptions{})
 	if err != nil {
 		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}

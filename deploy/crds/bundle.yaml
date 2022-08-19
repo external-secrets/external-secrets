@@ -550,6 +550,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -654,6 +659,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -728,6 +738,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -856,6 +871,11 @@ spec:
                                 serviceAccount:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1067,6 +1087,11 @@ spec:
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -1128,6 +1153,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1556,6 +1586,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1669,6 +1704,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -1743,6 +1783,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1882,6 +1927,11 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
                                 name:
                                   description: The name of the ServiceAccount resource being referred to.
                                   type: string
@@ -2162,17 +2212,22 @@ spec:
                                   description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
                                   properties:
                                     audiences:
-                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      description: 'Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified. Deprecated: use serviceAccountRef.Audiences instead'
                                       items:
                                         type: string
                                       type: array
                                     expirationSeconds:
-                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      description: 'Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Deprecated: this will be removed in the future. Defaults to 10 minutes.'
                                       format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -2234,6 +2289,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3279,6 +3339,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3383,6 +3448,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -3457,6 +3527,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3585,6 +3660,11 @@ spec:
                                 serviceAccount:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3796,6 +3876,11 @@ spec:
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -3857,6 +3942,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4285,6 +4375,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4398,6 +4493,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -4472,6 +4572,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4611,6 +4716,11 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
                                 name:
                                   description: The name of the ServiceAccount resource being referred to.
                                   type: string
@@ -4891,17 +5001,22 @@ spec:
                                   description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
                                   properties:
                                     audiences:
-                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      description: 'Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified. Deprecated: use serviceAccountRef.Audiences instead'
                                       items:
                                         type: string
                                       type: array
                                     expirationSeconds:
-                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      description: 'Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Deprecated: this will be removed in the future. Defaults to 10 minutes.'
                                       format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -4963,6 +5078,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string

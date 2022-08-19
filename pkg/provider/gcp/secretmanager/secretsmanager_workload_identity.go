@@ -73,7 +73,7 @@ type idBindTokenGenerator interface {
 
 // interface to kubernetes serviceaccount token request API.
 type saTokenGenerator interface {
-	Generate(context.Context, string, string, string) (*authenticationv1.TokenRequest, error)
+	Generate(context.Context, []string, string, string) (*authenticationv1.TokenRequest, error)
 }
 
 func newWorkloadIdentity(ctx context.Context) (*workloadIdentity, error) {
@@ -130,9 +130,13 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.Gene
 		wi.ClusterLocation,
 		wi.ClusterName)
 	idPool := fmt.Sprintf("%s.svc.id.goog", clusterProjectID)
+	audiences := []string{idPool}
+	if len(wi.ServiceAccountRef.Audiences) > 0 {
+		audiences = append(audiences, wi.ServiceAccountRef.Audiences...)
+	}
 	gcpSA := sa.Annotations[gcpSAAnnotation]
 
-	resp, err := w.saTokenGenerator.Generate(ctx, idPool, saKey.Name, saKey.Namespace)
+	resp, err := w.saTokenGenerator.Generate(ctx, audiences, saKey.Name, saKey.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchPodToken, err)
 	}
@@ -182,7 +186,7 @@ type k8sSATokenGenerator struct {
 	corev1 clientcorev1.CoreV1Interface
 }
 
-func (g *k8sSATokenGenerator) Generate(ctx context.Context, idPool, name, namespace string) (*authenticationv1.TokenRequest, error) {
+func (g *k8sSATokenGenerator) Generate(ctx context.Context, audiences []string, name, namespace string) (*authenticationv1.TokenRequest, error) {
 	// Request a serviceaccount token for the pod
 	ttl := int64((15 * time.Minute).Seconds())
 	return g.corev1.
@@ -191,7 +195,7 @@ func (g *k8sSATokenGenerator) Generate(ctx context.Context, idPool, name, namesp
 			&authenticationv1.TokenRequest{
 				Spec: authenticationv1.TokenRequestSpec{
 					ExpirationSeconds: &ttl,
-					Audiences:         []string{idPool},
+					Audiences:         audiences,
 				},
 			},
 			metav1.CreateOptions{},

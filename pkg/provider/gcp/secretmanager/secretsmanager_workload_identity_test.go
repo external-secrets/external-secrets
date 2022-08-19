@@ -43,7 +43,7 @@ type workloadIdentityTest struct {
 	expErr         string
 	genAccessToken func(context.Context, *credentialspb.GenerateAccessTokenRequest, ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
 	genIDBindToken func(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error)
-	genSAToken     func(c context.Context, s1, s2, s3 string) (*authv1.TokenRequest, error)
+	genSAToken     func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error)
 	store          esv1beta1.GenericStore
 	kubeObjects    []client.Object
 }
@@ -173,7 +173,7 @@ func TestSATokenGen(t *testing.T) {
 	g := &k8sSATokenGenerator{
 		corev1: corev1,
 	}
-	token, err := g.Generate(context.Background(), "my-fake-audience", "bar", "default")
+	token, err := g.Generate(context.Background(), []string{"my-fake-audience"}, "bar", "default")
 	assert.Nil(t, err)
 	assert.Equal(t, token.Status.Token, defaultSAToken)
 	assert.Equal(t, token.Spec.Audiences[0], "my-fake-audience")
@@ -270,7 +270,7 @@ func defaultTestCase(name string) *workloadIdentityTest {
 				AccessToken: defaultIDBindToken,
 			}, nil
 		},
-		genSAToken: func(c context.Context, s1, s2, s3 string) (*authv1.TokenRequest, error) {
+		genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {
 			return &authv1.TokenRequest{
 				Status: authv1.TokenRequestStatus{
 					Token: defaultSAToken,
@@ -402,10 +402,10 @@ func (f *fakeIAMClient) Close() error {
 
 // fake SA Token Generator.
 type fakeSATokenGen struct {
-	GenerateFunc func(context.Context, string, string, string) (*authv1.TokenRequest, error)
+	GenerateFunc func(context.Context, []string, string, string) (*authv1.TokenRequest, error)
 }
 
-func (f *fakeSATokenGen) Generate(ctx context.Context, idPool, namespace, name string) (*authv1.TokenRequest, error) {
+func (f *fakeSATokenGen) Generate(ctx context.Context, idPool []string, namespace, name string) (*authv1.TokenRequest, error) {
 	return f.GenerateFunc(ctx, idPool, namespace, name)
 }
 

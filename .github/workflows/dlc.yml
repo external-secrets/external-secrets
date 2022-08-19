@@ -14,17 +14,6 @@ on:
 env:
   # Common versions
   GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.42.1'
-  KUBERNETES_VERSION: '1.23.x'
-  DOCKER_BUILDX_VERSION: 'v0.4.2'
-
-  # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
-  # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
-  # credentials have been provided before trying to run steps that need them.
-  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-
-  # Sonar
-  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
   license-check:
@@ -57,7 +46,7 @@ jobs:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-
-          
+
       - name: License Checks
         run: |
           go install github.com/google/go-licenses@latest

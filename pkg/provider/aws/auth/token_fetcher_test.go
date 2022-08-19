@@ -19,14 +19,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 )
 
 func TestTokenFetcher(t *testing.T) {
 	tf := &authTokenFetcher{
 		ServiceAccount: "foobar",
 		Namespace:      "example",
-		k8sClient:      fake.NewCreateTokenMock("FAKETOKEN"),
+		k8sClient:      fake.NewCreateTokenMock().WithToken("FAKETOKEN"),
 	}
 	token, err := tf.FetchToken(context.Background())
 	assert.Nil(t, err)
