@@ -16,6 +16,7 @@ package secretsmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -334,4 +335,83 @@ func TestSetSecret(t *testing.T) {
 	err := sm.SetSecret(context.Background(), []byte("HI"), ref)
 
 	assert.Equal(t, err, nil)
+}
+
+// func TestSetSecretCreateError(t *testing.T) {
+// 	ref := fakeRef{key: "I'm a key"}
+// 	fakeClient := fakesm.NewClient()
+// 	createSecretFails := func(smtc *secretsManagerTestCase) {
+// 		smtc.apiOutput.SecretString = aws.String(`{"foo":"bar", "bar":"vodka"}`)
+// 		smtc.remoteRef.Property = "foo"
+// 		smtc.expectedSecret = "bar"
+// 		smtc.apiErr = errors.New("api err")
+// 		smtc.expectError = "api err"
+// 		smtc.fakeClient = fakeClient
+// 		smtc.remoteRef.Key = ref.key
+// 	}
+// 	successCases := []*secretsManagerTestCase{
+// 		makeValidSecretsManagerTestCaseCustom(createSecretFails),
+// 	}
+
+// 	for k, v := range successCases {
+// 		sm := SecretsManager{
+// 			cache:  make(map[string]*awssm.GetSecretValueOutput),
+// 			client: v.fakeClient,
+// 		}
+// 		sm.client.CreateSecretWithContext(context.Background(), &awssm.CreateSecretInput{})
+// 		err := sm.SetSecret(context.Background(), []byte("hi"), ref)
+// 		if !ErrorContains(err, v.expectError) {
+// 			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
+// 		}
+// 	}
+// }
+
+func TestSetSecret2(t *testing.T) {
+	noPermission := errors.New("no permission")
+
+	type args struct {
+		store       *esv1beta1.AWSProvider
+		SMInterface SMInterface
+	}
+
+	type want struct {
+		err error
+	}
+	tests := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"SetSecret": {
+			reason: "secret is successfully set, with no existing vault secret",
+			args:   args{
+				// store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				// SMInterface: fakesm.SMInterface{
+				// 	CreateSecretWithContextFn: fakesm.NewCreateSecretWithContextFn(nil, noPermission),
+
+				// 	// Run the debugger and step into the createsecret function.
+				// 	// You will notice that the above mock isn't called and the one associated with the client struct is instead.
+				// },
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			sm := SecretsManager{
+				client: fakesm.NewClient(),
+			}
+			err := sm.SetSecret(context.Background(), []byte("fake-value"), ref)
+
+			// if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+			// 	t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			// }
+
+			assert.Equal(t, err, tc.want.err)
+		})
+	}
 }
