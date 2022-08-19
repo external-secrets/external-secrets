@@ -25,21 +25,14 @@ import (
 
 // Client implements the aws secretsmanager interface.
 type Client struct {
-	ExecutionCounter int
-	valFn            map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-}
-
-type GetSecretValueFn func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-type ListSecretsFn func(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error)
-type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
-
-type SMInterface struct {
-	GetSecretValueFn          GetSecretValueFn
-	ListSecretsFn             ListSecretsFn
+	ExecutionCounter          int
+	valFn                     map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	CreateSecretWithContextFn CreateSecretWithContextFn
 }
 
-func (sm SMInterface) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
+
+func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretWithContextFn(ctx, input, options...)
 }
 
@@ -49,39 +42,11 @@ func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error) C
 	}
 }
 
-func (sm SMInterface) GetSecretValue(input *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
-	return sm.GetSecretValueFn(input)
-}
-
-func NewGetSecretValueFn(output *awssm.GetSecretValueOutput, err error) GetSecretValueFn {
-	return func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
-		return output, err
-	}
-}
-
-func (sm SMInterface) ListSecrets(input *awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error) {
-	return sm.ListSecretsFn(input)
-}
-
-func NewListSecretsFn(listOutput *awssm.ListSecretsOutput, err error) ListSecretsFn {
-	return func(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error) {
-		return listOutput, err
-	}
-}
-
 // NewClient init a new fake client.
 func NewClient() *Client {
 	return &Client{
 		valFn: make(map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)),
 	}
-}
-
-func (sm *Client) CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error) {
-	value := "I'm a key"
-	output := awssm.CreateSecretOutput{
-		Name: &value,
-	}
-	return &output, nil
 }
 
 func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
@@ -115,30 +80,3 @@ func (sm *Client) WithValue(in *awssm.GetSecretValueInput, val *awssm.GetSecretV
 		return val, err
 	}
 }
-
-// func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1.SecretStore {
-// 	return &esv1beta1.SecretStore{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      "vault-store",
-// 			Namespace: "default",
-// 		},
-// 		Spec: esv1beta1.SecretStoreSpec{
-// 			Provider: &esv1beta1.SecretStoreProvider{
-// 				Vault: &esv1beta1.VaultProvider{
-// 					Server:  "vault.example.com",
-// 					Path:    &secretStorePath,
-// 					Version: v,
-// 					Auth: esv1beta1.VaultAuth{
-// 						Kubernetes: &esv1beta1.VaultKubernetesAuth{
-// 							Path: "kubernetes",
-// 							Role: "kubernetes-auth-role",
-// 							ServiceAccountRef: &esmeta.ServiceAccountSelector{
-// 								Name: "example-sa",
-// 							},
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-// }

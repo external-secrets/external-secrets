@@ -21,8 +21,11 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/aws/aws-sdk-go/aws"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 
@@ -337,41 +340,12 @@ func TestSetSecret(t *testing.T) {
 	assert.Equal(t, err, nil)
 }
 
-// func TestSetSecretCreateError(t *testing.T) {
-// 	ref := fakeRef{key: "I'm a key"}
-// 	fakeClient := fakesm.NewClient()
-// 	createSecretFails := func(smtc *secretsManagerTestCase) {
-// 		smtc.apiOutput.SecretString = aws.String(`{"foo":"bar", "bar":"vodka"}`)
-// 		smtc.remoteRef.Property = "foo"
-// 		smtc.expectedSecret = "bar"
-// 		smtc.apiErr = errors.New("api err")
-// 		smtc.expectError = "api err"
-// 		smtc.fakeClient = fakeClient
-// 		smtc.remoteRef.Key = ref.key
-// 	}
-// 	successCases := []*secretsManagerTestCase{
-// 		makeValidSecretsManagerTestCaseCustom(createSecretFails),
-// 	}
-
-// 	for k, v := range successCases {
-// 		sm := SecretsManager{
-// 			cache:  make(map[string]*awssm.GetSecretValueOutput),
-// 			client: v.fakeClient,
-// 		}
-// 		sm.client.CreateSecretWithContext(context.Background(), &awssm.CreateSecretInput{})
-// 		err := sm.SetSecret(context.Background(), []byte("hi"), ref)
-// 		if !ErrorContains(err, v.expectError) {
-// 			t.Errorf(unexpectedErrorString, k, err.Error(), v.expectError)
-// 		}
-// 	}
-// }
-
-func TestSetSecret2(t *testing.T) {
+func TestSetSecretWithError(t *testing.T) {
 	noPermission := errors.New("no permission")
 
 	type args struct {
-		store       *esv1beta1.AWSProvider
-		SMInterface SMInterface
+		store  *esv1beta1.AWSProvider
+		client fakesm.Client
 	}
 
 	type want struct {
@@ -384,14 +358,11 @@ func TestSetSecret2(t *testing.T) {
 	}{
 		"SetSecret": {
 			reason: "secret is successfully set, with no existing vault secret",
-			args:   args{
-				// store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
-				// SMInterface: fakesm.SMInterface{
-				// 	CreateSecretWithContextFn: fakesm.NewCreateSecretWithContextFn(nil, noPermission),
-
-				// 	// Run the debugger and step into the createsecret function.
-				// 	// You will notice that the above mock isn't called and the one associated with the client struct is instead.
-				// },
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					CreateSecretWithContextFn: fakesm.NewCreateSecretWithContextFn(nil, noPermission),
+				},
 			},
 			want: want{
 				err: noPermission,
@@ -403,15 +374,30 @@ func TestSetSecret2(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ref := fakeRef{key: "fake-key"}
 			sm := SecretsManager{
-				client: fakesm.NewClient(),
+				client: &tc.args.client,
 			}
 			err := sm.SetSecret(context.Background(), []byte("fake-value"), ref)
 
-			// if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-			// 	t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
-			// }
-
-			assert.Equal(t, err, tc.want.err)
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			}
 		})
+	}
+}
+
+func makeValidSecretStore() *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vault-store",
+			Namespace: "default",
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				AWS: &esv1beta1.AWSProvider{
+					Service: esv1beta1.AWSServiceSecretsManager,
+					Region:  "eu-west-2",
+				},
+			},
+		},
 	}
 }
