@@ -27,7 +27,6 @@ import (
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
-	"gotest.tools/v3/assert"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
@@ -331,17 +330,11 @@ func (f fakeRef) GetRemoteKey() string {
 }
 
 func TestSetSecret(t *testing.T) {
-	sm := SecretsManager{
-		client: &fakesm.Client{},
-	}
-	ref := fakeRef{key: "I'm a key"}
-	err := sm.SetSecret(context.Background(), []byte("HI"), ref)
-
-	assert.Equal(t, err, nil)
-}
-
-func TestSetSecretWithError(t *testing.T) {
+	secretName := "fake-key"
 	noPermission := errors.New("no permission")
+	secretOutput := &awssm.CreateSecretOutput{
+		Name: &secretName,
+	}
 
 	type args struct {
 		store  *esv1beta1.AWSProvider
@@ -356,8 +349,20 @@ func TestSetSecretWithError(t *testing.T) {
 		args   args
 		want   want
 	}{
-		"SetSecret": {
-			reason: "secret is successfully set, with no existing vault secret",
+		"SetSecretSucceeds": {
+			reason: "a secret can be puahed to aws secrets manager",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					CreateSecretWithContextFn: fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretCreateSecretFails": {
+			reason: "create secret returns an error if it fails",
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
