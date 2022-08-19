@@ -6311,7 +6311,8 @@ github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.</p>
+Defaults to a single audience <code>vault</code> it not specified.
+Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -6326,6 +6327,7 @@ int64
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
 <code>serviceAccountRef</code>.
+Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>
