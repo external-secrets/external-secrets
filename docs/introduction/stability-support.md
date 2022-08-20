@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 This page lists the status, timeline and policy for currently supported ESO releases and its providers. Please also see our [deprecation policy](deprecation-policy.md) that describes API versioning, deprecation and API surface.
 
 ## External Secrets Operator

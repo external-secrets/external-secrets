@@ -48,7 +48,6 @@ var certcontrollerCmd = &cobra.Command{
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:                 scheme,
-			MetricsBindAddress:     metricsAddr,
 			HealthProbeBindAddress: healthzAddr,
 			Port:                   9443,
 			LeaderElection:         enableLeaderElection,
@@ -114,7 +113,7 @@ var certcontrollerCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(certcontrollerCmd)
 
-	certcontrollerCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	certcontrollerCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8082", "The address the metric endpoint binds to.")
 	certcontrollerCmd.Flags().StringVar(&healthzAddr, "healthz-addr", ":8081", "The address the health endpoint binds to.")
 	certcontrollerCmd.Flags().StringVar(&serviceName, "service-name", "external-secrets-webhook", "Webhook service name")
 	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")

@@ -75,7 +75,7 @@ Events:                    <none>
 ```
 
 For more advanced examples, please read the other
-[guides](introduction.md).
+[guides](../guides/introduction.md).
 
 ## Installing with OLM
 

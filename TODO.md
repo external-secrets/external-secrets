@@ -1,0 +1,4 @@
+- [ ] password generator
+    - []
+    - [] docs
+- [ ] e2e test suite: fake + password gen

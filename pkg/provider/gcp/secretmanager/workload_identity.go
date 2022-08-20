@@ -58,6 +58,7 @@ type workloadIdentity struct {
 	iamClient            IamClient
 	idBindTokenGenerator idBindTokenGenerator
 	saTokenGenerator     saTokenGenerator
+	clusterProjectID     string
 }
 
 // interface to GCP IAM API.
@@ -76,7 +77,7 @@ type saTokenGenerator interface {
 	Generate(context.Context, []string, string, string) (*authenticationv1.TokenRequest, error)
 }
 
-func newWorkloadIdentity(ctx context.Context) (*workloadIdentity, error) {
+func newWorkloadIdentity(ctx context.Context, projectID string) (*workloadIdentity, error) {
 	iamc, err := newIAMClient(ctx)
 	if err != nil {
 		return nil, err
@@ -89,47 +90,39 @@ func newWorkloadIdentity(ctx context.Context) (*workloadIdentity, error) {
 		iamClient:            iamc,
 		idBindTokenGenerator: newIDBindTokenGenerator(),
 		saTokenGenerator:     satg,
+		clusterProjectID:     projectID,
 	}, nil
 }
 
-func (w *workloadIdentity) TokenSource(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
-	spec := store.GetSpec()
-	if spec == nil || spec.Provider == nil || spec.Provider.GCPSM == nil {
-		return nil, fmt.Errorf(errMissingStoreSpec)
-	}
-	wi := spec.Provider.GCPSM.Auth.WorkloadIdentity
+func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, isClusterKind bool, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+	wi := auth.WorkloadIdentity
 	if wi == nil {
 		return nil, nil
 	}
-	storeKind := store.GetObjectKind().GroupVersionKind().Kind
 	saKey := types.NamespacedName{
 		Name:      wi.ServiceAccountRef.Name,
 		Namespace: namespace,
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if storeKind == esv1beta1.ClusterSecretStoreKind {
+	if isClusterKind {
 		if wi.ServiceAccountRef.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingSANamespace)
 		}
 		saKey.Namespace = *wi.ServiceAccountRef.Namespace
 	}
 
-	clusterProjectID, err := clusterProjectID(spec)
-	if err != nil {
-		return nil, err
-	}
 	sa := &v1.ServiceAccount{}
-	err = kube.Get(ctx, saKey, sa)
+	err := kube.Get(ctx, saKey, sa)
 	if err != nil {
 		return nil, err
 	}
 
 	idProvider := fmt.Sprintf("https://container.googleapis.com/v1/projects/%s/locations/%s/clusters/%s",
-		clusterProjectID,
+		w.clusterProjectID,
 		wi.ClusterLocation,
 		wi.ClusterName)
-	idPool := fmt.Sprintf("%s.svc.id.goog", clusterProjectID)
+	idPool := fmt.Sprintf("%s.svc.id.goog", w.clusterProjectID)
 	audiences := []string{idPool}
 	if len(wi.ServiceAccountRef.Audiences) > 0 {
 		audiences = append(audiences, wi.ServiceAccountRef.Audiences...)
@@ -265,14 +258,4 @@ func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Cli
 		return nil, err
 	}
 	return idBindToken, nil
-}
-
-func clusterProjectID(spec *esv1beta1.SecretStoreSpec) (string, error) {
-	if spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID != "" {
-		return spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID, nil
-	} else if spec.Provider.GCPSM.ProjectID != "" {
-		return spec.Provider.GCPSM.ProjectID, nil
-	} else {
-		return "", fmt.Errorf(errNoProjectID)
-	}
 }

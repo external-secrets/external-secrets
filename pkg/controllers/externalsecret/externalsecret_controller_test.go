@@ -21,10 +21,12 @@ import (
 	"strconv"
 	"time"
 
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -412,6 +414,160 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
 			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, ExternalSecretFQDN, "{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:reconcile.external-secrets.io/data-hash\":{}}}}")).To(BeTrue())
+		}
+	}
+
+	syncWithInlineGenerator := func(tc *testCase) {
+		const secretKey = "somekey"
+		const secretVal = "someValue"
+
+		// generator is defined in yaml, however it is transformed as json
+		// internally
+		fakeGen := `
+{
+  "apiVersion": "generators.external-secrets.io/v1alpha1",
+  "kind": "Fake",
+  "spec": {
+    "data": {
+      "%s": "%s"
+    }
+  }
+}`
+
+		// reset secretStoreRef
+		tc.externalSecret.Spec.SecretStoreRef = esv1beta1.SecretStoreRef{}
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				SourceRef: &esv1beta1.SourceRef{
+					Generator: &apiextensions.JSON{
+						Raw: []byte(fmt.Sprintf(fakeGen, secretKey, secretVal)),
+					},
+				},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
+		}
+	}
+
+	syncWithGeneratorRef := func(tc *testCase) {
+		const secretKey = "somekey"
+		const secretVal = "someValue"
+
+		Expect(k8sClient.Create(context.Background(), &genv1alpha1.Fake{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mytestfake",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: genv1alpha1.FakeSpec{
+				Data: map[string]string{
+					secretKey: secretVal,
+				},
+			},
+		})).To(Succeed())
+
+		// reset secretStoreRef
+		tc.externalSecret.Spec.SecretStoreRef = esv1beta1.SecretStoreRef{}
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				SourceRef: &esv1beta1.SourceRef{
+					GeneratorRef: &esv1beta1.GeneratorRef{
+						APIVersion: genv1alpha1.Group + "/" + genv1alpha1.Version,
+						Kind:       "Fake",
+						Name:       "mytestfake",
+					},
+				},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
+		}
+	}
+
+	syncWithMultipleSecretStores := func(tc *testCase) {
+		Expect(k8sClient.Create(context.Background(), &esv1beta1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "foo",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					Fake: &esv1beta1.FakeProvider{
+						Data: []esv1beta1.FakeProviderData{
+							{
+								Key:     "foo",
+								Version: "",
+								ValueMap: map[string]string{
+									"foo":  "bar",
+									"foo2": "bar2",
+								},
+							},
+						},
+					},
+				},
+			},
+		})).To(Succeed())
+
+		Expect(k8sClient.Create(context.Background(), &esv1beta1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "baz",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					Fake: &esv1beta1.FakeProvider{
+						Data: []esv1beta1.FakeProviderData{
+							{
+								Key:     "baz",
+								Version: "",
+								ValueMap: map[string]string{
+									"baz":  "bang",
+									"baz2": "bang2",
+								},
+							},
+						},
+					},
+				},
+			},
+		})).To(Succeed())
+
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: "foo",
+				},
+				SourceRef: &esv1beta1.SourceRef{
+					SecretStoreRef: &esv1beta1.SecretStoreRef{
+						Name: "foo",
+						Kind: esv1beta1.SecretStoreKind,
+					},
+				},
+			},
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: "baz",
+				},
+				SourceRef: &esv1beta1.SourceRef{
+					SecretStoreRef: &esv1beta1.SecretStoreRef{
+						Name: "baz",
+						Kind: esv1beta1.SecretStoreKind,
+					},
+				},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["foo"])).To(Equal("bar"))
+			Expect(string(secret.Data["foo2"])).To(Equal("bar2"))
+			Expect(string(secret.Data["baz"])).To(Equal("bang"))
+			Expect(string(secret.Data["baz2"])).To(Equal("bang2"))
 		}
 	}
 
@@ -1438,6 +1594,9 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
+		Entry("should sync with inline generator", syncWithInlineGenerator),
+		Entry("should sync with generatorRef", syncWithGeneratorRef),
+		Entry("should sync with multiple secret stores via sourceRef", syncWithMultipleSecretStores),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync with template engine v2", syncWithTemplateV2),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),

@@ -6,3 +6,5 @@ resources:
   - external-secrets.io_clustersecretstores.yaml
   - external-secrets.io_externalsecrets.yaml
   - external-secrets.io_secretstores.yaml
+  - generators.external-secrets.io_ecrauthorizationtokens.yaml
+  - generators.external-secrets.io_gcraccesstokens.yaml

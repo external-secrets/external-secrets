@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -159,6 +160,8 @@ type ExternalSecretData struct {
 	SecretKey string `json:"secretKey"`
 
 	RemoteRef ExternalSecretDataRemoteRef `json:"remoteRef"`
+
+	SourceRef *SourceRef `json:"sourceRef,omitempty"`
 }
 
 // ExternalSecretDataRemoteRef defines Provider data location.
@@ -214,9 +217,11 @@ const (
 
 type ExternalSecretDataFromRemoteRef struct {
 	// Used to extract multiple key/value pairs from one secret
+	// Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
 	// +optional
 	Extract *ExternalSecretDataRemoteRef `json:"extract,omitempty"`
 	// Used to find secrets based on tags or regular expressions
+	// Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.
 	// +optional
 	Find *ExternalSecretFind `json:"find,omitempty"`
 
@@ -224,6 +229,14 @@ type ExternalSecretDataFromRemoteRef struct {
 	// Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
 	// +optional
 	Rewrite []ExternalSecretRewrite `json:"rewrite,omitempty"`
+
+	// SourceRef points to a store or generator
+	// which contains secret values ready to use.
+	// Use this in combination with Extract or Find pull values out of
+	// a specific SecretStore.
+	// When sourceRef points to a generator Extract or Find is not supported.
+	// The generator returns a static map of values
+	SourceRef *SourceRef `json:"sourceRef,omitempty"`
 }
 
 type ExternalSecretRewrite struct {
@@ -270,6 +283,7 @@ type FindName struct {
 
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
+	// +optional
 	SecretStoreRef SecretStoreRef `json:"secretStoreRef"`
 	// +kubebuilder:default={creationPolicy:Owner,deletionPolicy:Retain}
 	// +optional
@@ -289,6 +303,27 @@ type ExternalSecretSpec struct {
 	// If multiple entries are specified, the Secret keys are merged in the specified order
 	// +optional
 	DataFrom []ExternalSecretDataFromRemoteRef `json:"dataFrom,omitempty"`
+}
+
+type SourceRef struct {
+	// +optional
+	SecretStoreRef *SecretStoreRef `json:"storeRef,omitempty"`
+
+	// GeneratorRef points to a generator custom resource in
+	// +optional
+	GeneratorRef *GeneratorRef `json:"generatorRef,omitempty"`
+
+	// Generator generates secret values on demand
+	// A generator is just a embedded type, see apis/generators
+	// for available types.
+	// +optional
+	Generator *apiextensions.JSON `json:"generator,omitempty"`
+}
+
+type GeneratorRef struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Name       string `json:"name"`
 }
 
 type ExternalSecretConditionType string

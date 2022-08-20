@@ -1,0 +1,35 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: "hello-world"
+spec:
+  refreshInterval: "5m"
+  target:
+    name: my-secret
+  dataFrom:
+  - generator:
+      apiVersion: generators.external-secrets.io/v1alpha1
+      kind: ACRAccessToken
+      spec:
+        tenantId: 4476d978-55aa-4edd-aef4-7b8899be19d4
+        registry: esoe2e.azurecr.io
+        scope: "repository:foo:pull,push"
+        auth:
+          servicePrincipal:
+            secretRef:
+              clientSecret:
+                name: az-secret
+                key: clientsecret
+              clientId:
+                name: az-secret
+                key: clientid
+  # - generator:
+  #     apiVersion: generators.external-secrets.io/v1alpha1
+  #     kind: ECRAuthorizationToken
+  #     spec:
+  #       region: "eu-west-1"
+  #       auth:
+  #         jwt:
+  #           serviceAccountRef:
+  #             name: ecr-pull-poc
+  #             namespace: default

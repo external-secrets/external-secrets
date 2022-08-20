@@ -52,11 +52,6 @@ func TestWorkloadIdentity(t *testing.T) {
 	clusterSANamespace := "foobar"
 	tbl := []*workloadIdentityTest{
 		composeTestcase(
-			defaultTestCase("missing store spec should result in error"),
-			withErr("invalid: missing store spec"),
-			withStore(&esv1beta1.SecretStore{}),
-		),
-		composeTestcase(
 			defaultTestCase("should skip when no workload identity is configured: TokenSource and error must be nil"),
 			withStore(&esv1beta1.SecretStore{
 				Spec: esv1beta1.SecretStoreSpec{
@@ -137,7 +132,8 @@ func TestWorkloadIdentity(t *testing.T) {
 			cb := clientfake.NewClientBuilder()
 			cb.WithObjects(row.kubeObjects...)
 			client := cb.Build()
-			ts, err := w.TokenSource(context.Background(), row.store, client, "default")
+			isCluster := row.store.GetTypeMeta().Kind == esv1beta1.ClusterSecretStoreKind
+			ts, err := w.TokenSource(context.Background(), row.store.GetSpec().Provider.GCPSM.Auth, isCluster, client, "default")
 			// assert err
 			if row.expErr == "" {
 				assert.NoError(t, err)

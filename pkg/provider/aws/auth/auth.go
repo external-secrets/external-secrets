@@ -81,11 +81,12 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		return nil, err
 	}
 	var creds *credentials.Credentials
+	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
 
 	// use credentials via service account token
 	jwtAuth := prov.Auth.JWTAuth
 	if jwtAuth != nil {
-		creds, err = sessionFromServiceAccount(ctx, prov, store, kube, namespace, jwtProvider)
+		creds, err = sessionFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +96,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	secretRef := prov.Auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		creds, err = sessionFromSecretRef(ctx, prov, store, kube, namespace)
+		creds, err = sessionFromSecretRef(ctx, prov.Auth, isClusterKind, kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +110,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		config.WithRegion(prov.Region)
 	}
 
-	sess, err := getAWSSession(config, store, namespace)
+	sess, err := getAWSSession(config, EnableCache, store.GetName(), store.GetTypeMeta().Kind, namespace, store.GetObjectMeta().ResourceVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -122,17 +123,66 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	return sess, nil
 }
 
-func sessionFromSecretRef(ctx context.Context, prov *esv1beta1.AWSProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*credentials.Credentials, error) {
+// NewSession creates a new aws session based on the provided store
+// it uses the following authentication mechanisms in order:
+// * service-account token authentication via AssumeRoleWithWebIdentity
+// * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
+// * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
+func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
+	var creds *credentials.Credentials
+	var err error
+
+	// use credentials via service account token
+	jwtAuth := auth.JWTAuth
+	if jwtAuth != nil {
+		creds, err = sessionFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// use credentials from sercretRef
+	secretRef := auth.SecretRef
+	if secretRef != nil {
+		log.V(1).Info("using credentials from secretRef")
+		creds, err = sessionFromSecretRef(ctx, auth, false, kube, namespace)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	config := aws.NewConfig().WithEndpointResolver(ResolveEndpoint())
+	if creds != nil {
+		config.WithCredentials(creds)
+	}
+	if region != "" {
+		config.WithRegion(region)
+	}
+
+	sess, err := getAWSSession(config, false, "", "", "", "")
+	if err != nil {
+		return nil, err
+	}
+
+	if role != "" {
+		stsclient := assumeRoler(sess)
+		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, role))
+	}
+	log.Info("using aws session", "region", *sess.Config.Region, "credentials", creds)
+	return sess, nil
+}
+
+func sessionFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isClusterKind bool, kube client.Client, namespace string) (*credentials.Credentials, error) {
 	ke := client.ObjectKey{
-		Name:      prov.Auth.SecretRef.AccessKeyID.Name,
+		Name:      auth.SecretRef.AccessKeyID.Name,
 		Namespace: namespace, // default to ExternalSecret namespace
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
-		if prov.Auth.SecretRef.AccessKeyID.Namespace == nil {
+	if isClusterKind {
+		if auth.SecretRef.AccessKeyID.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
 		}
-		ke.Namespace = *prov.Auth.SecretRef.AccessKeyID.Namespace
+		ke.Namespace = *auth.SecretRef.AccessKeyID.Namespace
 	}
 	akSecret := v1.Secret{}
 	err := kube.Get(ctx, ke, &akSecret)
@@ -140,23 +190,23 @@ func sessionFromSecretRef(ctx context.Context, prov *esv1beta1.AWSProvider, stor
 		return nil, fmt.Errorf(errFetchAKIDSecret, err)
 	}
 	ke = client.ObjectKey{
-		Name:      prov.Auth.SecretRef.SecretAccessKey.Name,
+		Name:      auth.SecretRef.SecretAccessKey.Name,
 		Namespace: namespace, // default to ExternalSecret namespace
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
-		if prov.Auth.SecretRef.SecretAccessKey.Namespace == nil {
+	if isClusterKind {
+		if auth.SecretRef.SecretAccessKey.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		}
-		ke.Namespace = *prov.Auth.SecretRef.SecretAccessKey.Namespace
+		ke.Namespace = *auth.SecretRef.SecretAccessKey.Namespace
 	}
 	sakSecret := v1.Secret{}
 	err = kube.Get(ctx, ke, &sakSecret)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchSAKSecret, err)
 	}
-	sak := string(sakSecret.Data[prov.Auth.SecretRef.SecretAccessKey.Key])
-	aks := string(akSecret.Data[prov.Auth.SecretRef.AccessKeyID.Key])
+	sak := string(sakSecret.Data[auth.SecretRef.SecretAccessKey.Key])
+	aks := string(akSecret.Data[auth.SecretRef.AccessKeyID.Key])
 	if sak == "" {
 		return nil, fmt.Errorf(errMissingSAK)
 	}
@@ -167,14 +217,11 @@ func sessionFromSecretRef(ctx context.Context, prov *esv1beta1.AWSProvider, stor
 	return credentials.NewStaticCredentials(aks, sak, ""), err
 }
 
-func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider, store esv1beta1.GenericStore, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
-		if prov.Auth.JWTAuth.ServiceAccountRef.Namespace == nil {
-			return nil, fmt.Errorf("serviceAccountRef has no Namespace field (mandatory for ClusterSecretStore specs)")
-		}
-		namespace = *prov.Auth.JWTAuth.ServiceAccountRef.Namespace
+func sessionFromServiceAccount(ctx context.Context, auth esv1beta1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
+	name := auth.JWTAuth.ServiceAccountRef.Name
+	if isClusterKind {
+		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
 	}
-	name := prov.Auth.JWTAuth.ServiceAccountRef.Name
 	sa := v1.ServiceAccount{}
 	err := kube.Get(ctx, types.NamespacedName{
 		Name:      name,
@@ -195,16 +242,16 @@ func sessionFromServiceAccount(ctx context.Context, prov *esv1beta1.AWSProvider,
 		tokenAud = defaultTokenAudience
 	}
 	audiences := []string{tokenAud}
-	if len(prov.Auth.JWTAuth.ServiceAccountRef.Audiences) > 0 {
-		audiences = append(audiences, prov.Auth.JWTAuth.ServiceAccountRef.Audiences...)
+	if len(auth.JWTAuth.ServiceAccountRef.Audiences) > 0 {
+		audiences = append(audiences, auth.JWTAuth.ServiceAccountRef.Audiences...)
 	}
 
-	jwtProv, err := jwtProvider(name, namespace, roleArn, audiences, prov.Region)
+	jwtProv, err := jwtProvider(name, namespace, roleArn, audiences, region)
 	if err != nil {
 		return nil, err
 	}
 
-	log.V(1).Info("using credentials via service account", "role", roleArn, "region", prov.Region)
+	log.V(1).Info("using credentials via service account", "role", roleArn, "region", region)
 	return credentials.NewCredentials(jwtProv), nil
 }
 
@@ -255,12 +302,12 @@ func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 
 // getAWSSession check if an AWS session should be reused
 // it returns the aws session or an error.
-func getAWSSession(config *aws.Config, store esv1beta1.GenericStore, namespace string) (*session.Session, error) {
+func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, resourceVersion string) (*session.Session, error) {
 	tmpSession := SessionCache{
-		Name:            store.GetObjectMeta().Name,
+		Name:            name,
 		Namespace:       namespace,
-		Kind:            store.GetTypeMeta().Kind,
-		ResourceVersion: store.GetObjectMeta().ResourceVersion,
+		Kind:            kind,
+		ResourceVersion: resourceVersion,
 	}
 
 	if EnableCache {

@@ -22,13 +22,13 @@ lifecycle of the secrets for you.
 
 ### Where to get started
 
-To get started, please read through [API overview](overview.md) this should
+To get started, please read through [API overview](introduction/overview.md) this should
 give you a high-level overview to understand the API and use-cases. After that
 please follow one of our [guides](guides/introduction.md) to get a jump start
-using the operator. See our [getting started guide](guides/getting-started.md) for installation instructions.
+using the operator. See our [getting started guide](introduction/getting-started.md) for installation instructions.
 
 For a complete reference of the API types please refer to our [API
-Reference](spec.md).
+Reference](api/spec.md).
 
 ### How to get involved
 

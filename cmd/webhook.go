@@ -106,7 +106,6 @@ var webhookCmd = &cobra.Command{
 		}
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:                 scheme,
-			MetricsBindAddress:     metricsAddr,
 			HealthProbeBindAddress: healthzAddr,
 			WebhookServer: &webhook.Server{
 				CertDir:       certDir,
@@ -207,7 +206,7 @@ func getTLSCipherSuitesIDs(cipherListString string) ([]uint16, error) {
 
 func init() {
 	rootCmd.AddCommand(webhookCmd)
-	webhookCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	webhookCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8082", "The address the metric endpoint binds to.")
 	webhookCmd.Flags().StringVar(&healthzAddr, "healthz-addr", ":8081", "The address the health endpoint binds to.")
 	webhookCmd.Flags().IntVar(&port, "port", 10250, "The address the health endpoint binds to.")
 	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "localhost", "DNS name to validate certificates with")
