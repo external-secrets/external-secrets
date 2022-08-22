@@ -25,9 +25,9 @@ import (
 
 // Client implements the aws secretsmanager interface.
 type Client struct {
-	ExecutionCounter          int
-	valFn                     map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-	CreateSecretWithContextFn CreateSecretWithContextFn
+	ExecutionCounter            int
+	valFn                       map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	CreateSecretWithContextFn   CreateSecretWithContextFn
 	GetSecretValueWithContextFn GetSecretValueWithContextFn
 }
 

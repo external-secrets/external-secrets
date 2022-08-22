@@ -328,11 +328,10 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
-
 func TestSetSecret(t *testing.T) {
 	secretName := "fake-key"
 	noPermission := errors.New("no permission")
-	versionId := "384898A7-A5AE-4775-A08D-B417B059ED11"
+	versionID := "384898A7-A5AE-4775-A08D-B417B059ED11"
 	versionStages := "AWSCURRENT"
 	versionOutput := []*string{&versionStages}
 
@@ -341,8 +340,8 @@ func TestSetSecret(t *testing.T) {
 	}
 
 	secretValueOutput := &awssm.GetSecretValueOutput{
-		Name: &secretName,
-		VersionId: &versionId,
+		Name:          &secretName,
+		VersionId:     &versionID,
 		VersionStages: versionOutput,
 	}
 
@@ -365,7 +364,7 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					CreateSecretWithContextFn: fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
 				},
 			},
 			want: want{
@@ -373,12 +372,12 @@ func TestSetSecret(t *testing.T) {
 			},
 		},
 		"SetSecretCreateSecretFails": {
-			reason: "create secret returns an error if it fails",
+			reason: "CreateSecretWithContext returns an error if it fails",
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					CreateSecretWithContextFn: fakesm.NewCreateSecretWithContextFn(nil, noPermission),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(nil, noPermission),
 				},
 			},
 			want: want{
@@ -387,7 +386,7 @@ func TestSetSecret(t *testing.T) {
 		},
 		"SetSecretGetSecretFails": {
 			reason: "GetSecretValueWithContext returns an error if it fails",
-			args: args {
+			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(nil, noPermission),
