@@ -392,7 +392,7 @@ func TestSetSecret(t *testing.T) {
 func makeValidSecretStore() *esv1beta1.SecretStore {
 	return &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
+			Name:      "aws-secret-store",
 			Namespace: "default",
 		},
 		Spec: esv1beta1.SecretStoreSpec{

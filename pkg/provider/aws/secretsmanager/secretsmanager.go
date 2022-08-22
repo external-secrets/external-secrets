@@ -47,9 +47,10 @@ type SecretsManager struct {
 // SMInterface is a subset of the smiface api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/secretsmanager/secretsmanageriface/
 type SMInterface interface {
-	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error)
+	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
+	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
 }
 
 const (
@@ -113,7 +114,19 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 		SecretBinary: value,
 	}
 
-	_, err := sm.client.CreateSecretWithContext(ctx, &secretRequest)
+	secretValue := awssm.GetSecretValueInput{
+		SecretId: &secretName,
+	}
+
+	output, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(output)
+
+	_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
 
 	if err != nil {
 		return err
