@@ -102,7 +102,6 @@ require (
 	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/source-controller/api v0.25.11
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
-	gotest.tools/v3 v3.0.3
 	sigs.k8s.io/yaml v1.3.0
 )
 
