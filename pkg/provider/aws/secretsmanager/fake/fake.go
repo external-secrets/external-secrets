@@ -28,9 +28,21 @@ type Client struct {
 	ExecutionCounter          int
 	valFn                     map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	CreateSecretWithContextFn CreateSecretWithContextFn
+	GetSecretValueWithContextFn GetSecretValueWithContextFn
 }
 
 type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
+type GetSecretValueWithContextFn func(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
+
+func (sm Client) GetSecretValueWithContext(ctx aws.Context, input *awssm.GetSecretValueInput, options ...request.Option) (*awssm.GetSecretValueOutput, error) {
+	return sm.GetSecretValueWithContextFn(ctx, input, options...)
+}
+
+func NewGetSecretValueWithContextFn(output *awssm.GetSecretValueOutput, err error) GetSecretValueWithContextFn {
+	return func(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error) {
+		return output, err
+	}
+}
 
 func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretWithContextFn(ctx, input, options...)

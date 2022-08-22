@@ -328,11 +328,22 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
+
 func TestSetSecret(t *testing.T) {
 	secretName := "fake-key"
 	noPermission := errors.New("no permission")
+	versionId := "384898A7-A5AE-4775-A08D-B417B059ED11"
+	versionStages := "AWSCURRENT"
+	versionOutput := []*string{&versionStages}
+
 	secretOutput := &awssm.CreateSecretOutput{
 		Name: &secretName,
+	}
+
+	secretValueOutput := &awssm.GetSecretValueOutput{
+		Name: &secretName,
+		VersionId: &versionId,
+		VersionStages: versionOutput,
 	}
 
 	type args struct {
@@ -353,6 +364,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
 					CreateSecretWithContextFn: fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
 				},
 			},
@@ -365,7 +377,20 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
 					CreateSecretWithContextFn: fakesm.NewCreateSecretWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+		"SetSecretGetSecretFails": {
+			reason: "GetSecretValueWithContext returns an error if it fails",
+			args: args {
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(nil, noPermission),
 				},
 			},
 			want: want{
