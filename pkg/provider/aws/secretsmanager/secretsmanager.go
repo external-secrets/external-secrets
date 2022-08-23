@@ -52,6 +52,7 @@ type SMInterface interface {
 	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
 	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
+	UpdateSecretVersionStageWithContext(aws.Context, *awssm.UpdateSecretVersionStageInput, ...request.Option) (*awssm.UpdateSecretVersionStageOutput, error)
 }
 
 const (
@@ -116,14 +117,18 @@ type RequestFailure interface {
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	awsCurrent := "AWSCURRENT"
+
+	updateSecretVersion := awssm.UpdateSecretVersionStageInput{
+		SecretId:     &secretName,
+		VersionStage: &awsCurrent,
+	}
 	secretRequest := awssm.CreateSecretInput{
 		Name:         &secretName,
 		SecretBinary: value,
 	}
 
 	secretValue := awssm.GetSecretValueInput{
-		SecretId:     &secretName,
-		VersionStage: &awsCurrent,
+		SecretId: &secretName,
 	}
 
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
@@ -131,6 +136,8 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 
 	if awsSecret != nil && reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
 		return nil
+	} else {
+		sm.client.UpdateSecretVersionStageWithContext(ctx, &updateSecretVersion)
 	}
 
 	if reqerr, ok := err.(RequestFailure); ok {
