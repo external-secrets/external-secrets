@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -122,7 +123,13 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
-	_, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+
+	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	fmt.Println(awsSecret)
+
+	if awsSecret != nil &&  reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
+		return nil
+	}
 
 	if reqerr, ok := err.(RequestFailure); ok {
 		if reqerr.StatusCode() == 400 {

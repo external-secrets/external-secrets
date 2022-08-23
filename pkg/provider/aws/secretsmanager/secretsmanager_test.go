@@ -331,6 +331,7 @@ func (f fakeRef) GetRemoteKey() string {
 
 func TestSetSecret(t *testing.T) {
 	secretName := "fake-key"
+	secretValue := []byte("fake-value")
 	noPermission := errors.New("no permission")
 	versionID := "384898A7-A5AE-4775-A08D-B417B059ED11"
 	versionStages := "AWSCURRENT"
@@ -344,6 +345,13 @@ func TestSetSecret(t *testing.T) {
 		Name:          &secretName,
 		VersionId:     &versionID,
 		VersionStages: versionOutput,
+	}
+
+	secretValueOutput2 := &awssm.GetSecretValueOutput{
+		Name:          &secretName,
+		VersionId:     &versionID,
+		VersionStages: versionOutput,
+		SecretBinary:  secretValue,
 	}
 
 	notFoundErr := &awssm.ResourceExistsException{
@@ -415,6 +423,18 @@ func TestSetSecret(t *testing.T) {
 			},
 			want: want{
 				err: noPermission,
+			},
+		},
+		"SetSecretWillNotPushSameSecret": {
+			reason: "secret with the same value will not be pushed",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput2, nil),
+				},
+			},
+			want: want{
+				err: nil,
 			},
 		},
 	}
