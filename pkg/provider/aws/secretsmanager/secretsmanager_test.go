@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/private/protocol"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
@@ -345,6 +346,13 @@ func TestSetSecret(t *testing.T) {
 		VersionStages: versionOutput,
 	}
 
+	notFoundErr := &awssm.ResourceExistsException{
+		RespMetadata: protocol.ResponseMetadata{
+			StatusCode: 400,
+			RequestID:  secretName,
+		},
+	}
+
 	type args struct {
 		store  *esv1beta1.AWSProvider
 		client fakesm.Client
@@ -358,12 +366,25 @@ func TestSetSecret(t *testing.T) {
 		args   args
 		want   want
 	}{
-		"SetSecretSucceeds": {
-			reason: "a secret can be puahed to aws secrets manager",
+		"SetSecretSucceedsWithExistingSecret": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists",
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithNewSecret": {
+			reason: "a secret can be pushed to aws secrets manager if it doesn't already exist",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(nil, notFoundErr),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
 				},
 			},

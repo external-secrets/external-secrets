@@ -107,6 +107,11 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 	return secretOut, nil
 }
 
+type RequestFailure interface {
+	StatusCode() int
+	RequestID() string
+}
+
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	secretRequest := awssm.CreateSecretInput{
@@ -117,15 +122,19 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
+	_, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
 
-	output, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	if reqerr, ok := err.(RequestFailure); ok {
+		if reqerr.StatusCode() == 400 {
+			goto CREATE
+		}
+	}
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(output)
-
+CREATE:
 	_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
 
 	if err != nil {
