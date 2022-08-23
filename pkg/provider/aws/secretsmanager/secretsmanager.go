@@ -115,19 +115,21 @@ type RequestFailure interface {
 
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
+	awsCurrent := "AWSCURRENT"
 	secretRequest := awssm.CreateSecretInput{
 		Name:         &secretName,
 		SecretBinary: value,
 	}
 
 	secretValue := awssm.GetSecretValueInput{
-		SecretId: &secretName,
+		SecretId:     &secretName,
+		VersionStage: &awsCurrent,
 	}
 
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
 	fmt.Println(awsSecret)
 
-	if awsSecret != nil &&  reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
+	if awsSecret != nil && reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
 		return nil
 	}
 
@@ -140,6 +142,13 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 	if err != nil {
 		return err
 	}
+
+	// Check for version here:
+	// Check for secret existing has been done
+	// Check key awssecret.key
+	// Add versioning logic
+
+	// if you're trying to push the same key, it should have logic to check the versioning
 
 CREATE:
 	_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
