@@ -330,6 +330,7 @@ func (f fakeRef) GetRemoteKey() string {
 
 func TestSetSecret(t *testing.T) {
 	managedBy := "managed-by"
+	notManagedBy := "not-managed-by"
 	secretValue := []byte("fake-value")
 	externalSecrets := "external-secrets"
 	noPermission := errors.New("no permission")
@@ -349,9 +350,21 @@ func TestSetSecret(t *testing.T) {
 		},
 	}
 
+	externalSecretsTagFaulty := []*awssm.Tag{
+		&awssm.Tag{
+			Key:   &notManagedBy,
+			Value: &externalSecrets,
+		},
+	}
+
 	tagSecretOutput := &awssm.DescribeSecretOutput{
 		ARN:  &arn,
 		Tags: externalSecretsTag,
+	}
+
+	tagSecretOutputFaulty := &awssm.DescribeSecretOutput{
+		ARN:  &arn,
+		Tags: externalSecretsTagFaulty,
 	}
 
 	secretValueOutput := &awssm.GetSecretValueOutput{
@@ -472,6 +485,32 @@ func TestSetSecret(t *testing.T) {
 			},
 			want: want{
 				err: &getSecretWrongErr,
+			},
+		},
+		"SetSecretDescribeSecretFails": {
+			reason: "secret cannot be described",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+		"SetSecretDoesNotOverwriteUntaggedSecret": {
+			reason: "secret cannot be described",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutputFaulty, nil),
+				},
+			},
+			want: want{
+				err: noPermission,
 			},
 		},
 	}
