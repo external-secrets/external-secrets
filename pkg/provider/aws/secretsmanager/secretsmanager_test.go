@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/private/protocol"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"

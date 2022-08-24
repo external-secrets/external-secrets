@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -52,7 +53,7 @@ type SMInterface interface {
 	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
 	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
-	UpdateSecretVersionStageWithContext(aws.Context, *awssm.UpdateSecretVersionStageInput, ...request.Option) (*awssm.UpdateSecretVersionStageOutput, error)
+	PutSecretValueWithContext(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
 }
 
 const (
@@ -116,12 +117,6 @@ type RequestFailure interface {
 
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
-	awsCurrent := "AWSCURRENT"
-
-	updateSecretVersion := awssm.UpdateSecretVersionStageInput{
-		SecretId:     &secretName,
-		VersionStage: &awsCurrent,
-	}
 	secretRequest := awssm.CreateSecretInput{
 		Name:         &secretName,
 		SecretBinary: value,
@@ -137,27 +132,25 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 	if awsSecret != nil && reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
 		return nil
 	} else {
-		sm.client.UpdateSecretVersionStageWithContext(ctx, &updateSecretVersion)
-	}
-
-	if reqerr, ok := err.(RequestFailure); ok {
-		if reqerr.StatusCode() == 400 {
-			goto CREATE
+		input := &awssm.PutSecretValueInput{
+			SecretId:     awsSecret.ARN,
+			SecretBinary: value,
 		}
-	}
+		_, err := sm.client.PutSecretValueWithContext(ctx, input)
+		if err != nil {
+			return err
+		}
 
-	if err != nil {
+	}
+	var aerr awserr.Error
+	if ok := errors.As(err, &aerr); ok {
+		if aerr.Code() != awssm.ErrCodeResourceNotFoundException {
+			return err
+		}
+	} else if err != nil {
 		return err
 	}
 
-	// Check for version here:
-	// Check for secret existing has been done
-	// Check key awssecret.key
-	// Add versioning logic
-
-	// if you're trying to push the same key, it should have logic to check the versioning
-
-CREATE:
 	_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
 
 	if err != nil {
