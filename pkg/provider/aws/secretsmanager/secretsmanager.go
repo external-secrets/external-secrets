@@ -54,6 +54,7 @@ type SMInterface interface {
 	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
 	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
 	PutSecretValueWithContext(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
+	DescribeSecretWithContext(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
 }
 
 const (
@@ -112,17 +113,46 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
+	managedBy := "managed-by"
+	externalSecrets := "external-secrets"
+	externalSecretsTag := []*awssm.Tag{
+		&awssm.Tag{
+			Key:   &managedBy,
+			Value: &externalSecrets,
+		},
+	}
 	secretRequest := awssm.CreateSecretInput{
 		Name:         &secretName,
 		SecretBinary: value,
+		Tags:         externalSecretsTag,
 	}
 
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
 
+	secretInput := awssm.DescribeSecretInput{
+		SecretId: &secretName,
+	}
+
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
 
+	if err == nil {
+		data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+		if err != nil {
+			return err
+		}
+
+		for _, tag := range data.Tags {
+			if tag.Key == &managedBy && tag.Value == &externalSecrets {
+				goto TAGGED
+			} else {
+				return fmt.Errorf("secret not managed by external-secrets")
+			}
+		}
+
+	}
+TAGGED:
 	if awsSecret != nil && reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
 		return nil
 	} else if awsSecret.ARN != nil {
