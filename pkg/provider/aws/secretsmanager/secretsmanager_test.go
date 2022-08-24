@@ -329,35 +329,30 @@ func (f fakeRef) GetRemoteKey() string {
 }
 
 func TestSetSecret(t *testing.T) {
-	secretName := "fake-key"
 	secretValue := []byte("fake-value")
 	noPermission := errors.New("no permission")
-	versionID := "384898A7-A5AE-4775-A08D-B417B059ED11"
-	versionStages := "AWSCURRENT"
-	versionOutput := []*string{&versionStages}
+	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
+
+	getSecretCorrectErr := awssm.ResourceNotFoundException{}
+	getSecretWrongErr := awssm.InvalidRequestException{}
 
 	secretOutput := &awssm.CreateSecretOutput{
-		Name: &secretName,
+		ARN: &arn,
 	}
 
 	secretValueOutput := &awssm.GetSecretValueOutput{
-		Name:          &secretName,
-		VersionId:     &versionID,
-		VersionStages: versionOutput,
+		ARN: &arn,
 	}
 
 	secretValueOutput2 := &awssm.GetSecretValueOutput{
-		Name:          &secretName,
-		VersionId:     &versionID,
-		VersionStages: versionOutput,
-		SecretBinary:  secretValue,
+		ARN:          &arn,
+		SecretBinary: secretValue,
 	}
 
-	notFoundErr := &awssm.ResourceExistsException{
-		RespMetadata: protocol.ResponseMetadata{
-			StatusCode: 400,
-			RequestID:  secretName,
-		},
+	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
+
+	putSecretOutput := &awssm.PutSecretValueOutput{
+		ARN: &arn,
 	}
 
 	type args struct {
@@ -380,6 +375,7 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
 				},
 			},
 			want: want{
@@ -391,7 +387,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(nil, notFoundErr),
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
 				},
 			},
@@ -406,6 +402,7 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(nil, noPermission),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
 				},
 			},
 			want: want{
@@ -417,7 +414,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(nil, noPermission),
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, noPermission),
 				},
 			},
 			want: want{
@@ -434,6 +431,31 @@ func TestSetSecret(t *testing.T) {
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"SetSecretPutSecretValueFails": {
+			reason: "PutSecretValueWithContext returns an error if it fails",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+		"SetSecretWrongGetSecretErrFails": {
+			reason: "GetSecretValueWithContext errors out when anything except awssm.ErrCodeResourceNotFoundException",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretWrongErr),
+				},
+			},
+			want: want{
+				err: &getSecretWrongErr,
 			},
 		},
 	}

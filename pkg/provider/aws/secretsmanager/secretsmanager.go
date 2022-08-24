@@ -110,11 +110,6 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 	return secretOut, nil
 }
 
-type RequestFailure interface {
-	StatusCode() int
-	RequestID() string
-}
-
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	secretRequest := awssm.CreateSecretInput{
@@ -127,11 +122,10 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 	}
 
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
-	fmt.Println(awsSecret)
 
 	if awsSecret != nil && reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
 		return nil
-	} else {
+	} else if awsSecret.ARN != nil {
 		input := &awssm.PutSecretValueInput{
 			SecretId:     awsSecret.ARN,
 			SecretBinary: value,
@@ -140,8 +134,8 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 		if err != nil {
 			return err
 		}
-
 	}
+
 	var aerr awserr.Error
 	if ok := errors.As(err, &aerr); ok {
 		if aerr.Code() != awssm.ErrCodeResourceNotFoundException {

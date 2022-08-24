@@ -29,10 +29,22 @@ type Client struct {
 	valFn                       map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	CreateSecretWithContextFn   CreateSecretWithContextFn
 	GetSecretValueWithContextFn GetSecretValueWithContextFn
+	PutSecretValueWithContextFn PutSecretValueWithContextFn
 }
 
 type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
 type GetSecretValueWithContextFn func(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
+type PutSecretValueWithContextFn func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
+
+func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+	return sm.CreateSecretWithContextFn(ctx, input, options...)
+}
+
+func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error) CreateSecretWithContextFn {
+	return func(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+		return output, err
+	}
+}
 
 func (sm Client) GetSecretValueWithContext(ctx aws.Context, input *awssm.GetSecretValueInput, options ...request.Option) (*awssm.GetSecretValueOutput, error) {
 	return sm.GetSecretValueWithContextFn(ctx, input, options...)
@@ -44,12 +56,12 @@ func NewGetSecretValueWithContextFn(output *awssm.GetSecretValueOutput, err erro
 	}
 }
 
-func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
-	return sm.CreateSecretWithContextFn(ctx, input, options...)
+func (sm Client) PutSecretValueWithContext(ctx aws.Context, input *awssm.PutSecretValueInput, options ...request.Option) (*awssm.PutSecretValueOutput, error) {
+	return sm.PutSecretValueWithContextFn(ctx, input, options...)
 }
 
-func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error) CreateSecretWithContextFn {
-	return func(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+func NewPutSecretValueWithContextFn(output *awssm.PutSecretValueOutput, err error) PutSecretValueWithContextFn {
+	return func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error) {
 		return output, err
 	}
 }
