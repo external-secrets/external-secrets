@@ -329,7 +329,9 @@ func (f fakeRef) GetRemoteKey() string {
 }
 
 func TestSetSecret(t *testing.T) {
+	managedBy := "managed-by"
 	secretValue := []byte("fake-value")
+	externalSecrets := "external-secrets"
 	noPermission := errors.New("no permission")
 	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
 
@@ -338,6 +340,18 @@ func TestSetSecret(t *testing.T) {
 
 	secretOutput := &awssm.CreateSecretOutput{
 		ARN: &arn,
+	}
+
+	externalSecretsTag := []*awssm.Tag{
+		&awssm.Tag{
+			Key:   &managedBy,
+			Value: &externalSecrets,
+		},
+	}
+
+	tagSecretOutput := &awssm.DescribeSecretOutput{
+		ARN:  &arn,
+		Tags: externalSecretsTag,
 	}
 
 	secretValueOutput := &awssm.GetSecretValueOutput{
@@ -376,6 +390,7 @@ func TestSetSecret(t *testing.T) {
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
 					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 			},
 			want: want{
@@ -400,9 +415,8 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(nil, noPermission),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
 				},
 			},
 			want: want{
@@ -427,6 +441,7 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput2, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 			},
 			want: want{
@@ -440,6 +455,7 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
 					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(nil, noPermission),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 			},
 			want: want{
