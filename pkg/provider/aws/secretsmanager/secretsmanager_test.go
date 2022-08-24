@@ -344,14 +344,14 @@ func TestSetSecret(t *testing.T) {
 	}
 
 	externalSecretsTag := []*awssm.Tag{
-		&awssm.Tag{
+		{
 			Key:   &managedBy,
 			Value: &externalSecrets,
 		},
 	}
 
 	externalSecretsTagFaulty := []*awssm.Tag{
-		&awssm.Tag{
+		{
 			Key:   &notManagedBy,
 			Value: &externalSecrets,
 		},
@@ -510,7 +510,7 @@ func TestSetSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: noPermission,
+				err: fmt.Errorf("secret not managed by external-secrets"),
 			},
 		},
 	}

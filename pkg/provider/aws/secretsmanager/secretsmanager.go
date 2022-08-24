@@ -116,7 +116,7 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 	managedBy := "managed-by"
 	externalSecrets := "external-secrets"
 	externalSecretsTag := []*awssm.Tag{
-		&awssm.Tag{
+		{
 			Key:   &managedBy,
 			Value: &externalSecrets,
 		},
@@ -150,7 +150,6 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 				return fmt.Errorf("secret not managed by external-secrets")
 			}
 		}
-
 	}
 TAGGED:
 	if awsSecret != nil && reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
