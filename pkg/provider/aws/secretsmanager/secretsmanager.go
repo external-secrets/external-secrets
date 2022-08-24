@@ -144,7 +144,7 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 		}
 
 		for _, tag := range data.Tags {
-			if tag.Key == &managedBy && tag.Value == &externalSecrets {
+			if *tag.Key == managedBy && *tag.Value == externalSecrets {
 				goto TAGGED
 			} else {
 				return fmt.Errorf("secret not managed by external-secrets")
