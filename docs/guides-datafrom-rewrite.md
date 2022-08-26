@@ -99,7 +99,7 @@ Regexp Rewrite is based on golang `regexp`, which in turns implements `RE2` rege
 
 * Lack of ability to do lookaheads or lookbehinds;
 * Lack of negation expressions;
-* Lack of support to conditionl branches;
-* Lack of support to possessive repetitions.
+* Lack of support for conditional branches;
+* Lack of support for possessive repetitions.
 
 A list of compatibility and known limitations considering other commonly used regexp frameworks (such as PCRE and PERL) are listed [here](https://github.com/google/re2/wiki/Syntax).
