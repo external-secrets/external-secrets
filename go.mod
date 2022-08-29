@@ -50,7 +50,7 @@ require (
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.17.0
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1724
-	github.com/aws/aws-sdk-go v1.44.52
+	github.com/aws/aws-sdk-go v1.44.86
 	github.com/crossplane/crossplane-runtime v0.17.0
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
