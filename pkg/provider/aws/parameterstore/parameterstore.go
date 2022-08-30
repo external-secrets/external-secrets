@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,6 +45,7 @@ type ParameterStore struct {
 type PMInterface interface {
 	GetParameter(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
 	DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error)
+	PutParameter(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
 }
 
 const (
@@ -59,9 +60,20 @@ func New(sess *session.Session, cfg *aws.Config) (*ParameterStore, error) {
 	}, nil
 }
 
-// Not Implemented SetSecret.
 func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	stringValue := string(value)
+	secretName := remoteRef.GetRemoteKey()
+	secretRequest := ssm.PutParameterInput{
+		Name:  &secretName,
+		Value: &stringValue,
+	}
+
+	_, err := pm.client.PutParameter(&secretRequest)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetAllSecrets fetches information from multiple secrets into a single kubernetes secret.
