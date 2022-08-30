@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,6 +36,7 @@ type parameterstoreTestCase struct {
 	expectError    string
 	expectedSecret string
 	expectedData   map[string]string
+	setApiInput    *ssm.PutParameterInput
 }
 
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
@@ -79,6 +80,31 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 	}
 	pstc.fakeClient.WithValue(pstc.apiInput, pstc.apiOutput, pstc.apiErr)
 	return pstc
+}
+
+func TestSetSecret(t *testing.T) {
+	pm := makeValidParameterStoreTestCase()
+
+	setSimpleSecret := func(pstc *parameterstoreTestCase) {
+		pm.setApiInput.SetName("nameHere")
+		pm.setApiInput.SetValue("valueHere")
+	}
+
+	successCases := []*parameterstoreTestCase{
+		makeValidParameterStoreTestCaseCustom(setSimpleSecret),
+	}
+
+	ps := ParameterStore{}
+	for k, v := range successCases {
+		ps.client = v.fakeClient
+		out, err := ps.GetSecretMap(context.Background(), *v.remoteRef)
+		if !ErrorContains(err, v.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+		}
+		if cmp.Equal(out, v.expectedData) {
+			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
+		}
+	}
 }
 
 // test the ssm<->aws interface

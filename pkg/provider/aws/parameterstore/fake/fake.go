@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,10 @@ func (sm *Client) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutp
 }
 
 func (sm *Client) DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error) {
+	return nil, nil
+}
+
+func (sm *Client) PutParameter(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
 	return nil, nil
 }
 
