@@ -41,7 +41,7 @@ is very simple but does not scale very well.
 
 ![Shared CSS](./pictures/diagrams-multi-tenancy-managed-store.png)
 
-Cluster Administrators manage one or multipe `SecretStores` per Namespace. Each
+Cluster Administrators manage one or multiple `SecretStores` per Namespace. Each
 SecretStore uses it's own *role* that limits access to a small set of keys. The
 peculiarity of this is approach is, that **access is actually managed by the
 external API** which provides the roles. The Cluster Administrator does just the
