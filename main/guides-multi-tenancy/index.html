@@ -1672,7 +1672,7 @@ secrets and your Cluster Administrators should manage access to it. This setup
 is very simple but does not scale very well.</p>
 <h3 id="managed-secretstore-per-namespace">Managed SecretStore per Namespace</h3>
 <p><img alt="Shared CSS" src="../pictures/diagrams-multi-tenancy-managed-store.png" /></p>
-<p>Cluster Administrators manage one or multipe <code>SecretStores</code> per Namespace. Each
+<p>Cluster Administrators manage one or multiple <code>SecretStores</code> per Namespace. Each
 SecretStore uses it's own <em>role</em> that limits access to a small set of keys. The
 peculiarity of this is approach is, that <strong>access is actually managed by the
 external API</strong> which provides the roles. The Cluster Administrator does just the
