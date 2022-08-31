@@ -429,11 +429,11 @@ func (v *client) listSecrets(ctx context.Context, path string) ([]string, error)
 		return nil, err
 	}
 	secret, err := v.logical.ListWithContext(ctx, url)
-	if secret == nil {
-		return nil, fmt.Errorf("provided path %v does not contain any secrets", url)
-	}
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
+	}
+	if secret == nil {
+		return nil, fmt.Errorf("provided path %v does not contain any secrets", url)
 	}
 	t, ok := secret.Data["keys"]
 	if !ok {
