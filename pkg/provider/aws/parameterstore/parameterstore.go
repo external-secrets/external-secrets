@@ -61,11 +61,13 @@ func New(sess *session.Session, cfg *aws.Config) (*ParameterStore, error) {
 }
 
 func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	parameterType := "String"
 	stringValue := string(value)
 	secretName := remoteRef.GetRemoteKey()
 	secretRequest := ssm.PutParameterInput{
 		Name:  &secretName,
 		Value: &stringValue,
+		Type:  &parameterType,
 	}
 
 	_, err := pm.client.PutParameter(&secretRequest)

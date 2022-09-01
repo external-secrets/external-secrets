@@ -82,7 +82,7 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 	return pstc
 }
 
-func TestSetSecret(t *testing.T) {
+func TestPushSecret(t *testing.T) {
 	pm := makeValidParameterStoreTestCase()
 
 	setSimpleSecret := func(pstc *parameterstoreTestCase) {
