@@ -102,7 +102,7 @@ helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set 
 ```
 
 !!! note "Contributing Flow"
-    The HOW TO guide for contributing is at the [Contributing Process](contributing-process.md) page.
+    The HOW TO guide for contributing is at the [Contributing Process](process.md) page.
 
 
 ## Documentation

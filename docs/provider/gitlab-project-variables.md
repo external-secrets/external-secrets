@@ -6,10 +6,10 @@ External Secrets Operator integrates with [Gitlab API](https://docs.gitlab.com/e
 
 The API requires an access token and project ID. To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).
 
-![token-details](./pictures/screenshot_gitlab_token.png)
+![token-details](../pictures/screenshot_gitlab_token.png)
 
 Click 'Create personal access token', and your token will be generated and displayed on screen. Copy or save this token since you can't access it again.
-![token-created](./pictures/screenshot_gitlab_token_created.png)
+![token-created](../pictures/screenshot_gitlab_token_created.png)
 
 
 
@@ -30,7 +30,7 @@ Be sure the `gitlab` provider is listed in the `Kind=SecretStore` and the Projec
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessToken` with the namespace where the secret resides.
 
 Your project ID can be found on your project's page.
-![projectID](./pictures/screenshot_gitlab_projectID.png)
+![projectID](../pictures/screenshot_gitlab_projectID.png)
 
 ### Creating external secret
 

@@ -1,15 +1,15 @@
 # A few common k8s secret types examples
 
-Here we will give some examples of how to work with a few common k8s secret types. We will give this examples here with the gcp provider (should work with other providers in the same way). Please also check the guides on [Advanced Templating](guides-templating.md) to understand the details.
+Here we will give some examples of how to work with a few common k8s secret types. We will give this examples here with the gcp provider (should work with other providers in the same way). Please also check the guides on [Advanced Templating](templating.md) to understand the details.
 
-Please follow the authentication and SecretStore steps of the [Google Cloud Secrets Manager guide](provider-google-secrets-manager.md) to setup access to your google cloud account first.
+Please follow the authentication and SecretStore steps of the [Google Cloud Secrets Manager guide](../provider/google-secrets-manager.md) to setup access to your google cloud account first.
 
 
 ## Dockerconfigjson example
 
 First create a secret in Google Cloud Secrets Manager containing your docker config:
 
-![iam](./pictures/screenshot_docker_config_json_example.png)
+![iam](../pictures/screenshot_docker_config_json_example.png)
 
 Let's call this secret docker-config-example on Google Cloud.
 
@@ -45,7 +45,7 @@ openssl pkcs12 -export -out certificate.p12 -inkey privkey.pem -in cert.pem
 
 With a certificate.p12 you can upload it to Google Cloud Secrets Manager:
 
-![p12](./pictures/screenshot_ssl_certificate_p12_example.png)
+![p12](../pictures/screenshot_ssl_certificate_p12_example.png)
 
 And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type tls with pem values.
 
@@ -65,7 +65,7 @@ kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data.tls
 
 Add the ssh privkey to a new Google Cloud Secrets Manager secret:
 
-![ssh](./pictures/screenshot_ssh_privkey_example.png)
+![ssh](../pictures/screenshot_ssh_privkey_example.png)
 
 And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type ssh-auth with the privatekey value.
 

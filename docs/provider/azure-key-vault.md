@@ -1,5 +1,5 @@
 
-![aws sm](./pictures/eso-az-kv-azure-kv.png)
+![aws sm](../pictures/eso-az-kv-azure-kv.png)
 
 ## Azure Key vault
 
@@ -73,7 +73,7 @@ azwi serviceaccount create phase federated-identity \
 With these prerequisites met you can configure `ESO` to use that Service Account. You have two options:
 
 ##### Mounted Service Account
-You run the controller and mount that particular service account into the pod. That grants _everyone_ who is able to create a secret store or reference a correctly configured one the ability to read secrets. **This approach is usually not recommended**. But may make sense when you want to share an identity with multiple namespaces. Also see our [Multi-Tenancy Guide](guides-multi-tenancy.md) for design considerations.
+You run the controller and mount that particular service account into the pod. That grants _everyone_ who is able to create a secret store or reference a correctly configured one the ability to read secrets. **This approach is usually not recommended**. But may make sense when you want to share an identity with multiple namespaces. Also see our [Multi-Tenancy Guide](../guides/multi-tenancy.md) for design considerations.
 
 ```yaml
 {% include 'azkv-workload-identity-mounted.yaml' %}
@@ -107,8 +107,8 @@ Azure KeyVault manages different [object types](https://docs.microsoft.com/en-us
 | Object Type   | Return Value                                                                                                                                                                                                                      |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `secret`      | the raw secret value.                                                                                                                                                                                                             |
-| `key`         | A JWK which contains the public key. Azure KeyVault does **not** export the private key. You may want to use [template functions](guides-templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
-| `certificate` | The raw CER contents of the x509 certificate. You may want to use [template functions](guides-templating.md) to transform this into your desired encoding                                                             |
+| `key`         | A JWK which contains the public key. Azure KeyVault does **not** export the private key. You may want to use [template functions](../guides/templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
+| `certificate` | The raw CER contents of the x509 certificate. You may want to use [template functions](../guides/templating.md) to transform this into your desired encoding                                                             |
 
 ### Creating external secret
 

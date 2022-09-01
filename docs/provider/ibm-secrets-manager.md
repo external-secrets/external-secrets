@@ -10,23 +10,23 @@ We support API key and trusted profile container authentication for this provide
 
 To generate your key (for test purposes we are going to generate from your user), first got to your (Access IAM) page:
 
-![iam](./pictures/screenshot_api_keys_iam.png)
+![iam](../pictures/screenshot_api_keys_iam.png)
 
 On the left, click "IBM Cloud API Keys":
 
-![iam-left](./pictures/screenshot_api_keys_iam_left.png)
+![iam-left](../pictures/screenshot_api_keys_iam_left.png)
 
 Press "Create an IBM Cloud API Key":
 
-![iam-create-button](./pictures/screenshot_api_keys_create_button.png)
+![iam-create-button](../pictures/screenshot_api_keys_create_button.png)
 
 Pick a name and description for your key:
 
-![iam-create-key](./pictures/screenshot_api_keys_create.png)
+![iam-create-key](../pictures/screenshot_api_keys_create.png)
 
 You have created a key. Press the eyeball to show the key. Copy or save it because keys can't be displayed or downloaded twice.
 
-![iam-create-success](./pictures/screenshot_api_keys_create_successful.png)
+![iam-create-success](../pictures/screenshot_api_keys_create_successful.png)
 
 Create a secret containing your apiKey:
 
@@ -38,51 +38,51 @@ kubectl create secret generic ibm-secret --from-literal=apiKey='API_KEY_VALUE'
 
 To create the trusted profile, first got to your (Access IAM) page:
 
-![iam](./pictures/screenshot_api_keys_iam.png)
+![iam](../pictures/screenshot_api_keys_iam.png)
 
 On the left, click "Access groups":
 
-![iam-left](./pictures/screenshot_container_auth_create_group.png)
+![iam-left](../pictures/screenshot_container_auth_create_group.png)
 
 Pick a name and description for your group:
 
-![iam-left](./pictures/screenshot_container_auth_create_group_1.png)
+![iam-left](../pictures/screenshot_container_auth_create_group_1.png)
 
 Click on "Access Policies":
 
-![iam-left](./pictures/screenshot_container_auth_create_group_2.png)
+![iam-left](../pictures/screenshot_container_auth_create_group_2.png)
 
 Click on "Assign Access", select "IAM services", and pick "Secrets Manager" from the pick-list:
 
-![iam-left](./pictures/screenshot_container_auth_create_group_3.png)
+![iam-left](../pictures/screenshot_container_auth_create_group_3.png)
 
 Scope to "All resources" or "Resources based on selected attributes", select "SecretsReader":
 
-![iam-left](./pictures/screenshot_container_auth_create_group_4.png)
+![iam-left](../pictures/screenshot_container_auth_create_group_4.png)
 
 Click "Add" and "Assign" to save the access group.
 
 Next, on the left, click "Trusted profiles":
 
-![iam-left](./pictures/screenshot_container_auth_iam_left.png)
+![iam-left](../pictures/screenshot_container_auth_iam_left.png)
 
 Press "Create":
 
-![iam-create-button](./pictures/screenshot_container_auth_create_button.png)
+![iam-create-button](../pictures/screenshot_container_auth_create_button.png)
 
 Pick a name and description for your profile:
 
-![iam-create-key](./pictures/screenshot_container_auth_create_1.png)
+![iam-create-key](../pictures/screenshot_container_auth_create_1.png)
 
 Scope the profile's access.
 
 The compute service type will be "Red Hat OpenShift on IBM Cloud".  Additional restriction can be configured based on cloud or cluster metadata, or if "Specific resources" is selected, restriction to a specific cluster.
 
-![iam-create-key](./pictures/screenshot_container_auth_create_2.png)
+![iam-create-key](../pictures/screenshot_container_auth_create_2.png)
 
 Click "Add" next to the previously created access group and then "Create", to associate the necessary service permissions.
 
-![iam-create-key](./pictures/screenshot_container_auth_create_3.png)
+![iam-create-key](../pictures/screenshot_container_auth_create_3.png)
 
 To use the container-based authentication, it is necessary to map the API server `serviceAccountToken` auth token to the "external-secrets" and "external-secrets-webhook" deployment descriptors. Example below:
 
@@ -105,18 +105,18 @@ To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" 
 Note: Use the url without the `/api` suffix that is presented in the UI.
 See here for a list of [publicly available endpoints](https://cloud.ibm.com/apidocs/secrets-manager#getting-started-endpoints).
 
-![iam-create-success](./pictures/screenshot_service_url.png)
+![iam-create-success](../pictures/screenshot_service_url.png)
 
 ### Secret Types
 We support the following secret types of [IBM Secrets Manager](https://cloud.ibm.com/apidocs/secrets-manager):
 
-* `arbitrary` 
+* `arbitrary`
 * `username_password`
 * `iam_credentials`
 * `imported_cert`
 * `public_cert`
 * `private_cert`
-* `kv` 
+* `kv`
 
 To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to `arbitrary`:
 

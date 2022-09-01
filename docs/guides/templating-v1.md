@@ -2,7 +2,7 @@
 
 !!! warning
 
-    Templating Engine v1 is **deprecated** and will be removed in the future. Please migrate to engine v2 and take a look at our [upgrade guide](guides-templating.md#migrating-from-v1) for changes.
+    Templating Engine v1 is **deprecated** and will be removed in the future. Please migrate to engine v2 and take a look at our [upgrade guide](templating.md#migrating-from-v1) for changes.
 
 
 With External Secrets Operator you can transform the data from the external secret provider before it is stored as `Kind=Secret`. You can do this with the `Spec.Target.Template`. Each data value is interpreted as a [golang template](https://golang.org/pkg/text/template/).

@@ -150,4 +150,4 @@ We use labels to identify GitHub Issues. Specifically for managing support cases
 
 ## Cutting Releases
 
-The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the [release](contributing-release.md) page.
+The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the [release](release.md) page.
