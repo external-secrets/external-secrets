@@ -36,7 +36,7 @@ type parameterstoreTestCase struct {
 	expectError    string
 	expectedSecret string
 	expectedData   map[string]string
-	setApiInput    *ssm.PutParameterInput
+	setAPIInput    *ssm.PutParameterInput
 }
 
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
@@ -86,8 +86,8 @@ func TestPushSecret(t *testing.T) {
 	pm := makeValidParameterStoreTestCase()
 
 	setSimpleSecret := func(pstc *parameterstoreTestCase) {
-		pm.setApiInput.SetName("nameHere")
-		pm.setApiInput.SetValue("valueHere")
+		pm.setAPIInput.SetName("nameHere")
+		pm.setAPIInput.SetValue("valueHere")
 	}
 
 	successCases := []*parameterstoreTestCase{
