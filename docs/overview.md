@@ -25,7 +25,7 @@ to.
 
 ### SecretStore
 
-The idea behind the [SecretStore](api-secretstore.md) resource is to separate concerns of
+The idea behind the [SecretStore](api/secretstore.md) resource is to separate concerns of
 authentication/access and the actual Secret and configuration needed for
 workloads. The ExternalSecret specifies what to fetch, the SecretStore specifies
 how to access. This resource is namespaced.
@@ -37,7 +37,7 @@ The `SecretStore` contains references to secrets which hold credentials to
 access the external API.
 
 ### ExternalSecret
-An [ExternalSecret](api-externalsecret.md) declares what data to fetch. It has a reference to a
+An [ExternalSecret](api/externalsecret.md) declares what data to fetch. It has a reference to a
 `SecretStore` which knows how to access that data. The controller uses that
 `ExternalSecret` as a blueprint to create secrets.
 
@@ -47,7 +47,7 @@ An [ExternalSecret](api-externalsecret.md) declares what data to fetch. It has a
 
 ### ClusterSecretStore
 
-The [ClusterSecretStore](api-clustersecretstore.md) is a global, cluster-wide SecretStore that can be
+The [ClusterSecretStore](api/clustersecretstore.md) is a global, cluster-wide SecretStore that can be
 referenced from all namespaces. You can use it to provide a central gateway to your secret provider.
 
 ## Behavior

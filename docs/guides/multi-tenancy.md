@@ -21,7 +21,7 @@ techniques for tenant isolation.
 
 ### Shared ClusterSecretStore
 
-![Shared CSS](./pictures/diagrams-multi-tenancy-shared.png)
+![Shared CSS](../pictures/diagrams-multi-tenancy-shared.png)
 
 A Cluster Administrator deploys a `ClusterSecretStore` (CSS) and manages access
 to the external API. The CSS is shared by all tenants within the cluster.
@@ -39,7 +39,7 @@ is very simple but does not scale very well.
 
 ### Managed SecretStore per Namespace
 
-![Shared CSS](./pictures/diagrams-multi-tenancy-managed-store.png)
+![Shared CSS](../pictures/diagrams-multi-tenancy-managed-store.png)
 
 Cluster Administrators manage one or multiple `SecretStores` per Namespace. Each
 SecretStore uses it's own *role* that limits access to a small set of keys. The
@@ -51,7 +51,7 @@ secrets.
 
 
 ### ESO as a Service
-![Shared CSS](./pictures/diagrams-multi-tenancy-self-service.png)
+![Shared CSS](../pictures/diagrams-multi-tenancy-self-service.png)
 
 Every namespace is self-contained. Application developers manage `SecretStore`,
 `ExternalSecret` and secret infrastructure on their own. Cluster Administrators

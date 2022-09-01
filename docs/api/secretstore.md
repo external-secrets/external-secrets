@@ -1,4 +1,4 @@
-![SecretStore](./pictures/diagrams-high-level-ns-detail.png)
+![SecretStore](../pictures/diagrams-high-level-ns-detail.png)
 
 
 The `SecretStore` is namespaced and specifies how to access the external API.

@@ -1,4 +1,4 @@
-![HCP Vault](./pictures/diagrams-provider-vault.png)
+![HCP Vault](../pictures/diagrams-provider-vault.png)
 
 ## Hashicorp Vault
 
@@ -197,15 +197,15 @@ metadata:
   name: vault-example
 spec:
   # ...
-  dataFrom: 
-  - find: #will return every secret with 'dev' in it (including paths) 
-      name: 
+  dataFrom:
+  - find: #will return every secret with 'dev' in it (including paths)
+      name:
         regexp: dev
-  - find: #will return every secret matching environment:dev tags from dev/ folder and beyond 
-      tags: 
+  - find: #will return every secret matching environment:dev tags from dev/ folder and beyond
+      tags:
         environment: dev
 ```
-will generate a secret with: 
+will generate a secret with:
 ```json
 {
   "dev_config":"{\"foo\":{\"nested\":{\"bar\":\"mysecret\",\"baz\":\"bang\"}}}"
@@ -220,14 +220,14 @@ metadata:
   name: vault-example
 spec:
   # ...
-  dataFrom: 
-  - find: #will return every secret from dev/ folder 
+  dataFrom:
+  - find: #will return every secret from dev/ folder
       path: dev
-      name: 
+      name:
         regexp: ".*"
   - find: #will return every secret matching environment:dev tags from dev/ folder
       path: dev
-      tags: 
+      tags:
         environment: dev
 ```
 Will generate a secret with:
@@ -341,23 +341,23 @@ spec:
 
 #### Read Your Writes
 
-Vault 1.10.0 and later encodes information in the token to detect the case 
-when a server is behind. If a Vault server does not have information about 
-the provided token, [Vault returns a 412 error](https://www.vaultproject.io/docs/faq/ssct#q-is-there-anything-else-i-need-to-consider-to-achieve-consistency-besides-upgrading-to-vault-1-10) 
+Vault 1.10.0 and later encodes information in the token to detect the case
+when a server is behind. If a Vault server does not have information about
+the provided token, [Vault returns a 412 error](https://www.vaultproject.io/docs/faq/ssct#q-is-there-anything-else-i-need-to-consider-to-achieve-consistency-besides-upgrading-to-vault-1-10)
 so clients know to retry.
 
-A method supported in versions Vault 1.7 and later is to utilize the 
-`X-Vault-Index` header returned on all write requests (including logins). 
-Passing this header back on subsequent requests instructs the Vault client 
-to retry the request until the server has an index greater than or equal 
+A method supported in versions Vault 1.7 and later is to utilize the
+`X-Vault-Index` header returned on all write requests (including logins).
+Passing this header back on subsequent requests instructs the Vault client
+to retry the request until the server has an index greater than or equal
 to that returned with the last write. Obviously though, this has a performance
 hit because the read is blocked until the follower's local state has caught up.
 
 #### Forward Inconsistent
 
-Vault also supports proxying inconsistent requests to the current cluster leader 
+Vault also supports proxying inconsistent requests to the current cluster leader
 for immediate read-after-write consistency.
- 
+
 Vault 1.10.0 and later [support a replication configuration](https://www.vaultproject.io/docs/faq/ssct#q-is-there-a-new-configuration-that-this-feature-introduces) that detects when forwarding should occur and does it transparently to the client.
 
 In Vault 1.7 forwarding can be achieved by setting the `X-Vault-Inconsistent`

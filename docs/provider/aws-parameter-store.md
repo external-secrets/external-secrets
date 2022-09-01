@@ -1,5 +1,5 @@
 
-![aws sm](./pictures/diagrams-provider-aws-ssm-parameter-store.png)
+![aws sm](../pictures/diagrams-provider-aws-ssm-parameter-store.png)
 
 ## Parameter Store
 

@@ -72,7 +72,7 @@ _Also see [examples below](#examples) for matching SecretStore and ExternalSecre
 1. Set what you want `remoteRef.property` to be in the field sections where is says 'label', and values where it says 'new field'.
 1. Click the 'Save' button.
 
-![create-password-screenshot](./pictures/screenshot_1password_create_password.png)
+![create-password-screenshot](../pictures/screenshot_1password_create_password.png)
 #### Manually (Document type)
 * Click the plus button to create a new Document type Item.
 * Choose the file to upload and upload it.
@@ -80,7 +80,7 @@ _Also see [examples below](#examples) for matching SecretStore and ExternalSecre
 * Click the 'Add New File' button to add more files.
 * Click the 'Save' button.
 
-![create-document-screenshot](./pictures/screenshot_1password_create_document.png)
+![create-document-screenshot](../pictures/screenshot_1password_create_document.png)
 #### Scripting (Password type with op [CLI](https://developer.1password.com/docs/cli/v1/get-started/))
 * Create `file.json` with the following contents, swapping in your keys and values. Note: `section.name`'s and `section.title`'s values are ignored by the Operator, but cannot be empty for the `op` CLI
     ```json
@@ -114,7 +114,7 @@ _Also see [examples below](#examples) for matching SecretStore and ExternalSecre
 #### In-built field labeled `password` on Password type Items
 * TL;DR if you need a field labeled `password`, use the in-built one rather than the one in a fields Section.
 
-![password-field-example](./pictures/screenshot_1password_password_field.png)
+![password-field-example](../pictures/screenshot_1password_password_field.png)
 
 * 1Password automatically adds a field labeled `password` on every Password type Item, whether it's created through a GUI or the API or `op` CLI.
 * There's no problem with using this field just like any other field, _just make sure you don't end up with two fields with the same label_. (For example, by automating the `op` CLI to create Items.)

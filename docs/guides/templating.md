@@ -79,7 +79,7 @@ You can achieve that by using the `filterPEM` function to extract a specific typ
 
 We provide a couple of convenience functions that help you transform your secrets. This is useful when dealing with PKCS#12 archives or JSON Web Keys (JWK).
 
-In addition to that you can use over 200+ [sprig functions](http://masterminds.github.io/sprig/). If you feel a function is missing or might be valuable feel free to open an issue and submit a [pull request](contributing-process.md#submitting-a-pull-request).
+In addition to that you can use over 200+ [sprig functions](http://masterminds.github.io/sprig/). If you feel a function is missing or might be valuable feel free to open an issue and submit a [pull request](../contributing/process.md#submitting-a-pull-request).
 
 <br/>
 

@@ -31,10 +31,10 @@ This will match any secrets containing all of the metadata labels in the `tags` 
 Some providers support filtering out a find operation only to a given path, instead of the root path. In order to use this feature, you can pass `find.path` to filter out these secrets into only this path, instead of the root path.
 
 ### Avoiding name conflicts
-By default, kubernetes Secrets accepts only a given range of characters. `Find` operations will automatically replace any not allowed character with a `_`. So if we have a given secret `a_c` and `a/c` would lead to a naming conflict. 
+By default, kubernetes Secrets accepts only a given range of characters. `Find` operations will automatically replace any not allowed character with a `_`. So if we have a given secret `a_c` and `a/c` would lead to a naming conflict.
 
 
-If you happen to have a case where a conflict is happening, you can use the `rewrite` block to apply a regexp on one of the find operations (for more information please refer to [Rewriting Keys from DataFrom](guides-datafrom-rewrite.md)).
+If you happen to have a case where a conflict is happening, you can use the `rewrite` block to apply a regexp on one of the find operations (for more information please refer to [Rewriting Keys from DataFrom](datafrom-rewrite.md)).
 
 You can also set  `dataFrom.find.conversionStrategy: Unicode` to reduce the collistion probability. When using `Unicode`, any invalid character will be replaced by its unicode, in the form of `_UXXXX_`. In this case, the available kubernetes keys would be `a_c` and `a_U2215_c`, hence avoiding most of possible conflicts.
 

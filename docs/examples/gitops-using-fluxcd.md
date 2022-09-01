@@ -21,7 +21,7 @@ FluxCD is composed by several controllers dedicated to manage different custom r
 ones are **Kustomization** (to clarify, Flux one, not Kubernetes' one) and **HelmRelease** to deploy using the approaches
 of the same names.
 
-External Secrets can be deployed using Helm [as explained here](guides-getting-started.md). The deployment includes the
+External Secrets can be deployed using Helm [as explained here](../guides/getting-started.md). The deployment includes the
 CRDs if enabled on the `values.yaml`, but after this, you need to deploy some `SecretStore` to start
 getting credentials from your secrets manager with External Secrets.
 
@@ -130,4 +130,4 @@ for example, a manifest `clusterSecretStore.yaml` to reach your Hashicorp Vault 
 
 At the end, the required files tree is shown in the following picture:
 
-![FluxCD files tree](./pictures/screenshot_gitops_final_directory_tree.png)
+![FluxCD files tree](../pictures/screenshot_gitops_final_directory_tree.png)

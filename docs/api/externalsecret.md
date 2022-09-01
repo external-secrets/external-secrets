@@ -9,7 +9,7 @@ be transformed and saved as a `Kind=Secret`:
 
 ## Template
 
-When the controller reconciles the `ExternalSecret` it will use the `spec.template` as a blueprint to construct a new `Kind=Secret`. You can use golang templates to define the blueprint and use template functions to transform secret values. You can also pull in `ConfigMaps` that contain golang-template data using `templateFrom`. See [advanced templating](guides-templating.md) for details.
+When the controller reconciles the `ExternalSecret` it will use the `spec.template` as a blueprint to construct a new `Kind=Secret`. You can use golang templates to define the blueprint and use template functions to transform secret values. You can also pull in `ConfigMaps` that contain golang-template data using `templateFrom`. See [advanced templating](../guides/templating.md) for details.
 
 ## Update Behavior
 

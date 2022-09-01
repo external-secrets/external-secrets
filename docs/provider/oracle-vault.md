@@ -10,13 +10,13 @@ For using a specific user credentials, userOCID, tenancyOCID, fingerprint and pr
 The fingerprint and key file should be supplied in the secret with the rest being provided in the secret store.
 
 See url for what region you you are accessing.
-![userOCID-details](./pictures/screenshot_region.png)
+![userOCID-details](../pictures/screenshot_region.png)
 
 Select tenancy in the top right to see your user OCID as shown below.
-![tenancyOCID-details](./pictures/screenshot_tenancy_OCID.png)
+![tenancyOCID-details](../pictures/screenshot_tenancy_OCID.png)
 
 Select your user in the top right to see your user OCID as shown below.
-![region-details](./pictures/screenshot_user_OCID.png)
+![region-details](../pictures/screenshot_user_OCID.png)
 
 
 #### Service account key authentication
@@ -28,11 +28,11 @@ Create a secret containing your private key and fingerprint:
 ```
 
 Your fingerprint will be attatched to your API key, once it has been generated. Found on the same page as the user OCID.
-![fingerprint-details](./pictures/screenshot_fingerprint.png)
+![fingerprint-details](../pictures/screenshot_fingerprint.png)
 
 Once you click "Add API Key" you will be shown the following, where you can download the RSA key in the necessary PEM format for API requests.
 This will automatically generate a fingerprint.
-![API-key-details](./pictures/screenshot_API_key.png)
+![API-key-details](../pictures/screenshot_API_key.png)
 
 ### Update secret store
 Be sure the `oracle` provider is listed in the `Kind=SecretStore`.
