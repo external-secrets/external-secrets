@@ -15,6 +15,7 @@ package fake
 
 import (
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
 )

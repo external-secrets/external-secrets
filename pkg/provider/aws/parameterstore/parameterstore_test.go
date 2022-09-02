@@ -17,14 +17,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/crossplane/crossplane-runtime/pkg/test"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakeps "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
@@ -39,7 +39,6 @@ type parameterstoreTestCase struct {
 	expectError    string
 	expectedSecret string
 	expectedData   map[string]string
-	setAPIInput    *ssm.PutParameterInput
 }
 
 type fakeRef struct {
@@ -95,7 +94,6 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 
 func TestPushSecret(t *testing.T) {
 	invalidPerameters := errors.New(ssm.ErrCodeInvalidParameters)
-	//arn := "arn:aws:iam::702902267788:user/external-secrets-operator"
 
 	putParameterOutput := &ssm.PutParameterOutput{}
 
@@ -145,14 +143,13 @@ func TestPushSecret(t *testing.T) {
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
-			err := ps.SetSecret(nil, []byte("fakeValue"), ref)
+			err := ps.SetSecret(context.TODO(), []byte("fakeValue"), ref)
 
 			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
 			}
 		})
 	}
-
 }
 
 // test the ssm<->aws interface
