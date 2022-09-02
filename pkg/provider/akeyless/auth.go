@@ -99,5 +99,5 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		return "", fmt.Errorf(errMissingAKID)
 	}
 
-	return a.GetToken(accessID, accessType, accessTypeParam)
+	return a.GetToken(accessID, accessType, accessTypeParam, prov.Auth.KubernetesAuth)
 }
