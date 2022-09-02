@@ -15,7 +15,10 @@ package parameterstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/crossplane/crossplane-runtime/pkg/test"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"testing"
 
@@ -24,11 +27,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	fake "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
+	fakeps "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
 )
 
 type parameterstoreTestCase struct {
-	fakeClient     *fake.Client
+	fakeClient     *fakeps.Client
 	apiInput       *ssm.GetParameterInput
 	apiOutput      *ssm.GetParameterOutput
 	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
@@ -39,9 +42,17 @@ type parameterstoreTestCase struct {
 	setAPIInput    *ssm.PutParameterInput
 }
 
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
 	return &parameterstoreTestCase{
-		fakeClient:     &fake.Client{},
+		fakeClient:     &fakeps.Client{},
 		apiInput:       makeValidAPIInput(),
 		apiOutput:      makeValidAPIOutput(),
 		remoteRef:      makeValidRemoteRef(),
@@ -83,28 +94,65 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 }
 
 func TestPushSecret(t *testing.T) {
-	pm := makeValidParameterStoreTestCase()
+	invalidPerameters := errors.New(ssm.ErrCodeInvalidParameters)
+	//arn := "arn:aws:iam::702902267788:user/external-secrets-operator"
 
-	setSimpleSecret := func(pstc *parameterstoreTestCase) {
-		pm.setAPIInput.SetName("nameHere")
-		pm.setAPIInput.SetValue("valueHere")
+	putParameterOutput := &ssm.PutParameterOutput{}
+
+	type args struct {
+		store  *esv1beta1.AWSProvider
+		client fakeps.Client
 	}
 
-	successCases := []*parameterstoreTestCase{
-		makeValidParameterStoreTestCaseCustom(setSimpleSecret),
+	type want struct {
+		err error
 	}
 
-	ps := ParameterStore{}
-	for k, v := range successCases {
-		ps.client = v.fakeClient
-		out, err := ps.GetSecretMap(context.Background(), *v.remoteRef)
-		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
-		}
-		if cmp.Equal(out, v.expectedData) {
-			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
-		}
+	tests := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"PutParameterSucceeds": {
+			reason: "a parameter can be successfully pushed to aws parameter store",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetParameterFailsWhenNoNameProvided": {
+			reason: "test push secret with no name gives error",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, invalidPerameters),
+				},
+			},
+			want: want{
+				err: invalidPerameters,
+			},
+		},
 	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			ps := ParameterStore{
+				client: &tc.args.client,
+			}
+			err := ps.SetSecret(nil, []byte("fakeValue"), ref)
+
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			}
+		})
+	}
+
 }
 
 // test the ssm<->aws interface
@@ -214,6 +262,23 @@ func TestGetSecretMap(t *testing.T) {
 		if cmp.Equal(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
+	}
+}
+
+func makeValidParameterStore() *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-parameterstore",
+			Namespace: "default",
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				AWS: &esv1beta1.AWSProvider{
+					Service: esv1beta1.AWSServiceParameterStore,
+					Region:  "us-east-1",
+				},
+			},
+		},
 	}
 }
 

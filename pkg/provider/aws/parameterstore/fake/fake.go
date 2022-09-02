@@ -15,15 +15,17 @@ package fake
 
 import (
 	"fmt"
-
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
 )
 
 // Client implements the aws parameterstore interface.
 type Client struct {
-	valFn func(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+	valFn          func(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+	PutParameterFn PutParameterFn
 }
+
+type PutParameterFn func(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
 
 func (sm *Client) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 	return sm.valFn(in)
@@ -33,8 +35,14 @@ func (sm *Client) DescribeParameters(*ssm.DescribeParametersInput) (*ssm.Describ
 	return nil, nil
 }
 
-func (sm *Client) PutParameter(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
-	return nil, nil
+func (sm *Client) PutParameter(input *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+	return sm.PutParameterFn(input)
+}
+
+func NewPutParameterFn(output *ssm.PutParameterOutput, err error) PutParameterFn {
+	return func(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+		return output, err
+	}
 }
 
 func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutput, err error) {
