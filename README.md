@@ -2,6 +2,16 @@
     <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
 </p>
 
+## ⚠️DNS Transfer Alert⚠️
+We are currently in the middle of the process of transfering out our DNS zones to the Linux foundation. This transfer, unfortunately, is expected with some instability. The main addresses that are going to be affected are https://external-secrets.io and https://charts.external-secrets.io.
+
+In order to minimize any impact this transfer might have in your systems, you can download manually the chart packages from our tags (here is the [latest one](https://github.com/external-secrets/external-secrets/releases/download/helm-chart-0.5.9/external-secrets-0.5.9.tgz)
+
+Installation in this way is not supported, but it a valid workaround while the transfer is in progress.
+```
+helm install es https://github.com/external-secrets/external-secrets/releases/download/helm-chart-0.5.9/external-secrets-0.5.9.tgz
+```
+
 # External Secrets
 ![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5327/badge)](https://bestpractices.coreinfrastructure.org/projects/5947)
