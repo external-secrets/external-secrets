@@ -30,13 +30,39 @@ type AkeylessProvider struct {
 
 type AkeylessAuth struct {
 	SecretRef AkeylessAuthSecretRef `json:"secretRef"`
+
+	// Kubernetes authenticates with Akeyless by passing the ServiceAccount
+	// token stored in the named Secret resource.
+	// +optional
+	KubernetesAuth *AkeylessKubernetesAuth `json:"KubernetesAuth,omitempty"`
 }
 
 // AkeylessAuthSecretRef
-//AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.
+// AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.
 type AkeylessAuthSecretRef struct {
 	// The SecretAccessID is used for authentication
 	AccessID        esmeta.SecretKeySelector `json:"accessID,omitempty"`
 	AccessType      esmeta.SecretKeySelector `json:"accessType,omitempty"`
 	AccessTypeParam esmeta.SecretKeySelector `json:"accessTypeParam,omitempty"`
+}
+
+// Authenticate against Vault using a Kubernetes ServiceAccount token stored in
+// a Secret.
+type AkeylessKubernetesAuth struct {
+	// Kubernetes-auth configuration name in Akeyless-Gateway
+	K8sConfName string `json:"K8sConfName"`
+
+	// Optional service account field containing the name of a kubernetes ServiceAccount.
+	// If the service account is specified, the service account secret token JWT will be used
+	// for authenticating with Vault. If the service account selector is not supplied,
+	// the secretRef will be used instead.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
+	// Optional secret field containing a Kubernetes ServiceAccount JWT used
+	// for authenticating with Vault. If a name is specified without a key,
+	// `token` is the default. If one is not specified, the one bound to
+	// the controller will be used.
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
