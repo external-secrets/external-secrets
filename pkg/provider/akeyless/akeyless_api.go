@@ -23,7 +23,9 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"io"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"strings"
@@ -244,7 +246,17 @@ func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error)
 
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
+		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
+		// this behavior was removed in v1.24 and we must use TokenRequest API (see below)
 		jwt, err := a.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		if jwt != "" {
+			return jwt, err
+		}
+		if err != nil {
+			a.log.V(1).Info("unable to fetch jwt from service account secret")
+		}
+		// Kubernetes >=v1.24: fetch token via TokenRequest API
+		jwt, err = a.serviceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
 		if err != nil {
 			return "", err
 		}
@@ -264,6 +276,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 		return readK8SServiceAccountJWT()
 	}
 }
+
 func (a *akeylessBase) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
 	serviceAccount := &corev1.ServiceAccount{}
 	ref := types.NamespacedName{
@@ -320,6 +333,31 @@ func (a *akeylessBase) secretKeyRef(ctx context.Context, secretRef *esmeta.Secre
 	value := string(keyBytes)
 	valueStr := strings.TrimSpace(value)
 	return valueStr, nil
+}
+
+func (a *akeylessBase) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
+	audiences := serviceAccountRef.Audiences
+	if len(additionalAud) > 0 {
+		audiences = append(audiences, additionalAud...)
+	}
+	tokenRequest := &authenticationv1.TokenRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: a.namespace,
+		},
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}
+	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+		(serviceAccountRef.Namespace != nil) {
+		tokenRequest.Namespace = *serviceAccountRef.Namespace
+	}
+	tokenResponse, err := a.corev1.ServiceAccounts(tokenRequest.Namespace).CreateToken(ctx, serviceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf(errGetKubeSATokenRequest, serviceAccountRef.Name, err)
+	}
+	return tokenResponse.Status.Token, nil
 }
 
 // readK8SServiceAccountJWT reads the JWT data for the Agent to submit to Akeyless Gateway.

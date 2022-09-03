@@ -18,7 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-logr/logr"
+	"k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"net/url"
+	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"strconv"
 	"time"
 
@@ -44,6 +49,8 @@ type Provider struct{}
 type akeylessBase struct {
 	kube      client.Client
 	store     esv1beta1.GenericStore
+	corev1    typedcorev1.CoreV1Interface
+	log       logr.Logger
 	namespace string
 
 	akeylessGwAPIURL string
@@ -68,7 +75,19 @@ func init() {
 
 // NewClient constructs a new secrets client based on the provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	return newClient(ctx, store, kube, namespace)
+	// controller-runtime/client does not support TokenRequest or other subresource APIs
+	// so we need to construct our own client and use it to fetch tokens
+	// (for Kubernetes service account token auth)
+	restCfg, err := ctrlcfg.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
@@ -117,11 +136,13 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
 	akl := &akeylessBase{
 		kube:      kube,
 		store:     store,
 		namespace: namespace,
+		corev1:    corev1,
+		log:       ctrl.Log.WithName("provider").WithName("akeyless"),
 	}
 
 	spec, err := GetAKeylessProvider(store)
