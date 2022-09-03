@@ -34,7 +34,7 @@ type AkeylessAuth struct {
 	// Kubernetes authenticates with Akeyless by passing the ServiceAccount
 	// token stored in the named Secret resource.
 	// +optional
-	KubernetesAuth *AkeylessKubernetesAuth `json:"KubernetesAuth,omitempty"`
+	KubernetesAuth *AkeylessKubernetesAuth `json:"kubernetesAuth,omitempty"`
 }
 
 // AkeylessAuthSecretRef
@@ -49,8 +49,12 @@ type AkeylessAuthSecretRef struct {
 // Authenticate against Vault using a Kubernetes ServiceAccount token stored in
 // a Secret.
 type AkeylessKubernetesAuth struct {
+
+	// the Akeyless Kubernetes auth-method access-id
+	AccessID string `json:"accessID"`
+
 	// Kubernetes-auth configuration name in Akeyless-Gateway
-	K8sConfName string `json:"K8sConfName"`
+	K8sConfName string `json:"k8sConfName"`
 
 	// Optional service account field containing the name of a kubernetes ServiceAccount.
 	// If the service account is specified, the service account secret token JWT will be used
