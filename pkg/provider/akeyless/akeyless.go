@@ -18,11 +18,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"net/url"
-	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"strconv"
 	"time"
@@ -50,7 +48,6 @@ type akeylessBase struct {
 	kube      client.Client
 	store     esv1beta1.GenericStore
 	corev1    typedcorev1.CoreV1Interface
-	log       logr.Logger
 	namespace string
 
 	akeylessGwAPIURL string
@@ -142,7 +139,6 @@ func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Clie
 		store:     store,
 		namespace: namespace,
 		corev1:    corev1,
-		log:       ctrl.Log.WithName("provider").WithName("akeyless"),
 	}
 
 	spec, err := GetAKeylessProvider(store)

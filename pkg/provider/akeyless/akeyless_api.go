@@ -52,9 +52,6 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
 		}
 		K8SAuthConfigName := accTypeParam
-		if k8sAuth != nil && k8sAuth.K8sConfName != "" {
-			K8SAuthConfigName = k8sAuth.K8sConfName
-		}
 		authBody.AccessType = akeyless.PtrString(accType)
 		authBody.K8sServiceAccountToken = akeyless.PtrString(jwtString)
 		authBody.K8sAuthConfigName = akeyless.PtrString(K8SAuthConfigName)
@@ -247,13 +244,9 @@ func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error)
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
 		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
-		// this behavior was removed in v1.24 and we must use TokenRequest API (see below)
 		jwt, err := a.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
 		if jwt != "" {
 			return jwt, err
-		}
-		if err != nil {
-			a.log.V(1).Info("unable to fetch jwt from service account secret")
 		}
 		// Kubernetes >=v1.24: fetch token via TokenRequest API
 		jwt, err = a.serviceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
