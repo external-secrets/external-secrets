@@ -24,14 +24,21 @@ import (
 
 // Client implements the aws parameterstore interface.
 type Client struct {
-	valFn                     func(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+	GetParameterWithContextFn GetParameterWithContextFn
 	PutParameterWithContextFn PutParameterWithContextFn
 }
 
+type GetParameterWithContextFn func(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
 type PutParameterWithContextFn func(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
 
-func (sm *Client) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
-	return sm.valFn(in)
+func (sm *Client) GetParameterWithContext(ctx aws.Context, input *ssm.GetParameterInput, options ...request.Option) (*ssm.GetParameterOutput, error) {
+	return sm.GetParameterWithContextFn(ctx, input, options...)
+}
+
+func NewGetParameterWithContextFn(output *ssm.GetParameterOutput, err error) GetParameterWithContextFn {
+	return func(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error) {
+		return output, err
+	}
 }
 
 func (sm *Client) DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error) {
@@ -49,7 +56,7 @@ func NewPutParameterWithContextFn(output *ssm.PutParameterOutput, err error) Put
 }
 
 func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutput, err error) {
-	sm.valFn = func(paramIn *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+	sm.GetParameterWithContextFn = func(ctx aws.Context, paramIn *ssm.GetParameterInput, options ...request.Option) (*ssm.GetParameterOutput, error) {
 		if !cmp.Equal(paramIn, in) {
 			return nil, fmt.Errorf("unexpected test argument")
 		}

@@ -44,9 +44,9 @@ type ParameterStore struct {
 // PMInterface is a subset of the parameterstore api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/ssm/ssmiface/
 type PMInterface interface {
-	GetParameter(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
-	DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error)
+	GetParameterWithContext(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
 	PutParameterWithContext(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
+	DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error)
 }
 
 const (
@@ -175,7 +175,8 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 }
 
 func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error {
-	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
+	ctx := context.Background()
+	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
 		Name:           utilpointer.StringPtr(name),
 		WithDecryption: aws.Bool(true),
 	})
@@ -189,7 +190,7 @@ func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error
 
 // GetSecret returns a single secret from the provider.
 func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
+	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
 		Name:           &ref.Key,
 		WithDecryption: aws.Bool(true),
 	})
