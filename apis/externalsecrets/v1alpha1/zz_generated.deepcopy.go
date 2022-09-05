@@ -479,7 +479,7 @@ func (in *ExternalSecretSpec) DeepCopyInto(out *ExternalSecretSpec) {
 	if in.RefreshInterval != nil {
 		in, out := &in.RefreshInterval, &out.RefreshInterval
 		*out = new(v1.Duration)
-		(*in).DeepCopyInto(*out)
+		**out = **in
 	}
 	if in.Data != nil {
 		in, out := &in.Data, &out.Data
@@ -1541,7 +1541,7 @@ func (in *WebhookProvider) DeepCopyInto(out *WebhookProvider) {
 	if in.Timeout != nil {
 		in, out := &in.Timeout, &out.Timeout
 		*out = new(v1.Duration)
-		(*in).DeepCopyInto(*out)
+		**out = **in
 	}
 	out.Result = in.Result
 	if in.Secrets != nil {

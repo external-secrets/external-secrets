@@ -108,20 +108,20 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-check-diff-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-check-diff-
+          key: ${{ runner.os }}-${{ env.GO_VERSION }}-build-check-diff-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-${{ env.GO_VERSION }}-build-check-diff-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-${{ env.GO_VERSION }}-pkg-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-${{ env.GO_VERSION }}-pkg-
 
       # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
         run: |
-          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.42.1
+          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s ${{ env.GOLANGCI_VERSION }}
           export PATH=$PATH:./bin
           make check-diff
 
