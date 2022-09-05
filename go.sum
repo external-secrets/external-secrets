@@ -523,8 +523,8 @@ github.com/hashicorp/vault/api/auth/approle v0.2.0 h1:mdNYwDRp+tqvJmyfbkaHLLePGY
 github.com/hashicorp/vault/api/auth/approle v0.2.0/go.mod h1:w4PwYaLJmGq0cMss0ZAV9b49vcrpB6SKxMMLUp4voR8=
 github.com/hashicorp/vault/api/auth/kubernetes v0.2.0 h1:ScdzRAF8JZIdJYP4oprZKsIS4GSTCaTP4iG2JJlJDvA=
 github.com/hashicorp/vault/api/auth/kubernetes v0.2.0/go.mod h1:2BKADs9mwqAycDK/6tiHRh2sX0SPnC0DN4wHjJoAirw=
-github.com/hashicorp/vault/api/auth/ldap v0.1.0 h1:runn+BIRU6/QcGirhstoJIqO+plVuTN/zf401tbB5H0=
-github.com/hashicorp/vault/api/auth/ldap v0.1.0/go.mod h1:vl3YZyt+bRtTHvVqKWeOTCI5I40t31t0S48efipZq64=
+github.com/hashicorp/vault/api/auth/ldap v0.2.0 h1:pBzFM1Fu0IgS7mfKxVEiCsuPbHEgE5EbXzp6RgN9uXQ=
+github.com/hashicorp/vault/api/auth/ldap v0.2.0/go.mod h1:ezky0BvVjLnFBPN4XrFR272iJRoJVdxxor7sVKr0u3k=
 github.com/hashicorp/vault/sdk v0.3.0/go.mod h1:aZ3fNuL5VNydQk8GcLJ2TV8YCRVvyaakYkhZRoVuhj0=
 github.com/hashicorp/vault/sdk v0.5.1 h1:zly/TmNgOXCGgWIRA8GojyXzG817POtVh3uzIwzZx+8=
 github.com/hashicorp/vault/sdk v0.5.1/go.mod h1:DoGraE9kKGNcVgPmTuX357Fm6WAx1Okvde8Vp3dPDoU=
