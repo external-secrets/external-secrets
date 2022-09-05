@@ -41,6 +41,21 @@ Be sure the `akeyless` provider is listed in the `Kind=SecretStore` and the `ake
 {% include 'akeyless-secret-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `accessID`, `accessType` and `accessTypeParam` with the namespaces where the secrets reside.
+
+### Authentication with Kubernetes
+
+options of obtaining credentials:
+
+- by using a service account jwt referenced in serviceAccountRef
+- by using the jwt from a Kind=Secret referenced by the secretRef
+- by using transient credentials from the mounted service account token within the external-secrets operator
+
+```yaml
+{% include 'akeyless-secret-store-k8s-auth.yaml' %}
+```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` and `secretRef` with the namespaces where the secrets reside.
+
+
 ### Creating external secret
 
 To get a secret from Akeyless and secret it on the Kubernetes cluster, a `Kind=ExternalSecret` is needed.

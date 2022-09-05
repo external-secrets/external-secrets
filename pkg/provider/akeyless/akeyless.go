@@ -103,6 +103,28 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 			return fmt.Errorf(errInvalidAkeylessURL)
 		}
 	}
+	if akeylessSpec.Auth.KubernetesAuth != nil {
+		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef != nil {
+			if err := utils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef); err != nil {
+				return fmt.Errorf(errInvalidKubeSA, err)
+			}
+		}
+		if akeylessSpec.Auth.KubernetesAuth.SecretRef != nil {
+			err := utils.ValidateSecretSelector(store, *akeylessSpec.Auth.KubernetesAuth.SecretRef)
+			if err != nil {
+				return err
+			}
+		}
+
+		if akeylessSpec.Auth.KubernetesAuth.AccessID == "" {
+			return fmt.Errorf("missing kubernetes auth-method access-id")
+		}
+
+		if akeylessSpec.Auth.KubernetesAuth.K8sConfName == "" {
+			return fmt.Errorf("missing kubernetes config name")
+		}
+		return nil
+	}
 
 	accessID := akeylessSpec.Auth.SecretRef.AccessID
 	err := utils.ValidateSecretSelector(store, accessID)
