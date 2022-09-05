@@ -20,15 +20,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"io"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"strings"
 
 	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
 	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
@@ -51,9 +52,10 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 		if err != nil {
 			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
 		}
+		jwtStringBase64 := base64.StdEncoding.EncodeToString([]byte(jwtString))
 		K8SAuthConfigName := accTypeParam
 		authBody.AccessType = akeyless.PtrString(accType)
-		authBody.K8sServiceAccountToken = akeyless.PtrString(jwtString)
+		authBody.K8sServiceAccountToken = akeyless.PtrString(jwtStringBase64)
 		authBody.K8sAuthConfigName = akeyless.PtrString(K8SAuthConfigName)
 	} else {
 		cloudID, err := a.getCloudID(accType, accTypeParam)
@@ -367,5 +369,5 @@ func readK8SServiceAccountJWT() (string, error) {
 	}
 
 	a := strings.TrimSpace(string(contentBytes))
-	return base64.StdEncoding.EncodeToString([]byte(a)), nil
+	return a, nil
 }
