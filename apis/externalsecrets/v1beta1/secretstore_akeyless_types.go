@@ -29,6 +29,10 @@ type AkeylessProvider struct {
 }
 
 type AkeylessAuth struct {
+
+	// Reference to a Secret that contains the detailed
+	// to authenticate with Akeyless.
+	// +optional
 	SecretRef AkeylessAuthSecretRef `json:"secretRef"`
 
 	// Kubernetes authenticates with Akeyless by passing the ServiceAccount
@@ -46,8 +50,7 @@ type AkeylessAuthSecretRef struct {
 	AccessTypeParam esmeta.SecretKeySelector `json:"accessTypeParam,omitempty"`
 }
 
-// Authenticate against Vault using a Kubernetes ServiceAccount token stored in
-// a Secret.
+// Authenticate with Kubernetes ServiceAccount token stored.
 type AkeylessKubernetesAuth struct {
 
 	// the Akeyless Kubernetes auth-method access-id
