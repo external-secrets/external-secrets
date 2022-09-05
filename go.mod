@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.17
+go 1.19
 
 replace (
 	github.com/go-check/check => github.com/go-check/check v0.0.0-20180628173108-788fd7840127

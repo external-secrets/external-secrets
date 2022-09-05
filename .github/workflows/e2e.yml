@@ -6,8 +6,7 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.33'
+  GO_VERSION: '1.19'
   GINKGO_VERSION: 'v2.1.4'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.14.0'

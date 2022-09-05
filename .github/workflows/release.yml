@@ -10,7 +10,7 @@ on:
 
 env:
   GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-  GO_VERSION: '1.17'
+  GO_VERSION: '1.19'
 
 jobs:
   release:

@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -75,11 +75,11 @@ type GoogleSecretManagerClient interface {
 }
 
 /*
- Currently, GCPSM client has a limitation around how concurrent connections work
- This limitation causes memory leaks due to random disconnects from living clients
- and also payload switches when sending a call (such as using a credential from one
- thread to ask secrets from another thread).
- A Mutex was implemented to make sure only one connection can be in place at a time.
+Currently, GCPSM client has a limitation around how concurrent connections work
+This limitation causes memory leaks due to random disconnects from living clients
+and also payload switches when sending a call (such as using a credential from one
+thread to ask secrets from another thread).
+A Mutex was implemented to make sure only one connection can be in place at a time.
 */
 var useMu = sync.Mutex{}
 

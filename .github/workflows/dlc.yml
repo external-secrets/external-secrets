@@ -13,7 +13,7 @@ on:
   workflow_dispatch: {}
 env:
   # Common versions
-  GO_VERSION: '1.17'
+  GO_VERSION: '1.19'
 
 jobs:
   license-check:
