@@ -40,7 +40,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.28
 	github.com/Azure/go-autorest/autorest/adal v0.9.21
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
-	github.com/AzureAD/microsoft-authentication-library-for-go v0.5.3
+	github.com/AzureAD/microsoft-authentication-library-for-go v0.6.1
 	github.com/IBM/go-sdk-core/v5 v5.10.2
 	github.com/IBM/secrets-manager-go-sdk v1.0.45
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -136,7 +136,6 @@ require (
 	github.com/gobuffalo/flect v0.2.5 // indirect
 	github.com/goccy/go-json v0.9.7 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
