@@ -116,7 +116,7 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil),
+					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
 				},
 			},
 			want: want{
@@ -128,7 +128,7 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, invalidPerameters),
+					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, invalidPerameters),
 				},
 			},
 			want: want{

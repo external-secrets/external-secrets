@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
@@ -45,7 +46,7 @@ type ParameterStore struct {
 type PMInterface interface {
 	GetParameter(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
 	DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error)
-	PutParameter(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
+	PutParameterWithContext(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
 }
 
 const (
@@ -70,7 +71,7 @@ func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef
 		Type:  &parameterType,
 	}
 
-	_, err := pm.client.PutParameter(&secretRequest)
+	_, err := pm.client.PutParameterWithContext(ctx, &secretRequest)
 	if err != nil {
 		return err
 	}

@@ -16,17 +16,19 @@ package fake
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
 )
 
 // Client implements the aws parameterstore interface.
 type Client struct {
-	valFn          func(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
-	PutParameterFn PutParameterFn
+	valFn                     func(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+	PutParameterWithContextFn PutParameterWithContextFn
 }
 
-type PutParameterFn func(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
+type PutParameterWithContextFn func(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
 
 func (sm *Client) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
 	return sm.valFn(in)
@@ -36,12 +38,12 @@ func (sm *Client) DescribeParameters(*ssm.DescribeParametersInput) (*ssm.Describ
 	return nil, nil
 }
 
-func (sm *Client) PutParameter(input *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
-	return sm.PutParameterFn(input)
+func (sm *Client) PutParameterWithContext(ctx aws.Context, input *ssm.PutParameterInput, options ...request.Option) (*ssm.PutParameterOutput, error) {
+	return sm.PutParameterWithContextFn(ctx, input, options...)
 }
 
-func NewPutParameterFn(output *ssm.PutParameterOutput, err error) PutParameterFn {
-	return func(*ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+func NewPutParameterWithContextFn(output *ssm.PutParameterOutput, err error) PutParameterWithContextFn {
+	return func(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error) {
 		return output, err
 	}
 }
