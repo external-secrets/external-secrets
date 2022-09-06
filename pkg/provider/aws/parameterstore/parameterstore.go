@@ -195,8 +195,9 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		WithDecryption: aws.Bool(true),
 	})
 
+	nsf := esv1beta1.NoSecretError{}
 	var nf *ssm.ParameterNotFound
-	if errors.As(err, &nf) {
+	if errors.As(err, &nf) || errors.As(err, &nsf) {
 		return nil, esv1beta1.NoSecretErr
 	}
 	if err != nil {

@@ -181,6 +181,13 @@ func TestGetSecret(t *testing.T) {
 		pstc.expectError = "key INVALPROP does not exist in secret"
 	}
 
+	// bad case: parameter.Value not found
+	setParameterValueNotFound := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter.Value = aws.String("NONEXISTENT")
+		pstc.apiErr = esv1beta1.NoSecretErr
+		pstc.expectError = "Secret does not exist"
+	}
+
 	// bad case: extract property failure due to invalid json
 	setPropertyFail := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`------`)
@@ -209,6 +216,7 @@ func TestGetSecret(t *testing.T) {
 		makeValidParameterStoreTestCaseCustom(setParameterValueNil),
 		makeValidParameterStoreTestCaseCustom(setAPIError),
 		makeValidParameterStoreTestCaseCustom(setExtractPropertyWithDot),
+		makeValidParameterStoreTestCaseCustom(setParameterValueNotFound),
 	}
 
 	ps := ParameterStore{}
