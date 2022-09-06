@@ -18,18 +18,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/client-go/kubernetes"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"net/url"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"strconv"
 	"time"
 
 	"github.com/akeylesslabs/akeyless-go/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 const (
