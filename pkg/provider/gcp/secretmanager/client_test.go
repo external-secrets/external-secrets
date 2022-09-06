@@ -167,10 +167,10 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 	}
 
-	sm := ProviderGCP{}
+	sm := Client{}
 	for k, v := range successCases {
-		sm.projectID = v.projectID
-		sm.SecretManagerClient = v.mockClient
+		sm.store = &esv1beta1.GCPSMProvider{ProjectID: v.projectID}
+		sm.smClient = v.mockClient
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
@@ -209,10 +209,10 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setNestedJSON),
 	}
 
-	sm := ProviderGCP{}
+	sm := Client{}
 	for k, v := range successCases {
-		sm.projectID = v.projectID
-		sm.SecretManagerClient = v.mockClient
+		sm.store = &esv1beta1.GCPSMProvider{ProjectID: v.projectID}
+		sm.smClient = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
@@ -278,7 +278,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sm := &ProviderGCP{}
+			sm := &Provider{}
 			store := &esv1beta1.SecretStore{
 				Spec: esv1beta1.SecretStoreSpec{
 					Provider: &esv1beta1.SecretStoreProvider{

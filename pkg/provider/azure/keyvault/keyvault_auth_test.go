@@ -169,8 +169,8 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 						Name:      saName,
 						Namespace: namespace,
 						Annotations: map[string]string{
-							annotationClientID: clientID,
-							annotationTenantID: tenantID,
+							AnnotationClientID: clientID,
+							AnnotationTenantID: tenantID,
 						},
 					},
 				},
