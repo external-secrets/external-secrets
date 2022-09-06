@@ -59,19 +59,20 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 	} else {
 		cloudID, err := a.getCloudID(accType, accTypeParam)
 		if err != nil {
-			return "", fmt.Errorf("Require Cloud ID " + err.Error())
+			return "", errors.New("Require Cloud ID " + err.Error())
 		}
 		authBody.AccessType = akeyless.PtrString(accType)
 		authBody.CloudId = akeyless.PtrString(cloudID)
 	}
 
-	authOut, _, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
+	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
 		}
 		return "", fmt.Errorf("authentication failed: %w", err)
 	}
+	defer res.Body.Close()
 
 	token := authOut.GetToken()
 	return token, nil
@@ -107,13 +108,14 @@ func (a *akeylessBase) DescribeItem(itemName, token string) (*akeyless.Item, err
 	} else {
 		body.Token = &token
 	}
-	gsvOut, _, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
+	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return nil, fmt.Errorf("can't describe item: %v", string(apiErr.Body()))
 		}
 		return nil, fmt.Errorf("can't describe item: %w", err)
 	}
+	res.Body.Close()
 
 	return &gsvOut, nil
 }
@@ -131,13 +133,14 @@ func (a *akeylessBase) GetRotatedSecrets(secretName, token string, version int32
 		body.Token = &token
 	}
 
-	gsvOut, _, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
+	gsvOut, res, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get rotated secret value: %v", string(apiErr.Body()))
 		}
 		return "", fmt.Errorf("can't get rotated secret value: %w", err)
 	}
+	res.Body.Close()
 
 	valI, ok := gsvOut["value"]
 	if ok {
@@ -180,13 +183,14 @@ func (a *akeylessBase) GetDynamicSecrets(secretName, token string) (string, erro
 		body.Token = &token
 	}
 
-	gsvOut, _, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
+	gsvOut, res, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get dynamic secret value: %v", string(apiErr.Body()))
 		}
 		return "", fmt.Errorf("can't get dynamic secret value: %w", err)
 	}
+	res.Body.Close()
 
 	out, err := json.Marshal(gsvOut)
 	if err != nil {
@@ -210,13 +214,14 @@ func (a *akeylessBase) GetStaticSecret(secretName, token string, version int32) 
 		gsvBody.Token = &token
 	}
 
-	gsvOut, _, err := a.RestAPI.GetSecretValue(ctx).Body(gsvBody).Execute()
+	gsvOut, res, err := a.RestAPI.GetSecretValue(ctx).Body(gsvBody).Execute()
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get secret value: %v", string(apiErr.Body()))
 		}
 		return "", fmt.Errorf("can't get secret value: %w", err)
 	}
+	res.Body.Close()
 	val, ok := gsvOut[secretName]
 	if !ok {
 		return "", fmt.Errorf("can't get secret: %v", secretName)

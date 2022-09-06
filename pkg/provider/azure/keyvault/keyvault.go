@@ -501,10 +501,9 @@ type tokenProviderFunc func(ctx context.Context, token, clientID, tenantID, aadE
 
 func newTokenProvider(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error) {
 	// exchange token with Azure AccessToken
-	cred, err := confidential.NewCredFromAssertion(token)
-	if err != nil {
-		return nil, err
-	}
+	cred := confidential.NewCredFromAssertionCallback(func(ctx context.Context, aro confidential.AssertionRequestOptions) (string, error) {
+		return token, nil
+	})
 	cClient, err := confidential.New(clientID, cred, confidential.WithAuthority(
 		fmt.Sprintf("%s%s/oauth2/token", aadEndpoint, tenantID),
 	))
