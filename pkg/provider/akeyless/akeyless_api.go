@@ -256,9 +256,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 			return "", err
 		}
 		return jwt, nil
-
 	} else if kubernetesAuth.SecretRef != nil {
-
 		tokenRef := kubernetesAuth.SecretRef
 		if tokenRef.Key == "" {
 			tokenRef = kubernetesAuth.SecretRef.DeepCopy()

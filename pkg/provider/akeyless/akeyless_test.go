@@ -161,7 +161,6 @@ func TestValidateStore(t *testing.T) {
 		if err != nil {
 			t.Errorf(err.Error())
 		}
-
 	})
 
 	t.Run("k8s auth", func(t *testing.T) {
@@ -232,7 +231,6 @@ func TestValidateStore(t *testing.T) {
 			t.Errorf("expected an error")
 		}
 	})
-
 }
 
 func TestGetSecretMap(t *testing.T) {
