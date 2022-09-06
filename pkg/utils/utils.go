@@ -16,7 +16,7 @@ package utils
 
 import (
 
-	// nolint:gosec
+	//nolint:gosec
 	"crypto/md5"
 	"encoding/base64"
 	"errors"
@@ -189,7 +189,8 @@ func IsNil(i interface{}) bool {
 }
 
 // ObjectHash calculates md5 sum of the data contained in the secret.
-// nolint:gosec
+//
+//nolint:gosec
 func ObjectHash(object interface{}) string {
 	textualVersion := fmt.Sprintf("%+v", object)
 	return fmt.Sprintf("%x", md5.Sum([]byte(textualVersion)))

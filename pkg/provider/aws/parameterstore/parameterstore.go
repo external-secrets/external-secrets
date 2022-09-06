@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -208,14 +208,20 @@ func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1beta1.Extern
 	if err != nil {
 		return nil, err
 	}
-	kv := make(map[string]string)
+	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
-		secretData[k] = []byte(v)
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
 	}
 	return secretData, nil
 }
