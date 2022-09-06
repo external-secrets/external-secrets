@@ -16,7 +16,7 @@ The supported auth-methods and their params are:
 | `gcp` |      The gcp audience                                                      |
 | `azure_ad` |  azure object id  (optional)                                                          |
 
-form more information about [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
+for more information about [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
 ### Akeless credentials secret
 
