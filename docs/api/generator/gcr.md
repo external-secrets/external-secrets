@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 GCRAccessToken creates a GCP Access token that can be used to authenticate with GCR in order to pull OCI images. You won't need any extra permissions to request for a token, but the token would only work against a GCR if the token requester (service Account or WI) has the appropriate access
+=======
+GCRAccessToken creates a GCP Access token that can be used to authenticate with GCR in order to pull OCI images.
+>>>>>>> 8dd491c7 (feat: initial generator implementation)
 
 You must specify the `spec.projectID` in which GCR is located.
 
