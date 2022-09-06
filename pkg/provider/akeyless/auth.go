@@ -40,8 +40,8 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	}
 
 	if prov.Auth.KubernetesAuth != nil {
-		kAuth := prov.Auth.KubernetesAuth
-		return a.GetToken(kAuth.AccessID, "k8s", kAuth.K8sConfName, kAuth)
+		auth := prov.Auth.KubernetesAuth
+		return a.GetToken(auth.AccessID, "k8s", auth.K8sConfName, auth)
 	}
 
 	ke := client.ObjectKey{
