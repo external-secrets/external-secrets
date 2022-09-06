@@ -1680,10 +1680,10 @@ static code analysis.</p>
 <div class="highlight"><pre><span></span><code>make build
 make docker.build <span class="nv">IMG</span><span class="o">=</span>external-secrets:latest
 </code></pre></div>
-<p>Run tests and lint the code: <em>(golangci-lint@1.45.2 is needed.)</em>
+<p>Run tests and lint the code: <em>(golangci-lint@1.49.0 is needed.)</em>
 <div class="highlight"><pre><span></span><code>make <span class="nb">test</span>
 make lint <span class="c1"># OR</span>
-docker run --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app -w /app golangci/golangci-lint:v1.42.1 golangci-lint run
+docker run --rm -v <span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
 </code></pre></div></p>
 <p>Build the documentation:
 <div class="highlight"><pre><span></span><code>make docs
