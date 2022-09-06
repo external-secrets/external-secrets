@@ -36,7 +36,7 @@ type ISOInterface interface {
 }
 
 /*
-	SenhaseguraIsoSession contains information about senhasegura ISO API for any request
+SenhaseguraIsoSession contains information about senhasegura ISO API for any request
 */
 type SenhaseguraIsoSession struct {
 	URL                  string
@@ -46,7 +46,7 @@ type SenhaseguraIsoSession struct {
 }
 
 /*
-	isoGetTokenResponse contains response from OAuth2 authentication endpoint in senhasegura API
+isoGetTokenResponse contains response from OAuth2 authentication endpoint in senhasegura API
 */
 type isoGetTokenResponse struct {
 	TokenType   string `json:"token_type"`
@@ -62,7 +62,7 @@ var (
 )
 
 /*
-	Authenticate check required authentication method based on provider spec and initialize ISO OAuth2 session
+Authenticate check required authentication method based on provider spec and initialize ISO OAuth2 session
 */
 func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *esv1beta1.SenhaseguraProvider, kube client.Client, namespace string) (isoSession *SenhaseguraIsoSession, err error) {
 	isoSession, err = isoSession.IsoSessionFromSecretRef(ctx, provider, store, kube, namespace)
@@ -73,7 +73,7 @@ func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *e
 }
 
 /*
-	IsoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters
+IsoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters
 */
 func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
 	clientSecret, err := getKubernetesSecret(ctx, provider.Auth.ClientSecret, store, kube, namespace)
@@ -95,7 +95,7 @@ func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, pro
 }
 
 /*
-	GetIsoToken calls senhasegura OAuth2 endpoint to get a token
+GetIsoToken calls senhasegura OAuth2 endpoint to get a token
 */
 func (s *SenhaseguraIsoSession) GetIsoToken(clientID, clientSecret, systemURL string, ignoreSslCertificate bool) (token string, err error) {
 	data := url.Values{}

@@ -31,7 +31,7 @@ const (
 )
 
 /*
-	getKubernetesSecret get Kubernetes Secret based on object parameter in namespace where ESO is installed or another, if ClusterSecretStore is used
+getKubernetesSecret get Kubernetes Secret based on object parameter in namespace where ESO is installed or another, if ClusterSecretStore is used
 */
 func getKubernetesSecret(ctx context.Context, object esmeta.SecretKeySelector, store esv1beta1.GenericStore, kube client.Client, namespace string) (string, error) {
 	ke := client.ObjectKey{

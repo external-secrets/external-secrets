@@ -17,7 +17,7 @@ package v1beta1
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 /*
-	SenhaseguraAuth tells the controller how to do auth in senhasegura
+SenhaseguraAuth tells the controller how to do auth in senhasegura
 */
 type SenhaseguraAuth struct {
 	ClientID     string                   `json:"clientId"`
@@ -25,8 +25,8 @@ type SenhaseguraAuth struct {
 }
 
 /*
-	SenhaseguraModuleType enum defines senhasegura target module to fetch secrets
-	+kubebuilder:validation:Enum=DSM
+SenhaseguraModuleType enum defines senhasegura target module to fetch secrets
++kubebuilder:validation:Enum=DSM
 */
 type SenhaseguraModuleType string
 
@@ -39,7 +39,7 @@ const (
 )
 
 /*
-	SenhaseguraProvider setup a store to sync secrets with senhasegura
+SenhaseguraProvider setup a store to sync secrets with senhasegura
 */
 type SenhaseguraProvider struct {
 	/* URL of senhasegura */

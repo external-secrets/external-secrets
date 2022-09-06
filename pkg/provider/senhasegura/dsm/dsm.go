@@ -36,7 +36,7 @@ type clientDSMInterface interface {
 var _ esv1beta1.SecretsClient = &DSM{}
 
 /*
-	DSM service for SenhaseguraProvider
+DSM service for SenhaseguraProvider
 */
 type DSM struct {
 	isoSession *senhaseguraAuth.SenhaseguraIsoSession
@@ -44,8 +44,8 @@ type DSM struct {
 }
 
 /*
-	IsoDappResponse is a response object from senhasegura /iso/dapp/response (DevOps Secrets Management API endpoint)
-	Contains information about API request and Secrets linked with authorization
+IsoDappResponse is a response object from senhasegura /iso/dapp/response (DevOps Secrets Management API endpoint)
+Contains information about API request and Secrets linked with authorization
 */
 type IsoDappResponse struct {
 	Response struct {
@@ -81,7 +81,7 @@ var (
 )
 
 /*
-	New creates an senhasegura DSM client based on ISO session
+New creates an senhasegura DSM client based on ISO session
 */
 func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 	return &DSM{
@@ -91,7 +91,7 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 }
 
 /*
-	GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service
+GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service
 */
 func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (resp []byte, err error) {
 	appSecrets, err := dsm.FetchSecrets()
@@ -126,7 +126,7 @@ func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 }
 
 /*
-	GetSecretMap implements ESO interface and returns miltiple k/v pairs from senhasegura provider with DSM service
+GetSecretMap implements ESO interface and returns miltiple k/v pairs from senhasegura provider with DSM service
 */
 func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (secretData map[string][]byte, err error) {
 	secretData = make(map[string][]byte)
@@ -148,18 +148,18 @@ func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 }
 
 /*
-	GetAllSecrets implements ESO interface and returns multiple secrets from senhasegura provider with DSM service
+GetAllSecrets implements ESO interface and returns multiple secrets from senhasegura provider with DSM service
 
-	TODO: GetAllSecrets functionality is to get secrets from either regexp-matching against the names or via metadata label matching.
-	https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107
+TODO: GetAllSecrets functionality is to get secrets from either regexp-matching against the names or via metadata label matching.
+https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107
 */
 func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (secretData map[string][]byte, err error) {
 	return nil, fmt.Errorf("GetAllSecrets not implemented yet")
 }
 
 /*
-	fetchSecrets calls senhasegura DSM /iso/dapp/application API endpoint
-	Return an IsoDappResponse with all related information from senhasegura provider with DSM service and error
+fetchSecrets calls senhasegura DSM /iso/dapp/application API endpoint
+Return an IsoDappResponse with all related information from senhasegura provider with DSM service and error
 */
 func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 	u, _ := url.ParseRequestURI(dsm.isoSession.URL)
@@ -208,7 +208,7 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 }
 
 /*
-	Close implements ESO interface and do nothing in senhasegura
+Close implements ESO interface and do nothing in senhasegura
 */
 func (dsm *DSM) Close(ctx context.Context) error {
 	return nil
