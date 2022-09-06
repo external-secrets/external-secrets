@@ -43,6 +43,18 @@ rules:
     - "update"
     - "patch"
   - apiGroups:
+    - "generators.external-secrets.io"
+    resources:
+    - "fakes"
+    - "passwords"
+    - "acraccesstokens"
+    - "gcraccesstokens"
+    - "ecrauthorizationtokens"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  - apiGroups:
     - ""
     resources:
     - "serviceaccounts"

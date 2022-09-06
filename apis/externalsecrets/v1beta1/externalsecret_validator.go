@@ -48,5 +48,13 @@ func validateExternalSecret(obj runtime.Object) error {
 	if es.Spec.Target.DeletionPolicy == DeletionPolicyMerge && es.Spec.Target.CreationPolicy == CreatePolicyNone {
 		return fmt.Errorf("deletionPolicy=Merge must not be used with creationPolcy=None. There is no Secret to merge with")
 	}
+
+	for _, ref := range es.Spec.DataFrom {
+		findOrExtract := ref.Find != nil || ref.Extract != nil
+		if findOrExtract && ref.SourceRef != nil && (ref.SourceRef.Generator != nil || ref.SourceRef.GeneratorRef != nil) {
+			return fmt.Errorf("generator can not be used with find or extract")
+		}
+	}
+
 	return nil
 }
