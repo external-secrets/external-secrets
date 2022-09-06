@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -654,10 +654,9 @@ func TestValidateStore(t *testing.T) {
 }
 
 // most functionality is tested in TestFindItem
-//
-//	here we just check that an empty Property defaults to "password",
-//	files are loaded, and
-//	the data or errors are properly returned
+//   here we just check that an empty Property defaults to "password",
+//   files are loaded, and
+//   the data or errors are properly returned
 func TestGetSecret(t *testing.T) {
 	type check struct {
 		checkNote     string
@@ -815,9 +814,8 @@ func TestGetSecret(t *testing.T) {
 }
 
 // most functionality is tested in TestFindItem. here we just check:
-//
-//	all keys are fetched and the map is compiled correctly,
-//	files are loaded, and the data or errors are properly returned.
+//   all keys are fetched and the map is compiled correctly,
+//   files are loaded, and the data or errors are properly returned.
 func TestGetSecretMap(t *testing.T) {
 	type check struct {
 		checkNote   string

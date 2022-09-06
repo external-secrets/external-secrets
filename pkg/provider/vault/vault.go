@@ -488,10 +488,10 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 }
 
 // GetSecret supports two types:
-//  1. get the full secret as json-encoded value
-//     by leaving the ref.Property empty.
-//  2. get a key from the secret.
-//     Nested values are supported by specifying a gjson expression
+// 1. get the full secret as json-encoded value
+//    by leaving the ref.Property empty.
+// 2. get a key from the secret.
+//    Nested values are supported by specifying a gjson expression
 func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	data, err := v.readSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
