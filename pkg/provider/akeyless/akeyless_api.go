@@ -246,17 +246,19 @@ func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error)
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
 		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
-		jwt, err := a.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
 		if jwt != "" {
 			return jwt, err
 		}
 		// Kubernetes >=v1.24: fetch token via TokenRequest API
-		jwt, err = a.serviceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
+		jwt, err = a.getJWTfromServiceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
 		if err != nil {
 			return "", err
 		}
 		return jwt, nil
+
 	} else if kubernetesAuth.SecretRef != nil {
+
 		tokenRef := kubernetesAuth.SecretRef
 		if tokenRef.Key == "" {
 			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
@@ -272,7 +274,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 	}
 }
 
-func (a *akeylessBase) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
+func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
 	serviceAccount := &corev1.ServiceAccount{}
 	ref := types.NamespacedName{
 		Namespace: a.namespace,
@@ -295,7 +297,6 @@ func (a *akeylessBase) secretKeyRefForServiceAccount(ctx context.Context, servic
 			Namespace: &ref.Namespace,
 			Key:       "token",
 		})
-
 		if err != nil {
 			continue
 		}
@@ -330,7 +331,7 @@ func (a *akeylessBase) secretKeyRef(ctx context.Context, secretRef *esmeta.Secre
 	return valueStr, nil
 }
 
-func (a *akeylessBase) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
+func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
 	audiences := serviceAccountRef.Audiences
 	if len(additionalAud) > 0 {
 		audiences = append(audiences, additionalAud...)
@@ -368,6 +369,6 @@ func readK8SServiceAccountJWT() (string, error) {
 		return "", err
 	}
 
-	a := strings.TrimSpace(string(contentBytes))
-	return a, nil
+	jwt := strings.TrimSpace(string(contentBytes))
+	return jwt, nil
 }
