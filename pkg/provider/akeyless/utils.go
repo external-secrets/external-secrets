@@ -34,6 +34,13 @@ const (
 	errInvalidAkeylessURL           = "invalid akeyless GW API URL"
 	errInvalidAkeylessAccessIDName  = "missing akeyless accessID name"
 	errInvalidAkeylessAccessIDKey   = "missing akeyless accessID key"
+	errGetKubeSecret                = "cannot get Kubernetes secret %q: %w"
+	errSecretKeyFmt                 = "cannot find secret data for key: %q"
+	errGetKubeSA                    = "cannot get Kubernetes service account %q: %w"
+	errGetKubeSASecrets             = "cannot find secrets bound to service account: %q"
+	errGetKubeSANoToken             = "cannot find token in secrets bound to service account: %q"
+	errGetKubeSATokenRequest        = "cannot request Kubernetes service account token for service account %q: %w"
+	errInvalidKubeSA                = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
 )
 
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.

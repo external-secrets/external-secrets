@@ -437,8 +437,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the detailed to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -480,8 +523,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -1473,8 +1514,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the detailed to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -1516,8 +1600,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -3226,8 +3308,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the detailed to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -3269,8 +3394,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -4262,8 +4385,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the detailed to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -4305,8 +4471,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
