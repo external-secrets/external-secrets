@@ -1809,6 +1809,48 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    doppler:
+                      description: Doppler configures this store to sync secrets using the Doppler provider
+                      properties:
+                        auth:
+                          description: Auth configures how the Operator authenticates with the Doppler API
+                          properties:
+                            secretRef:
+                              properties:
+                                dopplerToken:
+                                  description: The DopplerToken is used for authentication. See https://docs.doppler.com/reference/api#authentication for auth token types. The Key attribute defaults to dopplerToken if not specified.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - dopplerToken
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        config:
+                          description: Doppler config (required if not using a Service Token)
+                          type: string
+                        format:
+                          description: Format enables the downloading of secrets as a file (string)
+                          type: string
+                        nameTransformer:
+                          description: Environment variable compatible name transforms that change secret names to a different format
+                          type: string
+                        project:
+                          description: Doppler project (required if not using a Service Token)
+                          type: string
+                      required:
+                        - auth
+                      type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
                       properties:
@@ -4679,6 +4721,48 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    doppler:
+                      description: Doppler configures this store to sync secrets using the Doppler provider
+                      properties:
+                        auth:
+                          description: Auth configures how the Operator authenticates with the Doppler API
+                          properties:
+                            secretRef:
+                              properties:
+                                dopplerToken:
+                                  description: The DopplerToken is used for authentication. See https://docs.doppler.com/reference/api#authentication for auth token types. The Key attribute defaults to dopplerToken if not specified.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - dopplerToken
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        config:
+                          description: Doppler config (required if not using a Service Token)
+                          type: string
+                        format:
+                          description: Format enables the downloading of secrets as a file (string)
+                          type: string
+                        nameTransformer:
+                          description: Environment variable compatible name transforms that change secret names to a different format
+                          type: string
+                        project:
+                          description: Doppler project (required if not using a Service Token)
+                          type: string
+                      required:
+                        - auth
                       type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
