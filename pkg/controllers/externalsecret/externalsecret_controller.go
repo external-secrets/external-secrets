@@ -99,6 +99,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	syncCallsMetricLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
 
+	start := time.Now()
+
+	defer externalSecretReconcileDuration.With(prometheus.Labels{
+		"name":      req.Name,
+		"namespace": req.Namespace,
+	}).Set(float64(time.Since(start)))
+
 	var externalSecret esv1beta1.ExternalSecret
 
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
