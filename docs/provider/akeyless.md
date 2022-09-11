@@ -18,7 +18,7 @@ The supported auth-methods and their parameters are:
 
 For more information see [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
-### Creating an Akeyless Ccredentials Ssecret
+### Creating an Akeyless Ccredentials Secret
 
 Create a secret containing your credentials using the following example as a guide:
 

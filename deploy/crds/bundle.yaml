@@ -481,7 +481,7 @@ spec:
                                 - k8sConfName
                               type: object
                             secretRef:
-                              description: Reference to a Secret that contains the detailed to authenticate with Akeyless.
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -1558,7 +1558,7 @@ spec:
                                 - k8sConfName
                               type: object
                             secretRef:
-                              description: Reference to a Secret that contains the detailed to authenticate with Akeyless.
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -3352,7 +3352,7 @@ spec:
                                 - k8sConfName
                               type: object
                             secretRef:
-                              description: Reference to a Secret that contains the detailed to authenticate with Akeyless.
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -4429,7 +4429,7 @@ spec:
                                 - k8sConfName
                               type: object
                             secretRef:
-                              description: Reference to a Secret that contains the detailed to authenticate with Akeyless.
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication

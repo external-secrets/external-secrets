@@ -30,7 +30,7 @@ type AkeylessProvider struct {
 
 type AkeylessAuth struct {
 
-	// Reference to a Secret that contains the detailed
+	// Reference to a Secret that contains the details
 	// to authenticate with Akeyless.
 	// +optional
 	SecretRef AkeylessAuthSecretRef `json:"secretRef"`
