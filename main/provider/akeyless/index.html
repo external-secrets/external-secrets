@@ -899,25 +899,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#akeless-credentials-secret" class="md-nav__link">
-    Akeless credentials secret
+  <a href="#creating-an-akeyless-ccredentials-secret" class="md-nav__link">
+    Creating an Akeyless Ccredentials Secret
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#update-secret-store" class="md-nav__link">
-    Update secret store
+    Update Secret Store
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#creating-external-secret" class="md-nav__link">
-    Creating external secret
+  <a href="#authentication-with-kubernetes" class="md-nav__link">
+    Authentication with Kubernetes
   </a>
   
-    <nav class="md-nav" aria-label="Creating external secret">
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-an-external-secret" class="md-nav__link">
+    Creating an external secret
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating an external secret">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -934,7 +941,7 @@
         
           <li class="md-nav__item">
   <a href="#getting-the-kubernetes-secret" class="md-nav__link">
-    Getting the Kubernetes secret
+    Getting the Kubernetes Secret
   </a>
   
 </li>
@@ -1653,25 +1660,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#akeless-credentials-secret" class="md-nav__link">
-    Akeless credentials secret
+  <a href="#creating-an-akeyless-ccredentials-secret" class="md-nav__link">
+    Creating an Akeyless Ccredentials Secret
   </a>
   
 </li>
         
           <li class="md-nav__item">
   <a href="#update-secret-store" class="md-nav__link">
-    Update secret store
+    Update Secret Store
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#creating-external-secret" class="md-nav__link">
-    Creating external secret
+  <a href="#authentication-with-kubernetes" class="md-nav__link">
+    Authentication with Kubernetes
   </a>
   
-    <nav class="md-nav" aria-label="Creating external secret">
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-an-external-secret" class="md-nav__link">
+    Creating an external secret
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating an external secret">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1688,7 +1702,7 @@
         
           <li class="md-nav__item">
   <a href="#getting-the-kubernetes-secret" class="md-nav__link">
-    Getting the Kubernetes secret
+    Getting the Kubernetes Secret
   </a>
   
 </li>
@@ -1718,10 +1732,10 @@
   <h1>Akeyless</h1>
 
 <h2 id="akeyless-vault">Akeyless Vault</h2>
-<p>External Secrets Operator integrates with <a href="https://docs.akeyless.io/reference#v2">Akeyless API</a>.</p>
+<p>External Secrets Operator integrates with the <a href="https://docs.akeyless.io/reference#v2">Akeyless API</a>.</p>
 <h3 id="authentication">Authentication</h3>
-<p>The API requires an access-id, access-type and access-Type-param.</p>
-<p>The supported auth-methods and their params are:</p>
+<p>To operate the API first define an access-id, access-type and access-Type-param.</p>
+<p>The supported auth-methods and their parameters are:</p>
 <table>
 <thead>
 <tr>
@@ -1752,21 +1766,21 @@
 </tr>
 </tbody>
 </table>
-<p>form more information about <a href="https://docs.akeyless.io/docs/access-and-authentication-methods">Akeyless Authentication Methods</a></p>
-<h3 id="akeless-credentials-secret">Akeless credentials secret</h3>
-<p>Create a secret containing your credentials:</p>
+<p>For more information see <a href="https://docs.akeyless.io/docs/access-and-authentication-methods">Akeyless Authentication Methods</a></p>
+<h3 id="creating-an-akeyless-ccredentials-secret">Creating an Akeyless Ccredentials Secret</h3>
+<p>Create a secret containing your credentials using the following example as a guide:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-creds</span><span class="w"></span>
 <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span><span class="w"></span>
 <span class="nt">stringData</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">accessId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;p-XXXX&quot;</span><span class="w"></span>
 <span class="w">  </span><span class="nt">accessType</span><span class="p">:</span><span class="w">  </span><span class="c1"># k8s/aws_iam/gcp/azure_ad/api_key</span><span class="w"></span>
 <span class="w">  </span><span class="nt">accessTypeParam</span><span class="p">:</span><span class="w">  </span><span class="c1"># can be one of the following: k8s-conf-name/gcp-audience/azure-obj-id/access-key</span><span class="w"></span>
 </code></pre></div>
-<h3 id="update-secret-store">Update secret store</h3>
-<p>Be sure the <code>akeyless</code> provider is listed in the <code>Kind=SecretStore</code> and the <code>akeylessGWApiURL</code> is set (def: "https://api.akeless.io".</p>
+<h3 id="update-secret-store">Update Secret Store</h3>
+<p>Be sure the <code>akeyless</code> provider is listed in the <code>Kind=SecretStore</code> and the <code>akeylessGWApiURL</code> is set (def: "https://api.akeless.io").</p>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
@@ -1779,18 +1793,51 @@
 <span class="w">      </span><span class="nt">authSecretRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">          </span><span class="nt">accessID</span><span class="p">:</span><span class="w"></span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-creds</span><span class="w"></span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessId</span><span class="w"></span>
 <span class="w">          </span><span class="nt">accessType</span><span class="p">:</span><span class="w"></span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-creds</span><span class="w"></span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessType</span><span class="w"></span>
 <span class="w">          </span><span class="nt">accessTypeParam</span><span class="p">:</span><span class="w"></span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeylss-secret-creds</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-creds</span><span class="w"></span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessTypeParam</span><span class="w"></span>
 </code></pre></div>
-<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>accessID</code>, <code>accessType</code> and <code>accessTypeParam</code> with the namespaces where the secrets reside.</p>
-<h3 id="creating-external-secret">Creating external secret</h3>
-<p>To get a secret from Akeyless and secret it on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for <code>accessID</code>, <code>accessType</code> and <code>accessTypeParam</code>  according to the namespaces where the secrets reside.</p>
+<h3 id="authentication-with-kubernetes">Authentication with Kubernetes</h3>
+<p>Options for obtaining Kubernetes credentials include:</p>
+<ol>
+<li>Using a service account jwt referenced in serviceAccountRef</li>
+<li>Using the jwt from a Kind=Secret referenced by the secretRef</li>
+<li>Using transient credentials from the mounted service account token within the external-secrets operator</li>
+</ol>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">akeyless</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># URL of your akeyless API</span><span class="w"></span>
+<span class="w">      </span><span class="nt">akeylessGWApiURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://api.akeyless.io&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">authSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">kubernetesAuth</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">accessID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;p-XXXXXX&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">k8sConfName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-conf-name&quot;</span><span class="w"></span>
+
+<span class="w">          </span><span class="c1"># Optional service account field containing the name</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># of a kubernetes ServiceAccount</span><span class="w"></span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-sa&quot;</span><span class="w"></span>
+
+<span class="w">          </span><span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># used for authenticating with Akeyless</span><span class="w"></span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;token&quot;</span><span class="w"></span>
+</code></pre></div>
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> and <code>secretRef</code> according to  the namespaces where the secrets reside.</p>
+<h3 id="creating-an-external-secret">Creating an external secret</h3>
+<p>To get a secret from Akeyless and create it as a secret on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
@@ -1833,7 +1880,7 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-name</span><span class="w"> </span><span class="c1"># Full path of the secret on Akeyless</span><span class="w"></span>
 </code></pre></div>
-<h3 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h3>
+<h3 id="getting-the-kubernetes-secret">Getting the Kubernetes Secret</h3>
 <p>The operator will fetch the secret and inject it as a <code>Kind=Secret</code>.
 <div class="highlight"><pre><span></span><code>kubectl get secret akeyless-secret-to-create -o jsonpath=&#39;{.data.secretKey}&#39; | base64 -d
 </code></pre></div></p>

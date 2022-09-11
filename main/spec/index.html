@@ -1797,6 +1797,24 @@ AkeylessAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>Reference to a Secret that contains the details
+to authenticate with Akeyless.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetesAuth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AkeylessKubernetesAuth">
+AkeylessKubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubernetes authenticates with Akeyless by passing the ServiceAccount
+token stored in the named Secret resource.</p>
 </td>
 </tr>
 </tbody>
@@ -1848,6 +1866,77 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.AkeylessKubernetesAuth">AkeylessKubernetesAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AkeylessAuth">AkeylessAuth</a>)
+</p>
+<p>
+<p>Authenticate with Kubernetes ServiceAccount token stored.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>the Akeyless Kubernetes auth-method access-id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>k8sConfName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kubernetes-auth configuration name in Akeyless-Gateway</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional service account field containing the name of a kubernetes ServiceAccount.
+If the service account is specified, the service account secret token JWT will be used
+for authenticating with Akeyless. If the service account selector is not supplied,
+the secretRef will be used instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional secret field containing a Kubernetes ServiceAccount JWT used
+for authenticating with Akeyless. If a name is specified without a key,
+<code>token</code> is the default. If one is not specified, the one bound to
+the controller will be used.</p>
 </td>
 </tr>
 </tbody>
