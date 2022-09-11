@@ -28,26 +28,34 @@ import (
 	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
 	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
 	"github.com/akeylesslabs/akeyless-go/v2"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 var apiErr akeyless.GenericOpenAPIError
 
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
-func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string) (string, error) {
+func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
 	ctx := context.Background()
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = akeyless.PtrString(accessID)
 	if accType == "api_key" || accType == "access_key" {
 		authBody.AccessKey = akeyless.PtrString(accTypeParam)
 	} else if accType == "k8s" {
-		jwtString, err := readK8SServiceAccountJWT()
+		jwtString, err := a.getK8SServiceAccountJWT(ctx, k8sAuth)
 		if err != nil {
 			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
 		}
+		jwtStringBase64 := base64.StdEncoding.EncodeToString([]byte(jwtString))
 		K8SAuthConfigName := accTypeParam
 		authBody.AccessType = akeyless.PtrString(accType)
-		authBody.K8sServiceAccountToken = akeyless.PtrString(jwtString)
+		authBody.K8sServiceAccountToken = akeyless.PtrString(jwtStringBase64)
 		authBody.K8sAuthConfigName = akeyless.PtrString(K8SAuthConfigName)
 	} else {
 		cloudID, err := a.getCloudID(accType, accTypeParam)
@@ -240,6 +248,117 @@ func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error)
 	return cloudID, err
 }
 
+func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
+	if kubernetesAuth.ServiceAccountRef != nil {
+		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
+		jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		if jwt != "" {
+			return jwt, err
+		}
+		// Kubernetes >=v1.24: fetch token via TokenRequest API
+		jwt, err = a.getJWTfromServiceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
+		if err != nil {
+			return "", err
+		}
+		return jwt, nil
+	} else if kubernetesAuth.SecretRef != nil {
+		tokenRef := kubernetesAuth.SecretRef
+		if tokenRef.Key == "" {
+			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
+			tokenRef.Key = "token"
+		}
+		jwt, err := a.secretKeyRef(ctx, tokenRef)
+		if err != nil {
+			return "", err
+		}
+		return jwt, nil
+	} else {
+		return readK8SServiceAccountJWT()
+	}
+}
+
+func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
+	serviceAccount := &corev1.ServiceAccount{}
+	ref := types.NamespacedName{
+		Namespace: a.namespace,
+		Name:      serviceAccountRef.Name,
+	}
+	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+		(serviceAccountRef.Namespace != nil) {
+		ref.Namespace = *serviceAccountRef.Namespace
+	}
+	err := a.kube.Get(ctx, ref, serviceAccount)
+	if err != nil {
+		return "", fmt.Errorf(errGetKubeSA, ref.Name, err)
+	}
+	if len(serviceAccount.Secrets) == 0 {
+		return "", fmt.Errorf(errGetKubeSASecrets, ref.Name)
+	}
+	for _, tokenRef := range serviceAccount.Secrets {
+		retval, err := a.secretKeyRef(ctx, &esmeta.SecretKeySelector{
+			Name:      tokenRef.Name,
+			Namespace: &ref.Namespace,
+			Key:       "token",
+		})
+		if err != nil {
+			continue
+		}
+
+		return retval, nil
+	}
+	return "", fmt.Errorf(errGetKubeSANoToken, ref.Name)
+}
+
+func (a *akeylessBase) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
+	secret := &corev1.Secret{}
+	ref := types.NamespacedName{
+		Namespace: a.namespace,
+		Name:      secretRef.Name,
+	}
+	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+		(secretRef.Namespace != nil) {
+		ref.Namespace = *secretRef.Namespace
+	}
+	err := a.kube.Get(ctx, ref, secret)
+	if err != nil {
+		return "", fmt.Errorf(errGetKubeSecret, ref.Name, err)
+	}
+
+	keyBytes, ok := secret.Data[secretRef.Key]
+	if !ok {
+		return "", fmt.Errorf(errSecretKeyFmt, secretRef.Key)
+	}
+
+	value := string(keyBytes)
+	valueStr := strings.TrimSpace(value)
+	return valueStr, nil
+}
+
+func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
+	audiences := serviceAccountRef.Audiences
+	if len(additionalAud) > 0 {
+		audiences = append(audiences, additionalAud...)
+	}
+	tokenRequest := &authenticationv1.TokenRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: a.namespace,
+		},
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}
+	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+		(serviceAccountRef.Namespace != nil) {
+		tokenRequest.Namespace = *serviceAccountRef.Namespace
+	}
+	tokenResponse, err := a.corev1.ServiceAccounts(tokenRequest.Namespace).CreateToken(ctx, serviceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf(errGetKubeSATokenRequest, serviceAccountRef.Name, err)
+	}
+	return tokenResponse.Status.Token, nil
+}
+
 // readK8SServiceAccountJWT reads the JWT data for the Agent to submit to Akeyless Gateway.
 func readK8SServiceAccountJWT() (string, error) {
 	data, err := os.Open(DefServiceAccountFile)
@@ -253,7 +372,6 @@ func readK8SServiceAccountJWT() (string, error) {
 		return "", err
 	}
 
-	a := strings.TrimSpace(string(contentBytes))
-
-	return base64.StdEncoding.EncodeToString([]byte(a)), nil
+	jwt := strings.TrimSpace(string(contentBytes))
+	return jwt, nil
 }

@@ -130,36 +130,107 @@ func TestValidateStore(t *testing.T) {
 
 	akeylessGWApiURL := ""
 
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Akeyless: &esv1beta1.AkeylessProvider{
-					AkeylessGWApiURL: &akeylessGWApiURL,
-					Auth: &esv1beta1.AkeylessAuth{
-						SecretRef: esv1beta1.AkeylessAuthSecretRef{
-							AccessID: esmeta.SecretKeySelector{
-								Name: "accessId",
-								Key:  "key-1",
-							},
-							AccessType: esmeta.SecretKeySelector{
-								Name: "accessId",
-								Key:  "key-1",
-							},
-							AccessTypeParam: esmeta.SecretKeySelector{
-								Name: "accessId",
-								Key:  "key-1",
+	t.Run("secret auth", func(t *testing.T) {
+		store := &esv1beta1.SecretStore{
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					Akeyless: &esv1beta1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1beta1.AkeylessAuth{
+							SecretRef: esv1beta1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+								AccessType: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+								AccessTypeParam: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
 							},
 						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	err := provider.ValidateStore(store)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+		err := provider.ValidateStore(store)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+	})
+
+	t.Run("k8s auth", func(t *testing.T) {
+		store := &esv1beta1.SecretStore{
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					Akeyless: &esv1beta1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1beta1.AkeylessAuth{
+							KubernetesAuth: &esv1beta1.AkeylessKubernetesAuth{
+								K8sConfName: "name",
+								AccessID:    "id",
+								ServiceAccountRef: &esmeta.ServiceAccountSelector{
+									Name: "name",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		err := provider.ValidateStore(store)
+		if err != nil {
+			t.Errorf(err.Error())
+		}
+	})
+
+	t.Run("bad conf auth", func(t *testing.T) {
+		store := &esv1beta1.SecretStore{
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					Akeyless: &esv1beta1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth:             &esv1beta1.AkeylessAuth{},
+					},
+				},
+			},
+		}
+
+		err := provider.ValidateStore(store)
+		if err == nil {
+			t.Errorf("expected an error")
+		}
+	})
+
+	t.Run("bad k8s conf auth", func(t *testing.T) {
+		store := &esv1beta1.SecretStore{
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					Akeyless: &esv1beta1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1beta1.AkeylessAuth{
+							KubernetesAuth: &esv1beta1.AkeylessKubernetesAuth{
+								AccessID: "id",
+								ServiceAccountRef: &esmeta.ServiceAccountSelector{
+									Name: "name",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		err := provider.ValidateStore(store)
+		if err == nil {
+			t.Errorf("expected an error")
+		}
+	})
 }
 
 func TestGetSecretMap(t *testing.T) {
