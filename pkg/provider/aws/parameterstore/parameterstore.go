@@ -33,7 +33,11 @@ import (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &ParameterStore{}
+var (
+	_               esv1beta1.SecretsClient = &ParameterStore{}
+	managedBy                               = "managed-by"
+	externalSecrets                         = "external-secrets"
+)
 
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
@@ -46,7 +50,8 @@ type ParameterStore struct {
 type PMInterface interface {
 	GetParameterWithContext(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
 	PutParameterWithContext(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
-	DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error)
+	DescribeParametersWithContext(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
 }
 
 const (
@@ -61,45 +66,107 @@ func New(sess *session.Session, cfg *aws.Config) (*ParameterStore, error) {
 	}, nil
 }
 
+func (pm *ParameterStore) getTagsByName(ctx aws.Context, ref *ssm.GetParameterOutput) ([]*ssm.Tag, error) {
+	parameterTags := ssm.ListTagsForResourceInput{
+		ResourceId:   ref.Parameter.ARN,
+		ResourceType: ref.Parameter.Type,
+	}
+
+	data, err := pm.client.ListTagsForResourceWithContext(ctx, &parameterTags)
+
+	if err != nil {
+		return nil, fmt.Errorf("error listing tags %w", err)
+	}
+
+	return data.TagList, nil
+}
+
 func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	parameterType := "String"
-	managedBy := "managed-by"
-	externalSecrets := "external-secrets"
+
 	stringValue := string(value)
 	secretName := remoteRef.GetRemoteKey()
-	externalSecretsTag := []*ssm.Tag{
-		{
-			Key:   &managedBy,
-			Value: &externalSecrets,
-		},
-	}
+
 	secretRequest := ssm.PutParameterInput{
 		Name:  &secretName,
 		Value: &stringValue,
 		Type:  &parameterType,
-		Tags:  externalSecretsTag,
+	}
+
+	secretValue := ssm.GetParameterInput{
+		Name: &secretName,
+	}
+
+	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
+
+	if err != nil && err.Error() != ssm.ErrCodeParameterNotFound {
+		// TODO: give some more context to the error
+		return err
+	}
+
+	// If we have a valid parameter returned to us, check its tags
+	if existing != nil && existing.Parameter != nil {
+		fmt.Println("The existing value contains data:", existing.String())
+		tags, err := pm.getTagsByName(ctx, existing)
+		if err != nil {
+			return fmt.Errorf("error getting the existing tags for the parameter: %w", err)
+		}
+
+		isManaged := isManagedByESO(tags)
+
+		if !isManaged {
+			// TODO Can we refactor this error message to a higher scope to stop duplicates
+			return fmt.Errorf("secret not managed by external-secrets")
+		}
+	}
+
+	// let's set the secret
+	// Do we need to delete the existing parameter on the remote?
+	return pm.setManagedRemoteParameter(ctx, secretRequest)
+}
+
+func isManagedByESO(tags []*ssm.Tag) (isManaged bool) {
+	for _, tag := range tags {
+		if *tag.Key == managedBy && *tag.Value == externalSecrets {
+			isManaged = true
+		}
+	}
+	return
+}
+
+func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput) error {
+	externalSecretsTag := ssm.Tag{
+		Key:   &managedBy,
+		Value: &externalSecrets,
+	}
+
+	isManaged := isManagedByESO(secretRequest.Tags)
+
+	if !isManaged {
+		secretRequest.Tags = append(secretRequest.Tags, &externalSecretsTag)
 	}
 
 	_, err := pm.client.PutParameterWithContext(ctx, &secretRequest)
 	if err != nil {
+		// TODO: Edit test so that we can pass more context and have the test not fail because it's not exactly the error `err`
+		//return fmt.fmErrorf("failed to push the parameter: %w", err)
 		return err
 	}
-
 	return nil
 }
 
 // GetAllSecrets fetches information from multiple secrets into a single kubernetes secret.
 func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
-		return pm.findByName(ref)
+		return pm.findByName(ctx, ref)
 	}
 	if ref.Tags != nil {
-		return pm.findByTags(ref)
+		return pm.findByTags(ctx, ref)
 	}
 	return nil, errors.New(errUnexpectedFindOperator)
 }
 
-func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
 		return nil, err
@@ -115,10 +182,12 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 	data := make(map[string][]byte)
 	var nextToken *string
 	for {
-		it, err := pm.client.DescribeParameters(&ssm.DescribeParametersInput{
-			NextToken:        nextToken,
-			ParameterFilters: pathFilter,
-		})
+		it, err := pm.client.DescribeParametersWithContext(
+			ctx,
+			&ssm.DescribeParametersInput{
+				NextToken:        nextToken,
+				ParameterFilters: pathFilter,
+			})
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +209,7 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 	return data, nil
 }
 
-func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	filters := make([]*ssm.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &ssm.ParameterStringFilter{
@@ -161,10 +230,12 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 	data := make(map[string][]byte)
 	var nextToken *string
 	for {
-		it, err := pm.client.DescribeParameters(&ssm.DescribeParametersInput{
-			ParameterFilters: filters,
-			NextToken:        nextToken,
-		})
+		it, err := pm.client.DescribeParametersWithContext(
+			ctx,
+			&ssm.DescribeParametersInput{
+				ParameterFilters: filters,
+				NextToken:        nextToken,
+			})
 		if err != nil {
 			return nil, err
 		}

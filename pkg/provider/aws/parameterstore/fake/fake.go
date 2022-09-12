@@ -14,6 +14,7 @@ limitations under the License.
 package fake
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -24,12 +25,26 @@ import (
 
 // Client implements the aws parameterstore interface.
 type Client struct {
-	GetParameterWithContextFn GetParameterWithContextFn
-	PutParameterWithContextFn PutParameterWithContextFn
+	GetParameterWithContextFn        GetParameterWithContextFn
+	PutParameterWithContextFn        PutParameterWithContextFn
+	DescribeParametersWithContextFn  DescribeParametersWithContextFn
+	ListTagsForResourceWithContextFn ListTagsForResourceWithContextFn
 }
 
 type GetParameterWithContextFn func(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
 type PutParameterWithContextFn func(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
+type DescribeParametersWithContextFn func(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
+type ListTagsForResourceWithContextFn func(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
+
+func (sm *Client) ListTagsForResourceWithContext(ctx aws.Context, input *ssm.ListTagsForResourceInput, options ...request.Option) (*ssm.ListTagsForResourceOutput, error) {
+	return sm.ListTagsForResourceWithContextFn(ctx, input, options...)
+}
+
+func NewListTagsForResourceWithContextFn(output *ssm.ListTagsForResourceOutput, err error) ListTagsForResourceWithContextFn {
+	return func(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error) {
+		return output, err
+	}
+}
 
 func (sm *Client) GetParameterWithContext(ctx aws.Context, input *ssm.GetParameterInput, options ...request.Option) (*ssm.GetParameterOutput, error) {
 	return sm.GetParameterWithContextFn(ctx, input, options...)
@@ -41,8 +56,14 @@ func NewGetParameterWithContextFn(output *ssm.GetParameterOutput, err error) Get
 	}
 }
 
-func (sm *Client) DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error) {
-	return nil, nil
+func (sm *Client) DescribeParametersWithContext(ctx context.Context, input *ssm.DescribeParametersInput, options ...request.Option) (*ssm.DescribeParametersOutput, error) {
+	return sm.DescribeParametersWithContextFn(ctx, input, options...)
+}
+
+func NewDescribeParametersWithContextFn(output *ssm.DescribeParametersOutput, err error) DescribeParametersWithContextFn {
+	return func(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error) {
+		return output, err
+	}
 }
 
 func (sm *Client) PutParameterWithContext(ctx aws.Context, input *ssm.PutParameterInput, options ...request.Option) (*ssm.PutParameterOutput, error) {

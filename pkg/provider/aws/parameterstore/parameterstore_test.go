@@ -93,9 +93,34 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 }
 
 func TestPushSecret(t *testing.T) {
-	invalidPerameters := errors.New(ssm.ErrCodeInvalidParameters)
+	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
+	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
+
+	managedByESO := ssm.Tag{
+		Key:   &managedBy,
+		Value: &externalSecrets,
+	}
 
 	putParameterOutput := &ssm.PutParameterOutput{}
+	getParameterOutput := &ssm.GetParameterOutput{}
+	describeParameterOutput := &ssm.DescribeParametersOutput{}
+	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
+		TagList: []*ssm.Tag{&managedByESO},
+	}
+
+	validGetParameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			ARN:              nil,
+			DataType:         nil,
+			LastModifiedDate: nil,
+			Name:             nil,
+			Selector:         nil,
+			SourceResult:     nil,
+			Type:             nil,
+			Value:            nil,
+			Version:          nil,
+		},
+	}
 
 	type args struct {
 		store  *esv1beta1.AWSProvider
@@ -116,7 +141,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -128,15 +156,48 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, invalidPerameters),
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, invalidParameters),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
-				err: invalidPerameters,
+				err: invalidParameters,
+			},
+		},
+		"SetSecretWhenAlreadyExists": {
+			reason: "test push secret with secret that already exists gives error",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, alreadyExistsError),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: alreadyExistsError,
+			},
+		},
+		"GetSecretWithValidParameters": {
+			reason: "Get secret with valid parameters",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
 			},
 		},
 	}
-
+	//
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			ref := fakeRef{key: "fake-key"}
