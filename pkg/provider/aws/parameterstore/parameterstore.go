@@ -195,7 +195,7 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 			if !matcher.MatchName(*param.Name) {
 				continue
 			}
-			err = pm.fetchAndSet(data, *param.Name)
+			err = pm.fetchAndSet(ctx, data, *param.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -240,7 +240,7 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 			return nil, err
 		}
 		for _, param := range it.Parameters {
-			err = pm.fetchAndSet(data, *param.Name)
+			err = pm.fetchAndSet(ctx, data, *param.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -254,8 +254,7 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 	return data, nil
 }
 
-func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error {
-	ctx := context.Background()
+func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
 	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
 		Name:           utilpointer.StringPtr(name),
 		WithDecryption: aws.Bool(true),
