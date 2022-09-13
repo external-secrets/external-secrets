@@ -6,12 +6,11 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.33'
-  GINKGO_VERSION: 'v2.1.4'
+  GO_VERSION: '1.19'
+  GINKGO_VERSION: 'v2.1.6'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
-  KIND_VERSION: 'v0.11.1'
-  KIND_IMAGE: 'kindest/node:v1.23.3'
+  KIND_VERSION: 'v0.14.0'
+  KIND_IMAGE: 'kindest/node:v1.24.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
@@ -61,15 +60,15 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.go.outputs.build-cache }}
-        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-build-unit-tests-
+        key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
 
     - name: Cache Go Dependencies
       uses: actions/cache@v3
       with:
         path: ${{ steps.go.outputs.mod-cache }}
-        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-pkg-
+        key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
     - name: Setup kind
       uses: engineerd/setup-kind@v0.5.0
@@ -124,15 +123,15 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.go.outputs.build-cache }}
-        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-build-unit-tests-
+        key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
 
     - name: Cache Go Dependencies
       uses: actions/cache@v3
       with:
         path: ${{ steps.go.outputs.mod-cache }}
-        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-pkg-
+        key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
     - name: Setup kind
       uses: engineerd/setup-kind@v0.5.0

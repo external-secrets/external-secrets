@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,20 +20,23 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 )
 
 func TestSetAuth(t *testing.T) {
 	type fields struct {
-		kube      kclient.Client
-		store     *esv1beta1.KubernetesProvider
-		namespace string
-		storeKind string
+		kube          kclient.Client
+		kubeclientset typedcorev1.CoreV1Interface
+		store         *esv1beta1.KubernetesProvider
+		namespace     string
+		storeKind     string
 	}
 	type want struct {
 		Certificate []byte
@@ -209,18 +212,8 @@ func TestSetAuth(t *testing.T) {
 						Name:      "my-sa",
 						Namespace: "default",
 					},
-					Secrets: []corev1.ObjectReference{
-						{Name: "sa-token", Namespace: "default"},
-					},
-				}, &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "sa-token",
-						Namespace: "default",
-					},
-					Data: map[string][]byte{
-						"token": []byte("my-sa-token"),
-					},
 				}).Build(),
+				kubeclientset: utilfake.NewCreateTokenMock().WithToken("my-sa-token"),
 				store: &esv1beta1.KubernetesProvider{
 					Server: esv1beta1.KubernetesServer{
 						CABundle: []byte("1234"),
@@ -242,11 +235,12 @@ func TestSetAuth(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k := &BaseClient{
-				kube:      tt.fields.kube,
-				store:     tt.fields.store,
-				namespace: tt.fields.namespace,
-				storeKind: tt.fields.storeKind,
+			k := &Client{
+				ctrlClientset: tt.fields.kubeclientset,
+				ctrlClient:    tt.fields.kube,
+				store:         tt.fields.store,
+				namespace:     tt.fields.namespace,
+				storeKind:     tt.fields.storeKind,
 			}
 			if err := k.setAuth(context.Background()); (err != nil) != tt.wantErr {
 				t.Errorf("BaseClient.setAuth() error = %v, wantErr %v", err, tt.wantErr)

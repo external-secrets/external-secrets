@@ -37,4 +37,9 @@ type ServiceAccountSelector struct {
 	// to the namespace of the referent.
 	// +optional
 	Namespace *string `json:"namespace,omitempty"`
+	// Audience specifies the `aud` claim for the service account token
+	// If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+	// then this audiences will be appended to the list
+	// +optional
+	Audiences []string `json:"audiences,omitempty"`
 }

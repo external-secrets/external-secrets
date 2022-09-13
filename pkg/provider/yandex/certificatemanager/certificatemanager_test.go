@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -170,7 +170,7 @@ func TestGetSecretWithProperty(t *testing.T) {
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
-		strings.TrimSpace(strings.Join([]string{certificate1, certificate2}, "\n")),
+		strings.TrimSpace(certificate1+"\n"+certificate2),
 		strings.TrimSpace(string(chainData)),
 	)
 
@@ -576,7 +576,7 @@ func TestGetSecretMap(t *testing.T) {
 	tassert.Equal(
 		t,
 		map[string][]byte{
-			chainProperty:      []byte(strings.Join([]string{certificate1, certificate2}, "\n")),
+			chainProperty:      []byte(certificate1 + "\n" + certificate2),
 			privateKeyProperty: []byte(privateKey),
 		},
 		data,

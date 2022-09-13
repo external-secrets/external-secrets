@@ -10,9 +10,9 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.42.1'
-  KUBERNETES_VERSION: '1.23.x'
+  GO_VERSION: '1.19'
+  GOLANGCI_VERSION: 'v1.49.0'
+  KUBERNETES_VERSION: '1.24.x'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
@@ -62,15 +62,15 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-lint-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-lint-
+          key: ${{ runner.os }}-build-lint-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-lint-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
       # This action uses its own setup-go, which always seems to use the latest
       # stable version of Go. We could run 'make lint' to ensure our desired Go
@@ -108,20 +108,20 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-check-diff-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-check-diff-
+          key: ${{ runner.os }}-${{ env.GO_VERSION }}-build-check-diff-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-${{ env.GO_VERSION }}-build-check-diff-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-${{ env.GO_VERSION }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-${{ env.GO_VERSION }}-pkg-${{ github.sha }}-
 
       # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
         run: |
-          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.42.1
+          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s ${{ env.GOLANGCI_VERSION }}
           export PATH=$PATH:./bin
           make check-diff
 
@@ -152,15 +152,15 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-unit-tests-
+          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
       - name: Add setup-envtest
         run: |
@@ -223,15 +223,15 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-publish-artifacts-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-publish-artifacts-
+          key: ${{ runner.os }}-build-publish-artifacts-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-publish-artifacts-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
       - name: Login to Docker
         uses: docker/login-action@v2
@@ -259,7 +259,7 @@ jobs:
 
       - name: Install cosign
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@v2.5.0
+        uses: sigstore/cosign-installer@v2.6.0
 
       - name: Sign Artifacts to main release channel
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''

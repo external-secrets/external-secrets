@@ -149,7 +149,7 @@ func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretR
 	_, err := pm.client.PutParameterWithContext(ctx, &secretRequest)
 	if err != nil {
 		// TODO: Edit test so that we can pass more context and have the test not fail because it's not exactly the error `err`
-		//return fmt.fmErrorf("failed to push the parameter: %w", err)
+		// return fmt.fmErrorf("failed to push the parameter: %w", err)
 		return err
 	}
 	return nil
@@ -309,14 +309,20 @@ func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1beta1.Extern
 	if err != nil {
 		return nil, err
 	}
-	kv := make(map[string]string)
+	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
-		secretData[k] = []byte(v)
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
 	}
 	return secretData, nil
 }

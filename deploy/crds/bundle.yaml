@@ -437,8 +437,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -480,8 +523,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -550,6 +591,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -654,6 +700,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -728,6 +779,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -856,6 +912,11 @@ spec:
                                 serviceAccount:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1067,6 +1128,11 @@ spec:
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -1128,6 +1194,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1446,8 +1517,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -1489,8 +1603,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -1559,6 +1671,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1672,6 +1789,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -1746,6 +1868,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1885,6 +2012,11 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
                                 name:
                                   description: The name of the ServiceAccount resource being referred to.
                                   type: string
@@ -2165,17 +2297,22 @@ spec:
                                   description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
                                   properties:
                                     audiences:
-                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      description: 'Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified. Deprecated: use serviceAccountRef.Audiences instead'
                                       items:
                                         type: string
                                       type: array
                                     expirationSeconds:
-                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      description: 'Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Deprecated: this will be removed in the future. Defaults to 10 minutes.'
                                       format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -2237,6 +2374,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3316,8 +3458,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -3359,8 +3544,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -3429,6 +3612,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3533,6 +3721,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -3607,6 +3800,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3735,6 +3933,11 @@ spec:
                                 serviceAccount:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3946,6 +4149,11 @@ spec:
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -4007,6 +4215,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4325,8 +4538,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -4368,8 +4624,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -4438,6 +4692,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4551,6 +4810,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -4625,6 +4889,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4764,6 +5033,11 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
                                 name:
                                   description: The name of the ServiceAccount resource being referred to.
                                   type: string
@@ -5044,17 +5318,22 @@ spec:
                                   description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
                                   properties:
                                     audiences:
-                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      description: 'Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified. Deprecated: use serviceAccountRef.Audiences instead'
                                       items:
                                         type: string
                                       type: array
                                     expirationSeconds:
-                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      description: 'Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Deprecated: this will be removed in the future. Defaults to 10 minutes.'
                                       format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -5116,6 +5395,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
