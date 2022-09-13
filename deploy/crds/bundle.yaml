@@ -1914,6 +1914,9 @@ spec:
                           required:
                             - SecretRef
                           type: object
+                        environment:
+                          description: Environment
+                          type: string
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
                           type: string
@@ -4785,6 +4788,9 @@ spec:
                           required:
                             - SecretRef
                           type: object
+                        environment:
+                          description: Environment
+                          type: string
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
                           type: string

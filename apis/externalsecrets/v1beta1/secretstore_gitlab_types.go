@@ -28,6 +28,9 @@ type GitlabProvider struct {
 
 	// ProjectID specifies a project where secrets are located.
 	ProjectID string `json:"projectID,omitempty"`
+
+	// Environment
+	Environment string `json:"environment,omitempty"`
 }
 
 type GitlabAuth struct {
