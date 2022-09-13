@@ -42,7 +42,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.6.1
 	github.com/IBM/go-sdk-core/v5 v5.10.2
-	github.com/IBM/secrets-manager-go-sdk v1.0.45
+	github.com/IBM/secrets-manager-go-sdk v1.0.46
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/PaesslerAG/jsonpath v0.1.1
@@ -55,7 +55,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
-	github.com/google/go-cmp v0.5.8
+	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/googleapis/gax-go/v2 v2.5.1
 	github.com/hashicorp/vault/api v1.7.2
