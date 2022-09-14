@@ -28,7 +28,6 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/utils/pointer"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
@@ -388,7 +387,7 @@ func TestSetSecret(t *testing.T) {
 
 			c := Client{
 				smClient: tc.args.mock,
-				store: &v1beta1.GCPSMProvider{
+				store: &esv1beta1.GCPSMProvider{
 					ProjectID: smtc.projectID,
 				},
 			}

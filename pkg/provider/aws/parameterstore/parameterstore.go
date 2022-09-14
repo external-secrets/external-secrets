@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
@@ -67,9 +68,11 @@ func New(sess *session.Session, cfg *aws.Config) (*ParameterStore, error) {
 }
 
 func (pm *ParameterStore) getTagsByName(ctx aws.Context, ref *ssm.GetParameterOutput) ([]*ssm.Tag, error) {
+	parameterType := "Parameter"
+
 	parameterTags := ssm.ListTagsForResourceInput{
-		ResourceId:   ref.Parameter.ARN,
-		ResourceType: ref.Parameter.Type,
+		ResourceId:   ref.Parameter.Name,
+		ResourceType: &parameterType,
 	}
 
 	data, err := pm.client.ListTagsForResourceWithContext(ctx, &parameterTags)
@@ -82,15 +85,22 @@ func (pm *ParameterStore) getTagsByName(ctx aws.Context, ref *ssm.GetParameterOu
 }
 
 func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	// TODO create tags outside of the flow of create parameter: so we can always create parameters
+	// and always create tags.
+	// TODO then create validation for secret versions so that we only have a new version on value change
+	// TODO Testing manually, unit tests, validation tests
+
 	parameterType := "String"
+	overwrite := true
 
 	stringValue := string(value)
 	secretName := remoteRef.GetRemoteKey()
 
 	secretRequest := ssm.PutParameterInput{
-		Name:  &secretName,
-		Value: &stringValue,
-		Type:  &parameterType,
+		Name:      &secretName,
+		Value:     &stringValue,
+		Type:      &parameterType,
+		Overwrite: &overwrite,
 	}
 
 	secretValue := ssm.GetParameterInput{
@@ -98,8 +108,9 @@ func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef
 	}
 
 	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
-
-	if err != nil && err.Error() != ssm.ErrCodeParameterNotFound {
+	var awsError awserr.Error
+	ok := errors.As(err, &awsError)
+	if err != nil && (!ok || awsError.Code() != ssm.ErrCodeParameterNotFound) {
 		// TODO: give some more context to the error
 		return err
 	}
@@ -118,41 +129,43 @@ func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef
 			// TODO Can we refactor this error message to a higher scope to stop duplicates
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
+
+		if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
+			return nil
+		}
+
+		return pm.setManagedRemoteParameter(ctx, secretRequest, false)
 	}
 
 	// let's set the secret
 	// Do we need to delete the existing parameter on the remote?
-	return pm.setManagedRemoteParameter(ctx, secretRequest)
+	return pm.setManagedRemoteParameter(ctx, secretRequest, true)
 }
 
-func isManagedByESO(tags []*ssm.Tag) (isManaged bool) {
+func isManagedByESO(tags []*ssm.Tag) bool {
 	for _, tag := range tags {
 		if *tag.Key == managedBy && *tag.Value == externalSecrets {
-			isManaged = true
+			return true
 		}
 	}
-	return
+	return false
 }
 
-func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput) error {
+func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, createManagedByTags bool) error {
 	externalSecretsTag := ssm.Tag{
 		Key:   &managedBy,
 		Value: &externalSecrets,
 	}
 
-	isManaged := isManagedByESO(secretRequest.Tags)
-
-	if !isManaged {
+	overwrite := true
+	secretRequest.Overwrite = &overwrite
+	if createManagedByTags {
 		secretRequest.Tags = append(secretRequest.Tags, &externalSecretsTag)
+		overwrite = false
 	}
 
 	_, err := pm.client.PutParameterWithContext(ctx, &secretRequest)
-	if err != nil {
-		// TODO: Edit test so that we can pass more context and have the test not fail because it's not exactly the error `err`
-		// return fmt.fmErrorf("failed to push the parameter: %w", err)
-		return err
-	}
-	return nil
+	return err
 }
 
 // GetAllSecrets fetches information from multiple secrets into a single kubernetes secret.
