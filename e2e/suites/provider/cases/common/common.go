@@ -662,7 +662,7 @@ func DecodingPolicySync(f *framework.Framework) (string, func(*framework.TestCas
 func CollectingOrphanSecrets(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should delete orphaned secrets with Owner creation policy", func(tc *framework.TestCase) {
 		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "foo")
-		secretValue := "value"
+		secretValue := `{"value": "bar"}`
 
 		tc.Secrets = map[string]framework.SecretEntry{
 			secretKey1: {Value: secretValue},
