@@ -397,7 +397,9 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 			if err != nil {
 				return nil, err
 			}
-			secrets[name] = secret
+			if secret != nil {
+				secrets[name] = secret
+			}
 		}
 	}
 	return secrets, nil
@@ -416,7 +418,9 @@ func (v *client) findSecretsFromName(ctx context.Context, candidates []string, r
 			if err != nil {
 				return nil, err
 			}
-			secrets[name] = secret
+			if secret != nil {
+				secrets[name] = secret
+			}
 		}
 	}
 	return secrets, nil
@@ -496,6 +500,10 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	data, err := v.readSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
 		return nil, err
+	}
+	// Return nil if secret value is null
+	if data == nil {
+		return nil, nil
 	}
 	jsonStr, err := json.Marshal(data)
 	if err != nil {
@@ -696,6 +704,9 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 
 		if !ok {
 			return nil, errors.New(errDataField)
+		}
+		if dataInt == nil {
+			return nil, nil
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
