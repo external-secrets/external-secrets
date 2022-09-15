@@ -111,8 +111,7 @@ func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef
 	var awsError awserr.Error
 	ok := errors.As(err, &awsError)
 	if err != nil && (!ok || awsError.Code() != ssm.ErrCodeParameterNotFound) {
-		// TODO: give some more context to the error
-		return err
+		return fmt.Errorf("unexpected error getting parameter %v: %w", secretName, err)
 	}
 
 	// If we have a valid parameter returned to us, check its tags
@@ -120,7 +119,7 @@ func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef
 		fmt.Println("The existing value contains data:", existing.String())
 		tags, err := pm.getTagsByName(ctx, existing)
 		if err != nil {
-			return fmt.Errorf("error getting the existing tags for the parameter: %w", err)
+			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
 		}
 
 		isManaged := isManagedByESO(tags)
@@ -165,7 +164,10 @@ func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretR
 	}
 
 	_, err := pm.client.PutParameterWithContext(ctx, &secretRequest)
-	return err
+	if err != nil {
+		return fmt.Errorf("unexpected error pushing parameter %v: %w", secretRequest.Name, err)
+	}
+	return nil
 }
 
 // GetAllSecrets fetches information from multiple secrets into a single kubernetes secret.

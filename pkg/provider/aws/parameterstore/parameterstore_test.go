@@ -22,7 +22,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -95,6 +94,7 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 func TestPushSecret(t *testing.T) {
 	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
 	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
+	fakeValue := "fakeValue"
 
 	managedByESO := ssm.Tag{
 		Key:   &managedBy,
@@ -107,6 +107,7 @@ func TestPushSecret(t *testing.T) {
 	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
 		TagList: []*ssm.Tag{&managedByESO},
 	}
+	noTagsResourceOutput := &ssm.ListTagsForResourceOutput{}
 
 	validGetParameterOutput := &ssm.GetParameterOutput{
 		Parameter: &ssm.Parameter{
@@ -119,6 +120,12 @@ func TestPushSecret(t *testing.T) {
 			Type:             nil,
 			Value:            nil,
 			Version:          nil,
+		},
+	}
+
+	sameGetParameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Value: &fakeValue,
 		},
 	}
 
@@ -196,6 +203,51 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretNotManagedByESO": {
+			reason: "SetSecret to the parameter store but tags are not managed by ESO",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(noTagsResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("secret not managed by external-secrets"),
+			},
+		},
+		"SetSecretGetTagsError": {
+			reason: "SetSecret to the parameter store returns error while obtaining tags",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(nil, fmt.Errorf("you shall not tag")),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("you shall not tag"),
+			},
+		},
+		"SetSecretContentMatches": {
+			reason: "No ops",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 	//
 	for name, tc := range tests {
@@ -204,10 +256,18 @@ func TestPushSecret(t *testing.T) {
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
-			err := ps.SetSecret(context.TODO(), []byte("fakeValue"), ref)
+			err := ps.SetSecret(context.TODO(), []byte(fakeValue), ref)
 
-			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			// Error nil XOR tc.want.err nil
+			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			}
+
+			// if errors are the same type but their contents do not match
+			if err != nil && tc.want.err != nil {
+				if !strings.Contains(err.Error(), tc.want.err.Error()) {
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
 			}
 		})
 	}
