@@ -247,10 +247,12 @@ jobs:
         run: make docker.build
 
       - name: Get docker image tag
+        if: env.GHCR_USERNAME != ''
         id: image_version
         run: echo "::set-output name=image::$(make docker.image)"
 
       - name: Run Trivy vulnerability scanner
+        if: env.GHCR_USERNAME != ''
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ steps.image_version.outputs.image }}'
