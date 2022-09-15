@@ -204,6 +204,9 @@ docs.serve: ## Serve docs
 
 build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
+docker.image:
+	@echo $(IMAGE_REGISTRY):$(VERSION)
+
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
 	@docker build . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
