@@ -1759,7 +1759,7 @@
 <br/>- <code>deletionPolicy=Merge</code> &amp; <code>creationPolicy=None</code></p>
 </div>
 <h2 id="creation-policy">Creation Policy</h2>
-<p>The field <code>spec.creationPolicy</code> defines how the operator creates the a secret.</p>
+<p>The field <code>spec.target.creationPolicy</code> defines how the operator creates the a secret.</p>
 <h3 id="owner-default">Owner (default)</h3>
 <p>The External Secret Operator creates secret and sets the <code>ownerReference</code> field on the Secret. This secret is subject to <a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> if the initial <code>ExternalSecret</code> is absent. If a secret with the same name already exists that is not owned by the controller it will result in a conflict. The operator will just error out, not claiming the ownership.</p>
 <h3 id="orphan">Orphan</h3>
