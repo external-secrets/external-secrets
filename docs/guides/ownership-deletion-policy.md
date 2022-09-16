@@ -8,7 +8,7 @@ The External Secrets Operator manages the lifecycle of secrets in Kubernetes. Wi
     <br/>- `deletionPolicy=Merge` & `creationPolicy=None`
 
 ## Creation Policy
-The field `spec.creationPolicy` defines how the operator creates the a secret.
+The field `spec.target.creationPolicy` defines how the operator creates the a secret.
 
 ### Owner (default)
 The External Secret Operator creates secret and sets the `ownerReference` field on the Secret. This secret is subject to [garbage collection](https://kubernetes.io/docs/concepts/architecture/garbage-collection/) if the initial `ExternalSecret` is absent. If a secret with the same name already exists that is not owned by the controller it will result in a conflict. The operator will just error out, not claiming the ownership.
