@@ -27,7 +27,7 @@ External Secrets Operator guides and reference documentation is available at [ex
 
 ## Contributing
 
-We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/main/contributing-devguide/) and [Contribution process](https://www.external-secrets.io/main/contributing-process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/main/contributing-coc/) and adhere to its guidelines.
+We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/main/contributing/devguide/) and [Contribution process](https://www.external-secrets.io/main/contributing/process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/main/contributing/coc/) and adhere to its guidelines.
 
 ### Sponsoring
 Please consider sponsoring this project, there are many ways you can help us with: engineering time, providing infrastructure, donating money, etc. We are open to cooperations, feel free to approach as and we discuss how this could look like. We can keep your contribution anonymized if that's required (depending on the type of contribution), and anonymous donations are possible inside [Opencollective](https://opencollective.com/external-secrets-org).
