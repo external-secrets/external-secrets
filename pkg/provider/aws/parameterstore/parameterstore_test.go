@@ -15,6 +15,7 @@ package parameterstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -22,13 +23,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	fake "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
+	fakeps "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
 )
 
 type parameterstoreTestCase struct {
-	fakeClient     *fake.Client
+	fakeClient     *fakeps.Client
 	apiInput       *ssm.GetParameterInput
 	apiOutput      *ssm.GetParameterOutput
 	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
@@ -38,9 +40,17 @@ type parameterstoreTestCase struct {
 	expectedData   map[string][]byte
 }
 
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
 	return &parameterstoreTestCase{
-		fakeClient:     &fake.Client{},
+		fakeClient:     &fakeps.Client{},
 		apiInput:       makeValidAPIInput(),
 		apiOutput:      makeValidAPIOutput(),
 		remoteRef:      makeValidRemoteRef(),
@@ -81,6 +91,188 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 	return pstc
 }
 
+func TestPushSecret(t *testing.T) {
+	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
+	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
+	fakeValue := "fakeValue"
+
+	managedByESO := ssm.Tag{
+		Key:   &managedBy,
+		Value: &externalSecrets,
+	}
+
+	putParameterOutput := &ssm.PutParameterOutput{}
+	getParameterOutput := &ssm.GetParameterOutput{}
+	describeParameterOutput := &ssm.DescribeParametersOutput{}
+	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
+		TagList: []*ssm.Tag{&managedByESO},
+	}
+	noTagsResourceOutput := &ssm.ListTagsForResourceOutput{}
+
+	validGetParameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			ARN:              nil,
+			DataType:         nil,
+			LastModifiedDate: nil,
+			Name:             nil,
+			Selector:         nil,
+			SourceResult:     nil,
+			Type:             nil,
+			Value:            nil,
+			Version:          nil,
+		},
+	}
+
+	sameGetParameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Value: &fakeValue,
+		},
+	}
+
+	type args struct {
+		store  *esv1beta1.AWSProvider
+		client fakeps.Client
+	}
+
+	type want struct {
+		err error
+	}
+
+	tests := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"PutParameterSucceeds": {
+			reason: "a parameter can be successfully pushed to aws parameter store",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetParameterFailsWhenNoNameProvided": {
+			reason: "test push secret with no name gives error",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, invalidParameters),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: invalidParameters,
+			},
+		},
+		"SetSecretWhenAlreadyExists": {
+			reason: "test push secret with secret that already exists gives error",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, alreadyExistsError),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: alreadyExistsError,
+			},
+		},
+		"GetSecretWithValidParameters": {
+			reason: "Get secret with valid parameters",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretNotManagedByESO": {
+			reason: "SetSecret to the parameter store but tags are not managed by ESO",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(noTagsResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("secret not managed by external-secrets"),
+			},
+		},
+		"SetSecretGetTagsError": {
+			reason: "SetSecret to the parameter store returns error while obtaining tags",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(nil, fmt.Errorf("you shall not tag")),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("you shall not tag"),
+			},
+		},
+		"SetSecretContentMatches": {
+			reason: "No ops",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			ps := ParameterStore{
+				client: &tc.args.client,
+			}
+			err := ps.SetSecret(context.TODO(), []byte(fakeValue), ref)
+
+			// Error nil XOR tc.want.err nil
+			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			}
+
+			// if errors are the same type but their contents do not match
+			if err != nil && tc.want.err != nil {
+				if !strings.Contains(err.Error(), tc.want.err.Error()) {
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
+			}
+		})
+	}
+}
+
 // test the ssm<->aws interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestGetSecret(t *testing.T) {
@@ -108,6 +300,13 @@ func TestGetSecret(t *testing.T) {
 		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
 		pstc.remoteRef.Property = "INVALPROP"
 		pstc.expectError = "key INVALPROP does not exist in secret"
+	}
+
+	// bad case: parameter.Value not found
+	setParameterValueNotFound := func(pstc *parameterstoreTestCase) {
+		pstc.apiOutput.Parameter.Value = aws.String("NONEXISTENT")
+		pstc.apiErr = esv1beta1.NoSecretErr
+		pstc.expectError = "Secret does not exist"
 	}
 
 	// bad case: extract property failure due to invalid json
@@ -138,6 +337,7 @@ func TestGetSecret(t *testing.T) {
 		makeValidParameterStoreTestCaseCustom(setParameterValueNil),
 		makeValidParameterStoreTestCaseCustom(setAPIError),
 		makeValidParameterStoreTestCaseCustom(setExtractPropertyWithDot),
+		makeValidParameterStoreTestCaseCustom(setParameterValueNotFound),
 	}
 
 	ps := ParameterStore{}
@@ -197,6 +397,23 @@ func TestGetSecretMap(t *testing.T) {
 		if err == nil && !cmp.Equal(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
+	}
+}
+
+func makeValidParameterStore() *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-parameterstore",
+			Namespace: "default",
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				AWS: &esv1beta1.AWSProvider{
+					Service: esv1beta1.AWSServiceParameterStore,
+					Region:  "us-east-1",
+				},
+			},
+		},
 	}
 }
 
