@@ -241,27 +241,31 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build & Publish Artifacts for Distroless
+      - name: Build & Publish Artifacts
         if: env.GHCR_USERNAME != ''
         env:
           BUILD_ARGS: "--push --platform linux/amd64,linux/arm64"
-        run: make build/distroless/docker.build
+        run: make docker.build
 
-      - name: Build & Publish Artifacts for UBI
+      - name: Get docker image tag
         if: env.GHCR_USERNAME != ''
-        env:
-          BUILD_ARGS: "--push --platform linux/amd64,linux/arm64"
-        run: make build/ubi/docker.build
+        id: image_version
+        run: echo "::set-output name=image::$(make docker.image)"
 
-      - name: Promote Artifacts to main release channel for Distroless
-        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        run: make build/distroless/docker.promote
-        env:
-          RELEASE_TAG: main
+      - name: Run Trivy vulnerability scanner
+        if: env.GHCR_USERNAME != ''
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ steps.image_version.outputs.image }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
-      - name: Promote Artifacts to main release channel for UBI
+      - name: Promote Artifacts to main release channel
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        run: make build/ubi/docker.promote
+        run: make docker.promote
         env:
           RELEASE_TAG: main
 
@@ -271,18 +275,11 @@ jobs:
 
       - name: Install cosign
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@v2.5.1
+        uses: sigstore/cosign-installer@v2.6.0
 
-      - name: Sign Artifacts to main release channel for Distroless
+      - name: Sign Artifacts to main release channel
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        run: make build/distroless/docker.sign
-        env:
-          RELEASE_TAG: main
-          COSIGN_EXPERIMENTAL: true
-
-      - name: Sign Artifacts to main release channel for UBI
-        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        run: make build/ubi/docker.sign
+        run: make docker.sign
         env:
           RELEASE_TAG: main
           COSIGN_EXPERIMENTAL: true

@@ -205,19 +205,25 @@ docs.serve: ## Serve docs
 build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
-	@$(INFO) docker build
-	@docker build . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
-	@$(OK) docker build
+	@$(INFO) docker build Distroless default docker image
+	@docker build -f ./Dockerfile.distroless $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
+	@$(OK) docker build Distroless default docker image
+	@$(INFO) docker build UBI docker image
+	@docker build -f ./Dockerfile.ubi $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)-ubi
+	@$(OK) docker build UBI docker image
 
 docker.push: ## Push the docker image to the registry
 	@$(INFO) docker push
 	@docker push $(IMAGE_REGISTRY):$(VERSION)
+	@docker push $(IMAGE_REGISTRY):$(VERSION)-ubi
 	@$(OK) docker push
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.
 RELEASE_TAG ?= main
+RELEASE_TAG_UBI = $(RELEASE_TAG)-ubi
 SOURCE_TAG ?= $(VERSION)
+SOURCE_TAG_UBI = $(SOURCE_TAG)-ubi
 
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
@@ -230,11 +236,26 @@ docker.promote: ## Promote the docker image to the registry
 	docker manifest push $(IMAGE_REGISTRY):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
 
+	@$(INFO) promoting $(SOURCE_TAG_UBI) to $(RELEASE_TAG_UBI)
+	docker manifest inspect $(IMAGE_REGISTRY):$(SOURCE_TAG_UBI) > .tagmanifest
+	for digest in $$(jq -r '.manifests[].digest' < .tagmanifest); do \
+		docker pull $(IMAGE_REGISTRY)@$$digest; \
+	done
+	docker manifest create $(IMAGE_REGISTRY):$(RELEASE_TAG_UBI) \
+		$$(jq -j '"--amend $(IMAGE_REGISTRY)@" + .manifests[].digest + " "' < .tagmanifest)
+	docker manifest push $(IMAGE_REGISTRY):$(RELEASE_TAG_UBI)
+	@$(OK) docker push $(RELEASE_TAG_UBI) \
+
 docker.sign: ## Sign
 	@$(INFO) signing $(IMAGE_REGISTRY):$(RELEASE_TAG)
 	crane digest $(IMAGE_REGISTRY):$(RELEASE_TAG) > .digest
 	cosign sign $(IMAGE_REGISTRY)@$$(cat .digest)
 	@$(OK) cosign sign $(IMAGE_REGISTRY):$(RELEASE_TAG)
+
+	@$(INFO) signing $(IMAGE_REGISTRY):$(RELEASE_TAG_UBI)
+	crane digest $(IMAGE_REGISTRY):$(RELEASE_TAG_UBI) > .digest
+	cosign sign $(IMAGE_REGISTRY)@$$(cat .digest)
+	@$(OK) cosign sign $(IMAGE_REGISTRY):$(RELEASE_TAG_UBI)
 
 # ====================================================================================
 # Terraform
