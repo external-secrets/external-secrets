@@ -249,7 +249,7 @@ func ErrorContains(out error, want string) bool {
 
 type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
 
-func makeSecretStore(projectID string, environment string, fn ...storeModifier) *esv1beta1.SecretStore {
+func makeSecretStore(projectID, environment string, fn ...storeModifier) *esv1beta1.SecretStore {
 	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{

@@ -1915,7 +1915,7 @@ spec:
                             - SecretRef
                           type: object
                         environment:
-                          description: Environment
+                          description: Environment environment_scope of gitlab CI/CD variables
                           type: string
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
@@ -4789,7 +4789,7 @@ spec:
                             - SecretRef
                           type: object
                         environment:
-                          description: Environment
+                          description: Environment environment_scope of gitlab CI/CD variables
                           type: string
                         projectID:
                           description: ProjectID specifies a project where secrets are located.

@@ -30,7 +30,7 @@ func (mc *GitlabMockClient) ListVariables(pid interface{}, opt *gitlab.ListProje
 	return mc.listVariables(pid)
 }
 
-func (mc *GitlabMockClient) WithValue(projectIDinput, envInput string, keyInput string, output *gitlab.ProjectVariable, response *gitlab.Response, err error) {
+func (mc *GitlabMockClient) WithValue(projectIDinput, envInput, keyInput string, output *gitlab.ProjectVariable, response *gitlab.Response, err error) {
 	if mc != nil {
 		mc.getVariable = func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
 			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
