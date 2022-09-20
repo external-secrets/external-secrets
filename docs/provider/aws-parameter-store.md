@@ -72,4 +72,15 @@ spec:
 
 ```
 
+## Push Secret
+
+### Creating a Push Secret
+
+#### Add push secret
+
+#### Check successful secret sync
+
+#### Test new secret using AWS CLI
+
+
 --8<-- "snippets/provider-aws-access.md"

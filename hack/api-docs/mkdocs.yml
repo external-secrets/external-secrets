@@ -38,6 +38,7 @@ nav:
       SecretStore: api/secretstore.md
       ClusterSecretStore: api/clustersecretstore.md
       ClusterExternalSecret: api/clusterexternalsecret.md
+      PushSecret: api/pushsecret.md
   - Guides:
     - Introduction: guides/introduction.md
     - Getting started: guides/getting-started.md
