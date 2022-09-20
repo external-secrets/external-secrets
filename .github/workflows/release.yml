@@ -68,6 +68,11 @@ jobs:
   promote:
     name: Promote Container Image
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - tag_suffix: "" # distroless image
+        - tag_suffix: "-ubi" # ubi image
 
     permissions:
       id-token: write
@@ -114,7 +119,7 @@ jobs:
 
       - name: Promote Container Image
         if: env.GHCR_USERNAME != ''
-        run: make docker.promote
+        run: make docker.promote TAG_SUFFIX=${{ matrix.tag_suffix }}
         env:
           RELEASE_TAG: ${{ github.event.inputs.version }}
           SOURCE_TAG: main
@@ -129,7 +134,7 @@ jobs:
 
       - name: Sign Container Image
         if: env.GHCR_USERNAME != ''
-        run: make docker.sign
+        run: make docker.sign TAG_SUFFIX=${{ matrix.tag_suffix }}
         env:
           RELEASE_TAG: ${{ github.event.inputs.version }}
           SOURCE_TAG: main

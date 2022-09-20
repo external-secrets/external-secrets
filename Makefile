@@ -7,6 +7,7 @@ MAKEFLAGS     += --warn-undefined-variables
 
 ARCH = amd64 arm64
 BUILD_ARGS ?=
+DOCKERFILE ?= Dockerfile
 
 # default target is build
 .DEFAULT_GOAL := all
@@ -41,6 +42,9 @@ else
 # use tags
 export VERSION := $(shell git describe --dirty --always --tags --exclude 'helm*' | sed 's/-/./2' | sed 's/-/./2')
 endif
+
+TAG_SUFFIX ?=
+export IMAGE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 # ====================================================================================
 # Colors
@@ -205,22 +209,22 @@ docs.serve: ## Serve docs
 build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
 docker.image:
-	@echo $(IMAGE_REGISTRY):$(VERSION)
+	@echo $(IMAGE_REGISTRY):$(IMAGE_TAG)
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	@docker build . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
+	@docker build -f $(DOCKERFILE) . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(IMAGE_TAG)
 	@$(OK) docker build
 
 docker.push: ## Push the docker image to the registry
 	@$(INFO) docker push
-	@docker push $(IMAGE_REGISTRY):$(VERSION)
+	@docker push $(IMAGE_REGISTRY):$(IMAGE_TAG)
 	@$(OK) docker push
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.
-RELEASE_TAG ?= main
-SOURCE_TAG ?= $(VERSION)
+RELEASE_TAG ?= main$(TAG_SUFFIX)
+SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
