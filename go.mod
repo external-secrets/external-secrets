@@ -40,7 +40,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.28
 	github.com/Azure/go-autorest/autorest/adal v0.9.21
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
-	github.com/AzureAD/microsoft-authentication-library-for-go v0.6.1
+	github.com/AzureAD/microsoft-authentication-library-for-go v0.7.0
 	github.com/IBM/go-sdk-core/v5 v5.10.2
 	github.com/IBM/secrets-manager-go-sdk v1.0.46
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -48,9 +48,9 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/akeylesslabs/akeyless-go/v2 v2.18.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1768
-	github.com/aws/aws-sdk-go v1.44.96
+	github.com/akeylesslabs/akeyless-go/v2 v2.19.0
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1782
+	github.com/aws/aws-sdk-go v1.44.101
 	github.com/crossplane/crossplane-runtime v0.17.0
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
@@ -79,7 +79,7 @@ require (
 	go.uber.org/zap v1.23.0
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094
-	google.golang.org/api v0.95.0
+	google.golang.org/api v0.96.0
 	google.golang.org/genproto v0.0.0-20220902135211-223410557253
 	google.golang.org/grpc v1.49.0
 	gopkg.in/yaml.v3 v3.0.1
