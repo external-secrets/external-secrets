@@ -211,7 +211,7 @@ build.all: docker.build helm.build ## Build all artifacts (docker image, helm ch
 docker.image:
 	@echo $(IMAGE_REGISTRY):$(IMAGE_TAG)
 
-docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
+docker.build: ## Build the docker image
 	@$(INFO) docker build
 	@docker build -f $(DOCKERFILE) . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(IMAGE_TAG)
 	@$(OK) docker build

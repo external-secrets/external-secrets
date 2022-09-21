@@ -214,31 +214,6 @@ jobs:
       - name: Fetch History
         run: git fetch --prune --unshallow
 
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        with:
-          go-version-file: "go.mod"
-
-      - name: Find the Go Cache
-        id: go
-        run: |
-          echo "::set-output name=build-cache::$(go env GOCACHE)"
-          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-      - name: Cache the Go Build Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-publish-artifacts-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-publish-artifacts-${{ github.sha }}-
-
-      - name: Cache Go Dependencies
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
-
       - name: Login to Docker
         uses: docker/login-action@v2
         if: env.GHCR_USERNAME != ''
@@ -247,10 +222,17 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      - name: Expose GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v2
+
+
       - name: Build & Publish Artifacts
         if: env.GHCR_USERNAME != ''
         env:
-          BUILD_ARGS: "--push --platform linux/amd64,linux/arm64"
+          BUILD_ARGS: >-
+            --push --platform linux/amd64,linux/arm64
+            --cache-from type=gha
+            --cache-to type=gha,mode=max
         run: make docker.build DOCKERFILE=${{ matrix.dockerfile }} TAG_SUFFIX=${{ matrix.tag_suffix }}
 
       - name: Get docker image tag

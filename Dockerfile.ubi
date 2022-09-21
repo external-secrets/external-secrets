@@ -1,7 +1,32 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal
+# provided by docker buildx
 ARG TARGETOS
 ARG TARGETARCH
-COPY bin/external-secrets-${TARGETOS}-${TARGETARCH} /bin/external-secrets
+
+# for the time being we can not build with ubi8/go-toolset
+# since it's still running go 1.17 (we have dependecies that require 1.18)
+# once 1.18 is available we can deliver FIPS compliant builds
+# ARG BUILDIMAGE=registry.access.redhat.com/ubi8/go-toolset
+ARG BUILDIMAGE=golang:1.19-alpine
+ARG RUNIMAGE=registry.access.redhat.com/ubi8/ubi-minimal
+
+FROM $BUILDIMAGE as build
+ENV GOOS=$TARGETOS
+ENV GOARCH=$TARGETARCH
+ENV CGO_ENABLED=1
+
+WORKDIR /work
+COPY go.mod go.sum /work
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=private \
+    go mod download
+COPY . /work
+RUN --mount=type=cache,target=/root/.cache/go-build,sharing=private \
+    go build -o ./external-secrets main.go
+
+# TODO: check if we have succesfully compiled with fips symbols
+# RUN go tool nm ./external-secrets | grep FIPS
+
+FROM $RUNIMAGE
+COPY --from=build /work/external-secrets /bin/external-secrets
 
 # Run as UID for nobody
 USER 65534
