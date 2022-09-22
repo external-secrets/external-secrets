@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -122,9 +122,23 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
-	prov := store.GetSpec().Provider.Conjur
-	if prov == nil {
-		return nil
+	storeSpec := store.GetSpec()
+	conjurSpec := storeSpec.Provider.Conjur
+
+	if *conjurSpec.ServiceURL == "" {
+		return fmt.Errorf("ServiceURL cannot be empty")
+	}
+
+	if *conjurSpec.ServiceUser == "" {
+		return fmt.Errorf("ServiceUser cannot be empty")
+	}
+
+	if *conjurSpec.ServiceApiKey == "" {
+		return fmt.Errorf("ServiceApiKey cannot be empty")
+	}
+
+	if *conjurSpec.ServiceAccount == "" {
+		return fmt.Errorf("SeviceAccount cannot be empty")
 	}
 
 	return nil
