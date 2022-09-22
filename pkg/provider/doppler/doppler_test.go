@@ -133,10 +133,10 @@ func TestGetSecret(t *testing.T) {
 		makeValidDopplerTestCaseCustom(setClientError),
 	}
 
-	d := Doppler{}
+	c := Client{}
 	for k, tc := range testCases {
-		d.client = tc.fakeClient
-		out, err := d.GetSecret(context.Background(), *tc.remoteRef)
+		c.doppler = tc.fakeClient
+		out, err := c.GetSecret(context.Background(), *tc.remoteRef)
 		if !ErrorContains(err, tc.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), tc.expectError)
 		}
@@ -180,10 +180,10 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidDopplerTestCaseCustom(setAPIError),
 	}
 
-	d := Doppler{}
+	d := Client{}
 	for k, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
-			d.client = tc.fakeClient
+			d.doppler = tc.fakeClient
 			out, err := d.GetSecretMap(context.Background(), *tc.remoteRef)
 			if !ErrorContains(err, tc.expectError) {
 				t.Errorf("[%d] unexpected error: %q, expected: %q", k, err.Error(), tc.expectError)
@@ -265,7 +265,7 @@ func TestValidateStore(t *testing.T) {
 			err:   nil,
 		},
 	}
-	p := Doppler{}
+	p := Provider{}
 	for _, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
 			err := p.ValidateStore(tc.store)

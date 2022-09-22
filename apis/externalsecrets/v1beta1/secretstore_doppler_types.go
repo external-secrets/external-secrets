@@ -46,10 +46,12 @@ type DopplerProvider struct {
 	Config string `json:"config,omitempty"`
 
 	// Environment variable compatible name transforms that change secret names to a different format
+	// +kubebuilder:validation:Enum=upper-camel;camel;lower-snake;tf-var;dotnet-env
 	// +optional
 	NameTransformer string `json:"nameTransformer,omitempty"`
 
 	// Format enables the downloading of secrets as a file (string)
+	// +kubebuilder:validation:Enum=json;dotnet-json;env;yaml;docker
 	// +optional
 	Format string `json:"format,omitempty"`
 }

@@ -1841,9 +1841,21 @@ spec:
                           type: string
                         format:
                           description: Format enables the downloading of secrets as a file (string)
+                          enum:
+                            - json
+                            - dotnet-json
+                            - env
+                            - yaml
+                            - docker
                           type: string
                         nameTransformer:
                           description: Environment variable compatible name transforms that change secret names to a different format
+                          enum:
+                            - upper-camel
+                            - camel
+                            - lower-snake
+                            - tf-var
+                            - dotnet-env
                           type: string
                         project:
                           description: Doppler project (required if not using a Service Token)
@@ -4754,9 +4766,21 @@ spec:
                           type: string
                         format:
                           description: Format enables the downloading of secrets as a file (string)
+                          enum:
+                            - json
+                            - dotnet-json
+                            - env
+                            - yaml
+                            - docker
                           type: string
                         nameTransformer:
                           description: Environment variable compatible name transforms that change secret names to a different format
+                          enum:
+                            - upper-camel
+                            - camel
+                            - lower-snake
+                            - tf-var
+                            - dotnet-env
                           type: string
                         project:
                           description: Doppler project (required if not using a Service Token)
