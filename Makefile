@@ -17,7 +17,7 @@ all: $(addprefix build-,$(ARCH))
 export IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
 
 #Valid licenses for license.check
-LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause|Unknown
+LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause
 BUNDLE_DIR     ?= deploy/crds
 CRD_DIR     ?= config/crds
 
@@ -128,11 +128,11 @@ lint.check: ## Check install of golanci-lint
 lint.install: ## Install golangci-lint to the go bin dir
 	@if ! golangci-lint --version > /dev/null 2>&1; then \
 		echo "Installing golangci-lint"; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.42.1; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.49.0; \
 	fi
 
 lint: lint.check ## Run golangci-lint
-	@if ! golangci-lint run; then \
+	@if ! golangci-lint run --timeout 5m; then \
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
 		exit 1; \
 	fi
@@ -203,6 +203,9 @@ docs.serve: ## Serve docs
 # Build Artifacts
 
 build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
+
+docker.image:
+	@echo $(IMAGE_REGISTRY):$(VERSION)
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build

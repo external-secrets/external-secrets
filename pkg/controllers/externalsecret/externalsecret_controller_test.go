@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,10 +36,11 @@ import (
 )
 
 var (
-	fakeProvider *fake.Client
-	metric       dto.Metric
-	timeout      = time.Second * 10
-	interval     = time.Millisecond * 250
+	fakeProvider   *fake.Client
+	metric         dto.Metric
+	metricDuration dto.Metric
+	timeout        = time.Second * 10
+	interval       = time.Millisecond * 250
 )
 
 type testCase struct {
@@ -158,6 +159,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		syncCallsTotal.Reset()
 		syncCallsError.Reset()
 		externalSecretCondition.Reset()
+		externalSecretReconcileDuration.Reset()
 		fakeProvider.Reset()
 	})
 
@@ -273,7 +275,8 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() == 1.0
+				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				return metric.GetCounter().GetValue() == 1.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 		}
 	}
@@ -377,7 +380,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
 				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0
+				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
@@ -945,6 +949,141 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	// with rewrite all keys from a dataFrom operation
+	// should be put with new rewriting into the secret
+	syncAndRewriteWithDataFrom := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: remoteKey,
+				},
+				Rewrite: []esv1beta1.ExternalSecretRewrite{{
+					Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Source: "(.*)",
+						Target: "new-$1",
+					},
+				}},
+			},
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: remoteKey,
+				},
+				Rewrite: []esv1beta1.ExternalSecretRewrite{{
+					Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Source: "(.*)",
+						Target: "old-$1",
+					},
+				}},
+			},
+		}
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"foo": []byte(FooValue),
+			"bar": []byte(BarValue),
+		}, nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["new-foo"])).To(Equal(FooValue))
+			Expect(string(secret.Data["new-bar"])).To(Equal(BarValue))
+			Expect(string(secret.Data["old-foo"])).To(Equal(FooValue))
+			Expect(string(secret.Data["old-bar"])).To(Equal(BarValue))
+		}
+	}
+	// with rewrite keys from dataFrom
+	// should error if keys are not compliant
+	invalidExtractKeysErrCondition := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: remoteKey,
+				},
+				Rewrite: []esv1beta1.ExternalSecretRewrite{{
+					Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Source: "(.*)",
+						Target: "$1",
+					},
+				}},
+			},
+		}
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"foo/bar": []byte(FooValue),
+			"bar/foo": []byte(BarValue),
+		}, nil)
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
+			Eventually(func() bool {
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
+			}, timeout, interval).Should(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
+		}
+
+	}
+	// with rewrite keys from dataFrom
+	// should error if keys are not compliant
+	invalidFindKeysErrCondition := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1beta1.ExternalSecretFind{
+					Name: &esv1beta1.FindName{
+						RegExp: ".*",
+					},
+				},
+				Rewrite: []esv1beta1.ExternalSecretRewrite{{
+					Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Source: "(.*)",
+						Target: "$1",
+					},
+				}},
+			},
+		}
+		fakeProvider.WithGetAllSecrets(map[string][]byte{
+			"foo/bar": []byte(FooValue),
+			"bar/foo": []byte(BarValue),
+		}, nil)
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
+			Eventually(func() bool {
+				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
+			}, timeout, interval).Should(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
+		}
+
+	}
+
 	// with dataFrom all properties from the specified secret
 	// should be put into the secret
 	syncWithDataFrom := func(tc *testCase) {
@@ -964,6 +1103,37 @@ var _ = Describe("ExternalSecret controller", func() {
 			// check values
 			Expect(string(secret.Data["foo"])).To(Equal(FooValue))
 			Expect(string(secret.Data["bar"])).To(Equal(BarValue))
+		}
+	}
+	// with dataFrom.Find the change is on the called method GetAllSecrets
+	// all keys should be put into the secret
+	syncAndRewriteDataFromFind := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1beta1.ExternalSecretFind{
+					Name: &esv1beta1.FindName{
+						RegExp: "foobar",
+					},
+				},
+				Rewrite: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "(.*)",
+							Target: "new-$1",
+						},
+					},
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecrets(map[string][]byte{
+			"foo": []byte(FooValue),
+			"bar": []byte(BarValue),
+		}, nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["new-foo"])).To(Equal(FooValue))
+			Expect(string(secret.Data["new-bar"])).To(Equal(BarValue))
 		}
 	}
 
@@ -1037,7 +1207,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
 				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0
+				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
@@ -1074,7 +1245,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
 				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0
+				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
@@ -1099,7 +1271,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
 				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0
+				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
@@ -1284,7 +1457,11 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should refresh secret map when provider secret changes when using a template", refreshSecretValueMapTemplate),
 		Entry("should not refresh secret value when provider secret changes but refreshInterval is zero", refreshintervalZero),
 		Entry("should fetch secret using dataFrom", syncWithDataFrom),
+		Entry("should rewrite secret using dataFrom", syncAndRewriteWithDataFrom),
+		Entry("should not automatically convert from extract if rewrite is used", invalidExtractKeysErrCondition),
 		Entry("should fetch secret using dataFrom.find", syncDataFromFind),
+		Entry("should rewrite secret using dataFrom.find", syncAndRewriteDataFromFind),
+		Entry("should not automatically convert from find if rewrite is used", invalidFindKeysErrCondition),
 		Entry("should fetch secret using dataFrom and a template", syncWithDataFromTemplate),
 		Entry("should set error condition when provider errors", providerErrCondition),
 		Entry("should set an error condition when store does not exist", storeMissingErrCondition),

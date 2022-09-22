@@ -31,7 +31,6 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -159,7 +158,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 			break
 		}
 	}
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	return data, nil
 }
 
 func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -210,7 +209,7 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 			break
 		}
 	}
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	return data, nil
 }
 
 func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
@@ -256,7 +255,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	}
 	// We need to search if a given key with a . exists before using gjson operations.
 	idx := strings.Index(ref.Property, ".")
-	if idx > 0 {
+	if idx > -1 {
 		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if val.Exists() {

@@ -16,6 +16,7 @@ package clusterexternalsecret
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -130,6 +131,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	setFailedNamespaces(&clusterExternalSecret, failedNamespaces)
 
 	if len(provisionedNamespaces) > 0 {
+		sort.Strings(provisionedNamespaces)
 		clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
 	}
 

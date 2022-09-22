@@ -397,7 +397,9 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 			if err != nil {
 				return nil, err
 			}
-			secrets[name] = secret
+			if secret != nil {
+				secrets[name] = secret
+			}
 		}
 	}
 	return secrets, nil
@@ -416,7 +418,9 @@ func (v *client) findSecretsFromName(ctx context.Context, candidates []string, r
 			if err != nil {
 				return nil, err
 			}
-			secrets[name] = secret
+			if secret != nil {
+				secrets[name] = secret
+			}
 		}
 	}
 	return secrets, nil
@@ -431,6 +435,9 @@ func (v *client) listSecrets(ctx context.Context, path string) ([]string, error)
 	secret, err := v.logical.ListWithContext(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
+	}
+	if secret == nil {
+		return nil, fmt.Errorf("provided path %v does not contain any secrets", url)
 	}
 	t, ok := secret.Data["keys"]
 	if !ok {
@@ -485,14 +492,18 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 }
 
 // GetSecret supports two types:
-// 1. get the full secret as json-encoded value
-//    by leaving the ref.Property empty.
-// 2. get a key from the secret.
-//    Nested values are supported by specifying a gjson expression
+//  1. get the full secret as json-encoded value
+//     by leaving the ref.Property empty.
+//  2. get a key from the secret.
+//     Nested values are supported by specifying a gjson expression
 func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	data, err := v.readSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
 		return nil, err
+	}
+	// Return nil if secret value is null
+	if data == nil {
+		return nil, nil
 	}
 	jsonStr, err := json.Marshal(data)
 	if err != nil {
@@ -693,6 +704,9 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 
 		if !ok {
 			return nil, errors.New(errDataField)
+		}
+		if dataInt == nil {
+			return nil, nil
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
@@ -967,7 +981,11 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	return valueStr, nil
 }
 
-func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, audiences []string, expirationSeconds int64) (string, error) {
+func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
+	audiences := serviceAccountRef.Audiences
+	if len(additionalAud) > 0 {
+		audiences = append(audiences, additionalAud...)
+	}
 	tokenRequest := &authenticationv1.TokenRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: v.namespace,
@@ -1043,7 +1061,19 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 
 func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
+		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
+		// this behavior was removed in v1.24 and we must use TokenRequest API (see below)
 		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		if jwt != "" {
+			return jwt, err
+		}
+		if err != nil {
+			v.log.V(1).Info("unable to fetch jwt from service account secret")
+		}
+		// Kubernetes >=v1.24: fetch token via TokenRequest API
+		// note: this is a massive change from vault perspective: the `iss` claim will very likely change.
+		// Vault 1.9 deprecated issuer validation by default, and authentication with Vault clusters <1.9 will likely fail.
+		jwt, err = v.serviceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
 		if err != nil {
 			return "", err
 		}

@@ -39,7 +39,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
-
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -51,6 +50,8 @@ const (
 	errGetES                 = "could not get ExternalSecret"
 	errConvert               = "could not apply conversion strategy to keys: %v"
 	errDecode                = "could not apply decoding strategy to %v[%d]: %v"
+	errRewrite               = "could not rewrite spec.dataFrom[%d]: %v"
+	errInvalidKeys           = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric,'-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides-datafrom-rewrite)"
 	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
@@ -96,6 +97,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
 	syncCallsMetricLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
+
+	start := time.Now()
+
+	defer externalSecretReconcileDuration.With(prometheus.Labels{
+		"name":      req.Name,
+		"namespace": req.Namespace,
+	}).Set(float64(time.Since(start)))
 
 	var externalSecret esv1beta1.ExternalSecret
 
@@ -309,7 +317,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	}
 
-	// nolint
+	//nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
@@ -451,7 +459,7 @@ func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	if es.Status.RefreshTime.IsZero() {
 		return true
 	}
-	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
+	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
 func shouldReconcile(es esv1beta1.ExternalSecret) bool {
@@ -533,9 +541,20 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 			if err != nil {
 				return nil, err
 			}
-			secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
+			secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 			if err != nil {
-				return nil, fmt.Errorf(errConvert, err)
+				return nil, fmt.Errorf(errRewrite, i, err)
+			}
+			if len(remoteRef.Rewrite) == 0 {
+				// ConversionStrategy is deprecated. Use RewriteMap instead.
+				r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1beta1.ReasonDeprecated, fmt.Sprintf("dataFrom[%d].find.conversionStrategy=%v is deprecated and will be removed in further releases. Use dataFrom.rewrite instead", i, remoteRef.Find.ConversionStrategy))
+				secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
+				if err != nil {
+					return nil, fmt.Errorf(errConvert, err)
+				}
+			}
+			if !utils.ValidateKeys(secretMap) {
+				return nil, fmt.Errorf(errInvalidKeys, "find", i)
 			}
 			secretMap, err = utils.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
 			if err != nil {
@@ -550,16 +569,24 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 			if err != nil {
 				return nil, err
 			}
-			secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
+			secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 			if err != nil {
-				return nil, fmt.Errorf(errConvert, err)
+				return nil, fmt.Errorf(errRewrite, i, err)
+			}
+			if len(remoteRef.Rewrite) == 0 {
+				secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
+				if err != nil {
+					return nil, fmt.Errorf(errConvert, err)
+				}
+			}
+			if !utils.ValidateKeys(secretMap) {
+				return nil, fmt.Errorf(errInvalidKeys, "extract", i)
 			}
 			secretMap, err = utils.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
 			if err != nil {
 				return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
 			}
 		}
-
 		providerData = utils.MergeByteMap(providerData, secretMap)
 	}
 

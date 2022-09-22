@@ -10,7 +10,6 @@ on:
 
 env:
   GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-  GO_VERSION: '1.17'
 
 jobs:
   release:
@@ -59,7 +58,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Update Docs
         run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
@@ -83,7 +82,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -95,15 +94,15 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-publish-artifacts-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-publish-artifacts-
+          key: ${{ runner.os }}-build-publish-artifacts-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-publish-artifacts-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
       - name: Login to Docker
         uses: docker/login-action@v2
@@ -126,7 +125,7 @@ jobs:
 
       - name: Install cosign
         if: env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@v2.4.1
+        uses: sigstore/cosign-installer@v2.6.0
 
       - name: Sign Container Image
         if: env.GHCR_USERNAME != ''
