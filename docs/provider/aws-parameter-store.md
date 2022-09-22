@@ -29,9 +29,11 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`, for further 
     {
       "Effect": "Allow",
       "Action": [
-        "ssm:GetParameter*"
+        "ssm:GetParameterWithContext",
+        "ssm:ListTagsForResourceWithContext",
+        "ssm:DescribeParametersWithContext",
       ],
-      "Resource": "arn:aws:ssm:us-east-2:123456789012:parameter/dev-*"
+      "Resource": "arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*"
     }
   ]
 }
@@ -71,16 +73,54 @@ spec:
       property: friends.1.first # Roger
 
 ```
+### Parameter Versions
 
-## Push Secret
+ParameterStore creates a new version of a parameter every time it is updated with a new value. The parameter can be referenced via the `version` property
+
+## SetSecret
+
+The SetSecret method for the Parameter Store allows the user to set the value stored within the Kubernetes cluster to the remote AWS Parameter Store.
 
 ### Creating a Push Secret
 
-#### Add push secret
+```yaml
+{% include "full-pushsecret.yaml" %}
+```
 
 #### Check successful secret sync
 
+To be able to check that the secret has been succesfully synced you can run the following command:
+
+```bash
+kubectl get pushsecret pushsecret-example
+```
+
+If the secret has synced successfully it will show the status as "Synced".
+
 #### Test new secret using AWS CLI
 
+To View your parameter on AWS Parameter Store using the AWS CLI, install and login to the AWS CLI using the following guide: [AWS CLI](https://aws.amazon.com/cli/).
+
+Run the following commands to get your synchronized parameter from AWS Parameter Store:
+
+```bash
+aws ssm get-parameter --name=my-first-parameter --region=us-east-1
+```
+
+You should see something similar to the following output:
+
+```json
+{
+    "Parameter": {
+        "Name": "my-first-parameter",
+        "Type": "String",
+        "Value": "charmander",
+        "Version": 4,
+        "LastModifiedDate": "2022-09-15T13:04:31.098000-03:00",
+        "ARN": "arn:aws:ssm:us-east-1:1234567890123:parameter/my-first-parameter",
+        "DataType": "text"
+    }
+}
+```
 
 --8<-- "snippets/provider-aws-access.md"
