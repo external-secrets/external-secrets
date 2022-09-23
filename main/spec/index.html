@@ -1160,6 +1160,20 @@
 
             
           
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provider/doppler/" class="md-nav__link">
+        Doppler
+      </a>
+    </li>
+  
+
+            
+          
         </ul>
       </nav>
     </li>
@@ -2913,6 +2927,148 @@ SecretStoreStatus
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DopplerAuth">DopplerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.DopplerProvider">DopplerProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerAuthSecretRef">
+DopplerAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DopplerAuthSecretRef">DopplerAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.DopplerAuth">DopplerAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>dopplerToken</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The DopplerToken is used for authentication.
+See <a href="https://docs.doppler.com/reference/api#authentication">https://docs.doppler.com/reference/api#authentication</a> for auth token types.
+The Key attribute defaults to dopplerToken if not specified.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DopplerProvider">DopplerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>DopplerProvider configures a store to sync secrets using the Doppler provider.
+Project and Config are required if not using a Service Token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerAuth">
+DopplerAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the Operator authenticates with the Doppler API</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>project</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler project (required if not using a Service Token)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler config (required if not using a Service Token)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nameTransformer</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Environment variable compatible name transforms that change secret names to a different format</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>format</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Format enables the downloading of secrets as a file (string)</p>
 </td>
 </tr>
 </tbody>
@@ -5160,7 +5316,7 @@ SecretStoreStatus
 <a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
 </p>
 <p>
-<p>SecretStoreProvider contains the provider-specific configration.</p>
+<p>SecretStoreProvider contains the provider-specific configuration.</p>
 </p>
 <table>
 <thead>
@@ -5392,6 +5548,20 @@ SenhaseguraProvider
 <td>
 <em>(Optional)</em>
 <p>Senhasegura configures this store to sync secrets using senhasegura provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>doppler</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerProvider">
+DopplerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler configures this store to sync secrets using the Doppler provider</p>
 </td>
 </tr>
 </tbody>
