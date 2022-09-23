@@ -15,7 +15,9 @@ DOCKERFILE ?= Dockerfile
 all: $(addprefix build-,$(ARCH))
 
 # Image registry for build/push image targets
-export IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
+export IMAGE_REGISTRY ?= ghcr.io
+export IMAGE_REPO     ?= external-secrets/external-secrets
+export IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE_REPO)
 
 #Valid licenses for license.check
 LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause
@@ -209,16 +211,19 @@ docs.serve: ## Serve docs
 build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
 docker.image:
-	@echo $(IMAGE_REGISTRY):$(IMAGE_TAG)
+	@echo $(IMAGE_NAME):$(IMAGE_TAG)
+
+docker.tag:
+	@echo $(IMAGE_TAG)
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	@docker build -f $(DOCKERFILE) . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(IMAGE_TAG)
+	@docker build -f $(DOCKERFILE) . $(BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
 docker.push: ## Push the docker image to the registry
 	@$(INFO) docker push
-	@docker push $(IMAGE_REGISTRY):$(IMAGE_TAG)
+	@docker push $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker push
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
@@ -228,20 +233,14 @@ SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
-	docker manifest inspect $(IMAGE_REGISTRY):$(SOURCE_TAG) > .tagmanifest
+	docker manifest inspect $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
 	for digest in $$(jq -r '.manifests[].digest' < .tagmanifest); do \
-		docker pull $(IMAGE_REGISTRY)@$$digest; \
+		docker pull $(IMAGE_NAME)@$$digest; \
 	done
-	docker manifest create $(IMAGE_REGISTRY):$(RELEASE_TAG) \
-		$$(jq -j '"--amend $(IMAGE_REGISTRY)@" + .manifests[].digest + " "' < .tagmanifest)
-	docker manifest push $(IMAGE_REGISTRY):$(RELEASE_TAG)
+	docker manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
+		$$(jq -j '"--amend $(IMAGE_NAME)@" + .manifests[].digest + " "' < .tagmanifest)
+	docker manifest push $(IMAGE_NAME):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
-
-docker.sign: ## Sign
-	@$(INFO) signing $(IMAGE_REGISTRY):$(RELEASE_TAG)
-	crane digest $(IMAGE_REGISTRY):$(RELEASE_TAG) > .digest
-	cosign sign $(IMAGE_REGISTRY)@$$(cat .digest)
-	@$(OK) cosign sign $(IMAGE_REGISTRY):$(RELEASE_TAG)
 
 # ====================================================================================
 # Terraform
