@@ -251,6 +251,24 @@ AkeylessAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>Reference to a Secret that contains the details
+to authenticate with Akeyless.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetesAuth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AkeylessKubernetesAuth">
+AkeylessKubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubernetes authenticates with Akeyless by passing the ServiceAccount
+token stored in the named Secret resource.</p>
 </td>
 </tr>
 </tbody>
@@ -302,6 +320,77 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.AkeylessKubernetesAuth">AkeylessKubernetesAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AkeylessAuth">AkeylessAuth</a>)
+</p>
+<p>
+<p>Authenticate with Kubernetes ServiceAccount token stored.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>the Akeyless Kubernetes auth-method access-id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>k8sConfName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kubernetes-auth configuration name in Akeyless-Gateway</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional service account field containing the name of a kubernetes ServiceAccount.
+If the service account is specified, the service account secret token JWT will be used
+for authenticating with Akeyless. If the service account selector is not supplied,
+the secretRef will be used instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional secret field containing a Kubernetes ServiceAccount JWT used
+for authenticating with Akeyless. If a name is specified without a key,
+<code>token</code> is the default. If one is not specified, the one bound to
+the controller will be used.</p>
 </td>
 </tr>
 </tbody>
@@ -504,6 +593,35 @@ is ServicePrincipal.</p>
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.AzureEnvironmentType">AzureEnvironmentType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>AzureEnvironmentType specifies the Azure cloud environment endpoints to use for
+connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ChinaCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;GermanCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;PublicCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;USGovernmentCloud&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.AzureKVAuth">AzureKVAuth
 </h3>
 <p>
@@ -606,6 +724,22 @@ string
 </tr>
 <tr>
 <td>
+<code>environmentType</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AzureEnvironmentType">
+AzureEnvironmentType
+</a>
+</em>
+</td>
+<td>
+<p>EnvironmentType specifies the Azure cloud environment endpoints to use for
+connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>authSecretRef</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.AzureKVAuth">
@@ -649,7 +783,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>,
+<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -1237,6 +1371,148 @@ SecretStoreStatus
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.DopplerAuth">DopplerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.DopplerProvider">DopplerProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerAuthSecretRef">
+DopplerAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DopplerAuthSecretRef">DopplerAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.DopplerAuth">DopplerAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>dopplerToken</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The DopplerToken is used for authentication.
+See <a href="https://docs.doppler.com/reference/api#authentication">https://docs.doppler.com/reference/api#authentication</a> for auth token types.
+The Key attribute defaults to dopplerToken if not specified.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DopplerProvider">DopplerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>DopplerProvider configures a store to sync secrets using the Doppler provider.
+Project and Config are required if not using a Service Token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerAuth">
+DopplerAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the Operator authenticates with the Doppler API</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>project</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler project (required if not using a Service Token)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler config (required if not using a Service Token)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nameTransformer</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Environment variable compatible name transforms that change secret names to a different format</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>format</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Format enables the downloading of secrets as a file (string)</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecret">ExternalSecret
 </h3>
 <p>
@@ -1388,7 +1664,7 @@ ExternalSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -1533,7 +1809,8 @@ ExternalSecretFind
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to rewrite secret Keys after getting them from the secret Provider</p>
+<p>Used to rewrite secret Keys after getting them from the secret Provider
+Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)</p>
 </td>
 </tr>
 </tbody>
@@ -1542,7 +1819,7 @@ ExternalSecretFind
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>,
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
@@ -1630,7 +1907,7 @@ ExternalSecretDecodingStrategy
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to define a conversion Strategy</p>
+<p>Used to define a decoding Strategy</p>
 </td>
 </tr>
 </tbody>
@@ -1639,7 +1916,7 @@ ExternalSecretDecodingStrategy
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -1775,7 +2052,7 @@ ExternalSecretDecodingStrategy
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to define a conversion Strategy</p>
+<p>Used to define a decoding Strategy</p>
 </td>
 </tr>
 </tbody>
@@ -1828,7 +2105,8 @@ ExternalSecretRewriteRegexp
 </td>
 <td>
 <em>(Optional)</em>
-<p>Rewrite using regular expressions</p>
+<p>Used to rewrite with regular expressions.
+The resulting key will be the output of a regexp.ReplaceAll operation.</p>
 </td>
 </tr>
 </tbody>
@@ -1857,7 +2135,7 @@ string
 </em>
 </td>
 <td>
-<p>Regular expression to use as a re.Compiler.</p>
+<p>Used to define the regular expression of a re.Compiler.</p>
 </td>
 </tr>
 <tr>
@@ -1868,7 +2146,7 @@ string
 </em>
 </td>
 <td>
-<p>Target output for a replace operation.</p>
+<p>Used to define the target pattern of a ReplaceAll operation.</p>
 </td>
 </tr>
 </tbody>
@@ -1877,7 +2155,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>,
+<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -3478,7 +3756,7 @@ SecretStoreStatus
 <a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
 </p>
 <p>
-<p>SecretStoreProvider contains the provider-specific configration.</p>
+<p>SecretStoreProvider contains the provider-specific configuration.</p>
 </p>
 <table>
 <thead>
@@ -3712,6 +3990,20 @@ SenhaseguraProvider
 <p>Senhasegura configures this store to sync secrets using senhasegura provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>doppler</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerProvider">
+DopplerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler configures this store to sync secrets using the Doppler provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreRef">SecretStoreRef
@@ -3799,7 +4091,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -3871,7 +4163,7 @@ int
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -3989,8 +4281,7 @@ Kubernetes meta/v1.Time
 <a href="#external-secrets.io/v1beta1.SenhaseguraProvider">SenhaseguraProvider</a>)
 </p>
 <p>
-<pre><code>SenhaseguraAuth tells the controller how to do auth in senhasegura
-</code></pre>
+<p>SenhaseguraAuth tells the controller how to do auth in senhasegura.</p>
 </p>
 <table>
 <thead>
@@ -4029,8 +4320,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1beta1.SenhaseguraProvider">SenhaseguraProvider</a>)
 </p>
 <p>
-<pre><code>SenhaseguraModuleType enum defines senhasegura target module to fetch secrets
-</code></pre>
+<p>SenhaseguraModuleType enum defines senhasegura target module to fetch secrets</p>
 </p>
 <table>
 <thead>
@@ -4053,8 +4343,7 @@ see: https://senhasegura.com/devops
 <a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<pre><code>SenhaseguraProvider setup a store to sync secrets with senhasegura
-</code></pre>
+<p>SenhaseguraProvider setup a store to sync secrets with senhasegura.</p>
 </p>
 <table>
 <thead>
@@ -4717,7 +5006,8 @@ github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.</p>
+Defaults to a single audience <code>vault</code> it not specified.
+Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -4732,6 +5022,7 @@ int64
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
 <code>serviceAccountRef</code>.
+Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>
