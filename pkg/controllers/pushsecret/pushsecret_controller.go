@@ -106,14 +106,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	ps = SetPushSecretCondition(ps, *cond)
 	// Set status for PushSecret
 	r.recorder.Event(&ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
-
-	if refreshInt == 0 {
-		return ctrl.Result{
-			RequeueAfter: 0,
-			Requeue:      false,
-		}, nil
-	}
-
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 

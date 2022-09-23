@@ -24,8 +24,14 @@ import (
 
 var _ esv1beta1.Provider = &Client{}
 
+type SetSecretCallArgs struct {
+	Value     []byte
+	RemoteRef esv1beta1.PushRemoteRef
+}
+
 // Client is a fake client for testing.
 type Client struct {
+	SetSecretArgs   map[string]SetSecretCallArgs
 	NewFn           func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error)
 	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
 	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
@@ -48,6 +54,7 @@ func New() *Client {
 		SetSecretFn: func() error {
 			return nil
 		},
+		SetSecretArgs: map[string]SetSecretCallArgs{},
 	}
 
 	v.NewFn = func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error) {
@@ -69,6 +76,10 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 // Not Implemented SetSecret.
 func (v *Client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	v.SetSecretArgs[remoteRef.GetRemoteKey()] = SetSecretCallArgs{
+		Value:     value,
+		RemoteRef: remoteRef,
+	}
 	return v.SetSecretFn()
 }
 

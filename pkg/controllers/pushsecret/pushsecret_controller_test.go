@@ -15,422 +15,37 @@ limitations under the License.
 package pushsecret
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	v1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/internal/fakes"
+	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
-var fakeProvider *fake.Client
+var (
+	fakeProvider *fake.Client
+	timeout      = time.Second * 10
+	interval     = time.Millisecond * 250
+)
 
-var _ = Describe("pushsecret", func() {
-	var (
-		reconciler *Reconciler
-		client     *fakes.Client
-		recorder   *fakes.FakeEventRecorder
-	)
-	BeforeEach(func() {
-		client = new(fakes.Client)
-		recorder = &fakes.FakeEventRecorder{}
-		reconciler = &Reconciler{client, logr.Discard(), nil, recorder, time.Minute, ""}
-	})
-
-	Describe("#Reconcile", func() {
-		var (
-			statusWriter *fakes.StatusWriter
-		)
-
-		BeforeEach(func() {
-			statusWriter = new(fakes.StatusWriter)
-			client.StatusReturns(statusWriter)
-		})
-
-		It("succeeds", func() {
-			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-			Expect(result).To(Equal(ctrl.Result{RequeueAfter: time.Minute}))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(client.GetCallCount()).To(Equal(2))
-			Expect(client.StatusCallCount()).To(Equal(1))
-
-			_, gotNamespacedName, _ := client.GetArgsForCall(0)
-			Expect(gotNamespacedName).To(Equal(namspacedName))
-
-			Expect(statusWriter.PatchCallCount()).To(Equal(1))
-			_, _, patch, _ := statusWriter.PatchArgsForCall(0)
-			Expect(patch.Type()).To(Equal(types.MergePatchType))
-			Expect(recorder.EventCallCount()).To(Equal(1))
-			_, _, reason, message := recorder.EventArgsForCall(0)
-			Expect(reason).To(Equal(esapi.ReasonSynced))
-			Expect(message).To(Equal("PushSecret synced successfully"))
-		})
-		It("requeues after specified time", func() {
-			client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
-				myObj := obj
-				switch obj.(type) {
-				case *esapi.PushSecret:
-					t := myObj.(*esapi.PushSecret)
-					t.Spec.RefreshInterval = &metav1.Duration{Duration: 0 * time.Second}
-					return nil
-				default:
-					return nil
-				}
-			}
-
-			namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 0, Requeue: false}))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(client.GetCallCount()).To(Equal(2))
-			Expect(client.StatusCallCount()).To(Equal(1))
-
-			_, gotNamespacedName, _ := client.GetArgsForCall(0)
-			Expect(gotNamespacedName).To(Equal(namspacedName))
-
-			Expect(statusWriter.PatchCallCount()).To(Equal(1))
-			_, _, patch, _ := statusWriter.PatchArgsForCall(0)
-			Expect(patch.Type()).To(Equal(types.MergePatchType))
-			Expect(recorder.EventCallCount()).To(Equal(1))
-			_, _, reason, message := recorder.EventArgsForCall(0)
-			Expect(reason).To(Equal(esapi.ReasonSynced))
-			Expect(message).To(Equal("PushSecret synced successfully"))
-		})
-
-		When("an error returns in get", func() {
-			BeforeEach(func() {
-				client.GetReturns(errors.New("UnknownError"))
-			})
-
-			It("returns the error", func() {
-				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-
-				Expect(err).To(MatchError("get resource: UnknownError"))
-				Expect(client.GetCallCount()).To(Equal(1))
-				Expect(client.StatusCallCount()).To(Equal(0))
-				_, _, reason, message := recorder.EventArgsForCall(0)
-				Expect(reason).To(Equal(esapi.ReasonErrored))
-				Expect(message).To(Equal("unable to get PushSecret"))
-			})
-		})
-		When("an error returns in get secret", func() {
-			BeforeEach(func() {
-				client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
-					switch obj.(type) {
-					case *v1.Secret:
-						return fmt.Errorf("GetSecretError")
-					default:
-						return nil
-					}
-				}
-			})
-
-			It("returns the error", func() {
-				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-
-				Expect(err).To(MatchError("GetSecretError"))
-				_, _, reason, message := recorder.EventArgsForCall(0)
-				Expect(reason).To(Equal(esapi.ReasonErrored))
-				Expect(message).To(Equal(errFailedGetSecret))
-			})
-		})
-
-		When("an error returns in get secret store", func() {
-			BeforeEach(func() {
-				client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
-					switch v := obj.(type) {
-					case *esapi.PushSecret:
-						v.Spec.SecretStoreRefs = []esapi.PushSecretStoreRef{
-							{Name: "a", Kind: "secretstore"},
-						}
-					}
-					switch obj.(type) {
-					case *v1beta1.SecretStore:
-						return fmt.Errorf("BORK")
-					default:
-						return nil
-					}
-
-				}
-			})
-
-			It("returns the error", func() {
-				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-
-				Expect(err).To(MatchError("could not get SecretStore \"a\", BORK"))
-				_, _, reason, message := recorder.EventArgsForCall(0)
-				Expect(reason).To(Equal(esapi.ReasonErrored))
-				Expect(message).To(Equal("could not get SecretStore \"a\", BORK"))
-			})
-		})
-
-		When("an error returns in set secret to providers", func() {
-			BeforeEach(func() {
-				client.GetStub = func(context context.Context, name types.NamespacedName, obj kubeclient.Object) error {
-					switch v := obj.(type) {
-					case *esapi.PushSecret:
-						v.Spec.SecretStoreRefs = []esapi.PushSecretStoreRef{
-							{Name: "a", Kind: "secretstore"},
-						}
-					case *v1beta1.SecretStore:
-						v.Kind = "PotatoStore"
-					}
-					switch obj.(type) {
-					default:
-						return nil
-					}
-
-				}
-			})
-
-			It("returns the error", func() {
-				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-
-				Expect(err).To(MatchError("could not start provider"))
-				_, _, reason, message := recorder.EventArgsForCall(0)
-				Expect(reason).To(Equal(esapi.ReasonErrored))
-				Expect(message).To(Equal("set secret failed: could not start provider"))
-			})
-		})
-
-		When("an object is not found", func() {
-			BeforeEach(func() {
-				client.GetReturns(statusErrorNotFound{})
-			})
-
-			It("returns an empty result without error", func() {
-				namspacedName := types.NamespacedName{Namespace: "foo", Name: "Bar"}
-				_, err := reconciler.Reconcile(context.Background(), ctrl.Request{NamespacedName: namspacedName})
-
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-	})
-
-	Describe("#GetPushSecretCondition", func() {
-		It("returns nil for empty secret sink status", func() {
-			pushSecretStatus := new(esapi.PushSecretStatus)
-			pushSecretConditionType := new(esapi.PushSecretConditionType)
-
-			Expect(GetPushSecretCondition(*pushSecretStatus, *pushSecretConditionType)).To(BeNil())
-		})
-
-		It("returns correct condition for secret sink status", func() {
-			pushSecretStatusCondition := esapi.PushSecretStatusCondition{Type: esapi.PushSecretReady}
-			pushSecretStatus := esapi.PushSecretStatus{Conditions: []esapi.PushSecretStatusCondition{pushSecretStatusCondition}}
-			pushSecretConditionType := esapi.PushSecretReady
-
-			Expect(GetPushSecretCondition(pushSecretStatus, pushSecretConditionType)).To(Equal(&pushSecretStatusCondition))
-		})
-	})
-
-	Describe("#SetPushSecretCondition", func() {
-		It("appends a condition", func() {
-			pushSecret := esapi.PushSecret{}
-
-			pushSecretStatusCondition := esapi.PushSecretStatusCondition{}
-			pushSecretStatus := esapi.PushSecretStatus{Conditions: []esapi.PushSecretStatusCondition{pushSecretStatusCondition}}
-			expected := esapi.PushSecret{Status: pushSecretStatus}
-			Expect(SetPushSecretCondition(pushSecret, pushSecretStatusCondition)).To(Equal(expected))
-		})
-
-		It("changes an existing condition", func() {
-			conditionStatusTrue := v1.ConditionTrue
-			pushSecretWithCondition := esapi.PushSecret{Status: esapi.PushSecretStatus{Conditions: []esapi.PushSecretStatusCondition{
-				{
-					Status: conditionStatusTrue,
-					Type:   esapi.PushSecretReady,
-				},
-			}},
-			}
-			pushSecretStatusConditionTrue := esapi.PushSecretStatusCondition{Status: conditionStatusTrue,
-				Type:    esapi.PushSecretReady,
-				Message: "Update status",
-			}
-
-			got := SetPushSecretCondition(pushSecretWithCondition, pushSecretStatusConditionTrue)
-			Expect(len(got.Status.Conditions)).To(Equal(1))
-			Expect(got.Status.Conditions[0]).To(Equal(pushSecretStatusConditionTrue))
-		})
-	})
-	Describe("#GetSecret", func() {
-		It("returns a secret if it exists", func() {
-			sink := esapi.PushSecret{
-				Spec: esapi.PushSecretSpec{
-					Selector: esapi.PushSecretSelector{
-						Secret: esapi.PushSecretSecret{
-							Name: "foo",
-						},
-					},
-				},
-			}
-			sink.Namespace = "foobar"
-			_, err := reconciler.GetSecret(context.TODO(), sink)
-			Expect(err).To(BeNil())
-			_, name, _ := client.GetArgsForCall(0)
-			Expect(name.Namespace).To(Equal("foobar"))
-			Expect(name.Name).To(Equal("foo"))
-
-		})
-
-		It("returns an error if it doesn't exist", func() {
-			client.GetReturns(errors.New("secret not found"))
-			_, err := reconciler.GetSecret(context.TODO(), esapi.PushSecret{})
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Describe("#GetSecretStore", func() {
-		sink := esapi.PushSecret{
-			Spec: esapi.PushSecretSpec{
-				SecretStoreRefs: []esapi.PushSecretStoreRef{
-					{
-						Name: "foo",
-					},
-				},
-			},
-		}
-		sink.Namespace = "bar"
-
-		clusterSink := esapi.PushSecret{
-			Spec: esapi.PushSecretSpec{
-				SecretStoreRefs: []esapi.PushSecretStoreRef{
-					{
-						Name: "foo",
-						Kind: "ClusterSecretStore",
-					},
-				},
-			},
-		}
-
-		It("returns a secretstore if it exists", func() {
-			_, err := reconciler.GetSecretStores(context.TODO(), sink)
-			Expect(err).To(BeNil())
-			Expect(client.GetCallCount()).To(Equal(1))
-			_, name, store := client.GetArgsForCall(0)
-			Expect(name.Namespace).To(Equal("bar"))
-			Expect(name.Name).To(Equal("foo"))
-			Expect(store).To(BeAssignableToTypeOf(&v1beta1.SecretStore{}))
-		})
-
-		It("returns an error if it doesn't exist", func() {
-			client.GetReturns(errors.New("secretstore not found"))
-			_, err := reconciler.GetSecretStores(context.TODO(), sink)
-			Expect(err).To(HaveOccurred())
-		})
-
-		It("returns a clustersecretstore if it exists", func() {
-			_, err := reconciler.GetSecretStores(context.TODO(), clusterSink)
-			Expect(err).To(BeNil())
-			Expect(client.GetCallCount()).To(Equal(1))
-			_, name, store := client.GetArgsForCall(0)
-			Expect(store).To(BeAssignableToTypeOf(&v1beta1.ClusterSecretStore{}))
-			Expect(name.Name).To(Equal("foo"))
-		})
-	})
-	Describe("#SetSecretToProviders", func() {
-		val := "supersecret"
-		secret := &v1.Secret{
-			Data: map[string][]byte{
-				"foo": []byte(val),
-			},
-		}
-		sink := esapi.PushSecret{
-			Spec: esapi.PushSecretSpec{
-				SecretStoreRefs: []esapi.PushSecretStoreRef{
-					{
-						Name: "foo",
-					},
-				},
-				Data: []esapi.PushSecretData{
-					{
-						Match: esapi.PushSecretMatch{
-							SecretKey: "foo",
-							RemoteRefs: []esapi.PushSecretRemoteRefs{
-								{
-									RemoteKey: "bar",
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		sink.Namespace = "bar"
-
-		secretStore := v1beta1.SecretStore{}
-		stores := make([]v1beta1.GenericStore, 0)
-		stores = append(stores, &secretStore)
-
-		It("gets the provider and client and then sets the secret", func() {
-
-			Expect(reconciler.SetSecretToProviders(context.TODO(), []v1beta1.GenericStore{}, sink, secret)).To(BeNil())
-		})
-
-		It("returns an error if it can't get a provider", func() {
-			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink, secret)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal(errGetProviderFailed))
-		})
-
-		It("returns an if it can't get a client", func() {
-			specWithProvider := v1beta1.SecretStoreSpec{
-				Provider: &v1beta1.SecretStoreProvider{
-					Fake: &v1beta1.FakeProvider{},
-				},
-			}
-			fakeProvider.WithNew(func(context.Context, v1beta1.GenericStore, kubeclient.Client,
-				string) (v1beta1.SecretsClient, error) {
-				return nil, fmt.Errorf("Something went wrong")
-			})
-			secretStore = v1beta1.SecretStore{
-				Spec: specWithProvider,
-			}
-
-			stores[0] = &secretStore
-			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink, secret)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal(errGetSecretsClientFailed))
-		})
-		It("returns an error if set secret fails", func() {
-			specWithProvider := v1beta1.SecretStoreSpec{
-				Provider: &v1beta1.SecretStoreProvider{
-					Fake: &v1beta1.FakeProvider{},
-				},
-			}
-			fakeProvider.Reset()
-			fakeProvider.WithSetSecret(fmt.Errorf("something went wrong"))
-			secretStore = v1beta1.SecretStore{
-				Spec: specWithProvider,
-			}
-
-			stores[0] = &secretStore
-			err := reconciler.SetSecretToProviders(context.TODO(), stores, sink, secret)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal(fmt.Sprintf(errSetSecretFailed, "foo", "", "something went wrong")))
-		})
-	})
-})
+type testCase struct {
+	store      v1beta1.GenericStore
+	pushsecret *v1alpha1.PushSecret
+	secret     *v1.Secret
+	assert     func(pushsecret *v1alpha1.PushSecret, secret *v1.Secret) bool
+}
 
 func init() {
 	fakeProvider = fake.New()
@@ -438,3 +53,190 @@ func init() {
 		Fake: &v1beta1.FakeProvider{},
 	})
 }
+
+type testTweaks func(*testCase)
+
+var _ = Describe("ExternalSecret controller", func() {
+	const (
+		PushSecretName             = "test-es"
+		PushSecretFQDN             = "externalsecrets.external-secrets.io/test-es"
+		PushSecretStore            = "test-store"
+		SecretName                 = "test-secret"
+		PushSecretTargetSecretName = "test-secret"
+		FakeManager                = "fake.manager"
+		expectedSecretVal          = "SOMEVALUE was templated"
+		targetPropObj              = "{{ .targetProperty | toString | upper }} was templated"
+		FooValue                   = "map-foo-value"
+		BarValue                   = "map-bar-value"
+	)
+
+	var PushSecretNamespace string
+
+	// if we are in debug and need to increase the timeout for testing, we can do so by using an env var
+	if customTimeout := os.Getenv("TEST_CUSTOM_TIMEOUT_SEC"); customTimeout != "" {
+		if t, err := strconv.Atoi(customTimeout); err == nil {
+			timeout = time.Second * time.Duration(t)
+		}
+	}
+
+	BeforeEach(func() {
+		var err error
+		PushSecretNamespace, err = ctest.CreateNamespace("test-ns", k8sClient)
+		Expect(err).ToNot(HaveOccurred())
+		fakeProvider.Reset()
+	})
+
+	AfterEach(func() {
+		Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: PushSecretNamespace,
+			},
+		})).To(Succeed())
+		k8sClient.Delete(context.Background(), &v1beta1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretStore,
+				Namespace: PushSecretNamespace,
+			},
+		})
+		k8sClient.Delete(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      SecretName,
+				Namespace: PushSecretNamespace,
+			},
+		})
+	})
+
+	makeDefaultTestcase := func() *testCase {
+		return &testCase{
+			pushsecret: &v1alpha1.PushSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      PushSecretName,
+					Namespace: PushSecretNamespace,
+				},
+				Spec: v1alpha1.PushSecretSpec{
+					SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+						{
+							Name: PushSecretStore,
+							Kind: "SecretStore",
+						},
+					},
+					Selector: v1alpha1.PushSecretSelector{
+						Secret: v1alpha1.PushSecretSecret{
+							Name: SecretName,
+						},
+					},
+					Data: []v1alpha1.PushSecretData{
+						{
+							Match: v1alpha1.PushSecretMatch{
+								SecretKey: "key",
+								RemoteRefs: []v1alpha1.PushSecretRemoteRefs{
+									{
+										RemoteKey: "path/to/key",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      SecretName,
+					Namespace: PushSecretNamespace,
+				},
+				Data: map[string][]byte{
+					"key": []byte("value"),
+				},
+			},
+			store: &v1beta1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      PushSecretStore,
+					Namespace: PushSecretNamespace,
+				},
+				Spec: v1beta1.SecretStoreSpec{
+					Provider: &v1beta1.SecretStoreProvider{
+						Fake: &v1beta1.FakeProvider{
+							Data: []v1beta1.FakeProviderData{},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	syncSuccessfully := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			secretValue := secret.Data["key"]
+			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRefs[0].RemoteKey].Value
+			return bytes.Equal(secretValue, providerValue)
+		}
+	}
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	failNoSecret := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.secret = nil
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			return ps.Status.Conditions[0].Reason == v1alpha1.ReasonErrored
+		}
+	}
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	failNoSecretStore := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.store = nil
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			return ps.Status.Conditions[0].Reason == v1alpha1.ReasonErrored
+		}
+	}
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	setSecretFail := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return fmt.Errorf("boom")
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			return ps.Status.Conditions[0].Reason == v1alpha1.ReasonErrored
+		}
+	}
+	DescribeTable("When reconciling a PushSecret",
+		func(tweaks ...testTweaks) {
+			tc := makeDefaultTestcase()
+			for _, tweak := range tweaks {
+				tweak(tc)
+			}
+			ctx := context.Background()
+			By("creating a secret store, secret and pushsecret")
+			if tc.store != nil {
+				Expect(k8sClient.Create(ctx, tc.store)).To(Succeed())
+			}
+			if tc.secret != nil {
+				Expect(k8sClient.Create(ctx, tc.secret)).To(Succeed())
+			}
+			if tc.pushsecret != nil {
+				Expect(k8sClient.Create(ctx, tc.pushsecret)).Should(Succeed())
+			}
+			time.Sleep(2 * time.Second)
+			psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+			createdPS := &v1alpha1.PushSecret{}
+			By("checking the pushSecret condition")
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, psKey, createdPS)
+				if err != nil {
+					return false
+				}
+				return tc.assert(createdPS, tc.secret)
+			}, timeout, interval).Should(BeTrue())
+			// this must be optional so we can test faulty es configuration
+		},
+		Entry("should work as we are not doing anything at all!", syncSuccessfully),
+		Entry("should fail if Secret is not created", failNoSecret),
+		Entry("should fail if SetSecret fails", setSecretFail),
+		Entry("should fail if no valid SecretStore", failNoSecretStore),
+	)
+})
