@@ -32,7 +32,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	awsauthfake "github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake"
+	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 )
 
 var vaultURL = "https://local.vault.url"
@@ -169,8 +169,8 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 						Name:      saName,
 						Namespace: namespace,
 						Annotations: map[string]string{
-							annotationClientID: clientID,
-							annotationTenantID: tenantID,
+							AnnotationClientID: clientID,
+							AnnotationTenantID: tenantID,
 						},
 					},
 				},
@@ -190,10 +190,10 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 				store:      &store,
 				namespace:  namespace,
 				crClient:   k8sClient,
-				kubeClient: awsauthfake.NewCreateTokenMock(saToken),
+				kubeClient: utilfake.NewCreateTokenMock().WithToken(saToken),
 				provider:   store.Spec.Provider.AzureKV,
 			}
-			tokenProvider := func(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error) {
+			tokenProvider := func(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error) {
 				tassert.Equal(t, token, saToken)
 				tassert.Equal(t, clientID, clientID)
 				tassert.Equal(t, tenantID, tenantID)

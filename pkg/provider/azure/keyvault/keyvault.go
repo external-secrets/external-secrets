@@ -27,6 +27,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/autorest/azure"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/tidwall/gjson"
@@ -48,10 +49,9 @@ const (
 	defaultObjType       = "secret"
 	objectTypeCert       = "cert"
 	objectTypeKey        = "key"
-	vaultResource        = "https://vault.azure.net"
-	azureDefaultAudience = "api://AzureADTokenExchange"
-	annotationClientID   = "azure.workload.identity/client-id"
-	annotationTenantID   = "azure.workload.identity/tenant-id"
+	AzureDefaultAudience = "api://AzureADTokenExchange"
+	AnnotationClientID   = "azure.workload.identity/client-id"
+	AnnotationTenantID   = "azure.workload.identity/tenant-id"
 
 	errUnexpectedStoreSpec   = "unexpected store spec"
 	errMissingAuthType       = "cannot initialize Azure Client: no valid authType was specified"
@@ -145,7 +145,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	case esv1beta1.AzureServicePrincipal:
 		authorizer, err = az.authorizerForServicePrincipal(ctx)
 	case esv1beta1.AzureWorkloadIdentity:
-		authorizer, err = az.authorizerForWorkloadIdentity(ctx, newTokenProvider)
+		authorizer, err = az.authorizerForWorkloadIdentity(ctx, NewTokenProvider)
 	default:
 		err = fmt.Errorf(errMissingAuthType)
 	}
@@ -433,6 +433,8 @@ func getSecretMapProperties(tags map[string]*string, key, property string) map[s
 }
 
 func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider tokenProviderFunc) (autorest.Authorizer, error) {
+	aadEndpoint := AadEndpointForType(a.provider.EnvironmentType)
+	kvResource := kvResourceForProviderConfig(a.provider.EnvironmentType)
 	// if no serviceAccountRef was provided
 	// we expect certain env vars to be present.
 	// They are set by the azure workload identity webhook.
@@ -447,7 +449,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		if err != nil {
 			return nil, fmt.Errorf(errReadTokenFile, tokenFilePath, err)
 		}
-		tp, err := tokenProvider(ctx, string(token), clientID, tenantID)
+		tp, err := tokenProvider(ctx, string(token), clientID, tenantID, aadEndpoint, kvResource)
 		if err != nil {
 			return nil, err
 		}
@@ -465,29 +467,33 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	if err != nil {
 		return nil, err
 	}
-	clientID, ok := sa.ObjectMeta.Annotations[annotationClientID]
+	clientID, ok := sa.ObjectMeta.Annotations[AnnotationClientID]
 	if !ok {
-		return nil, fmt.Errorf(errMissingSAAnnotation, annotationClientID)
+		return nil, fmt.Errorf(errMissingSAAnnotation, AnnotationClientID)
 	}
-	tenantID, ok := sa.ObjectMeta.Annotations[annotationTenantID]
+	tenantID, ok := sa.ObjectMeta.Annotations[AnnotationTenantID]
 	if !ok {
-		return nil, fmt.Errorf(errMissingSAAnnotation, annotationTenantID)
+		return nil, fmt.Errorf(errMissingSAAnnotation, AnnotationTenantID)
 	}
-	token, err := fetchSAToken(ctx, ns, a.provider.ServiceAccountRef.Name, a.kubeClient)
+	audiences := []string{AzureDefaultAudience}
+	if len(a.provider.ServiceAccountRef.Audiences) > 0 {
+		audiences = append(audiences, a.provider.ServiceAccountRef.Audiences...)
+	}
+	token, err := FetchSAToken(ctx, ns, a.provider.ServiceAccountRef.Name, audiences, a.kubeClient)
 	if err != nil {
 		return nil, err
 	}
-	tp, err := tokenProvider(ctx, token, clientID, tenantID)
+	tp, err := tokenProvider(ctx, token, clientID, tenantID, aadEndpoint, kvResource)
 	if err != nil {
 		return nil, err
 	}
 	return autorest.NewBearerAuthorizer(tp), nil
 }
 
-func fetchSAToken(ctx context.Context, ns, name string, kubeClient kcorev1.CoreV1Interface) (string, error) {
+func FetchSAToken(ctx context.Context, ns, name string, audiences []string, kubeClient kcorev1.CoreV1Interface) (string, error) {
 	token, err := kubeClient.ServiceAccounts(ns).CreateToken(ctx, name, &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
-			Audiences: []string{azureDefaultAudience},
+			Audiences: audiences,
 		},
 	}, metav1.CreateOptions{})
 	if err != nil {
@@ -501,26 +507,26 @@ type tokenProvider struct {
 	accessToken string
 }
 
-type tokenProviderFunc func(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error)
+type tokenProviderFunc func(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error)
 
-func newTokenProvider(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error) {
+func NewTokenProvider(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error) {
 	// exchange token with Azure AccessToken
-	cred, err := confidential.NewCredFromAssertion(token)
-	if err != nil {
-		return nil, err
-	}
-
-	// AZURE_AUTHORITY_HOST
-
+	cred := confidential.NewCredFromAssertionCallback(func(ctx context.Context, aro confidential.AssertionRequestOptions) (string, error) {
+		return token, nil
+	})
 	cClient, err := confidential.New(clientID, cred, confidential.WithAuthority(
-		fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/token", tenantID),
+		fmt.Sprintf("%s%s/oauth2/token", aadEndpoint, tenantID),
 	))
 	if err != nil {
 		return nil, err
 	}
-
+	scope := kvResource
+	// .default needs to be added to the scope
+	if !strings.Contains(kvResource, ".default") {
+		scope = fmt.Sprintf("%s/.default", kvResource)
+	}
 	authRes, err := cClient.AcquireTokenByCredential(ctx, []string{
-		"https://vault.azure.net/.default",
+		scope,
 	})
 	if err != nil {
 		return nil, err
@@ -536,7 +542,7 @@ func (t *tokenProvider) OAuthToken() string {
 
 func (a *Azure) authorizerForManagedIdentity() (autorest.Authorizer, error) {
 	msiConfig := kvauth.NewMSIConfig()
-	msiConfig.Resource = vaultResource
+	msiConfig.Resource = kvResourceForProviderConfig(a.provider.EnvironmentType)
 	if a.provider.IdentityID != nil {
 		msiConfig.ClientID = *a.provider.IdentityID
 	}
@@ -565,9 +571,9 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	if err != nil {
 		return nil, err
 	}
-
 	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, *a.provider.TenantID)
-	clientCredentialsConfig.Resource = vaultResource
+	clientCredentialsConfig.Resource = kvResourceForProviderConfig(a.provider.EnvironmentType)
+	clientCredentialsConfig.AADEndpoint = AadEndpointForType(a.provider.EnvironmentType)
 	return clientCredentialsConfig.Authorizer()
 }
 
@@ -599,6 +605,38 @@ func (a *Azure) Close(ctx context.Context) error {
 
 func (a *Azure) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
+}
+
+func AadEndpointForType(t esv1beta1.AzureEnvironmentType) string {
+	switch t {
+	case esv1beta1.AzureEnvironmentPublicCloud:
+		return azure.PublicCloud.ActiveDirectoryEndpoint
+	case esv1beta1.AzureEnvironmentChinaCloud:
+		return azure.ChinaCloud.ActiveDirectoryEndpoint
+	case esv1beta1.AzureEnvironmentUSGovernmentCloud:
+		return azure.USGovernmentCloud.ActiveDirectoryEndpoint
+	case esv1beta1.AzureEnvironmentGermanCloud:
+		return azure.GermanCloud.ActiveDirectoryEndpoint
+	default:
+		return azure.PublicCloud.ActiveDirectoryEndpoint
+	}
+}
+
+func kvResourceForProviderConfig(t esv1beta1.AzureEnvironmentType) string {
+	var res string
+	switch t {
+	case esv1beta1.AzureEnvironmentPublicCloud:
+		res = azure.PublicCloud.KeyVaultEndpoint
+	case esv1beta1.AzureEnvironmentChinaCloud:
+		res = azure.ChinaCloud.KeyVaultEndpoint
+	case esv1beta1.AzureEnvironmentUSGovernmentCloud:
+		res = azure.USGovernmentCloud.KeyVaultEndpoint
+	case esv1beta1.AzureEnvironmentGermanCloud:
+		res = azure.GermanCloud.KeyVaultEndpoint
+	default:
+		res = azure.PublicCloud.KeyVaultEndpoint
+	}
+	return strings.TrimSuffix(res, "/")
 }
 
 func getObjType(ref esv1beta1.ExternalSecretDataRemoteRef) (string, string) {

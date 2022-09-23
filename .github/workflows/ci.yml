@@ -10,9 +10,8 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.42.1'
-  KUBERNETES_VERSION: '1.23.x'
+  GOLANGCI_VERSION: 'v1.49.0'
+  KUBERNETES_VERSION: '1.24.x'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
@@ -50,7 +49,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -62,15 +61,15 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-lint-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-lint-
+          key: ${{ runner.os }}-build-lint-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-lint-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
       # This action uses its own setup-go, which always seems to use the latest
       # stable version of Go. We could run 'make lint' to ensure our desired Go
@@ -96,7 +95,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -108,20 +107,20 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-check-diff-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-check-diff-
+          key: ${{ runner.os }}-build-check-diff-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-check-diff-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
       # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
         run: |
-          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.42.1
+          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s ${{ env.GOLANGCI_VERSION }}
           export PATH=$PATH:./bin
           make check-diff
 
@@ -140,7 +139,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -152,15 +151,15 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-unit-tests-
+          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
       - name: Add setup-envtest
         run: |
@@ -211,7 +210,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -223,15 +222,15 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-publish-artifacts-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-publish-artifacts-
+          key: ${{ runner.os }}-build-publish-artifacts-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-publish-artifacts-${{ github.sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
       - name: Login to Docker
         uses: docker/login-action@v2
@@ -247,6 +246,22 @@ jobs:
           BUILD_ARGS: "--push --platform linux/amd64,linux/arm64"
         run: make docker.build
 
+      - name: Get docker image tag
+        if: env.GHCR_USERNAME != ''
+        id: image_version
+        run: echo "::set-output name=image::$(make docker.image)"
+
+      - name: Run Trivy vulnerability scanner
+        if: env.GHCR_USERNAME != ''
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ steps.image_version.outputs.image }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
       - name: Promote Artifacts to main release channel
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
         run: make docker.promote
@@ -259,7 +274,7 @@ jobs:
 
       - name: Install cosign
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@v2.5.0
+        uses: sigstore/cosign-installer@v2.6.0
 
       - name: Sign Artifacts to main release channel
         if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''

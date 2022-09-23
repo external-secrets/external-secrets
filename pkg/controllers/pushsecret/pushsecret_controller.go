@@ -127,7 +127,7 @@ func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.
 		if err != nil {
 			return fmt.Errorf(errGetSecretsClientFailed)
 		}
-		defer func() {
+		defer func() { //nolint
 			err := client.Close(ctx)
 			if err != nil {
 				r.Log.Error(err, errCloseStoreClient)

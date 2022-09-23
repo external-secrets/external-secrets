@@ -5,8 +5,7 @@ on:
 
 env:
   # Common versions
-  GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.33'
+  GINKGO_VERSION: 'v2.1.6'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
@@ -102,14 +101,13 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v3
       with:
-        go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
     - name: Find the Go Cache
       id: go
       run: |
         echo "::set-output name=build-cache::$(go env GOCACHE)"
         echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
     - name: Cache the Go Build Cache
       uses: actions/cache@v3
       with:
@@ -197,7 +195,7 @@ jobs:
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
         PROVIDER=${{github.event.client_payload.slash_command.args.named.provider}}
-        go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
+        go install github.com/onsi/ginkgo/v2/ginkgo@${{env.GINKGO_VERSION}}
         make test.e2e.managed GINKGO_LABELS="${PROVIDER}" TEST_SUITES="provider"
 
     - name: Destroy TF

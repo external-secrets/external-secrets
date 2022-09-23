@@ -48,7 +48,7 @@ const (
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+	return esv1beta1.SecretStoreReadWrite
 }
 
 // NewClient constructs a new secrets client based on the provided store.

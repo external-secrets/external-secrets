@@ -39,12 +39,6 @@ kubectl create clusterrolebinding service-account-issuer-discovery-binding \
   --clusterrole=system:service-account-issuer-discovery \
   --group=system:unauthenticated || true
 
-echo -e "Waiting service account..."; \
-until kubectl get secret | grep -q -e ^external-secrets-e2e-token; do \
-  echo -e "waiting for api token"; \
-  sleep 3; \
-done
-
 echo -e "Starting the e2e test pod ${E2E_IMAGE_REGISTRY}:${VERSION}"
 kubectl run --rm \
   --attach \

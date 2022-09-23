@@ -19,9 +19,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -32,7 +34,6 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -48,9 +49,12 @@ type SecretsManager struct {
 // SMInterface is a subset of the smiface api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/secretsmanager/secretsmanageriface/
 type SMInterface interface {
-	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error)
+	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
+	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
+	PutSecretValueWithContext(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
+	DescribeSecretWithContext(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
 }
 
 const (
@@ -109,12 +113,68 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
+	managedBy := "managed-by"
+	externalSecrets := "external-secrets"
+	externalSecretsTag := []*awssm.Tag{
+		{
+			Key:   &managedBy,
+			Value: &externalSecrets,
+		},
+	}
 	secretRequest := awssm.CreateSecretInput{
 		Name:         &secretName,
 		SecretBinary: value,
+		Tags:         externalSecretsTag,
 	}
 
-	_, err := sm.client.CreateSecretWithContext(ctx, &secretRequest)
+	secretValue := awssm.GetSecretValueInput{
+		SecretId: &secretName,
+	}
+
+	secretInput := awssm.DescribeSecretInput{
+		SecretId: &secretName,
+	}
+
+	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+
+	if err == nil {
+		data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+		if err != nil {
+			return err
+		}
+
+		for _, tag := range data.Tags {
+			if *tag.Key == managedBy && *tag.Value == externalSecrets {
+				goto TAGGED
+			} else {
+				return fmt.Errorf("secret not managed by external-secrets")
+			}
+		}
+	}
+TAGGED:
+	if awsSecret != nil && reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
+		return nil
+	} else if awsSecret.ARN != nil {
+		input := &awssm.PutSecretValueInput{
+			SecretId:     awsSecret.ARN,
+			SecretBinary: value,
+		}
+		_, err := sm.client.PutSecretValueWithContext(ctx, input)
+		if err != nil {
+			return err
+		}
+	}
+
+	var aerr awserr.Error
+	if ok := errors.As(err, &aerr); ok {
+		if aerr.Code() != awssm.ErrCodeResourceNotFoundException {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
 
 	if err != nil {
 		return err
@@ -176,7 +236,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 			break
 		}
 	}
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	return data, nil
 }
 
 func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -227,7 +287,7 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 			break
 		}
 	}
-	return utils.ConvertKeys(ref.ConversionStrategy, data)
+	return data, nil
 }
 
 func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
@@ -273,7 +333,7 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	}
 	// We need to search if a given key with a . exists before using gjson operations.
 	idx := strings.Index(ref.Property, ".")
-	if idx > 0 {
+	if idx > -1 {
 		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if val.Exists() {
@@ -325,5 +385,5 @@ func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (sm *SecretsManager) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+	return esv1beta1.SecretStoreReadWrite
 }
