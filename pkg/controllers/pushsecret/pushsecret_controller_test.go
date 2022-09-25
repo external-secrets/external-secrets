@@ -111,6 +111,11 @@ var _ = Describe("ExternalSecret controller", func() {
 				Namespace: PushSecretNamespace,
 			},
 		})
+		k8sClient.Delete(context.Background(), &v1beta1.ClusterSecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: PushSecretStore,
+			},
+		})
 		k8sClient.Delete(context.Background(), &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      SecretName,
@@ -142,10 +147,8 @@ var _ = Describe("ExternalSecret controller", func() {
 						{
 							Match: v1alpha1.PushSecretMatch{
 								SecretKey: "key",
-								RemoteRefs: []v1alpha1.PushSecretRemoteRefs{
-									{
-										RemoteKey: "path/to/key",
-									},
+								RemoteRef: v1alpha1.PushSecretRemoteRef{
+									RemoteKey: "path/to/key",
 								},
 							},
 						},
@@ -184,7 +187,73 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			secretValue := secret.Data["key"]
-			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRefs[0].RemoteKey].Value
+			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionTrue,
+				Reason:  v1alpha1.ReasonSynced,
+				Message: "PushSecret synced successfully",
+			}
+			return bytes.Equal(secretValue, providerValue) && checkCondition(ps.Status, expected)
+		}
+	}
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	syncMatchingLabels := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"foo": "bar",
+							},
+						},
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: "key",
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: "path/to/key",
+							},
+						},
+					},
+				},
+			},
+		}
+		tc.store = &v1beta1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretStore,
+				Namespace: PushSecretNamespace,
+				Labels: map[string]string{
+					"foo": "bar",
+				},
+			},
+			Spec: v1beta1.SecretStoreSpec{
+				Provider: &v1beta1.SecretStoreProvider{
+					Fake: &v1beta1.FakeProvider{
+						Data: []v1beta1.FakeProviderData{},
+					},
+				},
+			},
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			secretValue := secret.Data["key"]
+			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
 			expected := v1alpha1.PushSecretStatusCondition{
 				Type:    v1alpha1.PushSecretReady,
 				Status:  v1.ConditionTrue,
@@ -213,7 +282,72 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.pushsecret.Spec.SecretStoreRefs[0].Kind = "ClusterSecretStore"
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			secretValue := secret.Data["key"]
-			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRefs[0].RemoteKey].Value
+			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionTrue,
+				Reason:  v1alpha1.ReasonSynced,
+				Message: "PushSecret synced successfully",
+			}
+			return bytes.Equal(secretValue, providerValue) && checkCondition(ps.Status, expected)
+		}
+	}
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	syncWithClusterStoreMatchingLabels := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"foo": "bar",
+							},
+						},
+						Kind: "ClusterSecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: "key",
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: "path/to/key",
+							},
+						},
+					},
+				},
+			},
+		}
+		tc.store = &v1beta1.ClusterSecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: PushSecretStore,
+				Labels: map[string]string{
+					"foo": "bar",
+				},
+			},
+			Spec: v1beta1.SecretStoreSpec{
+				Provider: &v1beta1.SecretStoreProvider{
+					Fake: &v1beta1.FakeProvider{
+						Data: []v1beta1.FakeProviderData{},
+					},
+				},
+			},
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			secretValue := secret.Data["key"]
+			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
 			expected := v1alpha1.PushSecretStatusCondition{
 				Type:    v1alpha1.PushSecretReady,
 				Status:  v1.ConditionTrue,
@@ -349,7 +483,9 @@ var _ = Describe("ExternalSecret controller", func() {
 			// this must be optional so we can test faulty es configuration
 		},
 		Entry("should sync", syncSuccessfully),
+		Entry("should sync to stores matching labels", syncMatchingLabels),
 		Entry("should sync with ClusterStore", syncWithClusterStore),
+		Entry("should sync with ClusterStore matching labels", syncWithClusterStoreMatchingLabels),
 		Entry("should fail if Secret is not created", failNoSecret),
 		Entry("should fail if Secret Key does not exist", failNoSecretKey),
 		Entry("should fail if SetSecret fails", setSecretFail),

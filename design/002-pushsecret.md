@@ -24,7 +24,7 @@ The Secret Sink is a feature to allow Secrets from Kubernetes to be saved back i
 Secret Sink allows some inCluster generated secrets to also be available on a given secret provider. It also allows multiple Providers having the same secret (which means a way to perform failover in case a given secret provider is on downtime or compromised for whatever the reason).
 
 ### Goals
-- CRD Design for the PushSecret
+- CRD Design for the SecretSink
 - Define the need for a SinkStore
 -
 ### Non-Goals
