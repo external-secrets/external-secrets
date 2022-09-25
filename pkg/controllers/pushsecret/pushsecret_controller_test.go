@@ -27,6 +27,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	v1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -52,6 +53,18 @@ func init() {
 	v1beta1.ForceRegister(fakeProvider, &v1beta1.SecretStoreProvider{
 		Fake: &v1beta1.FakeProvider{},
 	})
+}
+
+func checkCondition(status v1alpha1.PushSecretStatus, cond v1alpha1.PushSecretStatusCondition) bool {
+	for _, condition := range status.Conditions {
+		if condition.Message == cond.Message &&
+			condition.Reason == cond.Reason &&
+			condition.Status == cond.Status &&
+			condition.Type == cond.Type {
+			return true
+		}
+	}
+	return false
 }
 
 type testTweaks func(*testCase)
@@ -172,7 +185,42 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			secretValue := secret.Data["key"]
 			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRefs[0].RemoteKey].Value
-			return bytes.Equal(secretValue, providerValue)
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionTrue,
+				Reason:  v1alpha1.ReasonSynced,
+				Message: "PushSecret synced successfully",
+			}
+			return bytes.Equal(secretValue, providerValue) && checkCondition(ps.Status, expected)
+		}
+	}
+	syncWithClusterStore := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.store = &v1beta1.ClusterSecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: PushSecretStore,
+			},
+			Spec: v1beta1.SecretStoreSpec{
+				Provider: &v1beta1.SecretStoreProvider{
+					Fake: &v1beta1.FakeProvider{
+						Data: []v1beta1.FakeProviderData{},
+					},
+				},
+			},
+		}
+		tc.pushsecret.Spec.SecretStoreRefs[0].Kind = "ClusterSecretStore"
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			secretValue := secret.Data["key"]
+			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRefs[0].RemoteKey].Value
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionTrue,
+				Reason:  v1alpha1.ReasonSynced,
+				Message: "PushSecret synced successfully",
+			}
+			return bytes.Equal(secretValue, providerValue) && checkCondition(ps.Status, expected)
 		}
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
@@ -182,7 +230,29 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.secret = nil
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			return ps.Status.Conditions[0].Reason == v1alpha1.ReasonErrored
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionFalse,
+				Reason:  v1alpha1.ReasonErrored,
+				Message: "could not get source secret",
+			}
+			return checkCondition(ps.Status, expected)
+		}
+	}
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	failNoSecretKey := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret.Spec.Data[0].Match.SecretKey = "unexisting"
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionFalse,
+				Reason:  v1alpha1.ReasonErrored,
+				Message: "set secret failed: secret key unexisting does not exist",
+			}
+			return checkCondition(ps.Status, expected)
 		}
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
@@ -192,16 +262,60 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.store = nil
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			return ps.Status.Conditions[0].Reason == v1alpha1.ReasonErrored
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionFalse,
+				Reason:  v1alpha1.ReasonErrored,
+				Message: "could not get SecretStore \"test-store\", secretstores.external-secrets.io \"test-store\" not found",
+			}
+			return checkCondition(ps.Status, expected)
 		}
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
+	failNoClusterStore := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.store = nil
+		tc.pushsecret.Spec.SecretStoreRefs[0].Kind = "ClusterSecretStore"
+		tc.pushsecret.Spec.SecretStoreRefs[0].Name = "unexisting"
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionFalse,
+				Reason:  v1alpha1.ReasonErrored,
+				Message: "could not get ClusterSecretStore \"unexisting\", clustersecretstores.external-secrets.io \"unexisting\" not found",
+			}
+			return checkCondition(ps.Status, expected)
+		}
+	} // if target Secret name is not specified it should use the ExternalSecret name.
 	setSecretFail := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return fmt.Errorf("boom")
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			return ps.Status.Conditions[0].Reason == v1alpha1.ReasonErrored
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionFalse,
+				Reason:  v1alpha1.ReasonErrored,
+				Message: "set secret failed: could not write remote ref key to target secretstore test-store: boom",
+			}
+			return checkCondition(ps.Status, expected)
+		}
+	}
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	newClientFail := func(tc *testCase) {
+		fakeProvider.NewFn = func(context.Context, v1beta1.GenericStore, client.Client, string) (v1beta1.SecretsClient, error) {
+			return nil, fmt.Errorf("boom")
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionFalse,
+				Reason:  v1alpha1.ReasonErrored,
+				Message: "set secret failed: could not start secrets client",
+			}
+			return checkCondition(ps.Status, expected)
 		}
 	}
 	DescribeTable("When reconciling a PushSecret",
@@ -234,9 +348,13 @@ var _ = Describe("ExternalSecret controller", func() {
 			}, timeout, interval).Should(BeTrue())
 			// this must be optional so we can test faulty es configuration
 		},
-		Entry("should work as we are not doing anything at all!", syncSuccessfully),
+		Entry("should sync", syncSuccessfully),
+		Entry("should sync with ClusterStore", syncWithClusterStore),
 		Entry("should fail if Secret is not created", failNoSecret),
+		Entry("should fail if Secret Key does not exist", failNoSecretKey),
 		Entry("should fail if SetSecret fails", setSecretFail),
 		Entry("should fail if no valid SecretStore", failNoSecretStore),
+		Entry("should fail if no valid ClusterSecretStore", failNoClusterStore),
+		Entry("should fail if NewClient fails", newClientFail),
 	)
 })
