@@ -25,9 +25,12 @@ const (
 )
 
 type PushSecretStoreRef struct {
-	// Name of the SecretStore resource
+	// Optionally, sync to the SecretStore of the given name
+	// +optional
 	Name string `json:"name"`
-
+	// Optionally, sync to secret stores with label selector
+	// +optional
+	LabelSelector *metav1.LabelSelector `json:"labelSelector"`
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// Defaults to `SecretStore`
 	// +optional
@@ -36,34 +39,43 @@ type PushSecretStoreRef struct {
 
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
+	// The Interval to which External Secrets will try to push a secret definition
 	RefreshInterval *metav1.Duration     `json:"refreshInterval,omitempty"`
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
-	Selector        PushSecretSelector   `json:"selector"`
-	Data            []PushSecretData     `json:"data,omitempty"`
+	// The Secret Selector (k8s source) for the Push Secret
+	Selector PushSecretSelector `json:"selector"`
+	// Secret Data that should be pushed to providers
+	Data []PushSecretData `json:"data,omitempty"`
 }
 
 type PushSecretSecret struct {
+	// Name of the Secret. The Secret must exist in the same namespace as the PushSecret manifest.
 	Name string `json:"name"`
 }
 
 type PushSecretSelector struct {
+	// Select a Secret to Push.
 	Secret PushSecretSecret `json:"secret"`
 }
 
-type PushSecretRemoteRefs struct {
+type PushSecretRemoteRef struct {
+	// Name of the resulting provider secret.
 	RemoteKey string `json:"remoteKey"`
 }
 
-func (r PushSecretRemoteRefs) GetRemoteKey() string {
+func (r PushSecretRemoteRef) GetRemoteKey() string {
 	return r.RemoteKey
 }
 
 type PushSecretMatch struct {
-	SecretKey  string                 `json:"secretKey"`
-	RemoteRefs []PushSecretRemoteRefs `json:"remoteRefs"`
+	// Secret Key to be pushed
+	SecretKey string `json:"secretKey"`
+	// Remote Refs to push to providers.
+	RemoteRef PushSecretRemoteRef `json:"remoteRef"`
 }
 
 type PushSecretData struct {
+	// Match a given Secret Key to be pushed to the provider.
 	Match PushSecretMatch `json:"match"`
 }
 

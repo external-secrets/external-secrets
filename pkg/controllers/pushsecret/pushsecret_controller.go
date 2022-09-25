@@ -93,7 +93,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, err.Error())
 		return ctrl.Result{}, err
 	}
-	err = r.SetSecretToProviders(ctx, secretStores, ps, secret)
+	err = r.PushSecretToProviders(ctx, secretStores, ps, secret)
 	if err != nil {
 		msg := fmt.Sprintf(errFailedSetSecret, err)
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
@@ -106,18 +106,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	ps = SetPushSecretCondition(ps, *cond)
 	// Set status for PushSecret
 	r.recorder.Event(&ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
-
-	if refreshInt == 0 {
-		return ctrl.Result{
-			RequeueAfter: 0,
-			Requeue:      false,
-		}, nil
-	}
-
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) error {
+func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) error {
 	for _, store := range stores {
 		provider, err := v1beta1.GetProvider(store)
 		if err != nil {
@@ -138,11 +130,9 @@ func (r *Reconciler) SetSecretToProviders(ctx context.Context, stores []v1beta1.
 			if !ok {
 				return fmt.Errorf("secret key %v does not exist", ref.Match.SecretKey)
 			}
-			for _, rK := range ref.Match.RemoteRefs {
-				err := client.SetSecret(ctx, secretValue, rK)
-				if err != nil {
-					return fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
-				}
+			err := client.SetSecret(ctx, secretValue, ref.Match.RemoteRef)
+			if err != nil {
+				return fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
 			}
 		}
 	}
@@ -162,26 +152,52 @@ func (r *Reconciler) GetSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Se
 func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) ([]v1beta1.GenericStore, error) {
 	stores := make([]v1beta1.GenericStore, 0)
 	for _, refStore := range ps.Spec.SecretStoreRefs {
-		ref := types.NamespacedName{
-			Name: refStore.Name,
+		if refStore.LabelSelector != nil {
+			labelSelector, err := metav1.LabelSelectorAsSelector(refStore.LabelSelector)
+			if err != nil {
+				return nil, fmt.Errorf("could not convert labels: %w", err)
+			}
+			if refStore.Kind == v1beta1.ClusterSecretStoreKind {
+				clusterSecretStoreList := v1beta1.ClusterSecretStoreList{}
+				err = r.List(ctx, &clusterSecretStoreList, &client.ListOptions{LabelSelector: labelSelector})
+				if err != nil {
+					return nil, fmt.Errorf("could not list cluster Secret Stores: %w", err)
+				}
+				for i := range clusterSecretStoreList.Items {
+					stores = append(stores, &clusterSecretStoreList.Items[i])
+				}
+			} else {
+				secretStoreList := v1beta1.SecretStoreList{}
+				err = r.List(ctx, &secretStoreList, &client.ListOptions{LabelSelector: labelSelector})
+				if err != nil {
+					return nil, fmt.Errorf("could not list Secret Stores: %w", err)
+				}
+				for i := range secretStoreList.Items {
+					stores = append(stores, &secretStoreList.Items[i])
+				}
+			}
 		}
-
-		if refStore.Kind == v1beta1.ClusterSecretStoreKind {
-			var store v1beta1.ClusterSecretStore
-			err := r.Get(ctx, ref, &store)
-			if err != nil {
-				return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
+		if refStore.Name != "" {
+			ref := types.NamespacedName{
+				Name: refStore.Name,
 			}
-			stores = append(stores, &store)
-		} else {
-			ref.Namespace = ps.Namespace
+			if refStore.Kind == v1beta1.ClusterSecretStoreKind {
+				var store v1beta1.ClusterSecretStore
+				err := r.Get(ctx, ref, &store)
+				if err != nil {
+					return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
+				}
+				stores = append(stores, &store)
+			} else {
+				ref.Namespace = ps.Namespace
 
-			var store v1beta1.SecretStore
-			err := r.Get(ctx, ref, &store)
-			if err != nil {
-				return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
+				var store v1beta1.SecretStore
+				err := r.Get(ctx, ref, &store)
+				if err != nil {
+					return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
+				}
+				stores = append(stores, &store)
 			}
-			stores = append(stores, &store)
 		}
 	}
 	return stores, nil
