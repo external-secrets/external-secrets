@@ -93,6 +93,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, err.Error())
 		return ctrl.Result{}, err
 	}
+
 	err = r.PushSecretToProviders(ctx, secretStores, ps, secret)
 	if err != nil {
 		msg := fmt.Sprintf(errFailedSetSecret, err)
@@ -108,8 +109,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	r.recorder.Event(&ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
-
 func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) error {
+	// TODO - Delete Secrets from Stores if they no longer exist in spec but still exist in status
 	for _, store := range stores {
 		provider, err := v1beta1.GetProvider(store)
 		if err != nil {
@@ -135,6 +136,7 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1
 				return fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
 			}
 		}
+		// TODO - for ref in Status.Synced[store], ref not belonging to ps.Spec.Data, remove ref from provider.
 	}
 	return nil
 }

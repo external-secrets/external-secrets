@@ -110,7 +110,8 @@ type PushSecretStatus struct {
 
 	// SyncedResourceVersion keeps track of the last synced version.
 	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
-
+	// Synced Push Secrets for later deletion. Matches Secret Stores to PushSecretData that was stored to that secretStore.
+	SyncedPushSecrets map[string]PushSecretData
 	// +optional
 	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
 }
