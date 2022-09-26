@@ -125,7 +125,7 @@ jobs:
 
       - name: Install cosign
         if: env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@v2.6.0
+        uses: sigstore/cosign-installer@v2.7.0
 
       - name: Sign Container Image
         if: env.GHCR_USERNAME != ''
