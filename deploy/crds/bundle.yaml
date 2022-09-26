@@ -3413,9 +3413,40 @@ spec:
                   format: date-time
                   nullable: true
                   type: string
+                syncedPushSecrets:
+                  additionalProperties:
+                    items:
+                      properties:
+                        match:
+                          description: Match a given Secret Key to be pushed to the provider.
+                          properties:
+                            remoteRef:
+                              description: Remote Refs to push to providers.
+                              properties:
+                                remoteKey:
+                                  description: Name of the resulting provider secret.
+                                  type: string
+                              required:
+                                - remoteKey
+                              type: object
+                            secretKey:
+                              description: Secret Key to be pushed
+                              type: string
+                          required:
+                            - remoteRef
+                            - secretKey
+                          type: object
+                      required:
+                        - match
+                      type: object
+                    type: array
+                  description: Synced Push Secrets for later deletion. Matches Secret Stores to PushSecretData that was stored to that secretStore.
+                  type: object
                 syncedResourceVersion:
                   description: SyncedResourceVersion keeps track of the last synced version.
                   type: string
+              required:
+                - syncedPushSecrets
               type: object
           type: object
       served: true

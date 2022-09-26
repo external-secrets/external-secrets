@@ -100,6 +100,7 @@ type PushSecretStatusCondition struct {
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
+type SyncedPushSecretsMap map[string][]PushSecretData
 
 // PushSecretStatus indicates the history of the status of PushSecret.
 type PushSecretStatus struct {
@@ -111,7 +112,7 @@ type PushSecretStatus struct {
 	// SyncedResourceVersion keeps track of the last synced version.
 	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
 	// Synced Push Secrets for later deletion. Matches Secret Stores to PushSecretData that was stored to that secretStore.
-	SyncedPushSecrets map[string]PushSecretData
+	SyncedPushSecrets SyncedPushSecretsMap `json:"syncedPushSecrets"`
 	// +optional
 	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
 }

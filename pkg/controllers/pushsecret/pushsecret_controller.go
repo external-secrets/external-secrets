@@ -94,31 +94,38 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	err = r.PushSecretToProviders(ctx, secretStores, ps, secret)
+	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret)
 	if err != nil {
 		msg := fmt.Sprintf(errFailedSetSecret, err)
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 		ps = SetPushSecretCondition(ps, *cond)
+		r.SetSyncedSecrets(&ps, syncedSecrets)
 		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 		return ctrl.Result{}, err
 	}
 	msg := "PushSecret synced successfully"
 	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
 	ps = SetPushSecretCondition(ps, *cond)
-	// Set status for PushSecret
+	r.SetSyncedSecrets(&ps, syncedSecrets)
 	r.recorder.Event(&ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
-func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) error {
+func (r *Reconciler) SetSyncedSecrets(ps *esapi.PushSecret, status esapi.SyncedPushSecretsMap) {
+	ps.Status.SyncedPushSecrets = status
+}
+
+func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) (esapi.SyncedPushSecretsMap, error) {
 	// TODO - Delete Secrets from Stores if they no longer exist in spec but still exist in status
+	out := esapi.SyncedPushSecretsMap{}
 	for _, store := range stores {
+		out[store.GetName()] = make([]esapi.PushSecretData, 0)
 		provider, err := v1beta1.GetProvider(store)
 		if err != nil {
-			return fmt.Errorf(errGetProviderFailed)
+			return out, fmt.Errorf(errGetProviderFailed)
 		}
 		client, err := provider.NewClient(ctx, store, r.Client, ps.Namespace)
 		if err != nil {
-			return fmt.Errorf(errGetSecretsClientFailed)
+			return out, fmt.Errorf(errGetSecretsClientFailed)
 		}
 		defer func() { //nolint
 			err := client.Close(ctx)
@@ -129,18 +136,18 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1
 		for _, ref := range ps.Spec.Data {
 			secretValue, ok := secret.Data[ref.Match.SecretKey]
 			if !ok {
-				return fmt.Errorf("secret key %v does not exist", ref.Match.SecretKey)
+				return out, fmt.Errorf("secret key %v does not exist", ref.Match.SecretKey)
 			}
 			err := client.SetSecret(ctx, secretValue, ref.Match.RemoteRef)
 			if err != nil {
-				return fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
+				return out, fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
 			}
+			out[store.GetName()] = append(out[store.GetName()], ref)
 		}
 		// TODO - for ref in Status.Synced[store], ref not belonging to ps.Spec.Data, remove ref from provider.
 	}
-	return nil
+	return out, nil
 }
-
 func (r *Reconciler) GetSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Secret, error) {
 	secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
 	secret := &v1.Secret{}
