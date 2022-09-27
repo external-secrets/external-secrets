@@ -60,8 +60,16 @@ var (
 	ClusterSecretStoreGroupVersionKind = SchemeGroupVersion.WithKind(ClusterSecretStoreKind)
 )
 
+var (
+	PushSecretKind             = reflect.TypeOf(PushSecret{}).Name()
+	PushSecretGroupKind        = schema.GroupKind{Group: Group, Kind: PushSecretKind}.String()
+	PushSecretKindAPIVersion   = PushSecretKind + "." + SchemeGroupVersion.String()
+	PushSecretGroupVersionKind = SchemeGroupVersion.WithKind(PushSecretKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
 	SchemeBuilder.Register(&SecretStore{}, &SecretStoreList{})
 	SchemeBuilder.Register(&ClusterSecretStore{}, &ClusterSecretStoreList{})
+	SchemeBuilder.Register(&PushSecret{}, &PushSecretList{})
 }
