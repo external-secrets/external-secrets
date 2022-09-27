@@ -114,11 +114,48 @@ func (r *Reconciler) SetSyncedSecrets(ps *esapi.PushSecret, status esapi.SyncedP
 	ps.Status.SyncedPushSecrets = status
 }
 
+func (r *Reconciler) DeleteSecretFromProviders(newMap, oldMap esapi.SyncedPushSecretsMap) error {
+	var err error
+	for store, oldData := range oldMap {
+		newData, ok := newMap[store]
+		if !ok {
+			err = r.DeleteAllSecretsFromStore(store, oldData)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		for oldEntry, oldRef := range oldData {
+			_, ok := newData[oldEntry]
+			if !ok {
+				err = r.DeleteSecretFromStore(store, oldRef)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) DeleteAllSecretsFromStore(store string, data map[string]esapi.PushSecretData) error {
+	for _, v := range data {
+		err := r.DeleteSecretFromStore(store, v)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) DeleteSecretFromStore(store string, data esapi.PushSecretData) error {
+	return nil
+}
+
 func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) (esapi.SyncedPushSecretsMap, error) {
-	// TODO - Delete Secrets from Stores if they no longer exist in spec but still exist in status
 	out := esapi.SyncedPushSecretsMap{}
 	for _, store := range stores {
-		out[store.GetName()] = make([]esapi.PushSecretData, 0)
+		out[store.GetName()] = make(map[string]esapi.PushSecretData)
 		provider, err := v1beta1.GetProvider(store)
 		if err != nil {
 			return out, fmt.Errorf(errGetProviderFailed)
@@ -142,9 +179,8 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1
 			if err != nil {
 				return out, fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
 			}
-			out[store.GetName()] = append(out[store.GetName()], ref)
+			out[store.GetName()][ref.Match.RemoteRef.RemoteKey] = ref
 		}
-		// TODO - for ref in Status.Synced[store], ref not belonging to ps.Spec.Data, remove ref from provider.
 	}
 	return out, nil
 }

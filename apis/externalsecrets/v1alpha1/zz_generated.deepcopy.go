@@ -1172,13 +1172,15 @@ func (in *PushSecretStatus) DeepCopyInto(out *PushSecretStatus) {
 		in, out := &in.SyncedPushSecrets, &out.SyncedPushSecrets
 		*out = make(SyncedPushSecretsMap, len(*in))
 		for key, val := range *in {
-			var outVal []PushSecretData
+			var outVal map[string]PushSecretData
 			if val == nil {
 				(*out)[key] = nil
 			} else {
 				in, out := &val, &outVal
-				*out = make([]PushSecretData, len(*in))
-				copy(*out, *in)
+				*out = make(map[string]PushSecretData, len(*in))
+				for key, val := range *in {
+					(*out)[key] = val
+				}
 			}
 			(*out)[key] = outVal
 		}
@@ -1502,13 +1504,15 @@ func (in SyncedPushSecretsMap) DeepCopyInto(out *SyncedPushSecretsMap) {
 		in := &in
 		*out = make(SyncedPushSecretsMap, len(*in))
 		for key, val := range *in {
-			var outVal []PushSecretData
+			var outVal map[string]PushSecretData
 			if val == nil {
 				(*out)[key] = nil
 			} else {
 				in, out := &val, &outVal
-				*out = make([]PushSecretData, len(*in))
-				copy(*out, *in)
+				*out = make(map[string]PushSecretData, len(*in))
+				for key, val := range *in {
+					(*out)[key] = val
+				}
 			}
 			(*out)[key] = outVal
 		}

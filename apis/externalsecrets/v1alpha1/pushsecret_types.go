@@ -100,7 +100,7 @@ type PushSecretStatusCondition struct {
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
-type SyncedPushSecretsMap map[string][]PushSecretData
+type SyncedPushSecretsMap map[string]map[string]PushSecretData
 
 // PushSecretStatus indicates the history of the status of PushSecret.
 type PushSecretStatus struct {
