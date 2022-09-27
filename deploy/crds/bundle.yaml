@@ -3445,8 +3445,6 @@ spec:
                 syncedResourceVersion:
                   description: SyncedResourceVersion keeps track of the last synced version.
                   type: string
-              required:
-                - syncedPushSecrets
               type: object
           type: object
       served: true
