@@ -73,7 +73,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate helm.generate lint ## Ensure a PR is ready for review.
+reviewable: generate helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
 
 golicenses.check: ## Check install of go-licenses

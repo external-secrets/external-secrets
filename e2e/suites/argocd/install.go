@@ -21,7 +21,7 @@ import (
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 
-	"github.com/external-secrets/external-secrets/e2e/framework/addon"
+	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 )
 
 const (
@@ -51,7 +51,6 @@ func installArgo(cfg *addon.Config) {
 
 func installESO(cfg *addon.Config) {
 	By("installing helm http server")
-	repo := os.Getenv("IMAGE_NAME")
 	tag := os.Getenv("VERSION")
 	addon.InstallGlobalAddon(&addon.HelmServer{
 		ChartDir:      "/k8s/deploy/charts/external-secrets",
@@ -69,15 +68,12 @@ func installESO(cfg *addon.Config) {
 		HelmValues: fmt.Sprintf(`
 installCRDs: true
 image:
-  repository: %s
   tag: %s
 webhook:
   image:
-    repository: %s
     tag: %s
 certController:
   image:
-    repository: %s
-    tag: %s`, repo, tag, repo, tag, repo, tag),
+    tag: %s`, tag, tag, tag),
 	}, cfg)
 }

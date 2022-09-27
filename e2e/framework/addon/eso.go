@@ -34,20 +34,8 @@ func NewESO(mutators ...MutationFunc) *ESO {
 			Chart:       "/k8s/deploy/charts/external-secrets",
 			Vars: []StringTuple{
 				{
-					Key:   "image.repository",
-					Value: os.Getenv("IMAGE_NAME"),
-				},
-				{
 					Key:   "webhook.port",
 					Value: "9443",
-				},
-				{
-					Key:   "webhook.image.repository",
-					Value: os.Getenv("IMAGE_NAME"),
-				},
-				{
-					Key:   "certController.image.repository",
-					Value: os.Getenv("IMAGE_NAME"),
 				},
 				{
 					Key:   "webhook.image.tag",

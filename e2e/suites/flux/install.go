@@ -25,7 +25,7 @@ import (
 	// nolint
 	. "github.com/onsi/gomega"
 
-	"github.com/external-secrets/external-secrets/e2e/framework/addon"
+	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 )
 
 const (
@@ -49,7 +49,6 @@ func installESO(cfg *addon.Config) {
 	}, cfg)
 
 	By("installing eso through flux helmrelease app")
-	repo := os.Getenv("IMAGE_NAME")
 	tag := os.Getenv("VERSION")
 	addon.InstallGlobalAddon(&addon.FluxHelmRelease{
 		Name:            "external-secrets",
@@ -61,21 +60,18 @@ func installESO(cfg *addon.Config) {
 		HelmValues: fmt.Sprintf(`{
 			"installCRDs": true,
 			"image": {
-			  "repository": "%s",
 			  "tag": "%s"
 			},
 			"webhook": {
 			  "image": {
-				"repository": "%s",
 				"tag": "%s"
 			  }
 			},
 			"certController": {
 			  "image": {
-				"repository": "%s",
 				"tag": "%s"
 			  }
 			}
-		  }`, repo, tag, repo, tag, repo, tag),
+		  }`, tag, tag, tag),
 	}, cfg)
 }

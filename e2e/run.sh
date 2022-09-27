@@ -70,7 +70,6 @@ kubectl run --rm \
   --env="ORACLE_REGION=${ORACLE_REGION:-}" \
   --env="ORACLE_FINGERPRINT=${ORACLE_FINGERPRINT:-}" \
   --env="ORACLE_KEY=${ORACLE_KEY:-}" \
-  --env="IMAGE_NAME=${IMAGE_NAME}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
