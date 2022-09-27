@@ -291,10 +291,6 @@ func TestValidateStore(t *testing.T) {
 			err:   fmt.Errorf("projectID cannot be empty"),
 		},
 		{
-			store: makeSecretStore(project, ""),
-			err:   fmt.Errorf("environment cannot be empty"),
-		},
-		{
 			store: makeSecretStore(project, environment, withAccessToken("", userkey, nil)),
 			err:   fmt.Errorf("accessToken.name cannot be empty"),
 		},

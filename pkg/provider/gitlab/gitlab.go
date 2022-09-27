@@ -30,8 +30,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-// Requires GITLAB_TOKEN, GITLAB_PROJECT_ID and GITLAB_ENVIRONMENT to be set in environment variables
-
 const (
 	errGitlabCredSecretName                   = "credentials are empty"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
@@ -254,10 +252,6 @@ func (g *Gitlab) ValidateStore(store esv1beta1.GenericStore) error {
 
 	if gitlabSpec.ProjectID == "" {
 		return fmt.Errorf("projectID cannot be empty")
-	}
-
-	if gitlabSpec.Environment == "" {
-		return fmt.Errorf("environment cannot be empty")
 	}
 
 	if accessToken.Key == "" {

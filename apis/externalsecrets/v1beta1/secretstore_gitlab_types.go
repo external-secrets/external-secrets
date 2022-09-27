@@ -29,7 +29,7 @@ type GitlabProvider struct {
 	// ProjectID specifies a project where secrets are located.
 	ProjectID string `json:"projectID,omitempty"`
 
-	// Environment environment_scope of gitlab CI/CD variables
+	// Environment environment_scope of gitlab CI/CD variables (Please see https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment on how to create environments)
 	Environment string `json:"environment,omitempty"`
 }
 
