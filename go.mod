@@ -95,7 +95,10 @@ require (
 
 require github.com/1Password/connect-sdk-go v1.5.0
 
-require sigs.k8s.io/yaml v1.3.0
+require (
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
+	sigs.k8s.io/yaml v1.3.0
+)
 
 require (
 	cloud.google.com/go/compute v1.9.0 // indirect
