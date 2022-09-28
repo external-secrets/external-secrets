@@ -33,6 +33,7 @@ type PushSecretStoreRef struct {
 	LabelSelector *metav1.LabelSelector `json:"labelSelector"`
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// Defaults to `SecretStore`
+	// +kubebuilder:default="SecretStore"
 	// +optional
 	Kind string `json:"kind,omitempty"`
 }
@@ -51,7 +52,8 @@ type PushSecretSpec struct {
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
 	// Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".
 	// +kubebuilder:default="None"
-	DeletionPolicy PushSecretDeletionPolicy `json:"deletionPolicy"`
+	// +optional
+	DeletionPolicy PushSecretDeletionPolicy `json:"deletionPolicy,omitempty"`
 	// The Secret Selector (k8s source) for the Push Secret
 	Selector PushSecretSelector `json:"selector"`
 	// Secret Data that should be pushed to providers

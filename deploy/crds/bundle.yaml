@@ -3385,6 +3385,7 @@ spec:
                   items:
                     properties:
                       kind:
+                        default: SecretStore
                         description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore) Defaults to `SecretStore`
                         type: string
                       labelSelector:
@@ -3439,7 +3440,6 @@ spec:
                     - secret
                   type: object
               required:
-                - deletionPolicy
                 - secretStoreRefs
                 - selector
               type: object
