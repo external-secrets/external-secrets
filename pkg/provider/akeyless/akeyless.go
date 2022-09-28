@@ -213,6 +213,10 @@ func (a *Akeyless) SetSecret(ctx context.Context, value []byte, remoteRef esv1be
 	return fmt.Errorf("not implemented")
 }
 
+func (a *Akeyless) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Implements store.Client.GetSecret Interface.
 // Retrieves a secret with the secret name defined in ref.Name.
 func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {

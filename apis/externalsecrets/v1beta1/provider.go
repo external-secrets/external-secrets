@@ -70,6 +70,9 @@ type SecretsClient interface {
 	// SetSecret will write a single secret into the provider
 	SetSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error
 
+	// DeleteSecret will delete the secret from a provider
+	DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error
+
 	// Validate checks if the client is configured correctly
 	// and is able to retrieve secrets from the provider.
 	// If the validation result is unknown it will be ignored.

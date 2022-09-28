@@ -3374,6 +3374,10 @@ spec:
                       - match
                     type: object
                   type: array
+                deletionPolicy:
+                  default: None
+                  description: 'Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".'
+                  type: string
                 refreshInterval:
                   description: The Interval to which External Secrets will try to push a secret definition
                   type: string
@@ -3435,6 +3439,7 @@ spec:
                     - secret
                   type: object
               required:
+                - deletionPolicy
                 - secretStoreRefs
                 - selector
               type: object

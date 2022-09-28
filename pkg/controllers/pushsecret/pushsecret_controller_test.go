@@ -447,7 +447,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				Type:    v1alpha1.PushSecretReady,
 				Status:  v1.ConditionFalse,
 				Reason:  v1alpha1.ReasonErrored,
-				Message: "set secret failed: could not start secrets client",
+				Message: "set secret failed: could not get secrets client for store test-store: could not start secrets client",
 			}
 			return checkCondition(ps.Status, expected)
 		}

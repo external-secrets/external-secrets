@@ -16,6 +16,7 @@ package fake
 
 import (
 	"context"
+	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -81,6 +82,10 @@ func (v *Client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 		RemoteRef: remoteRef,
 	}
 	return v.SetSecretFn()
+}
+
+func (v *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
 }
 
 // GetSecret implements the provider.Provider interface.

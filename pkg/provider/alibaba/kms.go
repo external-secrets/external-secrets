@@ -118,6 +118,10 @@ func (kms *KeyManagementService) SetSecret(ctx context.Context, value []byte, re
 	return fmt.Errorf("not implemented")
 }
 
+func (kms *KeyManagementService) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented

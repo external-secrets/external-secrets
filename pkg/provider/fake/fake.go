@@ -101,7 +101,10 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 	return spc.Provider.Fake, nil
 }
 
-// Not Implemented SetSecret.
+func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return nil
+}
+
 func (p *Provider) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	currentData, ok := p.config[remoteRef.GetRemoteKey()]
 	if !ok {

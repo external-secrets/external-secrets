@@ -84,6 +84,10 @@ type GoogleSecretManagerClient interface {
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
 
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // SetSecret pushes a kubernetes secret key into gcp provider Secret.
 func (c *Client) SetSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	createSecretReq := &secretmanagerpb.CreateSecretRequest{

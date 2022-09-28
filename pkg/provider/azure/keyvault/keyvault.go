@@ -201,6 +201,10 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
+func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Not Implemented SetSecret.
 func (a *Azure) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")

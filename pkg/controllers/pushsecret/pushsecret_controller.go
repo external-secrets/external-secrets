@@ -17,6 +17,7 @@ package pushsecret
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -103,6 +104,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 		return ctrl.Result{}, err
 	}
+	switch ps.Spec.DeletionPolicy {
+	case esapi.PushSecretDeletionPolicyDelete:
+		err = r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
+			cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
+			ps = SetPushSecretCondition(ps, *cond)
+			r.SetSyncedSecrets(&ps, syncedSecrets)
+			r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+			return ctrl.Result{}, err
+		}
+	case esapi.PushSecretDeletionPolicyNone:
+	default:
+	}
 	msg := "PushSecret synced successfully"
 	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
 	ps = SetPushSecretCondition(ps, *cond)
@@ -114,12 +129,29 @@ func (r *Reconciler) SetSyncedSecrets(ps *esapi.PushSecret, status esapi.SyncedP
 	ps.Status.SyncedPushSecrets = status
 }
 
-func (r *Reconciler) DeleteSecretFromProviders(newMap, oldMap esapi.SyncedPushSecretsMap) error {
-	var err error
-	for store, oldData := range oldMap {
-		newData, ok := newMap[store]
+func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap) error {
+	for storeName, oldData := range ps.Status.SyncedPushSecrets {
+		storeRef := esapi.PushSecretStoreRef{
+			Name: strings.Split(storeName, "/")[1],
+			Kind: strings.Split(storeName, "/")[0],
+		}
+		store, err := r.getSecretStoreFromName(ctx, storeRef, ps.Namespace)
+		if err != nil {
+			return err
+		}
+		client, err := r.getClientFromStore(ctx, store, ps)
+		if err != nil {
+			return fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
+		}
+		defer func() { //nolint
+			err := client.Close(ctx)
+			if err != nil {
+				r.Log.Error(err, errCloseStoreClient)
+			}
+		}()
+		newData, ok := newMap[storeName]
 		if !ok {
-			err = r.DeleteAllSecretsFromStore(store, oldData)
+			err = r.DeleteAllSecretsFromStore(ctx, client, oldData)
 			if err != nil {
 				return err
 			}
@@ -128,7 +160,7 @@ func (r *Reconciler) DeleteSecretFromProviders(newMap, oldMap esapi.SyncedPushSe
 		for oldEntry, oldRef := range oldData {
 			_, ok := newData[oldEntry]
 			if !ok {
-				err = r.DeleteSecretFromStore(store, oldRef)
+				err = r.DeleteSecretFromStore(ctx, client, oldRef)
 				if err != nil {
 					return err
 				}
@@ -138,9 +170,9 @@ func (r *Reconciler) DeleteSecretFromProviders(newMap, oldMap esapi.SyncedPushSe
 	return nil
 }
 
-func (r *Reconciler) DeleteAllSecretsFromStore(store string, data map[string]esapi.PushSecretData) error {
+func (r *Reconciler) DeleteAllSecretsFromStore(ctx context.Context, client v1beta1.SecretsClient, data map[string]esapi.PushSecretData) error {
 	for _, v := range data {
-		err := r.DeleteSecretFromStore(store, v)
+		err := r.DeleteSecretFromStore(ctx, client, v)
 		if err != nil {
 			return err
 		}
@@ -148,21 +180,30 @@ func (r *Reconciler) DeleteAllSecretsFromStore(store string, data map[string]esa
 	return nil
 }
 
-func (r *Reconciler) DeleteSecretFromStore(store string, data esapi.PushSecretData) error {
-	return nil
+func (r *Reconciler) DeleteSecretFromStore(ctx context.Context, client v1beta1.SecretsClient, data esapi.PushSecretData) error {
+	return client.DeleteSecret(ctx, data.Match.RemoteRef)
 }
 
-func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) (esapi.SyncedPushSecretsMap, error) {
+func (r *Reconciler) getClientFromStore(ctx context.Context, store v1beta1.GenericStore, ps *esapi.PushSecret) (v1beta1.SecretsClient, error) {
+	provider, err := v1beta1.GetProvider(store)
+	if err != nil {
+		return nil, fmt.Errorf(errGetProviderFailed)
+	}
+	client, err := provider.NewClient(ctx, store, r.Client, ps.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf(errGetSecretsClientFailed)
+	}
+	return client, nil
+}
+
+func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi.PushSecretStoreRef]v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) (esapi.SyncedPushSecretsMap, error) {
 	out := esapi.SyncedPushSecretsMap{}
 	for _, store := range stores {
-		out[store.GetName()] = make(map[string]esapi.PushSecretData)
-		provider, err := v1beta1.GetProvider(store)
+		storeKey := fmt.Sprintf("%v/%v", store.GetName(), store.GetObjectKind().GroupVersionKind().Kind)
+		out[storeKey] = make(map[string]esapi.PushSecretData)
+		client, err := r.getClientFromStore(ctx, store, &ps)
 		if err != nil {
-			return out, fmt.Errorf(errGetProviderFailed)
-		}
-		client, err := provider.NewClient(ctx, store, r.Client, ps.Namespace)
-		if err != nil {
-			return out, fmt.Errorf(errGetSecretsClientFailed)
+			return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
 		}
 		defer func() { //nolint
 			err := client.Close(ctx)
@@ -179,7 +220,7 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores []v1beta1
 			if err != nil {
 				return out, fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
 			}
-			out[store.GetName()][ref.Match.RemoteRef.RemoteKey] = ref
+			out[storeKey][ref.Match.RemoteRef.RemoteKey] = ref
 		}
 	}
 	return out, nil
@@ -194,8 +235,8 @@ func (r *Reconciler) GetSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Se
 	return secret, nil
 }
 
-func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) ([]v1beta1.GenericStore, error) {
-	stores := make([]v1beta1.GenericStore, 0)
+func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {
+	stores := make(map[esapi.PushSecretStoreRef]v1beta1.GenericStore)
 	for _, refStore := range ps.Spec.SecretStoreRefs {
 		if refStore.LabelSelector != nil {
 			labelSelector, err := metav1.LabelSelectorAsSelector(refStore.LabelSelector)
@@ -208,8 +249,12 @@ func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (
 				if err != nil {
 					return nil, fmt.Errorf("could not list cluster Secret Stores: %w", err)
 				}
-				for i := range clusterSecretStoreList.Items {
-					stores = append(stores, &clusterSecretStoreList.Items[i])
+				for k, v := range clusterSecretStoreList.Items {
+					key := esapi.PushSecretStoreRef{
+						Name: v.Name,
+						Kind: v1beta1.ClusterSecretStoreKind,
+					}
+					stores[key] = &clusterSecretStoreList.Items[k]
 				}
 			} else {
 				secretStoreList := v1beta1.SecretStoreList{}
@@ -217,37 +262,48 @@ func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (
 				if err != nil {
 					return nil, fmt.Errorf("could not list Secret Stores: %w", err)
 				}
-				for i := range secretStoreList.Items {
-					stores = append(stores, &secretStoreList.Items[i])
+				for k, v := range secretStoreList.Items {
+					key := esapi.PushSecretStoreRef{
+						Name: v.Name,
+						Kind: v1beta1.SecretStoreKind,
+					}
+					stores[key] = &secretStoreList.Items[k]
 				}
 			}
-		}
-		if refStore.Name != "" {
-			ref := types.NamespacedName{
-				Name: refStore.Name,
+		} else {
+			store, err := r.getSecretStoreFromName(ctx, refStore, ps.Namespace)
+			if err != nil {
+				return nil, err
 			}
-			if refStore.Kind == v1beta1.ClusterSecretStoreKind {
-				var store v1beta1.ClusterSecretStore
-				err := r.Get(ctx, ref, &store)
-				if err != nil {
-					return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
-				}
-				stores = append(stores, &store)
-			} else {
-				ref.Namespace = ps.Namespace
-
-				var store v1beta1.SecretStore
-				err := r.Get(ctx, ref, &store)
-				if err != nil {
-					return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
-				}
-				stores = append(stores, &store)
-			}
+			stores[refStore] = store
 		}
 	}
 	return stores, nil
 }
 
+func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.PushSecretStoreRef, ns string) (v1beta1.GenericStore, error) {
+	if refStore.Name == "" {
+		return nil, fmt.Errorf("refStore Name must be provided")
+	}
+	ref := types.NamespacedName{
+		Name: refStore.Name,
+	}
+	if refStore.Kind == v1beta1.ClusterSecretStoreKind {
+		var store v1beta1.ClusterSecretStore
+		err := r.Get(ctx, ref, &store)
+		if err != nil {
+			return nil, fmt.Errorf(errGetClusterSecretStore, ref.Name, err)
+		}
+		return &store, nil
+	}
+	ref.Namespace = ns
+	var store v1beta1.SecretStore
+	err := r.Get(ctx, ref, &store)
+	if err != nil {
+		return nil, fmt.Errorf(errGetSecretStore, ref.Name, err)
+	}
+	return &store, nil
+}
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.recorder = mgr.GetEventRecorderFor("pushsecret")
 

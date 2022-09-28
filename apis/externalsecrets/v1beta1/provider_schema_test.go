@@ -39,6 +39,11 @@ func (p *PP) SetSecret(ctx context.Context, value []byte, remoteRef PushRemoteRe
 	return nil
 }
 
+// DeleteSecret deletes a single secret from a provider.
+func (p *PP) DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error {
+	return nil
+}
+
 // GetSecret returns a single secret from the provider.
 func (p *PP) GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error) {
 	return []byte("NOOP"), nil
