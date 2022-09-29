@@ -29,19 +29,22 @@ import (
 )
 
 const (
-	project  = "my-Project"
-	username = "user-name"
-	userkey  = "user-key"
+	project     = "my-Project"
+	username    = "user-name"
+	userkey     = "user-key"
+	environment = "prod"
 )
 
 type secretManagerTestCase struct {
 	mockClient               *fakegitlab.GitlabMockClient
 	apiInputProjectID        string
 	apiInputKey              string
+	apiInputEnv              string
 	apiOutput                *gitlab.ProjectVariable
 	apiResponse              *gitlab.Response
 	ref                      *esv1beta1.ExternalSecretDataRemoteRef
 	projectID                *string
+	environment              *string
 	apiErr                   error
 	expectError              string
 	expectedSecret           string
@@ -55,8 +58,10 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		mockClient:               &fakegitlab.GitlabMockClient{},
 		apiInputProjectID:        makeValidAPIInputProjectID(),
 		apiInputKey:              makeValidAPIInputKey(),
+		apiInputEnv:              makeValidEnvironment(),
 		ref:                      makeValidRef(),
 		projectID:                nil,
+		environment:              nil,
 		apiOutput:                makeValidAPIOutput(),
 		apiResponse:              makeValidAPIResponse(),
 		apiErr:                   nil,
@@ -65,7 +70,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		expectedValidationResult: esv1beta1.ValidationResultReady,
 		expectedData:             map[string][]byte{},
 	}
-	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
+	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputEnv, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
 	return &smtc
 }
 
@@ -82,6 +87,10 @@ func makeValidAPIInputProjectID() string {
 
 func makeValidAPIInputKey() string {
 	return "testKey"
+}
+
+func makeValidEnvironment() string {
+	return "prod"
 }
 
 func makeValidAPIResponse() *gitlab.Response {
@@ -104,7 +113,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
-	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
+	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputEnv, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
 	return smtc
 }
 
@@ -137,7 +146,7 @@ var setListAPIRespBadCode = func(smtc *secretManagerTestCase) {
 
 var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.mockClient = nil
-	smtc.expectError = errUninitalizedGitlabProvider
+	smtc.expectError = errUninitializedGitlabProvider
 }
 
 // test the sm<->gcp interface
@@ -240,13 +249,14 @@ func ErrorContains(out error, want string) bool {
 
 type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
 
-func makeSecretStore(projectID string, fn ...storeModifier) *esv1beta1.SecretStore {
+func makeSecretStore(projectID, environment string, fn ...storeModifier) *esv1beta1.SecretStore {
 	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Gitlab: &esv1beta1.GitlabProvider{
-					Auth:      esv1beta1.GitlabAuth{},
-					ProjectID: projectID,
+					Auth:        esv1beta1.GitlabAuth{},
+					ProjectID:   projectID,
+					Environment: environment,
 				},
 			},
 		},
@@ -277,23 +287,23 @@ func TestValidateStore(t *testing.T) {
 	namespace := "my-namespace"
 	testCases := []ValidateStoreTestCase{
 		{
-			store: makeSecretStore(""),
+			store: makeSecretStore("", environment),
 			err:   fmt.Errorf("projectID cannot be empty"),
 		},
 		{
-			store: makeSecretStore(project, withAccessToken("", userkey, nil)),
+			store: makeSecretStore(project, environment, withAccessToken("", userkey, nil)),
 			err:   fmt.Errorf("accessToken.name cannot be empty"),
 		},
 		{
-			store: makeSecretStore(project, withAccessToken(username, "", nil)),
+			store: makeSecretStore(project, environment, withAccessToken(username, "", nil)),
 			err:   fmt.Errorf("accessToken.key cannot be empty"),
 		},
 		{
-			store: makeSecretStore(project, withAccessToken("userName", "userKey", &namespace)),
+			store: makeSecretStore(project, environment, withAccessToken("userName", "userKey", &namespace)),
 			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
 		},
 		{
-			store: makeSecretStore(project, withAccessToken("userName", "userKey", nil)),
+			store: makeSecretStore(project, environment, withAccessToken("userName", "userKey", nil)),
 			err:   nil,
 		},
 	}

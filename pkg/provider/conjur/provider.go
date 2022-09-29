@@ -18,10 +18,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
@@ -51,7 +51,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	conjur, err := conjurapi.NewClientFromKey(config,
 		authn.LoginPair{
 			Login:  *cfg.ServiceUser,
-			APIKey: *cfg.ServiceApiKey,
+			APIKey: *cfg.ServiceAPIKey,
 		},
 	)
 
@@ -81,13 +81,12 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 
 // GetSecret returns a single secret from the provider.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-
 	secretValue, err := p.ConjurClient.RetrieveSecret(ref.Key)
 	if err != nil {
 		return nil, err
 	}
 
-	return []byte(secretValue), nil
+	return secretValue, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
@@ -133,8 +132,8 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf("ServiceUser cannot be empty")
 	}
 
-	if *conjurSpec.ServiceApiKey == "" {
-		return fmt.Errorf("ServiceApiKey cannot be empty")
+	if *conjurSpec.ServiceAPIKey == "" {
+		return fmt.Errorf("ServiceAPIKey cannot be empty")
 	}
 
 	if *conjurSpec.ServiceAccount == "" {

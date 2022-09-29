@@ -35,13 +35,15 @@ import (
 type gitlabProvider struct {
 	credentials string
 	projectID   string
+	environment string
 	framework   *framework.Framework
 }
 
-func newGitlabProvider(f *framework.Framework, credentials, projectID string) *gitlabProvider {
+func newGitlabProvider(f *framework.Framework, credentials, projectID string, environment string) *gitlabProvider {
 	prov := &gitlabProvider{
 		credentials: credentials,
 		projectID:   projectID,
+		environment: environment,
 		framework:   f,
 	}
 	BeforeEach(prov.BeforeEach)
@@ -51,7 +53,8 @@ func newGitlabProvider(f *framework.Framework, credentials, projectID string) *g
 func newFromEnv(f *framework.Framework) *gitlabProvider {
 	credentials := os.Getenv("GITLAB_TOKEN")
 	projectID := os.Getenv("GITLAB_PROJECT_ID")
-	return newGitlabProvider(f, credentials, projectID)
+	environment := os.Getenv("GITLAB_ENVIRONMENT")
+	return newGitlabProvider(f, credentials, projectID, environment)
 }
 
 func (s *gitlabProvider) CreateSecret(key string, val framework.SecretEntry) {
@@ -102,8 +105,9 @@ func (s *gitlabProvider) BeforeEach() {
 		// Puts access token into StringData
 
 		StringData: map[string]string{
-			"token":     s.credentials,
-			"projectID": s.projectID,
+			"token":       s.credentials,
+			"projectID":   s.projectID,
+			"environment": s.environment,
 		},
 	}
 	err := s.framework.CRClient.Create(context.Background(), gitlabCreds)

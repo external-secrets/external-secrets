@@ -1,3 +1,17 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package conjur
 
 import (
@@ -10,10 +24,10 @@ import (
 )
 
 var (
-	svcUrl     string = "https://example.com"
-	svcUser    string = "user"
-	svcApikey  string = "apikey"
-	svcAccount string = "account1"
+	svcURL     = "https://example.com"
+	svcUser    = "user"
+	svcApikey  = "apikey"
+	svcAccount = "account1"
 )
 
 type secretManagerTestCase struct {
@@ -47,7 +61,6 @@ func TestConjurGetSecret(t *testing.T) {
 			t.Errorf("want err %v got nil", tc.err)
 		}
 	}
-
 }
 
 func makeValidRef(k string) *esv1beta1.ExternalSecretDataRemoteRef {
@@ -65,7 +78,7 @@ type ValidateStoreTestCase struct {
 func TestValidateStore(t *testing.T) {
 	testCases := []ValidateStoreTestCase{
 		{
-			store: makeSecretStore(svcUrl, svcUser, svcApikey, svcAccount),
+			store: makeSecretStore(svcURL, svcUser, svcApikey, svcAccount),
 			err:   nil,
 		},
 		{
@@ -73,15 +86,15 @@ func TestValidateStore(t *testing.T) {
 			err:   fmt.Errorf("ServiceURL cannot be empty"),
 		},
 		{
-			store: makeSecretStore(svcUrl, "", svcApikey, svcAccount),
+			store: makeSecretStore(svcURL, "", svcApikey, svcAccount),
 			err:   fmt.Errorf("ServiceUser cannot be empty"),
 		},
 		{
-			store: makeSecretStore(svcUrl, svcUser, "", svcAccount),
-			err:   fmt.Errorf("ServiceApiKey cannot be empty"),
+			store: makeSecretStore(svcURL, svcUser, "", svcAccount),
+			err:   fmt.Errorf("ServiceAPIKey cannot be empty"),
 		},
 		{
-			store: makeSecretStore(svcUrl, svcUser, svcApikey, ""),
+			store: makeSecretStore(svcURL, svcUser, svcApikey, ""),
 			err:   fmt.Errorf("SeviceAccount cannot be empty"),
 		},
 	}
@@ -98,14 +111,14 @@ func TestValidateStore(t *testing.T) {
 	}
 }
 
-func makeSecretStore(svcUrl string, svcUser string, svcApikey string, svcAccount string) *esv1beta1.SecretStore {
+func makeSecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.SecretStore {
 	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Conjur: &esv1beta1.ConjurProvider{
-					ServiceURL:     &svcUrl,
+					ServiceURL:     &svcURL,
 					ServiceUser:    &svcUser,
-					ServiceApiKey:  &svcApikey,
+					ServiceAPIKey:  &svcApikey,
 					ServiceAccount: &svcAccount,
 				},
 			},

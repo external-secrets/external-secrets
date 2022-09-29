@@ -18,6 +18,6 @@ package v1beta1
 type ConjurProvider struct {
 	ServiceURL     *string `json:"serviceUrl,omitempty"`
 	ServiceUser    *string `json:"serviceUser,omitempty"`
-	ServiceApiKey  *string `json:"serviceApiKey,omitempty"`
+	ServiceAPIKey  *string `json:"serviceApiKey,omitempty"`
 	ServiceAccount *string `json:"serviceAccount,omitempty"`
 }

@@ -21,6 +21,8 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/alibaba"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/conjur"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/doppler"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gitlab"
@@ -33,5 +35,4 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/webhook"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/conjur"
 )
