@@ -49,14 +49,19 @@ import (
 )
 
 var (
-	_ esv1beta1.Provider      = &connector{}
-	_ esv1beta1.SecretsClient = &client{}
+	_                esv1beta1.Provider      = &connector{}
+	_                esv1beta1.SecretsClient = &client{}
+	EnableCache      bool
+	VaultClientCache clientCache
 )
 
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
 	errVaultStore           = "received invalid Vault SecretStore resource: %w"
+	errVaultCacheCreate     = "cannot create Vault client cache: %s"
+	errVaultCacheRemove     = "error removing item from Vault client cache: %w"
+	errVaultCacheEviction   = "unexpected eviction from Vault client cache"
 	errVaultClient          = "cannot setup new vault client: %w"
 	errVaultCert            = "cannot set Vault CA certificate: %w"
 	errReadSecret           = "cannot read secret data from Vault: %w"
@@ -220,6 +225,49 @@ func newVaultClient(c *vault.Config) (Client, error) {
 	return out, nil
 }
 
+func getVaultClient(ctx context.Context, c *connector, store esv1beta1.GenericStore, cfg *vault.Config) (Client, error) {
+	isStaticToken := store.GetSpec().Provider.Vault.Auth.TokenSecretRef != nil
+	useCache := EnableCache && !isStaticToken
+
+	if useCache {
+		VaultClientCache.lock()
+		defer VaultClientCache.unlock()
+
+		err := VaultClientCache.initialize()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	key := clientCacheKey{
+		Name:      store.GetObjectMeta().Name,
+		Namespace: store.GetObjectMeta().Namespace,
+		Kind:      store.GetTypeMeta().Kind,
+	}
+	if useCache {
+		client, ok, err := VaultClientCache.get(ctx, store, key)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			return client, nil
+		}
+	}
+
+	client, err := c.newVaultClient(cfg)
+	if err != nil {
+		return nil, fmt.Errorf(errVaultClient, err)
+	}
+
+	if useCache && !VaultClientCache.contains(key) {
+		err = VaultClientCache.add(ctx, store, key, client)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return client, nil
+}
+
 type connector struct {
 	newVaultClient func(c *vault.Config) (Client, error)
 }
@@ -260,7 +308,7 @@ func (c *connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 		return nil, err
 	}
 
-	client, err := c.newVaultClient(cfg)
+	client, err := getVaultClient(ctx, c, store, cfg)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
@@ -579,18 +627,12 @@ func getTypedKey(data map[string]interface{}, key string) ([]byte, error) {
 }
 
 func (v *client) Close(ctx context.Context) error {
-	// Revoke the token if we have one set and it wasn't sourced from a TokenSecretRef
-	if v.client.Token() != "" && v.store.Auth.TokenSecretRef == nil {
-		revoke, err := checkToken(ctx, v)
+	// Revoke the token if we have one set, it wasn't sourced from a TokenSecretRef,
+	// and token caching isn't enabled
+	if !EnableCache && v.client.Token() != "" && v.store.Auth.TokenSecretRef == nil {
+		err := revokeTokenIfValid(ctx, v.client)
 		if err != nil {
-			return fmt.Errorf(errVaultRevokeToken, err)
-		}
-		if revoke {
-			err = v.token.RevokeSelfWithContext(ctx, v.client.Token())
-			if err != nil {
-				return fmt.Errorf(errVaultRevokeToken, err)
-			}
-			v.client.ClearToken()
+			return err
 		}
 	}
 	return nil
@@ -631,7 +673,7 @@ func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 	if v.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(v.store) {
 		return esv1beta1.ValidationResultUnknown, nil
 	}
-	_, err := checkToken(context.Background(), v)
+	_, err := checkToken(context.Background(), v.token)
 	if err != nil {
 		return esv1beta1.ValidationResultError, fmt.Errorf(errInvalidCredentials, err)
 	}
@@ -816,41 +858,61 @@ func getCertFromConfigMap(v *client) ([]byte, error) {
 	return []byte(val), nil
 }
 
+/*
+setAuth gets a new token using the configured mechanism.
+If there's already a valid token, does nothing.
+*/
 func (v *client) setAuth(ctx context.Context, cfg *vault.Config) error {
-	tokenExists, err := setSecretKeyToken(ctx, v)
+	tokenExists := false
+	var err error
+	if v.client.Token() != "" {
+		tokenExists, err = checkToken(ctx, v.token)
+	}
 	if tokenExists {
+		v.log.V(1).Info("Re-using existing token")
+		return err
+	}
+
+	tokenExists, err = setSecretKeyToken(ctx, v)
+	if tokenExists {
+		v.log.V(1).Info("Set token from secret")
 		return err
 	}
 
 	tokenExists, err = setAppRoleToken(ctx, v)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using AppRole auth")
 		return err
 	}
 
 	tokenExists, err = setKubernetesAuthToken(ctx, v)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using Kubernetes auth")
 		return err
 	}
 
 	tokenExists, err = setLdapAuthToken(ctx, v)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using LDAP auth")
 		return err
 	}
 
 	tokenExists, err = setJwtAuthToken(ctx, v)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using JWT auth")
 		return err
 	}
 
 	tokenExists, err = setCertAuthToken(ctx, v, cfg)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using certificate auth")
 		return err
 	}
 
 	return errors.New(errAuthFormat)
 }
 
-func setAppRoleToken(ctx context.Context, v *client) (bool, error) {
+func setSecretKeyToken(ctx context.Context, v *client) (bool, error) {
 	tokenRef := v.store.Auth.TokenSecretRef
 	if tokenRef != nil {
 		token, err := v.secretKeyRef(ctx, tokenRef)
@@ -863,7 +925,7 @@ func setAppRoleToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func setSecretKeyToken(ctx context.Context, v *client) (bool, error) {
+func setAppRoleToken(ctx context.Context, v *client) (bool, error) {
 	appRole := v.store.Auth.AppRole
 	if appRole != nil {
 		err := v.requestTokenWithAppRoleRef(ctx, appRole)
@@ -1007,9 +1069,9 @@ func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esme
 }
 
 // checkToken does a lookup and checks if the provided token exists.
-func checkToken(ctx context.Context, vStore *client) (bool, error) {
+func checkToken(ctx context.Context, token Token) (bool, error) {
 	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
-	resp, err := vStore.token.LookupSelfWithContext(ctx)
+	resp, err := token.LookupSelfWithContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -1022,6 +1084,21 @@ func checkToken(ctx context.Context, vStore *client) (bool, error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func revokeTokenIfValid(ctx context.Context, client Client) error {
+	valid, err := checkToken(ctx, client.AuthToken())
+	if err != nil {
+		return fmt.Errorf(errVaultRevokeToken, err)
+	}
+	if valid {
+		err = client.AuthToken().RevokeSelfWithContext(ctx, client.Token())
+		if err != nil {
+			return fmt.Errorf(errVaultRevokeToken, err)
+		}
+		client.ClearToken()
+	}
+	return nil
 }
 
 func (v *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1beta1.VaultAppRole) error {
