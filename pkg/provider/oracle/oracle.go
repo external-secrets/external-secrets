@@ -21,6 +21,7 @@ import (
 
 	"github.com/oracle/oci-go-sdk/v56/common"
 	"github.com/oracle/oci-go-sdk/v56/common/auth"
+	"github.com/oracle/oci-go-sdk/v56/keymanagement"
 	"github.com/oracle/oci-go-sdk/v56/secrets"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
@@ -59,12 +60,17 @@ var _ esv1beta1.SecretsClient = &VaultManagementService{}
 var _ esv1beta1.Provider = &VaultManagementService{}
 
 type VaultManagementService struct {
-	Client VMInterface
-	vault  string
+	Client         VMInterface
+	KmsVaultClient KmsVCInterface
+	vault          string
 }
 
 type VMInterface interface {
 	GetSecretBundleByName(ctx context.Context, request secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error)
+}
+
+type KmsVCInterface interface {
+	GetVault(ctx context.Context, request keymanagement.GetVaultRequest) (response keymanagement.GetVaultResponse, err error)
 }
 
 // Empty GetAllSecrets.
@@ -160,9 +166,17 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 
 	secretManagementService.SetRegion(oracleSpec.Region)
 
+	kmsVaultClient, err := keymanagement.NewKmsVaultClientWithConfigurationProvider(configurationProvider)
+	if err != nil {
+		return nil, fmt.Errorf(errOracleClient, err)
+	}
+
+	kmsVaultClient.SetRegion(oracleSpec.Region)
+
 	return &VaultManagementService{
-		Client: secretManagementService,
-		vault:  oracleSpec.Vault,
+		Client:         secretManagementService,
+		KmsVaultClient: kmsVaultClient,
+		vault:          oracleSpec.Vault,
 	}, nil
 }
 
@@ -226,6 +240,15 @@ func (vms *VaultManagementService) Close(ctx context.Context) error {
 }
 
 func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error) {
+	_, err := vms.KmsVaultClient.GetVault(
+		context.Background(), keymanagement.GetVaultRequest{
+			VaultId: &vms.vault,
+		},
+	)
+	if err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+
 	return esv1beta1.ValidationResultReady, nil
 }
 
