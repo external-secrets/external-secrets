@@ -106,12 +106,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	switch ps.Spec.DeletionPolicy {
 	case esapi.PushSecretDeletionPolicyDelete:
-		err = r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets)
+		badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets)
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
 			cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 			ps = SetPushSecretCondition(ps, *cond)
-			r.SetSyncedSecrets(&ps, syncedSecrets)
+			r.SetSyncedSecrets(&ps, badSyncState)
 			r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 			return ctrl.Result{}, err
 		}
@@ -129,7 +129,17 @@ func (r *Reconciler) SetSyncedSecrets(ps *esapi.PushSecret, status esapi.SyncedP
 	ps.Status.SyncedPushSecrets = status
 }
 
-func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap) error {
+func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap) (esapi.SyncedPushSecretsMap, error) {
+	out := newMap.DeepCopy()
+	for k, v := range ps.Status.SyncedPushSecrets {
+		_, ok := out[k]
+		if !ok {
+			out[k] = make(map[string]esapi.PushSecretData)
+		}
+		for kk, vv := range v {
+			out[k][kk] = vv
+		}
+	}
 	for storeName, oldData := range ps.Status.SyncedPushSecrets {
 		storeRef := esapi.PushSecretStoreRef{
 			Name: strings.Split(storeName, "/")[1],
@@ -137,11 +147,11 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 		}
 		store, err := r.getSecretStoreFromName(ctx, storeRef, ps.Namespace)
 		if err != nil {
-			return err
+			return out, err
 		}
 		client, err := r.getClientFromStore(ctx, store, ps)
 		if err != nil {
-			return fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
+			return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
 		}
 		defer func() { //nolint
 			err := client.Close(ctx)
@@ -153,8 +163,9 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 		if !ok {
 			err = r.DeleteAllSecretsFromStore(ctx, client, oldData)
 			if err != nil {
-				return err
+				return out, err
 			}
+			delete(out, storeName)
 			continue
 		}
 		for oldEntry, oldRef := range oldData {
@@ -162,12 +173,13 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 			if !ok {
 				err = r.DeleteSecretFromStore(ctx, client, oldRef)
 				if err != nil {
-					return err
+					return out, err
 				}
+				delete(out[storeName], oldRef.Match.RemoteRef.RemoteKey)
 			}
 		}
 	}
-	return nil
+	return out, nil
 }
 
 func (r *Reconciler) DeleteAllSecretsFromStore(ctx context.Context, client v1beta1.SecretsClient, data map[string]esapi.PushSecretData) error {
@@ -198,8 +210,8 @@ func (r *Reconciler) getClientFromStore(ctx context.Context, store v1beta1.Gener
 
 func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi.PushSecretStoreRef]v1beta1.GenericStore, ps esapi.PushSecret, secret *v1.Secret) (esapi.SyncedPushSecretsMap, error) {
 	out := esapi.SyncedPushSecretsMap{}
-	for _, store := range stores {
-		storeKey := fmt.Sprintf("%v/%v", store.GetName(), store.GetObjectKind().GroupVersionKind().Kind)
+	for ref, store := range stores {
+		storeKey := fmt.Sprintf("%v/%v", ref.Kind, store.GetName())
 		out[storeKey] = make(map[string]esapi.PushSecretData)
 		client, err := r.getClientFromStore(ctx, store, &ps)
 		if err != nil {

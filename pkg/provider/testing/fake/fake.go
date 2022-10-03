@@ -16,7 +16,6 @@ package fake
 
 import (
 	"context"
-	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -38,6 +37,7 @@ type Client struct {
 	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
 	SetSecretFn     func() error
+	DeleteSecretFn  func() error
 }
 
 // New returns a fake provider/client.
@@ -53,6 +53,9 @@ func New() *Client {
 			return nil, nil
 		},
 		SetSecretFn: func() error {
+			return nil
+		},
+		DeleteSecretFn: func() error {
 			return nil
 		},
 		SetSecretArgs: map[string]SetSecretCallArgs{},
@@ -85,7 +88,7 @@ func (v *Client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta
 }
 
 func (v *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return v.DeleteSecretFn()
 }
 
 // GetSecret implements the provider.Provider interface.
