@@ -60,7 +60,7 @@ require (
 	github.com/hashicorp/vault/api v1.8.0
 	github.com/hashicorp/vault/api/auth/approle v0.3.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.3.0
-	github.com/hashicorp/vault/api/auth/ldap v0.2.0
+	github.com/hashicorp/vault/api/auth/ldap v0.3.0
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/lestrrat-go/jwx v1.2.25
 	github.com/onsi/ginkgo/v2 v2.1.6
