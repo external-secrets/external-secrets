@@ -207,8 +207,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.1/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/crossplane/crossplane-runtime v0.17.0 h1:gt2JcOYcVBw/luQToq2hUkoersL12ICuV0YzKI5lyCs=
-github.com/crossplane/crossplane-runtime v0.17.0/go.mod h1:IPT3HTsovwmbw3i+SdsOyaC3r3b7TW+otBMmZsHLnSU=
+github.com/crossplane/crossplane-runtime v0.18.0 h1:j1VxhKWp3iQKr1XNiMoBKmEvN2Z98E7rR0tyimu7dj4=
+github.com/crossplane/crossplane-runtime v0.18.0/go.mod h1:o9ExoilV6k2M3qzSFoRVX4phuww0mLmjs1WrDTvsR4s=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
