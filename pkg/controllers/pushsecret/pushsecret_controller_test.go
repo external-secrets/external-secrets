@@ -257,9 +257,167 @@ var _ = Describe("ExternalSecret controller", func() {
 			return true
 		}
 	}
+	failDelete := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.DeleteSecretFn = func() error {
+			return fmt.Errorf("Nope")
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						Name: PushSecretStore,
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: "key",
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: "path/to/key",
+							},
+						},
+					},
+				},
+			},
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			ps.Spec.Data[0].Match.RemoteRef.RemoteKey = "different-key"
+			updatedPS := &v1alpha1.PushSecret{}
+			Expect(k8sClient.Update(context.Background(), ps, &client.UpdateOptions{})).Should(Succeed())
+			Eventually(func() bool {
+				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+				By("checking if synced secrets correspond to both keys")
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				_, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["different-key"]
+				if !ok {
+					return false
+				}
+				_, ok = updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["path/to/key"]
+				if !ok {
+					return false
+				}
+				return true
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+	failDeleteStore := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.DeleteSecretFn = func() error {
+			return fmt.Errorf("boom")
+		}
+		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			secondStore := &v1beta1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "new-store",
+					Namespace: PushSecretNamespace,
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind: "SecretStore",
+				},
+				Spec: v1beta1.SecretStoreSpec{
+					Provider: &v1beta1.SecretStoreProvider{
+						Fake: &v1beta1.FakeProvider{
+							Data: []v1beta1.FakeProviderData{},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(context.Background(), secondStore, &client.CreateOptions{})).Should(Succeed())
+			ps.Spec.SecretStoreRefs[0].Name = "new-store"
+			updatedPS := &v1alpha1.PushSecret{}
+			Expect(k8sClient.Update(context.Background(), ps, &client.UpdateOptions{})).Should(Succeed())
+			Eventually(func() bool {
+				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+				By("checking if Provider value got updated")
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				syncedLen := len(updatedPS.Status.SyncedPushSecrets)
+				if syncedLen != 2 {
+					return false
+				}
+				return true
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+	deleteWholeStore := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.DeleteSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			secondStore := &v1beta1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "new-store",
+					Namespace: PushSecretNamespace,
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind: "SecretStore",
+				},
+				Spec: v1beta1.SecretStoreSpec{
+					Provider: &v1beta1.SecretStoreProvider{
+						Fake: &v1beta1.FakeProvider{
+							Data: []v1beta1.FakeProviderData{},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(context.Background(), secondStore, &client.CreateOptions{})).Should(Succeed())
+			ps.Spec.SecretStoreRefs[0].Name = "new-store"
+			updatedPS := &v1alpha1.PushSecret{}
+			Expect(k8sClient.Update(context.Background(), ps, &client.UpdateOptions{})).Should(Succeed())
+			Eventually(func() bool {
+				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+				By("checking if Provider value got updated")
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				key, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/new-store")]["path/to/key"]
+				if !ok {
+					return false
+				}
+				syncedLen := len(updatedPS.Status.SyncedPushSecrets)
+				if syncedLen != 1 {
+					return false
+				}
+				return key.Match.SecretKey == "key"
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncMatchingLabels := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.DeleteSecretFn = func() error {
 			return nil
 		}
 		tc.pushsecret = &v1alpha1.PushSecret{
@@ -550,6 +708,9 @@ var _ = Describe("ExternalSecret controller", func() {
 		},
 		Entry("should sync", syncSuccessfully),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
+		Entry("should track deletion tasks if Delete fails", failDelete),
+		Entry("should track deleted stores if Delete fails", failDeleteStore),
+		Entry("should delete all secrets if SecretStore changes", deleteWholeStore),
 		Entry("should sync to stores matching labels", syncMatchingLabels),
 		Entry("should sync with ClusterStore", syncWithClusterStore),
 		Entry("should sync with ClusterStore matching labels", syncWithClusterStoreMatchingLabels),
