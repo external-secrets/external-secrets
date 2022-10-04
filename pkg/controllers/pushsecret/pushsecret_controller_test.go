@@ -100,11 +100,15 @@ var _ = Describe("ExternalSecret controller", func() {
 	})
 
 	AfterEach(func() {
-		Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
+		k8sClient.Delete(context.Background(), &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: PushSecretNamespace,
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
 			},
-		})).To(Succeed())
+		})
+		// give a time for reconciler to remove finalizers before removing SecretStores
+		// TODO: Secret Stores should have finalizers bound to External-Secrets and PushSecrets
+		time.Sleep(2 * time.Second)
 		k8sClient.Delete(context.Background(), &v1beta1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretStore,
@@ -122,6 +126,11 @@ var _ = Describe("ExternalSecret controller", func() {
 				Namespace: PushSecretNamespace,
 			},
 		})
+		Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: PushSecretNamespace,
+			},
+		})).To(Succeed())
 	})
 
 	makeDefaultTestcase := func() *testCase {
@@ -310,10 +319,7 @@ var _ = Describe("ExternalSecret controller", func() {
 					return false
 				}
 				_, ok = updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["path/to/key"]
-				if !ok {
-					return false
-				}
-				return true
+				return ok
 			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
 		}
@@ -355,10 +361,7 @@ var _ = Describe("ExternalSecret controller", func() {
 					return false
 				}
 				syncedLen := len(updatedPS.Status.SyncedPushSecrets)
-				if syncedLen != 2 {
-					return false
-				}
-				return true
+				return syncedLen == 2
 			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
 		}
@@ -399,7 +402,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				if err != nil {
 					return false
 				}
-				key, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/new-store")]["path/to/key"]
+				key, ok := updatedPS.Status.SyncedPushSecrets["SecretStore/new-store"]["path/to/key"]
 				if !ok {
 					return false
 				}

@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -44,6 +45,7 @@ const (
 	errCloseStoreClient       = "error when calling provider close method"
 	errSetSecretFailed        = "could not write remote ref %v to target secretstore %v: %v"
 	errFailedSetSecret        = "set secret failed: %v"
+	pushSecretFinalizer       = "pushsecret.externalsecrets.io/finalizer"
 )
 
 type Reconciler struct {
@@ -80,6 +82,37 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			log.Error(err, errPatchStatus)
 		}
 	}()
+	// finalizer logic
+	if ps.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
+			controllerutil.AddFinalizer(&ps, pushSecretFinalizer)
+			err := r.Client.Update(ctx, &ps, &client.UpdateOptions{})
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+			}
+			return ctrl.Result{}, nil
+		}
+	} else {
+		if controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
+			// trigger a cleanup with no Synced Map
+			badState, err := r.DeleteSecretFromProviders(ctx, &ps, esapi.SyncedPushSecretsMap{})
+			if err != nil {
+				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
+				cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
+				ps = SetPushSecretCondition(ps, *cond)
+				r.SetSyncedSecrets(&ps, badState)
+				r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
+			err = r.Client.Update(ctx, &ps, &client.UpdateOptions{})
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+			}
+			return ctrl.Result{}, nil
+		}
+	}
+
 	secret, err := r.GetSecret(ctx, ps)
 	if err != nil {
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, errFailedGetSecret)
