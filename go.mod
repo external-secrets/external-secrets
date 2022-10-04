@@ -51,7 +51,7 @@ require (
 	github.com/akeylesslabs/akeyless-go/v2 v2.19.0
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1782
 	github.com/aws/aws-sdk-go v1.44.101
-	github.com/crossplane/crossplane-runtime v0.17.0
+	github.com/crossplane/crossplane-runtime v0.18.0
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
