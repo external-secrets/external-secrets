@@ -229,6 +229,14 @@ webhook:
       # -- Additional service annotations
       annotations: {}
 
+
+  readinessProbe:
+    # -- Address for readiness probe
+    address: ""
+    # -- ReadinessProbe port for kubelet
+    port: 8081
+
+
     ## -- Extra environment variables to add to container.
   extraEnv: []
 

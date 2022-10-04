@@ -51,6 +51,7 @@ spec:
           - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
           - --cert-dir={{ .Values.webhook.certDir }}
           - --check-interval={{ .Values.webhook.certCheckInterval }}
+          - --healthz-addr="{{ .Values.webhook.readinessProbe.address }}:{{ .Values.webhook.readinessProbe.port }}"
           {{- if .Values.webhook.lookaheadInterval }}
           - --lookahead-interval={{ .Values.webhook.lookaheadInterval }}
           {{- end }}
@@ -70,7 +71,7 @@ spec:
               name: webhook
           readinessProbe:
             httpGet:
-              port: 8081
+              port: {{ .Values.webhook.readinessProbe.port }}
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
