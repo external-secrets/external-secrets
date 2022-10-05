@@ -61,12 +61,12 @@ interested in implementing the proposal should be either deeply engaged in the
 proposal process or be an author of the proposal.
 
 The proposal should be documented as a separated markdown file pushed to the root of the 
-`proposals` folder in the [proposals](https://github.com/external-secrets/external-secrets/proposals)
-repository via PR. The name of the file should follow the name pattern `<short
-meaningful words joined by '-'>_proposal.md`, e.g:
-`clear-old-tags-with-policies_proposal.md`.
+`design` folder in the [design proposals](https://github.com/external-secrets/external-secrets/design)
+repository via PR. The name of the file should follow the name pattern `<NUMBER-
+meaningful words joined by '-'>.md`, e.g:
+`000clear-old-tags-with-policies.md`.
 
-Use the [Proposal Template](proposals/TEMPLATE.md) as a starting point.
+Use the [Proposal Template](design/000-template.md) as a starting point.
 
 ### Proposal Lifecycle
 

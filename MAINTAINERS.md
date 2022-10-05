@@ -17,7 +17,7 @@ describes governance guidelines and maintainer responsibilities.
 
 ## External Secrets Operator Core Contributors & Stakeholders
 
-| Harbor Feature Area | Lead |
+| ESO Feature Area | Lead |
 | ----------------------------- | :---------------------: |
 | Technical Lead |  |
 | Chief Architects |  |
