@@ -53,6 +53,7 @@ type PMInterface interface {
 	PutParameterWithContext(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
 	DescribeParametersWithContext(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
 	ListTagsForResourceWithContext(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
+	DeleteParameterWithContext(ctx aws.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error)
 }
 
 const (
@@ -85,7 +86,38 @@ func (pm *ParameterStore) getTagsByName(ctx aws.Context, ref *ssm.GetParameterOu
 }
 
 func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	secretName := remoteRef.GetRemoteKey()
+	secretValue := ssm.GetParameterInput{
+		Name: &secretName,
+	}
+	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
+	var awsError awserr.Error
+	ok := errors.As(err, &awsError)
+	if err != nil && (!ok || awsError.Code() != ssm.ErrCodeParameterNotFound) {
+		return fmt.Errorf("unexpected error getting parameter %v: %w", secretName, err)
+	}
+	if existing != nil && existing.Parameter != nil {
+		fmt.Println("The existing value contains data:", existing.String())
+		tags, err := pm.getTagsByName(ctx, existing)
+		if err != nil {
+			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
+		}
+
+		isManaged := isManagedByESO(tags)
+
+		if !isManaged {
+			// If the secret is not managed by external-secrets, it is "deleted" effectively by all means
+			return nil
+		}
+		deleteInput := &ssm.DeleteParameterInput{
+			Name: &secretName,
+		}
+		_, err = pm.client.DeleteParameterWithContext(ctx, deleteInput)
+		if err != nil {
+			return fmt.Errorf("could not delete parameter %v: %w", secretName, err)
+		}
+	}
+	return nil
 }
 
 func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {

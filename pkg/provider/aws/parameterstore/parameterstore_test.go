@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,6 +92,174 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 	return pstc
 }
 
+func TestDeleteSecret(t *testing.T) {
+	fakeClient := fakeps.Client{}
+	parameterName := "parameter"
+	managedBy := "managed-by"
+	manager := "external-secrets"
+	ssmTag := ssm.Tag{
+		Key:   &managedBy,
+		Value: &manager,
+	}
+	type args struct {
+		client                fakeps.Client
+		getParameterOutput    *ssm.GetParameterOutput
+		listTagsOutput        *ssm.ListTagsForResourceOutput
+		deleteParameterOutput *ssm.DeleteParameterOutput
+		getParameterError     error
+		listTagsError         error
+		deleteParameterError  error
+	}
+
+	type want struct {
+		err error
+	}
+
+	type testCase struct {
+		args   args
+		want   want
+		reason string
+	}
+	tests := map[string]testCase{
+		"Deletes Successfully": {
+			args: args{
+				client: fakeClient,
+				getParameterOutput: &ssm.GetParameterOutput{
+					Parameter: &ssm.Parameter{
+						Name: &parameterName,
+					},
+				},
+				listTagsOutput: &ssm.ListTagsForResourceOutput{
+					TagList: []*ssm.Tag{&ssmTag},
+				},
+				deleteParameterOutput: nil,
+				getParameterError:     nil,
+				listTagsError:         nil,
+				deleteParameterError:  nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
+		"Secret Not Found": {
+			args: args{
+				client:                fakeClient,
+				getParameterOutput:    nil,
+				listTagsOutput:        nil,
+				deleteParameterOutput: nil,
+				getParameterError:     awserr.New(ssm.ErrCodeParameterNotFound, "not here, sorry dude", nil),
+				listTagsError:         nil,
+				deleteParameterError:  nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
+		"No permissions to get secret": {
+			args: args{
+				client:                fakeClient,
+				getParameterOutput:    nil,
+				listTagsOutput:        nil,
+				deleteParameterOutput: nil,
+				getParameterError:     errors.New("no permissions"),
+				listTagsError:         nil,
+				deleteParameterError:  nil,
+			},
+			want: want{
+				err: errors.New("no permissions"),
+			},
+			reason: "",
+		},
+		"No permissions to get tags": {
+			args: args{
+				client: fakeClient,
+				getParameterOutput: &ssm.GetParameterOutput{
+					Parameter: &ssm.Parameter{
+						Name: &parameterName,
+					},
+				},
+				listTagsOutput:        nil,
+				deleteParameterOutput: nil,
+				getParameterError:     nil,
+				listTagsError:         errors.New("no permissions"),
+				deleteParameterError:  nil,
+			},
+			want: want{
+				err: errors.New("no permissions"),
+			},
+			reason: "",
+		},
+		"Secret Not Managed by External Secrets": {
+			args: args{
+				client: fakeClient,
+				getParameterOutput: &ssm.GetParameterOutput{
+					Parameter: &ssm.Parameter{
+						Name: &parameterName,
+					},
+				},
+				listTagsOutput: &ssm.ListTagsForResourceOutput{
+					TagList: []*ssm.Tag{},
+				},
+				deleteParameterOutput: nil,
+				getParameterError:     nil,
+				listTagsError:         nil,
+				deleteParameterError:  nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
+		"No permissions delete secret": {
+			args: args{
+				client: fakeClient,
+				getParameterOutput: &ssm.GetParameterOutput{
+					Parameter: &ssm.Parameter{
+						Name: &parameterName,
+					},
+				},
+				listTagsOutput: &ssm.ListTagsForResourceOutput{
+					TagList: []*ssm.Tag{&ssmTag},
+				},
+				deleteParameterOutput: nil,
+				getParameterError:     nil,
+				listTagsError:         nil,
+				deleteParameterError:  errors.New("no permissions"),
+			},
+			want: want{
+				err: errors.New("no permissions"),
+			},
+			reason: "",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			ps := ParameterStore{
+				client: &tc.args.client,
+			}
+			tc.args.client.GetParameterWithContextFn = fakeps.NewGetParameterWithContextFn(tc.args.getParameterOutput, tc.args.getParameterError)
+			tc.args.client.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(tc.args.listTagsOutput, tc.args.listTagsError)
+			tc.args.client.DeleteParameterWithContextFn = fakeps.NewDeleteParameterWithContextFn(tc.args.deleteParameterOutput, tc.args.deleteParameterError)
+			err := ps.DeleteSecret(context.TODO(), ref)
+
+			// Error nil XOR tc.want.err nil
+			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			}
+
+			// if errors are the same type but their contents do not match
+			if err != nil && tc.want.err != nil {
+				if !strings.Contains(err.Error(), tc.want.err.Error()) {
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
+			}
+		})
+	}
+}
 func TestPushSecret(t *testing.T) {
 	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
 	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
