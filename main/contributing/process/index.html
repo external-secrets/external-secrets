@@ -1853,7 +1853,7 @@ sure set all variables containing <code>AWS_*</code> and <code>TF_VAR_AWS_*</cod
 <p>Then execute <code>tf.apply.aws</code> or <code>tf.apply.gcp</code> to create the infrastructure.</p>
 <div class="highlight"><pre><span></span><code>make tf.apply.aws
 </code></pre></div>
-<p>Then run the <code>managed</code> testsuite. You will need push permissions to the external-secrets ghcr repository. You can set <code>IMAGE_REGISTRY</code> to control which image registry is used to store the controller and e2e test images in.</p>
+<p>Then run the <code>managed</code> testsuite. You will need push permissions to the external-secrets ghcr repository. You can set <code>IMAGE_NAME</code> to control which image registry is used to store the controller and e2e test images in.</p>
 <p>You also have to setup a proper Kubeconfig so the e2e test pod gets deployed into the managed cluster.</p>
 <div class="highlight"><pre><span></span><code>aws eks update-kubeconfig --name ${AWS_CLUSTER_NAME}
 or
@@ -1861,7 +1861,7 @@ gcloud container clusters get-credentials ${GCP_GKE_CLUSTER} --region europe-wes
 </code></pre></div>
 <p>Use <a href="https://onsi.github.io/ginkgo/#spec-labels">ginkgo labels</a> to select the tests
 you want to execute.</p>
-<div class="highlight"><pre><span></span><code># you may have to set IMAGE_REGISTRY=docker.io/your-user/external-secrets
+<div class="highlight"><pre><span></span><code># you may have to set IMAGE_NAME=docker.io/your-user/external-secrets
 make test.e2e.managed GINKGO_LABELS=&#39;gcp&#39;
 </code></pre></div>
 <h2 id="proposal-process">Proposal Process</h2>
