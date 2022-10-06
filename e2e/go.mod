@@ -39,8 +39,8 @@ require (
 	github.com/Azure/azure-sdk-for-go v66.0.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/akeylesslabs/akeyless-go/v2 v2.19.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1782
+	github.com/akeylesslabs/akeyless-go/v2 v2.20.0
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1799
 	github.com/argoproj/argo-cd/v2 v2.4.8
 	github.com/aws/aws-sdk-go v1.44.101
 	github.com/external-secrets/external-secrets v0.0.0
@@ -54,7 +54,7 @@ require (
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/xanzy/go-gitlab v0.73.1
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
-	google.golang.org/api v0.96.0
+	google.golang.org/api v0.98.0
 	google.golang.org/genproto v0.0.0-20220920201722-2b89144ce006
 	k8s.io/api v0.25.0
 	k8s.io/apiextensions-apiserver v0.25.0
@@ -119,7 +119,6 @@ require (
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-redis/cache/v8 v8.4.2 // indirect
 	github.com/go-redis/redis/v8 v8.11.3 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -131,7 +130,6 @@ require (
 	github.com/google/go-github/v41 v41.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20220829040838-70bd9ae97f40 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.1.0 // indirect
@@ -221,7 +219,6 @@ require (
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
-	golang.org/x/tools v0.1.12 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.49.0 // indirect
