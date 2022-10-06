@@ -14,7 +14,7 @@ on:
 
 jobs:
   license-check:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -29,7 +29,6 @@ jobs:
         run: |
           echo "::set-output name=build-cache::$(go env GOCACHE)"
           echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
       - name: Cache the Go Build Cache
         uses: actions/cache@v3
         with:

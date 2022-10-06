@@ -39,7 +39,7 @@ kubectl create clusterrolebinding service-account-issuer-discovery-binding \
   --clusterrole=system:service-account-issuer-discovery \
   --group=system:unauthenticated || true
 
-echo -e "Starting the e2e test pod ${E2E_IMAGE_REGISTRY}:${VERSION}"
+echo -e "Starting the e2e test pod ${E2E_IMAGE_NAME}:${VERSION}"
 kubectl run --rm \
   --attach \
   --restart=Never \
@@ -71,8 +71,7 @@ kubectl run --rm \
   --env="ORACLE_REGION=${ORACLE_REGION:-}" \
   --env="ORACLE_FINGERPRINT=${ORACLE_FINGERPRINT:-}" \
   --env="ORACLE_KEY=${ORACLE_KEY:-}" \
-  --env="IMAGE_REGISTRY=${IMAGE_REGISTRY}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
-  e2e --image=${E2E_IMAGE_REGISTRY}:${VERSION}
+  e2e --image=${E2E_IMAGE_NAME}:${VERSION}
