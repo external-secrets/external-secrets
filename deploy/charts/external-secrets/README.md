@@ -151,6 +151,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | webhook.prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | webhook.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
+| webhook.readinessProbe.address | string | `""` | Address for readiness probe |
+| webhook.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
 | webhook.replicaCount | int | `1` |  |
 | webhook.resources | object | `{}` |  |
 | webhook.secretAnnotations | object | `{}` | Annotations to add to Secret |
