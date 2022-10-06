@@ -101,8 +101,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 		name       string
 		provider   *esv1beta1.AzureKVProvider
 		k8sObjects []client.Object
-		prep       func()
-		cleanup    func()
+		prep       func(*testing.T)
 		expErr     string
 	}
 
@@ -120,30 +119,20 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 		{
 			name:     "missing workload identity token file",
 			provider: &esv1beta1.AzureKVProvider{},
-			prep: func() {
-				os.Setenv("AZURE_CLIENT_ID", clientID)
-				os.Setenv("AZURE_TENANT_ID", tenantID)
-				os.Setenv("AZURE_FEDERATED_TOKEN_FILE", "invalid file")
-			},
-			cleanup: func() {
-				os.Unsetenv("AZURE_CLIENT_ID")
-				os.Unsetenv("AZURE_TENANT_ID")
-				os.Unsetenv("AZURE_FEDERATED_TOKEN_FILE")
+			prep: func(t *testing.T) {
+				t.Setenv("AZURE_CLIENT_ID", clientID)
+				t.Setenv("AZURE_TENANT_ID", tenantID)
+				t.Setenv("AZURE_FEDERATED_TOKEN_FILE", "invalid file")
 			},
 			expErr: "unable to read token file invalid file: open invalid file: no such file or directory",
 		},
 		{
 			name:     "correct workload identity",
 			provider: &esv1beta1.AzureKVProvider{},
-			prep: func() {
-				os.Setenv("AZURE_CLIENT_ID", clientID)
-				os.Setenv("AZURE_TENANT_ID", tenantID)
-				os.Setenv("AZURE_FEDERATED_TOKEN_FILE", tokenFile)
-			},
-			cleanup: func() {
-				os.Unsetenv("AZURE_CLIENT_ID")
-				os.Unsetenv("AZURE_TENANT_ID")
-				os.Unsetenv("AZURE_FEDERATED_TOKEN_FILE")
+			prep: func(t *testing.T) {
+				t.Setenv("AZURE_CLIENT_ID", clientID)
+				t.Setenv("AZURE_TENANT_ID", tenantID)
+				t.Setenv("AZURE_FEDERATED_TOKEN_FILE", tokenFile)
 			},
 		},
 		{
@@ -200,10 +189,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 				return &tokenProvider{accessToken: azAccessToken}, nil
 			}
 			if row.prep != nil {
-				row.prep()
-			}
-			if row.cleanup != nil {
-				defer row.cleanup()
+				row.prep(t)
 			}
 			authorizer, err := az.authorizerForWorkloadIdentity(context.Background(), tokenProvider)
 			if row.expErr == "" {
