@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
@@ -329,10 +330,10 @@ func (f fakeRef) GetRemoteKey() string {
 }
 
 func TestSetSecret(t *testing.T) {
-	managedBy := "managed-by"
+	managedBy := managedBy
 	notManagedBy := "not-managed-by"
 	secretValue := []byte("fake-value")
-	externalSecrets := "external-secrets"
+	externalSecrets := externalSecrets
 	noPermission := errors.New("no permission")
 	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
 
@@ -530,6 +531,152 @@ func TestSetSecret(t *testing.T) {
 	}
 }
 
+func TestDeleteSecret(t *testing.T) {
+	fakeClient := fakesm.Client{}
+	managed := managedBy
+	manager := externalSecrets
+	secretTag := awssm.Tag{
+		Key:   &managed,
+		Value: &manager,
+	}
+	type args struct {
+		client               fakesm.Client
+		getSecretOutput      *awssm.GetSecretValueOutput
+		describeSecretOutput *awssm.DescribeSecretOutput
+		deleteSecretOutput   *awssm.DeleteSecretOutput
+		getSecretErr         error
+		describeSecretErr    error
+		deleteSecretErr      error
+	}
+	type want struct {
+		err error
+	}
+	type testCase struct {
+		args   args
+		want   want
+		reason string
+	}
+	tests := map[string]testCase{
+		"Deletes Successfully": {
+			args: args{
+
+				client:          fakeClient,
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{&secretTag},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{},
+				getSecretErr:       nil,
+				describeSecretErr:  nil,
+				deleteSecretErr:    nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
+		"Not Managed by ESO": {
+			args: args{
+
+				client:          fakeClient,
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{},
+				getSecretErr:       nil,
+				describeSecretErr:  nil,
+				deleteSecretErr:    nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
+		"Failed to get Tags": {
+			args: args{
+
+				client:               fakeClient,
+				getSecretOutput:      &awssm.GetSecretValueOutput{},
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         nil,
+				describeSecretErr:    errors.New("failed to get tags"),
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: errors.New("failed to get tags"),
+			},
+			reason: "",
+		},
+		"Secret Not Found": {
+			args: args{
+				client:               fakeClient,
+				getSecretOutput:      nil,
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         awserr.New(awssm.ErrCodeResourceNotFoundException, "not here, sorry dude", nil),
+				describeSecretErr:    nil,
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"Not expected AWS error": {
+			args: args{
+				client:               fakeClient,
+				getSecretOutput:      nil,
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         awserr.New(awssm.ErrCodeEncryptionFailure, "aws unavailable", nil),
+				describeSecretErr:    nil,
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: errors.New("aws unavailable"),
+			},
+		},
+		"unexpected error": {
+			args: args{
+				client:               fakeClient,
+				getSecretOutput:      nil,
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         errors.New("timeout"),
+				describeSecretErr:    nil,
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: errors.New("timeout"),
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			sm := SecretsManager{
+				client: &tc.args.client,
+			}
+			tc.args.client.GetSecretValueWithContextFn = fakesm.NewGetSecretValueWithContextFn(tc.args.getSecretOutput, tc.args.getSecretErr)
+			tc.args.client.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(tc.args.describeSecretOutput, tc.args.describeSecretErr)
+			tc.args.client.DeleteSecretWithContextFn = fakesm.NewDeleteSecretWithContextFn(tc.args.deleteSecretOutput, tc.args.deleteSecretErr)
+			err := sm.DeleteSecret(context.TODO(), ref)
+
+			// Error nil XOR tc.want.err nil
+			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			}
+
+			// if errors are the same type but their contents do not match
+			if err != nil && tc.want.err != nil {
+				if !strings.Contains(err.Error(), tc.want.err.Error()) {
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
+			}
+		})
+	}
+}
 func makeValidSecretStore() *esv1beta1.SecretStore {
 	return &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{

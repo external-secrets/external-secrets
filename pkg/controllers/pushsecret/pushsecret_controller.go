@@ -82,35 +82,40 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			log.Error(err, errPatchStatus)
 		}
 	}()
-	// finalizer logic
-	if ps.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
-			controllerutil.AddFinalizer(&ps, pushSecretFinalizer)
-			err := r.Client.Update(ctx, &ps, &client.UpdateOptions{})
-			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+	switch ps.Spec.DeletionPolicy {
+	case esapi.PushSecretDeletionPolicyDelete:
+		// finalizer logic. Only added if we should delete the secrets
+		if ps.ObjectMeta.DeletionTimestamp.IsZero() {
+			if !controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
+				controllerutil.AddFinalizer(&ps, pushSecretFinalizer)
+				err := r.Client.Update(ctx, &ps, &client.UpdateOptions{})
+				if err != nil {
+					return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+				}
+				return ctrl.Result{}, nil
 			}
-			return ctrl.Result{}, nil
+		} else {
+			if controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
+				// trigger a cleanup with no Synced Map
+				badState, err := r.DeleteSecretFromProviders(ctx, &ps, esapi.SyncedPushSecretsMap{})
+				if err != nil {
+					msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
+					cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
+					ps = SetPushSecretCondition(ps, *cond)
+					r.SetSyncedSecrets(&ps, badState)
+					r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+					return ctrl.Result{}, err
+				}
+				controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
+				err = r.Client.Update(ctx, &ps, &client.UpdateOptions{})
+				if err != nil {
+					return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+				}
+				return ctrl.Result{}, nil
+			}
 		}
-	} else {
-		if controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
-			// trigger a cleanup with no Synced Map
-			badState, err := r.DeleteSecretFromProviders(ctx, &ps, esapi.SyncedPushSecretsMap{})
-			if err != nil {
-				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
-				cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
-				ps = SetPushSecretCondition(ps, *cond)
-				r.SetSyncedSecrets(&ps, badState)
-				r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
-				return ctrl.Result{}, err
-			}
-			controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
-			err = r.Client.Update(ctx, &ps, &client.UpdateOptions{})
-			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
-			}
-			return ctrl.Result{}, nil
-		}
+	case esapi.PushSecretDeletionPolicyNone:
+	default:
 	}
 
 	secret, err := r.GetSecret(ctx, ps)

@@ -107,7 +107,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		})
 		// give a time for reconciler to remove finalizers before removing SecretStores
-		// TODO: Secret Stores should have finalizers bound to External-Secrets and PushSecrets
+		// TODO: Secret Stores should have finalizers bound to PushSecrets if DeletionPolicy == Delete
 		time.Sleep(2 * time.Second)
 		k8sClient.Delete(context.Background(), &v1beta1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
