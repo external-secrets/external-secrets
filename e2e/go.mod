@@ -39,8 +39,8 @@ require (
 	github.com/Azure/azure-sdk-for-go v66.0.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/akeylesslabs/akeyless-go/v2 v2.19.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1782
+	github.com/akeylesslabs/akeyless-go/v2 v2.20.0
+	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1799
 	github.com/argoproj/argo-cd/v2 v2.4.8
 	github.com/aws/aws-sdk-go v1.44.101
 	github.com/external-secrets/external-secrets v0.0.0
@@ -54,7 +54,7 @@ require (
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/xanzy/go-gitlab v0.73.1
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
-	google.golang.org/api v0.96.0
+	google.golang.org/api v0.98.0
 	google.golang.org/genproto v0.0.0-20220920201722-2b89144ce006
 	k8s.io/api v0.25.0
 	k8s.io/apiextensions-apiserver v0.25.0
