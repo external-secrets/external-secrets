@@ -1979,9 +1979,9 @@
 <span class="w">        </span><span class="nt">shared</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">   </span><span class="c1"># next look in here. error if not found</span><span class="w"></span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">connectTokenSecretRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-token-staging</span><span class="w"></span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span><span class="w"></span>
+<span class="w">          </span><span class="nt">connectTokenSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-token-staging</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span><span class="w"></span>
 </code></pre></div></li>
 <li>Create a Kubernetes secret with the Connect Server credentials
 <div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
@@ -2115,9 +2115,9 @@
 <span class="w">        </span><span class="nt">shared</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">   </span><span class="c1"># next look in here. error if not found</span><span class="w"></span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">connectTokenSecretRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-token-staging</span><span class="w"></span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span><span class="w"></span>
+<span class="w">          </span><span class="nt">connectTokenSecretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-token-staging</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span><span class="w"></span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
