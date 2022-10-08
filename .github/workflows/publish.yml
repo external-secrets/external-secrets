@@ -82,10 +82,24 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      - name: Get docker image tag
+        id: container_info
+        shell: bash
+        env:
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          if [ "$GITHUB_REF" == "refs/heads/main" ]; then
+            TAG=main
+          else
+            TAG=$(make docker.tag)
+          fi
+          echo "::set-output name=image-tag::${TAG}"
+
       - name: Build & Publish Artifacts
         if: env.IS_FORK == 'false'
         shell: bash
         env:
+          VERSION: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: >-
             --push
             --platform linux/amd64,linux/arm64
@@ -95,16 +109,9 @@ jobs:
         if: env.IS_FORK == 'true'
         shell: bash
         env:
+          VERSION: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: --load
         run: make docker.build
-
-      - name: Get docker image tag
-        id: container_info
-        shell: bash
-        run: |
-          IMAGE=$(make docker.image)
-          TAG=$(make docker.tag)
-          echo "::set-output name=image-tag::${TAG}"
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
