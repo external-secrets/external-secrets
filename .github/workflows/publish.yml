@@ -99,7 +99,7 @@ jobs:
         if: env.IS_FORK == 'false'
         shell: bash
         env:
-          VERSION: ${{ steps.container_info.outputs.image-tag }}
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}${{ inputs.tag-suffix }}
           BUILD_ARGS: >-
             --push
             --platform linux/amd64,linux/arm64
@@ -109,7 +109,7 @@ jobs:
         if: env.IS_FORK == 'true'
         shell: bash
         env:
-          VERSION: ${{ steps.container_info.outputs.image-tag }}
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}${{ inputs.tag-suffix }}
           BUILD_ARGS: --load
         run: make docker.build
 
