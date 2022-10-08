@@ -44,7 +44,7 @@ Pick a name and description for your group:
 
 ![iam-left](../pictures/screenshot_container_auth_create_group_1.png)
 
-Click on "Access", and then on "Assign
+Click on "Access", and then on "Assign":
 
 ![iam-left](../pictures/screenshot_container_auth_create_group_2.png)
 
