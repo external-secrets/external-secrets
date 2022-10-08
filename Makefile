@@ -228,7 +228,7 @@ docker.push: ## Push the docker image to the registry
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.
-RELEASE_TAG ?= main$(TAG_SUFFIX)
+RELEASE_TAG ?= $(IMAGE_TAG)
 SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 docker.promote: ## Promote the docker image to the registry
