@@ -14,7 +14,6 @@ limitations under the License.
 package auth
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,7 +43,7 @@ func TestResolver(t *testing.T) {
 	}
 
 	for _, item := range tbl {
-		os.Setenv(item.env, item.url)
+		t.Setenv(item.env, item.url)
 	}
 
 	f := ResolveEndpoint()
@@ -53,9 +52,5 @@ func TestResolver(t *testing.T) {
 		ep, err := f.EndpointFor(item.service, "")
 		assert.Nil(t, err)
 		assert.Equal(t, item.url, ep.URL)
-	}
-
-	for _, item := range tbl {
-		os.Unsetenv(item.env)
 	}
 }

@@ -190,9 +190,11 @@ type testCase struct {
 
 func clientWithLoginMock(c *vault.Config) (Client, error) {
 	cl := fake.VaultClient{
-		MockSetToken: fake.NewSetTokenFn(),
-		MockAuth:     fake.NewVaultAuth(),
-		MockLogical:  fake.NewVaultLogical(),
+		MockAuthToken: fake.NewAuthTokenFn(),
+		MockSetToken:  fake.NewSetTokenFn(),
+		MockToken:     fake.NewTokenFn(""),
+		MockAuth:      fake.NewVaultAuth(),
+		MockLogical:   fake.NewVaultLogical(),
 	}
 	auth := cl.Auth()
 	token := cl.AuthToken()

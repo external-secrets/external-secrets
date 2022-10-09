@@ -1,6 +1,6 @@
 ## IBM Cloud Secret Manager
 
-External Secrets Operator integrates with [IBM Secret Manager](https://www.ibm.com/cloud/secrets-manager) for secret management.
+External Secrets Operator integrates with [IBM Cloud Secret Manager](https://www.ibm.com/cloud/secrets-manager) for secret management.
 
 ### Authentication
 
@@ -12,13 +12,9 @@ To generate your key (for test purposes we are going to generate from your user)
 
 ![iam](../pictures/screenshot_api_keys_iam.png)
 
-On the left, click "IBM Cloud API Keys":
+On the left, click "API Keys", then click on "Create"
 
 ![iam-left](../pictures/screenshot_api_keys_iam_left.png)
-
-Press "Create an IBM Cloud API Key":
-
-![iam-create-button](../pictures/screenshot_api_keys_create_button.png)
 
 Pick a name and description for your key:
 
@@ -48,7 +44,7 @@ Pick a name and description for your group:
 
 ![iam-left](../pictures/screenshot_container_auth_create_group_1.png)
 
-Click on "Access Policies":
+Click on "Access", and then on "Assign":
 
 ![iam-left](../pictures/screenshot_container_auth_create_group_2.png)
 
@@ -56,9 +52,13 @@ Click on "Assign Access", select "IAM services", and pick "Secrets Manager" from
 
 ![iam-left](../pictures/screenshot_container_auth_create_group_3.png)
 
-Scope to "All resources" or "Resources based on selected attributes", select "SecretsReader":
+Scope to "All resources" or "Resources based on selected attributes":
 
 ![iam-left](../pictures/screenshot_container_auth_create_group_4.png)
+
+Select the "SecretsReader" service access policy:
+
+![iam-left](../pictures/screenshot_container_auth_create_group_5.png)
 
 Click "Add" and "Assign" to save the access group.
 
@@ -66,11 +66,7 @@ Next, on the left, click "Trusted profiles":
 
 ![iam-left](../pictures/screenshot_container_auth_iam_left.png)
 
-Press "Create":
-
-![iam-create-button](../pictures/screenshot_container_auth_create_button.png)
-
-Pick a name and description for your profile:
+Press "Create" and pick a name and description for your profile:
 
 ![iam-create-key](../pictures/screenshot_container_auth_create_1.png)
 
@@ -98,11 +94,10 @@ Be sure the `ibm` provider is listed in the `Kind=SecretStore`
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretApiKeySecretRef` with the namespace where the secret resides.
 
-**NOTE:** Only `secretApiKeySecretRef` or `containerAuth` should be specified, depending on authentication me
-thod being used.
+**NOTE:** Only `secretApiKeySecretRef` or `containerAuth` should be specified, depending on authentication method being used.
 
-To find your serviceURL, under your Secrets Manager resource, go to "Endpoints" on the left.
-Note: Use the url without the `/api` suffix that is presented in the UI.
+To find your `serviceURL`, under your Secrets Manager resource, go to "Endpoints" on the left.
+
 See here for a list of [publicly available endpoints](https://cloud.ibm.com/apidocs/secrets-manager#getting-started-endpoints).
 
 ![iam-create-success](../pictures/screenshot_service_url.png)
@@ -140,7 +135,7 @@ The behavior for the different secret types is as following:
 * `remoteRef` retrieves an apikey from secrets manager and sets it for specified `secretKey`
 * `dataFrom` retrieves an apikey from secrets manager and sets it for the `apikey` Kubernetes secret key
 
-#### imported_cert, public_cert and private_cert
+#### imported_cert, public_cert, and private_cert
 * `remoteRef` requires a `property` to be set for either `certificate`, `private_key` or `intermediate` to retrieve respective fields from the secrets manager secret and set in specified `secretKey`
 * `dataFrom` retrieves all `certificate`, `private_key` and `intermediate` fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret
 
@@ -192,7 +187,6 @@ data:
   keyA: ... #valA
   keyB: ... #valB
 ```
-
 
 ### Creating external secret
 

@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,9 +22,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
 const (
@@ -638,7 +638,7 @@ func DeletionPolicyDelete(f *framework.Framework) (string, func(*framework.TestC
 			gomega.Eventually(func() bool {
 				_, err := f.KubeClientSet.CoreV1().Secrets(f.Namespace.Name).Get(context.Background(), secret.Name, metav1.GetOptions{})
 				return errors.IsNotFound(err)
-			}, time.Minute, time.Second*5).Should(gomega.BeTrue())
+			}, time.Minute*5, time.Second*5).Should(gomega.BeTrue())
 		}
 	}
 }

@@ -122,6 +122,12 @@ type VaultListResponse struct {
 	Data     *vault.Response
 }
 
+func NewAuthTokenFn() Token {
+	return Token{nil, func(ctx context.Context) (*vault.Secret, error) {
+		return &(vault.Secret{}), nil
+	}}
+}
+
 func NewSetTokenFn(ofn ...func(v string)) MockSetTokenFn {
 	return func(v string) {
 		for _, fn := range ofn {

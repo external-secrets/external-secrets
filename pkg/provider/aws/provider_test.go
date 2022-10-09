@@ -17,7 +17,6 @@ package aws
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -45,10 +44,8 @@ func TestProvider(t *testing.T) {
 	// inject fake static credentials because we test
 	// if we are able to get credentials when constructing the client
 	// see #415
-	os.Setenv("AWS_ACCESS_KEY_ID", "1234")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "1234")
-	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
-	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+	t.Setenv("AWS_ACCESS_KEY_ID", "1234")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "1234")
 
 	tbl := []struct {
 		test    string

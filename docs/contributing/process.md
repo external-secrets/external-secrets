@@ -90,7 +90,7 @@ Then execute `tf.apply.aws` or `tf.apply.gcp` to create the infrastructure.
 make tf.apply.aws
 ```
 
-Then run the `managed` testsuite. You will need push permissions to the external-secrets ghcr repository. You can set `IMAGE_REGISTRY` to control which image registry is used to store the controller and e2e test images in.
+Then run the `managed` testsuite. You will need push permissions to the external-secrets ghcr repository. You can set `IMAGE_NAME` to control which image registry is used to store the controller and e2e test images in.
 
 You also have to setup a proper Kubeconfig so the e2e test pod gets deployed into the managed cluster.
 
@@ -104,7 +104,7 @@ Use [ginkgo labels](https://onsi.github.io/ginkgo/#spec-labels) to select the te
 you want to execute.
 
 ```
-# you may have to set IMAGE_REGISTRY=docker.io/your-user/external-secrets
+# you may have to set IMAGE_NAME=docker.io/your-user/external-secrets
 make test.e2e.managed GINKGO_LABELS='gcp'
 ```
 
