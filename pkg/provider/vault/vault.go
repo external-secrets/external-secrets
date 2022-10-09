@@ -122,6 +122,7 @@ type Logical interface {
 	ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
 	ListWithContext(ctx context.Context, path string) (*vault.Secret, error)
 	WriteWithContext(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error)
+	DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error)
 }
 
 type Client interface {
@@ -362,7 +363,37 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	path := v.buildPath(remoteRef.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+	// Retrieve the secret map from vault and convert the secret value in string form.
+	_, err = v.logical.ReadWithDataWithContext(ctx, path, nil)
+	// If error is not of type secret not found, we should error
+	if err != nil && !strings.Contains(err.Error(), "secret not found") {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+	manager, ok := metadata["managed-by"]
+	if !ok || manager != "external-secrets" {
+		return nil
+	}
+	_, err = v.logical.DeleteWithContext(ctx, path)
+	if err != nil {
+		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
+	}
+	_, err = v.logical.DeleteWithContext(ctx, metaPath)
+	if err != nil {
+		return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
+	}
+	return nil
 }
 
 func (v *client) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
