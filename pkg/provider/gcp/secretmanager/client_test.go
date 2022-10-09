@@ -15,6 +15,7 @@ package secretmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -194,6 +195,114 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
+func TestDeleteSecret(t *testing.T) {
+	fErr := status.Error(codes.NotFound, "failed")
+	notFoundError, _ := apierror.FromError(fErr)
+	pErr := status.Error(codes.PermissionDenied, "failed")
+	permissionDeniedError, _ := apierror.FromError(pErr)
+	fakeClient := fakesm.MockSMClient{}
+	type args struct {
+		client          fakesm.MockSMClient
+		getSecretOutput fakesm.GetSecretMockReturn
+		deleteSecretErr error
+	}
+	type want struct {
+		err error
+	}
+	type testCase struct {
+		args   args
+		want   want
+		reason string
+	}
+	tests := map[string]testCase{
+		"Deletes Successfully": {
+			args: args{
+				client: fakeClient,
+				getSecretOutput: fakesm.GetSecretMockReturn{
+					Secret: &secretmanagerpb.Secret{
+
+						Name: "projects/foo/secret/bar",
+						Labels: map[string]string{
+							"managed-by": "external-secrets",
+						},
+					},
+					Err: nil,
+				},
+			},
+		},
+		"Not Managed by ESO": {
+			args: args{
+				client: fakeClient,
+				getSecretOutput: fakesm.GetSecretMockReturn{
+					Secret: &secretmanagerpb.Secret{
+
+						Name:   "projects/foo/secret/bar",
+						Labels: map[string]string{},
+					},
+					Err: nil,
+				},
+			},
+		},
+		"Secret Not Found": {
+			args: args{
+				client: fakeClient,
+				getSecretOutput: fakesm.GetSecretMockReturn{
+					Secret: nil,
+					Err:    notFoundError,
+				},
+			},
+		},
+		"Random Error": {
+			args: args{
+				client: fakeClient,
+				getSecretOutput: fakesm.GetSecretMockReturn{
+					Secret: nil,
+					Err:    errors.New("This errored out"),
+				},
+			},
+			want: want{
+				err: errors.New("This errored out"),
+			},
+		},
+		"Random GError": {
+			args: args{
+				client: fakeClient,
+				getSecretOutput: fakesm.GetSecretMockReturn{
+					Secret: nil,
+					Err:    permissionDeniedError,
+				},
+			},
+			want: want{
+				err: errors.New("failed"),
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			client := Client{
+				smClient: &tc.args.client,
+				store: &esv1beta1.GCPSMProvider{
+					ProjectID: "foo",
+				},
+			}
+			tc.args.client.NewGetSecretFn(tc.args.getSecretOutput)
+			tc.args.client.NewDeleteSecretFn(tc.args.deleteSecretErr)
+			err := client.DeleteSecret(context.TODO(), ref)
+			// Error nil XOR tc.want.err nil
+			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			}
+
+			// if errors are the same type but their contents do not match
+			if err != nil && tc.want.err != nil {
+				if !strings.Contains(err.Error(), tc.want.err.Error()) {
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
+			}
+		})
+	}
+}
 func TestSetSecret(t *testing.T) {
 	ref := fakeRef{key: "/baz"}
 

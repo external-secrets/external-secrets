@@ -39,6 +39,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault"
 )
 
 var (
@@ -69,6 +70,8 @@ var (
 	certCheckInterval                     time.Duration
 	certLookaheadInterval                 time.Duration
 	enableAWSSession                      bool
+	enableVaultTokenCache                 bool
+	vaultTokenCacheSize                   int
 	tlsCiphers                            string
 	tlsMinVersion                         string
 )
@@ -190,6 +193,10 @@ var rootCmd = &cobra.Command{
 		if enableAWSSession {
 			awsauth.EnableCache = true
 		}
+		if enableVaultTokenCache {
+			vault.EnableCache = true
+			vault.VaultClientCache.Size = vaultTokenCacheSize
+		}
 		setupLog.Info("starting manager")
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 			setupLog.Error(err, "problem running manager")
@@ -222,4 +229,6 @@ func init() {
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableAWSSession, "experimental-enable-aws-session-cache", false, "Enable experimental AWS session cache. External secret will reuse the AWS session without creating a new one on each request.")
+	rootCmd.Flags().BoolVar(&enableVaultTokenCache, "experimental-enable-vault-token-cache", false, "Enable experimental Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.")
+	rootCmd.Flags().IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", 100, "Maximum size of Vault token cache. Only used if --experimental-enable-vault-token-cache is set.")
 }

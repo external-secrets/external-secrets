@@ -1,0 +1,140 @@
+name: Reusable workflow to run trivy scan
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        required: true
+        type: string
+      tag-suffix:
+        required: true
+        type: string
+      dockerfile:
+        required: true
+        type: string
+    secrets:
+      GHCR_USERNAME:
+        required: true
+      GHCR_TOKEN:
+        required: true
+
+env:
+  IMAGE_NAME: ${{ inputs.image-name }}
+  TAG_SUFFIX: ${{ inputs.tag-suffix }}
+  DOCKERFILE: ${{ inputs.dockerfile }}
+  IS_FORK: ${{ secrets.GHCR_USERNAME == '' && 'true' || 'false' }}
+
+jobs:
+  build-publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.container_info.outputs.image-tag }}
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: 'v0.4.2'
+          install: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: "go.mod"
+
+      - name: Fetch History
+        shell: bash
+        run: git fetch --prune --unshallow
+
+      - name: Find the Go Cache
+        shell: bash
+        id: go
+        run: |
+          echo "::set-output name=build-cache::$(go env GOCACHE)"
+          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
+
+      - name: Cache the Go Build Cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go.outputs.build-cache }}
+          key: ${{ runner.os }}-build-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.go.outputs.mod-cache }}
+          key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+
+      - name: Login to Docker
+        uses: docker/login-action@v2
+        if: env.IS_FORK == 'false'
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Get docker image tag
+        id: container_info
+        shell: bash
+        env:
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          if [ "$GITHUB_REF" == "refs/heads/main" ]; then
+            TAG=main
+          else
+            TAG=$(make docker.tag)
+          fi
+          echo "::set-output name=image-tag::${TAG}"
+
+      - name: Build & Publish Artifacts
+        if: env.IS_FORK == 'false'
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}${{ inputs.tag-suffix }}
+          BUILD_ARGS: >-
+            --push
+            --platform linux/amd64,linux/arm64
+        run: make docker.build
+
+      - name: Build & Publish Artifacts fork
+        if: env.IS_FORK == 'true'
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}${{ inputs.tag-suffix }}
+          BUILD_ARGS: --load
+        run: make docker.build
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ inputs.image-name }}:${{ steps.container_info.outputs.image-tag }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  sign:
+    runs-on: ubuntu-latest
+    needs: build-publish
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Sign image
+        if: env.IS_FORK == 'false'
+        uses: ./.github/actions/sign
+        with:
+          image-name: ${{ inputs.image-name }}
+          image-tag: ${{ needs.build-publish.outputs.image-tag }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

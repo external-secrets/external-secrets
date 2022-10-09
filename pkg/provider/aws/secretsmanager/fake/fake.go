@@ -31,12 +31,14 @@ type Client struct {
 	GetSecretValueWithContextFn GetSecretValueWithContextFn
 	PutSecretValueWithContextFn PutSecretValueWithContextFn
 	DescribeSecretWithContextFn DescribeSecretWithContextFn
+	DeleteSecretWithContextFn   DeleteSecretWithContextFn
 }
 
 type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
 type GetSecretValueWithContextFn func(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
 type PutSecretValueWithContextFn func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
 type DescribeSecretWithContextFn func(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
+type DeleteSecretWithContextFn func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
 
 func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretWithContextFn(ctx, input, options...)
@@ -44,6 +46,15 @@ func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSec
 
 func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error) CreateSecretWithContextFn {
 	return func(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+		return output, err
+	}
+}
+func (sm Client) DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
+	return sm.DeleteSecretWithContextFn(ctx, input, opts...)
+}
+
+func NewDeleteSecretWithContextFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretWithContextFn {
+	return func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (output *awssm.DeleteSecretOutput, err error) {
 		return output, err
 	}
 }

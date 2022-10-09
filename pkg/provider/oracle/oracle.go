@@ -72,6 +72,10 @@ func (vms *VaultManagementService) SetSecret(ctx context.Context, value []byte, 
 	return fmt.Errorf("not implemented")
 }
 
+func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented

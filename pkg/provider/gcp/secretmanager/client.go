@@ -74,6 +74,7 @@ type Client struct {
 }
 
 type GoogleSecretManagerClient interface {
+	DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
 	AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
@@ -83,6 +84,36 @@ type GoogleSecretManagerClient interface {
 }
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
+
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	var gcpSecret *secretmanagerpb.Secret
+	var err error
+
+	gcpSecret, err = c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
+	})
+	var gErr *apierror.APIError
+
+	if errors.As(err, &gErr) {
+		if gErr.GRPCStatus().Code() == codes.NotFound {
+			return nil
+		}
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	manager, ok := gcpSecret.Labels["managed-by"]
+
+	if !ok || manager != "external-secrets" {
+		return nil
+	}
+
+	deleteSecretVersionReq := &secretmanagerpb.DeleteSecretRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
+	}
+	return c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
+}
 
 // SetSecret pushes a kubernetes secret key into gcp provider Secret.
 func (c *Client) SetSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {

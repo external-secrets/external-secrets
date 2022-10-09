@@ -15,11 +15,11 @@ limitations under the License.
 package secretsmanager
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -55,10 +55,13 @@ type SMInterface interface {
 	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
 	PutSecretValueWithContext(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
 	DescribeSecretWithContext(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
+	DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
 }
 
 const (
 	errUnexpectedFindOperator = "unexpected find operator"
+	managedBy                 = "managed-by"
+	externalSecrets           = "external-secrets"
 )
 
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
@@ -111,10 +114,43 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 	return secretOut, nil
 }
 
+func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	secretName := remoteRef.GetRemoteKey()
+	secretValue := awssm.GetSecretValueInput{
+		SecretId: &secretName,
+	}
+	secretInput := awssm.DescribeSecretInput{
+		SecretId: &secretName,
+	}
+	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	var aerr awserr.Error
+	if err != nil {
+		if ok := errors.As(err, &aerr); !ok {
+			return err
+		}
+		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+			return nil
+		}
+		return err
+	}
+	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	if err != nil {
+		return err
+	}
+	if !isManagedByESO(data) {
+		return nil
+	}
+	deleteInput := &awssm.DeleteSecretInput{
+		SecretId: awsSecret.ARN,
+	}
+	_, err = sm.client.DeleteSecretWithContext(ctx, deleteInput)
+	return err
+}
+
 func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
-	managedBy := "managed-by"
-	externalSecrets := "external-secrets"
+	managedBy := managedBy
+	externalSecrets := externalSecrets
 	externalSecretsTag := []*awssm.Tag{
 		{
 			Key:   &managedBy,
@@ -136,50 +172,44 @@ func (sm *SecretsManager) SetSecret(ctx context.Context, value []byte, remoteRef
 	}
 
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
-
-	if err == nil {
-		data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
-		if err != nil {
-			return err
-		}
-
-		for _, tag := range data.Tags {
-			if *tag.Key == managedBy && *tag.Value == externalSecrets {
-				goto TAGGED
-			} else {
-				return fmt.Errorf("secret not managed by external-secrets")
-			}
-		}
-	}
-TAGGED:
-	if awsSecret != nil && reflect.DeepEqual(awsSecret.SecretBinary, secretRequest.SecretBinary) {
-		return nil
-	} else if awsSecret.ARN != nil {
-		input := &awssm.PutSecretValueInput{
-			SecretId:     awsSecret.ARN,
-			SecretBinary: value,
-		}
-		_, err := sm.client.PutSecretValueWithContext(ctx, input)
-		if err != nil {
-			return err
-		}
-	}
-
 	var aerr awserr.Error
-	if ok := errors.As(err, &aerr); ok {
-		if aerr.Code() != awssm.ErrCodeResourceNotFoundException {
+	if err != nil {
+		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
-	} else if err != nil {
+		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+			_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
+			return err
+		}
 		return err
 	}
-
-	_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
-
+	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
 	if err != nil {
 		return err
 	}
-	return nil
+	if !isManagedByESO(data) {
+		return fmt.Errorf("secret not managed by external-secrets")
+	}
+	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
+		return nil
+	}
+	input := &awssm.PutSecretValueInput{
+		SecretId:     awsSecret.ARN,
+		SecretBinary: value,
+	}
+	_, err = sm.client.PutSecretValueWithContext(ctx, input)
+	return err
+}
+
+func isManagedByESO(data *awssm.DescribeSecretOutput) bool {
+	managedBy := managedBy
+	externalSecrets := externalSecrets
+	for _, tag := range data.Tags {
+		if *tag.Key == managedBy && *tag.Value == externalSecrets {
+			return true
+		}
+	}
+	return false
 }
 
 // GetAllSecrets syncs multiple secrets from aws provider into a single Kubernetes Secret.

@@ -33,15 +33,27 @@ type PushSecretStoreRef struct {
 	LabelSelector *metav1.LabelSelector `json:"labelSelector"`
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// Defaults to `SecretStore`
+	// +kubebuilder:default="SecretStore"
 	// +optional
 	Kind string `json:"kind,omitempty"`
 }
+
+type PushSecretDeletionPolicy string
+
+const (
+	PushSecretDeletionPolicyDelete PushSecretDeletionPolicy = "Delete"
+	PushSecretDeletionPolicyNone   PushSecretDeletionPolicy = "None"
+)
 
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
 	RefreshInterval *metav1.Duration     `json:"refreshInterval,omitempty"`
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
+	// Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".
+	// +kubebuilder:default="None"
+	// +optional
+	DeletionPolicy PushSecretDeletionPolicy `json:"deletionPolicy,omitempty"`
 	// The Secret Selector (k8s source) for the Push Secret
 	Selector PushSecretSelector `json:"selector"`
 	// Secret Data that should be pushed to providers
@@ -100,6 +112,7 @@ type PushSecretStatusCondition struct {
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
+type SyncedPushSecretsMap map[string]map[string]PushSecretData
 
 // PushSecretStatus indicates the history of the status of PushSecret.
 type PushSecretStatus struct {
@@ -110,7 +123,9 @@ type PushSecretStatus struct {
 
 	// SyncedResourceVersion keeps track of the last synced version.
 	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
-
+	// Synced Push Secrets for later deletion. Matches Secret Stores to PushSecretData that was stored to that secretStore.
+	// +optional
+	SyncedPushSecrets SyncedPushSecretsMap `json:"syncedPushSecrets,omitempty"`
 	// +optional
 	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
 }

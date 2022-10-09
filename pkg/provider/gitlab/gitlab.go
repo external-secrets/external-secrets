@@ -30,8 +30,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-// Requires GITLAB_TOKEN and GITLAB_PROJECT_ID to be set in environment variables
-
 const (
 	errGitlabCredSecretName                   = "credentials are empty"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
@@ -39,7 +37,7 @@ const (
 	errMissingSAK                             = "missing credentials while setting auth"
 	errList                                   = "could not verify if the client is valid: %w"
 	errAuth                                   = "client is not allowed to get secrets"
-	errUninitalizedGitlabProvider             = "provider gitlab is not initialized"
+	errUninitializedGitlabProvider            = "provider gitlab is not initialized"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
 
@@ -54,9 +52,10 @@ type Client interface {
 
 // Gitlab Provider struct with reference to a GitLab client and a projectID.
 type Gitlab struct {
-	client    Client
-	url       string
-	projectID interface{}
+	client      Client
+	url         string
+	projectID   interface{}
+	environment string
 }
 
 // Client for interacting with kubernetes cluster...?
@@ -118,7 +117,7 @@ func (g *Gitlab) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-// Method on Gitlab Provider to set up client with credentials and populate projectID.
+// Method on Gitlab Provider to set up client with credentials, populate projectID and environment.
 func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
@@ -155,9 +154,14 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 
 	g.client = gitlabClient.ProjectVariables
 	g.projectID = cliStore.store.ProjectID
+	g.environment = cliStore.store.Environment
 	g.url = cliStore.store.URL
 
 	return g, nil
+}
+
+func (g *Gitlab) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented SetSecret.
@@ -173,7 +177,7 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(g.client) {
-		return nil, fmt.Errorf(errUninitalizedGitlabProvider)
+		return nil, fmt.Errorf(errUninitializedGitlabProvider)
 	}
 	// Need to replace hyphens with underscores to work with Gitlab API
 	ref.Key = strings.ReplaceAll(ref.Key, "-", "_")
@@ -183,8 +187,14 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	// 	"variable_type": "env_var",
 	// 	"value": "TEST_1",
 	// 	"protected": false,
-	// 	"masked": true
-	data, _, err := g.client.GetVariable(g.projectID, ref.Key, nil) // Optional 'filter' parameter could be added later
+	// 	"masked": true,
+	// 	"environment_scope": "*"
+	// }
+	var vopts *gitlab.GetProjectVariableOptions
+	if g.environment != "" {
+		vopts = &gitlab.GetProjectVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: g.environment}}
+	}
+	data, _, err := g.client.GetVariable(g.projectID, ref.Key, vopts)
 	if err != nil {
 		return nil, err
 	}

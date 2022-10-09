@@ -32,6 +32,7 @@ type MockSMClient struct {
 	createSecretFn func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	closeFn        func() error
 	GetSecretFn    func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
+	DeleteSecretFn func(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
 }
 
 type AccessSecretVersionMockReturn struct {
@@ -54,6 +55,14 @@ type CreateSecretMockReturn struct {
 	Err    error
 }
 
+func (mc *MockSMClient) DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error {
+	return mc.DeleteSecretFn(ctx, req)
+}
+func (mc *MockSMClient) NewDeleteSecretFn(err error) {
+	mc.DeleteSecretFn = func(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error {
+		return err
+	}
+}
 func (mc *MockSMClient) GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 	return mc.GetSecretFn(ctx, req)
 }

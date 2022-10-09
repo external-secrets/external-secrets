@@ -27,6 +27,7 @@ import (
 type Client struct {
 	GetParameterWithContextFn        GetParameterWithContextFn
 	PutParameterWithContextFn        PutParameterWithContextFn
+	DeleteParameterWithContextFn     DeleteParameterWithContextFn
 	DescribeParametersWithContextFn  DescribeParametersWithContextFn
 	ListTagsForResourceWithContextFn ListTagsForResourceWithContextFn
 }
@@ -35,6 +36,7 @@ type GetParameterWithContextFn func(aws.Context, *ssm.GetParameterInput, ...requ
 type PutParameterWithContextFn func(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
 type DescribeParametersWithContextFn func(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
 type ListTagsForResourceWithContextFn func(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
+type DeleteParameterWithContextFn func(ctx aws.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error)
 
 func (sm *Client) ListTagsForResourceWithContext(ctx aws.Context, input *ssm.ListTagsForResourceInput, options ...request.Option) (*ssm.ListTagsForResourceOutput, error) {
 	return sm.ListTagsForResourceWithContextFn(ctx, input, options...)
@@ -42,6 +44,16 @@ func (sm *Client) ListTagsForResourceWithContext(ctx aws.Context, input *ssm.Lis
 
 func NewListTagsForResourceWithContextFn(output *ssm.ListTagsForResourceOutput, err error) ListTagsForResourceWithContextFn {
 	return func(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error) {
+		return output, err
+	}
+}
+
+func (sm *Client) DeleteParameterWithContext(ctx aws.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error) {
+	return sm.DeleteParameterWithContextFn(ctx, input, opts...)
+}
+
+func NewDeleteParameterWithContextFn(output *ssm.DeleteParameterOutput, err error) DeleteParameterWithContextFn {
+	return func(aws.Context, *ssm.DeleteParameterInput, ...request.Option) (*ssm.DeleteParameterOutput, error) {
 		return output, err
 	}
 }
