@@ -1,8 +1,8 @@
 ```yaml
 ---
-title: SecretSink
+title: PushSecret
 version: v1alpha1
-authors: 
+authors:
 creation-date: 2022-01-25
 status: draft
 ---
@@ -18,7 +18,7 @@ status: draft
 
 
 ## Summary
-The Secret Sink is a feature to allow Secrets from Kubernetes to be saved back into some providers. Where ExternalSecret is responsible to download a Secret from a Provider into Kubernetes (as a K8s Secret), SecretSink will upload a Kubernetes Secret to a Provider.
+The Secret Sink is a feature to allow Secrets from Kubernetes to be saved back into some providers. Where ExternalSecret is responsible to download a Secret from a Provider into Kubernetes (as a K8s Secret), PushSecret will upload a Kubernetes Secret to a Provider.
 
 ## Motivation
 Secret Sink allows some inCluster generated secrets to also be available on a given secret provider. It also allows multiple Providers having the same secret (which means a way to perform failover in case a given secret provider is on downtime or compromised for whatever the reason).
@@ -26,7 +26,7 @@ Secret Sink allows some inCluster generated secrets to also be available on a gi
 ### Goals
 - CRD Design for the SecretSink
 - Define the need for a SinkStore
-- 
+-
 ### Non-Goals
 Do not implement full compatibility mechanisms with each provider (we are not Terraform neither Crossplane)
 
@@ -113,7 +113,7 @@ spec:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: SecretSink
+kind: PushSecret
 metadata:
   name: "hello-world"
   namespace: my-ns # Same of the SecretStores
@@ -130,17 +130,17 @@ spec:
     secret:
       name: foobar
   data:
-    match:
-    - secretKey: foobar
+  - match:
+      secretKey: foobar
       remoteRefs:
-      - remoteKey: my/path/foobar 
+      - remoteKey: my/path/foobar
         property: my-property #optional. To allow coming back from a 'dataFrom'
       - remoteKey: secret/my-path-foobar
         property: another-property
     rewrite:
-    - secretKey: game-(.+).(.+)
+      secretKey: game-(.+).(.+)
       remoteRefs:
-      - remoteKey: my/path/($1) 
+      - remoteKey: my/path/($1)
         property: prop-($2)
       - remoteKey: my-path-($1)-($2) #Applies this way to all other secretStores
 
@@ -148,7 +148,7 @@ status:
   refreshTime: "2019-08-12T12:33:02Z"
   conditions:
   - type: Ready
-    status: "True" 
+    status: "True"
     reason: "SecretSynced"
     message: "Secret was synced" #Fully synced
     lastTransitionTime: "2019-08-12T12:33:02Z"
@@ -165,7 +165,7 @@ status:
 ```
 
 ### Behavior
-When checking SecretSink for the Source Secret, check existing labels for SecretStore reference of that particular Secret. If this SecretStore reference is an object in SecretSink SecretStore lists, a SecretSyncError should be emited as we cannot sync the secret to the same SecretStore.
+When checking PushSecret for the Source Secret, check existing labels for SecretStore reference of that particular Secret. If this SecretStore reference is an object in PushSecret SecretStore lists, a SecretSyncError should be emited as we cannot sync the secret to the same SecretStore.
 
 If the SecretStores are all fine or if the Secret has no labels (secret created by user / another tool), for Each SecretStore, get the SyncState of this store (New, SecretSynced, SecretSyncedErr).
 
@@ -177,9 +177,9 @@ We had several discussions on how to implement this feature, and it turns out ju
 
 ### Acceptance Criteria
 + ExternalSecrets create appropriate labels on generated Secrets
-+ SecretSinks can read labels on source Secrets
-+ SecretSinks cannot have same references to SecretStores
-+ SecretSinks respect refreshInterval
++ PushSecrets can read labels on source Secrets
++ PushSecrets cannot have same references to SecretStores
++ PushSecrets respect refreshInterval
 ## Alternatives
 Using some integration with Crossplane can allow to sync the secrets. Cons is this must be either manual or through some integration that would be an independent project on its own.
 

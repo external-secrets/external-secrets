@@ -14,6 +14,7 @@ limitations under the License.
 package secretmanager
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -23,9 +24,11 @@ import (
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go/v2"
+	"github.com/googleapis/gax-go/v2/apierror"
 	"github.com/tidwall/gjson"
 	"google.golang.org/api/iterator"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	"google.golang.org/grpc/codes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -71,12 +74,121 @@ type Client struct {
 }
 
 type GoogleSecretManagerClient interface {
+	DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
 	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
+	AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
+	CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	Close() error
+	GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 }
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
+
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	var gcpSecret *secretmanagerpb.Secret
+	var err error
+
+	gcpSecret, err = c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
+	})
+	var gErr *apierror.APIError
+
+	if errors.As(err, &gErr) {
+		if gErr.GRPCStatus().Code() == codes.NotFound {
+			return nil
+		}
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	manager, ok := gcpSecret.Labels["managed-by"]
+
+	if !ok || manager != "external-secrets" {
+		return nil
+	}
+
+	deleteSecretVersionReq := &secretmanagerpb.DeleteSecretRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
+	}
+	return c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
+}
+
+// SetSecret pushes a kubernetes secret key into gcp provider Secret.
+func (c *Client) SetSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	createSecretReq := &secretmanagerpb.CreateSecretRequest{
+		Parent:   fmt.Sprintf("projects/%s", c.store.ProjectID),
+		SecretId: remoteRef.GetRemoteKey(),
+		Secret: &secretmanagerpb.Secret{
+			Labels: map[string]string{
+				"managed-by": "external-secrets",
+			},
+			Replication: &secretmanagerpb.Replication{
+				Replication: &secretmanagerpb.Replication_Automatic_{
+					Automatic: &secretmanagerpb.Replication_Automatic{},
+				},
+			},
+		},
+	}
+
+	var gcpSecret *secretmanagerpb.Secret
+	var err error
+
+	gcpSecret, err = c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
+	})
+
+	var gErr *apierror.APIError
+
+	if err != nil && errors.As(err, &gErr) {
+		if gErr.GRPCStatus().Code() == codes.NotFound {
+			gcpSecret, err = c.smClient.CreateSecret(ctx, createSecretReq)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	manager, ok := gcpSecret.Labels["managed-by"]
+
+	if !ok || manager != "external-secrets" {
+		return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
+	}
+
+	gcpVersion, err := c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", c.store.ProjectID, remoteRef.GetRemoteKey()),
+	})
+
+	if errors.As(err, &gErr) {
+		if err != nil && gErr.GRPCStatus().Code() != codes.NotFound {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	if gcpVersion != nil && gcpVersion.Payload != nil && bytes.Equal(payload, gcpVersion.Payload.Data) {
+		return nil
+	}
+
+	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: payload,
+		},
+	}
+
+	_, err = c.smClient.AddSecretVersion(ctx, addSecretVersionReq)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // GetAllSecrets syncs multiple secrets from gcp provider into a single Kubernetes Secret.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -86,6 +198,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	if len(ref.Tags) > 0 {
 		return c.findByTags(ctx, ref)
 	}
+
 	return nil, errors.New(errUnexpectedFindOperator)
 }
 
@@ -194,8 +307,8 @@ func (c *Client) trimName(name string) string {
 // (and users would always use the name, while requests accept both).
 func (c *Client) extractProjectIDNumber(secretFullName string) string {
 	s := strings.Split(secretFullName, "/")
-	projectIDNumuber := s[1]
-	return projectIDNumuber
+	ProjectIDNumuber := s[1]
+	return ProjectIDNumuber
 }
 
 // GetSecret returns a single secret from the provider.
