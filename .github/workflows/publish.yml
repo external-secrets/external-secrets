@@ -89,7 +89,7 @@ jobs:
           GITHUB_REF: ${{ github.ref }}
         run: |
           if [ "$GITHUB_REF" == "refs/heads/main" ]; then
-            TAG=main
+            TAG=main${{ inputs.tag-suffix }}
           else
             TAG=$(make docker.tag)
           fi
@@ -99,7 +99,7 @@ jobs:
         if: env.IS_FORK == 'false'
         shell: bash
         env:
-          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}${{ inputs.tag-suffix }}
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: >-
             --push
             --platform linux/amd64,linux/arm64
@@ -109,7 +109,7 @@ jobs:
         if: env.IS_FORK == 'true'
         shell: bash
         env:
-          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}${{ inputs.tag-suffix }}
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: --load
         run: make docker.build
 
