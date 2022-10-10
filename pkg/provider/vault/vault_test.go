@@ -190,9 +190,11 @@ type testCase struct {
 
 func clientWithLoginMock(c *vault.Config) (Client, error) {
 	cl := fake.VaultClient{
-		MockSetToken: fake.NewSetTokenFn(),
-		MockAuth:     fake.NewVaultAuth(),
-		MockLogical:  fake.NewVaultLogical(),
+		MockAuthToken: fake.NewAuthTokenFn(),
+		MockSetToken:  fake.NewSetTokenFn(),
+		MockToken:     fake.NewTokenFn(""),
+		MockAuth:      fake.NewVaultAuth(),
+		MockLogical:   fake.NewVaultLogical(),
 	}
 	auth := cl.Auth()
 	token := cl.AuthToken()
@@ -959,6 +961,14 @@ func TestGetAllSecrets(t *testing.T) {
 				"access_secret": "access_secret2",
 			},
 		},
+		"secret3": map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"custom_metadata": map[string]interface{}{
+					"foo": "baz",
+				},
+			},
+			"data": nil,
+		},
 		"tag": map[string]interface{}{
 			"metadata": map[string]interface{}{
 				"custom_metadata": map[string]interface{}{
@@ -997,7 +1007,7 @@ func TestGetAllSecrets(t *testing.T) {
 				"empty": "true",
 			},
 			"metadata": map[string]interface{}{
-				"keys": []interface{}{"secret1", "secret2", "tag", "path/"},
+				"keys": []interface{}{"secret1", "secret2", "secret3", "tag", "path/"},
 			},
 		},
 		"path/": map[string]interface{}{

@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,11 +51,6 @@ type workloadIdentityTest struct {
 func TestWorkloadIdentity(t *testing.T) {
 	clusterSANamespace := "foobar"
 	tbl := []*workloadIdentityTest{
-		composeTestcase(
-			defaultTestCase("missing store spec should result in error"),
-			withErr("invalid: missing store spec"),
-			withStore(&esv1beta1.SecretStore{}),
-		),
 		composeTestcase(
 			defaultTestCase("should skip when no workload identity is configured: TokenSource and error must be nil"),
 			withStore(&esv1beta1.SecretStore{
@@ -137,7 +132,8 @@ func TestWorkloadIdentity(t *testing.T) {
 			cb := clientfake.NewClientBuilder()
 			cb.WithObjects(row.kubeObjects...)
 			client := cb.Build()
-			ts, err := w.TokenSource(context.Background(), row.store, client, "default")
+			isCluster := row.store.GetTypeMeta().Kind == esv1beta1.ClusterSecretStoreKind
+			ts, err := w.TokenSource(context.Background(), row.store.GetSpec().Provider.GCPSM.Auth, isCluster, client, "default")
 			// assert err
 			if row.expErr == "" {
 				assert.NoError(t, err)
@@ -211,12 +207,6 @@ func composeTestcase(tc *workloadIdentityTest, mutators ...testCaseMutator) *wor
 		m(tc)
 	}
 	return tc
-}
-
-func withErr(err string) testCaseMutator {
-	return func(tc *workloadIdentityTest) {
-		tc.expErr = err
-	}
 }
 
 func withStore(store esv1beta1.GenericStore) testCaseMutator {

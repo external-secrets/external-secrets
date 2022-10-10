@@ -42,7 +42,7 @@ jobs:
           node-version: '14'
 
       - name: Configure Python 3.x
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4.2.0
         if: ${{ fromJSON(steps.detect-languages.outputs.languages).python }}
         with:
           python-version: '3.10'
@@ -57,7 +57,7 @@ jobs:
       # We need the rust toolchain because it uses rustc and cargo to inspect the package
       - name: Configure Rust 1.x stable
         uses: actions-rs/toolchain@v1
-        if: ${{ fromJSON(steps.detect-languages.outputs.languages).rust }} 
+        if: ${{ fromJSON(steps.detect-languages.outputs.languages).rust }}
         with:
           toolchain: stable
 

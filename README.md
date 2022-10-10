@@ -2,16 +2,6 @@
     <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
 </p>
 
-## ⚠️DNS Transfer Alert⚠️
-We are currently in the middle of the process of transfering out our DNS zones to the Linux foundation. This transfer, unfortunately, is expected with some instability. The main addresses that are going to be affected are https://external-secrets.io and https://charts.external-secrets.io.
-
-In order to minimize any impact this transfer might have in your systems, you can download manually the chart packages from our tags (here is the [latest one](https://github.com/external-secrets/external-secrets/releases/download/helm-chart-0.5.9/external-secrets-0.5.9.tgz)
-
-Installation in this way is not supported, but it a valid workaround while the transfer is in progress.
-```
-helm install es https://github.com/external-secrets/external-secrets/releases/download/helm-chart-0.5.9/external-secrets-0.5.9.tgz
-```
-
 # External Secrets
 ![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5327/badge)](https://bestpractices.coreinfrastructure.org/projects/5947)
@@ -37,7 +27,7 @@ External Secrets Operator guides and reference documentation is available at [ex
 
 ## Contributing
 
-We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/main/contributing-devguide/) and [Contribution process](https://www.external-secrets.io/main/contributing-process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/main/contributing-coc/) and adhere to its guidelines.
+We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/main/contributing/devguide/) and [Contribution process](https://www.external-secrets.io/main/contributing/process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/main/contributing/coc/) and adhere to its guidelines.
 
 ### Sponsoring
 Please consider sponsoring this project, there are many ways you can help us with: engineering time, providing infrastructure, donating money, etc. We are open to cooperations, feel free to approach as and we discuss how this could look like. We can keep your contribution anonymized if that's required (depending on the type of contribution), and anonymous donations are possible inside [Opencollective](https://opencollective.com/external-secrets-org).

@@ -15,29 +15,30 @@ We are currently in beta and support **only the latest release** for the time be
 The following table describes the stability level of each provider and who's responsible.
 
 | Provider                                                                                                   | Stability |                                                                                                                                     Maintainer |
-| ---------------------------------------------------------------------------------------------------------- | :-------: | ---------------------------------------------------------------------------------------------------------------------------------------------: |
-| [AWS Secrets Manager](https://external-secrets.io/latest/provider-aws-secrets-manager/)                    |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
-| [AWS Parameter Store](https://external-secrets.io/latest/provider-aws-parameter-store/)                    |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
-| [Hashicorp Vault](https://external-secrets.io/latest/provider-hashicorp-vault/)                            |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
-| [GCP Secret Manager](https://external-secrets.io/latest/provider-google-secrets-manager/)                  |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
-| [Azure Keyvault](https://external-secrets.io/latest/provider-azure-key-vault/)                             |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
-| [Kubernetes](https://external-secrets.io/latest/provider-kubernetes)                                       |   alpha   |                                                                                        [external-secrets](https://github.com/external-secrets) |
-| [IBM Secrets Manager](https://external-secrets.io/latest/provider-ibm-secrets-manager/)                    |   alpha   | [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta) |
-| [Yandex Lockbox](https://external-secrets.io/latest/provider-yandex-lockbox/)                              |   alpha   |                                            [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
-| [Gitlab Project Variables](https://external-secrets.io/latest/provider-gitlab-project-variables/)          |   alpha   |                                                                                                         [@Jabray5](https://github.com/Jabray5) |
+|------------------------------------------------------------------------------------------------------------| :-------: |-----------------------------------------------------------------------------------------------------------------------------------------------:|
+| [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
+| [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
+| [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
+| [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                  |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
+| [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                             |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
+| [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |   alpha   |                                                                                        [external-secrets](https://github.com/external-secrets) |
+| [IBM Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)                    |   alpha   | [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta) [@IdanAdar](https://github.com/IdanAdar) |
+| [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              |   alpha   |                                            [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
+| [Gitlab Project Variables](https://external-secrets.io/latest/provider/gitlab-project-variables/)          |   alpha   |                                                                                                         [@Jabray5](https://github.com/Jabray5) |
 | Alibaba Cloud KMS                                                                                          |   alpha   |                                                                                                 [@ElsaChelala](https://github.com/ElsaChelala) |
-| [Oracle Vault](https://external-secrets.io/latest/provider-oracle-vault)                                   |   alpha   |                                                        [@KianTigger](https://github.com/KianTigger) [@EladGabay](https://github.com/EladGabay) |
-| [Akeyless](https://external-secrets.io/latest/provider-akeyless)                                           |   alpha   |                                                                                           [@renanaAkeyless](https://github.com/renanaAkeyless) |
-| [1Password](https://external-secrets.io/latest/provider-1password-automation)                              |   alpha   |                                              [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer) |
-| [Generic Webhook](https://external-secrets.io/latest/provider-webhook)                                     |   alpha   |                                                                                                         [@willemm](https://github.com/willemm) |
-| [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider-senhasegura-dsm) |   alpha   |                                                                                                           [@lfraga](https://github.com/lfraga) |
+| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   |   alpha   |                                                        [@KianTigger](https://github.com/KianTigger) [@EladGabay](https://github.com/EladGabay) |
+| [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           |   alpha   |                                                                                           [@renanaAkeyless](https://github.com/renanaAkeyless) |
+| [1Password](https://external-secrets.io/latest/provider/1password-automation)                              |   alpha   |                                              [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer) |
+| [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                     |   alpha   |                                                                                                         [@willemm](https://github.com/willemm) |
+| [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider/senhasegura-dsm) |   alpha   |                                                                                                           [@lfraga](https://github.com/lfraga) |
+| [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |   alpha   |                                                [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/) |
 
 ## Provider Feature Support
 
 The following table show the support for features across different providers.
 
 | Provider                 | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret |
-| ------------------------ | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: |
+|--------------------------|:------------:| :----------: | :------------------: | :---------------------: | :--------------: | :---------: |
 | AWS Secrets Manager      |      x       |      x       |                      |                         |        x         |             |
 | AWS Parameter Store      |      x       |      x       |                      |                         |        x         |             |
 | Hashicorp Vault          |      x       |      x       |                      |                         |        x         |             |
@@ -53,6 +54,7 @@ The following table show the support for features across different providers.
 | 1Password                |      x       |              |                      |                         |        x         |             |
 | Generic Webhook          |              |              |                      |                         |                  |             |
 | senhasegura DSM          |              |              |                      |                         |        x         |             |
+| Doppler                  |      x       |              |                      |                         |        x         |             |
 
 
 ## Support Policy

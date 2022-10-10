@@ -3,7 +3,9 @@ Copyright 2020 The cert-manager Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +21,7 @@ import (
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 
-	"github.com/external-secrets/external-secrets/e2e/framework/addon"
+	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 )
 
 const (
@@ -49,7 +51,6 @@ func installArgo(cfg *addon.Config) {
 
 func installESO(cfg *addon.Config) {
 	By("installing helm http server")
-	repo := os.Getenv("IMAGE_REGISTRY")
 	tag := os.Getenv("VERSION")
 	addon.InstallGlobalAddon(&addon.HelmServer{
 		ChartDir:      "/k8s/deploy/charts/external-secrets",
@@ -67,15 +68,12 @@ func installESO(cfg *addon.Config) {
 		HelmValues: fmt.Sprintf(`
 installCRDs: true
 image:
-  repository: %s
   tag: %s
 webhook:
   image:
-    repository: %s
     tag: %s
 certController:
   image:
-    repository: %s
-    tag: %s`, repo, tag, repo, tag, repo, tag),
+    tag: %s`, tag, tag, tag),
 	}, cfg)
 }

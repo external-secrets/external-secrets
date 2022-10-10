@@ -39,6 +39,11 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		return "", err
 	}
 
+	if prov.Auth.KubernetesAuth != nil {
+		auth := prov.Auth.KubernetesAuth
+		return a.GetToken(auth.AccessID, "k8s", auth.K8sConfName, auth)
+	}
+
 	ke := client.ObjectKey{
 		Name:      prov.Auth.SecretRef.AccessID.Name,
 		Namespace: a.namespace, // default to ExternalSecret namespace
@@ -99,5 +104,5 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		return "", fmt.Errorf(errMissingAKID)
 	}
 
-	return a.GetToken(accessID, accessType, accessTypeParam)
+	return a.GetToken(accessID, accessType, accessTypeParam, prov.Auth.KubernetesAuth)
 }

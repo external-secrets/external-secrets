@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,6 +34,13 @@ const (
 	errInvalidAkeylessURL           = "invalid akeyless GW API URL"
 	errInvalidAkeylessAccessIDName  = "missing akeyless accessID name"
 	errInvalidAkeylessAccessIDKey   = "missing akeyless accessID key"
+	errGetKubeSecret                = "cannot get Kubernetes secret %q: %w"
+	errSecretKeyFmt                 = "cannot find secret data for key: %q"
+	errGetKubeSA                    = "cannot get Kubernetes service account %q: %w"
+	errGetKubeSASecrets             = "cannot find secrets bound to service account: %q"
+	errGetKubeSANoToken             = "cannot find token in secrets bound to service account: %q"
+	errGetKubeSATokenRequest        = "cannot request Kubernetes service account token for service account %q: %w"
+	errInvalidKubeSA                = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
 )
 
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.

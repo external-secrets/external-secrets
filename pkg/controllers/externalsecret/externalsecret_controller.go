@@ -39,7 +39,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
-
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -98,6 +97,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
 	syncCallsMetricLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
+
+	start := time.Now()
+
+	defer externalSecretReconcileDuration.With(prometheus.Labels{
+		"name":      req.Name,
+		"namespace": req.Namespace,
+	}).Set(float64(time.Since(start)))
 
 	var externalSecret esv1beta1.ExternalSecret
 
@@ -311,7 +317,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	}
 
-	// nolint
+	//nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
@@ -453,7 +459,7 @@ func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	if es.Status.RefreshTime.IsZero() {
 		return true
 	}
-	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
+	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
 func shouldReconcile(es esv1beta1.ExternalSecret) bool {

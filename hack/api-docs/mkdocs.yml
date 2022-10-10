@@ -61,6 +61,7 @@ nav:
       - Parameter Store: provider/aws-parameter-store.md
     - Azure:
       - Key Vault: provider/azure-key-vault.md
+
     - Google:
       - Secret Manager: provider/google-secrets-manager.md
     - IBM:
@@ -81,6 +82,7 @@ nav:
     - Kubernetes: provider/kubernetes.md
     - senhasegura:
       - DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
+    - Doppler: provider/doppler.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
