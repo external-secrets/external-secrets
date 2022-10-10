@@ -6,6 +6,7 @@ We are currently in beta and support **only the latest release** for the time be
 
 | ESO Version | Kubernetes Version |
 | ----------- | ------------------ |
+| 0.6.x       | 1.19 → 1.24        |
 | 0.5.x       | 1.19 → 1.24        |
 | 0.4.x       | 1.16 → 1.24        |
 | 0.3.x       | 1.16 → 1.24        |
@@ -21,8 +22,8 @@ The following table describes the stability level of each provider and who's res
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
 | [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                  |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
 | [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                             |  stable   |                                                                                        [external-secrets](https://github.com/external-secrets) |
+| [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)                    |   stable   | [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta) [@IdanAdar](https://github.com/IdanAdar) |
 | [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |   alpha   |                                                                                        [external-secrets](https://github.com/external-secrets) |
-| [IBM Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)                    |   alpha   | [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta) [@IdanAdar](https://github.com/IdanAdar) |
 | [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              |   alpha   |                                            [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
 | [Gitlab Project Variables](https://external-secrets.io/latest/provider/gitlab-project-variables/)          |   alpha   |                                                                                                         [@Jabray5](https://github.com/Jabray5) |
 | Alibaba Cloud KMS                                                                                          |   alpha   |                                                                                                 [@ElsaChelala](https://github.com/ElsaChelala) |
@@ -37,24 +38,24 @@ The following table describes the stability level of each provider and who's res
 
 The following table show the support for features across different providers.
 
-| Provider                 | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret |
-|--------------------------|:------------:| :----------: | :------------------: | :---------------------: | :--------------: | :---------: |
-| AWS Secrets Manager      |      x       |      x       |                      |                         |        x         |             |
-| AWS Parameter Store      |      x       |      x       |                      |                         |        x         |             |
-| Hashicorp Vault          |      x       |      x       |                      |                         |        x         |             |
-| GCP Secret Manager       |      x       |      x       |                      |                         |        x         |             |
-| Azure Keyvault           |      x       |      x       |          x           |            x            |        x         |             |
-| Kubernetes               |      x       |      x       |                      |            x            |        x         |             |
-| IBM Secrets Manager      |              |              |                      |                         |        x         |             |
-| Yandex Lockbox           |              |              |                      |                         |        x         |             |
-| Gitlab Project Variables |              |              |                      |                         |        x         |             |
-| Alibaba Cloud KMS        |              |              |                      |                         |        x         |             |
-| Oracle Vault             |              |              |                      |                         |        x         |             |
-| Akeyless                 |              |              |                      |                         |        x         |             |
-| 1Password                |      x       |              |                      |                         |        x         |             |
-| Generic Webhook          |              |              |                      |                         |                  |             |
-| senhasegura DSM          |              |              |                      |                         |        x         |             |
-| Doppler                  |      x       |              |                      |                         |        x         |             |
+| Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret |
+|---------------------------|:------------:| :----------: | :------------------: | :---------------------: | :--------------: | :---------: |
+| AWS Secrets Manager       |      x       |      x       |                      |                         |        x         |             |
+| AWS Parameter Store       |      x       |      x       |                      |                         |        x         |             |
+| Hashicorp Vault           |      x       |      x       |                      |                         |        x         |             |
+| GCP Secret Manager        |      x       |      x       |                      |                         |        x         |             |
+| Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |             |
+| Kubernetes                |      x       |      x       |                      |            x            |        x         |             |
+| IBM Cloud Secrets Manager |              |              |                      |                         |        x         |             |
+| Yandex Lockbox            |              |              |                      |                         |        x         |             |
+| Gitlab Project Variables  |              |              |                      |                         |        x         |             |
+| Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |
+| Oracle Vault              |              |              |                      |                         |        x         |             |
+| Akeyless                  |              |              |                      |                         |        x         |             |
+| 1Password                 |      x       |              |                      |                         |        x         |             |
+| Generic Webhook           |              |              |                      |                         |                  |             |
+| senhasegura DSM           |              |              |                      |                         |        x         |             |
+| Doppler                   |      x       |              |                      |                         |        x         |             |
 
 
 ## Support Policy
