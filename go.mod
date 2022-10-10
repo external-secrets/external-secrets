@@ -96,6 +96,7 @@ require github.com/1Password/connect-sdk-go v1.5.0
 
 require (
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
 	sigs.k8s.io/yaml v1.3.0
 )
 

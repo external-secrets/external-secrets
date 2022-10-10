@@ -16,13 +16,17 @@ package secretsmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
@@ -315,4 +319,377 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+type fakeRef struct {
+	key string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+func TestSetSecret(t *testing.T) {
+	managedBy := managedBy
+	notManagedBy := "not-managed-by"
+	secretValue := []byte("fake-value")
+	externalSecrets := externalSecrets
+	noPermission := errors.New("no permission")
+	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
+
+	getSecretCorrectErr := awssm.ResourceNotFoundException{}
+	getSecretWrongErr := awssm.InvalidRequestException{}
+
+	secretOutput := &awssm.CreateSecretOutput{
+		ARN: &arn,
+	}
+
+	externalSecretsTag := []*awssm.Tag{
+		{
+			Key:   &managedBy,
+			Value: &externalSecrets,
+		},
+	}
+
+	externalSecretsTagFaulty := []*awssm.Tag{
+		{
+			Key:   &notManagedBy,
+			Value: &externalSecrets,
+		},
+	}
+
+	tagSecretOutput := &awssm.DescribeSecretOutput{
+		ARN:  &arn,
+		Tags: externalSecretsTag,
+	}
+
+	tagSecretOutputFaulty := &awssm.DescribeSecretOutput{
+		ARN:  &arn,
+		Tags: externalSecretsTagFaulty,
+	}
+
+	secretValueOutput := &awssm.GetSecretValueOutput{
+		ARN: &arn,
+	}
+
+	secretValueOutput2 := &awssm.GetSecretValueOutput{
+		ARN:          &arn,
+		SecretBinary: secretValue,
+	}
+
+	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
+
+	putSecretOutput := &awssm.PutSecretValueOutput{
+		ARN: &arn,
+	}
+
+	type args struct {
+		store  *esv1beta1.AWSProvider
+		client fakesm.Client
+	}
+
+	type want struct {
+		err error
+	}
+	tests := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"SetSecretSucceedsWithExistingSecret": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithNewSecret": {
+			reason: "a secret can be pushed to aws secrets manager if it doesn't already exist",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretCreateSecretFails": {
+			reason: "CreateSecretWithContext returns an error if it fails",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+		"SetSecretGetSecretFails": {
+			reason: "GetSecretValueWithContext returns an error if it fails",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, noPermission),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+		"SetSecretWillNotPushSameSecret": {
+			reason: "secret with the same value will not be pushed",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput2, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretPutSecretValueFails": {
+			reason: "PutSecretValueWithContext returns an error if it fails",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(nil, noPermission),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+		"SetSecretWrongGetSecretErrFails": {
+			reason: "GetSecretValueWithContext errors out when anything except awssm.ErrCodeResourceNotFoundException",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretWrongErr),
+				},
+			},
+			want: want{
+				err: &getSecretWrongErr,
+			},
+		},
+		"SetSecretDescribeSecretFails": {
+			reason: "secret cannot be described",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+		"SetSecretDoesNotOverwriteUntaggedSecret": {
+			reason: "secret cannot be described",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutputFaulty, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("secret not managed by external-secrets"),
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			sm := SecretsManager{
+				client: &tc.args.client,
+			}
+			err := sm.SetSecret(context.Background(), []byte("fake-value"), ref)
+
+			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			}
+		})
+	}
+}
+
+func TestDeleteSecret(t *testing.T) {
+	fakeClient := fakesm.Client{}
+	managed := managedBy
+	manager := externalSecrets
+	secretTag := awssm.Tag{
+		Key:   &managed,
+		Value: &manager,
+	}
+	type args struct {
+		client               fakesm.Client
+		getSecretOutput      *awssm.GetSecretValueOutput
+		describeSecretOutput *awssm.DescribeSecretOutput
+		deleteSecretOutput   *awssm.DeleteSecretOutput
+		getSecretErr         error
+		describeSecretErr    error
+		deleteSecretErr      error
+	}
+	type want struct {
+		err error
+	}
+	type testCase struct {
+		args   args
+		want   want
+		reason string
+	}
+	tests := map[string]testCase{
+		"Deletes Successfully": {
+			args: args{
+
+				client:          fakeClient,
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{&secretTag},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{},
+				getSecretErr:       nil,
+				describeSecretErr:  nil,
+				deleteSecretErr:    nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
+		"Not Managed by ESO": {
+			args: args{
+
+				client:          fakeClient,
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{},
+				getSecretErr:       nil,
+				describeSecretErr:  nil,
+				deleteSecretErr:    nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
+		"Failed to get Tags": {
+			args: args{
+
+				client:               fakeClient,
+				getSecretOutput:      &awssm.GetSecretValueOutput{},
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         nil,
+				describeSecretErr:    errors.New("failed to get tags"),
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: errors.New("failed to get tags"),
+			},
+			reason: "",
+		},
+		"Secret Not Found": {
+			args: args{
+				client:               fakeClient,
+				getSecretOutput:      nil,
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         awserr.New(awssm.ErrCodeResourceNotFoundException, "not here, sorry dude", nil),
+				describeSecretErr:    nil,
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"Not expected AWS error": {
+			args: args{
+				client:               fakeClient,
+				getSecretOutput:      nil,
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         awserr.New(awssm.ErrCodeEncryptionFailure, "aws unavailable", nil),
+				describeSecretErr:    nil,
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: errors.New("aws unavailable"),
+			},
+		},
+		"unexpected error": {
+			args: args{
+				client:               fakeClient,
+				getSecretOutput:      nil,
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         errors.New("timeout"),
+				describeSecretErr:    nil,
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: errors.New("timeout"),
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ref := fakeRef{key: "fake-key"}
+			sm := SecretsManager{
+				client: &tc.args.client,
+			}
+			tc.args.client.GetSecretValueWithContextFn = fakesm.NewGetSecretValueWithContextFn(tc.args.getSecretOutput, tc.args.getSecretErr)
+			tc.args.client.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(tc.args.describeSecretOutput, tc.args.describeSecretErr)
+			tc.args.client.DeleteSecretWithContextFn = fakesm.NewDeleteSecretWithContextFn(tc.args.deleteSecretOutput, tc.args.deleteSecretErr)
+			err := sm.DeleteSecret(context.TODO(), ref)
+
+			// Error nil XOR tc.want.err nil
+			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			}
+
+			// if errors are the same type but their contents do not match
+			if err != nil && tc.want.err != nil {
+				if !strings.Contains(err.Error(), tc.want.err.Error()) {
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
+			}
+		})
+	}
+}
+func makeValidSecretStore() *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-secret-store",
+			Namespace: "default",
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				AWS: &esv1beta1.AWSProvider{
+					Service: esv1beta1.AWSServiceSecretsManager,
+					Region:  "eu-west-2",
+				},
+			},
+		},
+	}
 }
