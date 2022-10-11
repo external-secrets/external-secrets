@@ -42,7 +42,7 @@ Anyone is welcome to join. Feel free to ask questions, request feedback, raise a
 
 ## Security
 
-Please report vulnerabilities by email to contact@external-secrets.io. Also see our [security policy](SECURITY.md) for details.
+Please report vulnerabilities by email to contact@external-secrets.io. Also see our [SECURITY.md file](SECURITY.md) for details.
 
 ## Adopters
 
