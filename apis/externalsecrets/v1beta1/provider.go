@@ -51,6 +51,8 @@ type Provider interface {
 
 	// ValidateStore checks if the provided store is valid
 	ValidateStore(store GenericStore) error
+	// Capabilities returns the provider Capabilities (Read, Write, ReadWrite)
+	Capabilities() SecretStoreCapabilities
 }
 
 // +kubebuilder:object:root=false
@@ -64,6 +66,12 @@ type SecretsClient interface {
 	// if GetSecret returns an error with type NoSecretError
 	// then the secret entry will be deleted depending on the deletionPolicy.
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
+
+	// SetSecret will write a single secret into the provider
+	SetSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error
+
+	// DeleteSecret will delete the secret from a provider
+	DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error
 
 	// Validate checks if the client is configured correctly
 	// and is able to retrieve secrets from the provider.
