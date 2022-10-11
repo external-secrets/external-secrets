@@ -47,3 +47,7 @@ In this AWS Containers blog post, Ryan writes about how to leverage External Sec
 ## [Cloud Native Secret Management with External Secrets Operator](https://eminalemdar.medium.com/cloud-native-secret-management-with-external-secrets-operator-2912f41f9c49)
 
 Emin writes about what problems ESO can solve and how to setup ESO on an Amazon EKS Cluster with integrations for AWS Secrets Manager using IAM Roles for Service Accounts (IRSA). In this blog post, there is also a GitHub repository with example codes for everyone to follow this demonstration.
+
+## [External Secrets Operator Integration with HashiCorp Vault](https://eminalemdar.medium.com/external-secrets-operator-integration-with-hashicorp-vault-aff3f956237b)
+
+Emin writes about integration between External Secrets Operator and HashiCorp Vault with a demonstration on installing ESO and Vault on a Kubernetes Cluster and configuration of the permissions and other integration parts.
