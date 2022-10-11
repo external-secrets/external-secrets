@@ -3,6 +3,7 @@
 </p>
 
 # External Secrets
+
 ![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5327/badge)](https://bestpractices.coreinfrastructure.org/projects/5947)
 [![Go Report Card](https://goreportcard.com/badge/github.com/external-secrets/external-secrets)](https://goreportcard.com/report/github.com/external-secrets/external-secrets)
@@ -14,12 +15,12 @@ secret management systems like [AWS Secrets
 Manager](https://aws.amazon.com/secrets-manager/), [HashiCorp
 Vault](https://www.vaultproject.io/), [Google Secrets
 Manager](https://cloud.google.com/secret-manager), [Azure Key
-Vault](https://azure.microsoft.com/en-us/services/key-vault/), [Akeyless](https://akeyless.io) and many more. The
+Vault](https://azure.microsoft.com/en-us/services/key-vault/), [IBM Cloud Secrets Manager](https://www.ibm.com/cloud/secrets-manager), [Akeyless](https://akeyless.io) and many more. The
 operator reads information from external APIs and automatically injects the
 values into a [Kubernetes
 Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
-Multiple people and organizations are joining efforts to create a single External Secrets solution based on existing projects. If you are curious about the origins of this project, check out this [issue](https://github.com/external-secrets/kubernetes-external-secrets/issues/47) and this [PR](https://github.com/external-secrets/kubernetes-external-secrets/pull/477).
+Multiple people and organizations are joining efforts to create a single External Secrets solution based on existing projects. If you are curious about the origins of this project, check out [this issue](https://github.com/external-secrets/kubernetes-external-secrets/issues/47) and [this PR](https://github.com/external-secrets/kubernetes-external-secrets/pull/477).
 
 ## Documentation
 
@@ -30,21 +31,22 @@ External Secrets Operator guides and reference documentation is available at [ex
 We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/main/contributing/devguide/) and [Contribution process](https://www.external-secrets.io/main/contributing/process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/main/contributing/coc/) and adhere to its guidelines.
 
 ### Sponsoring
+
 Please consider sponsoring this project, there are many ways you can help us with: engineering time, providing infrastructure, donating money, etc. We are open to cooperations, feel free to approach as and we discuss how this could look like. We can keep your contribution anonymized if that's required (depending on the type of contribution), and anonymous donations are possible inside [Opencollective](https://opencollective.com/external-secrets-org).
 
 ## Bi-weekly Development Meeting
 
 We host our development meeting every odd wednesday at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin) on [Jitsi](https://meet.jit.si/eso-community-meeting). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
 
-Anyone is welcome to join. Feel free to ask questions, request feedback, raise awareness for an issue or just say hi ;)
+Anyone is welcome to join. Feel free to ask questions, request feedback, raise awareness for an issue, or just say hi. ;)
 
 ## Security
 
-Please report vulnerabilities by email to contact@external-secrets.io, also see our [security policy](SECURITY.md) for details.
+Please report vulnerabilities by email to contact@external-secrets.io. Also see our [security policy](SECURITY.md) for details.
 
 ## Adopters
 
-Please create a PR and add your company or your project to our [ADOPTERS](ADOPTERS.md) file if you are using our project!
+Please create a PR and add your company or project to our [ADOPTERS.md file](ADOPTERS.md) if you are using our project!
 
 ## Kicked off by
 
