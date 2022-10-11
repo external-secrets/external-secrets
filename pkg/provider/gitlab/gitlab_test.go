@@ -193,7 +193,6 @@ func TestValidate(t *testing.T) {
 	sm := Gitlab{}
 	for k, v := range successCases {
 		sm.client = v.mockClient
-		t.Logf("%+v", v)
 		validationResult, err := sm.Validate()
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d], unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)

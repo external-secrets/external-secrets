@@ -17,14 +17,76 @@ package fake
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
 )
 
 // Client implements the aws secretsmanager interface.
 type Client struct {
-	ExecutionCounter int
-	valFn            map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	ExecutionCounter            int
+	valFn                       map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	CreateSecretWithContextFn   CreateSecretWithContextFn
+	GetSecretValueWithContextFn GetSecretValueWithContextFn
+	PutSecretValueWithContextFn PutSecretValueWithContextFn
+	DescribeSecretWithContextFn DescribeSecretWithContextFn
+	DeleteSecretWithContextFn   DeleteSecretWithContextFn
+}
+
+type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
+type GetSecretValueWithContextFn func(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
+type PutSecretValueWithContextFn func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
+type DescribeSecretWithContextFn func(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
+type DeleteSecretWithContextFn func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
+
+func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+	return sm.CreateSecretWithContextFn(ctx, input, options...)
+}
+
+func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error) CreateSecretWithContextFn {
+	return func(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+		return output, err
+	}
+}
+func (sm Client) DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
+	return sm.DeleteSecretWithContextFn(ctx, input, opts...)
+}
+
+func NewDeleteSecretWithContextFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretWithContextFn {
+	return func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (output *awssm.DeleteSecretOutput, err error) {
+		return output, err
+	}
+}
+
+func (sm Client) GetSecretValueWithContext(ctx aws.Context, input *awssm.GetSecretValueInput, options ...request.Option) (*awssm.GetSecretValueOutput, error) {
+	return sm.GetSecretValueWithContextFn(ctx, input, options...)
+}
+
+func NewGetSecretValueWithContextFn(output *awssm.GetSecretValueOutput, err error) GetSecretValueWithContextFn {
+	return func(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error) {
+		return output, err
+	}
+}
+
+func (sm Client) PutSecretValueWithContext(ctx aws.Context, input *awssm.PutSecretValueInput, options ...request.Option) (*awssm.PutSecretValueOutput, error) {
+	return sm.PutSecretValueWithContextFn(ctx, input, options...)
+}
+
+func NewPutSecretValueWithContextFn(output *awssm.PutSecretValueOutput, err error) PutSecretValueWithContextFn {
+	return func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error) {
+		return output, err
+	}
+}
+
+func (sm Client) DescribeSecretWithContext(ctx aws.Context, input *awssm.DescribeSecretInput, options ...request.Option) (*awssm.DescribeSecretOutput, error) {
+	return sm.DescribeSecretWithContextFn(ctx, input, options...)
+}
+
+func NewDescribeSecretWithContextFn(output *awssm.DescribeSecretOutput, err error) DescribeSecretWithContextFn {
+	return func(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error) {
+		return output, err
+	}
 }
 
 // NewClient init a new fake client.
