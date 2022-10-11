@@ -43,7 +43,7 @@ A Managed Identity should be created in Azure, and that Identity should have pro
 If there are multiple Managed Identitites for different keyvaults, the operator should have been assigned all identities via [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/), then the SecretStore configuration should include the Id of the idenetity to be used via the `identityId` field.
 
 ```yaml
-{% include 'azkv-credentials-secret.yaml' %}
+{% include 'azkv-secret-store-mi.yaml' %}
 ```
 
 #### Workload Identity
