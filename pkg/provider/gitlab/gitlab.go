@@ -112,6 +112,11 @@ func NewGitlabProvider() *Gitlab {
 	return &Gitlab{}
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (g *Gitlab) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 // Method on Gitlab Provider to set up client with credentials, populate projectID and environment.
 func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
@@ -153,6 +158,15 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 	g.url = cliStore.store.URL
 
 	return g, nil
+}
+
+func (g *Gitlab) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+// Not Implemented SetSecret.
+func (g *Gitlab) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
