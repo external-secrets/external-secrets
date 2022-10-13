@@ -1166,10 +1166,13 @@ func TestGetAllSecrets(t *testing.T) {
 func TestGetSecretPath(t *testing.T) {
 	storeV2 := makeValidSecretStore()
 	storeV2NoPath := storeV2.DeepCopy()
+	multiPath := "secret/path"
+	storeV2.Spec.Provider.Vault.Path = &multiPath
 	storeV2NoPath.Spec.Provider.Vault.Path = nil
 
 	storeV1 := makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1)
 	storeV1NoPath := storeV1.DeepCopy()
+	storeV1.Spec.Provider.Vault.Path = &multiPath
 	storeV1NoPath.Spec.Provider.Vault.Path = nil
 
 	type args struct {
@@ -1182,39 +1185,47 @@ func TestGetSecretPath(t *testing.T) {
 		args   args
 	}{
 		"PathWithoutFormatV2": {
-			reason: "Data needs to be found in path",
+			reason: "path should compose with mount point if set",
 			args: args{
 				store:    storeV2.Spec.Provider.Vault,
-				path:     "secret/test",
-				expected: "secret/data/test",
+				path:     "secret/path/data/test",
+				expected: "secret/path/data/test",
 			},
 		},
-		"PathWithDataV2": {
-			reason: "Data needs to be found only once in path",
+		"PathWithoutFormatV2_NoData": {
+			reason: "path should compose with mount point if set without data",
 			args: args{
 				store:    storeV2.Spec.Provider.Vault,
-				path:     "secret/data/test",
-				expected: "secret/data/test",
+				path:     "secret/path/test",
+				expected: "secret/path/data/test",
 			},
 		},
 		"PathWithoutFormatV2_NoPath": {
-			reason: "Data needs to be found in path and correct mountpoint is set",
+			reason: "if no mountpoint and no data available, needs to be set in second element",
 			args: args{
 				store:    storeV2NoPath.Spec.Provider.Vault,
-				path:     "secret/test",
-				expected: "secret/data/test",
+				path:     "secret/test/big/path",
+				expected: "secret/data/test/big/path",
+			},
+		},
+		"PathWithoutFormatV2_NoPathWithData": {
+			reason: "if data is available, should respect order",
+			args: args{
+				store:    storeV2NoPath.Spec.Provider.Vault,
+				path:     "secret/test/data/not/the/first/and/data/twice",
+				expected: "secret/test/data/not/the/first/and/data/twice",
 			},
 		},
 		"PathWithoutFormatV1": {
-			reason: "Data needs to be found in path",
+			reason: "v1 mountpoint should be added but not enforce 'data'",
 			args: args{
 				store:    storeV1.Spec.Provider.Vault,
-				path:     "secret/test",
-				expected: "secret/test",
+				path:     "secret/path/test",
+				expected: "secret/path/test",
 			},
 		},
 		"PathWithoutFormatV1_NoPath": {
-			reason: "Data needs to be found in path and correct mountpoint is set",
+			reason: "Should not append any path information if v1 with no mountpoint",
 			args: args{
 				store:    storeV1NoPath.Spec.Provider.Vault,
 				path:     "secret/test",
@@ -1226,7 +1237,7 @@ func TestGetSecretPath(t *testing.T) {
 			args: args{
 				store:    storeV2.Spec.Provider.Vault,
 				path:     "test",
-				expected: "secret/data/test",
+				expected: "secret/path/data/test",
 			},
 		},
 		"WithoutPathButMountpointV1": {
@@ -1234,7 +1245,7 @@ func TestGetSecretPath(t *testing.T) {
 			args: args{
 				store:    storeV1.Spec.Provider.Vault,
 				path:     "test",
-				expected: "secret/test",
+				expected: "secret/path/test",
 			},
 		},
 	}

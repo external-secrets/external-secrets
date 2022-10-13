@@ -695,29 +695,35 @@ func (v *client) buildMetadataPath(path string) (string, error) {
 }
 func (v *client) buildPath(path string) string {
 	optionalMount := v.store.Path
-	origPath := strings.Split(path, "/")
-	newPath := make([]string, 0)
-	cursor := 0
-
-	if optionalMount != nil && origPath[0] != *optionalMount {
-		// Default case before path was optional
-		// Ensure that the requested path includes the SecretStores paths as prefix
-		newPath = append(newPath, *optionalMount)
-	} else {
-		newPath = append(newPath, origPath[cursor])
-		cursor++
-	}
-
-	if v.store.Version == esv1beta1.VaultKVStoreV2 {
-		// Add the required `data` part of the URL for the v2 API
-		if len(origPath) < 2 || origPath[1] != "data" {
-			newPath = append(newPath, "data")
+	out := path
+	// if optionalMount is Set, remove it from path if its there
+	if optionalMount != nil {
+		cut := *optionalMount + "/"
+		if strings.HasPrefix(out, cut) {
+			// This current logic induces a bug when the actual secret resides on same path names as the mount path.
+			_, out, _ = strings.Cut(out, cut)
+			// if data succeeds optionalMount on v2 store, we should remove it as well
+			if strings.HasPrefix(out, "data/") && v.store.Version == esv1beta1.VaultKVStoreV2 {
+				_, out, _ = strings.Cut(out, "data/")
+			}
 		}
+		buildPath := strings.Split(out, "/")
+		buildMount := strings.Split(*optionalMount, "/")
+		if v.store.Version == esv1beta1.VaultKVStoreV2 {
+			buildMount = append(buildMount, "data")
+		}
+		buildMount = append(buildMount, buildPath...)
+		out = strings.Join(buildMount, "/")
+		return out
 	}
-	newPath = append(newPath, origPath[cursor:]...)
-	returnPath := strings.Join(newPath, "/")
-
-	return returnPath
+	if !strings.Contains(out, "/data/") && v.store.Version == esv1beta1.VaultKVStoreV2 {
+		buildPath := strings.Split(out, "/")
+		buildMount := []string{buildPath[0], "data"}
+		buildMount = append(buildMount, buildPath[1:]...)
+		out = strings.Join(buildMount, "/")
+		return out
+	}
+	return out
 }
 
 func (v *client) readSecret(ctx context.Context, path, version string) (map[string]interface{}, error) {
