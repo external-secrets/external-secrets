@@ -543,7 +543,7 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 }
 
 func (r *Reconciler) ShouldProcessSecret(ctx context.Context, store esv1beta1.GenericStore, ns string) (bool, error) {
-	if store.GetTypeMeta().Kind != esv1beta1.ClusterSecretStoreKind {
+	if store.GetKind() != esv1beta1.ClusterSecretStoreKind {
 		return true, nil
 	}
 
