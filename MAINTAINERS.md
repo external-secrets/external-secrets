@@ -15,7 +15,7 @@ describes governance guidelines and maintainer responsibilities.
 | RealName Here | [IdanAdar](https://github.com/IdanAdar) | [Company](https://www.github.com/Company/) |
 
 
-## Harbor Core Contributors & Stakeholders
+## External Secrets Operator Core Contributors & Stakeholders
 
 | Harbor Feature Area | Lead |
 | ----------------------------- | :---------------------: |
