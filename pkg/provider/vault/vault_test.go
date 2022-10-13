@@ -18,10 +18,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +29,7 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/utils/pointer"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -212,24 +213,6 @@ func clientWithLoginMock(c *vault.Config) (Client, error) {
 	return out, nil
 }
 
-func kubeMockWithSecretTokenAndServiceAcc(obj kclient.Object) error {
-	if o, ok := obj.(*corev1.ServiceAccount); ok {
-		o.Secrets = []corev1.ObjectReference{
-			{
-				Name: tokenSecretName,
-			},
-		}
-		return nil
-	}
-	if o, ok := obj.(*corev1.Secret); ok {
-		o.Data = map[string][]byte{
-			"token": []byte(secretDataString),
-		}
-		return nil
-	}
-	return nil
-}
-
 func TestNewVault(t *testing.T) {
 	errBoom := errors.New("boom")
 	secretClientKey := []byte(`-----BEGIN PRIVATE KEY-----
@@ -276,11 +259,10 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return error if fetching kubernetes secret fails.",
 			args: args{
 				newClientFunc: clientWithLoginMock,
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(errBoom),
-				},
-				store:  makeSecretStore(),
-				corev1: utilfake.NewCreateTokenMock().WithError(errBoom),
+				ns:            "default",
+				kube:          clientfake.NewClientBuilder().Build(),
+				store:         makeSecretStore(),
+				corev1:        utilfake.NewCreateTokenMock().WithError(errBoom),
 			},
 			want: want{
 				err: fmt.Errorf(errGetKubeSATokenRequest, "example-sa", errBoom),
@@ -289,6 +271,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"GetKubeSecretError": {
 			reason: "Should return error if fetching kubernetes secret fails.",
 			args: args{
+				ns: "default",
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
 					s.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = nil
 					s.Spec.Provider.Vault.Auth.Kubernetes.SecretRef = &esmeta.SecretKeySelector{
@@ -296,30 +279,27 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						Key:  "key",
 					}
 				}),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(errBoom),
-				},
+				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: fmt.Errorf(errGetKubeSecret, "vault-secret", errBoom),
+				err: fmt.Errorf(errGetKubeSecret, "vault-secret", errors.New("secrets \"vault-secret\" not found")),
 			},
 		},
 		"SuccessfulVaultStoreWithCertAuth": {
 			reason: "Should return a Vault provider successfully",
 			args: args{
 				store: makeValidSecretStoreWithCerts(),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-						if o, ok := obj.(*corev1.Secret); ok {
-							o.Data = map[string][]byte{
-								"tls.key": secretClientKey,
-								"tls.crt": clientCrt,
-							}
-							return nil
-						}
-						return nil
-					}),
-				},
+				ns:    "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "tls-auth-certs",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"tls.key": secretClientKey,
+						"tls.crt": clientCrt,
+					},
+				}).Build(),
 				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
@@ -330,18 +310,17 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return a Vault prodvider with the cert from k8s",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(true),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-						if o, ok := obj.(*corev1.Secret); ok {
-							o.Data = map[string][]byte{
-								"cert":  clientCrt,
-								"token": secretData,
-							}
-							return nil
-						}
-						return nil
-					}),
-				},
+				ns:    "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "vault-cert",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"cert":  clientCrt,
+						"token": secretData,
+					},
+				}).Build(),
 				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
 				newClientFunc: clientWithLoginMock,
 			},
@@ -353,9 +332,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return an error if namespace is missing and is a ClusterSecretStore",
 			args: args{
 				store: makeInvalidClusterSecretStoreWithK8sCerts(),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, kubeMockWithSecretTokenAndServiceAcc),
-				},
+				ns:    "default",
+				kube:  clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
 				err: errors.New(errCANamespace),
@@ -365,9 +343,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return an error if the secret key is missing",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(true),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, kubeMockWithSecretTokenAndServiceAcc),
-				},
+				ns:    "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "vault-cert",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{},
+				}).Build(),
 				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
@@ -378,18 +361,15 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return a Vault prodvider with the cert from k8s",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(false),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-						if o, ok := obj.(*corev1.ConfigMap); ok {
-							o.Data = map[string]string{
-								"cert": string(clientCrt),
-							}
-							return nil
-						}
-
-						return nil
-					}),
-				},
+				ns:    "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vault-cert",
+					},
+					Data: map[string]string{
+						"cert": string(clientCrt),
+					},
+				}).Build(),
 				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
 				newClientFunc: clientWithLoginMock,
 			},
@@ -401,27 +381,23 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return an error if the config map key is missing",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(false),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-						if o, ok := obj.(*corev1.ServiceAccount); ok {
-							o.Secrets = []corev1.ObjectReference{
-								{
-									Name: tokenSecretName,
-								},
-							}
-							return nil
-						}
-
-						if o, ok := obj.(*corev1.Secret); ok {
-							o.Data = map[string][]byte{
-								"token": secretData,
-							}
-							return nil
-						}
-
-						return nil
-					}),
-				},
+				ns:    "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "example-sa",
+						Namespace: "default",
+					},
+					Secrets: []corev1.ObjectReference{
+						{
+							Name: tokenSecretName,
+						},
+					},
+				}, &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "vault-cert",
+					},
+					Data: map[string]string{},
+				}).Build(),
 				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
@@ -432,18 +408,17 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return error if client certificate is in wrong format.",
 			args: args{
 				store: makeValidSecretStoreWithCerts(),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-						if o, ok := obj.(*corev1.Secret); ok {
-							o.Data = map[string][]byte{
-								"tls.key": secretClientKey,
-								"tls.crt": []byte("cert with mistak"),
-							}
-							return nil
-						}
-						return nil
-					}),
-				},
+				ns:    "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "tls-auth-certs",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"tls.key": secretClientKey,
+						"tls.crt": []byte("cert with mistak"),
+					},
+				}).Build(),
 				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
@@ -454,18 +429,17 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return error if client key is in wrong format.",
 			args: args{
 				store: makeValidSecretStoreWithCerts(),
-				kube: &test.MockClient{
-					MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-						if o, ok := obj.(*corev1.Secret); ok {
-							o.Data = map[string][]byte{
-								"tls.key": []byte("key with mistake"),
-								"tls.crt": clientCrt,
-							}
-							return nil
-						}
-						return nil
-					}),
-				},
+				ns:    "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "tls-auth-certs",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"tls.key": []byte("key with mistake"),
+						"tls.crt": clientCrt,
+					},
+				}).Build(),
 				newClientFunc: clientWithLoginMock,
 			},
 			want: want{
@@ -489,7 +463,7 @@ func vaultTest(t *testing.T, name string, tc testCase) {
 		conn.newVaultClient = newVaultClient
 	}
 	_, err := conn.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
-	if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+	if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
 		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}
 }
@@ -667,7 +641,7 @@ func TestGetSecret(t *testing.T) {
 				namespace: tc.args.ns,
 			}
 			val, err := vStore.GetSecret(context.Background(), tc.args.data)
-			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+			if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecret(...): -want error, +got error:\n%s", tc.reason, diff)
 			}
 			if diff := cmp.Diff(string(tc.want.val), string(val)); diff != "" {
@@ -877,7 +851,7 @@ func TestGetSecretMap(t *testing.T) {
 				namespace: tc.args.ns,
 			}
 			val, err := vStore.GetSecretMap(context.Background(), tc.args.data)
-			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+			if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
 			}
 			if diff := cmp.Diff(tc.want.val, val); diff != "" {
@@ -1153,7 +1127,7 @@ func TestGetAllSecrets(t *testing.T) {
 				namespace: tc.args.ns,
 			}
 			val, err := vStore.GetAllSecrets(context.Background(), tc.args.data)
-			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
+			if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
 			}
 			if diff := cmp.Diff(tc.want.val, val); diff != "" {
@@ -1389,4 +1363,28 @@ func TestValidateStore(t *testing.T) {
 			}
 		})
 	}
+}
+
+// EquateErrors returns true if the supplied errors are of the same type and
+// produce identical strings. This mirrors the error comparison behavior of
+// https://github.com/go-test/deep, which most Crossplane tests targeted before
+// we switched to go-cmp.
+//
+// This differs from cmpopts.EquateErrors, which does not test for error strings
+// and instead returns whether one error 'is' (in the errors.Is sense) the
+// other.
+func EquateErrors() cmp.Option {
+	return cmp.Comparer(func(a, b error) bool {
+		if a == nil || b == nil {
+			return a == nil && b == nil
+		}
+
+		av := reflect.ValueOf(a)
+		bv := reflect.ValueOf(b)
+		if av.Type() != bv.Type() {
+			return false
+		}
+
+		return a.Error() == b.Error()
+	})
 }
