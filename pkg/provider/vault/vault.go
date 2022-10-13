@@ -693,6 +693,48 @@ func (v *client) buildMetadataPath(path string) (string, error) {
 	}
 	return url, nil
 }
+
+/*
+	 buildPath is a helper method to build the vault equivalent path
+		 from ExternalSecrets and SecretStore manifests. the path build logic
+		 varies depending on the SecretStore KV version:
+		 Example inputs/outputs:
+		 # simple build:
+		 kv version == "v2":
+			provider_path: "secret/path"
+			input: "foo"
+			output: "secret/path/data/foo" # provider_path and data are prepended
+		 kv version == "v1":
+			provider_path: "secret/path"
+			input: "foo"
+			output: "secret/path/foo" # provider_path is prepended
+		 # inheriting paths:
+		 kv version == "v2":
+			provider_path: "secret/path"
+			input: "secret/path/foo"
+			output: "secret/path/data/foo" #data is prepended
+		 kv version == "v2":
+			provider_path: "secret/path"
+			input: "secret/path/data/foo"
+			output: "secret/path/data/foo" #noop
+		 kv version == "v1":
+			provider_path: "secret/path"
+			input: "secret/path/foo"
+			output: "secret/path/foo" #noop
+		 # provider path not defined:
+		 kv version == "v2":
+			provider_path: nil
+			input: "secret/path/foo"
+			output: "secret/data/path/foo" # data is prepended to secret/
+		 kv version == "v2":
+			provider_path: nil
+			input: "secret/path/data/foo"
+			output: "secret/path/data/foo" #noop
+		 kv version == "v1":
+			provider_path: nil
+			input: "secret/path/foo"
+			output: "secret/path/foo" #noop
+*/
 func (v *client) buildPath(path string) string {
 	optionalMount := v.store.Path
 	out := path
