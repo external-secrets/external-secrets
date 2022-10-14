@@ -1664,6 +1664,7 @@ var _ = Describe("ExternalSecret controller with ClusterSecretStore", func() {
 			},
 		}
 
+		// Empty function because we just want to verify that the secret was created, and that happens if tc.checkSecret is not nil
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {}
 	}
 
@@ -1675,6 +1676,7 @@ var _ = Describe("ExternalSecret controller with ClusterSecretStore", func() {
 			},
 		}
 
+		// Empty function because we just want to verify that the secret was created, and that happens if tc.checkSecret is not nil
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {}
 	}
 
@@ -1703,6 +1705,7 @@ var _ = Describe("ExternalSecret controller with ClusterSecretStore", func() {
 			},
 		}
 
+		// Empty function because we just want to verify that the secret was created, and that happens if tc.checkSecret is not nil
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {}
 	}
 
@@ -1734,6 +1737,7 @@ var _ = Describe("ExternalSecret controller with ClusterSecretStore", func() {
 			},
 		}
 
+		// Empty function because we just want to verify that the secret was created, and that happens if tc.checkSecret is not nil
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {}
 	}
 
@@ -1748,6 +1752,7 @@ var _ = Describe("ExternalSecret controller with ClusterSecretStore", func() {
 			},
 		}
 
+		// Empty function because we just want to verify that the secret was created, and that happens if tc.checkSecret is not nil
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {}
 	}
 
