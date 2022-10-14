@@ -1763,7 +1763,7 @@ var _ = Describe("ExternalSecret controller with ClusterSecretStore", func() {
 				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"some-label-key": "some-label-value"}},
 			},
 			{
-				Namespaces: []string{ExternalSecretNamespace, "some-other-ns"},
+				Namespaces: []string{"some-other-ns"},
 			},
 		}
 
