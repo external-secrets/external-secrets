@@ -246,7 +246,31 @@ func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error
 		},
 	)
 	if err != nil {
-		return esv1beta1.ValidationResultError, err
+		failure, ok := common.IsServiceError(err)
+		if ok {
+			code := failure.GetCode()
+			switch code {
+			case "NotAuthenticated":
+				return esv1beta1.ValidationResultError, err
+			case "NotAuthorizedOrNotFound":
+				// User authentication was successful, but user might not have a permission like:
+				//
+				// Allow group external_secrets to read vaults in tenancy
+				//
+				// Which is fine, because to read secrets we only need:
+				//
+				// Allow group external_secrets to read secret-family in tenancy
+				//
+				// But we can't test for this permission without knowing the name of a secret
+				return esv1beta1.ValidationResultUnknown, err
+			default:
+				return esv1beta1.ValidationResultError, err
+
+			}
+		} else {
+			return esv1beta1.ValidationResultError, err
+		}
+
 	}
 
 	return esv1beta1.ValidationResultReady, nil
