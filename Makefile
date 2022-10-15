@@ -138,7 +138,7 @@ lint.install: ## Install golangci-lint to the go bin dir
 	fi
 
 lint: lint.check ## Run golangci-lint
-	@if ! golangci-lint run --timeout 5m; then \
+	@if ! golangci-lint run; then \
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
 		exit 1; \
 	fi
