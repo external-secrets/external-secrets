@@ -63,7 +63,7 @@ const (
 	errStoreProvider         = "could not get store provider"
 	errStoreClient           = "could not get provider client"
 	errGetExistingSecret     = "could not get existing secret: %w"
-	errClusterStoreMismatch  = "cluster store %s does not match namespace %s"
+	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 	errCloseStoreClient      = "could not close provider client"
 	errSetCtrlReference      = "could not set ExternalSecret controller reference: %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
