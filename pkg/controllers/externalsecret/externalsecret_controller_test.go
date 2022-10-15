@@ -59,6 +59,8 @@ type testCase struct {
 	checkSecret func(*esv1beta1.ExternalSecret, *v1.Secret)
 }
 
+type testTweaks func(*testCase)
+
 var _ = Describe("Kind=secret existence logic", func() {
 	type testCase struct {
 		Name           string
@@ -128,7 +130,6 @@ var _ = Describe("Kind=secret existence logic", func() {
 	}
 })
 var _ = Describe("ExternalSecret controller", func() {
-	type testTweaks func(*testCase)
 
 	const (
 		ExternalSecretName             = "test-es"
