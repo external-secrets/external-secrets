@@ -75,6 +75,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 
 reviewable: generate helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
+	@cd e2e/ && go mod tidy
 
 golicenses.check: ## Check install of go-licenses
 	@if ! go-licenses >> /dev/null 2>&1; then \
@@ -146,6 +147,7 @@ lint: lint.check ## Run golangci-lint
 
 fmt: lint.check ## Ensure consistent code style
 	@go mod tidy
+	@cd e2e/ && go mod tidy
 	@go fmt ./...
 	@golangci-lint run --fix > /dev/null 2>&1 || true
 	@$(OK) Ensured consistent code style
