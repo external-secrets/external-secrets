@@ -28,13 +28,13 @@ of services running inside clusters (i.e. databases etc).
 
 ### Goals
 
-* enable zero-trust secret management for purely technical and internal users
-* enable secure passwords by default
-* reduce error rates when creating RSA or ECDSA private keys
+- enable zero-trust secret management for purely technical and internal users
+- enable secure passwords by default
+- reduce error rates when creating RSA or ECDSA private keys
 
 ### Non-Goals
 
-* auto-rotation of secrets
+- auto-rotation of secrets
 
 ## Proposal
 
@@ -42,7 +42,7 @@ Implement several generators to support not only a number of data types but also
 
 ### API
 
-We add a new resource group `generator.external-secrets.io`. For each generator we add a new CRD, e.g. for password generation, VaultPKI, ECR, GCR etc.
+We add a new resource group `generators.external-secrets.io`. For each generator we add a new CRD, e.g. for password generation, VaultPKI, ECR, GCR etc.
 This custom resource contains all the configuration details to create a secure value.
 It can be referenced from a `Kind=ExternalSecret` or `Kind=PushSecret`. **or embedded** into it.
 
@@ -57,7 +57,7 @@ A generator generates a known set of outputs, e.g. `username` and `password`, `p
 The following custom resource `Kind=VaultPKIBackend` contains all the parameters for issuing a certificate via HashiCorp Vault PKI engine.
 
 ```yaml
-apiVersion: generator.external-secrets.io/v1alpha1
+apiVersion: generators.external-secrets.io/v1alpha1
 kind: VaultPKIBackend
 metadata:
   name: my-vault-pki-creds
@@ -65,8 +65,8 @@ spec:
   # specific params for generating
   commonName: example.com
   altNames:
-  - example.org
-  - localhost
+    - example.org
+    - localhost
   # ... more opts
   auth: {} # service account etc. etc.
 ```
@@ -83,27 +83,67 @@ metadata:
 spec:
   # ...
   dataFrom:
-
     # embedded
     - generator:
-        apiVersion: generator.external-secrets.io/v1alpha1
+        apiVersion: generators.external-secrets.io/v1alpha1
         kind: VaultPKIBackend
         spec:
           # same as above
           commonName: example.com
           altNames:
-          - example.org
-          - localhost
+            - example.org
+            - localhost
           # ... more opts
           auth: {} # service account etc. etc.issuerRef: "default"
 
     # the generator also can be referenced like here
-    - generatorRef:
-        apiVersion: generator.external-secrets.io/v1alpha1
-        kind: VaultPKIBackend
-        name: foobar
+    - sourceRef:
+        generator:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: VaultPKIBackend
+          name: foobar
 ```
 
+#### `SecretStoreRef` vs. `SourceRef`
+
+In order to accomodate the generator implementation we need to enhance the `spec.secretStoreRef` functionality
+and add `data[].sourceRef` and `dataFrom[].sourceRef` that allows a user to reference generator resources.
+This allows us to:
+
+- improve composability and **use multiple SecretStores** within a single ExternalSecret
+- use generators from both `data[]` and `dataFrom[]` nodes
+
+If `sourceRef` is not defined we fall back to `spec.secretStoreRef`.
+
+```yaml
+spec:
+  data:
+    - secretKey: foo
+      remoteRef: {}
+      # can point to a SecretStore
+      # or a generator/generatorRef
+      sourceRef:
+        storeRef:
+          name: foo
+  dataFrom:
+    # allow using multiple stores from a single ExternalSecret
+    - find: { ... }
+      sourceRef:
+        storeRef:
+          name: "foo"
+    - find: { ... }
+      sourceRef:
+        storeRef:
+          name: "bar"
+```
+
+Specifying more than one attribute within a sourceRef is not supported and must be rejected.
+
+```
+sourceRef:
+  storeRef: {}
+  generatorRef: {} # ILLEGAL!
+```
 
 <details>
 <summary>PushSecret example</summary>
@@ -119,18 +159,19 @@ spec:
     # we can consider supporting multiple generators per PushSecret
     # but need to take care of key collision
     generatorRef:
-      apiVersion: generator.external-secrets.io/v1alpha1
+      apiVersion: generators.external-secrets.io/v1alpha1
       kind: VaultPKIBackend
       name: foobar
   data: {} # ...
 ```
+
 </details>
 
 <details>
 <summary>Password Generator Example</summary>
 
 ```yaml
-apiVersion: generator.external-secrets.io/v1alpha1
+apiVersion: generators.external-secrets.io/v1alpha1
 kind: Password
 metadata:
   name: foo
@@ -146,10 +187,11 @@ spec:
   # ...
   dataFrom:
     - generatorRef:
-        apiVersion: generator.external-secrets.io/v1alpha1
+        apiVersion: generators.external-secrets.io/v1alpha1
         kind: Password
         name: foo
 ```
+
 </details>
 
 <details>
@@ -170,36 +212,40 @@ spec:
     # bar-username
     # bar-password
     - generatorRef:
-        apiVersion: generator.external-secrets.io/v1alpha1
+        apiVersion: generators.external-secrets.io/v1alpha1
         kind: ECR
         name: foo
       rewrite:
-      - regexp:
-         source: .+
-         target: foo-$1
+        - regexp:
+            source: .+
+            target: foo-$1
     - generatorRef:
-        apiVersion: generator.external-secrets.io/v1alpha1
+        apiVersion: generators.external-secrets.io/v1alpha1
         kind: ECR
         name: bar
       rewrite:
-      - regexp:
-         source: .+
-         target: bar-$1
+        - regexp:
+            source: .+
+            target: bar-$1
 ```
-</details>
 
+</details>
 
 ### Composability and extensibility
 
 We can maintain a set of in-tree generators (e.g. for password, binary, hash, alphanumeric, VaultPKI, VaultAWS, ECR, GCR, ACR, Harbor...) but that doesn't provide an extensible interface for users.
 We can consider the following two approaches (possibly more) that provide extensibility:
 
+> Note: This section is just an outlook and nothing that we aim to implement right away.
+>       We will re-iterate on this feature and see if we need to make the
+>       generator implementation more extensible.
+
 #### (1) HTTP/gRPC interface
 
 We can provide an in-tree generator that interfaces through a well-known protocol (e.g. HTTP webhook or gRPC).
 
 ```yaml
-apiVersion: generator.external-secrets.io/v1alpha1
+apiVersion: generators.external-secrets.io/v1alpha1
 kind: HTTPWebhook
 metadata:
   name: example
@@ -213,16 +259,18 @@ spec:
     Content-Type: application/json
     Authorization: Basic {{ print .auth.username ":" .auth.password | b64enc }}
   secrets:
-  - name: auth
-    secretRef:
-      name: webhook-credentials
+    - name: auth
+      secretRef:
+        name: webhook-credentials
 ```
 
 Pros:
+
 - simple to extend from a user perspective
 - simple simple to add from external-secrets perspective
 
 Cons:
+
 - prone to network errors
 - high coupling of secret sync and generator
 
@@ -256,9 +304,11 @@ We maintain some core generator controllers and leave the implementation of othe
 ```
 
 Pros:
+
 - loose coupling of generator and secret sync workflows
 
 Cons:
+
 - very high complexity
 - hard to extend from a user perspective
 
