@@ -44,7 +44,7 @@ var (
 )
 
 type testCase struct {
-	secretStore    *esv1beta1.SecretStore
+	secretStore    esv1beta1.GenericStore
 	externalSecret *esv1beta1.ExternalSecret
 
 	// checkCondition should return true if the externalSecret
@@ -130,6 +130,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 	}
 })
 var _ = Describe("ExternalSecret controller", func() {
+
 	const (
 		ExternalSecretName             = "test-es"
 		ExternalSecretFQDN             = "externalsecrets.external-secrets.io/test-es"
@@ -140,6 +141,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		targetPropObj                  = "{{ .targetProperty | toString | upper }} was templated"
 		FooValue                       = "map-foo-value"
 		BarValue                       = "map-bar-value"
+		NamespaceLabelKey              = "css-test-label-key"
+		NamespaceLabelValue            = "css-test-label-value"
 	)
 
 	var ExternalSecretNamespace string
@@ -153,7 +156,7 @@ var _ = Describe("ExternalSecret controller", func() {
 
 	BeforeEach(func() {
 		var err error
-		ExternalSecretNamespace, err = ctest.CreateNamespace("test-ns", k8sClient)
+		ExternalSecretNamespace, err = ctest.CreateNamespaceWithLabels("test-ns", k8sClient, map[string]string{NamespaceLabelKey: NamespaceLabelValue})
 		Expect(err).ToNot(HaveOccurred())
 		metric.Reset()
 		syncCallsTotal.Reset()
@@ -163,20 +166,36 @@ var _ = Describe("ExternalSecret controller", func() {
 		fakeProvider.Reset()
 	})
 
-	AfterEach(func() {
-		Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ExternalSecretNamespace,
-			},
-		})).To(Succeed())
-		Expect(k8sClient.Delete(context.Background(), &esv1beta1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
+	AfterEach(
+		func() {
+			secretStore := &esv1beta1.SecretStore{}
+			secretStoreLookupKey := types.NamespacedName{
 				Name:      ExternalSecretStore,
 				Namespace: ExternalSecretNamespace,
-			},
-		})).To(Succeed())
-	})
+			}
 
+			if err := k8sClient.Get(context.Background(), secretStoreLookupKey, secretStore); err == nil {
+				Expect(k8sClient.Delete(context.Background(), secretStore)).To(Succeed())
+			}
+
+			clusterSecretStore := &esv1beta1.ClusterSecretStore{}
+			clusterSecretStoreLookupKey := types.NamespacedName{
+				Name: ExternalSecretStore,
+			}
+
+			if err := k8sClient.Get(context.Background(), clusterSecretStoreLookupKey, clusterSecretStore); err == nil {
+				Expect(k8sClient.Delete(context.Background(), clusterSecretStore)).To(Succeed())
+			}
+
+			Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ExternalSecretNamespace,
+				},
+			})).To(Succeed())
+		},
+	)
+
+	const secretVal = "some-value"
 	const targetProp = "targetProperty"
 	const remoteKey = "barz"
 	const remoteProperty = "bang"
@@ -1282,7 +1301,7 @@ var _ = Describe("ExternalSecret controller", func() {
 	// when a SecretStore has a controller field set which we don't care about
 	// the externalSecret must not be touched
 	ignoreMismatchController := func(tc *testCase) {
-		tc.secretStore.Spec.Controller = "nop"
+		tc.secretStore.GetSpec().Controller = "nop"
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
 			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
 			return cond == nil
@@ -1394,6 +1413,209 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	useClusterSecretStore := func(tc *testCase) {
+		tc.secretStore = &esv1beta1.ClusterSecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ExternalSecretStore,
+			},
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					AWS: &esv1beta1.AWSProvider{
+						Service: esv1beta1.AWSServiceSecretsManager,
+					},
+				},
+			},
+		}
+		tc.externalSecret.Spec.SecretStoreRef.Kind = esv1beta1.ClusterSecretStoreKind
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+	}
+
+	// Secret is created when ClusterSecretStore has no conditions
+	noConditionsSecretCreated := func(tc *testCase) {
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
+	// Secret is not created when ClusterSecretStore has a single non-matching string condition
+	noSecretCreatedWhenNamespaceDoesntMatchStringCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				Namespaces: []string{"some-other-ns"},
+			},
+		}
+
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+	}
+
+	// Secret is not created when ClusterSecretStore has a single non-matching string condition with multiple names
+	noSecretCreatedWhenNamespaceDoesntMatchStringConditionWithMultipleNames := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				Namespaces: []string{"some-other-ns", "another-ns"},
+			},
+		}
+
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+	}
+
+	// Secret is not created when ClusterSecretStore has a multiple non-matching string condition
+	noSecretCreatedWhenNamespaceDoesntMatchMultipleStringCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				Namespaces: []string{"some-other-ns"},
+			},
+			{
+				Namespaces: []string{"another-ns"},
+			},
+		}
+
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+	}
+
+	// Secret is created when ClusterSecretStore has a single matching string condition
+	secretCreatedWhenNamespaceMatchesSingleStringCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				Namespaces: []string{ExternalSecretNamespace},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
+	// Secret is created when ClusterSecretStore has a multiple string conditions, one matching
+	secretCreatedWhenNamespaceMatchesMultipleStringConditions := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				Namespaces: []string{ExternalSecretNamespace, "some-other-ns"},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
+	// Secret is not created when ClusterSecretStore has a single non-matching label condition
+	noSecretCreatedWhenNamespaceDoesntMatchLabelCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"some-label-key": "some-label-value"}},
+			},
+		}
+
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+	}
+
+	// Secret is created when ClusterSecretStore has a single matching label condition
+	secretCreatedWhenNamespaceMatchOnlyLabelCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{NamespaceLabelKey: NamespaceLabelValue}},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
+	// Secret is not created when ClusterSecretStore has a partially matching label condition
+	noSecretCreatedWhenNamespacePartiallyMatchLabelCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{NamespaceLabelKey: NamespaceLabelValue, "some-label-key": "some-label-value"}},
+			},
+		}
+
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+	}
+
+	// Secret is created when ClusterSecretStore has at least one matching label condition
+	secretCreatedWhenNamespaceMatchOneLabelCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{NamespaceLabelKey: NamespaceLabelValue}},
+			},
+			{
+				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"some-label-key": "some-label-value"}},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
+	// Secret is created when ClusterSecretStore has multiple matching conditions
+	secretCreatedWhenNamespaceMatchMultipleConditions := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{NamespaceLabelKey: NamespaceLabelValue}},
+			},
+			{
+				Namespaces: []string{ExternalSecretNamespace},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
+	// Secret is not created when ClusterSecretStore has multiple non-matching conditions
+	noSecretCreatedWhenNamespaceMatchMultipleNonMatchingConditions := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespaceSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"some-label-key": "some-label-value"}},
+			},
+			{
+				Namespaces: []string{"some-other-ns"},
+			},
+		}
+
+		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
+			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
+			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+				return false
+			}
+			return true
+		}
+	}
+
 	DescribeTable("When reconciling an ExternalSecret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestcase()
@@ -1471,6 +1693,18 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should eventually delete target secret with deletionPolicy=Delete", deleteSecretPolicy),
 		Entry("should not delete target secret with deletionPolicy=Retain", deleteSecretPolicyRetain),
 		Entry("should not delete pre-existing secret with deletionPolicy=Merge", deleteSecretPolicyMerge),
+		Entry("secret is created when there are no conditions for the cluster secret store", useClusterSecretStore, noConditionsSecretCreated),
+		Entry("secret is not created when the condition for the cluster secret store states a different namespace single string condition", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchStringCondition),
+		Entry("secret is not created when the condition for the cluster secret store states a different namespace single string condition with multiple names", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchStringConditionWithMultipleNames),
+		Entry("secret is not created when the condition for the cluster secret store states a different namespace multiple string conditions", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchMultipleStringCondition),
+		Entry("secret is created when the condition for the cluster secret store has only one matching namespace by string condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesSingleStringCondition),
+		Entry("secret is created when the condition for the cluster secret store has one matching namespace of multiple namespaces by string condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesMultipleStringConditions),
+		Entry("secret is not created when the condition for the cluster secret store states a non-matching label condition", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchLabelCondition),
+		Entry("secret is created when the condition for the cluster secret store states a single matching label condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchOnlyLabelCondition),
+		Entry("secret is not created when the condition for the cluster secret store states a partially-matching label condition", useClusterSecretStore, noSecretCreatedWhenNamespacePartiallyMatchLabelCondition),
+		Entry("secret is created when one of the label conditions for the cluster secret store matches", useClusterSecretStore, secretCreatedWhenNamespaceMatchOneLabelCondition),
+		Entry("secret is created when the namespaces matches multiple cluster secret store conditions", useClusterSecretStore, secretCreatedWhenNamespaceMatchMultipleConditions),
+		Entry("secret is not created when the namespaces doesn't match any of multiple cluster secret store conditions", useClusterSecretStore, noSecretCreatedWhenNamespaceMatchMultipleNonMatchingConditions),
 	)
 })
 

@@ -75,6 +75,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 
 reviewable: generate helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
+	@cd e2e/ && go mod tidy
 
 golicenses.check: ## Check install of go-licenses
 	@if ! go-licenses >> /dev/null 2>&1; then \
@@ -138,7 +139,7 @@ lint.install: ## Install golangci-lint to the go bin dir
 	fi
 
 lint: lint.check ## Run golangci-lint
-	@if ! golangci-lint run --timeout 5m; then \
+	@if ! golangci-lint run; then \
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
 		exit 1; \
 	fi
@@ -146,6 +147,7 @@ lint: lint.check ## Run golangci-lint
 
 fmt: lint.check ## Ensure consistent code style
 	@go mod tidy
+	@cd e2e/ && go mod tidy
 	@go fmt ./...
 	@golangci-lint run --fix > /dev/null 2>&1 || true
 	@$(OK) Ensured consistent code style
