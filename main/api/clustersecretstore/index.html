@@ -1566,7 +1566,6 @@
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
 <span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-
 <span class="w">  </span><span class="c1"># Used to select the correct ESO controller (think: ingress.ingressClassName)</span><span class="w"></span>
 <span class="w">  </span><span class="c1"># The ESO controller is instantiated with a specific controller name</span><span class="w"></span>
 <span class="w">  </span><span class="c1"># and filters ES based on this property</span><span class="w"></span>
@@ -1576,7 +1575,6 @@
 <span class="w">  </span><span class="c1"># provider field contains the configuration to access the provider</span><span class="w"></span>
 <span class="w">  </span><span class="c1"># which contains the secret exactly one provider must be configured.</span><span class="w"></span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
-
 <span class="w">    </span><span class="c1"># (1): AWS Secrets Manager</span><span class="w"></span>
 <span class="w">    </span><span class="c1"># aws configures this store to sync secrets using AWS Secret Manager provider</span><span class="w"></span>
 <span class="w">    </span><span class="nt">aws</span><span class="p">:</span><span class="w"></span>
@@ -1667,30 +1665,43 @@
 <span class="w">    </span><span class="c1"># (3): Kubernetes provider</span><span class="w"></span>
 <span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w">  </span><span class="s">&quot;https://myapiserver.tld&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">caProvider</span><span class="p">:</span><span class="w"> </span>
-<span class="w">            </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
-<span class="w">            </span><span class="nt">name </span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cluster-secrets</span><span class="w"></span>
-<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span><span class="w"></span>
+<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://myapiserver.tld&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">caProvider</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cluster-secrets</span><span class="w"></span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span><span class="w"></span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">serviceAccount</span><span class="p">:</span><span class="w"></span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example-sa&quot;</span><span class="w"></span>
 <span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example&quot;</span><span class="w"></span>
 <span class="w">    </span><span class="c1"># (TODO): add more provider examples here</span><span class="w"></span>
 
+<span class="w">  </span><span class="c1"># Conditions about namespaces in which the ClusterSecretStore is usable for ExternalSecrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">conditions</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># Options are namespaceSelector, or namespaces</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespaceSelector</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">my.namespace.io/some-label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;value&quot;</span><span class="w"> </span><span class="c1"># Only namespaces with that label will work</span><span class="w"></span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespaces</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespace-a&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespace-b&quot;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1"># conditions needs only one of the conditions to meet for the CSS to be usable in the namespace.</span><span class="w"></span>
+
 <span class="nt">status</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="c1"># Standard condition schema</span><span class="w"></span>
 <span class="w">  </span><span class="nt">conditions</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># SecretStore ready condition indicates the given store is in ready</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># state and able to referenced by ExternalSecrets</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># If the `status` of this condition is `False`, ExternalSecret controllers</span><span class="w"></span>
-<span class="w">  </span><span class="c1"># should prevent attempts to fetch secrets</span><span class="w"></span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ready</span><span class="w"></span>
-<span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;False&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ConfigError&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SecretStore</span><span class="nv"> </span><span class="s">validation</span><span class="nv"> </span><span class="s">failed&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2019-08-12T12:33:02Z&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># SecretStore ready condition indicates the given store is in ready</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># state and able to referenced by ExternalSecrets</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># If the `status` of this condition is `False`, ExternalSecret controllers</span><span class="w"></span>
+<span class="w">    </span><span class="c1"># should prevent attempts to fetch secrets</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ready</span><span class="w"></span>
+<span class="w">      </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;False&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ConfigError&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SecretStore</span><span class="nv"> </span><span class="s">validation</span><span class="nv"> </span><span class="s">failed&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2019-08-12T12:33:02Z&quot;</span><span class="w"></span>
 </code></pre></div>
 
               

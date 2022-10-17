@@ -2914,6 +2914,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2927,6 +2941,51 @@ SecretStoreStatus
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ClusterSecretStoreCondition">ClusterSecretStoreCondition
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
+</p>
+<p>
+<p>ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
+for a ClusterSecretStore instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>namespaceSelector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespace using a labelSelector</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Choose namespaces by name</p>
 </td>
 </tr>
 </tbody>
@@ -5284,6 +5343,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -5726,6 +5799,20 @@ int
 <td>
 <em>(Optional)</em>
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
 </td>
 </tr>
 </tbody>
