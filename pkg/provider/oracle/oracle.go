@@ -265,12 +265,10 @@ func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error
 				return esv1beta1.ValidationResultUnknown, err
 			default:
 				return esv1beta1.ValidationResultError, err
-
 			}
 		} else {
 			return esv1beta1.ValidationResultError, err
 		}
-
 	}
 
 	return esv1beta1.ValidationResultReady, nil
