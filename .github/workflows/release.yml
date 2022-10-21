@@ -74,7 +74,7 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read
+      contents: write
 
     env:
       SOURCE_TAG: main${{ matrix.tag_suffix }}
@@ -120,6 +120,7 @@ jobs:
         run: make docker.promote
 
       - name: Sign promoted image
+        id: sign
         uses: ./.github/actions/sign
         with:
           image-name: ${{ env.IMAGE_NAME }}
@@ -127,3 +128,13 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          files: |
+            provenance.${{ env.RELEASE_TAG }}.intoto.jsonl
+            sbom.${{ env.RELEASE_TAG }}.spdx.json
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

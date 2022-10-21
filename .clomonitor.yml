@@ -1,0 +1,4 @@
+licenseScanning:
+  # License scanning of dependencies is done from a GitHub Action.
+  # You can view the latest results on the main branch following this link
+  url: https://github.com/external-secrets/external-secrets/actions/workflows/dlc.yml?query=branch%3Amain
