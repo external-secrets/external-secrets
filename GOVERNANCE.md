@@ -61,7 +61,7 @@ interested in implementing the proposal should be either deeply engaged in the
 proposal process or be an author of the proposal.
 
 The proposal should be documented as a separated markdown file pushed to the
-`design` folder in the [design proposals](https://github.com/external-secrets/external-secrets/design)
+`design` folder in the [external-secrets repository](https://github.com/external-secrets/external-secrets/tree/main/design)
 repository via PR. The name of the file should follow the name pattern `<NUMBER-
 meaningful words joined by '-'>.md`, e.g:
 `000clear-old-tags-with-policies.md`.
