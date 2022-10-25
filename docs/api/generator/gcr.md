@@ -21,7 +21,7 @@ For details see [GCP Secret Manager](../../provider/google-secrets-manager.md#au
 ### GCP Service Account
 
 Use `spec.auth.secretRef` to point to a Secret that contains a GCP Service Account.
-For details see [GCP Secret Manager](../provider/google-secrets-manager.md#authentication).
+For details see [GCP Secret Manager](../../provider/google-secrets-manager.md#authentication).
 
 ## Example Manifest
 
