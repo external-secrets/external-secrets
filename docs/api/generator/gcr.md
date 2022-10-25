@@ -15,7 +15,7 @@ You must specify the `spec.projectID` in which GCR is located.
 ### Workload Identity
 
 Use `spec.auth.workloadIdentity` to point to a Service Account that has Workload Identity enabled.
-For details see [GCP Secret Manager](../provider/google-secrets-manager.md#authentication).
+For details see [GCP Secret Manager](../../provider/google-secrets-manager.md#authentication).
 
 
 ### GCP Service Account
