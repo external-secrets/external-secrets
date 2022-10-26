@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -437,42 +436,6 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
 			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, ExternalSecretFQDN, "{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:reconcile.external-secrets.io/data-hash\":{}}}}")).To(BeTrue())
-		}
-	}
-
-	syncWithInlineGenerator := func(tc *testCase) {
-		const secretKey = "somekey"
-		const secretVal = "someValue"
-
-		// generator is defined in yaml, however it is transformed as json
-		// internally
-		fakeGen := `
-{
-  "apiVersion": "generators.external-secrets.io/v1alpha1",
-  "kind": "Fake",
-  "spec": {
-    "data": {
-      "%s": "%s"
-    }
-  }
-}`
-
-		// reset secretStoreRef
-		tc.externalSecret.Spec.SecretStoreRef = esv1beta1.SecretStoreRef{}
-		tc.externalSecret.Spec.Data = nil
-		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
-			{
-				SourceRef: &esv1beta1.SourceRef{
-					Generator: &apiextensions.JSON{
-						Raw: []byte(fmt.Sprintf(fakeGen, secretKey, secretVal)),
-					},
-				},
-			},
-		}
-
-		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-			// check values
-			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
 		}
 	}
 
@@ -1825,7 +1788,6 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
-		Entry("should sync with inline generator", syncWithInlineGenerator),
 		Entry("should sync with generatorRef", syncWithGeneratorRef),
 		Entry("should sync with multiple secret stores via sourceRef", syncWithMultipleSecretStores),
 		Entry("should sync with template", syncWithTemplate),

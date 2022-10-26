@@ -55,7 +55,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 			secretMap, err = r.handleFindAllSecrets(ctx, externalSecret, remoteRef, mgr, i)
 		} else if remoteRef.Extract != nil {
 			secretMap, err = r.handleExtractSecrets(ctx, externalSecret, remoteRef, mgr, i)
-		} else if remoteRef.SourceRef != nil && (remoteRef.SourceRef.Generator != nil || remoteRef.SourceRef.GeneratorRef != nil) {
+		} else if remoteRef.SourceRef != nil && remoteRef.SourceRef.GeneratorRef != nil {
 			secretMap, err = r.handleGenerateSecrets(ctx, externalSecret.Namespace, remoteRef, i)
 		}
 		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
@@ -128,12 +128,8 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 }
 
 // getGeneratorDefinition returns the generator JSON for a given sourceRef
-// when a generator is defined inline it returns sourceRef.Generator straight away
 // when it uses a generatorRef it fetches the resource and returns the JSON.
 func (r *Reconciler) getGeneratorDefinition(ctx context.Context, namespace string, sourceRef *esv1beta1.SourceRef) (*apiextensions.JSON, error) {
-	if sourceRef.Generator != nil {
-		return sourceRef.Generator, nil
-	}
 	// client-go dynamic client needs a GVR to fetch the resource
 	// But we only have the GVK in our generatorRef.
 	//

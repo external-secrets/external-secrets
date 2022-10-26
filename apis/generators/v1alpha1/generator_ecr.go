@@ -17,7 +17,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type ECRAuthorizationTokenSpec struct {
@@ -26,12 +26,43 @@ type ECRAuthorizationTokenSpec struct {
 
 	// Auth defines how to authenticate with AWS
 	// +optional
-	Auth esv1beta1.AWSAuth `json:"auth"`
+	Auth AWSAuth `json:"auth"`
 
 	// You can assume a role before making calls to the
 	// desired AWS service.
 	// +optional
 	Role string `json:"role"`
+}
+
+// AWSAuth tells the controller how to do authentication with aws.
+// Only one of secretRef or jwt can be specified.
+// if none is specified the controller will load credentials using the aws sdk defaults.
+type AWSAuth struct {
+	// +optional
+	SecretRef *AWSAuthSecretRef `json:"secretRef,omitempty"`
+	// +optional
+	JWTAuth *AWSJWTAuth `json:"jwt,omitempty"`
+}
+
+// AWSAuthSecretRef holds secret references for AWS credentials
+// both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+type AWSAuthSecretRef struct {
+	// The AccessKeyID is used for authentication
+	AccessKeyID esmeta.SecretKeySelector `json:"accessKeyIDSecretRef,omitempty"`
+
+	// The SecretAccessKey is used for authentication
+	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
+
+	// The SessionToken used for authentication
+	// This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+	// see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+	// +Optional
+	SessionToken *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
+}
+
+// Authenticate against AWS using service account tokens.
+type AWSJWTAuth struct {
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 // ECRAuthorizationTokenSpec uses the GetAuthorizationToken API to retrieve an

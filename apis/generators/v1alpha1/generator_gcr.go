@@ -17,14 +17,34 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type GCRAccessTokenSpec struct {
 	// Auth defines the means for authenticating with GCP
-	Auth esv1beta1.GCPSMAuth `json:"auth"`
+	Auth GCPSMAuth `json:"auth"`
 	// ProjectID defines which project to use to authenticate with
 	ProjectID string `json:"projectID"`
+}
+
+type GCPSMAuth struct {
+	// +optional
+	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
+	// +optional
+	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
+}
+
+type GCPSMAuthSecretRef struct {
+	// The SecretAccessKey is used for authentication
+	// +optional
+	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
+}
+
+type GCPWorkloadIdentity struct {
+	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+	ClusterLocation   string                        `json:"clusterLocation"`
+	ClusterName       string                        `json:"clusterName"`
+	ClusterProjectID  string                        `json:"clusterProjectID,omitempty"`
 }
 
 // GCRAccessToken generates an GCP access token

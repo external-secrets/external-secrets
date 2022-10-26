@@ -51,7 +51,7 @@ func validateExternalSecret(obj runtime.Object) error {
 
 	for _, ref := range es.Spec.DataFrom {
 		findOrExtract := ref.Find != nil || ref.Extract != nil
-		if findOrExtract && ref.SourceRef != nil && (ref.SourceRef.Generator != nil || ref.SourceRef.GeneratorRef != nil) {
+		if findOrExtract && ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
 			return fmt.Errorf("generator can not be used with find or extract")
 		}
 	}

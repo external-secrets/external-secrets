@@ -16,7 +16,6 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -322,12 +321,6 @@ type SourceRef struct {
 	// GeneratorRef points to a generator custom resource in
 	// +optional
 	GeneratorRef *GeneratorRef `json:"generatorRef,omitempty"`
-
-	// Generator generates secret values on demand
-	// A generator is just a embedded type, see apis/generators
-	// for available types.
-	// +optional
-	Generator *apiextensions.JSON `json:"generator,omitempty"`
 }
 
 // GeneratorRef points to a generator custom resource.

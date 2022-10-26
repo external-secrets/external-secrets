@@ -91,9 +91,6 @@ spec:
                             description: SourceRef allows you to override the source from which the value will pulled from.
                             maxProperties: 1
                             properties:
-                              generator:
-                                description: Generator generates secret values on demand A generator is just a embedded type, see apis/generators for available types.
-                                x-kubernetes-preserve-unknown-fields: true
                               generatorRef:
                                 description: GeneratorRef points to a generator custom resource in
                                 properties:
@@ -209,9 +206,6 @@ spec:
                             description: SourceRef points to a store or generator which contains secret values ready to use. Use this in combination with Extract or Find pull values out of a specific SecretStore. When sourceRef points to a generator Extract or Find is not supported. The generator returns a static map of values
                             maxProperties: 1
                             properties:
-                              generator:
-                                description: Generator generates secret values on demand A generator is just a embedded type, see apis/generators for available types.
-                                x-kubernetes-preserve-unknown-fields: true
                               generatorRef:
                                 description: GeneratorRef points to a generator custom resource in
                                 properties:
@@ -3194,9 +3188,6 @@ spec:
                         description: SourceRef allows you to override the source from which the value will pulled from.
                         maxProperties: 1
                         properties:
-                          generator:
-                            description: Generator generates secret values on demand A generator is just a embedded type, see apis/generators for available types.
-                            x-kubernetes-preserve-unknown-fields: true
                           generatorRef:
                             description: GeneratorRef points to a generator custom resource in
                             properties:
@@ -3312,9 +3303,6 @@ spec:
                         description: SourceRef points to a store or generator which contains secret values ready to use. Use this in combination with Extract or Find pull values out of a specific SecretStore. When sourceRef points to a generator Extract or Find is not supported. The generator returns a static map of values
                         maxProperties: 1
                         properties:
-                          generator:
-                            description: Generator generates secret values on demand A generator is just a embedded type, see apis/generators for available types.
-                            x-kubernetes-preserve-unknown-fields: true
                           generatorRef:
                             description: GeneratorRef points to a generator custom resource in
                             properties:

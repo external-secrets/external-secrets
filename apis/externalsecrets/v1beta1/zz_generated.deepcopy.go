@@ -21,7 +21,6 @@ package v1beta1
 
 import (
 	metav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -1798,11 +1797,6 @@ func (in *SourceRef) DeepCopyInto(out *SourceRef) {
 		in, out := &in.GeneratorRef, &out.GeneratorRef
 		*out = new(GeneratorRef)
 		**out = **in
-	}
-	if in.Generator != nil {
-		in, out := &in.Generator, &out.Generator
-		*out = new(apiextensionsv1.JSON)
-		(*in).DeepCopyInto(*out)
 	}
 }
 

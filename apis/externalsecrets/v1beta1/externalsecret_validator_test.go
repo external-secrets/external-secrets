@@ -16,7 +16,6 @@ package v1beta1
 import (
 	"testing"
 
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -63,7 +62,7 @@ func TestValidateExternalSecret(t *testing.T) {
 						{
 							Find: &ExternalSecretFind{},
 							SourceRef: &SourceRef{
-								Generator: &v1.JSON{},
+								GeneratorRef: &GeneratorRef{},
 							},
 						},
 					},
@@ -79,7 +78,7 @@ func TestValidateExternalSecret(t *testing.T) {
 						{
 							Extract: &ExternalSecretDataRemoteRef{},
 							SourceRef: &SourceRef{
-								Generator: &v1.JSON{},
+								GeneratorRef: &GeneratorRef{},
 							},
 						},
 					},
