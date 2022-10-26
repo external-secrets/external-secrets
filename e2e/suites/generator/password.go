@@ -15,7 +15,6 @@ limitations under the License.
 package generator
 
 import (
-	"encoding/json"
 
 	//nolint
 	. "github.com/onsi/gomega"
@@ -27,7 +26,6 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -47,24 +45,6 @@ var _ = Describe("password generator", Label("password"), func() {
 			Spec: genv1alpha1.PasswordSpec{
 				Length: 24,
 			},
-		}
-	}
-
-	inlineGenerator := func(tc *testCase) {
-		inlineGen, err := json.Marshal(tc.Generator)
-		Expect(err).ToNot(HaveOccurred())
-
-		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
-			{
-				SourceRef: &esv1beta1.SourceRef{
-					Generator: &apiextensions.JSON{
-						Raw: inlineGen,
-					},
-				},
-			},
-		}
-		tc.AfterSync = func(secret *v1.Secret) {
-			Expect(len(string(secret.Data["password"]))).To(Equal(24))
 		}
 	}
 
@@ -88,6 +68,5 @@ var _ = Describe("password generator", Label("password"), func() {
 
 	DescribeTable("generate secrets with password generator", generatorTableFunc,
 		Entry("using custom resource generator", f, injectGenerator, customResourceGenerator),
-		Entry("using inline generator", f, injectGenerator, inlineGenerator),
 	)
 })

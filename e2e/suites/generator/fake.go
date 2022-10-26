@@ -15,7 +15,6 @@ limitations under the License.
 package generator
 
 import (
-	"encoding/json"
 
 	//nolint
 	. "github.com/onsi/gomega"
@@ -27,7 +26,6 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -57,26 +55,6 @@ var _ = Describe("fake generator", Label("fake"), func() {
 		}
 	}
 
-	inlineGenerator := func(tc *testCase) {
-		inlineGen, err := json.Marshal(tc.Generator)
-		Expect(err).ToNot(HaveOccurred())
-
-		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
-			{
-				SourceRef: &esv1beta1.SourceRef{
-					Generator: &apiextensions.JSON{
-						Raw: inlineGen,
-					},
-				},
-			},
-		}
-		tc.AfterSync = func(secret *v1.Secret) {
-			for k, v := range fakeGenData {
-				Expect(secret.Data[k]).To(Equal([]byte(v)))
-			}
-		}
-	}
-
 	customResourceGenerator := func(tc *testCase) {
 		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
@@ -99,6 +77,5 @@ var _ = Describe("fake generator", Label("fake"), func() {
 
 	DescribeTable("generate secrets with fake generator", generatorTableFunc,
 		Entry("using custom resource generator", f, injectGenerator, customResourceGenerator),
-		Entry("using inline generator", f, injectGenerator, inlineGenerator),
 	)
 })

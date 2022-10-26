@@ -16,7 +16,6 @@ package generator
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 
 	//nolint
@@ -30,7 +29,6 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -64,8 +62,8 @@ var _ = Describe("ecr generator", Label("ecr"), func() {
 			},
 			Spec: genv1alpha1.ECRAuthorizationTokenSpec{
 				Region: os.Getenv("AWS_REGION"),
-				Auth: esv1beta1.AWSAuth{
-					SecretRef: &esv1beta1.AWSAuthSecretRef{
+				Auth: genv1alpha1.AWSAuth{
+					SecretRef: &genv1alpha1.AWSAuthSecretRef{
 						AccessKeyID: esmeta.SecretKeySelector{
 							Name: awsCredsSecretName,
 							Key:  "akid",
@@ -81,25 +79,6 @@ var _ = Describe("ecr generator", Label("ecr"), func() {
 					},
 				},
 			},
-		}
-	}
-
-	inlineGenerator := func(tc *testCase) {
-		inlineGen, err := json.Marshal(tc.Generator)
-		Expect(err).ToNot(HaveOccurred())
-
-		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
-			{
-				SourceRef: &esv1beta1.SourceRef{
-					Generator: &apiextensions.JSON{
-						Raw: inlineGen,
-					},
-				},
-			},
-		}
-		tc.AfterSync = func(secret *v1.Secret) {
-			Expect(string(secret.Data["username"])).To(Equal("AWS"))
-			Expect(string(secret.Data["password"])).ToNot(BeEmpty())
 		}
 	}
 
@@ -124,6 +103,5 @@ var _ = Describe("ecr generator", Label("ecr"), func() {
 
 	DescribeTable("generate secrets with password generator", generatorTableFunc,
 		Entry("using custom resource generator", f, injectGenerator, customResourceGenerator),
-		Entry("using inline generator", f, injectGenerator, inlineGenerator),
 	)
 })
