@@ -44,9 +44,16 @@ Anyone is welcome to join. Feel free to ask questions, request feedback, raise a
 
 Please report vulnerabilities by email to contact@external-secrets.io. Also see our [SECURITY.md file](SECURITY.md) for details.
 
+## software bill of materials
+We attach SBOM and provenance file to our GitHub release. Also, they are attached to container images.
+
 ## Adopters
 
 Please create a PR and add your company or project to our [ADOPTERS.md file](ADOPTERS.md) if you are using our project!
+
+## Roadmap
+
+You can find the roadmap in our documentation: https://external-secrets.io/main/contributing/roadmap/
 
 ## Kicked off by
 
