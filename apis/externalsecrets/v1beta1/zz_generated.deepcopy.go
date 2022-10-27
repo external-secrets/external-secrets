@@ -922,6 +922,11 @@ func (in *ExternalSecretTemplate) DeepCopyInto(out *ExternalSecretTemplate) {
 			(*out)[key] = val
 		}
 	}
+	if in.FromString != nil {
+		in, out := &in.FromString, &out.FromString
+		*out = new(string)
+		**out = **in
+	}
 	if in.TemplateFrom != nil {
 		in, out := &in.TemplateFrom, &out.TemplateFrom
 		*out = make([]TemplateFrom, len(*in))

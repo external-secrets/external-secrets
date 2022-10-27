@@ -98,7 +98,8 @@ type ExternalSecretTemplate struct {
 
 	// +optional
 	Data map[string]string `json:"data,omitempty"`
-
+	// +Optional
+	FromString *string `json:"fromString,omitempty"`
 	// +optional
 	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
 }

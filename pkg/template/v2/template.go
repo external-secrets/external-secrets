@@ -19,7 +19,9 @@ import (
 	tpl "text/template"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
+	yaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 var tplFuncs = tpl.FuncMap{
@@ -77,6 +79,24 @@ func Execute(tpl, data map[string][]byte, secret *corev1.Secret) error {
 	return nil
 }
 
+func SecretExecute(template string, data map[string][]byte, secret *corev1.Secret) error {
+	newSecret := &corev1.Secret{}
+	secretByte, err := execute("secret", template, data)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal(secretByte, newSecret)
+	if err != nil {
+		return err
+	}
+	// Making sure that only allowed fields are templated
+	utils.MergeStringMap(secret.ObjectMeta.Annotations, newSecret.ObjectMeta.Annotations)
+	utils.MergeStringMap(secret.ObjectMeta.Labels, newSecret.ObjectMeta.Labels)
+	secret.Data = newSecret.Data
+	secret.StringData = newSecret.StringData
+	return nil
+
+}
 func execute(k, val string, data map[string][]byte) ([]byte, error) {
 	strValData := make(map[string]string, len(data))
 	for k := range data {

@@ -42,6 +42,14 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 		secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 		return nil
 	}
+	// secret template defined as string: apply secret template and return
+	if es.Spec.Target.Template.FromString != nil {
+		execute, err := template.SecretTemplateForVersion(es.Spec.Target.Template.EngineVersion)
+		if err != nil {
+			return err
+		}
+		return execute(*es.Spec.Target.Template.FromString, dataMap, secret)
+	}
 
 	// fetch templates defined in template.templateFrom
 	tplMap, err := r.getTemplateData(ctx, es)
