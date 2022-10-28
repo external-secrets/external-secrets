@@ -44,7 +44,7 @@ Implement several generators to support not only a number of data types but also
 
 We add a new resource group `generators.external-secrets.io`. For each generator we add a new CRD, e.g. for password generation, VaultPKI, ECR, GCR etc.
 This custom resource contains all the configuration details to create a secure value.
-It can be referenced from a `Kind=ExternalSecret` or `Kind=PushSecret`. **or embedded** into it.
+It can be referenced from a `Kind=ExternalSecret` or `Kind=PushSecret`.
 
 The controller generates the value and passes it onto the `Kind=Secret` with all the values
 that have been fetched from the provider.
@@ -71,7 +71,7 @@ spec:
   auth: {} # service account etc. etc.
 ```
 
-This resource can be **embedded or referenced** from an ExternalSecret or PushSecret.
+This resource can be **referenced** from an ExternalSecret or PushSecret.
 The ExternalSecret controller generates the secret value and it can be post-processed with
 existing features like template or key-rewrite.
 
@@ -83,22 +83,10 @@ metadata:
 spec:
   # ...
   dataFrom:
-    # embedded
-    - generator:
-        apiVersion: generators.external-secrets.io/v1alpha1
-        kind: VaultPKIBackend
-        spec:
-          # same as above
-          commonName: example.com
-          altNames:
-            - example.org
-            - localhost
-          # ... more opts
-          auth: {} # service account etc. etc.issuerRef: "default"
 
-    # the generator also can be referenced like here
+    # the generator is referenced like here
     - sourceRef:
-        generator:
+        generatorRef:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: VaultPKIBackend
           name: foobar
