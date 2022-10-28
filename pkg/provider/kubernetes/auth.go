@@ -18,7 +18,9 @@ import (
 	"context"
 	"fmt"
 
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -30,130 +32,116 @@ const (
 	errFetchCredentials                    = "could not fetch credentials: %w"
 	errMissingCredentials                  = "missing credentials: \"%s\""
 	errEmptyKey                            = "key %s found but empty"
-	errGetKubeSA                           = "cannot get Kubernetes service account %q: %w"
-	errGetKubeSASecrets                    = "cannot find secrets bound to service account: %q"
-	errGetKubeSANoToken                    = "cannot find token in secrets bound to service account: %q"
+	errUnableCreateToken                   = "cannot create service account token: %q"
 )
 
-func (k *BaseClient) setAuth(ctx context.Context) error {
-	err := k.setCA(ctx)
+func (c *Client) setAuth(ctx context.Context) error {
+	err := c.setCA(ctx)
 	if err != nil {
 		return err
 	}
-	if k.store.Auth.Token != nil {
-		k.BearerToken, err = k.fetchSecretKey(ctx, k.store.Auth.Token.BearerToken)
+	if c.store.Auth.Token != nil {
+		c.BearerToken, err = c.fetchSecretKey(ctx, c.store.Auth.Token.BearerToken)
 		if err != nil {
 			return fmt.Errorf("could not fetch Auth.Token.BearerToken: %w", err)
 		}
 		return nil
 	}
-	if k.store.Auth.ServiceAccount != nil {
-		k.BearerToken, err = k.secretKeyRefForServiceAccount(ctx, k.store.Auth.ServiceAccount)
+	if c.store.Auth.ServiceAccount != nil {
+		c.BearerToken, err = c.serviceAccountToken(ctx, c.store.Auth.ServiceAccount)
 		if err != nil {
 			return fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
 		}
 		return nil
 	}
-	if k.store.Auth.Cert != nil {
-		return k.setClientCert(ctx)
+	if c.store.Auth.Cert != nil {
+		return c.setClientCert(ctx)
 	}
 	return fmt.Errorf("no credentials provided")
 }
 
-func (k *BaseClient) setCA(ctx context.Context) error {
-	if k.store.Server.CABundle != nil {
-		k.CA = k.store.Server.CABundle
+func (c *Client) setCA(ctx context.Context) error {
+	if c.store.Server.CABundle != nil {
+		c.CA = c.store.Server.CABundle
 		return nil
 	}
-	if k.store.Server.CAProvider != nil {
+	if c.store.Server.CAProvider != nil {
 		var ca []byte
 		var err error
-		switch k.store.Server.CAProvider.Type {
+		switch c.store.Server.CAProvider.Type {
 		case esv1beta1.CAProviderTypeConfigMap:
 			keySelector := esmeta.SecretKeySelector{
-				Name:      k.store.Server.CAProvider.Name,
-				Namespace: k.store.Server.CAProvider.Namespace,
-				Key:       k.store.Server.CAProvider.Key,
+				Name:      c.store.Server.CAProvider.Name,
+				Namespace: c.store.Server.CAProvider.Namespace,
+				Key:       c.store.Server.CAProvider.Key,
 			}
-			ca, err = k.fetchConfigMapKey(ctx, keySelector)
+			ca, err = c.fetchConfigMapKey(ctx, keySelector)
 			if err != nil {
 				return fmt.Errorf("unable to fetch Server.CAProvider ConfigMap: %w", err)
 			}
 		case esv1beta1.CAProviderTypeSecret:
 			keySelector := esmeta.SecretKeySelector{
-				Name:      k.store.Server.CAProvider.Name,
-				Namespace: k.store.Server.CAProvider.Namespace,
-				Key:       k.store.Server.CAProvider.Key,
+				Name:      c.store.Server.CAProvider.Name,
+				Namespace: c.store.Server.CAProvider.Namespace,
+				Key:       c.store.Server.CAProvider.Key,
 			}
-			ca, err = k.fetchSecretKey(ctx, keySelector)
+			ca, err = c.fetchSecretKey(ctx, keySelector)
 			if err != nil {
 				return fmt.Errorf("unable to fetch Server.CAProvider Secret: %w", err)
 			}
 		}
-		k.CA = ca
+		c.CA = ca
 		return nil
 	}
 	return fmt.Errorf("no Certificate Authority provided")
 }
 
-func (k *BaseClient) setClientCert(ctx context.Context) error {
+func (c *Client) setClientCert(ctx context.Context) error {
 	var err error
-	k.Certificate, err = k.fetchSecretKey(ctx, k.store.Auth.Cert.ClientCert)
+	c.Certificate, err = c.fetchSecretKey(ctx, c.store.Auth.Cert.ClientCert)
 	if err != nil {
 		return fmt.Errorf("unable to fetch client certificate: %w", err)
 	}
-	k.Key, err = k.fetchSecretKey(ctx, k.store.Auth.Cert.ClientKey)
+	c.Key, err = c.fetchSecretKey(ctx, c.store.Auth.Cert.ClientKey)
 	if err != nil {
 		return fmt.Errorf("unable to fetch client key: %w", err)
 	}
 	return nil
 }
 
-func (k *BaseClient) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) ([]byte, error) {
-	serviceAccount := &corev1.ServiceAccount{}
-	ref := types.NamespacedName{
-		Namespace: k.namespace,
-		Name:      serviceAccountRef.Name,
-	}
-	if (k.storeKind == esv1beta1.ClusterSecretStoreKind) &&
+func (c *Client) serviceAccountToken(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) ([]byte, error) {
+	namespace := c.namespace
+	if (c.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
-		ref.Namespace = *serviceAccountRef.Namespace
+		namespace = *serviceAccountRef.Namespace
 	}
-	err := k.kube.Get(ctx, ref, serviceAccount)
+	expirationSeconds := int64(3600)
+	tr, err := c.ctrlClientset.ServiceAccounts(namespace).CreateToken(ctx, serviceAccountRef.Name, &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         serviceAccountRef.Audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}, metav1.CreateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf(errGetKubeSA, ref.Name, err)
+		return nil, fmt.Errorf(errUnableCreateToken, err)
 	}
-	if len(serviceAccount.Secrets) == 0 {
-		return nil, fmt.Errorf(errGetKubeSASecrets, ref.Name)
-	}
-	for _, tokenRef := range serviceAccount.Secrets {
-		retval, err := k.fetchSecretKey(ctx, esmeta.SecretKeySelector{
-			Name:      tokenRef.Name,
-			Namespace: &ref.Namespace,
-			Key:       "token",
-		})
-		if err != nil {
-			continue
-		}
-		return retval, nil
-	}
-	return nil, fmt.Errorf(errGetKubeSANoToken, ref.Name)
+	return []byte(tr.Status.Token), nil
 }
 
-func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {
+func (c *Client) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {
 	keySecret := &corev1.Secret{}
 	objectKey := types.NamespacedName{
 		Name:      key.Name,
-		Namespace: k.namespace,
+		Namespace: c.namespace,
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if k.storeKind == esv1beta1.ClusterSecretStoreKind {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if key.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingNamespace)
 		}
 		objectKey.Namespace = *key.Namespace
 	}
-	err := k.kube.Get(ctx, objectKey, keySecret)
+	err := c.ctrlClient.Get(ctx, objectKey, keySecret)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchCredentials, err)
 	}
@@ -167,20 +155,20 @@ func (k *BaseClient) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySel
 	return val, nil
 }
 
-func (k *BaseClient) fetchConfigMapKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {
+func (c *Client) fetchConfigMapKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {
 	configMap := &corev1.ConfigMap{}
 	objectKey := types.NamespacedName{
 		Name:      key.Name,
-		Namespace: k.namespace,
+		Namespace: c.namespace,
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if k.storeKind == esv1beta1.ClusterSecretStoreKind {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if key.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingNamespace)
 		}
 		objectKey.Namespace = *key.Namespace
 	}
-	err := k.kube.Get(ctx, objectKey, configMap)
+	err := c.ctrlClient.Get(ctx, objectKey, configMap)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchCredentials, err)
 	}

@@ -1,5 +1,5 @@
 # This version of Dockerfile is for building without external dependencies.
-FROM golang:1.18-alpine AS builder
+FROM golang:1.19.2-alpine AS builder
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 WORKDIR /app
 # Avoid invalidating the `go mod download` cache when only code has changed.

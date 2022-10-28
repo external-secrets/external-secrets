@@ -19,8 +19,8 @@ import (
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 
-	"github.com/external-secrets/external-secrets/e2e/framework"
-	"github.com/external-secrets/external-secrets/e2e/suites/provider/cases/common"
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 )
 
 var _ = Describe("[akeyless]", Label("akeyless"), func() {
@@ -31,6 +31,7 @@ var _ = Describe("[akeyless]", Label("akeyless"), func() {
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.NestedJSONWithGJSON(f)),
 		Entry(common.JSONDataFromSync(f)),
+		Entry(common.JSONDataFromRewrite(f)),
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry(common.DockerJSONConfig(f)),

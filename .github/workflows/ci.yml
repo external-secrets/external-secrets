@@ -4,34 +4,25 @@ on:
   push:
     branches:
       - main
-      - release-*
   pull_request: {}
-  workflow_dispatch: {}
 
 env:
   # Common versions
-  GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.42.1'
-  KUBERNETES_VERSION: '1.23.x'
-  DOCKER_BUILDX_VERSION: 'v0.4.2'
-
-  # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
-  # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
-  # credentials have been provided before trying to run steps that need them.
-  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+  GOLANGCI_VERSION: 'v1.49.0'
+  KUBERNETES_VERSION: '1.24.x'
 
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 jobs:
   detect-noop:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     outputs:
       noop: ${{ steps.noop.outputs.should_skip }}
     steps:
       - name: Detect No-op Changes
         id: noop
-        uses: fkirc/skip-duplicate-actions@v4.0.0
+        uses: fkirc/skip-duplicate-actions@v5.2.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["**.md", "**.png", "**.jpg"]'
@@ -39,7 +30,7 @@ jobs:
           concurrent_skipping: false
 
   lint:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
 
@@ -50,7 +41,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -62,30 +53,23 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-lint-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-lint-
+          key: ${{ runner.os }}-build-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
-      # This action uses its own setup-go, which always seems to use the latest
-      # stable version of Go. We could run 'make lint' to ensure our desired Go
-      # version, but we prefer this action because it leaves 'annotations' (i.e.
-      # it comments on PRs to point out linter violations).
       - name: Lint
-        uses: golangci/golangci-lint-action@v3.2.0
+        uses: golangci/golangci-lint-action@v3
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-pkg-cache: true
           skip-build-cache: true
-          skip-go-installation: true
 
   check-diff:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
 
@@ -96,7 +80,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -108,25 +92,23 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-check-diff-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-check-diff-
+          key: ${{ runner.os }}-build-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
       # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
         run: |
-          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.42.1
+          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s ${{ env.GOLANGCI_VERSION }}
           export PATH=$PATH:./bin
           make check-diff
 
   unit-tests:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
 
@@ -140,7 +122,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -152,15 +134,13 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-unit-tests-
+          key: ${{ runner.os }}-build-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
       - name: Add setup-envtest
         run: |
@@ -172,7 +152,6 @@ jobs:
         with:
           path: /home/runner/.local/share/kubebuilder-envtest/
           key: ${{ runner.os }}-kubebuilder-${{env.KUBERNETES_VERSION}}
-          restore-keys: ${{ runner.os }}-kubebuilder-
 
       - name: Run Unit Tests
         run: |
@@ -180,90 +159,25 @@ jobs:
           source <(setup-envtest use ${{env.KUBERNETES_VERSION}} -p env --os $(go env GOOS) --arch $(go env GOARCH))
           make test
 
-
   publish-artifacts:
-    runs-on: ubuntu-18.04
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
-
+    uses: ./.github/workflows/publish.yml
     permissions:
       id-token: write
       contents: read
+    strategy:
+      matrix:
+        include:
+        - dockerfile: "Dockerfile"
+          tag-suffix: "" # distroless
+        - dockerfile: "Dockerfile.ubi"
+          tag-suffix: "-ubi"
+    with:
+      dockerfile: ${{ matrix.dockerfile }}
+      tag-suffix: ${{ matrix.tag-suffix }}
+      image-name: ghcr.io/${{ github.repository }}
+    secrets:
+      GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
-    steps:
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: all
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          version: ${{ env.DOCKER_BUILDX_VERSION }}
-          install: true
-
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Fetch History
-        run: git fetch --prune --unshallow
-
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Find the Go Cache
-        id: go
-        run: |
-          echo "::set-output name=build-cache::$(go env GOCACHE)"
-          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-      - name: Cache the Go Build Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-publish-artifacts-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-publish-artifacts-
-
-      - name: Cache Go Dependencies
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
-
-      - name: Login to Docker
-        uses: docker/login-action@v2
-        if: env.GHCR_USERNAME != ''
-        with:
-          registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_TOKEN }}
-
-      - name: Build & Publish Artifacts
-        if: env.GHCR_USERNAME != ''
-        env:
-          BUILD_ARGS: "--push --platform linux/amd64,linux/arm64"
-        run: make docker.build
-
-      - name: Promote Artifacts to main release channel
-        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        run: make docker.promote
-        env:
-          RELEASE_TAG: main
-
-      - name: Set up crane
-        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        run: go install github.com/google/go-containerregistry/cmd/crane@v0.8.0
-
-      - name: Install cosign
-        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@v2.4.1
-
-      - name: Sign Artifacts to main release channel
-        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != ''
-        run: make docker.sign
-        env:
-          RELEASE_TAG: main
-          COSIGN_EXPERIMENTAL: true

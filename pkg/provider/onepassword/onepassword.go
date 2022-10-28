@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,7 +45,6 @@ const (
 	errFetchK8sSecret                             = "could not fetch ConnectToken Secret: %w"
 	errMissingToken                               = "missing Secret Token"
 	errGetVault                                   = "error finding 1Password Vault: %w"
-	errExpectedOneVault                           = "expected one 1Password Vault matching %w"
 	errExpectedOneItem                            = "expected one 1Password Item matching %w"
 	errGetItem                                    = "error finding 1Password Item: %w"
 	errKeyNotFound                                = "key not found in 1Password Vaults: %w"
@@ -173,7 +172,7 @@ func (provider *ProviderOnePassword) GetSecret(ctx context.Context, ref esv1beta
 // to be able to retrieve secrets from the provider.
 func (provider *ProviderOnePassword) Validate() (esv1beta1.ValidationResult, error) {
 	for vaultName := range provider.vaults {
-		_, err := provider.client.GetItems(vaultName)
+		_, err := provider.client.GetVaultByTitle(vaultName)
 		if err != nil {
 			return esv1beta1.ValidationResultError, err
 		}
@@ -211,15 +210,12 @@ func (provider *ProviderOnePassword) GetAllSecrets(ctx context.Context, ref esv1
 	secretData := make(map[string][]byte)
 	sortedVaults := sortVaults(provider.vaults)
 	for _, vaultName := range sortedVaults {
-		vaults, err := provider.client.GetVaultsByTitle(vaultName)
+		vault, err := provider.client.GetVaultByTitle(vaultName)
 		if err != nil {
 			return nil, fmt.Errorf(errGetVault, err)
 		}
-		if len(vaults) != 1 {
-			return nil, fmt.Errorf(errExpectedOneVault, fmt.Errorf(incorrectCountFormat, vaultName, len(vaults)))
-		}
 
-		err = provider.getAllForVault(vaults[0].ID, ref, secretData)
+		err = provider.getAllForVault(vault.ID, ref, secretData)
 		if err != nil {
 			return nil, err
 		}
@@ -236,22 +232,19 @@ func (provider *ProviderOnePassword) Close(ctx context.Context) error {
 func (provider *ProviderOnePassword) findItem(name string) (*onepassword.Item, error) {
 	sortedVaults := sortVaults(provider.vaults)
 	for _, vaultName := range sortedVaults {
-		vaults, err := provider.client.GetVaultsByTitle(vaultName)
+		vault, err := provider.client.GetVaultByTitle(vaultName)
 		if err != nil {
 			return nil, fmt.Errorf(errGetVault, err)
 		}
-		if len(vaults) != 1 {
-			return nil, fmt.Errorf(errExpectedOneVault, fmt.Errorf(incorrectCountFormat, vaultName, len(vaults)))
-		}
 
 		// use GetItemsByTitle instead of GetItemByTitle in order to handle length cases
-		items, err := provider.client.GetItemsByTitle(name, vaults[0].ID)
+		items, err := provider.client.GetItemsByTitle(name, vault.ID)
 		if err != nil {
 			return nil, fmt.Errorf(errGetItem, err)
 		}
 		switch {
 		case len(items) == 1:
-			return provider.client.GetItem(items[0].ID, items[0].Vault.ID)
+			return provider.client.GetItemByUUID(items[0].ID, items[0].Vault.ID)
 		case len(items) > 1:
 			return nil, fmt.Errorf(errExpectedOneItem, fmt.Errorf(incorrectCountFormat, name, len(items)))
 		}
@@ -301,7 +294,7 @@ func (provider *ProviderOnePassword) getFields(item *onepassword.Item, property 
 }
 
 func (provider *ProviderOnePassword) getAllFields(item onepassword.Item, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {
-	i, err := provider.client.GetItem(item.ID, item.Vault.ID)
+	i, err := provider.client.GetItemByUUID(item.ID, item.Vault.ID)
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
 	}

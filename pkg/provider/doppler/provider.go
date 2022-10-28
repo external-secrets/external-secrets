@@ -1,0 +1,114 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implieclient.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package doppler
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"strconv"
+
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
+	"github.com/external-secrets/external-secrets/pkg/utils"
+)
+
+const (
+	errNewClient    = "unable to create DopplerClient : %s"
+	errInvalidStore = "invalid store: %s"
+	errDopplerStore = "missing or invalid Doppler SecretStore"
+)
+
+// Provider is a Doppler secrets provider implementing NewClient and ValidateStore for the esv1beta1.Provider interface.
+type Provider struct{}
+
+// https://github.com/external-secrets/external-secrets/issues/644
+var _ esv1beta1.SecretsClient = &Client{}
+var _ esv1beta1.Provider = &Provider{}
+
+func init() {
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
+		Doppler: &esv1beta1.DopplerProvider{},
+	})
+}
+
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	storeSpec := store.GetSpec()
+
+	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Doppler == nil {
+		return nil, fmt.Errorf(errDopplerStore)
+	}
+
+	dopplerStoreSpec := storeSpec.Provider.Doppler
+
+	// Default Key to dopplerToken if not specified
+	if dopplerStoreSpec.Auth.SecretRef.DopplerToken.Key == "" {
+		storeSpec.Provider.Doppler.Auth.SecretRef.DopplerToken.Key = "dopplerToken"
+	}
+
+	client := &Client{
+		kube:      kube,
+		store:     dopplerStoreSpec,
+		namespace: namespace,
+		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+	}
+
+	if err := client.setAuth(ctx); err != nil {
+		return nil, err
+	}
+
+	doppler, err := dClient.NewDopplerClient(client.dopplerToken)
+	if err != nil {
+		return nil, fmt.Errorf(errNewClient, err)
+	}
+
+	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
+		if err := doppler.SetBaseURL(customBaseURL); err != nil {
+			return nil, fmt.Errorf(errNewClient, err)
+		}
+	}
+
+	if customVerifyTLS, found := os.LookupEnv(verifyTLSOverrideEnvVar); found {
+		customVerifyTLS, err := strconv.ParseBool(customVerifyTLS)
+		if err == nil {
+			doppler.VerifyTLS = customVerifyTLS
+		}
+	}
+
+	client.doppler = doppler
+	client.project = client.store.Project
+	client.config = client.store.Config
+	client.nameTransformer = client.store.NameTransformer
+	client.format = client.store.Format
+
+	return client, nil
+}
+
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	dopplerStoreSpec := storeSpec.Provider.Doppler
+	dopplerTokenSecretRef := dopplerStoreSpec.Auth.SecretRef.DopplerToken
+	if err := utils.ValidateSecretSelector(store, dopplerTokenSecretRef); err != nil {
+		return fmt.Errorf(errInvalidStore, err)
+	}
+
+	if dopplerTokenSecretRef.Name == "" {
+		return fmt.Errorf(errInvalidStore, "dopplerToken.name cannot be empty")
+	}
+
+	return nil
+}

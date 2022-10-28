@@ -17,19 +17,16 @@ package aws
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -45,10 +42,8 @@ func TestProvider(t *testing.T) {
 	// inject fake static credentials because we test
 	// if we are able to get credentials when constructing the client
 	// see #415
-	os.Setenv("AWS_ACCESS_KEY_ID", "1234")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "1234")
-	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
-	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+	t.Setenv("AWS_ACCESS_KEY_ID", "1234")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "1234")
 
 	tbl := []struct {
 		test    string
@@ -362,14 +357,12 @@ func TestValidRetryInput(t *testing.T) {
 					Auth: esv1beta1.AWSAuth{
 						SecretRef: &esv1beta1.AWSAuthSecretRef{
 							SecretAccessKey: esmeta.SecretKeySelector{
-								Name:      "sak",
-								Namespace: pointer.String("OK"),
-								Key:       "sak",
+								Name: "creds",
+								Key:  "sak",
 							},
 							AccessKeyID: esmeta.SecretKeySelector{
-								Name:      "ak",
-								Namespace: pointer.String("OK"),
-								Key:       "ak",
+								Name: "creds",
+								Key:  "ak",
 							},
 						},
 					},
@@ -384,19 +377,16 @@ func TestValidRetryInput(t *testing.T) {
 	expected := fmt.Sprintf("unable to initialize aws provider: time: invalid duration %q", invalid)
 	ctx := context.TODO()
 
-	kube := &test.MockClient{
-		MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-			if o, ok := obj.(*corev1.Secret); ok {
-				o.Data = map[string][]byte{
-					"sak": []byte("OK"),
-					"ak":  []byte("OK"),
-				}
-				return nil
-			}
-			return nil
-		}),
-	}
-
+	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "creds",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"sak": []byte("OK"),
+			"ak":  []byte("OK"),
+		},
+	}).Build()
 	provider := func(*session.Session) stsiface.STSAPI { return nil }
 
 	_, err := newClient(ctx, spec, kube, "default", provider)

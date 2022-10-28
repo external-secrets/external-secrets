@@ -36,9 +36,24 @@ type SecretStoreSpec struct {
 	// Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
 	// +optional
 	RefreshInterval int `json:"refreshInterval"`
+
+	// Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+	// +optional
+	Conditions []ClusterSecretStoreCondition `json:"conditions,omitempty"`
 }
 
-// SecretStoreProvider contains the provider-specific configration.
+// ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
+// for a ClusterSecretStore instance.
+type ClusterSecretStoreCondition struct {
+	// Choose namespace using a labelSelector
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+
+	// Choose namespaces by name
+	Namespaces []string `json:"namespaces,omitempty"`
+}
+
+// SecretStoreProvider contains the provider-specific configuration.
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type SecretStoreProvider struct {
@@ -105,6 +120,38 @@ type SecretStoreProvider struct {
 	// Senhasegura configures this store to sync secrets using senhasegura provider
 	// +optional
 	Senhasegura *SenhaseguraProvider `json:"senhasegura,omitempty"`
+
+	// Doppler configures this store to sync secrets using the Doppler provider
+	// +optional
+	Doppler *DopplerProvider `json:"doppler,omitempty"`
+}
+
+type CAProviderType string
+
+const (
+	CAProviderTypeSecret    CAProviderType = "Secret"
+	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
+)
+
+// Used to provide custom certificate authority (CA) certificates
+// for a secret store. The CAProvider points to a Secret or ConfigMap resource
+// that contains a PEM-encoded certificate.
+type CAProvider struct {
+	// The type of provider to use such as "Secret", or "ConfigMap".
+	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
+	Type CAProviderType `json:"type"`
+
+	// The name of the object located at the provider type.
+	Name string `json:"name"`
+
+	// The key where the CA certificate can be found in the Secret or ConfigMap.
+	// +kubebuilder:validation:Optional
+	Key string `json:"key,omitempty"`
+
+	// The namespace the Provider type is in.
+	// Can only be defined when used in a ClusterSecretStore.
+	// +optional
+	Namespace *string `json:"namespace,omitempty"`
 }
 
 type SecretStoreRetrySettings struct {

@@ -6,12 +6,17 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
-    external-secrets.io/component : webhook
+    external-secrets.io/component: webhook
   {{- if .Values.webhook.prometheus.enabled}}
   annotations:
     prometheus.io/path: "/metrics"
     prometheus.io/scrape: "true"
     prometheus.io/port: {{ .Values.prometheus.service.port | quote }}
+  {{- else }}
+  {{- with .Values.metrics.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- end }}
 spec:
   type: ClusterIP
@@ -20,9 +25,14 @@ spec:
     targetPort: {{ .Values.webhook.port }}
     protocol: TCP
     name: webhook
-  {{- if .Values.webhook.prometheus.enabled}}
-  - port: {{ .Values.webhook.prometheus.service.port}}
-    targetPort: {{ .Values.webhook.prometheus.service.port}}
+  {{- if or .Values.webhook.prometheus.enabled .Values.webhook.metrics.service.enabled }}
+  {{- if .Values.webhook.prometheus.enabled }}
+  - port: {{ .Values.webhook.prometheus.service.port }}
+    targetPort: {{ .Values.webhook.prometheus.service.port }}
+  {{- else }}
+  - port: {{ .Values.webhook.metrics.service.port }}
+    targetPort: {{ .Values.webhook.metrics.service.port }}
+  {{- end }}
     protocol: TCP
     name: metrics
   {{- end }}

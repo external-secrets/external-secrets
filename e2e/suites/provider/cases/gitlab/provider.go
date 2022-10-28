@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,21 +27,23 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/e2e/framework"
 )
 
 type gitlabProvider struct {
 	credentials string
 	projectID   string
+	environment string
 	framework   *framework.Framework
 }
 
-func newGitlabProvider(f *framework.Framework, credentials, projectID string) *gitlabProvider {
+func newGitlabProvider(f *framework.Framework, credentials, projectID string, environment string) *gitlabProvider {
 	prov := &gitlabProvider{
 		credentials: credentials,
 		projectID:   projectID,
+		environment: environment,
 		framework:   f,
 	}
 	BeforeEach(prov.BeforeEach)
@@ -51,7 +53,8 @@ func newGitlabProvider(f *framework.Framework, credentials, projectID string) *g
 func newFromEnv(f *framework.Framework) *gitlabProvider {
 	credentials := os.Getenv("GITLAB_TOKEN")
 	projectID := os.Getenv("GITLAB_PROJECT_ID")
-	return newGitlabProvider(f, credentials, projectID)
+	environment := os.Getenv("GITLAB_ENVIRONMENT")
+	return newGitlabProvider(f, credentials, projectID, environment)
 }
 
 func (s *gitlabProvider) CreateSecret(key string, val framework.SecretEntry) {
@@ -102,8 +105,9 @@ func (s *gitlabProvider) BeforeEach() {
 		// Puts access token into StringData
 
 		StringData: map[string]string{
-			"token":     s.credentials,
-			"projectID": s.projectID,
+			"token":       s.credentials,
+			"projectID":   s.projectID,
+			"environment": s.environment,
 		},
 	}
 	err := s.framework.CRClient.Create(context.Background(), gitlabCreds)

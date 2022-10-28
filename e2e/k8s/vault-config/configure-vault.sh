@@ -91,7 +91,8 @@ vault write auth/myjwtk8s/role/external-secrets-operator \
 vault auth enable -path=mykubernetes kubernetes
 vault write auth/mykubernetes/config \
     kubernetes_host=https://kubernetes.default.svc.cluster.local \
-    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+    issuer=https://kubernetes.default.svc.cluster.local
 
 vault write auth/mykubernetes/role/external-secrets-operator \
     bound_service_account_names=* \

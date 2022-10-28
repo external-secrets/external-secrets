@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/exp/slices"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,7 +40,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
-
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -51,6 +51,8 @@ const (
 	errGetES                 = "could not get ExternalSecret"
 	errConvert               = "could not apply conversion strategy to keys: %v"
 	errDecode                = "could not apply decoding strategy to %v[%d]: %v"
+	errRewrite               = "could not rewrite spec.dataFrom[%d]: %v"
+	errInvalidKeys           = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric,'-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides-datafrom-rewrite)"
 	errUpdateSecret          = "could not update Secret"
 	errPatchStatus           = "unable to patch status"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
@@ -61,6 +63,7 @@ const (
 	errStoreProvider         = "could not get store provider"
 	errStoreClient           = "could not get provider client"
 	errGetExistingSecret     = "could not get existing secret: %w"
+	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 	errCloseStoreClient      = "could not close provider client"
 	errSetCtrlReference      = "could not set ExternalSecret controller reference: %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
@@ -96,6 +99,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
 	syncCallsMetricLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
+
+	start := time.Now()
+
+	defer externalSecretReconcileDuration.With(prometheus.Labels{
+		"name":      req.Name,
+		"namespace": req.Namespace,
+	}).Set(float64(time.Since(start)))
 
 	var externalSecret esv1beta1.ExternalSecret
 
@@ -146,6 +156,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !secretstore.ShouldProcessStore(store, r.ControllerClass) {
 		log.Info("skipping unmanaged store")
 		return ctrl.Result{}, nil
+	}
+
+	// when using ClusterSecretStore, validate the ClusterSecretStore namespace conditions
+	shouldProcess, err := r.ShouldProcessSecret(ctx, store, externalSecret.Namespace)
+	if err != nil || !shouldProcess {
+		if err == nil && !shouldProcess {
+			err = fmt.Errorf(errClusterStoreMismatch, store.GetName(), externalSecret.Namespace)
+		}
+
+		log.Error(err, err.Error())
+		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonInvalidStoreRef, err.Error())
+		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errStoreUsability)
+		SetExternalSecretCondition(&externalSecret, *conditionSynced)
+		syncCallsError.With(syncCallsMetricLabels).Inc()
+		return ctrl.Result{}, err
 	}
 
 	if r.EnableFloodGate {
@@ -309,7 +334,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	}
 
-	// nolint
+	//nolint
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1beta1.CreatePolicyNone:
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
@@ -477,7 +502,7 @@ func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	if es.Status.RefreshTime.IsZero() {
 		return true
 	}
-	return !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).After(time.Now())
+	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
 func shouldReconcile(es esv1beta1.ExternalSecret) bool {
@@ -543,6 +568,45 @@ func (r *Reconciler) getStore(ctx context.Context, externalSecret *esv1beta1.Ext
 	return &store, nil
 }
 
+func (r *Reconciler) ShouldProcessSecret(ctx context.Context, store esv1beta1.GenericStore, ns string) (bool, error) {
+	if store.GetKind() != esv1beta1.ClusterSecretStoreKind {
+		return true, nil
+	}
+
+	if len(store.GetSpec().Conditions) == 0 {
+		return true, nil
+	}
+
+	namespaceList := &v1.NamespaceList{}
+
+	for _, condition := range store.GetSpec().Conditions {
+		if condition.NamespaceSelector != nil {
+			namespaceSelector, err := metav1.LabelSelectorAsSelector(condition.NamespaceSelector)
+			if err != nil {
+				return false, err
+			}
+
+			if err := r.Client.List(context.Background(), namespaceList, client.MatchingLabelsSelector{Selector: namespaceSelector}); err != nil {
+				return false, err
+			}
+
+			for _, namespace := range namespaceList.Items {
+				if namespace.GetName() == ns {
+					return true, nil // namespace matches the labelselector
+				}
+			}
+		}
+
+		if condition.Namespaces != nil {
+			if slices.Contains(condition.Namespaces, ns) {
+				return true, nil // namespace in the namespaces list
+			}
+		}
+	}
+
+	return false, nil
+}
+
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
 func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient esv1beta1.SecretsClient, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
 	providerData := make(map[string][]byte)
@@ -559,9 +623,20 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 			if err != nil {
 				return nil, err
 			}
-			secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
+			secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 			if err != nil {
-				return nil, fmt.Errorf(errConvert, err)
+				return nil, fmt.Errorf(errRewrite, i, err)
+			}
+			if len(remoteRef.Rewrite) == 0 {
+				// ConversionStrategy is deprecated. Use RewriteMap instead.
+				r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1beta1.ReasonDeprecated, fmt.Sprintf("dataFrom[%d].find.conversionStrategy=%v is deprecated and will be removed in further releases. Use dataFrom.rewrite instead", i, remoteRef.Find.ConversionStrategy))
+				secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
+				if err != nil {
+					return nil, fmt.Errorf(errConvert, err)
+				}
+			}
+			if !utils.ValidateKeys(secretMap) {
+				return nil, fmt.Errorf(errInvalidKeys, "find", i)
 			}
 			secretMap, err = utils.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
 			if err != nil {
@@ -576,16 +651,24 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, providerClient e
 			if err != nil {
 				return nil, err
 			}
-			secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
+			secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 			if err != nil {
-				return nil, fmt.Errorf(errConvert, err)
+				return nil, fmt.Errorf(errRewrite, i, err)
+			}
+			if len(remoteRef.Rewrite) == 0 {
+				secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
+				if err != nil {
+					return nil, fmt.Errorf(errConvert, err)
+				}
+			}
+			if !utils.ValidateKeys(secretMap) {
+				return nil, fmt.Errorf(errInvalidKeys, "extract", i)
 			}
 			secretMap, err = utils.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
 			if err != nil {
 				return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
 			}
 		}
-
 		providerData = utils.MergeByteMap(providerData, secretMap)
 	}
 

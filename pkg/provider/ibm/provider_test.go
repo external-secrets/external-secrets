@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,10 +22,10 @@ import (
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/secretsmanagerv1"
-	"github.com/crossplane/crossplane-runtime/pkg/test"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
-	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -134,6 +134,8 @@ func TestValidateStore(t *testing.T) {
 	}
 	url := "my-url"
 	store.Spec.Provider.IBM.ServiceURL = &url
+	var nilProfile esv1beta1.IBMAuthContainerAuth
+	store.Spec.Provider.IBM.Auth.ContainerAuth = nilProfile
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
@@ -149,6 +151,17 @@ func TestValidateStore(t *testing.T) {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
 		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
+	}
+
+	// add container auth test
+	store.Spec.Provider.IBM = &esv1beta1.IBMProvider{}
+	store.Spec.Provider.IBM.ServiceURL = &url
+	store.Spec.Provider.IBM.Auth.ContainerAuth.Profile = "Trusted IAM Profile"
+	store.Spec.Provider.IBM.Auth.ContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
+	err = p.ValidateStore(store)
+	expected := "cannot read container auth token"
+	if !ErrorContains(err, expected) {
+		t.Errorf("ProfileSelector test failed: %s, expected: '%s'", err.Error(), expected)
 	}
 }
 
@@ -673,17 +686,15 @@ func TestValidRetryInput(t *testing.T) {
 
 	expected := fmt.Sprintf("cannot setup new ibm client: time: invalid duration %q", invalid)
 	ctx := context.TODO()
-	kube := &test.MockClient{
-		MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-			if o, ok := obj.(*corev1.Secret); ok {
-				o.Data = map[string][]byte{
-					"fake-key": []byte("ImAFakeApiKey"),
-				}
-				return nil
-			}
-			return nil
-		}),
-	}
+	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-secret",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"fake-key": []byte("ImAFakeApiKey"),
+		},
+	}).Build()
 
 	_, err := sm.NewClient(ctx, spec, kube, "default")
 

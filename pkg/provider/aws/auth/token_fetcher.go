@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +30,7 @@ type authTokenFetcher struct {
 	// Audience is the token aud claim
 	// which is verified by the aws oidc provider
 	// see: https://github.com/external-secrets/external-secrets/issues/1251#issuecomment-1161745849
-	Audience       string
+	Audiences      []string
 	ServiceAccount string
 	k8sClient      corev1.CoreV1Interface
 }
@@ -41,7 +41,7 @@ func (p authTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
 	log.V(1).Info("fetching token", "ns", p.Namespace, "sa", p.ServiceAccount)
 	tokRsp, err := p.k8sClient.ServiceAccounts(p.Namespace).CreateToken(ctx, p.ServiceAccount, &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
-			Audiences: []string{p.Audience},
+			Audiences: p.Audiences,
 		},
 	}, metav1.CreateOptions{})
 	if err != nil {

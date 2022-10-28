@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: clusterexternalsecrets.external-secrets.io
 spec:
@@ -67,7 +67,7 @@ spec:
                                 type: string
                               decodingStrategy:
                                 default: None
-                                description: Used to define a conversion Strategy
+                                description: Used to define a decoding Strategy
                                 type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
@@ -94,8 +94,6 @@ spec:
                     dataFrom:
                       description: DataFrom is used to fetch all properties from a specific Provider data If multiple entries are specified, the Secret keys are merged in the specified order
                       items:
-                        maxProperties: 1
-                        minProperties: 1
                         properties:
                           extract:
                             description: Used to extract multiple key/value pairs from one secret
@@ -106,7 +104,7 @@ spec:
                                 type: string
                               decodingStrategy:
                                 default: None
-                                description: Used to define a conversion Strategy
+                                description: Used to define a decoding Strategy
                                 type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
@@ -132,7 +130,7 @@ spec:
                                 type: string
                               decodingStrategy:
                                 default: None
-                                description: Used to define a conversion Strategy
+                                description: Used to define a decoding Strategy
                                 type: string
                               name:
                                 description: Finds secrets based on the name.
@@ -150,6 +148,25 @@ spec:
                                 description: Find secrets based on tags.
                                 type: object
                             type: object
+                          rewrite:
+                            description: Used to rewrite secret Keys after getting them from the secret Provider Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
+                            items:
+                              properties:
+                                regexp:
+                                  description: Used to rewrite with regular expressions. The resulting key will be the output of a regexp.ReplaceAll operation.
+                                  properties:
+                                    source:
+                                      description: Used to define the regular expression of a re.Compiler.
+                                      type: string
+                                    target:
+                                      description: Used to define the target pattern of a ReplaceAll operation.
+                                      type: string
+                                  required:
+                                    - source
+                                    - target
+                                  type: object
+                              type: object
+                            type: array
                         type: object
                       type: array
                     refreshInterval:
@@ -169,6 +186,9 @@ spec:
                         - name
                       type: object
                     target:
+                      default:
+                        creationPolicy: Owner
+                        deletionPolicy: Retain
                       description: ExternalSecretTarget defines the Kubernetes Secret to be created There can be only one target per ExternalSecret.
                       properties:
                         creationPolicy:
@@ -294,6 +314,7 @@ spec:
                       description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
                       type: object
                   type: object
+                  x-kubernetes-map-type: atomic
                 refreshTime:
                   description: The time in which the controller should reconcile it's objects and recheck namespaces for labels.
                   type: string
@@ -359,7 +380,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: clustersecretstores.external-secrets.io
 spec:
@@ -416,8 +437,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -459,8 +523,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -529,6 +591,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -633,6 +700,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -707,6 +779,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -835,6 +912,11 @@ spec:
                                 serviceAccount:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1046,6 +1128,11 @@ spec:
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -1107,6 +1194,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1405,6 +1497,49 @@ spec:
             spec:
               description: SecretStoreSpec defines the desired state of SecretStore.
               properties:
+                conditions:
+                  description: Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+                  items:
+                    description: ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in for a ClusterSecretStore instance.
+                    properties:
+                      namespaceSelector:
+                        description: Choose namespace using a labelSelector
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                            items:
+                              description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                              properties:
+                                key:
+                                  description: key is the label key that the selector applies to.
+                                  type: string
+                                operator:
+                                  description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                                - key
+                                - operator
+                              type: object
+                            type: array
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      namespaces:
+                        description: Choose namespaces by name
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  type: array
                 controller:
                   description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
                   type: string
@@ -1422,8 +1557,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -1465,8 +1643,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -1535,6 +1711,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1633,12 +1814,26 @@ spec:
                             - ManagedIdentity
                             - WorkloadIdentity
                           type: string
+                        environmentType:
+                          default: PublicCloud
+                          description: 'EnvironmentType specifies the Azure cloud environment endpoints to use for connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint. The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152 PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud'
+                          enum:
+                            - PublicCloud
+                            - USGovernmentCloud
+                            - ChinaCloud
+                            - GermanCloud
+                          type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -1656,6 +1851,60 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    doppler:
+                      description: Doppler configures this store to sync secrets using the Doppler provider
+                      properties:
+                        auth:
+                          description: Auth configures how the Operator authenticates with the Doppler API
+                          properties:
+                            secretRef:
+                              properties:
+                                dopplerToken:
+                                  description: The DopplerToken is used for authentication. See https://docs.doppler.com/reference/api#authentication for auth token types. The Key attribute defaults to dopplerToken if not specified.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - dopplerToken
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        config:
+                          description: Doppler config (required if not using a Service Token)
+                          type: string
+                        format:
+                          description: Format enables the downloading of secrets as a file (string)
+                          enum:
+                            - json
+                            - dotnet-json
+                            - env
+                            - yaml
+                            - docker
+                          type: string
+                        nameTransformer:
+                          description: Environment variable compatible name transforms that change secret names to a different format
+                          enum:
+                            - upper-camel
+                            - camel
+                            - lower-snake
+                            - tf-var
+                            - dotnet-env
+                          type: string
+                        project:
+                          description: Doppler project (required if not using a Service Token)
+                          type: string
+                      required:
+                        - auth
                       type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
@@ -1713,6 +1962,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -1757,6 +2011,9 @@ spec:
                           required:
                             - SecretRef
                           type: object
+                        environment:
+                          description: Environment environment_scope of gitlab CI/CD variables (Please see https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment on how to create environments)
+                          type: string
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
                           type: string
@@ -1771,7 +2028,23 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the IBM secrets manager.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
+                            containerAuth:
+                              description: IBM Container-based auth with IAM Trusted Profile.
+                              properties:
+                                iamEndpoint:
+                                  type: string
+                                profile:
+                                  description: the IBM Trusted Profile
+                                  type: string
+                                tokenLocation:
+                                  description: Location the token is mounted on the pod
+                                  type: string
+                              required:
+                                - profile
+                              type: object
                             secretRef:
                               properties:
                                 secretApiKeySecretRef:
@@ -1788,8 +2061,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                         serviceUrl:
                           description: ServiceURL is the Endpoint URL that is specific to the Secrets Manager service instance
@@ -1838,6 +2109,11 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
                                 name:
                                   description: The name of the ServiceAccount resource being referred to.
                                   type: string
@@ -1880,13 +2156,13 @@ spec:
                               description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
                               properties:
                                 key:
-                                  description: The key the value inside of the provider type to use, only used with "Secret" type
+                                  description: The key where the CA certificate can be found in the Secret or ConfigMap.
                                   type: string
                                 name:
                                   description: The name of the object located at the provider type.
                                   type: string
                                 namespace:
-                                  description: The namespace the Provider type is in.
+                                  description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
                                   type: string
                                 type:
                                   description: The type of provider to use such as "Secret", or "ConfigMap".
@@ -2118,17 +2394,22 @@ spec:
                                   description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
                                   properties:
                                     audiences:
-                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      description: 'Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified. Deprecated: use serviceAccountRef.Audiences instead'
                                       items:
                                         type: string
                                       type: array
                                     expirationSeconds:
-                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      description: 'Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Deprecated: this will be removed in the future. Defaults to 10 minutes.'
                                       format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -2190,6 +2471,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -2252,13 +2538,13 @@ spec:
                           description: The provider for the CA bundle to use to validate Vault server certificate.
                           properties:
                             key:
-                              description: The key the value inside of the provider type to use, only used with "Secret" type
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
                               type: string
                             name:
                               description: The name of the object located at the provider type.
                               type: string
                             namespace:
-                              description: The namespace the Provider type is in.
+                              description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
                               type: string
                             type:
                               description: The type of provider to use such as "Secret", or "ConfigMap".
@@ -2523,7 +2809,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: externalsecrets.external-secrets.io
 spec:
@@ -2798,7 +3084,7 @@ spec:
                             type: string
                           decodingStrategy:
                             default: None
-                            description: Used to define a conversion Strategy
+                            description: Used to define a decoding Strategy
                             type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
@@ -2825,8 +3111,6 @@ spec:
                 dataFrom:
                   description: DataFrom is used to fetch all properties from a specific Provider data If multiple entries are specified, the Secret keys are merged in the specified order
                   items:
-                    maxProperties: 1
-                    minProperties: 1
                     properties:
                       extract:
                         description: Used to extract multiple key/value pairs from one secret
@@ -2837,7 +3121,7 @@ spec:
                             type: string
                           decodingStrategy:
                             default: None
-                            description: Used to define a conversion Strategy
+                            description: Used to define a decoding Strategy
                             type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
@@ -2863,7 +3147,7 @@ spec:
                             type: string
                           decodingStrategy:
                             default: None
-                            description: Used to define a conversion Strategy
+                            description: Used to define a decoding Strategy
                             type: string
                           name:
                             description: Finds secrets based on the name.
@@ -2881,6 +3165,25 @@ spec:
                             description: Find secrets based on tags.
                             type: object
                         type: object
+                      rewrite:
+                        description: Used to rewrite secret Keys after getting them from the secret Provider Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
+                        items:
+                          properties:
+                            regexp:
+                              description: Used to rewrite with regular expressions. The resulting key will be the output of a regexp.ReplaceAll operation.
+                              properties:
+                                source:
+                                  description: Used to define the regular expression of a re.Compiler.
+                                  type: string
+                                target:
+                                  description: Used to define the target pattern of a ReplaceAll operation.
+                                  type: string
+                              required:
+                                - source
+                                - target
+                              type: object
+                          type: object
+                        type: array
                     type: object
                   type: array
                 refreshInterval:
@@ -2900,6 +3203,9 @@ spec:
                     - name
                   type: object
                 target:
+                  default:
+                    creationPolicy: Owner
+                    deletionPolicy: Retain
                   description: ExternalSecretTarget defines the Kubernetes Secret to be created There can be only one target per ExternalSecret.
                   properties:
                     creationPolicy:
@@ -3056,7 +3362,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.0
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: secretstores.external-secrets.io
 spec:
@@ -3113,8 +3419,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -3156,8 +3505,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -3226,6 +3573,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3330,6 +3682,11 @@ spec:
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -3404,6 +3761,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3532,6 +3894,11 @@ spec:
                                 serviceAccount:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -3743,6 +4110,11 @@ spec:
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -3804,6 +4176,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4102,6 +4479,49 @@ spec:
             spec:
               description: SecretStoreSpec defines the desired state of SecretStore.
               properties:
+                conditions:
+                  description: Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+                  items:
+                    description: ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in for a ClusterSecretStore instance.
+                    properties:
+                      namespaceSelector:
+                        description: Choose namespace using a labelSelector
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                            items:
+                              description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                              properties:
+                                key:
+                                  description: key is the label key that the selector applies to.
+                                  type: string
+                                operator:
+                                  description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                                - key
+                                - operator
+                              type: object
+                            type: array
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      namespaces:
+                        description: Choose namespaces by name
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  type: array
                 controller:
                   description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
                   type: string
@@ -4119,8 +4539,51 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            kubernetesAuth:
+                              description: Kubernetes authenticates with Akeyless by passing the ServiceAccount token stored in the named Secret resource.
+                              properties:
+                                accessID:
+                                  description: the Akeyless Kubernetes auth-method access-id
+                                  type: string
+                                k8sConfName:
+                                  description: Kubernetes-auth configuration name in Akeyless-Gateway
+                                  type: string
+                                secretRef:
+                                  description: Optional secret field containing a Kubernetes ServiceAccount JWT used for authenticating with Akeyless. If a name is specified without a key, `token` is the default. If one is not specified, the one bound to the controller will be used.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Akeyless. If the service account selector is not supplied, the secretRef will be used instead.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                                - k8sConfName
+                              type: object
                             secretRef:
-                              description: 'AkeylessAuthSecretRef AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.'
+                              description: Reference to a Secret that contains the details to authenticate with Akeyless.
                               properties:
                                 accessID:
                                   description: The SecretAccessID is used for authentication
@@ -4162,8 +4625,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                       required:
                         - akeylessGWApiURL
@@ -4232,6 +4693,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4330,12 +4796,26 @@ spec:
                             - ManagedIdentity
                             - WorkloadIdentity
                           type: string
+                        environmentType:
+                          default: PublicCloud
+                          description: 'EnvironmentType specifies the Azure cloud environment endpoints to use for connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint. The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152 PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud'
+                          enum:
+                            - PublicCloud
+                            - USGovernmentCloud
+                            - ChinaCloud
+                            - GermanCloud
+                          type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
                           type: string
                         serviceAccountRef:
                           description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
                           properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
                             name:
                               description: The name of the ServiceAccount resource being referred to.
                               type: string
@@ -4353,6 +4833,60 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    doppler:
+                      description: Doppler configures this store to sync secrets using the Doppler provider
+                      properties:
+                        auth:
+                          description: Auth configures how the Operator authenticates with the Doppler API
+                          properties:
+                            secretRef:
+                              properties:
+                                dopplerToken:
+                                  description: The DopplerToken is used for authentication. See https://docs.doppler.com/reference/api#authentication for auth token types. The Key attribute defaults to dopplerToken if not specified.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - dopplerToken
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        config:
+                          description: Doppler config (required if not using a Service Token)
+                          type: string
+                        format:
+                          description: Format enables the downloading of secrets as a file (string)
+                          enum:
+                            - json
+                            - dotnet-json
+                            - env
+                            - yaml
+                            - docker
+                          type: string
+                        nameTransformer:
+                          description: Environment variable compatible name transforms that change secret names to a different format
+                          enum:
+                            - upper-camel
+                            - camel
+                            - lower-snake
+                            - tf-var
+                            - dotnet-env
+                          type: string
+                        project:
+                          description: Doppler project (required if not using a Service Token)
+                          type: string
+                      required:
+                        - auth
                       type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
@@ -4410,6 +4944,11 @@ spec:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4454,6 +4993,9 @@ spec:
                           required:
                             - SecretRef
                           type: object
+                        environment:
+                          description: Environment environment_scope of gitlab CI/CD variables (Please see https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment on how to create environments)
+                          type: string
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
                           type: string
@@ -4468,7 +5010,23 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the IBM secrets manager.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
+                            containerAuth:
+                              description: IBM Container-based auth with IAM Trusted Profile.
+                              properties:
+                                iamEndpoint:
+                                  type: string
+                                profile:
+                                  description: the IBM Trusted Profile
+                                  type: string
+                                tokenLocation:
+                                  description: Location the token is mounted on the pod
+                                  type: string
+                              required:
+                                - profile
+                              type: object
                             secretRef:
                               properties:
                                 secretApiKeySecretRef:
@@ -4485,8 +5043,6 @@ spec:
                                       type: string
                                   type: object
                               type: object
-                          required:
-                            - secretRef
                           type: object
                         serviceUrl:
                           description: ServiceURL is the Endpoint URL that is specific to the Secrets Manager service instance
@@ -4535,6 +5091,11 @@ spec:
                             serviceAccount:
                               description: points to a service account that should be used for authentication
                               properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
                                 name:
                                   description: The name of the ServiceAccount resource being referred to.
                                   type: string
@@ -4577,13 +5138,13 @@ spec:
                               description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
                               properties:
                                 key:
-                                  description: The key the value inside of the provider type to use, only used with "Secret" type
+                                  description: The key where the CA certificate can be found in the Secret or ConfigMap.
                                   type: string
                                 name:
                                   description: The name of the object located at the provider type.
                                   type: string
                                 namespace:
-                                  description: The namespace the Provider type is in.
+                                  description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
                                   type: string
                                 type:
                                   description: The type of provider to use such as "Secret", or "ConfigMap".
@@ -4815,17 +5376,22 @@ spec:
                                   description: Optional ServiceAccountToken specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
                                   properties:
                                     audiences:
-                                      description: Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified.
+                                      description: 'Optional audiences field that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to a single audience `vault` it not specified. Deprecated: use serviceAccountRef.Audiences instead'
                                       items:
                                         type: string
                                       type: array
                                     expirationSeconds:
-                                      description: Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Defaults to 10 minutes.
+                                      description: 'Optional expiration time in seconds that will be used to request a temporary Kubernetes service account token for the service account referenced by `serviceAccountRef`. Deprecated: this will be removed in the future. Defaults to 10 minutes.'
                                       format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
                                       properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
                                         name:
                                           description: The name of the ServiceAccount resource being referred to.
                                           type: string
@@ -4887,6 +5453,11 @@ spec:
                                 serviceAccountRef:
                                   description: Optional service account field containing the name of a kubernetes ServiceAccount. If the service account is specified, the service account secret token JWT will be used for authenticating with Vault. If the service account selector is not supplied, the secretRef will be used instead.
                                   properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
                                     name:
                                       description: The name of the ServiceAccount resource being referred to.
                                       type: string
@@ -4949,13 +5520,13 @@ spec:
                           description: The provider for the CA bundle to use to validate Vault server certificate.
                           properties:
                             key:
-                              description: The key the value inside of the provider type to use, only used with "Secret" type
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
                               type: string
                             name:
                               description: The name of the object located at the provider type.
                               type: string
                             namespace:
-                              description: The namespace the Provider type is in.
+                              description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
                               type: string
                             type:
                               description: The type of provider to use such as "Secret", or "ConfigMap".

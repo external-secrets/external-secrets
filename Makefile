@@ -7,6 +7,7 @@ MAKEFLAGS     += --warn-undefined-variables
 
 ARCH = amd64 arm64
 BUILD_ARGS ?=
+DOCKERFILE ?= Dockerfile
 
 # default target is build
 .DEFAULT_GOAL := all
@@ -14,10 +15,12 @@ BUILD_ARGS ?=
 all: $(addprefix build-,$(ARCH))
 
 # Image registry for build/push image targets
-export IMAGE_REGISTRY ?= ghcr.io/external-secrets/external-secrets
+export IMAGE_REGISTRY ?= ghcr.io
+export IMAGE_REPO     ?= external-secrets/external-secrets
+export IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE_REPO)
 
 #Valid licenses for license.check
-LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause|Unknown
+LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause
 BUNDLE_DIR     ?= deploy/crds
 CRD_DIR     ?= config/crds
 
@@ -41,6 +44,9 @@ else
 # use tags
 export VERSION := $(shell git describe --dirty --always --tags --exclude 'helm*' | sed 's/-/./2' | sed 's/-/./2')
 endif
+
+TAG_SUFFIX ?=
+export IMAGE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 # ====================================================================================
 # Colors
@@ -67,8 +73,9 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate helm.generate lint ## Ensure a PR is ready for review.
+reviewable: generate helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
+	@cd e2e/ && go mod tidy
 
 golicenses.check: ## Check install of go-licenses
 	@if ! go-licenses >> /dev/null 2>&1; then \
@@ -128,7 +135,7 @@ lint.check: ## Check install of golanci-lint
 lint.install: ## Install golangci-lint to the go bin dir
 	@if ! golangci-lint --version > /dev/null 2>&1; then \
 		echo "Installing golangci-lint"; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.42.1; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.49.0; \
 	fi
 
 lint: lint.check ## Run golangci-lint
@@ -140,20 +147,13 @@ lint: lint.check ## Run golangci-lint
 
 fmt: lint.check ## Ensure consistent code style
 	@go mod tidy
+	@cd e2e/ && go mod tidy
 	@go fmt ./...
 	@golangci-lint run --fix > /dev/null 2>&1 || true
 	@$(OK) Ensured consistent code style
 
 generate: ## Generate code and crds
-	@go run sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	@go run sigs.k8s.io/controller-tools/cmd/controller-gen crd paths="./..." output:crd:artifacts:config=$(CRD_DIR)/bases
-# Remove extra header lines in generated CRDs
-	@for i in $(CRD_DIR)/bases/*.yaml; do \
-  		tail -n +2 <"$$i" >"$$i.bkp" && \
-  		cp "$$i.bkp" "$$i" && \
-  		rm "$$i.bkp"; \
-  	done
-	@yq e '.spec.conversion.strategy = "Webhook" | .spec.conversion.webhook.conversionReviewVersions = ["v1"] | .spec.conversion.webhook.clientConfig.service.name = "kubernetes" | .spec.conversion.webhook.clientConfig.service.namespace = "default" |	.spec.conversion.webhook.clientConfig.service.path = "/convert"' $(CRD_DIR)/bases/*  > $(BUNDLE_DIR)/bundle.yaml
+	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
@@ -190,31 +190,7 @@ helm.build: helm.generate ## Build helm chart
 	@$(OK) helm package
 
 helm.generate:
-# Split the generated bundle yaml file to inject control flags
-	@for i in $(BUNDLE_DIR)/*.yaml; do \
-		yq e -Ns '"$(HELM_DIR)/templates/crds/" + .spec.names.singular' "$$i"; \
-	done
-# Add helm if statement for controlling the install of CRDs
-	@for i in $(HELM_DIR)/templates/crds/*.yml; do \
-		export CRDS_FLAG_NAME="create$$(yq e '.spec.names.kind' $$i)"; \
-		cp "$$i" "$$i.bkp"; \
-		if [[ "$$CRDS_FLAG_NAME" == *"Cluster"* ]]; then \
-			echo "{{- if and (.Values.installCRDs) (.Values.crds.$$CRDS_FLAG_NAME) }}" > "$$i"; \
-		else \
-			echo "{{- if .Values.installCRDs }}" > "$$i"; \
-		fi; \
-		cat "$$i.bkp" >> "$$i" && \
-		echo "{{- end }}" >> "$$i" && \
-		rm "$$i.bkp" && \
-		if [[ "$$OSTYPE" == "darwin"* ]]; then \
-		  SEDPRG="gsed"; \
-		else \
-		  SEDPRG="sed"; \
-		fi; \
-		$$SEDPRG -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$$i" && \
-		$$SEDPRG -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$$i" && \
-		mv "$$i" "$${i%.yml}.yaml"; \
-	done
+	./hack/helm.generate.sh $(BUNDLE_DIR) $(HELM_DIR)
 	@$(OK) Finished generating helm chart files
 
 # ====================================================================================
@@ -236,37 +212,37 @@ docs.serve: ## Serve docs
 
 build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
+docker.image:
+	@echo $(IMAGE_NAME):$(IMAGE_TAG)
+
+docker.tag:
+	@echo $(IMAGE_TAG)
+
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	@docker build . $(BUILD_ARGS) -t $(IMAGE_REGISTRY):$(VERSION)
+	@docker build -f $(DOCKERFILE) . $(BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
 docker.push: ## Push the docker image to the registry
 	@$(INFO) docker push
-	@docker push $(IMAGE_REGISTRY):$(VERSION)
+	@docker push $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker push
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.
-RELEASE_TAG ?= main
-SOURCE_TAG ?= $(VERSION)
+RELEASE_TAG ?= $(IMAGE_TAG)
+SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
-	docker manifest inspect $(IMAGE_REGISTRY):$(SOURCE_TAG) > .tagmanifest
+	docker manifest inspect $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
 	for digest in $$(jq -r '.manifests[].digest' < .tagmanifest); do \
-		docker pull $(IMAGE_REGISTRY)@$$digest; \
+		docker pull $(IMAGE_NAME)@$$digest; \
 	done
-	docker manifest create $(IMAGE_REGISTRY):$(RELEASE_TAG) \
-		$$(jq -j '"--amend $(IMAGE_REGISTRY)@" + .manifests[].digest + " "' < .tagmanifest)
-	docker manifest push $(IMAGE_REGISTRY):$(RELEASE_TAG)
+	docker manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
+		$$(jq -j '"--amend $(IMAGE_NAME)@" + .manifests[].digest + " "' < .tagmanifest)
+	docker manifest push $(IMAGE_NAME):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
-
-docker.sign: ## Sign
-	@$(INFO) signing $(IMAGE_REGISTRY):$(RELEASE_TAG)
-	crane digest $(IMAGE_REGISTRY):$(RELEASE_TAG) > .digest
-	cosign sign $(IMAGE_REGISTRY)@$$(cat .digest)
-	@$(OK) cosign sign $(IMAGE_REGISTRY):$(RELEASE_TAG)
 
 # ====================================================================================
 # Terraform

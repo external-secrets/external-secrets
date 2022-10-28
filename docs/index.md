@@ -22,10 +22,10 @@ lifecycle of the secrets for you.
 
 ### Where to get started
 
-To get started, please read through [API overview](api-overview.md) this should
+To get started, please read through [API overview](overview.md) this should
 give you a high-level overview to understand the API and use-cases. After that
-please follow one of our [guides](guides-introduction.md) to get a jump start
-using the operator. See our [getting started guide](guides-getting-started.md) for installation instructions.
+please follow one of our [guides](guides/introduction.md) to get a jump start
+using the operator. See our [getting started guide](guides/getting-started.md) for installation instructions.
 
 For a complete reference of the API types please refer to our [API
 Reference](spec.md).
@@ -39,11 +39,11 @@ even opinions matter!
 
 How to get involved:
 
-- Bi-weekly Development Meeting every odd week at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin)
+- Bi-weekly Development Meeting every odd week at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin) on Wednesday
   ([agenda](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA), [jitsi call](https://meet.jit.si/eso-community-meeting))
 - [Kubernetes Slack
   #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
-- [Contributing Process](contributing-process.md)
+- [Contributing Process](contributing/process.md)
 - [Twitter](https://twitter.com/ExtSecretsOptr)
 
 ### Kicked off by

@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/e2e/framework"
-	"github.com/external-secrets/external-secrets/e2e/suites/provider/cases/common"
 )
 
 const (
@@ -43,7 +43,9 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.TableFunc(f, prov),
 		// uses token auth
 		framework.Compose(withTokenAuth, f, common.FindByName, useTokenAuth),
+		framework.Compose(withTokenAuth, f, common.FindByNameAndRewrite, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataFromSync, useTokenAuth),
+		framework.Compose(withTokenAuth, f, common.JSONDataFromRewrite, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataWithProperty, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplate, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.DataPropertyDockerconfigJSON, useTokenAuth),
@@ -53,40 +55,50 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withTokenAuth, f, common.CollectingOrphanSecrets, useTokenAuth),
 		// use cert auth
 		framework.Compose(withCertAuth, f, common.FindByName, useCertAuth),
+		framework.Compose(withCertAuth, f, common.FindByNameAndRewrite, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataFromSync, useCertAuth),
+		framework.Compose(withCertAuth, f, common.JSONDataFromRewrite, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataWithProperty, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataWithTemplate, useCertAuth),
 		framework.Compose(withCertAuth, f, common.DataPropertyDockerconfigJSON, useCertAuth),
 		framework.Compose(withCertAuth, f, common.JSONDataWithoutTargetName, useCertAuth),
 		// use approle auth
 		framework.Compose(withApprole, f, common.FindByName, useApproleAuth),
+		framework.Compose(withApprole, f, common.FindByNameAndRewrite, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataFromSync, useApproleAuth),
+		framework.Compose(withApprole, f, common.JSONDataFromRewrite, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithProperty, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithTemplate, useApproleAuth),
 		framework.Compose(withApprole, f, common.DataPropertyDockerconfigJSON, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithoutTargetName, useApproleAuth),
 		// use v1 provider
 		framework.Compose(withV1, f, common.JSONDataFromSync, useV1Provider),
+		framework.Compose(withV1, f, common.JSONDataFromRewrite, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataWithProperty, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataWithTemplate, useV1Provider),
 		framework.Compose(withV1, f, common.DataPropertyDockerconfigJSON, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataWithoutTargetName, useV1Provider),
 		// use jwt provider
 		framework.Compose(withJWT, f, common.FindByName, useJWTProvider),
+		framework.Compose(withJWT, f, common.FindByNameAndRewrite, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataFromSync, useJWTProvider),
+		framework.Compose(withJWT, f, common.JSONDataFromRewrite, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithProperty, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithTemplate, useJWTProvider),
 		framework.Compose(withJWT, f, common.DataPropertyDockerconfigJSON, useJWTProvider),
 		framework.Compose(withJWT, f, common.JSONDataWithoutTargetName, useJWTProvider),
 		// use jwt k8s provider
 		framework.Compose(withJWTK8s, f, common.JSONDataFromSync, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.JSONDataFromRewrite, useJWTK8sProvider),
 		framework.Compose(withJWTK8s, f, common.JSONDataWithProperty, useJWTK8sProvider),
 		framework.Compose(withJWTK8s, f, common.JSONDataWithTemplate, useJWTK8sProvider),
 		framework.Compose(withJWTK8s, f, common.DataPropertyDockerconfigJSON, useJWTK8sProvider),
 		framework.Compose(withJWTK8s, f, common.JSONDataWithoutTargetName, useJWTK8sProvider),
 		// use kubernetes provider
 		framework.Compose(withK8s, f, common.FindByName, useKubernetesProvider),
+		framework.Compose(withK8s, f, common.FindByNameAndRewrite, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataFromSync, useKubernetesProvider),
+		framework.Compose(withK8s, f, common.JSONDataFromRewrite, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataWithProperty, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.JSONDataWithTemplate, useKubernetesProvider),
 		framework.Compose(withK8s, f, common.DataPropertyDockerconfigJSON, useKubernetesProvider),

@@ -4,6 +4,9 @@ image:
   repository: ghcr.io/external-secrets/external-secrets
   pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
+  # There are different image flavours available, like distroless and ubi.
+  # Please see GitHub release notes for image tags for these flavors.
+  # By default the distroless image is used.
   tag: ""
 
 # -- If set, install and upgrade CRDs through helm chart.
@@ -119,6 +122,17 @@ serviceMonitor:
   # -- Timeout if metrics can't be retrieved in given time interval
   scrapeTimeout: 25s
 
+metrics:
+  service:
+    # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
+    enabled: false
+
+    # -- Metrics service port to scrape
+    port: 8080
+
+    # -- Additional service annotations
+    annotations: {}
+
 nodeSelector: {}
 
 tolerations: []
@@ -203,6 +217,25 @@ webhook:
 
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
+
+  metrics:
+    service:
+      # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
+      enabled: false
+
+      # -- Metrics service port to scrape
+      port: 8080
+
+      # -- Additional service annotations
+      annotations: {}
+
+
+  readinessProbe:
+    # -- Address for readiness probe
+    address: ""
+    # -- ReadinessProbe port for kubelet
+    port: 8081
+
 
     ## -- Extra environment variables to add to container.
   extraEnv: []
@@ -302,6 +335,17 @@ certController:
 
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
+
+  metrics:
+    service:
+      # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
+      enabled: false
+
+      # -- Metrics service port to scrape
+      port: 8080
+
+      # -- Additional service annotations
+      annotations: {}
 
     ## -- Extra environment variables to add to container.
   extraEnv: []

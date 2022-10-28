@@ -4,6 +4,7 @@ maintainers:
 - moolen
 - sebagomez
 - rodrmartinez
+- IdanAdar
 # Emeritus Approvers
 - Flydiverny
 - silasbw
@@ -44,7 +45,7 @@ pull_requests:
     If this is your first time contributing, please make
     sure to read the [Developer](https://www.external-secrets.io/latest/contributing-devguide/) and [Contributing Process](https://www.external-secrets.io/latest/contributing-process/) guides.
     Please also mind and follow our [Code of Conduct](https://www.external-secrets.io/latest/contributing-coc/).
-    
+
     Useful commands:
       - `make fmt`: Formats the code
       - `make check-diff`: Ensures the branch is clean
