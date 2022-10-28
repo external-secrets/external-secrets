@@ -725,7 +725,7 @@ func CollectingOrphanSecrets(f *framework.Framework) (string, func(*framework.Te
 			cleanEs := tc.ExternalSecret.DeepCopy()
 
 			// now update ExternalSecret
-			tc.ExternalSecret.Spec.Target.Name = fmt.Sprintf("%s-%s", f.Namespace.Name, "foo")
+			tc.ExternalSecret.Spec.Target.Name = fmt.Sprintf("%s-%s", f.Namespace.Name, "new-foo")
 			gomega.Expect(f.CRClient.
 				Patch(context.Background(), tc.ExternalSecret, client.MergeFrom(cleanEs)),
 			).To(gomega.Succeed())
