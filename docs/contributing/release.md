@@ -12,9 +12,11 @@ The external-secrets project is released on a as-needed basis. Feel free to open
 
 ## Release Helm Chart
 
-1. Update `version` and/or `appVersion` in `Chart.yaml`
-2. push and merge PR
-3. CI picks up the new chart version and creates a new GitHub Release for it
+1. Update `version` and/or `appVersion` in `Chart.yaml` and run `make helm.docs`
+1. push to branch and open pr
+1. run `/ok-to-test-managed` commands for all cloud providers
+1. merge PR if everyhing is green
+1. CI picks up the new chart version and creates a new GitHub Release for it
 
 ## Release OLM Bundle
 
