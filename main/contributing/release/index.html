@@ -1663,8 +1663,10 @@
 </ol>
 <h2 id="release-helm-chart">Release Helm Chart</h2>
 <ol>
-<li>Update <code>version</code> and/or <code>appVersion</code> in <code>Chart.yaml</code></li>
-<li>push and merge PR</li>
+<li>Update <code>version</code> and/or <code>appVersion</code> in <code>Chart.yaml</code> and run <code>make helm.docs</code></li>
+<li>push to branch and open pr</li>
+<li>run <code>/ok-to-test-managed</code> commands for all cloud providers</li>
+<li>merge PR if everyhing is green</li>
 <li>CI picks up the new chart version and creates a new GitHub Release for it</li>
 </ol>
 <h2 id="release-olm-bundle">Release OLM Bundle</h2>
