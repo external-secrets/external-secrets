@@ -2,8 +2,12 @@ module github.com/external-secrets/external-secrets-e2e
 
 go 1.18
 
+replace github.com/external-secrets/external-secrets => ../
+
 replace (
+	github.com/argoproj/gitops-engine => github.com/argoproj/gitops-engine v0.7.1-0.20220829125054-c036d3f6b0e2
 	github.com/external-secrets/external-secrets v0.0.0 => ../
+	github.com/go-check/check => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
 	k8s.io/api => k8s.io/api v0.24.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.24.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.24.2
@@ -24,7 +28,6 @@ replace (
 	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.24.2
 	k8s.io/kubectl => k8s.io/kubectl v0.24.2
 	k8s.io/kubelet => k8s.io/kubelet v0.24.2
-
 	k8s.io/kubernetes => k8s.io/kubernetes v1.24.2
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.24.2
 	k8s.io/metrics => k8s.io/metrics v0.24.2
@@ -83,7 +86,7 @@ require (
 	github.com/Microsoft/go-winio v0.4.17 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
-	github.com/argoproj/gitops-engine v0.7.1-0.20220916142200-3951079de199 // indirect
+	github.com/argoproj/gitops-engine v0.7.3 // indirect
 	github.com/argoproj/pkg v0.11.1-0.20211203175135-36c59d8fafe0 // indirect
 	github.com/armon/go-metrics v0.4.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
@@ -105,6 +108,7 @@ require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fluxcd/pkg/apis/acl v0.0.3 // indirect
 	github.com/fluxcd/pkg/apis/kustomize v0.4.1 // indirect
+	github.com/frankban/quicktest v1.14.3 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/fvbommel/sortorder v1.0.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
