@@ -29,10 +29,11 @@ import (
 )
 
 const (
-	project     = "my-Project"
-	username    = "user-name"
-	userkey     = "user-key"
-	environment = "prod"
+	project             = "my-Project"
+	username            = "user-name"
+	userkey             = "user-key"
+	environment         = "prod"
+	defaultErrorMessage = "[%d] unexpected error: %s, expected: '%s'"
 )
 
 type secretManagerTestCase struct {
@@ -43,8 +44,8 @@ type secretManagerTestCase struct {
 	apiOutput                *gitlab.ProjectVariable
 	apiResponse              *gitlab.Response
 	ref                      *esv1beta1.ExternalSecretDataRemoteRef
+	refFind                  *esv1beta1.ExternalSecretFind
 	projectID                *string
-	environment              *string
 	apiErr                   error
 	expectError              string
 	expectedSecret           string
@@ -60,8 +61,8 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		apiInputKey:              makeValidAPIInputKey(),
 		apiInputEnv:              makeValidEnvironment(),
 		ref:                      makeValidRef(),
+		refFind:                  makeValidFindRef(),
 		projectID:                nil,
-		environment:              nil,
 		apiOutput:                makeValidAPIOutput(),
 		apiResponse:              makeValidAPIResponse(),
 		apiErr:                   nil,
@@ -78,6 +79,16 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 	return &esv1beta1.ExternalSecretDataRemoteRef{
 		Key:     "test-secret",
 		Version: "default",
+	}
+}
+
+func makeValidFindRef() *esv1beta1.ExternalSecretFind {
+	return &esv1beta1.ExternalSecretFind{}
+}
+
+func makeFindName(regexp string) *esv1beta1.FindName {
+	return &esv1beta1.FindName{
+		RegExp: regexp,
 	}
 }
 
@@ -110,6 +121,17 @@ func makeValidAPIOutput() *gitlab.ProjectVariable {
 
 func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
 	smtc := makeValidSecretManagerTestCase()
+	for _, fn := range tweaks {
+		fn(smtc)
+	}
+	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputEnv, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
+	return smtc
+}
+
+func makeValidSecretManagerGetAllTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
+	smtc := makeValidSecretManagerTestCase()
+	smtc.ref = nil
+	smtc.refFind.Name = makeFindName(".*")
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
@@ -151,7 +173,7 @@ var setNilMockClient = func(smtc *secretManagerTestCase) {
 
 // test the sm<->gcp interface
 // make sure correct values are passed and errors are handled accordingly.
-func TestGitlabSecretManagerGetSecret(t *testing.T) {
+func TestGetSecret(t *testing.T) {
 	secretValue := "changedvalue"
 	// good case: default version is set
 	// key is passed in, output is sent back
@@ -175,10 +197,81 @@ func TestGitlabSecretManagerGetSecret(t *testing.T) {
 		sm.client = v.mockClient
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
 		}
 		if string(out) != v.expectedSecret {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
+		}
+	}
+}
+
+func TestGetAllSecrets(t *testing.T) {
+	secretValue := "changedvalue"
+	// good case: default version is set
+	// key is passed in, output is sent back
+
+	setMissingFindRegex := func(smtc *secretManagerTestCase) {
+		smtc.refFind.Name = nil
+		smtc.expectError = "'find.name' is mandatory"
+	}
+	setUnsupportedFindTags := func(smtc *secretManagerTestCase) {
+		smtc.refFind.Tags = map[string]string{}
+		smtc.expectError = "'find.tags' is not implemented in the Gitlab provider"
+	}
+	setUnsupportedFindPath := func(smtc *secretManagerTestCase) {
+		path := "path"
+		smtc.refFind.Path = &path
+		smtc.expectError = "'find.path' is not implemented in the Gitlab provider"
+	}
+	setMatchingSecretFindString := func(smtc *secretManagerTestCase) {
+		smtc.apiOutput = &gitlab.ProjectVariable{
+			Key:              "testkey",
+			Value:            "changedvalue",
+			EnvironmentScope: "test",
+		}
+		smtc.expectedSecret = secretValue
+		smtc.refFind.Name = makeFindName("test.*")
+	}
+	setNoMatchingRegexpFindString := func(smtc *secretManagerTestCase) {
+		smtc.apiOutput = &gitlab.ProjectVariable{
+			Key:              "testkey",
+			Value:            "changedvalue",
+			EnvironmentScope: "test",
+		}
+		smtc.expectedSecret = ""
+		smtc.refFind.Name = makeFindName("foo.*")
+	}
+	setUnmatchedEnvironmentFindString := func(smtc *secretManagerTestCase) {
+		smtc.apiOutput = &gitlab.ProjectVariable{
+			Key:              "testkey",
+			Value:            "changedvalue",
+			EnvironmentScope: "prod",
+		}
+		smtc.expectedSecret = ""
+		smtc.refFind.Name = makeFindName("test.*")
+	}
+
+	cases := []*secretManagerTestCase{
+		makeValidSecretManagerGetAllTestCaseCustom(setMissingFindRegex),
+		makeValidSecretManagerGetAllTestCaseCustom(setUnsupportedFindTags),
+		makeValidSecretManagerGetAllTestCaseCustom(setUnsupportedFindPath),
+		makeValidSecretManagerGetAllTestCaseCustom(setMatchingSecretFindString),
+		makeValidSecretManagerGetAllTestCaseCustom(setNoMatchingRegexpFindString),
+		makeValidSecretManagerGetAllTestCaseCustom(setUnmatchedEnvironmentFindString),
+		makeValidSecretManagerGetAllTestCaseCustom(setAPIErr),
+		makeValidSecretManagerGetAllTestCaseCustom(setNilMockClient),
+	}
+
+	sm := Gitlab{}
+	sm.environment = "test"
+	for k, v := range cases {
+		sm.client = v.mockClient
+		out, err := sm.GetAllSecrets(context.Background(), *v.refFind)
+		if !ErrorContains(err, v.expectError) {
+			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
+		}
+		if v.expectError == "" && string(out[v.apiOutput.Key]) != v.expectedSecret {
+			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out[v.apiOutput.Key]))
 		}
 	}
 }
@@ -196,7 +289,7 @@ func TestValidate(t *testing.T) {
 		t.Logf("%+v", v)
 		validationResult, err := sm.Validate()
 		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d], unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
 		}
 		if validationResult != v.expectedValidationResult {
 			t.Errorf("[%d], unexpected validationResult: %s, expected: '%s'", k, validationResult, v.expectedValidationResult)
@@ -229,7 +322,7 @@ func TestGetSecretMap(t *testing.T) {
 		sm.client = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
