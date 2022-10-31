@@ -51,7 +51,7 @@ type Generator struct {
 type clientSecretCredentialFunc func(tenantID string, clientID string, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error)
 
 type TokenGetter interface {
-	GetToken(ctx context.Context, opts policy.TokenRequestOptions) (*azcore.AccessToken, error)
+	GetToken(ctx context.Context, opts policy.TokenRequestOptions) (azcore.AccessToken, error)
 }
 
 const (
@@ -315,13 +315,13 @@ func (g *Generator) accessTokenForServicePrincipal(ctx context.Context, crClient
 		return "", err
 	}
 	aadEndpoint := keyvault.AadEndpointForType(envType)
+	p := azidentity.ClientSecretCredentialOptions{}
+	p.Cloud.ActiveDirectoryAuthorityHost = aadEndpoint
 	creds, err := g.clientSecretCreds(
 		tenantID,
 		cid,
 		csec,
-		&azidentity.ClientSecretCredentialOptions{
-			AuthorityHost: azidentity.AuthorityHost(aadEndpoint),
-		})
+		&p)
 	if err != nil {
 		return "", err
 	}
