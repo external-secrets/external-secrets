@@ -40,7 +40,7 @@ const (
 	errAuth                                   = "client is not allowed to get secrets"
 	errUninitializedGitlabProvider            = "provider gitlab is not initialized"
 	errNameNotDefined                         = "'find.name' is mandatory"
-	errTagsNotImplemented                     = "'find.tags' is not implemented in the Gitlab provider"
+	errTagsNotImplemented                     = "'find.tags' is not currently supported by Gitlab provider"
 	errPathNotImplemented                     = "'find.path' is not implemented in the Gitlab provider"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
