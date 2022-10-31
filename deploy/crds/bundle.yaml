@@ -2094,6 +2094,11 @@ spec:
                         environment:
                           description: Environment environment_scope of gitlab CI/CD variables (Please see https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment on how to create environments)
                           type: string
+                        groupIDs:
+                          description: GroupIDs specify, which gitlab groups to pull secrets from. Group secrets are read from left to right followed by the project variables.
+                          items:
+                            type: string
+                          type: array
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
                           type: string
@@ -5145,6 +5150,11 @@ spec:
                         environment:
                           description: Environment environment_scope of gitlab CI/CD variables (Please see https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment on how to create environments)
                           type: string
+                        groupIDs:
+                          description: GroupIDs specify, which gitlab groups to pull secrets from. Group secrets are read from left to right followed by the project variables.
+                          items:
+                            type: string
+                          type: array
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
                           type: string

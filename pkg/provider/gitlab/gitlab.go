@@ -36,8 +36,9 @@ const (
 	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
 	errMissingSAK                             = "missing credentials while setting auth"
-	errList                                   = "could not verify if the client is valid: %w"
-	errAuth                                   = "client is not allowed to get secrets"
+	errList                                   = "could not verify if the projectClient is valid: %w"
+	errProjectAuth                            = "projectClient is not allowed to get secrets for project id [%s]"
+	errGroupAuth                              = "groupClient is not allowed to get secrets for group id [%s]"
 	errUninitializedGitlabProvider            = "provider gitlab is not initialized"
 	errNameNotDefined                         = "'find.name' is mandatory"
 	errTagsNotImplemented                     = "'find.tags' is not currently supported by Gitlab provider"
@@ -49,20 +50,27 @@ const (
 var _ esv1beta1.SecretsClient = &Gitlab{}
 var _ esv1beta1.Provider = &Gitlab{}
 
-type Client interface {
+type ProjectClient interface {
 	GetVariable(pid interface{}, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
 	ListVariables(pid interface{}, opt *gitlab.ListProjectVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
-// Gitlab Provider struct with reference to a GitLab client and a projectID.
-type Gitlab struct {
-	client      Client
-	url         string
-	projectID   interface{}
-	environment string
+type GroupClient interface {
+	GetVariable(gid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	ListVariables(gid interface{}, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
-// Client for interacting with kubernetes cluster...?
+// Gitlab Provider struct with reference to a GitLab projectClient, a projectID and groupIDs.
+type Gitlab struct {
+	projectClient ProjectClient
+	groupClient   GroupClient
+	url           string
+	projectID     string
+	groupIDs      []string
+	environment   string
+}
+
+// ProjectClient for interacting with kubernetes cluster...?
 type gClient struct {
 	kube        kclient.Client
 	store       *esv1beta1.GitlabProvider
@@ -116,7 +124,7 @@ func NewGitlabProvider() *Gitlab {
 	return &Gitlab{}
 }
 
-// Method on Gitlab Provider to set up client with credentials, populate projectID and environment.
+// Method on Gitlab Provider to set up projectClient with credentials, populate projectID and environment.
 func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
@@ -137,22 +145,25 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 
 	var err error
 
-	// Create client options
+	// Create projectClient options
 	var opts []gitlab.ClientOptionFunc
 	if cliStore.store.URL != "" {
 		opts = append(opts, gitlab.WithBaseURL(cliStore.store.URL))
 	}
+
 	// ClientOptionFunc from the gitlab package can be mapped with the CRD
 	// in a similar way to extend functionality of the provider
 
-	// Create a new Gitlab client using credentials and options
+	// Create a new Gitlab projectClient using credentials and options
 	gitlabClient, err := gitlab.NewClient(string(cliStore.credentials), opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	g.client = gitlabClient.ProjectVariables
+	g.projectClient = gitlabClient.ProjectVariables
+	g.groupClient = gitlabClient.GroupVariables
 	g.projectID = cliStore.store.ProjectID
+	g.groupIDs = cliStore.store.GroupIDs
 	g.environment = cliStore.store.Environment
 	g.url = cliStore.store.URL
 
@@ -161,7 +172,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 
 // GetAllSecrets syncs all gitlab project variables into a single Kubernetes Secret.
 func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	if utils.IsNil(g.client) {
+	if utils.IsNil(g.projectClient) {
 		return nil, fmt.Errorf(errUninitializedGitlabProvider)
 	}
 	if ref.Tags != nil {
@@ -174,11 +185,6 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		return nil, fmt.Errorf(errNameNotDefined)
 	}
 
-	allData, _, err := g.client.ListVariables(g.projectID, nil)
-	if err != nil {
-		return nil, err
-	}
-
 	var matcher *find.Matcher
 	if ref.Name != nil {
 		m, err := find.New(*ref.Name)
@@ -187,9 +193,31 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		}
 		matcher = m
 	}
+
 	secretData := make(map[string][]byte)
-	for _, data := range allData {
-		matching, key := matchesFilter(g.environment, data, matcher)
+	for _, groupID := range g.groupIDs {
+		var groupVars []*gitlab.GroupVariable
+		groupVars, _, err := g.groupClient.ListVariables(groupID, nil)
+		if err != nil {
+			return nil, err
+		}
+		for _, data := range groupVars {
+			matching, key := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
+			if !matching {
+				continue
+			}
+			secretData[key] = []byte(data.Value)
+		}
+	}
+
+	var projectData []*gitlab.ProjectVariable
+	projectData, _, err := g.projectClient.ListVariables(g.projectID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, data := range projectData {
+		matching, key := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
 		if !matching {
 			continue
 		}
@@ -200,9 +228,10 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 }
 
 func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(g.client) {
+	if utils.IsNil(g.projectClient) || utils.IsNil(g.groupClient) {
 		return nil, fmt.Errorf(errUninitializedGitlabProvider)
 	}
+
 	// Need to replace hyphens with underscores to work with Gitlab API
 	ref.Key = strings.ReplaceAll(ref.Key, "-", "_")
 	// Retrieves a gitlab variable in the form
@@ -214,26 +243,48 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	// 	"masked": true,
 	// 	"environment_scope": "*"
 	// }
-
 	var vopts *gitlab.GetProjectVariableOptions
 	if g.environment != "" {
 		vopts = &gitlab.GetProjectVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: g.environment}}
 	}
-	data, _, err := g.client.GetVariable(g.projectID, ref.Key, vopts)
-	if err != nil {
+
+	data, resp, err := g.projectClient.GetVariable(g.projectID, ref.Key, vopts)
+	if resp.StatusCode >= 400 && err != nil {
 		return nil, err
 	}
 
+	var result []byte
+	result, err = extractVariable(ref, data.Value)
+	for i := len(g.groupIDs) - 1; i >= 0; i-- {
+		groupID := g.groupIDs[i]
+		if result != nil {
+			return result, nil
+		}
+
+		groupVar, resp, err := g.groupClient.GetVariable(groupID, ref.Key, nil)
+		if resp.StatusCode >= 400 && err != nil {
+			return nil, err
+		}
+		result, _ = extractVariable(ref, groupVar.Value)
+	}
+
+	if result != nil {
+		return result, nil
+	}
+	return nil, err
+}
+
+func extractVariable(ref esv1beta1.ExternalSecretDataRemoteRef, value string) ([]byte, error) {
 	if ref.Property == "" {
-		if data.Value != "" {
-			return []byte(data.Value), nil
+		if value != "" {
+			return []byte(value), nil
 		}
 		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
 	var payload string
-	if data.Value != "" {
-		payload = data.Value
+	if value != "" {
+		payload = value
 	}
 
 	val := gjson.Get(payload, ref.Property)
@@ -265,15 +316,14 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	return secretData, nil
 }
 
-func matchesFilter(environment string, data *gitlab.ProjectVariable, matcher *find.Matcher) (bool, string) {
+func matchesFilter(environment, varEnvironment, key string, matcher *find.Matcher) (bool, string) {
 	if environment != "" && environment != "*" {
 		// as of now gitlab does not support filtering of EnvironmentScope through the api call
-		if data.EnvironmentScope != environment {
+		if varEnvironment != environment {
 			return false, ""
 		}
 	}
 
-	key := data.Key
 	if key == "" || (matcher != nil && !matcher.MatchName(key)) {
 		return false, ""
 	}
@@ -285,14 +335,23 @@ func (g *Gitlab) Close(ctx context.Context) error {
 	return nil
 }
 
-// Validate will use the gitlab client to validate the gitlab provider using the ListVariable call to ensure get permissions without needing a specific key.
+// Validate will use the gitlab projectClient to validate the gitlab provider using the ListVariable call to ensure get permissions without needing a specific key.
 func (g *Gitlab) Validate() (esv1beta1.ValidationResult, error) {
-	_, resp, err := g.client.ListVariables(g.projectID, nil)
+	_, resp, err := g.projectClient.ListVariables(g.projectID, nil)
 	if err != nil {
 		return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
 	} else if resp == nil || resp.StatusCode != http.StatusOK {
-		return esv1beta1.ValidationResultError, fmt.Errorf(errAuth)
+		return esv1beta1.ValidationResultError, fmt.Errorf(errProjectAuth, g.projectID)
 	}
+	for _, groupID := range g.groupIDs {
+		_, resp, err := g.groupClient.ListVariables(groupID, nil)
+		if err != nil {
+			return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
+		} else if resp == nil || resp.StatusCode != http.StatusOK {
+			return esv1beta1.ValidationResultError, fmt.Errorf(errGroupAuth, groupID)
+		}
+	}
+
 	return esv1beta1.ValidationResultReady, nil
 }
 

@@ -41,20 +41,27 @@ const (
 	username              = "user-name"
 	userkey               = "user-key"
 	environment           = "prod"
+	projectvalue          = "projectvalue"
+	groupvalue            = "groupvalue"
+	groupid               = "groupId"
 	defaultErrorMessage   = "[%d] unexpected error: %s, expected: '%s'"
 	errMissingCredentials = "credentials are empty"
 )
 
 type secretManagerTestCase struct {
-	mockClient               *fakegitlab.GitlabMockClient
+	mockProjectClient        *fakegitlab.GitlabMockProjectClient
+	mockGroupClient          *fakegitlab.GitlabMockGroupClient
 	apiInputProjectID        string
 	apiInputKey              string
 	apiInputEnv              string
-	apiOutput                *gitlab.ProjectVariable
-	apiResponse              *gitlab.Response
+	projectAPIOutput         *gitlab.ProjectVariable
+	projectAPIResponse       *gitlab.Response
+	groupAPIOutput           *gitlab.GroupVariable
+	groupAPIResponse         *gitlab.Response
 	ref                      *esv1beta1.ExternalSecretDataRemoteRef
 	refFind                  *esv1beta1.ExternalSecretFind
-	projectID                *string
+	projectID                string
+	groupIDs                 []string
 	apiErr                   error
 	expectError              string
 	expectedSecret           string
@@ -65,22 +72,27 @@ type secretManagerTestCase struct {
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
 	smtc := secretManagerTestCase{
-		mockClient:               &fakegitlab.GitlabMockClient{},
+		mockProjectClient:        &fakegitlab.GitlabMockProjectClient{},
+		mockGroupClient:          &fakegitlab.GitlabMockGroupClient{},
 		apiInputProjectID:        makeValidAPIInputProjectID(),
 		apiInputKey:              makeValidAPIInputKey(),
 		apiInputEnv:              makeValidEnvironment(),
 		ref:                      makeValidRef(),
 		refFind:                  makeValidFindRef(),
-		projectID:                nil,
-		apiOutput:                makeValidAPIOutput(),
-		apiResponse:              makeValidAPIResponse(),
+		projectID:                makeValidProjectID(),
+		groupIDs:                 makeEmptyGroupIds(),
+		projectAPIOutput:         makeValidProjectAPIOutput(),
+		projectAPIResponse:       makeValidProjectAPIResponse(),
+		groupAPIOutput:           makeValidGroupAPIOutput(),
+		groupAPIResponse:         makeValidGroupAPIResponse(),
 		apiErr:                   nil,
 		expectError:              "",
 		expectedSecret:           "",
 		expectedValidationResult: esv1beta1.ValidationResultReady,
 		expectedData:             map[string][]byte{},
 	}
-	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputEnv, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
+	smtc.mockProjectClient.WithValue(smtc.apiInputEnv, smtc.apiInputKey, smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
+	smtc.mockGroupClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
 	return &smtc
 }
 
@@ -93,6 +105,14 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 
 func makeValidFindRef() *esv1beta1.ExternalSecretFind {
 	return &esv1beta1.ExternalSecretFind{}
+}
+
+func makeValidProjectID() string {
+	return "projectId"
+}
+
+func makeEmptyGroupIds() []string {
+	return []string{}
 }
 
 func makeFindName(regexp string) *esv1beta1.FindName {
@@ -110,10 +130,10 @@ func makeValidAPIInputKey() string {
 }
 
 func makeValidEnvironment() string {
-	return "prod"
+	return environment
 }
 
-func makeValidAPIResponse() *gitlab.Response {
+func makeValidProjectAPIResponse() *gitlab.Response {
 	return &gitlab.Response{
 		Response: &http.Response{
 			StatusCode: http.StatusOK,
@@ -121,10 +141,27 @@ func makeValidAPIResponse() *gitlab.Response {
 	}
 }
 
-func makeValidAPIOutput() *gitlab.ProjectVariable {
+func makeValidGroupAPIResponse() *gitlab.Response {
+	return &gitlab.Response{
+		Response: &http.Response{
+			StatusCode: http.StatusOK,
+		},
+	}
+}
+
+func makeValidProjectAPIOutput() *gitlab.ProjectVariable {
 	return &gitlab.ProjectVariable{
-		Key:   "testKey",
-		Value: "",
+		Key:              "testKey",
+		Value:            "",
+		EnvironmentScope: environment,
+	}
+}
+
+func makeValidGroupAPIOutput() *gitlab.GroupVariable {
+	return &gitlab.GroupVariable{
+		Key:              "groupKey",
+		Value:            "",
+		EnvironmentScope: environment,
 	}
 }
 
@@ -133,7 +170,8 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
-	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputEnv, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
+	smtc.mockProjectClient.WithValue(smtc.apiInputEnv, smtc.apiInputKey, smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
+	smtc.mockGroupClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
 	return smtc
 }
 
@@ -144,7 +182,9 @@ func makeValidSecretManagerGetAllTestCaseCustom(tweaks ...func(smtc *secretManag
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
-	smtc.mockClient.WithValue(smtc.apiInputProjectID, smtc.apiInputEnv, smtc.apiInputKey, smtc.apiOutput, smtc.apiResponse, smtc.apiErr)
+	smtc.mockProjectClient.WithValue(smtc.apiInputEnv, smtc.apiInputKey, smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
+	smtc.mockGroupClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
+
 	return smtc
 }
 
@@ -153,6 +193,7 @@ func makeValidSecretManagerGetAllTestCaseCustom(tweaks ...func(smtc *secretManag
 var setAPIErr = func(smtc *secretManagerTestCase) {
 	smtc.apiErr = fmt.Errorf("oh no")
 	smtc.expectError = "oh no"
+	smtc.projectAPIResponse.Response.StatusCode = http.StatusInternalServerError
 	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
@@ -163,20 +204,39 @@ var setListAPIErr = func(smtc *secretManagerTestCase) {
 	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
-var setListAPIRespNil = func(smtc *secretManagerTestCase) {
-	smtc.apiResponse = nil
-	smtc.expectError = errAuth
+var setProjectListAPIRespNil = func(smtc *secretManagerTestCase) {
+	smtc.projectAPIResponse = nil
+	smtc.expectError = fmt.Errorf(errProjectAuth, smtc.projectID).Error()
 	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
-var setListAPIRespBadCode = func(smtc *secretManagerTestCase) {
-	smtc.apiResponse.StatusCode = http.StatusUnauthorized
-	smtc.expectError = errAuth
+var setGroupListAPIRespNil = func(smtc *secretManagerTestCase) {
+	smtc.groupIDs = []string{groupid}
+	smtc.groupAPIResponse = nil
+	smtc.expectError = fmt.Errorf(errGroupAuth, groupid).Error()
+	smtc.expectedValidationResult = esv1beta1.ValidationResultError
+}
+
+var setProjectAndGroup = func(smtc *secretManagerTestCase) {
+	smtc.groupIDs = []string{groupid}
+}
+
+var setProjectListAPIRespBadCode = func(smtc *secretManagerTestCase) {
+	smtc.projectAPIResponse.StatusCode = http.StatusUnauthorized
+	smtc.expectError = fmt.Errorf(errProjectAuth, smtc.projectID).Error()
+	smtc.expectedValidationResult = esv1beta1.ValidationResultError
+}
+
+var setGroupListAPIRespBadCode = func(smtc *secretManagerTestCase) {
+	smtc.groupIDs = []string{groupid}
+	smtc.groupAPIResponse.StatusCode = http.StatusUnauthorized
+	smtc.expectError = fmt.Errorf(errGroupAuth, groupid).Error()
 	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
 var setNilMockClient = func(smtc *secretManagerTestCase) {
-	smtc.mockClient = nil
+	smtc.mockProjectClient = nil
+	smtc.mockGroupClient = nil
 	smtc.expectError = errUninitializedGitlabProvider
 }
 
@@ -265,27 +325,42 @@ func newFakeAuthorizedKey() *iamkey.Key {
 // test the sm<->gcp interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestGetSecret(t *testing.T) {
-	secretValue := "changedvalue"
 	// good case: default version is set
 	// key is passed in, output is sent back
-
-	setSecretString := func(smtc *secretManagerTestCase) {
-		smtc.apiOutput = &gitlab.ProjectVariable{
-			Key:   "testkey",
-			Value: "changedvalue",
-		}
-		smtc.expectedSecret = secretValue
+	onlyProjectSecret := func(smtc *secretManagerTestCase) {
+		smtc.projectAPIOutput.Value = projectvalue
+		smtc.groupAPIResponse = nil
+		smtc.groupAPIOutput = nil
+		smtc.expectedSecret = smtc.projectAPIOutput.Value
+	}
+	groupSecretProjectOverride := func(smtc *secretManagerTestCase) {
+		smtc.projectAPIOutput.Value = projectvalue
+		smtc.groupAPIOutput.Key = "testkey"
+		smtc.groupAPIOutput.Value = groupvalue
+		smtc.expectedSecret = smtc.projectAPIOutput.Value
+	}
+	groupWithoutProjectOverride := func(smtc *secretManagerTestCase) {
+		smtc.groupIDs = []string{groupid}
+		smtc.projectAPIResponse.Response.StatusCode = 404
+		smtc.groupAPIOutput.Key = "testkey"
+		smtc.groupAPIOutput.Value = groupvalue
+		smtc.expectedSecret = smtc.groupAPIOutput.Value
 	}
 
 	successCases := []*secretManagerTestCase{
-		makeValidSecretManagerTestCaseCustom(setSecretString),
+		makeValidSecretManagerTestCaseCustom(onlyProjectSecret),
+		makeValidSecretManagerTestCaseCustom(groupSecretProjectOverride),
+		makeValidSecretManagerTestCaseCustom(groupWithoutProjectOverride),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 	}
 
 	sm := Gitlab{}
 	for k, v := range successCases {
-		sm.client = v.mockClient
+		sm.projectClient = v.mockProjectClient
+		sm.groupClient = v.mockGroupClient
+		sm.projectID = v.projectID
+		sm.groupIDs = v.groupIDs
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
@@ -297,7 +372,6 @@ func TestGetSecret(t *testing.T) {
 }
 
 func TestGetAllSecrets(t *testing.T) {
-	secretValue := "changedvalue"
 	// good case: default version is set
 	// key is passed in, output is sent back
 
@@ -315,16 +389,16 @@ func TestGetAllSecrets(t *testing.T) {
 		smtc.expectError = "'find.path' is not implemented in the Gitlab provider"
 	}
 	setMatchingSecretFindString := func(smtc *secretManagerTestCase) {
-		smtc.apiOutput = &gitlab.ProjectVariable{
+		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              "testkey",
 			Value:            "changedvalue",
 			EnvironmentScope: "test",
 		}
-		smtc.expectedSecret = secretValue
+		smtc.expectedSecret = "changedvalue"
 		smtc.refFind.Name = makeFindName("test.*")
 	}
 	setNoMatchingRegexpFindString := func(smtc *secretManagerTestCase) {
-		smtc.apiOutput = &gitlab.ProjectVariable{
+		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              "testkey",
 			Value:            "changedvalue",
 			EnvironmentScope: "test",
@@ -333,7 +407,7 @@ func TestGetAllSecrets(t *testing.T) {
 		smtc.refFind.Name = makeFindName("foo.*")
 	}
 	setUnmatchedEnvironmentFindString := func(smtc *secretManagerTestCase) {
-		smtc.apiOutput = &gitlab.ProjectVariable{
+		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              "testkey",
 			Value:            "changedvalue",
 			EnvironmentScope: "prod",
@@ -356,13 +430,77 @@ func TestGetAllSecrets(t *testing.T) {
 	sm := Gitlab{}
 	sm.environment = "test"
 	for k, v := range cases {
-		sm.client = v.mockClient
+		sm.projectClient = v.mockProjectClient
+		sm.groupClient = v.mockGroupClient
 		out, err := sm.GetAllSecrets(context.Background(), *v.refFind)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
 		}
-		if v.expectError == "" && string(out[v.apiOutput.Key]) != v.expectedSecret {
-			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out[v.apiOutput.Key]))
+		if v.expectError == "" && string(out[v.projectAPIOutput.Key]) != v.expectedSecret {
+			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out[v.projectAPIOutput.Key]))
+		}
+	}
+}
+
+func TestGetAllSecretsWithGroups(t *testing.T) {
+	onlyProjectSecret := func(smtc *secretManagerTestCase) {
+		smtc.projectAPIOutput.Value = projectvalue
+		smtc.refFind.Name = makeFindName("test.*")
+		smtc.groupAPIResponse = nil
+		smtc.groupAPIOutput = nil
+		smtc.expectedSecret = smtc.projectAPIOutput.Value
+	}
+	groupAndProjectSecrets := func(smtc *secretManagerTestCase) {
+		smtc.groupIDs = []string{groupid}
+		smtc.projectAPIOutput.Value = projectvalue
+		smtc.groupAPIOutput.Value = groupvalue
+		smtc.expectedData = map[string][]byte{"testKey": []byte(projectvalue), "groupKey": []byte(groupvalue)}
+		smtc.refFind.Name = makeFindName(".*Key")
+	}
+	groupAndOverrideProjectSecrets := func(smtc *secretManagerTestCase) {
+		smtc.groupIDs = []string{groupid}
+		smtc.projectAPIOutput.Value = projectvalue
+		smtc.groupAPIOutput.Key = smtc.projectAPIOutput.Key
+		smtc.groupAPIOutput.Value = groupvalue
+		smtc.expectedData = map[string][]byte{"testKey": []byte(projectvalue)}
+		smtc.refFind.Name = makeFindName(".*Key")
+	}
+	groupAndProjectWithDifferentEnvSecrets := func(smtc *secretManagerTestCase) {
+		smtc.groupIDs = []string{groupid}
+		smtc.projectAPIOutput.Value = projectvalue
+		smtc.projectAPIOutput.EnvironmentScope = "test"
+		smtc.groupAPIOutput.Key = smtc.projectAPIOutput.Key
+		smtc.groupAPIOutput.Value = groupvalue
+		smtc.expectedData = map[string][]byte{"testKey": []byte(groupvalue)}
+		smtc.refFind.Name = makeFindName(".*Key")
+	}
+
+	cases := []*secretManagerTestCase{
+		makeValidSecretManagerGetAllTestCaseCustom(onlyProjectSecret),
+		makeValidSecretManagerGetAllTestCaseCustom(groupAndProjectSecrets),
+		makeValidSecretManagerGetAllTestCaseCustom(groupAndOverrideProjectSecrets),
+		makeValidSecretManagerGetAllTestCaseCustom(groupAndProjectWithDifferentEnvSecrets),
+	}
+
+	sm := Gitlab{}
+	sm.environment = "prod"
+	for k, v := range cases {
+		sm.projectClient = v.mockProjectClient
+		sm.groupClient = v.mockGroupClient
+		sm.projectID = v.projectID
+		sm.groupIDs = v.groupIDs
+		out, err := sm.GetAllSecrets(context.Background(), *v.refFind)
+		if !ErrorContains(err, v.expectError) {
+			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
+		}
+		if v.expectError == "" {
+			if len(v.expectedData) > 0 {
+				if !reflect.DeepEqual(v.expectedData, out) {
+					t.Errorf("[%d] Unexpected secrets. Expected [%s], got [%s]", k, v.expectedData, out)
+				}
+			} else if string(out[v.projectAPIOutput.Key]) != v.expectedSecret {
+				t.Errorf("[%d] Unexpected secret. Expected [%s], got [%s]", k, v.expectedSecret, string(out[v.projectAPIOutput.Key]))
+			}
 		}
 	}
 }
@@ -370,13 +508,19 @@ func TestGetAllSecrets(t *testing.T) {
 func TestValidate(t *testing.T) {
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(),
+		makeValidSecretManagerTestCaseCustom(setProjectAndGroup),
 		makeValidSecretManagerTestCaseCustom(setListAPIErr),
-		makeValidSecretManagerTestCaseCustom(setListAPIRespNil),
-		makeValidSecretManagerTestCaseCustom(setListAPIRespBadCode),
+		makeValidSecretManagerTestCaseCustom(setProjectListAPIRespNil),
+		makeValidSecretManagerTestCaseCustom(setProjectListAPIRespBadCode),
+		makeValidSecretManagerTestCaseCustom(setGroupListAPIRespNil),
+		makeValidSecretManagerTestCaseCustom(setGroupListAPIRespBadCode),
 	}
 	sm := Gitlab{}
 	for k, v := range successCases {
-		sm.client = v.mockClient
+		sm.projectClient = v.mockProjectClient
+		sm.groupClient = v.mockGroupClient
+		sm.projectID = v.projectID
+		sm.groupIDs = v.groupIDs
 		t.Logf("%+v", v)
 		validationResult, err := sm.Validate()
 		if !ErrorContains(err, v.expectError) {
@@ -391,13 +535,13 @@ func TestValidate(t *testing.T) {
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *secretManagerTestCase) {
-		smtc.apiOutput.Value = `{"foo":"bar"}`
+		smtc.projectAPIOutput.Value = `{"foo":"bar"}`
 		smtc.expectedData["foo"] = []byte("bar")
 	}
 
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *secretManagerTestCase) {
-		smtc.apiOutput.Value = `-----------------`
+		smtc.projectAPIOutput.Value = `-----------------`
 		smtc.expectError = "unable to unmarshal secret"
 	}
 
@@ -410,7 +554,8 @@ func TestGetSecretMap(t *testing.T) {
 
 	sm := Gitlab{}
 	for k, v := range successCases {
-		sm.client = v.mockClient
+		sm.projectClient = v.mockProjectClient
+		sm.groupClient = v.mockGroupClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
