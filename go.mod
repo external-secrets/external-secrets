@@ -49,7 +49,7 @@ require (
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.0
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1825
-	github.com/aws/aws-sdk-go v1.44.122
+	github.com/aws/aws-sdk-go v1.44.126
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
@@ -62,14 +62,14 @@ require (
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/lestrrat-go/jwx v1.2.25
 	github.com/onsi/ginkgo/v2 v2.4.0
-	github.com/onsi/gomega v1.22.1
+	github.com/onsi/gomega v1.23.0
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/client_model v0.3.0
 	github.com/spf13/cobra v1.5.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/tidwall/gjson v1.14.3
-	github.com/xanzy/go-gitlab v0.73.1
+	github.com/xanzy/go-gitlab v0.74.0
 	github.com/yandex-cloud/go-genproto v0.0.0-20220902133259-5be489ec3a5d
 	github.com/yandex-cloud/go-sdk v0.0.0-20220902133848-327f1859d27a
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
@@ -93,8 +93,8 @@ require (
 require github.com/1Password/connect-sdk-go v1.5.0
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v0.22.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v0.13.2
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.0.0
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/sethvargo/go-password v0.2.0
 	sigs.k8s.io/yaml v1.3.0
@@ -102,7 +102,7 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.10.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v0.9.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.6 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect

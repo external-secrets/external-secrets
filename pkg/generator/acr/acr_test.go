@@ -116,7 +116,7 @@ spec:
 				},
 				clientSecretCreds: func(tenantID, clientID, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error) {
 					return &FakeTokenGetter{
-						token: &azcore.AccessToken{
+						token: azcore.AccessToken{
 							Token: "1234",
 						},
 					}, nil
@@ -171,7 +171,7 @@ spec:
 				},
 				clientSecretCreds: func(tenantID, clientID, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error) {
 					return &FakeTokenGetter{
-						token: &azcore.AccessToken{
+						token: azcore.AccessToken{
 							Token: "1234",
 						},
 					}, nil
@@ -209,10 +209,10 @@ spec:
 }
 
 type FakeTokenGetter struct {
-	token *azcore.AccessToken
+	token azcore.AccessToken
 	err   error
 }
 
-func (f *FakeTokenGetter) GetToken(ctx context.Context, opts policy.TokenRequestOptions) (*azcore.AccessToken, error) {
+func (f *FakeTokenGetter) GetToken(ctx context.Context, opts policy.TokenRequestOptions) (azcore.AccessToken, error) {
 	return f.token, f.err
 }
