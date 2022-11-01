@@ -27,6 +27,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -38,6 +39,9 @@ const (
 	errList                                   = "could not verify if the client is valid: %w"
 	errAuth                                   = "client is not allowed to get secrets"
 	errUninitializedGitlabProvider            = "provider gitlab is not initialized"
+	errNameNotDefined                         = "'find.name' is mandatory"
+	errTagsNotImplemented                     = "'find.tags' is not currently supported by Gitlab provider"
+	errPathNotImplemented                     = "'find.path' is not implemented in the Gitlab provider"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
 
@@ -98,7 +102,7 @@ func (c *gClient) setAuth(ctx context.Context) error {
 	}
 
 	c.credentials = credentialsSecret.Data[c.store.Auth.SecretRef.AccessToken.Key]
-	if (c.credentials == nil) || (len(c.credentials) == 0) {
+	if c.credentials == nil || len(c.credentials) == 0 {
 		return fmt.Errorf(errMissingSAK)
 	}
 	// I don't know where ProjectID is being set
@@ -155,10 +159,44 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 	return g, nil
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets syncs all gitlab project variables into a single Kubernetes Secret.
 func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	if utils.IsNil(g.client) {
+		return nil, fmt.Errorf(errUninitializedGitlabProvider)
+	}
+	if ref.Tags != nil {
+		return nil, fmt.Errorf(errTagsNotImplemented)
+	}
+	if ref.Path != nil {
+		return nil, fmt.Errorf(errPathNotImplemented)
+	}
+	if ref.Name == nil {
+		return nil, fmt.Errorf(errNameNotDefined)
+	}
+
+	allData, _, err := g.client.ListVariables(g.projectID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var matcher *find.Matcher
+	if ref.Name != nil {
+		m, err := find.New(*ref.Name)
+		if err != nil {
+			return nil, err
+		}
+		matcher = m
+	}
+	secretData := make(map[string][]byte)
+	for _, data := range allData {
+		matching, key := matchesFilter(g.environment, data, matcher)
+		if !matching {
+			continue
+		}
+		secretData[key] = []byte(data.Value)
+	}
+
+	return secretData, nil
 }
 
 func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -176,6 +214,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	// 	"masked": true,
 	// 	"environment_scope": "*"
 	// }
+
 	var vopts *gitlab.GetProjectVariableOptions
 	if g.environment != "" {
 		vopts = &gitlab.GetProjectVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: g.environment}}
@@ -224,6 +263,22 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 		secretData[k] = []byte(v)
 	}
 	return secretData, nil
+}
+
+func matchesFilter(environment string, data *gitlab.ProjectVariable, matcher *find.Matcher) (bool, string) {
+	if environment != "" && environment != "*" {
+		// as of now gitlab does not support filtering of EnvironmentScope through the api call
+		if data.EnvironmentScope != environment {
+			return false, ""
+		}
+	}
+
+	key := data.Key
+	if key == "" || (matcher != nil && !matcher.MatchName(key)) {
+		return false, ""
+	}
+
+	return true, key
 }
 
 func (g *Gitlab) Close(ctx context.Context) error {
