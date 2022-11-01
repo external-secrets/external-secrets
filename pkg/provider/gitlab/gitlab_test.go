@@ -15,25 +15,34 @@ package gitlab
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
 	"testing"
 
-	gitlab "github.com/xanzy/go-gitlab"
+	"github.com/google/uuid"
+	tassert "github.com/stretchr/testify/assert"
+	"github.com/xanzy/go-gitlab"
+	"github.com/yandex-cloud/go-sdk/iamkey"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
 )
 
 const (
-	project             = "my-Project"
-	username            = "user-name"
-	userkey             = "user-key"
-	environment         = "prod"
-	defaultErrorMessage = "[%d] unexpected error: %s, expected: '%s'"
+	project               = "my-Project"
+	username              = "user-name"
+	userkey               = "user-key"
+	environment           = "prod"
+	defaultErrorMessage   = "[%d] unexpected error: %s, expected: '%s'"
+	errMissingCredentials = "credentials are empty"
 )
 
 type secretManagerTestCase struct {
@@ -169,6 +178,88 @@ var setListAPIRespBadCode = func(smtc *secretManagerTestCase) {
 var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.mockClient = nil
 	smtc.expectError = errUninitializedGitlabProvider
+}
+
+func TestNewClient(t *testing.T) {
+	ctx := context.Background()
+	const namespace = "namespace"
+
+	store := &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Gitlab: &esv1beta1.GitlabProvider{},
+			},
+		},
+	}
+	provider, err := esv1beta1.GetProvider(store)
+	tassert.Nil(t, err)
+
+	k8sClient := clientfake.NewClientBuilder().Build()
+	secretClient, err := provider.NewClient(context.Background(), store, k8sClient, namespace)
+	tassert.EqualError(t, err, errMissingCredentials)
+	tassert.Nil(t, secretClient)
+
+	store.Spec.Provider.Gitlab.Auth = esv1beta1.GitlabAuth{}
+	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	tassert.EqualError(t, err, errMissingCredentials)
+	tassert.Nil(t, secretClient)
+
+	store.Spec.Provider.Gitlab.Auth.SecretRef = esv1beta1.GitlabSecretRef{}
+	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	tassert.EqualError(t, err, errMissingCredentials)
+	tassert.Nil(t, secretClient)
+
+	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken = esv1meta.SecretKeySelector{}
+	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	tassert.EqualError(t, err, errMissingCredentials)
+	tassert.Nil(t, secretClient)
+
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Name = authorizedKeySecretName
+	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = authorizedKeySecretKey
+	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	tassert.EqualError(t, err, "couldn't find secret on cluster: secrets \"authorizedKeySecretName\" not found")
+	tassert.Nil(t, secretClient)
+
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))
+	tassert.Nil(t, err)
+
+	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	tassert.Nil(t, err)
+	tassert.NotNil(t, secretClient)
+}
+
+func toJSON(t *testing.T, v interface{}) []byte {
+	jsonBytes, err := json.Marshal(v)
+	tassert.Nil(t, err)
+	return jsonBytes
+}
+
+func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) error {
+	err := k8sClient.Create(ctx, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      secretName,
+		},
+		Data: map[string][]byte{secretKey: secretValue},
+	})
+	tassert.Nil(t, err)
+	return nil
+}
+
+func newFakeAuthorizedKey() *iamkey.Key {
+	uniqueLabel := uuid.NewString()
+	return &iamkey.Key{
+		Id: uniqueLabel,
+		Subject: &iamkey.Key_ServiceAccountId{
+			ServiceAccountId: uniqueLabel,
+		},
+		PrivateKey: uniqueLabel,
+	}
 }
 
 // test the sm<->gcp interface
@@ -362,7 +453,7 @@ func makeSecretStore(projectID, environment string, fn ...storeModifier) *esv1be
 
 func withAccessToken(name, key string, namespace *string) storeModifier {
 	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
-		store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken = v1.SecretKeySelector{
+		store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken = esv1meta.SecretKeySelector{
 			Name:      name,
 			Key:       key,
 			Namespace: namespace,

@@ -102,7 +102,7 @@ func (c *gClient) setAuth(ctx context.Context) error {
 	}
 
 	c.credentials = credentialsSecret.Data[c.store.Auth.SecretRef.AccessToken.Key]
-	if (c.credentials == nil) || (len(c.credentials) == 0) {
+	if c.credentials == nil || len(c.credentials) == 0 {
 		return fmt.Errorf(errMissingSAK)
 	}
 	// I don't know where ProjectID is being set
