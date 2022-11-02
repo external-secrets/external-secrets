@@ -43,23 +43,13 @@ Then create a simple k/v pair at path `secret/foo`:
 vault kv put secret/foo my-value=s3cr3t
 ```
 
-If kv engine is not enabled then enable using:
-
-```
-vault secrets enable -path=secret kv-v2
-```
-
-If the KV version is version:1, upgrade it to version:2:
-
-```
-vault kv enable-versioning secret/
-```
-
 Can check version using following and check for `Options` column, it should indicate [version:2]:
 
 ```
 vault secrets list -detailed
 ```
+
+If you are using version: 1, jsut remember to update your SecretStore manifest appropriately
 
 Now create a ExternalSecret that uses the above SecretStore:
 
