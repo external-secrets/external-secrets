@@ -64,7 +64,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.4.0
 	github.com/onsi/gomega v1.23.0
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.13.1
 	github.com/prometheus/client_model v0.3.0
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.1
