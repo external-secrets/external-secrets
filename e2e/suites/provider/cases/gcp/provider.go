@@ -23,11 +23,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 
 	// nolint
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	. "github.com/onsi/gomega"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"

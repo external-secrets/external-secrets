@@ -22,10 +22,10 @@ import (
 	"strings"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/googleapis/gax-go/v2"
 	"github.com/tidwall/gjson"
 	"google.golang.org/api/iterator"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
