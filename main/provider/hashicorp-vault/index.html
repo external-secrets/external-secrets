@@ -2134,6 +2134,8 @@ management. Vault itself implements lots of different secret engines, as of now 
 <span class="w">    </span><span class="nt">vault</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://my.vault.server:8200&quot;</span><span class="w"></span>
 <span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># Version is the Vault KV secret engine version.</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># This can be either &quot;v1&quot; or &quot;v2&quot;, defaults to &quot;v2&quot;</span><span class="w"></span>
 <span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w"></span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="c1"># points to a secret that contains a vault token</span><span class="w"></span>
@@ -2153,6 +2155,10 @@ management. Vault itself implements lots of different secret engines, as of now 
 <p>Then create a simple k/v pair at path <code>secret/foo</code>:</p>
 <div class="highlight"><pre><span></span><code>vault kv put secret/foo my-value=s3cr3t
 </code></pre></div>
+<p>Can check kv version using following and check for <code>Options</code> column, it should indicate [version:2]:</p>
+<div class="highlight"><pre><span></span><code>vault secrets list -detailed
+</code></pre></div>
+<p>If you are using version: 1, just remember to update your SecretStore manifest appropriately</p>
 <p>Now create a ExternalSecret that uses the above SecretStore:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
