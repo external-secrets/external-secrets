@@ -33,8 +33,8 @@ replace (
 )
 
 require (
-	cloud.google.com/go/iam v0.5.0
-	cloud.google.com/go/secretmanager v1.7.0
+	cloud.google.com/go/iam v0.7.0
+	cloud.google.com/go/secretmanager v1.8.0
 	github.com/Azure/azure-sdk-for-go v66.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.28
 	github.com/Azure/go-autorest/autorest/adal v0.9.21
@@ -48,8 +48,8 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1825
-	github.com/aws/aws-sdk-go v1.44.126
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.1
+	github.com/aws/aws-sdk-go v1.44.131
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
@@ -64,7 +64,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.4.0
 	github.com/onsi/gomega v1.23.0
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.13.1
 	github.com/prometheus/client_model v0.3.0
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.1
@@ -75,9 +75,9 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.23.0
 	golang.org/x/crypto v0.1.0
-	golang.org/x/oauth2 v0.0.0-20221006150949-b44042a4b9c1
-	google.golang.org/api v0.99.0
-	google.golang.org/genproto v0.0.0-20221025140454-527a21cfbd71
+	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
+	google.golang.org/api v0.102.0
+	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c // indirect
 	google.golang.org/grpc v1.50.1
 	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
@@ -86,7 +86,7 @@ require (
 	k8s.io/apimachinery v0.25.0
 	k8s.io/client-go v1.5.2
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
-	sigs.k8s.io/controller-runtime v0.13.0
+	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/controller-tools v0.10.0
 )
 
@@ -100,8 +100,10 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
+require cloud.google.com/go/compute/metadata v0.2.1 // indirect
+
 require (
-	cloud.google.com/go/compute v1.10.0 // indirect
+	cloud.google.com/go/compute v1.12.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.6 // indirect
@@ -191,7 +193,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

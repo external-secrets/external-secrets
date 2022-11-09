@@ -23,11 +23,11 @@ import (
 	"time"
 
 	iam "cloud.google.com/go/iam/credentials/apiv1"
+	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go/v2"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
-	credentialspb "google.golang.org/genproto/googleapis/iam/credentials/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"grpc.go4.org/credentials/oauth"
