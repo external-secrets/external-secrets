@@ -29,6 +29,9 @@ type GitlabProvider struct {
 	// ProjectID specifies a project where secrets are located.
 	ProjectID string `json:"projectID,omitempty"`
 
+	// InheritFromGroups specifies whether parent groups should be discovered and checked for secrets.
+	InheritFromGroups bool `json:"inheritFromGroups,omitempty"`
+
 	// GroupIDs specify, which gitlab groups to pull secrets from. Group secrets are read from left to right followed by the project variables.
 	GroupIDs []string `json:"groupIDs,omitempty"`
 

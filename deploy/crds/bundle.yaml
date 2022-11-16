@@ -2099,6 +2099,9 @@ spec:
                           items:
                             type: string
                           type: array
+                        inheritFromGroups:
+                          description: InheritFromGroups specifies whether parent groups should be discovered and checked for secrets.
+                          type: boolean
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
                           type: string
@@ -5155,6 +5158,9 @@ spec:
                           items:
                             type: string
                           type: array
+                        inheritFromGroups:
+                          description: InheritFromGroups specifies whether parent groups should be discovered and checked for secrets.
+                          type: boolean
                         projectID:
                           description: ProjectID specifies a project where secrets are located.
                           type: string
