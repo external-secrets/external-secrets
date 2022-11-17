@@ -1,9 +1,12 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal
+FROM registry.access.redhat.com/ubi8/go-toolset AS builder
+
 ARG TARGETOS
 ARG TARGETARCH
 COPY bin/external-secrets-${TARGETOS}-${TARGETARCH} /bin/external-secrets
 
-RUN microdnf update
+FROM registry.access.redhat.com/ubi8/ubi-minimal
+
+RUN microdnf update -y
 
 # Run as UID for nobody
 USER 65534
