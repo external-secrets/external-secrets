@@ -2019,7 +2019,7 @@ helm install external-secrets <span class="se">\</span>
 <h3 id="create-a-secret-containing-your-aws-credentials">Create a secret containing your AWS credentials</h3>
 <div class="highlight"><pre><span></span><code><span class="nb">echo</span> -n <span class="s1">&#39;KEYID&#39;</span> &gt; ./access-key
 <span class="nb">echo</span> -n <span class="s1">&#39;SECRETKEY&#39;</span> &gt; ./secret-access-key
-kubectl create secret generic awssm-secret --from-file<span class="o">=</span>./access-key  --from-file<span class="o">=</span>./secret-access-key
+kubectl create secret generic awssm-secret --from-file<span class="o">=</span>./access-key --from-file<span class="o">=</span>./secret-access-key
 </code></pre></div>
 <h3 id="create-your-first-secretstore">Create your first SecretStore</h3>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
