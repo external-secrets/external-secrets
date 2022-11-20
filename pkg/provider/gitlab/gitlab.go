@@ -67,7 +67,7 @@ type GroupVariablesClient interface {
 	ListVariables(gid interface{}, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
-// Gitlab Provider struct with reference to a GitLab projectVariablesClient, a projectID and groupIDs.
+// Gitlab Provider struct with reference to GitLab clients, a projectID and groupIDs.
 type Gitlab struct {
 	projectsClient         ProjectsClient
 	projectVariablesClient ProjectVariablesClient
@@ -130,9 +130,6 @@ func (c *gClient) setAuth(ctx context.Context) error {
 	if c.credentials == nil || len(c.credentials) == 0 {
 		return fmt.Errorf(errMissingSAK)
 	}
-	// I don't know where ProjectID is being set
-	// This line SHOULD set it, but instead just breaks everything :)
-	// c.store.ProjectID = string(credentialsSecret.Data[c.store.ProjectID])
 	return nil
 }
 
