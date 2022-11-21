@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#gitlab-project-variables" class="md-skip">
+        <a href="#gitlab-project-and-group-variables" class="md-skip">
           Skip to content
         </a>
       
@@ -1355,11 +1355,11 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#gitlab-project-variables" class="md-nav__link">
-    Gitlab Project Variables
+  <a href="#gitlab-project-and-group-variables" class="md-nav__link">
+    Gitlab Project and Group Variables
   </a>
   
-    <nav class="md-nav" aria-label="Gitlab Project Variables">
+    <nav class="md-nav" aria-label="Gitlab Project and Group Variables">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1875,11 +1875,11 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#gitlab-project-variables" class="md-nav__link">
-    Gitlab Project Variables
+  <a href="#gitlab-project-and-group-variables" class="md-nav__link">
+    Gitlab Project and Group Variables
   </a>
   
-    <nav class="md-nav" aria-label="Gitlab Project Variables">
+    <nav class="md-nav" aria-label="Gitlab Project and Group Variables">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1947,17 +1947,17 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/main/docs/provider/gitlab-project-variables.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/main/docs/provider/gitlab-variables.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
   <h1>Gitlab Project Variables</h1>
 
-<h2 id="gitlab-project-variables">Gitlab Project Variables</h2>
-<p>External Secrets Operator integrates with <a href="https://docs.gitlab.com/ee/api/project_level_variables.html">Gitlab API</a> to sync Gitlab project variables to secrets held on the Kubernetes cluster.</p>
+<h2 id="gitlab-project-and-group-variables">Gitlab Project and Group Variables</h2>
+<p>External Secrets Operator integrates with Gitlab to sync <a href="https://docs.gitlab.com/ee/api/project_level_variables.html">Gitlab Project Variables API</a> and/or <a href="https://docs.gitlab.com/ee/api/group_level_variables.html">Gitlab Group Variables API</a> to secrets held on the Kubernetes cluster.</p>
 <h3 id="authentication">Authentication</h3>
-<p>The API requires an access token and project ID. To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).</p>
+<p>The API requires an access token and project ID/groupIDs. To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).</p>
 <p><img alt="token-details" src="../../pictures/screenshot_gitlab_token.png" /></p>
 <p>Click 'Create personal access token', and your token will be generated and displayed on screen. Copy or save this token since you can't access it again.
 <img alt="token-created" src="../../pictures/screenshot_gitlab_token_created.png" /></p>
@@ -1990,6 +1990,8 @@
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret</span><span class="w"></span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span><span class="w"></span>
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;**project</span><span class="nv"> </span><span class="s">ID</span><span class="nv"> </span><span class="s">goes</span><span class="nv"> </span><span class="s">here**&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">groupIDs</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;**groupID(s)</span><span class="nv"> </span><span class="s">go</span><span class="nv"> </span><span class="s">here**&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">inheritFromGroups</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;**automatically</span><span class="nv"> </span><span class="s">looks</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">variables</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">parent</span><span class="nv"> </span><span class="s">groups**&quot;</span><span class="w"></span>
 <span class="w">      </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;**environment</span><span class="nv"> </span><span class="s">scope</span><span class="nv"> </span><span class="s">goes</span><span class="nv"> </span><span class="s">here**&quot;</span><span class="w"></span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessToken</code> with the namespace where the secret resides.</p>
