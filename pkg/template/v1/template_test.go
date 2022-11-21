@@ -19,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -133,11 +134,15 @@ KfMtQkBmCFTNk3fOtz3sgTiv0OHbokplsICEc4tUT5RWU0frwAjJT4Pk
 
 func TestExecute(t *testing.T) {
 	tbl := []struct {
-		name        string
-		tpl         map[string][]byte
-		data        map[string][]byte
-		expetedData map[string][]byte
-		expErr      string
+		name                string
+		tpl                 map[string][]byte
+		labelsTpl           map[string][]byte
+		annotationsTpl      map[string][]byte
+		data                map[string][]byte
+		expetedData         map[string][]byte
+		expectedLabels      map[string]string
+		expectedAnnotations map[string]string
+		expErr              string
 	}{
 		{
 			name: "test empty",
@@ -339,15 +344,54 @@ func TestExecute(t *testing.T) {
 				"fn": []byte(jwkPrivECPKCS8),
 			},
 		},
+		{
+			name: "labels",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ .secret | base64decode | toString }}"),
+			},
+			labelsTpl: map[string][]byte{
+				"bar": []byte("{{ .env | base64decode | toString }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+				"env":    []byte("ZGV2"),
+			},
+			expetedData: map[string][]byte{
+				"foo": []byte("1234"),
+			},
+			expectedLabels: map[string]string{
+				"bar": "dev",
+			},
+		},
+		{
+			name: "annotations",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ .secret | base64decode | toString }}"),
+			},
+			annotationsTpl: map[string][]byte{
+				"bar": []byte("{{ .env | base64decode | toString }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+				"env":    []byte("ZGV2"),
+			},
+			expetedData: map[string][]byte{
+				"foo": []byte("1234"),
+			},
+			expectedAnnotations: map[string]string{
+				"bar": "dev",
+			},
+		},
 	}
 
 	for i := range tbl {
 		row := tbl[i]
 		t.Run(row.name, func(t *testing.T) {
 			sec := &corev1.Secret{
-				Data: make(map[string][]byte),
+				Data:       make(map[string][]byte),
+				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
 			}
-			err := Execute(row.tpl, row.data, sec)
+			err := Execute(row.tpl, row.labelsTpl, row.annotationsTpl, row.data, sec)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
@@ -355,6 +399,14 @@ func TestExecute(t *testing.T) {
 				return
 			}
 			assert.EqualValues(t, row.expetedData, sec.Data)
+			if row.expectedLabels == nil {
+				return
+			}
+			assert.EqualValues(t, row.expectedLabels, sec.ObjectMeta.Labels)
+			if row.expectedAnnotations == nil {
+				return
+			}
+			assert.EqualValues(t, row.expectedAnnotations, sec.ObjectMeta.Annotations)
 		})
 	}
 }
