@@ -71,7 +71,7 @@ const (
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
 func Execute(tpl, labelsTpl, annotationsTpl, data map[string][]byte, secret *corev1.Secret) error {
-	if tpl == nil && labelsTpl == nil && annotationsTpl == nil {
+	if tpl == nil {
 		return nil
 	}
 	for k, v := range tpl {
@@ -80,22 +80,6 @@ func Execute(tpl, labelsTpl, annotationsTpl, data map[string][]byte, secret *cor
 			return fmt.Errorf(errExecute, k, err)
 		}
 		secret.Data[k] = val
-	}
-
-	for k, v := range labelsTpl {
-		val, err := execute(k, string(v), data)
-		if err != nil {
-			return fmt.Errorf(errExecute, k, err)
-		}
-		secret.ObjectMeta.Labels[k] = string(val)
-	}
-
-	for k, v := range annotationsTpl {
-		val, err := execute(k, string(v), data)
-		if err != nil {
-			return fmt.Errorf(errExecute, k, err)
-		}
-		secret.ObjectMeta.Annotations[k] = string(val)
 	}
 	return nil
 }
