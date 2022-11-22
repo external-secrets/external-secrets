@@ -6,11 +6,18 @@ on:
       image-name:
         required: true
         type: string
+      image-tag:
+        required: false
+        type: string
       tag-suffix:
         required: true
         type: string
       dockerfile:
         required: true
+        type: string
+      ref:
+        required: false
+        default: main
         type: string
     secrets:
       GHCR_USERNAME:
@@ -34,6 +41,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v2
@@ -88,7 +97,9 @@ jobs:
         env:
           GITHUB_REF: ${{ github.ref }}
         run: |
-          if [ "$GITHUB_REF" == "refs/heads/main" ]; then
+          if [ "${{ inputs.image-tag }}" != "" ]; then
+            TAG="${{ inputs.image-tag }}${{ inputs.tag-suffix }}"
+          elif [ "$GITHUB_REF" == "refs/heads/main" ]; then
             TAG=main${{ inputs.tag-suffix }}
           else
             TAG=$(make docker.tag)
