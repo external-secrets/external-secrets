@@ -44,7 +44,7 @@ const (
 	projectvalue          = "projectvalue"
 	groupvalue            = "groupvalue"
 	groupid               = "groupId"
-	defaultErrorMessage   = "[%d] unexpected error: %s, expected: '%s'"
+	defaultErrorMessage   = "[%d] unexpected error: [%s], expected: [%s]"
 	errMissingCredentials = "credentials are empty"
 	findTestPrefix        = "test.*"
 )
@@ -404,7 +404,7 @@ func TestGetSecret(t *testing.T) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
 		}
 		if string(out) != v.expectedSecret {
-			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
+			t.Errorf("[%d] unexpected secret: [%s], expected [%s]", k, string(out), v.expectedSecret)
 		}
 	}
 }
@@ -420,7 +420,7 @@ func TestResolveGroupIds(t *testing.T) {
 		t.Errorf(defaultErrorMessage, 0, err.Error(), "")
 	}
 	if !reflect.DeepEqual(sm.groupIDs, []string{"1", "10", "100"}) {
-		t.Errorf("Expected groupIds %s, got %s", []string{"1", "10", "100"}, sm.groupIDs)
+		t.Errorf("unexpected groupIds: %s, expected %s", sm.groupIDs, []string{"1", "10", "100"})
 	}
 }
 
@@ -432,28 +432,28 @@ func TestGetAllSecrets(t *testing.T) {
 		smtc.refFind.Name = nil
 		smtc.expectError = "'find.name' is mandatory"
 	}
-	setUnsupportedFindTags := func(smtc *secretManagerTestCase) {
-		smtc.refFind.Tags = map[string]string{}
-		smtc.expectError = "'find.tags' is not currently supported by Gitlab provider"
-	}
 	setUnsupportedFindPath := func(smtc *secretManagerTestCase) {
 		path := "path"
 		smtc.refFind.Path = &path
 		smtc.expectError = "'find.path' is not implemented in the Gitlab provider"
 	}
+	setUnsupportedFindTag := func(smtc *secretManagerTestCase) {
+		smtc.expectError = "'find.tags' only supports 'environment_scope"
+		smtc.refFind.Tags = map[string]string{"foo": ""}
+	}
 	setMatchingSecretFindString := func(smtc *secretManagerTestCase) {
 		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              "testkey",
-			Value:            "changedvalue",
-			EnvironmentScope: "test",
+			Value:            projectvalue,
+			EnvironmentScope: environment,
 		}
-		smtc.expectedSecret = "changedvalue"
+		smtc.expectedSecret = projectvalue
 		smtc.refFind.Name = makeFindName(findTestPrefix)
 	}
 	setNoMatchingRegexpFindString := func(smtc *secretManagerTestCase) {
 		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              "testkey",
-			Value:            "changedvalue",
+			Value:            projectvalue,
 			EnvironmentScope: "test",
 		}
 		smtc.expectedSecret = ""
@@ -462,27 +462,44 @@ func TestGetAllSecrets(t *testing.T) {
 	setUnmatchedEnvironmentFindString := func(smtc *secretManagerTestCase) {
 		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              "testkey",
-			Value:            "changedvalue",
-			EnvironmentScope: "prod",
+			Value:            projectvalue,
+			EnvironmentScope: "test",
 		}
 		smtc.expectedSecret = ""
 		smtc.refFind.Name = makeFindName(findTestPrefix)
 	}
+	setMatchingSecretFindTags := func(smtc *secretManagerTestCase) {
+		smtc.projectAPIOutput = &gitlab.ProjectVariable{
+			Key:              "testkey",
+			Value:            projectvalue,
+			EnvironmentScope: environment,
+		}
+		smtc.apiInputEnv = "*"
+		smtc.expectedSecret = projectvalue
+		smtc.refFind.Tags = map[string]string{"environment_scope": environment}
+	}
+	setEnvironmentConstrainedByStore := func(smtc *secretManagerTestCase) {
+		smtc.expectedSecret = projectvalue
+		smtc.expectError = "'find.tags' is constrained by 'environment_scope' of the store"
+		smtc.refFind.Tags = map[string]string{"environment_scope": environment}
+	}
 
 	cases := []*secretManagerTestCase{
 		makeValidSecretManagerGetAllTestCaseCustom(setMissingFindRegex),
-		makeValidSecretManagerGetAllTestCaseCustom(setUnsupportedFindTags),
 		makeValidSecretManagerGetAllTestCaseCustom(setUnsupportedFindPath),
+		makeValidSecretManagerGetAllTestCaseCustom(setUnsupportedFindTag),
 		makeValidSecretManagerGetAllTestCaseCustom(setMatchingSecretFindString),
 		makeValidSecretManagerGetAllTestCaseCustom(setNoMatchingRegexpFindString),
 		makeValidSecretManagerGetAllTestCaseCustom(setUnmatchedEnvironmentFindString),
+		makeValidSecretManagerGetAllTestCaseCustom(setMatchingSecretFindTags),
+		makeValidSecretManagerGetAllTestCaseCustom(setEnvironmentConstrainedByStore),
 		makeValidSecretManagerGetAllTestCaseCustom(setAPIErr),
 		makeValidSecretManagerGetAllTestCaseCustom(setNilMockClient),
 	}
 
 	sm := Gitlab{}
-	sm.environment = "test"
 	for k, v := range cases {
+		sm.environment = v.apiInputEnv
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
 		out, err := sm.GetAllSecrets(context.Background(), *v.refFind)
@@ -490,7 +507,7 @@ func TestGetAllSecrets(t *testing.T) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
 		}
 		if v.expectError == "" && string(out[v.projectAPIOutput.Key]) != v.expectedSecret {
-			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out[v.projectAPIOutput.Key]))
+			t.Errorf("[%d] unexpected secret: [%s], expected [%s]", k, string(out[v.projectAPIOutput.Key]), v.expectedSecret)
 		}
 	}
 }
@@ -549,10 +566,10 @@ func TestGetAllSecretsWithGroups(t *testing.T) {
 		if v.expectError == "" {
 			if len(v.expectedData) > 0 {
 				if !reflect.DeepEqual(v.expectedData, out) {
-					t.Errorf("[%d] Unexpected secrets. Expected [%s], got [%s]", k, v.expectedData, out)
+					t.Errorf("[%d] unexpected secrets: [%s], expected [%s]", k, out, v.expectedData)
 				}
 			} else if string(out[v.projectAPIOutput.Key]) != v.expectedSecret {
-				t.Errorf("[%d] Unexpected secret. Expected [%s], got [%s]", k, v.expectedSecret, string(out[v.projectAPIOutput.Key]))
+				t.Errorf("[%d] unexpected secret: [%s], expected [%s]", k, string(out[v.projectAPIOutput.Key]), v.expectedSecret)
 			}
 		}
 	}
@@ -583,10 +600,10 @@ func TestValidate(t *testing.T) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
 		}
 		if validationResult != v.expectedValidationResult {
-			t.Errorf("[%d], unexpected validationResult: %s, expected: '%s'", k, validationResult, v.expectedValidationResult)
+			t.Errorf("[%d], unexpected validationResult: [%s], expected: [%s]", k, validationResult, v.expectedValidationResult)
 		}
 		if sm.inheritFromGroups && sm.groupIDs[0] != "1" {
-			t.Errorf("[%d], Expected groupID '1'", k)
+			t.Errorf("[%d], unexpected groupID: [%s], expected [1]", k, sm.groupIDs[0])
 		}
 	}
 }
@@ -620,7 +637,7 @@ func TestGetSecretMap(t *testing.T) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
-			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
+			t.Errorf("[%d] unexpected secret data: [%#v], expected [%#v]", k, out, v.expectedData)
 		}
 	}
 }

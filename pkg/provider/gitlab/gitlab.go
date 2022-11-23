@@ -44,7 +44,8 @@ const (
 	errGroupAuth                              = "gitlabClient is not allowed to get secrets for group id [%s]"
 	errUninitializedGitlabProvider            = "provider gitlab is not initialized"
 	errNameNotDefined                         = "'find.name' is mandatory"
-	errTagsNotImplemented                     = "'find.tags' is not currently supported by Gitlab provider"
+	errEnvironmentIsConstricted               = "'find.tags' is constrained by 'environment_scope' of the store"
+	errTagsOnlyEnvironmentSupported           = "'find.tags' only supports 'environment_scope'"
 	errPathNotImplemented                     = "'find.path' is not implemented in the Gitlab provider"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
@@ -192,7 +193,14 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		return nil, fmt.Errorf(errUninitializedGitlabProvider)
 	}
 	if ref.Tags != nil {
-		return nil, fmt.Errorf(errTagsNotImplemented)
+		environment, err := ExtractTag(ref.Tags)
+		if err != nil {
+			return nil, err
+		}
+		if !isEmptyOrWildcard(g.environment) && !isEmptyOrWildcard(environment) {
+			return nil, fmt.Errorf(errEnvironmentIsConstricted)
+		}
+		g.environment = environment
 	}
 	if ref.Path != nil {
 		return nil, fmt.Errorf(errPathNotImplemented)
@@ -246,6 +254,17 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	}
 
 	return secretData, nil
+}
+
+func ExtractTag(tags map[string]string) (string, error) {
+	var environmentScope string
+	for tag, value := range tags {
+		if tag != "environment_scope" {
+			return "", fmt.Errorf(errTagsOnlyEnvironmentSupported)
+		}
+		environmentScope = value
+	}
+	return environmentScope, nil
 }
 
 func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -347,8 +366,12 @@ func (g *Gitlab) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	return secretData, nil
 }
 
+func isEmptyOrWildcard(environment string) bool {
+	return environment == "" || environment == "*"
+}
+
 func matchesFilter(environment, varEnvironment, key string, matcher *find.Matcher) (bool, string) {
-	if environment != "" && environment != "*" {
+	if !isEmptyOrWildcard(environment) {
 		// as of now gitlab does not support filtering of EnvironmentScope through the api call
 		if varEnvironment != environment {
 			return false, ""
