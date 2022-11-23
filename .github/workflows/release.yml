@@ -119,6 +119,9 @@ jobs:
       - name: Promote Container Image
         run: make docker.promote
 
+      - name: Build release manifests
+        run: make manifests
+
       - name: Sign promoted image
         id: sign
         uses: ./.github/actions/sign
@@ -136,5 +139,6 @@ jobs:
           files: |
             provenance.${{ env.RELEASE_TAG }}.intoto.jsonl
             sbom.${{ env.RELEASE_TAG }}.spdx.json
+            bin/deploy/manifests/external-secrets.yaml
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
