@@ -62,7 +62,7 @@ runs:
     - name: Run e2e Tests
       shell: bash
       env:
-        BUILD_ARGS: --load
+        DOCKER_BUILD_ARGS: --load
       run: |
         export PATH=$PATH:$(go env GOPATH)/bin
         go install github.com/onsi/ginkgo/v2/ginkgo@${{ env.GINKGO_VERSION }}

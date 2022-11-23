@@ -43,6 +43,7 @@ jobs:
         run: |
           echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}\`" >> .changelog
           echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi\`" >> .changelog
+          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl\`" >> .changelog
           echo "${{ steps.build_changelog.outputs.changelog }}" >> .changelog
 
       - name: Update Release
@@ -71,6 +72,7 @@ jobs:
         include:
         - tag_suffix: "" # distroless image
         - tag_suffix: "-ubi" # ubi image
+        - tag_suffix: "-ubi-boringssl" # ubi image
 
     permissions:
       id-token: write
@@ -119,6 +121,9 @@ jobs:
       - name: Promote Container Image
         run: make docker.promote
 
+      - name: Build release manifests
+        run: make manifests
+
       - name: Sign promoted image
         id: sign
         uses: ./.github/actions/sign
@@ -136,5 +141,6 @@ jobs:
           files: |
             provenance.${{ env.RELEASE_TAG }}.intoto.jsonl
             sbom.${{ env.RELEASE_TAG }}.spdx.json
+            bin/deploy/manifests/external-secrets.yaml
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
