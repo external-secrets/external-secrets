@@ -90,6 +90,12 @@ func SecretExecute(template string, data map[string][]byte, secret *corev1.Secre
 		return err
 	}
 	// Making sure that only allowed fields are templated
+	if secret.ObjectMeta.Annotations == nil {
+		secret.ObjectMeta.Annotations = newSecret.ObjectMeta.Annotations
+	}
+	if secret.ObjectMeta.Labels == nil {
+		secret.ObjectMeta.Labels = newSecret.ObjectMeta.Labels
+	}
 	utils.MergeStringMap(secret.ObjectMeta.Annotations, newSecret.ObjectMeta.Annotations)
 	utils.MergeStringMap(secret.ObjectMeta.Labels, newSecret.ObjectMeta.Labels)
 	secret.Data = newSecret.Data

@@ -421,6 +421,122 @@ func TestExecute(t *testing.T) {
 	}
 }
 
+func TestSecretExecute(t *testing.T) {
+	tbl := []struct {
+		name                string
+		tpl                 string
+		data                map[string][]byte
+		expectedData        map[string][]byte
+		expectedStringData  map[string]string
+		expectedLabels      map[string]string
+		expectedAnnotations map[string]string
+		expErr              string
+	}{
+		{
+			name: "test empty",
+			tpl:  "",
+			data: nil,
+		},
+		{
+			name: "test data sync",
+			tpl: `data:
+                    "{{ .key }}": "{{ .value }}"
+`,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("MTIzNA=="),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("1234"),
+			},
+		},
+		{
+			name: "test stringData sync",
+			tpl: `
+                  stringData:
+                    {{ .key }}: {{ .value }}`,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("MTIzNA=="),
+			},
+			expectedStringData: map[string]string{
+				"foo": "MTIzNA==",
+			},
+		},
+		{
+			name: "test metadata sync",
+			tpl: `
+                  metadata:
+                    annotations:
+                      {{ .key }}: {{ .value | b64dec }},
+                    labels:
+                      {{ .key }}: {{ .value | b64dec }}`,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("MTIzNA=="),
+			},
+			expectedAnnotations: map[string]string{
+				"foo": "MTIzNA==",
+			},
+			expectedLabels: map[string]string{
+				"foo": "MTIzNA==",
+			},
+		},
+		{
+			name: "dynamic data templating",
+			tpl: `
+                  metadata:
+                      annotations:
+                        {{- range $k, $v := (.metadata | fromJson).annotations  }}
+                          "{{ $k }}": "{{ $v }}"
+                        {{- end }}
+                      labels:
+                        {{- range $k, $v := (.metadata | fromJson).labels  }}
+                          "{{ $k }}": "{{ $v }}"
+                        {{- end }}
+                  data:
+                      {{- range $k, $v := (.secret | fromJson) }}
+                      "{{ $k }}": "{{ $v | b64enc }}"
+                      {{- end }}`,
+			data: map[string][]byte{
+				"metadata": []byte(`{"annotations":{"foo":"bar","works":"on_multiple"},"labels":{"yada":"yada"}}`),
+				"secret":   []byte(`{"key1": "value1", "key2": "value2"}`),
+			},
+			expectedAnnotations: map[string]string{
+				"foo":   "bar",
+				"works": "on_multiple",
+			},
+			expectedLabels: map[string]string{
+				"yada": "yada",
+			},
+			expectedData: map[string][]byte{
+				"key1": []byte("value1"),
+				"key2": []byte("value2"),
+			},
+		},
+	}
+
+	for i := range tbl {
+		row := tbl[i]
+		t.Run(row.name, func(t *testing.T) {
+			sec := &corev1.Secret{
+				Data: make(map[string][]byte),
+			}
+			err := SecretExecute(row.tpl, row.data, sec)
+			if !ErrorContains(err, row.expErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
+			}
+			if row.expectedData == nil {
+				return
+			}
+			assert.EqualValues(t, row.expectedData, sec.Data)
+			assert.EqualValues(t, row.expectedStringData, sec.StringData)
+			assert.EqualValues(t, row.expectedLabels, sec.Labels)
+			assert.EqualValues(t, row.expectedAnnotations, sec.Annotations)
+		})
+	}
+}
+
 func ErrorContains(out error, want string) bool {
 	if out == nil {
 		return want == ""
