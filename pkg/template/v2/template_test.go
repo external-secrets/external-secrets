@@ -440,8 +440,7 @@ func TestSecretExecute(t *testing.T) {
 		{
 			name: "test data sync",
 			tpl: `data:
-                    "{{ .key }}": "{{ .value }}"
-`,
+                    "{{ .key }}": "{{ .value }}"`,
 			data: map[string][]byte{
 				"key":   []byte("foo"),
 				"value": []byte("MTIzNA=="),
@@ -449,6 +448,24 @@ func TestSecretExecute(t *testing.T) {
 			expectedData: map[string][]byte{
 				"foo": []byte("1234"),
 			},
+		},
+		{
+			name: "templating error",
+			tpl: `data:
+                    "{{ .example | iamNoFunction }}": "{{ .value }}"`,
+			data: map[string][]byte{
+				"example": []byte("yada"),
+			},
+			expErr: `unable to parse template at key secret: template: secret:2: function "iamNoFunction" not defined`,
+		},
+		{
+			name: "marshalling error",
+			tpl: `data:
+                    "{{ .iamnokey }}": "{{ .value }}"`,
+			data: map[string][]byte{
+				"example": []byte("yada"),
+			},
+			expErr: `error unmarshaling JSON: while decoding JSON: illegal base64 data at input byte 0`,
 		},
 		{
 			name: "test stringData sync",
