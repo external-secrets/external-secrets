@@ -86,7 +86,7 @@ nav:
     - HashiCorp Vault: provider/hashicorp-vault.md
     - Yandex Certificate Manager: provider/yandex-certificate-manager.md
     - Yandex Lockbox: provider/yandex-lockbox.md
-    - Gitlab Project Variables: provider/gitlab-variables.md
+    - Gitlab Variables: provider/gitlab-variables.md
     - Oracle Vault: provider/oracle-vault.md
     - 1Password Secrets Automation: provider/1password-automation.md
     - Webhook: provider/webhook.md
