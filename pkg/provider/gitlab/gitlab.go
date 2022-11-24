@@ -169,7 +169,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 	// ClientOptionFunc from the gitlab package can be mapped with the CRD
 	// in a similar way to extend functionality of the provider
 
-	// Create a new Gitlab projectVariablesClient using credentials and options
+	// Create a new Gitlab Client using credentials and options
 	gitlabClient, err := gitlab.NewClient(string(cliStore.credentials), opts...)
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 	return g, nil
 }
 
-// GetAllSecrets syncs all gitlab project variables into a single Kubernetes Secret.
+// GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
 func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) {
 		return nil, fmt.Errorf(errUninitializedGitlabProvider)
