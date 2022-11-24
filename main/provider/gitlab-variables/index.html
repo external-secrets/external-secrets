@@ -13,7 +13,7 @@
     
     
       
-        <title>Gitlab Project Variables - External Secrets Operator</title>
+        <title>Gitlab Variables - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#gitlab-project-and-group-variables" class="md-skip">
+        <a href="#gitlab-variables" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Gitlab Project Variables
+              Gitlab Variables
             
           </span>
         </div>
@@ -1333,12 +1333,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Gitlab Project Variables
+          Gitlab Variables
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Gitlab Project Variables
+        Gitlab Variables
       </a>
       
         
@@ -1355,16 +1355,16 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#gitlab-project-and-group-variables" class="md-nav__link">
-    Gitlab Project and Group Variables
+  <a href="#gitlab-variables" class="md-nav__link">
+    Gitlab Variables
   </a>
   
-    <nav class="md-nav" aria-label="Gitlab Project and Group Variables">
+    <nav class="md-nav" aria-label="Gitlab Variables">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
+  <a href="#configuring-gitlab" class="md-nav__link">
+    Configuring Gitlab
   </a>
   
 </li>
@@ -1377,8 +1377,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    Update secret store
+  <a href="#configuring-the-secret-store" class="md-nav__link">
+    Configuring the secret store
   </a>
   
 </li>
@@ -1875,16 +1875,16 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#gitlab-project-and-group-variables" class="md-nav__link">
-    Gitlab Project and Group Variables
+  <a href="#gitlab-variables" class="md-nav__link">
+    Gitlab Variables
   </a>
   
-    <nav class="md-nav" aria-label="Gitlab Project and Group Variables">
+    <nav class="md-nav" aria-label="Gitlab Variables">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    Authentication
+  <a href="#configuring-gitlab" class="md-nav__link">
+    Configuring Gitlab
   </a>
   
 </li>
@@ -1897,8 +1897,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    Update secret store
+  <a href="#configuring-the-secret-store" class="md-nav__link">
+    Configuring the secret store
   </a>
   
 </li>
@@ -1952,12 +1952,13 @@
 </a>
 
 
-  <h1>Gitlab Project Variables</h1>
+  <h1>Gitlab Variables</h1>
 
-<h2 id="gitlab-project-and-group-variables">Gitlab Project and Group Variables</h2>
+<h2 id="gitlab-variables">Gitlab Variables</h2>
 <p>External Secrets Operator integrates with Gitlab to sync <a href="https://docs.gitlab.com/ee/api/project_level_variables.html">Gitlab Project Variables API</a> and/or <a href="https://docs.gitlab.com/ee/api/group_level_variables.html">Gitlab Group Variables API</a> to secrets held on the Kubernetes cluster.</p>
-<h3 id="authentication">Authentication</h3>
-<p>The API requires an access token and project ID/groupIDs. To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).</p>
+<h3 id="configuring-gitlab">Configuring Gitlab</h3>
+<p>The Gitlab API requires an access token, project ID and/or groupIDs.</p>
+<p>To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).</p>
 <p><img alt="token-details" src="../../pictures/screenshot_gitlab_token.png" /></p>
 <p>Click 'Create personal access token', and your token will be generated and displayed on screen. Copy or save this token since you can't access it again.
 <img alt="token-created" src="../../pictures/screenshot_gitlab_token_created.png" /></p>
@@ -1973,8 +1974,10 @@
 <span class="nt">stringData</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;**access</span><span class="nv"> </span><span class="s">token</span><span class="nv"> </span><span class="s">goes</span><span class="nv"> </span><span class="s">here**&quot;</span><span class="w"></span>
 </code></pre></div>
-<h3 id="update-secret-store">Update secret store</h3>
+<h3 id="configuring-the-secret-store">Configuring the secret store</h3>
 <p>Be sure the <code>gitlab</code> provider is listed in the <code>Kind=SecretStore</code> and the ProjectID is set. If you are not using <code>https://gitlab.com</code>, you must set the <code>url</code> field as well.</p>
+<p>In order to sync group variables <code>inheritFromGroups</code> must be true or <code>groupIDs</code> have to be defined.</p>
+<p>In case you have defined multiple environments in Gitlab, the secret store should be constrained to a specific <code>environment_scope</code>.</p>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
