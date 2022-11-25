@@ -497,12 +497,41 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(expectedSecretVal))
 		}
 	}
-
-	// secret should be synced with correct value precedence:
-	// * template
-	// * templateFrom
-	// * data
-	// * dataFrom
+	syncWithTemplateFromString := func(tc *testCase) {
+		tplString := `
+data:
+  "{{ .targetKey }}": "{{ .bar | b64enc }}"
+stringData:
+  "static_key" : "static_value"`
+		tc.externalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+			Metadata:   esv1beta1.ExternalSecretTemplateMetadata{},
+			Type:       v1.SecretTypeOpaque,
+			FromString: &tplString,
+		}
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: "datamap",
+				},
+			},
+		}
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"targetKey": []byte(FooValue),
+			"bar":       []byte(BarValue),
+		}, nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data[FooValue])).To(Equal(BarValue))
+			Expect(string(secret.Data["static_key"])).To(Equal("static_value"))
+		}
+	}
+	// // secret should be synced with correct value precedence:
+	// // * fromString
+	// // * template data
+	// // * templateFrom
+	// // * data
+	// // * dataFrom
 	syncWithTemplatePrecedence := func(tc *testCase) {
 		const secretVal = "someValue"
 		const tplStaticKey = "tplstatickey"
@@ -1671,6 +1700,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync with template engine v2", syncWithTemplateV2),
+		Entry("should sync with template from String", syncWithTemplateFromString),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should refresh secret from template", refreshWithTemplate),
 		Entry("should be able to use only metadata from template", onlyMetadataFromTemplate),

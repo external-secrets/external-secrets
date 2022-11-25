@@ -459,7 +459,7 @@ func TestSecretExecute(t *testing.T) {
 			expErr: `unable to parse template at key secret: template: secret:2: function "iamNoFunction" not defined`,
 		},
 		{
-			name: "marshalling error",
+			name: "marshaling error",
 			tpl: `data:
                     "{{ .iamnokey }}": "{{ .value }}"`,
 			data: map[string][]byte{
