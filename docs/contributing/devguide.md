@@ -80,7 +80,7 @@ To remove the CRDs run:
 make crds.uninstall
 ```
 
-If you need to test some other k8s integrations and need the operator to be deployed to the actuall cluster while developing, you can use the following workflow:
+If you need to test some other k8s integrations and need the operator to be deployed to the actual cluster while developing, you can use the following workflow:
 
 ```
 kind create cluster --name external-secrets

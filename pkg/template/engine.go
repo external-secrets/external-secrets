@@ -22,7 +22,7 @@ import (
 	v2 "github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
-type ExecFunc func(tpl, data map[string][]byte, secret *corev1.Secret) error
+type ExecFunc func(tpl, labelsTpl, annotationsTpl, data map[string][]byte, secret *corev1.Secret) error
 type SecretExecFunc func(tpl string, data map[string][]byte, secret *corev1.Secret) error
 
 func SecretTemplateForVersion(version esapi.TemplateEngineVersion) (SecretExecFunc, error) {

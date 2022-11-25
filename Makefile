@@ -5,8 +5,9 @@ SHELL         := /bin/bash
 MAKEFLAGS     += --warn-undefined-variables
 .SHELLFLAGS   := -euo pipefail -c
 
-ARCH = amd64 arm64
-BUILD_ARGS ?=
+ARCH ?= amd64 arm64
+BUILD_ARGS ?= CGO_ENABLED=0
+DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
 
 # default target is build
@@ -73,7 +74,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate helm.generate helm.docs lint ## Ensure a PR is ready for review.
+reviewable: generate manifests helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 
@@ -122,7 +123,7 @@ build: $(addprefix build-,$(ARCH)) ## Build binary
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
+	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
@@ -220,7 +221,7 @@ docker.tag:
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	@docker build -f $(DOCKERFILE) . $(BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
 docker.push: ## Push the docker image to the registry

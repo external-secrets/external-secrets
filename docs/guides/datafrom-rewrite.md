@@ -11,7 +11,7 @@ Rewrite operations are all applied before `ConversionStrategy` is applied.
 ### Regexp
 This method implements rewriting through the use of regular expressions. It needs a `source` and a `target` field. The source field is where the definition of the matching regular expression goes, where the `target` field is where the replacing expression goes.
 
-Some considerations about the impelementation of Regexp Rewrite:
+Some considerations about the implementation of Regexp Rewrite:
 
 1. The input of a subsequent rewrite operation are the outputs of the previous rewrite.
 2. If a given set of keys do not match any Rewrite operation, there will be no error. Rather, the original keys will be used.

@@ -6,10 +6,26 @@ on:
       image-name:
         required: true
         type: string
+      image-tag:
+        required: false
+        type: string
       tag-suffix:
         required: true
         type: string
       dockerfile:
+        required: true
+        type: string
+      ref:
+        required: false
+        default: main
+        type: string
+      build-args:
+        required: true
+        type: string
+      build-arch:
+        required: true
+        type: string
+      build-platform:
         required: true
         type: string
     secrets:
@@ -21,6 +37,7 @@ on:
 env:
   IMAGE_NAME: ${{ inputs.image-name }}
   TAG_SUFFIX: ${{ inputs.tag-suffix }}
+  ARCH: ${{ inputs.build-arch }}
   DOCKERFILE: ${{ inputs.dockerfile }}
   IS_FORK: ${{ secrets.GHCR_USERNAME == '' && 'true' || 'false' }}
 
@@ -34,6 +51,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v2
@@ -88,7 +107,9 @@ jobs:
         env:
           GITHUB_REF: ${{ github.ref }}
         run: |
-          if [ "$GITHUB_REF" == "refs/heads/main" ]; then
+          if [ "${{ inputs.image-tag }}" != "" ]; then
+            TAG="${{ inputs.image-tag }}${{ inputs.tag-suffix }}"
+          elif [ "$GITHUB_REF" == "refs/heads/main" ]; then
             TAG=main${{ inputs.tag-suffix }}
           else
             TAG=$(make docker.tag)
@@ -100,9 +121,10 @@ jobs:
         shell: bash
         env:
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
-          BUILD_ARGS: >-
+          BUILD_ARGS: ${{ inputs.build-args }}
+          DOCKER_BUILD_ARGS: >-
             --push
-            --platform linux/amd64,linux/arm64
+            --platform ${{ inputs.build-platform }}
         run: make docker.build
 
       - name: Build & Publish Artifacts fork
@@ -110,7 +132,8 @@ jobs:
         shell: bash
         env:
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
-          BUILD_ARGS: --load
+          BUILD_ARGS: ${{ inputs.build-args }}
+          DOCKER_BUILD_ARGS: --load
         run: make docker.build
 
       - name: Run Trivy vulnerability scanner

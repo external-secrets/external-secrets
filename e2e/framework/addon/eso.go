@@ -50,6 +50,10 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("VERSION"),
 				},
 				{
+					Key:   "extraArgs.loglevel",
+					Value: "debug",
+				},
+				{
 					Key:   installCRDsVar,
 					Value: "false",
 				},

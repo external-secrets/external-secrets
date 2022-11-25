@@ -52,7 +52,7 @@ func UseMountedIRSAStore(tc *framework.TestCase) {
 
 // StaticStore is namespaced and references
 // static credentials from a secret.
-func SetupStaticStore(f *framework.Framework, kid, sak, region string, serviceType esv1beta1.AWSServiceType) {
+func SetupStaticStore(f *framework.Framework, kid, sak, st, region string, serviceType esv1beta1.AWSServiceType) {
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      StaticCredentialsSecretName,
@@ -61,6 +61,7 @@ func SetupStaticStore(f *framework.Framework, kid, sak, region string, serviceTy
 		StringData: map[string]string{
 			"kid": kid,
 			"sak": sak,
+			"st":  st,
 		},
 	}
 	err := f.CRClient.Create(context.Background(), awsCreds)
@@ -85,6 +86,10 @@ func SetupStaticStore(f *framework.Framework, kid, sak, region string, serviceTy
 							SecretAccessKey: esmetav1.SecretKeySelector{
 								Name: StaticCredentialsSecretName,
 								Key:  "sak",
+							},
+							SessionToken: &esmetav1.SecretKeySelector{
+								Name: StaticCredentialsSecretName,
+								Key:  "st",
 							},
 						},
 					},

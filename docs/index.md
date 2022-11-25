@@ -7,7 +7,7 @@ secret management systems like [AWS Secrets
 Manager](https://aws.amazon.com/secrets-manager/), [HashiCorp
 Vault](https://www.vaultproject.io/), [Google Secrets
 Manager](https://cloud.google.com/secret-manager), [Azure Key
-Vault](https://azure.microsoft.com/en-us/services/key-vault/) and many more. The
+Vault](https://azure.microsoft.com/en-us/services/key-vault/), [IBM Cloud Secrets Manager](https://www.ibm.com/cloud/secrets-manager), and many more. The
 operator reads information from external APIs and automatically injects the
 values into a [Kubernetes
 Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
@@ -22,17 +22,17 @@ lifecycle of the secrets for you.
 
 ### Where to get started
 
-To get started, please read through [API overview](overview.md) this should
+To get started, please read through [API overview](introduction/overview.md) this should
 give you a high-level overview to understand the API and use-cases. After that
 please follow one of our [guides](guides/introduction.md) to get a jump start
-using the operator. See our [getting started guide](guides/getting-started.md) for installation instructions.
+using the operator. See our [getting started guide](introduction/getting-started.md) for installation instructions.
 
 For a complete reference of the API types please refer to our [API
-Reference](spec.md).
+Reference](api/spec.md).
 
 ### How to get involved
 
-This project is driven by it's users and contributors and we welcome everybody
+This project is driven by its users and contributors, and we welcome everybody
 to get involved. Join our meetings, open issues or ask questions in Slack. The
 success of this project depends on your input: No contribution is too small -
 even opinions matter!

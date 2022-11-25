@@ -111,7 +111,7 @@ func validateStore(ctx context.Context, namespace string, store esapi.GenericSto
 
 // ShouldProcessStore returns true if the store should be processed.
 func ShouldProcessStore(store esapi.GenericStore, class string) bool {
-	if store.GetSpec().Controller == "" || store.GetSpec().Controller == class {
+	if store == nil || store.GetSpec().Controller == "" || store.GetSpec().Controller == class {
 		return true
 	}
 

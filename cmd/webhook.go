@@ -209,7 +209,7 @@ func init() {
 	rootCmd.AddCommand(webhookCmd)
 	webhookCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	webhookCmd.Flags().StringVar(&healthzAddr, "healthz-addr", ":8081", "The address the health endpoint binds to.")
-	webhookCmd.Flags().IntVar(&port, "port", 10250, "The address the health endpoint binds to.")
+	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port number that the webhook server will serve.")
 	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "localhost", "DNS name to validate certificates with")
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "path to check for certs")
 	webhookCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
@@ -221,5 +221,5 @@ func init() {
 		" The order of this list does not give preference to the ciphers, the ordering is done automatically."+
 		" Full lists of available ciphers can be found at https://pkg.go.dev/crypto/tls#pkg-constants."+
 		" E.g. 'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256'")
-	webhookCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "1.2", "minimum version of TLS supported. Defaults to 1.2")
+	webhookCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "1.2", "minimum version of TLS supported.")
 }

@@ -70,7 +70,7 @@ const (
 )
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(tpl, data map[string][]byte, secret *corev1.Secret) error {
+func Execute(tpl, labelsTpl, annotationsTpl, data map[string][]byte, secret *corev1.Secret) error {
 	if tpl == nil {
 		return nil
 	}

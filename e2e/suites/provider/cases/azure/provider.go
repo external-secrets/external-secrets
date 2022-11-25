@@ -157,7 +157,7 @@ func (s *azureProvider) CreateCertificate(key string) {
 }
 
 func (s *azureProvider) GetCertificate(key string) []byte {
-	attempts := 20
+	attempts := 60
 	for {
 		out, err := s.client.GetCertificate(
 			context.Background(),

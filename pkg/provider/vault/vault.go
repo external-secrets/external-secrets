@@ -1193,7 +1193,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.Vaul
 			return jwt, err
 		}
 		if err != nil {
-			v.log.V(1).Info("unable to fetch jwt from service account secret")
+			v.log.V(1).Info("unable to fetch jwt from service account secret, trying service account token next")
 		}
 		// Kubernetes >=v1.24: fetch token via TokenRequest API
 		// note: this is a massive change from vault perspective: the `iss` claim will very likely change.
