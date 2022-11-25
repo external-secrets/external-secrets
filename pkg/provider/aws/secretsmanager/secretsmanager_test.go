@@ -24,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -524,8 +523,16 @@ func TestSetSecret(t *testing.T) {
 			}
 			err := sm.SetSecret(context.Background(), []byte("fake-value"), ref)
 
-			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			// Error nil XOR tc.want.err nil
+			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			}
+
+			// if errors are the same type but their contents do not match
+			if err != nil && tc.want.err != nil {
+				if !strings.Contains(err.Error(), tc.want.err.Error()) {
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
 			}
 		})
 	}

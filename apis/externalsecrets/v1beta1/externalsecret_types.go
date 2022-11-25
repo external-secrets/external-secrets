@@ -156,9 +156,17 @@ type ExternalSecretTarget struct {
 
 // ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.
 type ExternalSecretData struct {
+	// SecretKey defines the key in which the controller stores
+	// the value. This is the key in the Kind=Secret
 	SecretKey string `json:"secretKey"`
 
+	// RemoteRef points to the remote secret and defines
+	// which secret (version/property/..) to fetch.
 	RemoteRef ExternalSecretDataRemoteRef `json:"remoteRef"`
+
+	// SourceRef allows you to override the source
+	// from which the value will pulled from.
+	SourceRef *SourceRef `json:"sourceRef,omitempty"`
 }
 
 // ExternalSecretDataRemoteRef defines Provider data location.
@@ -214,9 +222,11 @@ const (
 
 type ExternalSecretDataFromRemoteRef struct {
 	// Used to extract multiple key/value pairs from one secret
+	// Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
 	// +optional
 	Extract *ExternalSecretDataRemoteRef `json:"extract,omitempty"`
 	// Used to find secrets based on tags or regular expressions
+	// Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.
 	// +optional
 	Find *ExternalSecretFind `json:"find,omitempty"`
 
@@ -224,6 +234,14 @@ type ExternalSecretDataFromRemoteRef struct {
 	// Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
 	// +optional
 	Rewrite []ExternalSecretRewrite `json:"rewrite,omitempty"`
+
+	// SourceRef points to a store or generator
+	// which contains secret values ready to use.
+	// Use this in combination with Extract or Find pull values out of
+	// a specific SecretStore.
+	// When sourceRef points to a generator Extract or Find is not supported.
+	// The generator returns a static map of values
+	SourceRef *SourceRef `json:"sourceRef,omitempty"`
 }
 
 type ExternalSecretRewrite struct {
@@ -270,6 +288,7 @@ type FindName struct {
 
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
+	// +optional
 	SecretStoreRef SecretStoreRef `json:"secretStoreRef"`
 	// +kubebuilder:default={creationPolicy:Owner,deletionPolicy:Retain}
 	// +optional
@@ -289,6 +308,30 @@ type ExternalSecretSpec struct {
 	// If multiple entries are specified, the Secret keys are merged in the specified order
 	// +optional
 	DataFrom []ExternalSecretDataFromRemoteRef `json:"dataFrom,omitempty"`
+}
+
+// SourceRef allows you to override the source
+// from which the secret will be pulled from.
+// You can define at maximum one property.
+// +kubebuilder:validation:MaxProperties=1
+type SourceRef struct {
+	// +optional
+	SecretStoreRef *SecretStoreRef `json:"storeRef,omitempty"`
+
+	// GeneratorRef points to a generator custom resource in
+	// +optional
+	GeneratorRef *GeneratorRef `json:"generatorRef,omitempty"`
+}
+
+// GeneratorRef points to a generator custom resource.
+type GeneratorRef struct {
+	// Specify the apiVersion of the generator resource
+	// +kubebuilder:default="generators.external-secrets.io/v1alpha1"
+	APIVersion string `json:"apiVersion,omitempty"`
+	// Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.
+	Kind string `json:"kind"`
+	// Specify the name of the generator resource
+	Name string `json:"name"`
 }
 
 type ExternalSecretConditionType string

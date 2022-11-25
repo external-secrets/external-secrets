@@ -43,6 +43,7 @@ jobs:
         run: |
           echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}\`" >> .changelog
           echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi\`" >> .changelog
+          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl\`" >> .changelog
           echo "${{ steps.build_changelog.outputs.changelog }}" >> .changelog
 
       - name: Update Release
@@ -71,10 +72,11 @@ jobs:
         include:
         - tag_suffix: "" # distroless image
         - tag_suffix: "-ubi" # ubi image
+        - tag_suffix: "-ubi-boringssl" # ubi image
 
     permissions:
       id-token: write
-      contents: read
+      contents: write
 
     env:
       SOURCE_TAG: main${{ matrix.tag_suffix }}
@@ -119,7 +121,11 @@ jobs:
       - name: Promote Container Image
         run: make docker.promote
 
+      - name: Build release manifests
+        run: make manifests
+
       - name: Sign promoted image
+        id: sign
         uses: ./.github/actions/sign
         with:
           image-name: ${{ env.IMAGE_NAME }}
@@ -127,3 +133,14 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          files: |
+            provenance.${{ env.RELEASE_TAG }}.intoto.jsonl
+            sbom.${{ env.RELEASE_TAG }}.spdx.json
+            bin/deploy/manifests/external-secrets.yaml
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

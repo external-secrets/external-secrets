@@ -34,6 +34,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
@@ -84,6 +85,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = esv1beta1.AddToScheme(scheme)
 	_ = esv1alpha1.AddToScheme(scheme)
+	_ = genv1alpha1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 }
 
@@ -155,6 +157,7 @@ var rootCmd = &cobra.Command{
 			Client:                    mgr.GetClient(),
 			Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
 			Scheme:                    mgr.GetScheme(),
+			RestConfig:                mgr.GetConfig(),
 			ControllerClass:           controllerClass,
 			RequeueInterval:           time.Hour,
 			ClusterSecretStoreEnabled: enableClusterStoreReconciler,
@@ -212,7 +215,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	rootCmd.Flags().StringVar(&controllerClass, "controller-class", "default", "the controller is instantiated with a specific controller name and filters ES based on this property")
+	rootCmd.Flags().StringVar(&controllerClass, "controller-class", "default", "The controller is instantiated with a specific controller name and filters ES based on this property")
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")

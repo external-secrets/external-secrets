@@ -47,6 +47,18 @@ rules:
     - "update"
     - "patch"
   - apiGroups:
+    - "generators.external-secrets.io"
+    resources:
+    - "fakes"
+    - "passwords"
+    - "acraccesstokens"
+    - "gcraccesstokens"
+    - "ecrauthorizationtokens"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  - apiGroups:
     - ""
     resources:
     - "serviceaccounts"
@@ -95,6 +107,7 @@ rules:
     verbs:
     - "create"
     - "update"
+    - "delete"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}

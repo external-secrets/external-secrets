@@ -21,10 +21,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/crossplane/crossplane-runtime/pkg/test"
-	"github.com/google/go-cmp/cmp"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/googleapis/gax-go/v2/apierror"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/utils/pointer"
@@ -501,8 +499,16 @@ func TestSetSecret(t *testing.T) {
 				},
 			}
 			err := c.SetSecret(context.Background(), []byte("fake-value"), ref)
-			if diff := cmp.Diff(tc.want.err, err, test.EquateErrors()); diff != "" {
-				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, diff)
+			// Error nil XOR tc.want.err nil
+			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
+				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			}
+
+			// if errors are the same type but their contents do not match
+			if err != nil && tc.want.err != nil {
+				if !strings.Contains(err.Error(), tc.want.err.Error()) {
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+				}
 			}
 		})
 	}

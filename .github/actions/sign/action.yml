@@ -67,11 +67,12 @@ runs:
 
     - name: Attach SBOM to image
       shell: bash
+      id: sbom
       env:
         COSIGN_EXPERIMENTAL: "1"
       run: |
-        syft "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}" -o spdx-json=sbom-spdx.json
-        cosign attest --predicate sbom-spdx.json --type spdx "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
+        syft "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}" -o spdx-json=sbom.${{ inputs.image-tag }}.spdx.json
+        cosign attest --predicate sbom.${{ inputs.image-tag }}.spdx.json --type spdx "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
         cosign verify-attestation --type spdx ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }} | jq '.payload |= @base64d | .payload | fromjson'
 
     - name: Generate provenance
@@ -79,16 +80,17 @@ runs:
       with:
         command: generate
         subcommand: container
-        arguments: --repository "${{ inputs.image-name }}" --output-path provenance.att --digest "${{ steps.container_info.outputs.digest }}" --tags "${{ inputs.image-tag }}"
+        arguments: --repository "${{ inputs.image-name }}" --output-path provenance.${{ inputs.image-tag }}.intoto.jsonl --digest "${{ steps.container_info.outputs.digest }}" --tags "${{ inputs.image-tag }}"
       env:
         COSIGN_EXPERIMENTAL: "0"
         GITHUB_TOKEN: "${{ inputs.GITHUB_TOKEN }}"
 
     - name: Attach provenance
       shell: bash
+      id: provenance
       env:
         COSIGN_EXPERIMENTAL: "1"
       run: |
-        jq '.predicate' provenance.att > provenance-predicate.att
+        jq '.predicate' provenance.${{ inputs.image-tag }}.intoto.jsonl > provenance-predicate.att
         cosign attest --predicate provenance-predicate.att --type slsaprovenance "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
         cosign verify-attestation --type slsaprovenance ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}

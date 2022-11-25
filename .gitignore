@@ -23,6 +23,7 @@ e2e/k8s/deploy
 e2e/suites/argocd/argocd.test
 e2e/suites/flux/flux.test
 e2e/suites/provider/provider.test
+e2e/suites/generator/generator.test
 
 # tf ignores
 # Local .terraform directories

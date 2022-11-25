@@ -155,6 +155,7 @@ func (c *HelmChart) Logs() error {
 		return err
 	}
 	log.Logf("logs: found %d pods", len(podList.Items))
+	tailLines := int64(200)
 	for i := range podList.Items {
 		pod := podList.Items[i]
 		for _, con := range pod.Spec.Containers {
@@ -162,6 +163,7 @@ func (c *HelmChart) Logs() error {
 				resp := kc.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &corev1.PodLogOptions{
 					Container: con.Name,
 					Previous:  b,
+					TailLines: &tailLines,
 				}).Do(context.TODO())
 
 				err := resp.Error()

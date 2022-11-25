@@ -36,6 +36,21 @@ type SecretStoreSpec struct {
 	// Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
 	// +optional
 	RefreshInterval int `json:"refreshInterval"`
+
+	// Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
+	// +optional
+	Conditions []ClusterSecretStoreCondition `json:"conditions,omitempty"`
+}
+
+// ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
+// for a ClusterSecretStore instance.
+type ClusterSecretStoreCondition struct {
+	// Choose namespace using a labelSelector
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+
+	// Choose namespaces by name
+	Namespaces []string `json:"namespaces,omitempty"`
 }
 
 // SecretStoreProvider contains the provider-specific configuration.

@@ -1,16 +1,17 @@
-## Gitlab Project Variables
+## Gitlab Variables
 
-External Secrets Operator integrates with [Gitlab API](https://docs.gitlab.com/ee/api/project_level_variables.html) to sync Gitlab project variables to secrets held on the Kubernetes cluster.
+External Secrets Operator integrates with Gitlab to sync [Gitlab Project Variables API](https://docs.gitlab.com/ee/api/project_level_variables.html) and/or [Gitlab Group Variables API](https://docs.gitlab.com/ee/api/group_level_variables.html) to secrets held on the Kubernetes cluster.
 
-### Authentication
+### Configuring Gitlab
 
-The API requires an access token and project ID. To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).
+The Gitlab API requires an access token, project ID and/or groupIDs.
+
+To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).
 
 ![token-details](../pictures/screenshot_gitlab_token.png)
 
 Click 'Create personal access token', and your token will be generated and displayed on screen. Copy or save this token since you can't access it again.
 ![token-created](../pictures/screenshot_gitlab_token_created.png)
-
 
 
 ### Access Token secret
@@ -21,8 +22,12 @@ Create a secret containing your access token:
 {% include 'gitlab-credentials-secret.yaml' %}
 ```
 
-### Update secret store
+### Configuring the secret store
 Be sure the `gitlab` provider is listed in the `Kind=SecretStore` and the ProjectID is set. If you are not using `https://gitlab.com`, you must set the `url` field as well.
+
+In order to sync group variables `inheritFromGroups` must be true or `groupIDs` have to be defined.
+
+In case you have defined multiple environments in Gitlab, the secret store should be constrained to a specific `environment_scope`.
 
 ```yaml
 {% include 'gitlab-secret-store.yaml' %}

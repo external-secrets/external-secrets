@@ -20,6 +20,8 @@ spec:
     vault:
       server: "http://my.vault.server:8200"
       path: "secret"
+      # Version is the Vault KV secret engine version.
+      # This can be either "v1" or "v2", defaults to "v2"
       version: "v2"
       auth:
         # points to a secret that contains a vault token
@@ -42,6 +44,14 @@ Then create a simple k/v pair at path `secret/foo`:
 ```
 vault kv put secret/foo my-value=s3cr3t
 ```
+
+Can check kv version using following and check for `Options` column, it should indicate [version:2]:
+
+```
+vault secrets list -detailed
+```
+
+If you are using version: 1, just remember to update your SecretStore manifest appropriately
 
 Now create a ExternalSecret that uses the above SecretStore:
 

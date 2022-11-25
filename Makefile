@@ -5,8 +5,9 @@ SHELL         := /bin/bash
 MAKEFLAGS     += --warn-undefined-variables
 .SHELLFLAGS   := -euo pipefail -c
 
-ARCH = amd64 arm64
-BUILD_ARGS ?=
+ARCH ?= amd64 arm64
+BUILD_ARGS ?= CGO_ENABLED=0
+DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
 
 # default target is build
@@ -73,8 +74,9 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate helm.generate helm.docs lint ## Ensure a PR is ready for review.
+reviewable: generate manifests helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
+	@cd e2e/ && go mod tidy
 
 golicenses.check: ## Check install of go-licenses
 	@if ! go-licenses >> /dev/null 2>&1; then \
@@ -121,7 +123,7 @@ build: $(addprefix build-,$(ARCH)) ## Build binary
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
+	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
@@ -138,7 +140,7 @@ lint.install: ## Install golangci-lint to the go bin dir
 	fi
 
 lint: lint.check ## Run golangci-lint
-	@if ! golangci-lint run --timeout 5m; then \
+	@if ! golangci-lint run; then \
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
 		exit 1; \
 	fi
@@ -146,6 +148,7 @@ lint: lint.check ## Run golangci-lint
 
 fmt: lint.check ## Ensure consistent code style
 	@go mod tidy
+	@cd e2e/ && go mod tidy
 	@go fmt ./...
 	@golangci-lint run --fix > /dev/null 2>&1 || true
 	@$(OK) Ensured consistent code style
@@ -218,7 +221,7 @@ docker.tag:
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	@docker build -f $(DOCKERFILE) . $(BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
 docker.push: ## Push the docker image to the registry

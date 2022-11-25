@@ -23,12 +23,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"github.com/crossplane/crossplane-runtime/pkg/test"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -359,14 +357,12 @@ func TestValidRetryInput(t *testing.T) {
 					Auth: esv1beta1.AWSAuth{
 						SecretRef: &esv1beta1.AWSAuthSecretRef{
 							SecretAccessKey: esmeta.SecretKeySelector{
-								Name:      "sak",
-								Namespace: pointer.String("OK"),
-								Key:       "sak",
+								Name: "creds",
+								Key:  "sak",
 							},
 							AccessKeyID: esmeta.SecretKeySelector{
-								Name:      "ak",
-								Namespace: pointer.String("OK"),
-								Key:       "ak",
+								Name: "creds",
+								Key:  "ak",
 							},
 						},
 					},
@@ -381,19 +377,16 @@ func TestValidRetryInput(t *testing.T) {
 	expected := fmt.Sprintf("unable to initialize aws provider: time: invalid duration %q", invalid)
 	ctx := context.TODO()
 
-	kube := &test.MockClient{
-		MockGet: test.NewMockGetFn(nil, func(obj kclient.Object) error {
-			if o, ok := obj.(*corev1.Secret); ok {
-				o.Data = map[string][]byte{
-					"sak": []byte("OK"),
-					"ak":  []byte("OK"),
-				}
-				return nil
-			}
-			return nil
-		}),
-	}
-
+	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "creds",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"sak": []byte("OK"),
+			"ak":  []byte("OK"),
+		},
+	}).Build()
 	provider := func(*session.Session) stsiface.STSAPI { return nil }
 
 	_, err := newClient(ctx, spec, kube, "default", provider)

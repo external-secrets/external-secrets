@@ -1,5 +1,5 @@
 run:
-  timeout: 5m
+  timeout: 10m
 
 linters-settings:
   gci:
@@ -79,7 +79,6 @@ linters:
 service:
   golangci-lint-version: 1.33.x
 
-
 issues:
   # Excluding configuration per-path and per-linter
   exclude-rules:
@@ -104,7 +103,7 @@ issues:
     # positives in Kubernetes land where a Secret is an object type.
     - text: "G101:"
       linters:
-      - gosec
+        - gosec
 
     # The header check doesn't correctly parse the header as a code comment and is
     # triggered by the perceived diff. The header check still correctly detects missing
