@@ -156,8 +156,8 @@ func (provider *ProviderOnePassword) DeleteSecret(ctx context.Context, remoteRef
 	return fmt.Errorf("not implemented")
 }
 
-// Not Implemented SetSecret.
-func (provider *ProviderOnePassword) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+// Not Implemented PushSecret.
+func (provider *ProviderOnePassword) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

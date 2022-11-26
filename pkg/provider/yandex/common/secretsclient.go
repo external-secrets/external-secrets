@@ -38,7 +38,7 @@ func (c *yandexCloudSecretsClient) DeleteSecret(ctx context.Context, remoteRef e
 	return fmt.Errorf("not implemented")
 }
 
-func (c *yandexCloudSecretsClient) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *yandexCloudSecretsClient) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

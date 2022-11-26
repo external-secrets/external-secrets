@@ -205,8 +205,8 @@ func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemote
 	return fmt.Errorf("not implemented")
 }
 
-// Not Implemented SetSecret.
-func (a *Azure) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+// Not Implemented PushSecret.
+func (a *Azure) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

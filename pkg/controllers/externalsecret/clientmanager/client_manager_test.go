@@ -346,7 +346,7 @@ type FakeClient struct {
 	closeCalled bool
 }
 
-func (c *FakeClient) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *FakeClient) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return nil
 }
 

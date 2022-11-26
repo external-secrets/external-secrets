@@ -34,8 +34,8 @@ func (p *PP) NewClient(ctx context.Context, store GenericStore, kube client.Clie
 	return p, nil
 }
 
-// SetSecret writes a single secret into a provider.
-func (p *PP) SetSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error {
+// PushSecret writes a single secret into a provider.
+func (p *PP) PushSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error {
 	return nil
 }
 

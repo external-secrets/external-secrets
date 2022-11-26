@@ -105,8 +105,8 @@ func (ibm *providerIBM) DeleteSecret(ctx context.Context, remoteRef esv1beta1.Pu
 	return fmt.Errorf("not implemented")
 }
 
-// Not Implemented SetSecret.
-func (ibm *providerIBM) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+// Not Implemented PushSecret.
+func (ibm *providerIBM) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

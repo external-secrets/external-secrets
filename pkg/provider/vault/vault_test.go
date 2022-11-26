@@ -1487,7 +1487,7 @@ func TestSetSecret(t *testing.T) {
 				logical: tc.args.vLogical,
 				store:   tc.args.store,
 			}
-			err := client.SetSecret(context.Background(), []byte("fake-value"), ref)
+			err := client.PushSecret(context.Background(), []byte("fake-value"), ref)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {

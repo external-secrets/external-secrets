@@ -120,7 +120,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return nil
 }
 
-func (pm *ParameterStore) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	// TODO create tags outside of the flow of create parameter: so we can always create parameters
 	// and always create tags.
 	// TODO then create validation for secret versions so that we only have a new version on value change

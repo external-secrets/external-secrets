@@ -498,7 +498,7 @@ func TestSetSecret(t *testing.T) {
 					ProjectID: smtc.projectID,
 				},
 			}
-			err := c.SetSecret(context.Background(), []byte("fake-value"), ref)
+			err := c.PushSecret(context.Background(), []byte("fake-value"), ref)
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)

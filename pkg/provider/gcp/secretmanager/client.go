@@ -115,8 +115,8 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
 }
 
-// SetSecret pushes a kubernetes secret key into gcp provider Secret.
-func (c *Client) SetSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
+// PushSecret pushes a kubernetes secret key into gcp provider Secret.
+func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	createSecretReq := &secretmanagerpb.CreateSecretRequest{
 		Parent:   fmt.Sprintf("projects/%s", c.store.ProjectID),
 		SecretId: remoteRef.GetRemoteKey(),

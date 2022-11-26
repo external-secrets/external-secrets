@@ -73,8 +73,8 @@ type KmsVCInterface interface {
 	GetVault(ctx context.Context, request keymanagement.GetVaultRequest) (response keymanagement.GetVaultResponse, err error)
 }
 
-// Not Implemented SetSecret.
-func (vms *VaultManagementService) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+// Not Implemented PushSecret.
+func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

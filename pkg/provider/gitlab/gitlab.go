@@ -196,8 +196,8 @@ func (g *Gitlab) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return fmt.Errorf("not implemented")
 }
 
-// Not Implemented SetSecret.
-func (g *Gitlab) SetSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+// Not Implemented PushSecret.
+func (g *Gitlab) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

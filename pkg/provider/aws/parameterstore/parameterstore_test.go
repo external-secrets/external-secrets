@@ -425,7 +425,7 @@ func TestPushSecret(t *testing.T) {
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
-			err := ps.SetSecret(context.TODO(), []byte(fakeValue), ref)
+			err := ps.PushSecret(context.TODO(), []byte(fakeValue), ref)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
