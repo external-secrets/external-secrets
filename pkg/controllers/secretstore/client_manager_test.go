@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clientmanager
+package secretstore
 
 import (
 	"context"
@@ -20,6 +20,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,13 +42,13 @@ func TestManagerGet(t *testing.T) {
 	// the behavior of the NewClient func.
 	fakeProvider := &WrapProvider{}
 	esv1beta1.ForceRegister(fakeProvider, &esv1beta1.SecretStoreProvider{
-		Fake: &esv1beta1.FakeProvider{},
+		AWS: &esv1beta1.AWSProvider{},
 	})
 
 	// fake clients are re-used to compare the
 	// in-memory reference
-	clientA := &FakeClient{id: "1"}
-	clientB := &FakeClient{id: "2"}
+	clientA := &MockFakeClient{id: "1"}
+	clientB := &MockFakeClient{id: "2"}
 
 	const testNamespace = "foo"
 
@@ -62,14 +63,7 @@ func TestManagerGet(t *testing.T) {
 
 	fakeSpec := esv1beta1.SecretStoreSpec{
 		Provider: &esv1beta1.SecretStoreProvider{
-			Fake: &esv1beta1.FakeProvider{
-				Data: []esv1beta1.FakeProviderData{
-					{
-						Key:   "foo",
-						Value: "bar",
-					},
-				},
-			},
+			AWS: &esv1beta1.AWSProvider{},
 		},
 	}
 
@@ -96,7 +90,7 @@ func TestManagerGet(t *testing.T) {
 	var mgr *Manager
 
 	provKey := clientKey{
-		providerType: "*clientmanager.WrapProvider",
+		providerType: "*secretstore.WrapProvider",
 	}
 
 	type fields struct {
@@ -148,7 +142,7 @@ func TestManagerGet(t *testing.T) {
 				// and it mustbe the client defined in clientConstructor
 				assert.NotNil(t, sc)
 				c, ok := mgr.clientMap[provKey]
-				assert.True(t, ok)
+				require.True(t, ok)
 				assert.Same(t, c.client, clientA)
 			},
 
@@ -341,38 +335,38 @@ func (f *WrapProvider) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-type FakeClient struct {
+type MockFakeClient struct {
 	id          string
 	closeCalled bool
 }
 
-func (c *FakeClient) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *MockFakeClient) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	return nil
 }
 
-func (c *FakeClient) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *MockFakeClient) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
 	return nil
 }
 
-func (c *FakeClient) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *MockFakeClient) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return nil, nil
 }
 
-func (c *FakeClient) Validate() (esv1beta1.ValidationResult, error) {
+func (c *MockFakeClient) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (c *FakeClient) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *MockFakeClient) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, nil
 }
 
 // GetAllSecrets returns multiple k/v pairs from the provider.
-func (c *FakeClient) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *MockFakeClient) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, nil
 }
 
-func (c *FakeClient) Close(ctx context.Context) error {
+func (c *MockFakeClient) Close(ctx context.Context) error {
 	c.closeCalled = true
 	return nil
 }

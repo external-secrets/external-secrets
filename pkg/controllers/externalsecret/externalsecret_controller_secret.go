@@ -29,9 +29,11 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/clientmanager"
+
 	// Loading registered generators.
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
+
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -43,7 +45,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 	// Clientmanager keeps track of the client instances
 	// that are created during the fetching process and closes clients
 	// if needed.
-	mgr := clientmanager.New(r.Client, r.ControllerClass, r.EnableFloodGate)
+	mgr := secretstore.New(r.Client, r.ControllerClass, r.EnableFloodGate)
 	defer mgr.Close(ctx)
 
 	providerData := make(map[string][]byte)
@@ -87,7 +89,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 	return providerData, nil
 }
 
-func (r *Reconciler) handleSecretData(ctx context.Context, i int, externalSecret esv1beta1.ExternalSecret, secretRef esv1beta1.ExternalSecretData, providerData map[string][]byte, cmgr *clientmanager.Manager) error {
+func (r *Reconciler) handleSecretData(ctx context.Context, i int, externalSecret esv1beta1.ExternalSecret, secretRef esv1beta1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, secretRef.SourceRef)
 	if err != nil {
 		return err
@@ -170,7 +172,7 @@ func (r *Reconciler) getGeneratorDefinition(ctx context.Context, namespace strin
 	return &apiextensions.JSON{Raw: jsonRes}, nil
 }
 
-func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *clientmanager.Manager, i int) (map[string][]byte, error) {
+func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, i int) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
 		return nil, err
@@ -199,7 +201,7 @@ func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *e
 	return secretMap, err
 }
 
-func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *clientmanager.Manager, i int) (map[string][]byte, error) {
+func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, i int) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
 		return nil, err

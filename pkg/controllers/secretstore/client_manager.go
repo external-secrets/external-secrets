@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clientmanager
+package secretstore
 
 import (
 	"context"
@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
 
 const (
@@ -74,36 +73,7 @@ func New(ctrlClient client.Client, controllerClass string, enableFloodgate bool)
 	}
 }
 
-// Get returns a provider client from the given storeRef or sourceRef.secretStoreRef
-// while sourceRef.SecretStoreRef takes precedence over storeRef.
-// Do not close the client returned from this func, instead close
-// the manager once you're done with recinciling the external secret.
-func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, namespace string, sourceRef *esv1beta1.SourceRef) (esv1beta1.SecretsClient, error) {
-	if sourceRef != nil && sourceRef.SecretStoreRef != nil {
-		storeRef = *sourceRef.SecretStoreRef
-	}
-	store, err := m.getStore(ctx, &storeRef, namespace)
-	if err != nil {
-		return nil, err
-	}
-	// check if store should be handled by this controller instance
-	if !secretstore.ShouldProcessStore(store, m.controllerClass) {
-		return nil, fmt.Errorf("can not reference unmanaged store")
-	}
-	// when using ClusterSecretStore, validate the ClusterSecretStore namespace conditions
-	shouldProcess, err := m.shouldProcessSecret(store, namespace)
-	if err != nil || !shouldProcess {
-		if err == nil && !shouldProcess {
-			err = fmt.Errorf(errClusterStoreMismatch, store.GetName(), namespace)
-		}
-		return nil, err
-	}
-	if m.enableFloodgate {
-		err := assertStoreIsUsable(store)
-		if err != nil {
-			return nil, err
-		}
-	}
+func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore, namespace string) (esv1beta1.SecretsClient, error) {
 	storeProvider, err := esv1beta1.GetProvider(store)
 	if err != nil {
 		return nil, err
@@ -127,6 +97,39 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, na
 		store:  store,
 	}
 	return secretClient, nil
+}
+
+// Get returns a provider client from the given storeRef or sourceRef.secretStoreRef
+// while sourceRef.SecretStoreRef takes precedence over storeRef.
+// Do not close the client returned from this func, instead close
+// the manager once you're done with recinciling the external secret.
+func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, namespace string, sourceRef *esv1beta1.SourceRef) (esv1beta1.SecretsClient, error) {
+	if sourceRef != nil && sourceRef.SecretStoreRef != nil {
+		storeRef = *sourceRef.SecretStoreRef
+	}
+	store, err := m.getStore(ctx, &storeRef, namespace)
+	if err != nil {
+		return nil, err
+	}
+	// check if store should be handled by this controller instance
+	if !ShouldProcessStore(store, m.controllerClass) {
+		return nil, fmt.Errorf("can not reference unmanaged store")
+	}
+	// when using ClusterSecretStore, validate the ClusterSecretStore namespace conditions
+	shouldProcess, err := m.shouldProcessSecret(store, namespace)
+	if err != nil || !shouldProcess {
+		if err == nil && !shouldProcess {
+			err = fmt.Errorf(errClusterStoreMismatch, store.GetName(), namespace)
+		}
+		return nil, err
+	}
+	if m.enableFloodgate {
+		err := assertStoreIsUsable(store)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return m.GetFromStore(ctx, store, namespace)
 }
 
 // returns a previously stored client from the cache if store and store-version match
@@ -248,7 +251,7 @@ func assertStoreIsUsable(store esv1beta1.GenericStore) error {
 	if store == nil {
 		return nil
 	}
-	condition := secretstore.GetSecretStoreCondition(store.GetStatus(), esv1beta1.SecretStoreReady)
+	condition := GetSecretStoreCondition(store.GetStatus(), esv1beta1.SecretStoreReady)
 	if condition == nil || condition.Status != v1.ConditionTrue {
 		return fmt.Errorf(errSecretStoreNotReady, store.GetName())
 	}
