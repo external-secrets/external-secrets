@@ -95,12 +95,27 @@ require github.com/1Password/connect-sdk-go v1.5.0
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.0.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.2
+	github.com/alibabacloud-go/kms-20160120/v3 v3.0.0
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/sethvargo/go-password v0.2.0
 	sigs.k8s.io/yaml v1.3.0
+	github.com/aliyun/credentials-go v1.2.4
 )
 
-require cloud.google.com/go/compute/metadata v0.2.1 // indirect
+require (
+	cloud.google.com/go/compute/metadata v0.2.1 // indirect
+	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
+	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
+	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
+	github.com/alibabacloud-go/openapi-util v0.0.11 // indirect
+	github.com/alibabacloud-go/tea v1.1.19 // indirect
+	github.com/alibabacloud-go/tea-utils v1.3.1 // indirect
+	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
+	github.com/clbanning/mxj/v2 v2.5.5 // indirect
+	github.com/tjfoc/gmsm v1.3.2 // indirect
+)
 
 require (
 	cloud.google.com/go/compute v1.12.1 // indirect

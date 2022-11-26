@@ -18,17 +18,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
-
-	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
-	"github.com/tidwall/gjson"
+	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
+	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"time"
+
+	"github.com/tidwall/gjson"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	util "github.com/alibabacloud-go/tea-utils/v2/service"
+	credential "github.com/aliyun/credentials-go/credentials"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -47,9 +49,8 @@ type Client struct {
 	store     *esv1beta1.AlibabaProvider
 	namespace string
 	storeKind string
-	regionID  string
-	keyID     []byte
-	accessKey []byte
+	config    *openapi.Config
+	options   *util.RuntimeOptions
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -58,19 +59,57 @@ var _ esv1beta1.Provider = &KeyManagementService{}
 
 type KeyManagementService struct {
 	Client SMInterface
-	url    string
 }
 
 type SMInterface interface {
-	GetSecretValue(request *kmssdk.GetSecretValueRequest) (response *kmssdk.GetSecretValueResponse, err error)
+	GetSecretValue(ctx context.Context, request *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponseBody, error)
+	Endpoint() string
 }
 
-// setAuth creates a new Alibaba session based on a store.
-func (c *Client) setAuth(ctx context.Context) error {
+// setClientConfiguration sets Alibaba configuration based on a store.
+func (c *Client) setClientConfiguration(ctx context.Context, options *util.RuntimeOptions) error {
+	config := &openapi.Config{
+		RegionId: utils.Ptr(c.store.RegionID),
+	}
+
+	switch {
+	case c.store.Auth.RRSAAuth != nil:
+		credentials, err := c.getRRSAAuth()
+		if err != nil {
+			return fmt.Errorf("failed to create Alibaba OIDC credentials: %w", err)
+		}
+
+		config.Credential = credentials
+	case c.store.Auth.SecretRef != nil:
+		credentials, err := c.getAccessKeyAuth(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create Alibaba AccessKey credentials: %w", err)
+		}
+
+		config.Credential = credentials
+	}
+
+	c.options = options
+	return nil
+}
+
+func (c *Client) getRRSAAuth() (credential.Credential, error) {
+	credentialConfig := &credential.Config{
+		OIDCProviderArn:   &c.store.Auth.RRSAAuth.OIDCProviderARN,
+		OIDCTokenFilePath: &c.store.Auth.RRSAAuth.OIDCTokenFilePath,
+		RoleArn:           &c.store.Auth.RRSAAuth.RoleARN,
+		RoleSessionName:   &c.store.Auth.RRSAAuth.SessionName,
+		Type:              utils.Ptr("oidc_role_arn"),
+	}
+
+	return credential.NewCredential(credentialConfig)
+}
+
+func (c *Client) getAccessKeyAuth(ctx context.Context) (credential.Credential, error) {
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := c.store.Auth.SecretRef.AccessKeyID.Name
 	if credentialsSecretName == "" {
-		return fmt.Errorf(errAlibabaCredSecretName)
+		return nil, fmt.Errorf(errAlibabaCredSecretName)
 	}
 	objectKey := types.NamespacedName{
 		Name:      credentialsSecretName,
@@ -80,14 +119,14 @@ func (c *Client) setAuth(ctx context.Context) error {
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.AccessKeyID.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
+			return nil, fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
 		}
 		objectKey.Namespace = *c.store.Auth.SecretRef.AccessKeyID.Namespace
 	}
 
 	err := c.kube.Get(ctx, objectKey, credentialsSecret)
 	if err != nil {
-		return fmt.Errorf(errFetchAKIDSecret, err)
+		return nil, fmt.Errorf(errFetchAKIDSecret, err)
 	}
 
 	objectKey = types.NamespacedName{
@@ -96,22 +135,28 @@ func (c *Client) setAuth(ctx context.Context) error {
 	}
 	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.AccessKeySecret.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
+			return nil, fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
 		}
 		objectKey.Namespace = *c.store.Auth.SecretRef.AccessKeySecret.Namespace
 	}
-	c.keyID = credentialsSecret.Data[c.store.Auth.SecretRef.AccessKeyID.Key]
-	fmt.Println(c.keyID)
-	fmt.Println(c.accessKey)
-	if (c.keyID == nil) || (len(c.keyID) == 0) {
-		return fmt.Errorf(errMissingAKID)
+
+	accessKeyId := credentialsSecret.Data[c.store.Auth.SecretRef.AccessKeyID.Key]
+	if (accessKeyId == nil) || (len(accessKeyId) == 0) {
+		return nil, fmt.Errorf(errMissingAKID)
 	}
-	c.accessKey = credentialsSecret.Data[c.store.Auth.SecretRef.AccessKeySecret.Key]
-	if (c.accessKey == nil) || (len(c.accessKey) == 0) {
-		return fmt.Errorf(errMissingSAK)
+
+	accessKeySecret := credentialsSecret.Data[c.store.Auth.SecretRef.AccessKeySecret.Key]
+	if (accessKeySecret == nil) || (len(accessKeySecret) == 0) {
+		return nil, fmt.Errorf(errMissingSAK)
 	}
-	c.regionID = c.store.RegionID
-	return nil
+
+	credentialConfig := &credential.Config{
+		AccessKeyId:     utils.Ptr(string(accessKeyId)),
+		AccessKeySecret: utils.Ptr(string(accessKeySecret)),
+		Type:            utils.Ptr("access_key"),
+	}
+
+	return credential.NewCredential(credentialConfig)
 }
 
 // Empty GetAllSecrets.
@@ -125,23 +170,28 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.Ex
 	if utils.IsNil(kms.Client) {
 		return nil, fmt.Errorf(errUninitalizedAlibabaProvider)
 	}
-	kmsRequest := kmssdk.CreateGetSecretValueRequest()
-	kmsRequest.VersionId = ref.Version
-	kmsRequest.SecretName = ref.Key
-	kmsRequest.SetScheme("https")
-	secretOut, err := kms.Client.GetSecretValue(kmsRequest)
+
+	request := &kmssdk.GetSecretValueRequest{
+		SecretName: &ref.Key,
+	}
+
+	if ref.Version != "" {
+		request.VersionId = &ref.Version
+	}
+
+	secretOut, err := kms.Client.GetSecretValue(ctx, request)
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, SanitizeErr(err)
 	}
 	if ref.Property == "" {
-		if secretOut.SecretData != "" {
-			return []byte(secretOut.SecretData), nil
+		if utils.Deref(secretOut.SecretData) != "" {
+			return []byte(utils.Deref(secretOut.SecretData)), nil
 		}
 		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
 	var payload string
-	if secretOut.SecretData != "" {
-		payload = secretOut.SecretData
+	if utils.Deref(secretOut.SecretData) != "" {
+		payload = utils.Deref(secretOut.SecretData)
 	}
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
@@ -178,18 +228,31 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
-	if err := iStore.setAuth(ctx); err != nil {
+
+	options := &util.RuntimeOptions{}
+	// Setup retry options, if present in storeSpec
+	if storeSpec.RetrySettings != nil {
+		var retryAmount int
+
+		if storeSpec.RetrySettings.MaxRetries != nil {
+			retryAmount = int(*storeSpec.RetrySettings.MaxRetries)
+		} else {
+			retryAmount = 3
+		}
+
+		options.Autoretry = utils.Ptr(true)
+		options.MaxAttempts = utils.Ptr(retryAmount)
+	}
+
+	if err := iStore.setClientConfiguration(ctx, options); err != nil {
 		return nil, err
 	}
-	alibabaRegion := iStore.regionID
-	alibabaKeyID := iStore.keyID
-	alibabaSecretKey := iStore.accessKey
-	keyManagementService, err := kmssdk.NewClientWithAccessKey(alibabaRegion, string(alibabaKeyID), string(alibabaSecretKey))
+
+	keyManagementService, err := newClient(iStore.config, iStore.options)
 	if err != nil {
 		return nil, fmt.Errorf(errAlibabaClient, err)
 	}
 	kms.Client = keyManagementService
-	kms.url = alibabaSpec.Endpoint
 	return kms, nil
 }
 
@@ -199,7 +262,7 @@ func (kms *KeyManagementService) Close(ctx context.Context) error {
 
 func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) {
 	timeout := 15 * time.Second
-	url := kms.url
+	url := kms.Client.Endpoint()
 
 	if err := utils.NetworkValidate(url, timeout); err != nil {
 		return esv1beta1.ValidationResultError, err
@@ -217,35 +280,58 @@ func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) err
 		return fmt.Errorf("missing alibaba region")
 	}
 
-	accessKeyID := alibabaSpec.Auth.SecretRef.AccessKeyID
-	err := utils.ValidateSecretSelector(store, accessKeyID)
-	if err != nil {
-		return err
+	switch {
+	case alibabaSpec.Auth.RRSAAuth != nil:
+		if alibabaSpec.Auth.RRSAAuth.OIDCProviderARN == "" {
+			return fmt.Errorf("missing alibaba OIDC proivder ARN")
+		}
+
+		if alibabaSpec.Auth.RRSAAuth.OIDCTokenFilePath == "" {
+			return fmt.Errorf("missing alibaba OIDC token file path")
+		}
+
+		if alibabaSpec.Auth.RRSAAuth.RoleARN == "" {
+			return fmt.Errorf("missing alibaba Assume Role ARN")
+		}
+
+		if alibabaSpec.Auth.RRSAAuth.SessionName == "" {
+			return fmt.Errorf("missing alibaba session name")
+		}
+
+		return nil
+	case alibabaSpec.Auth.SecretRef != nil:
+		accessKeyID := alibabaSpec.Auth.SecretRef.AccessKeyID
+		err := utils.ValidateSecretSelector(store, accessKeyID)
+		if err != nil {
+			return err
+		}
+
+		if accessKeyID.Name == "" {
+			return fmt.Errorf("missing alibaba access ID name")
+		}
+
+		if accessKeyID.Key == "" {
+			return fmt.Errorf("missing alibaba access ID key")
+		}
+
+		accessKeySecret := alibabaSpec.Auth.SecretRef.AccessKeySecret
+		err = utils.ValidateSecretSelector(store, accessKeySecret)
+		if err != nil {
+			return err
+		}
+
+		if accessKeySecret.Name == "" {
+			return fmt.Errorf("missing alibaba access key secret name")
+		}
+
+		if accessKeySecret.Key == "" {
+			return fmt.Errorf("missing alibaba access key secret key")
+		}
+
+		return nil
 	}
 
-	if accessKeyID.Name == "" {
-		return fmt.Errorf("missing alibaba access ID name")
-	}
-
-	if accessKeyID.Key == "" {
-		return fmt.Errorf("missing alibaba access ID key")
-	}
-
-	accessKeySecret := alibabaSpec.Auth.SecretRef.AccessKeySecret
-	err = utils.ValidateSecretSelector(store, accessKeySecret)
-	if err != nil {
-		return err
-	}
-
-	if accessKeySecret.Name == "" {
-		return fmt.Errorf("missing alibaba access key secret name")
-	}
-
-	if accessKeySecret.Key == "" {
-		return fmt.Errorf("missing alibaba access key secret key")
-	}
-
-	return nil
+	return fmt.Errorf("missing alibaba auth provider")
 }
 
 func init() {

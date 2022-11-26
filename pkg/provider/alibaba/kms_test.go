@@ -21,9 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
-	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
-
+	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
@@ -37,7 +35,7 @@ const (
 type keyManagementServiceTestCase struct {
 	mockClient     *fakesm.AlibabaMockClient
 	apiInput       *kmssdk.GetSecretValueRequest
-	apiOutput      *kmssdk.GetSecretValueResponse
+	apiOutput      *kmssdk.GetSecretValueResponseBody
 	ref            *esv1beta1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
@@ -69,28 +67,17 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 
 func makeValidAPIInput() *kmssdk.GetSecretValueRequest {
 	return &kmssdk.GetSecretValueRequest{
-		SecretName: secretName,
+		SecretName: ptr(secretName),
 	}
 }
 
-func makeValidAPIOutput() *kmssdk.GetSecretValueResponse {
-	kmsresponse := &kmssdk.GetSecretValueResponse{
-		BaseResponse:      &responses.BaseResponse{},
-		RequestId:         "",
-		SecretName:        secretName,
-		VersionId:         "",
-		CreateTime:        "",
-		SecretData:        secretValue,
-		SecretDataType:    "",
-		AutomaticRotation: "",
-		RotationInterval:  "",
-		NextRotationDate:  "",
-		ExtendedConfig:    "",
-		LastRotationDate:  "",
-		SecretType:        "",
-		VersionStages:     kmssdk.VersionStagesInGetSecretValue{},
+func makeValidAPIOutput() *kmssdk.GetSecretValueResponseBody {
+	response := &kmssdk.GetSecretValueResponseBody{
+		SecretName:    ptr(secretName),
+		SecretData:    ptr(secretValue),
+		VersionStages: &kmssdk.GetSecretValueResponseBodyVersionStages{},
 	}
-	return kmsresponse
+	return response
 }
 
 func makeValidKMSTestCaseCustom(tweaks ...func(kmstc *keyManagementServiceTestCase)) *keyManagementServiceTestCase {
@@ -120,16 +107,16 @@ func TestAlibabaKMSGetSecret(t *testing.T) {
 	// good case: default version is set
 	// key is passed in, output is sent back
 	setSecretString := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretName = secretName
-		kmstc.apiOutput.SecretData = secretValue
+		kmstc.apiOutput.SecretName = ptr(secretName)
+		kmstc.apiOutput.SecretData = ptr(secretValue)
 		kmstc.expectedSecret = secretValue
 	}
 
 	// good case: custom version set
 	setCustomKey := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretName = "test-example-other"
+		kmstc.apiOutput.SecretName = ptr("test-example-other")
 		kmstc.ref.Key = "test-example-other"
-		kmstc.apiOutput.SecretData = secretValue
+		kmstc.apiOutput.SecretData = ptr(secretValue)
 		kmstc.expectedSecret = secretValue
 	}
 
@@ -156,14 +143,14 @@ func TestAlibabaKMSGetSecret(t *testing.T) {
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretName = "foo"
+		kmstc.apiOutput.SecretName = ptr("foo")
 		kmstc.expectedData["foo"] = []byte("bar")
-		kmstc.apiOutput.SecretData = `{"foo":"bar"}`
+		kmstc.apiOutput.SecretData = ptr(`{"foo":"bar"}`)
 	}
 
 	// bad case: invalid json
 	setInvalidJSON := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretData = "-----------------"
+		kmstc.apiOutput.SecretData = ptr("-----------------")
 		kmstc.expectError = "unable to unmarshal secret"
 	}
 
@@ -196,7 +183,7 @@ func TestValidateStore(t *testing.T) {
 				Alibaba: &esv1beta1.AlibabaProvider{
 					RegionID: "region-1",
 					Auth: &esv1beta1.AlibabaAuth{
-						SecretRef: esv1beta1.AlibabaAuthSecretRef{
+						SecretRef: &esv1beta1.AlibabaAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
 								Name: "accessKeyID",
 								Key:  "key-1",
