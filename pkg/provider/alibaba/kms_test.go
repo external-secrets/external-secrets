@@ -17,6 +17,7 @@ package alibaba
 import (
 	"context"
 	"fmt"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"reflect"
 	"strings"
 	"testing"
@@ -67,14 +68,14 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 
 func makeValidAPIInput() *kmssdk.GetSecretValueRequest {
 	return &kmssdk.GetSecretValueRequest{
-		SecretName: ptr(secretName),
+		SecretName: utils.Ptr(secretName),
 	}
 }
 
 func makeValidAPIOutput() *kmssdk.GetSecretValueResponseBody {
 	response := &kmssdk.GetSecretValueResponseBody{
-		SecretName:    ptr(secretName),
-		SecretData:    ptr(secretValue),
+		SecretName:    utils.Ptr(secretName),
+		SecretData:    utils.Ptr(secretValue),
 		VersionStages: &kmssdk.GetSecretValueResponseBodyVersionStages{},
 	}
 	return response
@@ -107,16 +108,16 @@ func TestAlibabaKMSGetSecret(t *testing.T) {
 	// good case: default version is set
 	// key is passed in, output is sent back
 	setSecretString := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretName = ptr(secretName)
-		kmstc.apiOutput.SecretData = ptr(secretValue)
+		kmstc.apiOutput.SecretName = utils.Ptr(secretName)
+		kmstc.apiOutput.SecretData = utils.Ptr(secretValue)
 		kmstc.expectedSecret = secretValue
 	}
 
 	// good case: custom version set
 	setCustomKey := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretName = ptr("test-example-other")
+		kmstc.apiOutput.SecretName = utils.Ptr("test-example-other")
 		kmstc.ref.Key = "test-example-other"
-		kmstc.apiOutput.SecretData = ptr(secretValue)
+		kmstc.apiOutput.SecretData = utils.Ptr(secretValue)
 		kmstc.expectedSecret = secretValue
 	}
 
@@ -143,14 +144,14 @@ func TestAlibabaKMSGetSecret(t *testing.T) {
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretName = ptr("foo")
+		kmstc.apiOutput.SecretName = utils.Ptr("foo")
 		kmstc.expectedData["foo"] = []byte("bar")
-		kmstc.apiOutput.SecretData = ptr(`{"foo":"bar"}`)
+		kmstc.apiOutput.SecretData = utils.Ptr(`{"foo":"bar"}`)
 	}
 
 	// bad case: invalid json
 	setInvalidJSON := func(kmstc *keyManagementServiceTestCase) {
-		kmstc.apiOutput.SecretData = ptr("-----------------")
+		kmstc.apiOutput.SecretData = utils.Ptr("-----------------")
 		kmstc.expectError = "unable to unmarshal secret"
 	}
 
