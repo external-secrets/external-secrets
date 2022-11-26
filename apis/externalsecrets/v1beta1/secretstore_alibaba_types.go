@@ -20,7 +20,10 @@ import (
 
 // AlibabaAuth contains a secretRef for credentials.
 type AlibabaAuth struct {
-	SecretRef AlibabaAuthSecretRef `json:"secretRef"`
+	// +optional
+	SecretRef *AlibabaAuthSecretRef `json:"secretRef,omitempty"`
+	// +optional
+	RRSAAuth *AlibabaRRSAAuth `json:"rrsa,omitempty"`
 }
 
 // AlibabaAuthSecretRef holds secret references for Alibaba credentials.
@@ -31,11 +34,17 @@ type AlibabaAuthSecretRef struct {
 	AccessKeySecret esmeta.SecretKeySelector `json:"accessKeySecretSecretRef"`
 }
 
+// Authenticate against Alibaba using RRSA.
+type AlibabaRRSAAuth struct {
+	OIDCProviderARN   string `json:"oidcProviderArn"`
+	OIDCTokenFilePath string `json:"oidcTokenFilePath"`
+	RoleARN           string `json:"roleArn"`
+	SessionName       string `json:"sessionName"`
+}
+
 // AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.
 type AlibabaProvider struct {
 	Auth *AlibabaAuth `json:"auth"`
-	// +optional
-	Endpoint string `json:"endpoint"`
 	// Alibaba Region to be used for the provider
 	RegionID string `json:"regionID"`
 }
