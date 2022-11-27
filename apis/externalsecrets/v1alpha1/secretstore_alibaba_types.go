@@ -44,7 +44,7 @@ type AlibabaAuthSecretRef struct {
 
 // AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.
 type AlibabaProvider struct {
-	Auth *AlibabaAuth `json:"auth"`
+	Auth AlibabaAuth `json:"auth"`
 	// Alibaba Region to be used for the provider
 	RegionID string `json:"regionID"`
 }
