@@ -29,12 +29,10 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-
-	// Loading registered generators.
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
-	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
-
 	// Loading registered providers.
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	// Loading registered generators.
+	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -45,7 +43,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 	// Clientmanager keeps track of the client instances
 	// that are created during the fetching process and closes clients
 	// if needed.
-	mgr := secretstore.New(r.Client, r.ControllerClass, r.EnableFloodGate)
+	mgr := secretstore.NewManager(r.Client, r.ControllerClass, r.EnableFloodGate)
 	defer mgr.Close(ctx)
 
 	providerData := make(map[string][]byte)

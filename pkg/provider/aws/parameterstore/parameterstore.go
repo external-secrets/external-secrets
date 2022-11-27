@@ -121,11 +121,6 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 }
 
 func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	// TODO create tags outside of the flow of create parameter: so we can always create parameters
-	// and always create tags.
-	// TODO then create validation for secret versions so that we only have a new version on value change
-	// TODO Testing manually, unit tests, validation tests
-
 	parameterType := "String"
 	overwrite := true
 
@@ -161,7 +156,6 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, remoteRe
 		isManaged := isManagedByESO(tags)
 
 		if !isManaged {
-			// TODO Can we refactor this error message to a higher scope to stop duplicates
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
 

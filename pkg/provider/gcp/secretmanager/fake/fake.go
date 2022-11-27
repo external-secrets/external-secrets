@@ -177,8 +177,6 @@ func (mc *MockSMClient) AccessSecretVersionWithError(err error) {
 	}
 }
 
-// TODO: func (mc...) DefaultAccessSecretVersion (similar to above)
-
 func (mc *MockSMClient) WithValue(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
 	if mc != nil {
 		mc.accessSecretFn = func(paramCtx context.Context, paramReq *secretmanagerpb.AccessSecretVersionRequest, paramOpts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {

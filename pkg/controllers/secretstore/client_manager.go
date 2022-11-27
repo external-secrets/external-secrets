@@ -62,7 +62,7 @@ type clientVal struct {
 }
 
 // New constructs a new manager with defaults.
-func New(ctrlClient client.Client, controllerClass string, enableFloodgate bool) *Manager {
+func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgate bool) *Manager {
 	log := ctrl.Log.WithName("clientmanager")
 	return &Manager{
 		log:             log,
