@@ -175,7 +175,7 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
-func TestValidateStore(t *testing.T) {
+func TestValidateAccessKeyStore(t *testing.T) {
 	kms := KeyManagementService{}
 
 	store := &esv1beta1.SecretStore{
@@ -183,7 +183,7 @@ func TestValidateStore(t *testing.T) {
 			Provider: &esv1beta1.SecretStoreProvider{
 				Alibaba: &esv1beta1.AlibabaProvider{
 					RegionID: "region-1",
-					Auth: &esv1beta1.AlibabaAuth{
+					Auth: esv1beta1.AlibabaAuth{
 						SecretRef: &esv1beta1.AlibabaAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
 								Name: "accessKeyID",
@@ -193,6 +193,33 @@ func TestValidateStore(t *testing.T) {
 								Name: "accessKeySecret",
 								Key:  "key-1",
 							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := kms.ValidateStore(store)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+}
+
+func TestValidateRRSAStore(t *testing.T) {
+	kms := KeyManagementService{}
+
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Alibaba: &esv1beta1.AlibabaProvider{
+					RegionID: "region-1",
+					Auth: esv1beta1.AlibabaAuth{
+						RRSAAuth: &esv1beta1.AlibabaRRSAAuth{
+							OIDCProviderARN:   "acs:ram::1234:oidc-provider/ack-rrsa-ce123456",
+							OIDCTokenFilePath: "/var/run/secrets/tokens/oidc-token",
+							RoleARN:           "acs:ram::1234:role/test-role",
+							SessionName:       "secrets",
 						},
 					},
 				},
