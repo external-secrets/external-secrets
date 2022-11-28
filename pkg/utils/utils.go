@@ -19,6 +19,7 @@ import (
 	//nolint:gosec
 	"crypto/md5"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -284,4 +285,32 @@ func NetworkValidate(endpoint string, timeout time.Duration) error {
 	}
 	defer conn.Close()
 	return nil
+}
+
+func Deref[V any](v *V) V {
+	if v == nil {
+		// Create zero value
+		var res V
+		return res
+	}
+	return *v
+}
+
+func Ptr[T any](i T) *T {
+	return &i
+}
+
+func ConvertToType[T any](obj interface{}) (T, error) {
+	var v T
+
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return v, fmt.Errorf("failed to marshal object: %w", err)
+	}
+
+	if err = json.Unmarshal(data, &v); err != nil {
+		return v, fmt.Errorf("failed to unmarshal object: %w", err)
+	}
+
+	return v, nil
 }

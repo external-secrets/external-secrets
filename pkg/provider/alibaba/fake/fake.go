@@ -15,21 +15,27 @@ limitations under the License.
 package fake
 
 import (
-	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
+	"context"
+
+	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
 )
 
 type AlibabaMockClient struct {
-	getSecretValue func(request *kmssdk.GetSecretValueRequest) (response *kmssdk.GetSecretValueResponse, err error)
+	getSecretValue func(request *kmssdk.GetSecretValueRequest) (response *kmssdk.GetSecretValueResponseBody, err error)
 }
 
-func (mc *AlibabaMockClient) GetSecretValue(*kmssdk.GetSecretValueRequest) (result *kmssdk.GetSecretValueResponse, err error) {
+func (mc *AlibabaMockClient) GetSecretValue(context.Context, *kmssdk.GetSecretValueRequest) (result *kmssdk.GetSecretValueResponseBody, err error) {
 	return mc.getSecretValue(&kmssdk.GetSecretValueRequest{})
 }
 
-func (mc *AlibabaMockClient) WithValue(in *kmssdk.GetSecretValueRequest, val *kmssdk.GetSecretValueResponse, err error) {
+func (mc *AlibabaMockClient) WithValue(in *kmssdk.GetSecretValueRequest, val *kmssdk.GetSecretValueResponseBody, err error) {
 	if mc != nil {
-		mc.getSecretValue = func(paramIn *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponse, error) {
+		mc.getSecretValue = func(paramIn *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponseBody, error) {
 			return val, err
 		}
 	}
+}
+
+func (mc *AlibabaMockClient) Endpoint() string {
+	return ""
 }

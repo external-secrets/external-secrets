@@ -18,17 +18,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
-
-	kmssdk "github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
-	"github.com/tidwall/gjson"
+	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
+	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"time"
+
+	"github.com/tidwall/gjson"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	util "github.com/alibabacloud-go/tea-utils/v2/service"
+	credential "github.com/aliyun/credentials-go/credentials"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -42,76 +44,17 @@ const (
 	errMissingAKID                             = "missing AccessKeyID"
 )
 
-type Client struct {
-	kube      kclient.Client
-	store     *esv1beta1.AlibabaProvider
-	namespace string
-	storeKind string
-	regionID  string
-	keyID     []byte
-	accessKey []byte
-}
-
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &KeyManagementService{}
 var _ esv1beta1.Provider = &KeyManagementService{}
 
 type KeyManagementService struct {
 	Client SMInterface
-	url    string
 }
 
 type SMInterface interface {
-	GetSecretValue(request *kmssdk.GetSecretValueRequest) (response *kmssdk.GetSecretValueResponse, err error)
-}
-
-// setAuth creates a new Alibaba session based on a store.
-func (c *Client) setAuth(ctx context.Context) error {
-	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.AccessKeyID.Name
-	if credentialsSecretName == "" {
-		return fmt.Errorf(errAlibabaCredSecretName)
-	}
-	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
-		Namespace: c.namespace,
-	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.AccessKeyID.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
-		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.AccessKeyID.Namespace
-	}
-
-	err := c.kube.Get(ctx, objectKey, credentialsSecret)
-	if err != nil {
-		return fmt.Errorf(errFetchAKIDSecret, err)
-	}
-
-	objectKey = types.NamespacedName{
-		Name:      c.store.Auth.SecretRef.AccessKeySecret.Name,
-		Namespace: c.namespace,
-	}
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.AccessKeySecret.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
-		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.AccessKeySecret.Namespace
-	}
-	c.keyID = credentialsSecret.Data[c.store.Auth.SecretRef.AccessKeyID.Key]
-	fmt.Println(c.keyID)
-	fmt.Println(c.accessKey)
-	if (c.keyID == nil) || (len(c.keyID) == 0) {
-		return fmt.Errorf(errMissingAKID)
-	}
-	c.accessKey = credentialsSecret.Data[c.store.Auth.SecretRef.AccessKeySecret.Key]
-	if (c.accessKey == nil) || (len(c.accessKey) == 0) {
-		return fmt.Errorf(errMissingSAK)
-	}
-	c.regionID = c.store.RegionID
-	return nil
+	GetSecretValue(ctx context.Context, request *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponseBody, error)
+	Endpoint() string
 }
 
 // Empty GetAllSecrets.
@@ -125,23 +68,28 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.Ex
 	if utils.IsNil(kms.Client) {
 		return nil, fmt.Errorf(errUninitalizedAlibabaProvider)
 	}
-	kmsRequest := kmssdk.CreateGetSecretValueRequest()
-	kmsRequest.VersionId = ref.Version
-	kmsRequest.SecretName = ref.Key
-	kmsRequest.SetScheme("https")
-	secretOut, err := kms.Client.GetSecretValue(kmsRequest)
+
+	request := &kmssdk.GetSecretValueRequest{
+		SecretName: &ref.Key,
+	}
+
+	if ref.Version != "" {
+		request.VersionId = &ref.Version
+	}
+
+	secretOut, err := kms.Client.GetSecretValue(ctx, request)
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, SanitizeErr(err)
 	}
 	if ref.Property == "" {
-		if secretOut.SecretData != "" {
-			return []byte(secretOut.SecretData), nil
+		if utils.Deref(secretOut.SecretData) != "" {
+			return []byte(utils.Deref(secretOut.SecretData)), nil
 		}
 		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
 	var payload string
-	if secretOut.SecretData != "" {
-		payload = secretOut.SecretData
+	if utils.Deref(secretOut.SecretData) != "" {
+		payload = utils.Deref(secretOut.SecretData)
 	}
 	val := gjson.Get(payload, ref.Property)
 	if !val.Exists() {
@@ -172,25 +120,143 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1
 func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
-	iStore := &Client{
-		kube:      kube,
-		store:     alibabaSpec,
-		namespace: namespace,
-		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+
+	credentials, err := newAuth(ctx, kube, store, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Alibaba credentials: %w", err)
 	}
-	if err := iStore.setAuth(ctx); err != nil {
-		return nil, err
+
+	config := &openapi.Config{
+		RegionId:   utils.Ptr(alibabaSpec.RegionID),
+		Credential: credentials,
 	}
-	alibabaRegion := iStore.regionID
-	alibabaKeyID := iStore.keyID
-	alibabaSecretKey := iStore.accessKey
-	keyManagementService, err := kmssdk.NewClientWithAccessKey(alibabaRegion, string(alibabaKeyID), string(alibabaSecretKey))
+
+	options := newOptions(store)
+	client, err := newClient(config, options)
 	if err != nil {
 		return nil, fmt.Errorf(errAlibabaClient, err)
 	}
-	kms.Client = keyManagementService
-	kms.url = alibabaSpec.Endpoint
+
+	kms.Client = client
 	return kms, nil
+}
+
+func newOptions(store esv1beta1.GenericStore) *util.RuntimeOptions {
+	storeSpec := store.GetSpec()
+
+	options := &util.RuntimeOptions{}
+	// Setup retry options, if present in storeSpec
+	if storeSpec.RetrySettings != nil {
+		var retryAmount int
+
+		if storeSpec.RetrySettings.MaxRetries != nil {
+			retryAmount = int(*storeSpec.RetrySettings.MaxRetries)
+		} else {
+			retryAmount = 3
+		}
+
+		options.Autoretry = utils.Ptr(true)
+		options.MaxAttempts = utils.Ptr(retryAmount)
+	}
+
+	return options
+}
+
+func newAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericStore, namespace string) (credential.Credential, error) {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+
+	switch {
+	case alibabaSpec.Auth.RRSAAuth != nil:
+		credentials, err := newRRSAAuth(store)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Alibaba OIDC credentials: %w", err)
+		}
+
+		return credentials, nil
+	case alibabaSpec.Auth.SecretRef != nil:
+		credentials, err := newAccessKeyAuth(ctx, kube, store, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Alibaba AccessKey credentials: %w", err)
+		}
+
+		return credentials, nil
+	default:
+		return nil, fmt.Errorf("alibaba authentication methods wasn't provided")
+	}
+}
+
+func newRRSAAuth(store esv1beta1.GenericStore) (credential.Credential, error) {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+
+	credentialConfig := &credential.Config{
+		OIDCProviderArn:   &alibabaSpec.Auth.RRSAAuth.OIDCProviderARN,
+		OIDCTokenFilePath: &alibabaSpec.Auth.RRSAAuth.OIDCTokenFilePath,
+		RoleArn:           &alibabaSpec.Auth.RRSAAuth.RoleARN,
+		RoleSessionName:   &alibabaSpec.Auth.RRSAAuth.SessionName,
+		Type:              utils.Ptr("oidc_role_arn"),
+	}
+
+	return credential.NewCredential(credentialConfig)
+}
+
+func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericStore, namespace string) (credential.Credential, error) {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+	storeKind := store.GetObjectKind().GroupVersionKind().Kind
+
+	credentialsSecret := &corev1.Secret{}
+	credentialsSecretName := alibabaSpec.Auth.SecretRef.AccessKeyID.Name
+	if credentialsSecretName == "" {
+		return nil, fmt.Errorf(errAlibabaCredSecretName)
+	}
+	objectKey := types.NamespacedName{
+		Name:      credentialsSecretName,
+		Namespace: namespace,
+	}
+
+	// only ClusterStore is allowed to set namespace (and then it's required)
+	if storeKind == esv1beta1.ClusterSecretStoreKind {
+		if alibabaSpec.Auth.SecretRef.AccessKeyID.Namespace == nil {
+			return nil, fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
+		}
+		objectKey.Namespace = *alibabaSpec.Auth.SecretRef.AccessKeyID.Namespace
+	}
+
+	err := kube.Get(ctx, objectKey, credentialsSecret)
+	if err != nil {
+		return nil, fmt.Errorf(errFetchAKIDSecret, err)
+	}
+
+	objectKey = types.NamespacedName{
+		Name:      alibabaSpec.Auth.SecretRef.AccessKeySecret.Name,
+		Namespace: namespace,
+	}
+	if storeKind == esv1beta1.ClusterSecretStoreKind {
+		if alibabaSpec.Auth.SecretRef.AccessKeySecret.Namespace == nil {
+			return nil, fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
+		}
+		objectKey.Namespace = *alibabaSpec.Auth.SecretRef.AccessKeySecret.Namespace
+	}
+
+	accessKeyId := credentialsSecret.Data[alibabaSpec.Auth.SecretRef.AccessKeyID.Key]
+	if (accessKeyId == nil) || (len(accessKeyId) == 0) {
+		return nil, fmt.Errorf(errMissingAKID)
+	}
+
+	accessKeySecret := credentialsSecret.Data[alibabaSpec.Auth.SecretRef.AccessKeySecret.Key]
+	if (accessKeySecret == nil) || (len(accessKeySecret) == 0) {
+		return nil, fmt.Errorf(errMissingSAK)
+	}
+
+	credentialConfig := &credential.Config{
+		AccessKeyId:     utils.Ptr(string(accessKeyId)),
+		AccessKeySecret: utils.Ptr(string(accessKeySecret)),
+		Type:            utils.Ptr("access_key"),
+	}
+
+	return credential.NewCredential(credentialConfig)
 }
 
 func (kms *KeyManagementService) Close(ctx context.Context) error {
@@ -199,7 +265,7 @@ func (kms *KeyManagementService) Close(ctx context.Context) error {
 
 func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) {
 	timeout := 15 * time.Second
-	url := kms.url
+	url := fmt.Sprintf("https://%s", kms.Client.Endpoint())
 
 	if err := utils.NetworkValidate(url, timeout); err != nil {
 		return esv1beta1.ValidationResultError, err
@@ -216,6 +282,50 @@ func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) err
 	if regionID == "" {
 		return fmt.Errorf("missing alibaba region")
 	}
+
+	return kms.validateStoreAuth(store)
+}
+
+func (kms *KeyManagementService) validateStoreAuth(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+
+	switch {
+	case alibabaSpec.Auth.RRSAAuth != nil:
+		return kms.validateStoreRRSAAuth(store)
+	case alibabaSpec.Auth.SecretRef != nil:
+		return kms.validateStoreAccessKeyAuth(store)
+	default:
+		return fmt.Errorf("missing alibaba auth provider")
+	}
+}
+
+func (kms *KeyManagementService) validateStoreRRSAAuth(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+
+	if alibabaSpec.Auth.RRSAAuth.OIDCProviderARN == "" {
+		return fmt.Errorf("missing alibaba OIDC proivder ARN")
+	}
+
+	if alibabaSpec.Auth.RRSAAuth.OIDCTokenFilePath == "" {
+		return fmt.Errorf("missing alibaba OIDC token file path")
+	}
+
+	if alibabaSpec.Auth.RRSAAuth.RoleARN == "" {
+		return fmt.Errorf("missing alibaba Assume Role ARN")
+	}
+
+	if alibabaSpec.Auth.RRSAAuth.SessionName == "" {
+		return fmt.Errorf("missing alibaba session name")
+	}
+
+	return nil
+}
+
+func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
 
 	accessKeyID := alibabaSpec.Auth.SecretRef.AccessKeyID
 	err := utils.ValidateSecretSelector(store, accessKeyID)

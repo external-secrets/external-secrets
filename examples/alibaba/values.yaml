@@ -1,0 +1,12 @@
+extraVolumes:
+  - name: oidc-token
+    projected:
+      sources:
+      - serviceAccountToken:
+          path: oidc-token
+          expirationSeconds: 7200    # The validity period of the OIDC token in seconds.
+          audience: "sts.aliyuncs.com"
+
+extraVolumeMounts:
+  - name: oidc-token
+    mountPath: /var/run/secrets/tokens
