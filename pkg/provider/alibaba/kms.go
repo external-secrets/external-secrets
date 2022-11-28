@@ -283,58 +283,79 @@ func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) err
 		return fmt.Errorf("missing alibaba region")
 	}
 
+	return kms.validateStoreAuth(store)
+}
+
+func (kms *KeyManagementService) validateStoreAuth(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+
 	switch {
 	case alibabaSpec.Auth.RRSAAuth != nil:
-		if alibabaSpec.Auth.RRSAAuth.OIDCProviderARN == "" {
-			return fmt.Errorf("missing alibaba OIDC proivder ARN")
-		}
-
-		if alibabaSpec.Auth.RRSAAuth.OIDCTokenFilePath == "" {
-			return fmt.Errorf("missing alibaba OIDC token file path")
-		}
-
-		if alibabaSpec.Auth.RRSAAuth.RoleARN == "" {
-			return fmt.Errorf("missing alibaba Assume Role ARN")
-		}
-
-		if alibabaSpec.Auth.RRSAAuth.SessionName == "" {
-			return fmt.Errorf("missing alibaba session name")
-		}
-
-		return nil
+		return kms.validateStoreRRSAAuth(store)
 	case alibabaSpec.Auth.SecretRef != nil:
-		accessKeyID := alibabaSpec.Auth.SecretRef.AccessKeyID
-		err := utils.ValidateSecretSelector(store, accessKeyID)
-		if err != nil {
-			return err
-		}
+		return kms.validateStoreAccessKeyAuth(store)
+	default:
+		return fmt.Errorf("missing alibaba auth provider")
+	}
+}
 
-		if accessKeyID.Name == "" {
-			return fmt.Errorf("missing alibaba access ID name")
-		}
+func (kms *KeyManagementService) validateStoreRRSAAuth(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
 
-		if accessKeyID.Key == "" {
-			return fmt.Errorf("missing alibaba access ID key")
-		}
-
-		accessKeySecret := alibabaSpec.Auth.SecretRef.AccessKeySecret
-		err = utils.ValidateSecretSelector(store, accessKeySecret)
-		if err != nil {
-			return err
-		}
-
-		if accessKeySecret.Name == "" {
-			return fmt.Errorf("missing alibaba access key secret name")
-		}
-
-		if accessKeySecret.Key == "" {
-			return fmt.Errorf("missing alibaba access key secret key")
-		}
-
-		return nil
+	if alibabaSpec.Auth.RRSAAuth.OIDCProviderARN == "" {
+		return fmt.Errorf("missing alibaba OIDC proivder ARN")
 	}
 
-	return fmt.Errorf("missing alibaba auth provider")
+	if alibabaSpec.Auth.RRSAAuth.OIDCTokenFilePath == "" {
+		return fmt.Errorf("missing alibaba OIDC token file path")
+	}
+
+	if alibabaSpec.Auth.RRSAAuth.RoleARN == "" {
+		return fmt.Errorf("missing alibaba Assume Role ARN")
+	}
+
+	if alibabaSpec.Auth.RRSAAuth.SessionName == "" {
+		return fmt.Errorf("missing alibaba session name")
+	}
+
+	return nil
+}
+
+func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1beta1.GenericStore) error {
+	storeSpec := store.GetSpec()
+	alibabaSpec := storeSpec.Provider.Alibaba
+
+	accessKeyID := alibabaSpec.Auth.SecretRef.AccessKeyID
+	err := utils.ValidateSecretSelector(store, accessKeyID)
+	if err != nil {
+		return err
+	}
+
+	if accessKeyID.Name == "" {
+		return fmt.Errorf("missing alibaba access ID name")
+	}
+
+	if accessKeyID.Key == "" {
+		return fmt.Errorf("missing alibaba access ID key")
+	}
+
+	accessKeySecret := alibabaSpec.Auth.SecretRef.AccessKeySecret
+	err = utils.ValidateSecretSelector(store, accessKeySecret)
+	if err != nil {
+		return err
+	}
+
+	if accessKeySecret.Name == "" {
+		return fmt.Errorf("missing alibaba access key secret name")
+	}
+
+	if accessKeySecret.Key == "" {
+		return fmt.Errorf("missing alibaba access key secret key")
+	}
+
+	return nil
 }
 
 func init() {
