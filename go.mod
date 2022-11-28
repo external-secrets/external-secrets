@@ -48,7 +48,6 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.39
 	github.com/aws/aws-sdk-go v1.44.142
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
@@ -95,12 +94,27 @@ require github.com/1Password/connect-sdk-go v1.5.0
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.0.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.0
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.2
+	github.com/alibabacloud-go/kms-20160120/v3 v3.0.0
+	github.com/alibabacloud-go/openapi-util v0.1.0
+	github.com/alibabacloud-go/tea v1.1.20
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.1
+	github.com/aliyun/credentials-go v1.2.4
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/sethvargo/go-password v0.2.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require cloud.google.com/go/compute/metadata v0.2.1 // indirect
+require (
+	cloud.google.com/go/compute/metadata v0.2.1 // indirect
+	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
+	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
+	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
+	github.com/alibabacloud-go/tea-utils v1.3.1 // indirect
+	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
+	github.com/clbanning/mxj/v2 v2.5.5 // indirect
+	github.com/tjfoc/gmsm v1.3.2 // indirect
+)
 
 require (
 	cloud.google.com/go/compute v1.12.1 // indirect
@@ -156,7 +170,7 @@ require (
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-plugin v1.4.5 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/mlock v0.1.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7 // indirect
