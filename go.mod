@@ -48,14 +48,14 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.28
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.39
 	github.com/aws/aws-sdk-go v1.44.142
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
-	github.com/googleapis/gax-go/v2 v2.6.0
-	github.com/hashicorp/vault/api v1.8.1
+	github.com/googleapis/gax-go/v2 v2.7.0
+	github.com/hashicorp/vault/api v1.8.2
 	github.com/hashicorp/vault/api/auth/approle v0.3.0
 	github.com/hashicorp/vault/api/auth/kubernetes v0.3.0
 	github.com/hashicorp/vault/api/auth/ldap v0.3.0
@@ -66,7 +66,7 @@ require (
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/client_model v0.3.0
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.1
 	github.com/tidwall/gjson v1.14.3
 	github.com/xanzy/go-gitlab v0.76.0
@@ -94,7 +94,7 @@ require github.com/1Password/connect-sdk-go v1.5.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.0.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/sethvargo/go-password v0.2.0
 	sigs.k8s.io/yaml v1.3.0
