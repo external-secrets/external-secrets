@@ -43,7 +43,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.0
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.28
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.39
 	github.com/argoproj/argo-cd/v2 v2.4.8
 	github.com/aws/aws-sdk-go v1.44.142
 	github.com/external-secrets/external-secrets v0.0.0
@@ -51,7 +51,7 @@ require (
 	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/source-controller/api v0.25.11
 	github.com/golang-jwt/jwt/v4 v4.4.2
-	github.com/hashicorp/vault/api v1.8.1
+	github.com/hashicorp/vault/api v1.8.2
 	github.com/onsi/ginkgo/v2 v2.5.1
 	github.com/onsi/gomega v1.24.1
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
@@ -138,7 +138,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
-	github.com/googleapis/gax-go/v2 v2.6.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -203,7 +203,7 @@ require (
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/sony/gobreaker v0.5.0 // indirect
-	github.com/spf13/cobra v1.5.0 // indirect
+	github.com/spf13/cobra v1.6.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/tidwall/gjson v1.14.3 // indirect
