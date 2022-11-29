@@ -236,12 +236,12 @@ SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
-	docker manifest inspect $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
-	for digest in $$(jq -r '.manifests[].digest' < .tagmanifest); do \
+	docker manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
+	for digest in $$(jq -r 'if type=="array" then .[].Descriptor.digest else .Descriptor.digest end' < .tagmanifest); do \
 		docker pull $(IMAGE_NAME)@$$digest; \
 	done
 	docker manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
-		$$(jq -j '"--amend $(IMAGE_NAME)@" + .manifests[].digest + " "' < .tagmanifest)
+		$$(jq -j '"--amend $(IMAGE_NAME)@" + if type=="array" then .[].Descriptor.digest else .Descriptor.digest end + " "' < .tagmanifest)
 	docker manifest push $(IMAGE_NAME):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
 
