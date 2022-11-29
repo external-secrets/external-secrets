@@ -140,7 +140,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		msg := fmt.Sprintf(errFailedSetSecret, err)
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 		ps = SetPushSecretCondition(ps, *cond)
-		r.SetSyncedSecrets(&ps, syncedSecrets)
+		totalSecrets := mergeSecretState(syncedSecrets, ps.Status.SyncedPushSecrets)
+		r.SetSyncedSecrets(&ps, totalSecrets)
 		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 		return ctrl.Result{}, err
 	}
@@ -169,9 +170,9 @@ func (r *Reconciler) SetSyncedSecrets(ps *esapi.PushSecret, status esapi.SyncedP
 	ps.Status.SyncedPushSecrets = status
 }
 
-func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap, mgr *secretstore.Manager) (esapi.SyncedPushSecretsMap, error) {
+func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSecretsMap {
 	out := newMap.DeepCopy()
-	for k, v := range ps.Status.SyncedPushSecrets {
+	for k, v := range old {
 		_, ok := out[k]
 		if !ok {
 			out[k] = make(map[string]esapi.PushSecretData)
@@ -180,6 +181,11 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 			out[k][kk] = vv
 		}
 	}
+	return out
+}
+
+func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap, mgr *secretstore.Manager) (esapi.SyncedPushSecretsMap, error) {
+	out := mergeSecretState(newMap, ps.Status.SyncedPushSecrets)
 	for storeName, oldData := range ps.Status.SyncedPushSecrets {
 		storeRef := v1beta1.SecretStoreRef{
 			Name: strings.Split(storeName, "/")[1],

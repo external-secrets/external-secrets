@@ -226,7 +226,7 @@ func init() {
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
 	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
 	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
-	rootCmd.Flags().BoolVar(&enablePushSecretReconciler, "experimental-enable-push-secret-reconciler", false, "Enable push secret reconciler.")
+	rootCmd.Flags().BoolVar(&enablePushSecretReconciler, "enable-push-secret-reconciler", true, "Enable push secret reconciler.")
 	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enable secrets caching for external-secrets pod.")
 	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable secrets caching for external-secrets pod.")
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
