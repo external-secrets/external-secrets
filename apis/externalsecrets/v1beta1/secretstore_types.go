@@ -188,10 +188,21 @@ type SecretStoreStatusCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
+// SecretStoreCapabilities defines the possible operations a SecretStore can do.
+type SecretStoreCapabilities string
+
+const (
+	SecretStoreReadOnly  SecretStoreCapabilities = "ReadOnly"
+	SecretStoreWriteOnly SecretStoreCapabilities = "WriteOnly"
+	SecretStoreReadWrite SecretStoreCapabilities = "ReadWrite"
+)
+
 // SecretStoreStatus defines the observed state of the SecretStore.
 type SecretStoreStatus struct {
 	// +optional
 	Conditions []SecretStoreStatusCondition `json:"conditions"`
+	// +optional
+	Capabilities SecretStoreCapabilities `json:"capabilities"`
 }
 
 // +kubebuilder:object:root=true
@@ -200,6 +211,7 @@ type SecretStoreStatus struct {
 // SecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="Capabilities",type=string,JSONPath=`.status.capabilities`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Namespaced,categories={externalsecrets},shortName=ss
@@ -226,6 +238,7 @@ type SecretStoreList struct {
 // ClusterSecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="Capabilities",type=string,JSONPath=`.status.capabilities`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={externalsecrets},shortName=css

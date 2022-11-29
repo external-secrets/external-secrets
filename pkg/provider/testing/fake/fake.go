@@ -24,12 +24,20 @@ import (
 
 var _ esv1beta1.Provider = &Client{}
 
+type SetSecretCallArgs struct {
+	Value     []byte
+	RemoteRef esv1beta1.PushRemoteRef
+}
+
 // Client is a fake client for testing.
 type Client struct {
+	SetSecretArgs   map[string]SetSecretCallArgs
 	NewFn           func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error)
 	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
 	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
+	SetSecretFn     func() error
+	DeleteSecretFn  func() error
 }
 
 // New returns a fake provider/client.
@@ -44,6 +52,13 @@ func New() *Client {
 		GetAllSecretsFn: func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 			return nil, nil
 		},
+		SetSecretFn: func() error {
+			return nil
+		},
+		DeleteSecretFn: func() error {
+			return nil
+		},
+		SetSecretArgs: map[string]SetSecretCallArgs{},
 	}
 
 	v.NewFn = func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error) {
@@ -61,6 +76,19 @@ func (v *Client) RegisterAs(provider *esv1beta1.SecretStoreProvider) {
 // GetAllSecrets implements the provider.Provider interface.
 func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	return v.GetAllSecretsFn(ctx, ref)
+}
+
+// Not Implemented PushSecret.
+func (v *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	v.SetSecretArgs[remoteRef.GetRemoteKey()] = SetSecretCallArgs{
+		Value:     value,
+		RemoteRef: remoteRef,
+	}
+	return v.SetSecretFn()
+}
+
+func (v *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return v.DeleteSecretFn()
 }
 
 // GetSecret implements the provider.Provider interface.
@@ -109,11 +137,24 @@ func (v *Client) WithGetAllSecrets(secData map[string][]byte, err error) *Client
 	return v
 }
 
+// WithSetSecret wraps the secret response to the fake provider.
+func (v *Client) WithSetSecret(err error) *Client {
+	v.SetSecretFn = func() error {
+		return err
+	}
+	return v
+}
+
 // WithNew wraps the fake provider factory function.
 func (v *Client) WithNew(f func(context.Context, esv1beta1.GenericStore, client.Client,
 	string) (esv1beta1.SecretsClient, error)) *Client {
 	v.NewFn = f
 	return v
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (v *Client) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 // NewClient returns a new fake provider.

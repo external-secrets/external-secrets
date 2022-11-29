@@ -62,11 +62,20 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	// validateStore modifies the store conditions
 	// we have to patch the status
 	log.V(1).Info("validating")
-	err := validateStore(ctx, req.Namespace, ss, cl, recorder)
+	err := validateStore(ctx, req.Namespace, controllerClass, ss, cl, recorder)
 	if err != nil {
 		log.Error(err, "unable to validate store")
 		return ctrl.Result{}, err
 	}
+	storeProvider, err := esapi.GetProvider(ss)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	capStatus := esapi.SecretStoreStatus{
+		Capabilities: storeProvider.Capabilities(),
+		Conditions:   ss.GetStatus().Conditions,
+	}
+	ss.SetStatus(capStatus)
 
 	recorder.Event(ss, v1.EventTypeNormal, esapi.ReasonStoreValid, msgStoreValidated)
 	cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonStoreValid, msgStoreValidated)
@@ -79,24 +88,17 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 
 // validateStore tries to construct a new client
 // if it fails sets a condition and writes events.
-func validateStore(ctx context.Context, namespace string, store esapi.GenericStore,
+func validateStore(ctx context.Context, namespace, controllerClass string, store esapi.GenericStore,
 	client client.Client, recorder record.EventRecorder) error {
-	storeProvider, err := esapi.GetProvider(store)
-	if err != nil {
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidStore, errUnableGetProvider)
-		SetExternalSecretCondition(store, *cond)
-		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidStore, err.Error())
-		return fmt.Errorf(errStoreProvider, err)
-	}
-
-	cl, err := storeProvider.NewClient(ctx, store, client, namespace)
+	mgr := NewManager(client, controllerClass, false)
+	defer mgr.Close(ctx)
+	cl, err := mgr.GetFromStore(ctx, store, namespace)
 	if err != nil {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
 		SetExternalSecretCondition(store, *cond)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
 		return fmt.Errorf(errStoreClient, err)
 	}
-	defer cl.Close(ctx)
 
 	validationResult, err := cl.Validate()
 	if err != nil && validationResult != esapi.ValidationResultUnknown {

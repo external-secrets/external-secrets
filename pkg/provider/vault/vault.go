@@ -127,6 +127,7 @@ type Logical interface {
 	ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
 	ListWithContext(ctx context.Context, path string) (*vault.Secret, error)
 	WriteWithContext(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error)
+	DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error)
 }
 
 type Client interface {
@@ -272,6 +273,11 @@ type connector struct {
 	newVaultClient func(c *vault.Config) (Client, error)
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (c *connector) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadWrite
+}
+
 func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to fetch tokens
@@ -284,6 +290,7 @@ func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore,
 	if err != nil {
 		return nil, err
 	}
+
 	return c.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
@@ -403,9 +410,94 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-// Empty GetAllSecrets.
-// GetAllSecrets
-// First load all secrets from secretStore path configuration.
+func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	path := v.buildPath(remoteRef.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+	// Retrieve the secret map from vault and convert the secret value in string form.
+	_, err = v.logical.ReadWithDataWithContext(ctx, path, nil)
+	// If error is not of type secret not found, we should error
+	if err != nil && !strings.Contains(err.Error(), "secret not found") {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+	manager, ok := metadata["managed-by"]
+	if !ok || manager != "external-secrets" {
+		return nil
+	}
+	_, err = v.logical.DeleteWithContext(ctx, path)
+	if err != nil {
+		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
+	}
+	_, err = v.logical.DeleteWithContext(ctx, metaPath)
+	if err != nil {
+		return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
+	}
+	return nil
+}
+
+func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	label := map[string]interface{}{
+		"custom_metadata": map[string]string{
+			"managed-by": "external-secrets",
+		},
+	}
+	secretToPush := map[string]interface{}{
+		"data": map[string]string{
+			remoteRef.GetRemoteKey(): string(value),
+		},
+	}
+	path := v.buildPath(remoteRef.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+
+	// Retrieve the secret map from vault and convert the secret value in string form.
+	vaultSecret, err := v.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
+	vaultSecretValue := string(vaultSecret[remoteRef.GetRemoteKey()])
+	// If error is not of type secret not found, we should error
+	if err != nil && !strings.Contains(err.Error(), "secret not found") {
+		return err
+	}
+
+	// Retrieve the secret value to be pushed and convert it to string form.
+	pushSecretValue := string(value)
+
+	if vaultSecretValue == pushSecretValue {
+		return nil
+	}
+
+	// If the secret exists (err == nil), we should check if it is managed by external-secrets
+	if err == nil {
+		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+		if err != nil {
+			return err
+		}
+		manager, ok := metadata["managed-by"]
+		if !ok || manager != "external-secrets" {
+			return fmt.Errorf("secret not managed by external-secrets")
+		}
+	}
+	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
+	if err != nil {
+		return err
+	}
+	// Otherwise, create or update the version.
+	_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
+	return err
+}
+
+// GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
+// First load all secrets from secretStore path configuration
 // Then, gets secrets from a matching name or matching custom_metadata.
 func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if v.store.Version == esv1beta1.VaultKVStoreV1 {
@@ -791,7 +883,6 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		// Vault KV2 has data embedded within sub-field
 		// reference - https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
 		dataInt, ok := vaultSecret.Data["data"]
-
 		if !ok {
 			return nil, errors.New(errDataField)
 		}

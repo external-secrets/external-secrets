@@ -49,6 +49,7 @@ nav:
       - SecretStore: api/secretstore.md
       - ClusterSecretStore: api/clustersecretstore.md
       - ClusterExternalSecret: api/clusterexternalsecret.md
+      - PushSecret: api/pushsecret.md
     - Generators:
       - "api/generator/index.md"
       - Azure Container Registry: api/generator/acr.md
