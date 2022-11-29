@@ -124,6 +124,10 @@ type SecretStoreProvider struct {
 	// Doppler configures this store to sync secrets using the Doppler provider
 	// +optional
 	Doppler *DopplerProvider `json:"doppler,omitempty"`
+
+	// KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider
+	// +optional
+	KeeperSecurity *KeeperSecurityProvider `json:"keepersecurity,omitempty"`
 }
 
 type CAProviderType string
