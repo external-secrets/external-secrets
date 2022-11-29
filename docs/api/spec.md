@@ -3621,6 +3621,11 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.PushRemoteRef">PushRemoteRef
+</h3>
+<p>
+<p>This interface is to allow using v1alpha1 content in Provider registered in v1beta1.</p>
+</p>
 <h3 id="external-secrets.io/v1beta1.SecretStore">SecretStore
 </h3>
 <p>
@@ -3729,6 +3734,30 @@ SecretStoreStatus
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.SecretStoreCapabilities">SecretStoreCapabilities
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreStatus">SecretStoreStatus</a>)
+</p>
+<p>
+<p>SecretStoreCapabilities defines the possible operations a SecretStore can do.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ReadOnly&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;ReadWrite&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;WriteOnly&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreConditionType">SecretStoreConditionType
 (<code>string</code> alias)</p></h3>
@@ -4183,6 +4212,19 @@ int
 <em>
 <a href="#external-secrets.io/v1beta1.SecretStoreStatusCondition">
 []SecretStoreStatusCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>capabilities</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreCapabilities">
+SecretStoreCapabilities
 </a>
 </em>
 </td>

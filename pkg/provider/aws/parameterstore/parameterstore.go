@@ -21,6 +21,8 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
@@ -32,7 +34,11 @@ import (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &ParameterStore{}
+var (
+	_               esv1beta1.SecretsClient = &ParameterStore{}
+	managedBy                               = "managed-by"
+	externalSecrets                         = "external-secrets"
+)
 
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
@@ -43,8 +49,11 @@ type ParameterStore struct {
 // PMInterface is a subset of the parameterstore api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/ssm/ssmiface/
 type PMInterface interface {
-	GetParameter(*ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
-	DescribeParameters(*ssm.DescribeParametersInput) (*ssm.DescribeParametersOutput, error)
+	GetParameterWithContext(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
+	PutParameterWithContext(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
+	DescribeParametersWithContext(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
+	DeleteParameterWithContext(ctx aws.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error)
 }
 
 const (
@@ -59,18 +68,150 @@ func New(sess *session.Session, cfg *aws.Config) (*ParameterStore, error) {
 	}, nil
 }
 
-// Empty GetAllSecrets.
+func (pm *ParameterStore) getTagsByName(ctx aws.Context, ref *ssm.GetParameterOutput) ([]*ssm.Tag, error) {
+	parameterType := "Parameter"
+
+	parameterTags := ssm.ListTagsForResourceInput{
+		ResourceId:   ref.Parameter.Name,
+		ResourceType: &parameterType,
+	}
+
+	data, err := pm.client.ListTagsForResourceWithContext(ctx, &parameterTags)
+
+	if err != nil {
+		return nil, fmt.Errorf("error listing tags %w", err)
+	}
+
+	return data.TagList, nil
+}
+
+func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	secretName := remoteRef.GetRemoteKey()
+	secretValue := ssm.GetParameterInput{
+		Name: &secretName,
+	}
+	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
+	var awsError awserr.Error
+	ok := errors.As(err, &awsError)
+	if err != nil && (!ok || awsError.Code() != ssm.ErrCodeParameterNotFound) {
+		return fmt.Errorf("unexpected error getting parameter %v: %w", secretName, err)
+	}
+	if existing != nil && existing.Parameter != nil {
+		fmt.Println("The existing value contains data:", existing.String())
+		tags, err := pm.getTagsByName(ctx, existing)
+		if err != nil {
+			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
+		}
+
+		isManaged := isManagedByESO(tags)
+
+		if !isManaged {
+			// If the secret is not managed by external-secrets, it is "deleted" effectively by all means
+			return nil
+		}
+		deleteInput := &ssm.DeleteParameterInput{
+			Name: &secretName,
+		}
+		_, err = pm.client.DeleteParameterWithContext(ctx, deleteInput)
+		if err != nil {
+			return fmt.Errorf("could not delete parameter %v: %w", secretName, err)
+		}
+	}
+	return nil
+}
+
+func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	parameterType := "String"
+	overwrite := true
+
+	stringValue := string(value)
+	secretName := remoteRef.GetRemoteKey()
+
+	secretRequest := ssm.PutParameterInput{
+		Name:      &secretName,
+		Value:     &stringValue,
+		Type:      &parameterType,
+		Overwrite: &overwrite,
+	}
+
+	secretValue := ssm.GetParameterInput{
+		Name: &secretName,
+	}
+
+	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
+	var awsError awserr.Error
+	ok := errors.As(err, &awsError)
+	if err != nil && (!ok || awsError.Code() != ssm.ErrCodeParameterNotFound) {
+		return fmt.Errorf("unexpected error getting parameter %v: %w", secretName, err)
+	}
+
+	// If we have a valid parameter returned to us, check its tags
+	if existing != nil && existing.Parameter != nil {
+		fmt.Println("The existing value contains data:", existing.String())
+		tags, err := pm.getTagsByName(ctx, existing)
+		if err != nil {
+			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
+		}
+
+		isManaged := isManagedByESO(tags)
+
+		if !isManaged {
+			return fmt.Errorf("secret not managed by external-secrets")
+		}
+
+		if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
+			return nil
+		}
+
+		return pm.setManagedRemoteParameter(ctx, secretRequest, false)
+	}
+
+	// let's set the secret
+	// Do we need to delete the existing parameter on the remote?
+	return pm.setManagedRemoteParameter(ctx, secretRequest, true)
+}
+
+func isManagedByESO(tags []*ssm.Tag) bool {
+	for _, tag := range tags {
+		if *tag.Key == managedBy && *tag.Value == externalSecrets {
+			return true
+		}
+	}
+	return false
+}
+
+func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, createManagedByTags bool) error {
+	externalSecretsTag := ssm.Tag{
+		Key:   &managedBy,
+		Value: &externalSecrets,
+	}
+
+	overwrite := true
+	secretRequest.Overwrite = &overwrite
+	if createManagedByTags {
+		secretRequest.Tags = append(secretRequest.Tags, &externalSecretsTag)
+		overwrite = false
+	}
+
+	_, err := pm.client.PutParameterWithContext(ctx, &secretRequest)
+	if err != nil {
+		return fmt.Errorf("unexpected error pushing parameter %v: %w", secretRequest.Name, err)
+	}
+	return nil
+}
+
+// GetAllSecrets fetches information from multiple secrets into a single kubernetes secret.
 func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
-		return pm.findByName(ref)
+		return pm.findByName(ctx, ref)
 	}
 	if ref.Tags != nil {
-		return pm.findByTags(ref)
+		return pm.findByTags(ctx, ref)
 	}
 	return nil, errors.New(errUnexpectedFindOperator)
 }
 
-func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
 		return nil, err
@@ -86,10 +227,12 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 	data := make(map[string][]byte)
 	var nextToken *string
 	for {
-		it, err := pm.client.DescribeParameters(&ssm.DescribeParametersInput{
-			NextToken:        nextToken,
-			ParameterFilters: pathFilter,
-		})
+		it, err := pm.client.DescribeParametersWithContext(
+			ctx,
+			&ssm.DescribeParametersInput{
+				NextToken:        nextToken,
+				ParameterFilters: pathFilter,
+			})
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +240,7 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 			if !matcher.MatchName(*param.Name) {
 				continue
 			}
-			err = pm.fetchAndSet(data, *param.Name)
+			err = pm.fetchAndSet(ctx, data, *param.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -111,7 +254,7 @@ func (pm *ParameterStore) findByName(ref esv1beta1.ExternalSecretFind) (map[stri
 	return data, nil
 }
 
-func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	filters := make([]*ssm.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &ssm.ParameterStringFilter{
@@ -132,15 +275,17 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 	data := make(map[string][]byte)
 	var nextToken *string
 	for {
-		it, err := pm.client.DescribeParameters(&ssm.DescribeParametersInput{
-			ParameterFilters: filters,
-			NextToken:        nextToken,
-		})
+		it, err := pm.client.DescribeParametersWithContext(
+			ctx,
+			&ssm.DescribeParametersInput{
+				ParameterFilters: filters,
+				NextToken:        nextToken,
+			})
 		if err != nil {
 			return nil, err
 		}
 		for _, param := range it.Parameters {
-			err = pm.fetchAndSet(data, *param.Name)
+			err = pm.fetchAndSet(ctx, data, *param.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -154,8 +299,8 @@ func (pm *ParameterStore) findByTags(ref esv1beta1.ExternalSecretFind) (map[stri
 	return data, nil
 }
 
-func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error {
-	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
+func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
+	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
 		Name:           utilpointer.StringPtr(name),
 		WithDecryption: aws.Bool(true),
 	})
@@ -169,13 +314,14 @@ func (pm *ParameterStore) fetchAndSet(data map[string][]byte, name string) error
 
 // GetSecret returns a single secret from the provider.
 func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	out, err := pm.client.GetParameter(&ssm.GetParameterInput{
+	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
 		Name:           &ref.Key,
 		WithDecryption: aws.Bool(true),
 	})
 
+	nsf := esv1beta1.NoSecretError{}
 	var nf *ssm.ParameterNotFound
-	if errors.As(err, &nf) {
+	if errors.As(err, &nf) || errors.As(err, &nsf) {
 		return nil, esv1beta1.NoSecretErr
 	}
 	if err != nil {
