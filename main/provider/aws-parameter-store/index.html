@@ -537,6 +537,8 @@
         
           
         
+          
+        
       
       
         <label class="md-nav__link" for="__nav_2_2">
@@ -601,6 +603,20 @@
     <li class="md-nav__item">
       <a href="../../api/clusterexternalsecret/" class="md-nav__link">
         ClusterExternalSecret
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/pushsecret/" class="md-nav__link">
+        PushSecret
       </a>
     </li>
   
@@ -1264,6 +1280,53 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#parameter-versions" class="md-nav__link">
+    Parameter Versions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setsecret" class="md-nav__link">
+    SetSecret
+  </a>
+  
+    <nav class="md-nav" aria-label="SetSecret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-push-secret" class="md-nav__link">
+    Creating a Push Secret
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating a Push Secret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#check-successful-secret-sync" class="md-nav__link">
+    Check successful secret sync
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-new-secret-using-aws-cli" class="md-nav__link">
+    Test new secret using AWS CLI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1903,6 +1966,53 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#parameter-versions" class="md-nav__link">
+    Parameter Versions
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setsecret" class="md-nav__link">
+    SetSecret
+  </a>
+  
+    <nav class="md-nav" aria-label="SetSecret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-push-secret" class="md-nav__link">
+    Creating a Push Secret
+  </a>
+  
+    <nav class="md-nav" aria-label="Creating a Push Secret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#check-successful-secret-sync" class="md-nav__link">
+    Check successful secret sync
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-new-secret-using-aws-cli" class="md-nav__link">
+    Test new secret using AWS CLI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2010,9 +2120,11 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">    </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"></span>
-<span class="w">        </span><span class="s2">&quot;ssm:GetParameter*&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;ssm:GetParameterWithContext&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;ssm:ListTagsForResourceWithContext&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="s2">&quot;ssm:DescribeParametersWithContext&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">],</span><span class="w"></span>
-<span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:ssm:us-east-2:123456789012:parameter/dev-*&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*&quot;</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="w">  </span><span class="p">]</span><span class="w"></span>
 <span class="p">}</span><span class="w"></span>
@@ -2046,6 +2158,53 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-json-secret</span><span class="w"></span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">friends.1.first</span><span class="w"> </span><span class="c1"># Roger</span><span class="w"></span>
 </code></pre></div></p>
+<h3 id="parameter-versions">Parameter Versions</h3>
+<p>ParameterStore creates a new version of a parameter every time it is updated with a new value. The parameter can be referenced via the <code>version</code> property</p>
+<h2 id="setsecret">SetSecret</h2>
+<p>The SetSecret method for the Parameter Store allows the user to set the value stored within the Kubernetes cluster to the remote AWS Parameter Store.</p>
+<h3 id="creating-a-push-secret">Creating a Push Secret</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"> </span><span class="c1"># Same of the SecretStores</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span><span class="w"> </span><span class="c1"># Refresh interval for which push secret will reconcile</span><span class="w"></span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span><span class="w"> </span><span class="c1"># A list of secret stores to push secrets to</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-parameterstore</span><span class="w"></span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w"></span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pokedex-credentials</span><span class="w"> </span><span class="c1"># Source Kubernetes secret to be pushed</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-pokemon</span><span class="w"> </span><span class="c1"># Source Kubernetes secret key to be pushed</span><span class="w"></span>
+<span class="w">        </span><span class="nt">remoteRefs</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-first-parameter</span><span class="w"> </span><span class="c1"># Remote reference (where the secret is going to be pushed)</span><span class="w"></span>
+</code></pre></div>
+<h4 id="check-successful-secret-sync">Check successful secret sync</h4>
+<p>To be able to check that the secret has been succesfully synced you can run the following command:</p>
+<div class="highlight"><pre><span></span><code>kubectl get pushsecret pushsecret-example
+</code></pre></div>
+<p>If the secret has synced successfully it will show the status as "Synced".</p>
+<h4 id="test-new-secret-using-aws-cli">Test new secret using AWS CLI</h4>
+<p>To View your parameter on AWS Parameter Store using the AWS CLI, install and login to the AWS CLI using the following guide: <a href="https://aws.amazon.com/cli/">AWS CLI</a>.</p>
+<p>Run the following commands to get your synchronized parameter from AWS Parameter Store:</p>
+<div class="highlight"><pre><span></span><code>aws ssm get-parameter --name<span class="o">=</span>my-first-parameter --region<span class="o">=</span>us-east-1
+</code></pre></div>
+<p>You should see something similar to the following output:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="nt">&quot;Parameter&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-first-parameter&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;String&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;charmander&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;LastModifiedDate&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2022-09-15T13:04:31.098000-03:00&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;ARN&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:ssm:us-east-1:1234567890123:parameter/my-first-parameter&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&quot;DataType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</code></pre></div>
 <h2 id="aws-authentication">AWS Authentication</h2>
 <h3 id="controllers-pod-identity">Controller's Pod Identity</h3>
 <p><img alt="Pod Identity Authentication" src="../../pictures/diagrams-provider-aws-auth-pod-identity.png" /></p>
