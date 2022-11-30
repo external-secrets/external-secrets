@@ -12,7 +12,7 @@ Your Google Kubernetes Engine (GKE) applications can consume GCP services like S
 
 You can find the documentation for Workload Identity [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity). We will walk you through how to navigate it here.
 
-Search [the document](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for this editable values and change them to your values:  
+Search [the document](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for this editable values and change them to your values:
 _Note: If you have installed ESO, a serviceaccount has already been created. You can either patch the existing `external-secrets` SA or create a new one that fits your needs._
 
 - `CLUSTER_NAME`: The name of your cluster
@@ -107,4 +107,3 @@ The operator will fetch the GCP Secret Manager secret and inject it as a `Kind=S
 ```
 kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
-
