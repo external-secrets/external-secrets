@@ -607,6 +607,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     Example
   </a>
@@ -1867,6 +1874,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    Features
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     Example
   </a>
@@ -1913,6 +1927,16 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <p>You can trigger a secret refresh by using kubectl or any other kubernetes api client:</p>
 <div class="highlight"><pre><span></span><code>kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 </code></pre></div>
+<h2 id="features">Features</h2>
+<p>Individual features are described in the <a href="../guides/">Guides section</a>:</p>
+<ul>
+<li><a href="../../guides/getallsecrets/">Find many secrets / Extract from structured data</a></li>
+<li><a href="../../guides/templating/">Templating</a></li>
+<li><a href="../../guides/generator/">Using Generators</a></li>
+<li><a href="../../guides/ownership-deletion-policy/">Secret Ownership and Deletion</a></li>
+<li><a href="../../guides/datafrom-rewrite/">Key Rewriting</a></li>
+<li><a href="../../guides/decoding-strategy/">Decoding Strategy</a></li>
+</ul>
 <h2 id="example">Example</h2>
 <p>Take a look at an annotated example to understand the design behind the
 <code>ExternalSecret</code>.</p>
@@ -1930,9 +1954,9 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 
 <span class="nt">spec</span><span class="p">:</span><span class="w"></span>
 
-<span class="w">  </span><span class="c1"># SecretStoreRef defines which SecretStore to use when fetching the secret data</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># Optional, SecretStoreRef defines the default SecretStore to use when fetching the secret data.</span><span class="w"></span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store-name</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-store</span><span class="w"></span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w">  </span><span class="c1"># or ClusterSecretStore</span><span class="w"></span>
 
 <span class="w">  </span><span class="c1"># RefreshInterval is the amount of time before the values reading again from the SecretStore provider</span><span class="w"></span>
@@ -1947,7 +1971,7 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">    </span><span class="c1"># The secret name of the resource</span><span class="w"></span>
 <span class="w">    </span><span class="c1"># Defaults to .metadata.name of the ExternalSecret</span><span class="w"></span>
 <span class="w">    </span><span class="c1"># It is immutable</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application-config</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1"># Enum with values: &#39;Owner&#39;, &#39;Merge&#39;, or &#39;None&#39;</span><span class="w"></span>
 <span class="w">    </span><span class="c1"># Default value of &#39;Owner&#39;</span><span class="w"></span>
@@ -1972,47 +1996,58 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">      </span><span class="c1"># Use inline templates to construct your desired config file that contains your secret</span><span class="w"></span>
 <span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">config.yml</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="w"></span>
-<span class="w">          </span><span class="no">endpoints:</span><span class="w"></span>
-<span class="w">          </span><span class="no">- https://{{ .data.user }}:{{ .data.password }}@api.exmaple.com</span><span class="w"></span>
+<span class="w">          </span><span class="no">database:</span><span class="w"></span>
+<span class="w">            </span><span class="no">connection: postgres://{{ .username }}:{{ .password }}@{{ .database_host }}:5432/payments</span><span class="w"></span>
 
 <span class="w">      </span><span class="c1"># Uses an existing template from configmap</span><span class="w"></span>
 <span class="w">      </span><span class="c1"># Secret is fetched, merged and templated within the referenced configMap data</span><span class="w"></span>
 <span class="w">      </span><span class="c1"># It does not update the configmap, it creates a secret with: data[&quot;alertmanager.yml&quot;] = ...result...</span><span class="w"></span>
 <span class="w">      </span><span class="nt">templateFrom</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">configMap</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alertmanager</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application-config-tmpl</span><span class="w"></span>
 <span class="w">          </span><span class="nt">items</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alertmanager.yaml</span><span class="w"></span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config.yml</span><span class="w"></span>
 
 <span class="w">  </span><span class="c1"># Data defines the connection between the Kubernetes Secret keys and the Provider data</span><span class="w"></span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-key-to-be-managed</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key</span><span class="w"></span>
-<span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-version</span><span class="w"></span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-property</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"></span>
+<span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
 <span class="w">        </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">None</span><span class="w"> </span><span class="c1"># can be None, Base64, Base64URL or Auto</span><span class="w"></span>
+
+<span class="w">      </span><span class="c1"># define the source of the secret. Can be a SecretStore or a Generator kind</span><span class="w"></span>
+<span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># point to a SecretStore that should be used to fetch a secret.</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># must be defined if no spec.secretStoreRef is defined.</span><span class="w"></span>
+<span class="w">        </span><span class="nt">storeRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-secretstore</span><span class="w"></span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+
+<span class="w">        </span><span class="c1"># point to a generator resource that provides the secret value</span><span class="w"></span>
+<span class="w">        </span><span class="nt">generatorRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-password</span><span class="w"></span>
 
 <span class="w">  </span><span class="c1"># Used to fetch all properties from the Provider key</span><span class="w"></span>
 <span class="w">  </span><span class="c1"># If multiple dataFrom are specified, secrets are merged in the specified order</span><span class="w"></span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key</span><span class="w"></span>
-<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-version</span><span class="w"></span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">provider-key-property</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"></span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span><span class="w"></span>
 <span class="w">      </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Default</span><span class="w"></span>
 <span class="w">      </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Auto</span><span class="w"></span>
 <span class="w">    </span><span class="nt">rewrite</span><span class="p">:</span><span class="w"></span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">regexp</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;foo&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;bar&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">regexp</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;exp-(.*?)-ression&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rewriting-$1-with-groups&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rewriting-${1}-with-groups&quot;</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path-to-filter</span><span class="w"></span>
 <span class="w">          </span><span class="l l-Scalar l-Scalar-Plain">source</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;exp-(.*?)-ression&quot;</span><span class="w"></span>
-<span class="w">          </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rewriting-$1-with-groups&quot;</span><span class="w"></span>
+<span class="w">          </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rewriting-${1}-with-groups&quot;</span><span class="w"></span>
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.*foobar.*&quot;</span><span class="w"></span>
 <span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"></span>
@@ -2023,7 +2058,6 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">regexp</span><span class="p">:</span><span class="w"></span>
 <span class="w">        </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;foo&quot;</span><span class="w"></span>
 <span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;bar&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">regexp</span><span class="p">:</span><span class="w"></span>
 
 <span class="nt">status</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="c1"># refreshTime is the time and date the external secret was fetched and</span><span class="w"></span>

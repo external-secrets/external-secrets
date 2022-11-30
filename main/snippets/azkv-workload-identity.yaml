@@ -10,7 +10,7 @@ metadata:
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
-  name: example-secret-store
+  name: azure-store
 spec:
   provider:
     azurekv:
