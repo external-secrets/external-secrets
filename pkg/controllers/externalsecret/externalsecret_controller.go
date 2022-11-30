@@ -130,15 +130,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	// patch status when done processing
-	p := client.MergeFrom(externalSecret.DeepCopy())
-	defer func() {
-		err = r.Status().Patch(ctx, &externalSecret, p)
-		if err != nil {
-			log.Error(err, errPatchStatus)
-		}
-	}()
-
 	refreshInt := r.RequeueInterval
 	if externalSecret.Spec.RefreshInterval != nil {
 		refreshInt = externalSecret.Spec.RefreshInterval.Duration
@@ -175,6 +166,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Requeue:      false,
 		}, nil
 	}
+
+	// patch status when done processing
+	p := client.MergeFrom(externalSecret.DeepCopy())
+	defer func() {
+		err = r.Status().Patch(ctx, &externalSecret, p)
+		if err != nil {
+			log.Error(err, errPatchStatus)
+		}
+	}()
 
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
