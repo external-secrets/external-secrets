@@ -44,6 +44,10 @@ func init() {
 	})
 }
 
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadWrite
+}
+
 // NewClient constructs a GCP Provider.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
@@ -115,7 +119,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errKeeperSecurityStoreMissingClientId, err)
 	}
 
-	if err := utils.ValidateSecretSelector(store, config.Auth.ServerPublicKeyId); err != nil {
+	if err := utils.ValidateSecretSelector(store, config.Auth.ServerPublicKeyID); err != nil {
 		return fmt.Errorf(errKeeperSecurityStoreMissingServerPublicKeyId, err)
 	}
 
@@ -140,7 +144,7 @@ func getKeeperSecurityConfig(ctx context.Context, store *esv1beta1.KeeperSecurit
 	if err != nil {
 		return nil, err
 	}
-	serverPublicKeyId, err := getAuthParameter(ctx, auth.ServerPublicKeyId, kube, isClusterKind, namespace)
+	serverPublicKeyId, err := getAuthParameter(ctx, auth.ServerPublicKeyID, kube, isClusterKind, namespace)
 	if err != nil {
 		return nil, err
 	}

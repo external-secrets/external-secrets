@@ -121,6 +121,20 @@ func (c *Client) Close(ctx context.Context) error {
 	return nil
 }
 
+func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	//TODO implement me
+	println("To Be Implemented")
+
+	return nil
+}
+
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	//TODO implement me
+	println("To Be Implemented")
+
+	return nil
+}
+
 func (c *Client) getValidKeeperSecret(secret *ksm.Record) (*KeeperSecuritySecret, error) {
 
 	keeperSecret := KeeperSecuritySecret{}

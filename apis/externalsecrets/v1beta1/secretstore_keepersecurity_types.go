@@ -22,6 +22,7 @@ type KeeperSecurityProvider struct {
 
 	// Keeper Url from which the secrets to be fetched from.
 	Hostname string `json:"hostname"`
+	FolderID string `json:"folderID"`
 }
 
 // Configuration used to authenticate with KeeperSecurity.
@@ -30,5 +31,5 @@ type KeeperSecurityAuth struct {
 	AppOwnerPublicKey smmeta.SecretKeySelector `json:"appOwnerPublicKeySecretRef"`
 	ClientID          smmeta.SecretKeySelector `json:"clientIdSecretRef"`
 	PrivateKey        smmeta.SecretKeySelector `json:"privateKeySecretRef"`
-	ServerPublicKeyId smmeta.SecretKeySelector `json:"serverPublicKeyIdSecretRef"`
+	ServerPublicKeyID smmeta.SecretKeySelector `json:"serverPublicKeyIdSecretRef"`
 }
