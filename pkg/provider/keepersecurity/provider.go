@@ -7,6 +7,7 @@ import (
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	ksm "github.com/keeper-security/secrets-manager-go/core"
+	"github.com/keeper-security/secrets-manager-go/core/logger"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"net/url"
@@ -68,7 +69,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, fmt.Errorf(errKeeperSecurityUnableToCreateConfig, err)
 	}
 	ksmClientOptions := &ksm.ClientOptions{
-		Config: ksm.NewMemoryKeyValueStorage(clientConfig),
+		Config:   ksm.NewMemoryKeyValueStorage(clientConfig),
+		LogLevel: logger.ErrorLevel,
 	}
 	ksmClient := ksm.NewSecretsManager(ksmClientOptions)
 	client.ksmClient = ksmClient

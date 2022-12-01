@@ -9,6 +9,7 @@ import (
 	"regexp"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sort"
+	"strings"
 )
 
 const (
@@ -24,6 +25,17 @@ const (
 	errPathNotImplemented                       = "'find.path' is not implemented in the KeeperSecurity provider"
 	errInvalidJsonSecret                        = "Invalid Secret. Secret %s can not be converted to JSON. %w"
 	errInvalidRegex                             = "find.name.regex. Invalid Regular expresion %s. %w"
+	errInvalidRemoteRefKey                      = "match.remoteRef.remoteKey. Invalid format. Format should match secretName/key got %s"
+	errInvalidSecretType                        = "ESO can only push to %s record types. Secret %s is type %s"
+	errFieldNotFound                            = "Secret %s does not contain any custom field with label %s"
+
+	externalSecretType = "externalSecrets"
+	secretType         = "secret"
+	LoginType          = "login"
+	LoginTypeExpr      = "login|username"
+	PasswordType       = "password"
+	UrlTypeExpr        = "url|baseurl"
+	UrlType            = "url"
 )
 
 type Client struct {
@@ -122,15 +134,108 @@ func (c *Client) Close(ctx context.Context) error {
 }
 
 func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	//TODO implement me
-	println("To Be Implemented")
+	parts, err := c.buildSecretNameAndKey(remoteRef)
+	if err != nil {
+		return err
+	}
+	secret, err := c.findSecretByName(parts[0])
+	if err != nil {
+		return err
+	}
+	if secret == nil {
+		_, err = c.createSecret(parts[0], parts[1], value)
+	} else {
+		if secret.Type() != externalSecretType {
+			return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
+		}
+		err = c.updateSecret(secret, parts[1], value)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	//TODO implement me
-	println("To Be Implemented")
+
+	parts, err := c.buildSecretNameAndKey(remoteRef)
+	if err != nil {
+		return err
+	}
+	secret, err := c.findSecretByName(parts[0])
+	_, err = c.ksmClient.DeleteSecrets([]string{secret.Uid})
+	if err != nil {
+		return nil
+	}
+
+	return nil
+}
+
+func (c *Client) buildSecretNameAndKey(remoteRef esv1beta1.PushRemoteRef) ([]string, error) {
+	parts := strings.Split(remoteRef.GetRemoteKey(), "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf(errInvalidRemoteRefKey, remoteRef.GetRemoteKey())
+	}
+
+	return parts, nil
+}
+
+func (c *Client) createSecret(name string, key string, value []byte) (string, error) {
+	normalizedKey := strings.ToLower(key)
+	externalSecretRecord := ksm.NewRecordCreate(externalSecretType, name)
+	login := regexp.MustCompile(LoginTypeExpr)
+	pass := regexp.MustCompile(PasswordType)
+	url := regexp.MustCompile(UrlTypeExpr)
+
+	switch {
+	case login.MatchString(normalizedKey):
+		externalSecretRecord.Fields = append(externalSecretRecord.Fields,
+			ksm.NewLogin(string(value)),
+		)
+	case pass.MatchString(normalizedKey):
+		externalSecretRecord.Fields = append(externalSecretRecord.Fields,
+			ksm.NewPassword(string(value)),
+		)
+	case url.MatchString(normalizedKey):
+		externalSecretRecord.Fields = append(externalSecretRecord.Fields,
+			ksm.NewUrl(string(value)),
+		)
+	default:
+		field := ksm.KeeperRecordField{Type: secretType, Label: key}
+		externalSecretRecord.Custom = append(externalSecretRecord.Custom,
+			ksm.Secret{KeeperRecordField: field, Value: []string{string(value)}},
+		)
+	}
+
+	return c.ksmClient.CreateSecretWithRecordData("", c.store.FolderID, externalSecretRecord)
+
+}
+
+func (c *Client) updateSecret(secret *ksm.Record, key string, value []byte) error {
+
+	normalizedKey := strings.ToLower(key)
+	login := regexp.MustCompile(LoginTypeExpr)
+	pass := regexp.MustCompile(PasswordType)
+	url := regexp.MustCompile(UrlTypeExpr)
+
+	switch {
+	case login.MatchString(normalizedKey):
+		secret.SetFieldValueSingle(LoginType, string(value))
+	case pass.MatchString(normalizedKey):
+		secret.SetPassword(string(value))
+	case url.MatchString(normalizedKey):
+		secret.SetFieldValueSingle(UrlType, string(value))
+	default:
+		field := secret.GetCustomFieldValueByLabel(key)
+		if field == "" {
+			return fmt.Errorf(errFieldNotFound, secret.Title(), key)
+		} else {
+			secret.SetCustomFieldValueSingle(key, string(value))
+		}
+	}
+
+	c.ksmClient.Save(secret)
 
 	return nil
 }
@@ -172,6 +277,16 @@ func (c *Client) findSecretById(id string) (*ksm.Record, error) {
 	}
 
 	return records[0], nil
+}
+
+func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
+
+	record, err := c.ksmClient.GetSecretByTitle(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return record, nil
 }
 
 func (s *KeeperSecuritySecret) validate() bool {
