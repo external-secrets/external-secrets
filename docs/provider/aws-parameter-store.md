@@ -11,6 +11,7 @@ way users of the `SecretStore` can only access the secrets necessary.
 ``` yaml
 {% include 'aws-parameter-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
 
 !!! warning "API Pricing & Throttling"
@@ -42,7 +43,7 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`, for further 
 
 You can store JSON objects in a parameter. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):
 
-Consider the following JSON object that is stored in the Parameter Store key `my-json-secret`:
+Consider the following JSON object that is stored in the Parameter Store key `friendslist`:
 ``` json
 {
   "name": {"first": "Tom", "last": "Anderson"},
@@ -59,17 +60,17 @@ This is an example on how you would look up nested keys in the above json object
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: example
+  name: extract-data
 spec:
   # [omitted for brevity]
   data:
-  - secretKey: firstname
+  - secretKey: my_name
     remoteRef:
-      key: my-json-secret
+      key: friendslist
       property: name.first # Tom
   - secretKey: first_friend
     remoteRef:
-      key: my-json-secret
+      key: friendslist
       property: friends.1.first # Roger
 
 ```

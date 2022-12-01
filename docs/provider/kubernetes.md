@@ -1,4 +1,4 @@
-External Secrets Operator allows to retrieve secrets from a Kubernetes Cluster - this can be either a remote cluster or the local where the operator runs in.
+External Secrets Operator allows to retrieve secrets from a Kubernetes Cluster - this can be either a remote cluster or the local one where the operator runs in.
 
 A `SecretStore` points to a **specific namespace** in the target Kubernetes Cluster. You are able to retrieve all secrets from that particular namespace given you have the correct set of RBAC permissions.
 
@@ -12,19 +12,24 @@ This provider supports the use of the `Property` field. With it you point to the
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: example
+  name: database-credentials
 spec:
   refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
-    name: example               # name of the SecretStore (or kind specified)
+    name: k8s-store             # name of the SecretStore (or kind specified)
   target:
-    name: secret-to-be-created  # name of the k8s Secret to be created
+    name: database-credentials  # name of the k8s Secret to be created
   data:
-  - secretKey: extra
+  - secretKey: username
     remoteRef:
-      key: secret-example
-      property: extra
+      key: database-credentials
+      property: username
+
+  - secretKey: password
+    remoteRef:
+      key: database-credentials
+      property: password
 ```
 
 #### find by tag & name
@@ -35,19 +40,19 @@ You can fetch secrets based on labels or names matching a regexp:
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: example
+  name: fetch-tls-and-nginx
 spec:
   refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
-    name: example
+    name: k8s-store
   target:
-    name: secret-to-be-created
+    name: fetch-tls-and-nginx
   dataFrom:
   - find:
       name:
         # match secret name with regexp
-        regexp: "key-.*"
+        regexp: "tls-.*"
   - find:
       tags:
         # fetch secrets based on label combination
@@ -66,10 +71,11 @@ You may also define it inline as base64 encoded value using the `caBundle` prope
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
-  name: example
+  name: k8s-store-default-ns
 spec:
   provider:
     kubernetes:
+      # with this, the store is able to pull only from `default` namespace
       remoteNamespace: default
       server:
         url: "https://myapiserver.tld"
@@ -115,7 +121,7 @@ Create a Kubernetes secret with a client token. There are many ways to acquire s
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mydefaulttoken
+  name: my-token
 data:
   token: "...."
 ```
@@ -126,18 +132,19 @@ Create a SecretStore: The `auth` section indicates that the type `token` will be
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
-  name: example
+  name: k8s-store-token-auth
 spec:
   provider:
     kubernetes:
+      # with this, the store is able to pull only from `default` namespace
+      remoteNamespace: default
       server:
         # ...
       auth:
         token:
           bearerToken:
-            name: mydefaulttoken
+            name: my-token
             key: token
-      remoteNamespace: default
 ```
 
 #### Authenticating with ServiceAccount
@@ -160,16 +167,17 @@ Create a SecretStore: the `auth` section indicates that the type `serviceAccount
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
-  name: example
+  name: k8s-store-sa-auth
 spec:
   provider:
     kubernetes:
+      # with this, the store is able to pull only from `default` namespace
+      remoteNamespace: default
       server:
         # ...
       auth:
         serviceAccount:
           name: "my-store"
-      remoteNamespace: default
 ```
 
 #### Authenticating with Client Certificates
@@ -186,10 +194,12 @@ Reference the `tls-secret` in the SecretStore
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
-  name: example
+  name: k8s-store-cert-auth
 spec:
   provider:
     kubernetes:
+      # with this, the store is able to pull only from `default` namespace
+      remoteNamespace: default
       server:
         # ...
       auth:
@@ -200,5 +210,4 @@ spec:
           clientKey:
             name: "tls-secret"
             key: "tls.key"
-      remoteNamespace: default
 ```

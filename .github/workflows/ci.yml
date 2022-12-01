@@ -77,6 +77,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
       - name: Setup Go
         uses: actions/setup-go@v3
         with:

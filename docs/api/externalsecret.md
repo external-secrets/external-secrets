@@ -25,6 +25,17 @@ You can trigger a secret refresh by using kubectl or any other kubernetes api cl
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ```
 
+## Features
+
+Individual features are described in the [Guides section](../guides/):
+
+* [Find many secrets / Extract from structured data](../guides/getallsecrets.md)
+* [Templating](../guides/templating.md)
+* [Using Generators](../guides/generator.md)
+* [Secret Ownership and Deletion](../guides/ownership-deletion-policy.md)
+* [Key Rewriting](../guides/datafrom-rewrite.md)
+* [Decoding Strategy](../guides/decoding-strategy.md)
+
 ## Example
 
 Take a look at an annotated example to understand the design behind the

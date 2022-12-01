@@ -13,7 +13,7 @@ To use Managed Identity authentication, you should use [aad-pod-identity](https:
 
 We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud` and `GermanCloud`. You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
 
-```
+```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
