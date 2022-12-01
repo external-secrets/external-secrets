@@ -6,6 +6,7 @@ import (
 	"fmt"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ksm "github.com/keeper-security/secrets-manager-go/core"
+	"golang.org/x/exp/maps"
 	"regexp"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sort"
@@ -18,6 +19,7 @@ const (
 	errKeeperSecurityInvalidSecretInvalidFormat = "Invalid secret. Invalid format: %w"
 	errKeeperSecurityInvalidSecretDuplicatedKey = "Invalid Secret. Keys are not unique"
 	errKeeperSecurityInvalidProperty            = "Invalid Property. Secret %s does not have any key matching %s"
+	errKeeperSecurityInvalidField               = "Invalid Field. Key %s does not exists"
 	errKeeperSecurityNoFields                   = "Invalid Secret. Secret %s does not contain any valid field/file"
 	keeperSecurityFileRef                       = "fileRef"
 	keeperSecurityMfa                           = "oneTimeCode"
@@ -82,7 +84,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, err
 	}
 
-	return secret.getField(ref)
+	return secret.getItem(ref)
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -92,7 +94,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 		return nil, err
 	}
 
-	return secret.getFields(ref)
+	return secret.getItems(ref)
 }
 
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -119,7 +121,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		if !match {
 			continue
 		}
-		secretData[secret.Title], err = secret.getField(esv1beta1.ExternalSecretDataRemoteRef{})
+		secretData[secret.Title], err = secret.getItem(esv1beta1.ExternalSecretDataRemoteRef{})
 		if err != nil {
 			return nil, err
 		}
@@ -327,61 +329,117 @@ func (s *KeeperSecuritySecret) addFiles(keeperFiles []*ksm.KeeperFile) {
 	}
 }
 
-func (s *KeeperSecuritySecret) getField(ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if ref.Property == "" {
-		secret, err := s.toString()
-		return []byte(secret), err
+func (s *KeeperSecuritySecret) getItem(ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if ref.Property != "" {
+		return s.getProperty(ref.Property)
 	}
+	secret, err := s.toString()
 
-	for _, field := range s.Fields {
-		if field.Type == ref.Property && len(field.Value) > 0 {
-			return []byte(field.Value[0]), nil
-		}
-	}
-	for _, customField := range s.Custom {
-		if customField.Label == ref.Property && len(customField.Value) > 0 {
-			return []byte(customField.Value[0]), nil
-		}
-	}
-	for _, file := range s.Files {
-		if file.Title == ref.Property {
-			return []byte(file.Content), nil
-		}
-	}
-
-	return nil, fmt.Errorf(errKeeperSecurityInvalidProperty, s.Title, ref.Property)
+	return []byte(secret), err
 }
 
-func (s *KeeperSecuritySecret) getFields(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (s *KeeperSecuritySecret) getItems(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
-	for _, field := range s.Fields {
-		if ref.Property != "" && field.Type != ref.Property {
-			continue
+	if ref.Property != "" {
+		value, err := s.getProperty(ref.Property)
+		if err != nil {
+			return nil, err
 		}
-		if len(field.Value) > 0 && field.Type != keeperSecurityFileRef && field.Type != keeperSecurityMfa {
-			secretData[field.Type] = []byte(field.Value[0])
-		}
+		secretData[ref.Property] = value
+
+		return secretData, nil
 	}
-	for _, customField := range s.Custom {
-		if ref.Property != "" && customField.Label != ref.Property {
-			continue
-		}
-		if len(customField.Value) > 0 {
-			secretData[customField.Label] = []byte(customField.Value[0])
-		}
-	}
-	for _, file := range s.Files {
-		if ref.Property != "" && file.Title != ref.Property {
-			continue
-		}
-		secretData[file.Title] = []byte(file.Content)
-	}
+
+	fields := s.getFields()
+	maps.Copy(secretData, fields)
+	customFields := s.getCustomFields()
+	maps.Copy(secretData, customFields)
+	files := s.getFiles()
+	maps.Copy(secretData, files)
 
 	if len(secretData) == 0 {
 		return nil, fmt.Errorf(errKeeperSecurityNoFields, s.Title)
 	}
 
 	return secretData, nil
+}
+
+func (s *KeeperSecuritySecret) getField(key string) ([]byte, error) {
+	for _, field := range s.Fields {
+		if field.Type == key && field.Type != keeperSecurityFileRef && field.Type != keeperSecurityMfa && len(field.Value) > 0 {
+			return []byte(field.Value[0]), nil
+		}
+	}
+
+	return nil, fmt.Errorf(errKeeperSecurityInvalidField, key)
+}
+
+func (s *KeeperSecuritySecret) getFields() map[string][]byte {
+	secretData := make(map[string][]byte)
+	for _, field := range s.Fields {
+		if len(field.Value) > 0 {
+			secretData[field.Type] = []byte(field.Value[0])
+		}
+	}
+
+	return secretData
+}
+
+func (s *KeeperSecuritySecret) getCustomField(key string) ([]byte, error) {
+	for _, field := range s.Custom {
+		if field.Type == key && len(field.Value) > 0 {
+			return []byte(field.Value[0]), nil
+		}
+	}
+
+	return nil, fmt.Errorf(errKeeperSecurityInvalidField, key)
+}
+
+func (s *KeeperSecuritySecret) getCustomFields() map[string][]byte {
+	secretData := make(map[string][]byte)
+	for _, field := range s.Custom {
+		if len(field.Value) > 0 {
+			secretData[field.Type] = []byte(field.Value[0])
+		}
+	}
+
+	return secretData
+}
+
+func (s *KeeperSecuritySecret) getFile(key string) ([]byte, error) {
+	for _, file := range s.Files {
+		if file.Title == key {
+			return []byte(file.Content), nil
+		}
+	}
+
+	return nil, fmt.Errorf(errKeeperSecurityInvalidField, key)
+}
+
+func (s *KeeperSecuritySecret) getProperty(key string) ([]byte, error) {
+	field, _ := s.getField(key)
+	if field != nil {
+		return field, nil
+	}
+	customField, _ := s.getCustomField(key)
+	if customField != nil {
+		return customField, nil
+	}
+	file, _ := s.getFile(key)
+	if file != nil {
+		return file, nil
+	}
+
+	return nil, fmt.Errorf(errKeeperSecurityInvalidProperty, s.Title, key)
+}
+
+func (s *KeeperSecuritySecret) getFiles() map[string][]byte {
+	secretData := make(map[string][]byte)
+	for _, file := range s.Files {
+		secretData[file.Title] = []byte(file.Content)
+	}
+
+	return secretData
 }
 
 func (s *KeeperSecuritySecret) toString() (string, error) {
