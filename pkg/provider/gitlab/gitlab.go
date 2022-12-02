@@ -303,7 +303,12 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	data, resp, err := g.projectVariablesClient.GetVariable(g.projectID, ref.Key, vopts)
-	if resp.StatusCode >= 400 && resp.StatusCode != 404 && err != nil {
+	if !isEmptyOrWildcard(g.environment) && resp.StatusCode == http.StatusNotFound {
+		vopts.Filter.EnvironmentScope = "*"
+		data, resp, err = g.projectVariablesClient.GetVariable(g.projectID, ref.Key, vopts)
+	}
+
+	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
 		return nil, err
 	}
 
@@ -324,7 +329,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		}
 
 		groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, nil)
-		if resp.StatusCode >= 400 && resp.StatusCode != 404 && err != nil {
+		if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
 			return nil, err
 		}
 		if resp.StatusCode < 300 {
