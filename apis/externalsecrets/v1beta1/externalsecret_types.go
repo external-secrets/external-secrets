@@ -98,8 +98,6 @@ type ExternalSecretTemplate struct {
 
 	// +optional
 	Data map[string]string `json:"data,omitempty"`
-	// +Optional
-	FromString *string `json:"fromString,omitempty"`
 	// +optional
 	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
 }
@@ -111,12 +109,34 @@ const (
 	TemplateEngineV2 TemplateEngineVersion = "v2"
 )
 
-// +kubebuilder:validation:MinProperties=1
-// +kubebuilder:validation:MaxProperties=1
 type TemplateFrom struct {
 	ConfigMap *TemplateRef `json:"configMap,omitempty"`
 	Secret    *TemplateRef `json:"secret,omitempty"`
+	// +optional
+	// +kubebuilder:default="Values"
+	Scope TemplateScope `json:"scope,omitempty"`
+	// +optional
+	// +kubebuilder:default="Data"
+	Target TemplateTarget `json:"target,omitempty"`
+	// +optional
+	Literal *string `json:"literal,omitempty"`
 }
+
+type TemplateScope string
+
+const (
+	TemplateScopeValues        TemplateScope = "Values"
+	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
+)
+
+type TemplateTarget string
+
+const (
+	TemplateTargetData        TemplateTarget = "Data"
+	TemplateTargetStringData  TemplateTarget = "StringData"
+	TemplateTargetAnnotations TemplateTarget = "Annotations"
+	TemplateTargetLabels      TemplateTarget = "Labels"
+)
 
 type TemplateRef struct {
 	Name  string            `json:"name"`

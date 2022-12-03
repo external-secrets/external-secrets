@@ -293,8 +293,6 @@ spec:
                             engineVersion:
                               default: v2
                               type: string
-                            fromString:
-                              type: string
                             metadata:
                               description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
                               properties:
@@ -309,8 +307,6 @@ spec:
                               type: object
                             templateFrom:
                               items:
-                                maxProperties: 1
-                                minProperties: 1
                                 properties:
                                   configMap:
                                     properties:
@@ -329,6 +325,11 @@ spec:
                                       - items
                                       - name
                                     type: object
+                                  literal:
+                                    type: string
+                                  scope:
+                                    default: Values
+                                    type: string
                                   secret:
                                     properties:
                                       items:
@@ -346,6 +347,9 @@ spec:
                                       - items
                                       - name
                                     type: object
+                                  target:
+                                    default: Data
+                                    type: string
                                 type: object
                               type: array
                             type:
@@ -3400,8 +3404,6 @@ spec:
                         engineVersion:
                           default: v2
                           type: string
-                        fromString:
-                          type: string
                         metadata:
                           description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
                           properties:
@@ -3416,8 +3418,6 @@ spec:
                           type: object
                         templateFrom:
                           items:
-                            maxProperties: 1
-                            minProperties: 1
                             properties:
                               configMap:
                                 properties:
@@ -3436,6 +3436,11 @@ spec:
                                   - items
                                   - name
                                 type: object
+                              literal:
+                                type: string
+                              scope:
+                                default: Values
+                                type: string
                               secret:
                                 properties:
                                   items:
@@ -3453,6 +3458,9 @@ spec:
                                   - items
                                   - name
                                 type: object
+                              target:
+                                default: Data
+                                type: string
                             type: object
                           type: array
                         type:

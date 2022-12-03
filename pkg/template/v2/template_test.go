@@ -20,8 +20,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -140,11 +143,16 @@ func TestExecute(t *testing.T) {
 		tpl                 map[string][]byte
 		labelsTpl           map[string][]byte
 		annotationsTpl      map[string][]byte
+		stringDataTpl       map[string][]byte
 		data                map[string][]byte
-		expetedData         map[string][]byte
+		expectedData        map[string][]byte
+		expectedStringData  map[string]string
 		expectedLabels      map[string]string
 		expectedAnnotations map[string]string
 		expErr              string
+		expLblErr           string
+		expAnnoErr          string
+		expStrErr           string
 	}{
 		{
 			name:           "test empty",
@@ -161,7 +169,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte("MTIzNA=="),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte("1234"),
 			},
 		},
@@ -173,7 +181,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(`{"foo": "bar"}`),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte("bar"),
 			},
 		},
@@ -185,7 +193,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(`{"foo": {"baz":"bang"}}`),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte(`{"baz":"bang"}`),
 			},
 		},
@@ -197,7 +205,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(`{"foo": "bar"}`),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte(`foo: bar`),
 			},
 		},
@@ -209,7 +217,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(`foo: bar`),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte(`{"foo":"bar"}`),
 			},
 		},
@@ -221,7 +229,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"path": []byte(`foo/bar/baz.exe`),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte(`.exe`),
 			},
 		},
@@ -233,7 +241,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"conn": []byte(`postgres://user:pass@db.host:5432/dbname`),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte(`db+postgresql://user:pass@db.host:5432/dbname`),
 			},
 		},
@@ -253,7 +261,7 @@ func TestExecute(t *testing.T) {
 				"user":     []byte(`foobert`),
 				"password": []byte("harharhar"),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"cfg": []byte(`
 		datasources:
 		- name: Graphite
@@ -270,7 +278,7 @@ func TestExecute(t *testing.T) {
 				"foo": []byte(`{{ "123412341234" | b64enc | b64dec }}`),
 			},
 			data: map[string][]byte{},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte("123412341234"),
 			},
 		},
@@ -283,7 +291,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentNoPass),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"key":  []byte(pkcs12Key),
 				"cert": []byte(pkcs12Cert),
 			},
@@ -297,7 +305,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(pkcs12ContentWithPass),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"key":  []byte(pkcs12Key),
 				"cert": []byte(pkcs12Cert),
 			},
@@ -356,7 +364,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(jwkPubRSA),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"fn": []byte(jwkPubRSAPKIX),
 			},
 		},
@@ -368,7 +376,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(jwkPrivRSA),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"fn": []byte(jwkPrivRSAPKCS8),
 			},
 		},
@@ -380,7 +388,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(jwkPubEC),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"fn": []byte(jwkPubECPKIX),
 			},
 		},
@@ -392,7 +400,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(jwkPrivEC),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"fn": []byte(jwkPrivECPKCS8),
 			},
 		},
@@ -404,7 +412,7 @@ func TestExecute(t *testing.T) {
 			data: map[string][]byte{
 				"secret": []byte(jwkPrivRSAPKCS8 + pkcs12Cert),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"fn": []byte(pkcs12Cert),
 			},
 		},
@@ -420,7 +428,7 @@ func TestExecute(t *testing.T) {
 				"secret": []byte("MTIzNA=="),
 				"env":    []byte("ZGV2"),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte("1234"),
 			},
 			expectedLabels: map[string]string{
@@ -439,11 +447,24 @@ func TestExecute(t *testing.T) {
 				"secret": []byte("MTIzNA=="),
 				"env":    []byte("ZGV2"),
 			},
-			expetedData: map[string][]byte{
+			expectedData: map[string][]byte{
 				"foo": []byte("1234"),
 			},
 			expectedAnnotations: map[string]string{
 				"bar": "dev",
+			},
+		},
+		{
+			name: "stringData",
+			stringDataTpl: map[string][]byte{
+				"foo": []byte("{{ .secret | b64dec }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+				"env":    []byte("ZGV2"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "1234",
 			},
 		},
 	}
@@ -453,161 +474,143 @@ func TestExecute(t *testing.T) {
 		t.Run(row.name, func(t *testing.T) {
 			sec := &corev1.Secret{
 				Data:       make(map[string][]byte),
+				StringData: make(map[string]string),
 				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
 			}
-			err := Execute(row.tpl, row.labelsTpl, row.annotationsTpl, row.data, sec)
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
-			if row.expetedData == nil {
-				return
+			err = Execute(row.labelsTpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetLabels, sec)
+			if !ErrorContains(err, row.expLblErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
-			assert.EqualValues(t, row.expetedData, sec.Data)
-			if row.expectedLabels == nil {
-				return
+			err = Execute(row.annotationsTpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetAnnotations, sec)
+			if !ErrorContains(err, row.expAnnoErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
-			assert.EqualValues(t, row.expectedLabels, sec.ObjectMeta.Labels)
-			if row.expectedAnnotations == nil {
-				return
+			err = Execute(row.stringDataTpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetStringData, sec)
+			if !ErrorContains(err, row.expStrErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
-			assert.EqualValues(t, row.expectedAnnotations, sec.ObjectMeta.Annotations)
+			if row.expectedData != nil {
+				assert.EqualValues(t, row.expectedData, sec.Data)
+			}
+			if row.expectedLabels != nil {
+				assert.EqualValues(t, row.expectedLabels, sec.ObjectMeta.Labels)
+			}
+			if row.expectedAnnotations != nil {
+				assert.EqualValues(t, row.expectedAnnotations, sec.ObjectMeta.Annotations)
+			}
 		})
 	}
 }
 
-func TestSecretExecute(t *testing.T) {
+func TestExecuteInvalidTemplateScope(t *testing.T) {
+	sec := &corev1.Secret{}
+	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "expected 'Values' or 'KeysAndValues'")
+}
+
+func TestScopeKeysAndValues(t *testing.T) {
 	tbl := []struct {
-		name                string
-		tpl                 string
-		data                map[string][]byte
-		expectedData        map[string][]byte
-		expectedStringData  map[string]string
-		expectedLabels      map[string]string
-		expectedAnnotations map[string]string
-		expErr              string
+		name               string
+		tpl                map[string][]byte
+		target             esapi.TemplateTarget
+		data               map[string][]byte
+		expectedData       map[string][]byte
+		expectedStringData map[string]string
+		expErr             string
 	}{
 		{
-			name: "test empty",
-			tpl:  "",
-			data: nil,
+			name:   "test empty",
+			tpl:    map[string][]byte{"literal": []byte("")},
+			target: "Data",
+			data:   nil,
 		},
 		{
-			name: "test data sync",
-			tpl: `data:
-                    "{{ .key }}": "{{ .value }}"`,
+			name:   "test base64",
+			tpl:    map[string][]byte{"literal": []byte("{{ .key }}: {{ .value }}")},
+			target: esapi.TemplateTargetData,
 			data: map[string][]byte{
 				"key":   []byte("foo"),
-				"value": []byte("MTIzNA=="),
+				"value": []byte("bar"),
 			},
 			expectedData: map[string][]byte{
-				"foo": []byte("1234"),
+				"foo": []byte("bar"),
 			},
 		},
 		{
-			name: "templating error",
-			tpl: `data:
-                    "{{ .example | iamNoFunction }}": "{{ .value }}"`,
-			data: map[string][]byte{
-				"example": []byte("yada"),
-			},
-			expErr: `unable to parse template at key secret: template: secret:2: function "iamNoFunction" not defined`,
-		},
-		{
-			name: "marshaling error",
-			tpl: `data:
-                    "{{ .iamnokey }}": "{{ .value }}"`,
-			data: map[string][]byte{
-				"example": []byte("yada"),
-			},
-			expErr: `error unmarshaling JSON: while decoding JSON: illegal base64 data at input byte 0`,
-		},
-		{
-			name: "test stringData sync",
-			tpl: `
-                  stringData:
-                    {{ .key }}: {{ .value }}`,
+			name:   "test Annotations",
+			tpl:    map[string][]byte{"literal": []byte("{{ .key }}: {{ .value }}")},
+			target: esapi.TemplateTargetAnnotations,
 			data: map[string][]byte{
 				"key":   []byte("foo"),
-				"value": []byte("MTIzNA=="),
+				"value": []byte("bar"),
 			},
 			expectedStringData: map[string]string{
-				"foo": "MTIzNA==",
+				"foo": "bar",
 			},
 		},
 		{
-			name: "test metadata sync",
-			tpl: `
-                  metadata:
-                    annotations:
-                      {{ .key }}: {{ .value | b64dec }},
-                    labels:
-                      {{ .key }}: {{ .value | b64dec }}`,
+			name:   "test Labels",
+			tpl:    map[string][]byte{"literal": []byte("{{ .key }}: {{ .value }}")},
+			target: esapi.TemplateTargetLabels,
 			data: map[string][]byte{
 				"key":   []byte("foo"),
-				"value": []byte("MTIzNA=="),
+				"value": []byte("bar"),
 			},
-			expectedAnnotations: map[string]string{
-				"foo": "MTIzNA==",
-			},
-			expectedLabels: map[string]string{
-				"foo": "MTIzNA==",
+			expectedStringData: map[string]string{
+				"foo": "bar",
 			},
 		},
 		{
-			name: "dynamic data templating",
-			tpl: `
-                  metadata:
-                      annotations:
-                        {{- range $k, $v := (.metadata | fromJson).annotations  }}
-                          "{{ $k }}": "{{ $v }}"
-                        {{- end }}
-                      labels:
-                        {{- range $k, $v := (.metadata | fromJson).labels  }}
-                          "{{ $k }}": "{{ $v }}"
-                        {{- end }}
-                  data:
-                      {{- range $k, $v := (.secret | fromJson) }}
-                      "{{ $k }}": "{{ $v | b64enc }}"
-                      {{- end }}`,
+			name:   "test String Data",
+			tpl:    map[string][]byte{"literal": []byte("{{ .key }}: {{ .value }}")},
+			target: esapi.TemplateTargetStringData,
 			data: map[string][]byte{
-				"metadata": []byte(`{"annotations":{"foo":"bar","works":"on_multiple"},"labels":{"yada":"yada"}}`),
-				"secret":   []byte(`{"key1": "value1", "key2": "value2"}`),
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
 			},
-			expectedAnnotations: map[string]string{
-				"foo":   "bar",
-				"works": "on_multiple",
-			},
-			expectedLabels: map[string]string{
-				"yada": "yada",
-			},
-			expectedData: map[string][]byte{
-				"key1": []byte("value1"),
-				"key2": []byte("value2"),
+			expectedStringData: map[string]string{
+				"foo": "bar",
 			},
 		},
 	}
-
 	for i := range tbl {
 		row := tbl[i]
 		t.Run(row.name, func(t *testing.T) {
 			sec := &corev1.Secret{
-				Data: make(map[string][]byte),
+				Data:       make(map[string][]byte),
+				StringData: make(map[string]string),
+				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
 			}
-			err := SecretExecute(row.tpl, row.data, sec)
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeKeysAndValues, row.target, sec)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
-			if row.expectedData == nil {
-				return
+			switch row.target {
+			case esapi.TemplateTargetData:
+				if row.expectedData != nil {
+					assert.EqualValues(t, row.expectedData, sec.Data)
+				}
+			case esapi.TemplateTargetStringData:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.StringData)
+				}
+			case esapi.TemplateTargetLabels:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Labels)
+				}
+			case esapi.TemplateTargetAnnotations:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Annotations)
+				}
 			}
-			assert.EqualValues(t, row.expectedData, sec.Data)
-			assert.EqualValues(t, row.expectedStringData, sec.StringData)
-			assert.EqualValues(t, row.expectedLabels, sec.Labels)
-			assert.EqualValues(t, row.expectedAnnotations, sec.Annotations)
 		})
 	}
 }
-
 func ErrorContains(out error, want string) bool {
 	if out == nil {
 		return want == ""

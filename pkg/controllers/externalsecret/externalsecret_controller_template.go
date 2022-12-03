@@ -42,25 +42,26 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 		secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 		return nil
 	}
-	// secret template defined as string: apply secret template and return
-	if es.Spec.Target.Template.FromString != nil {
-		execute, err := template.SecretTemplateForVersion(es.Spec.Target.Template.EngineVersion)
-		if err != nil {
-			return err
-		}
-		return execute(*es.Spec.Target.Template.FromString, dataMap, secret)
+	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
+	if err != nil {
+		return err
 	}
 
-	// fetch templates defined in template.templateFrom
-	tplMap, err := r.getTemplateData(ctx, es)
+	// apply templates defined in template.templateFrom
+	err = r.mergeTemplateFrom(ctx, es, execute, secret, dataMap)
 	if err != nil {
 		return fmt.Errorf(errFetchTplFrom, err)
 	}
-
 	// explicitly defined template.Data takes precedence over templateFrom
+	tplMap := make(map[string][]byte)
 	for k, v := range es.Spec.Target.Template.Data {
 		tplMap[k] = []byte(v)
 	}
+	err = execute(tplMap, dataMap, esv1beta1.TemplateScopeValues, esv1beta1.TemplateTargetData, secret)
+	if err != nil {
+		return fmt.Errorf(errExecTpl, err)
+	}
+
 	r.Log.V(1).Info("found template data", "tpl_data", tplMap)
 
 	tplMapLabels := make(map[string][]byte)
@@ -73,6 +74,10 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 		}
 		r.Log.V(1).Info("found template metadata (labels)", "tpl_labels", tplMapLabels)
 	}
+	err = execute(tplMapLabels, dataMap, esv1beta1.TemplateScopeValues, esv1beta1.TemplateTargetLabels, secret)
+	if err != nil {
+		return fmt.Errorf(errExecTpl, err)
+	}
 
 	// get template data for annotations
 	if es.Spec.Target.Template.Metadata.Annotations != nil {
@@ -81,12 +86,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 		}
 		r.Log.V(1).Info("found template metadata (annotations)", "tpl_annotations", tplMapAnnotations)
 	}
-
-	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
-	if err != nil {
-		return err
-	}
-	err = execute(tplMap, tplMapLabels, tplMapAnnotations, dataMap, secret)
+	err = execute(tplMapAnnotations, dataMap, esv1beta1.TemplateScopeValues, esv1beta1.TemplateTargetAnnotations, secret)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
@@ -121,22 +121,30 @@ func mergeMetadata(secret *v1.Secret, externalSecret *esv1beta1.ExternalSecret) 
 	utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
 }
 
-func (r *Reconciler) getTemplateData(ctx context.Context, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
-	out := make(map[string][]byte)
+func (r *Reconciler) mergeTemplateFrom(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, execute template.ExecFunc, secret *v1.Secret, dataMap map[string][]byte) error {
 	if externalSecret.Spec.Target.Template == nil {
-		return out, nil
+		return nil
 	}
 	for _, tpl := range externalSecret.Spec.Target.Template.TemplateFrom {
+		out := make(map[string][]byte)
+		// Literal is only compatible with KeysAndValues scope
+		if tpl.Literal != nil && tpl.Scope == esv1beta1.TemplateScopeKeysAndValues {
+			out[*tpl.Literal] = []byte(*tpl.Literal)
+		}
 		err := mergeConfigMap(ctx, r.Client, externalSecret, tpl, out)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		err = mergeSecret(ctx, r.Client, externalSecret, tpl, out)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		err = execute(out, dataMap, tpl.Scope, tpl.Target, secret)
+		if err != nil {
+			return err
 		}
 	}
-	return out, nil
+	return nil
 }
 
 func mergeConfigMap(ctx context.Context, k8sClient client.Client, es *esv1beta1.ExternalSecret, tpl esv1beta1.TemplateFrom, out map[string][]byte) error {

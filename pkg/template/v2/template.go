@@ -20,9 +20,9 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	corev1 "k8s.io/api/core/v1"
-	yaml "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/apimachinery/pkg/util/yaml"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 var tplFuncs = tpl.FuncMap{
@@ -65,58 +65,68 @@ func init() {
 	}
 }
 
-// Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(tpl, labelsTpl, annotationsTpl, data map[string][]byte, secret *corev1.Secret) error {
-	if tpl == nil && labelsTpl == nil && annotationsTpl == nil {
-		return nil
+func applyToTarget(k, val string, target esapi.TemplateTarget, secret *corev1.Secret) {
+	switch target {
+	case esapi.TemplateTargetAnnotations:
+		secret.Annotations[k] = val
+	case esapi.TemplateTargetLabels:
+		secret.Labels[k] = val
+	case esapi.TemplateTargetStringData:
+		secret.StringData[k] = val
+	case esapi.TemplateTargetData:
+		secret.Data[k] = []byte(val)
+	default:
 	}
-	for k, v := range tpl {
-		val, err := execute(k, string(v), data)
-		if err != nil {
-			return fmt.Errorf(errExecute, k, err)
-		}
-		secret.Data[k] = val
-	}
+}
 
-	for k, v := range labelsTpl {
+func valueScopeApply(tplMap, data map[string][]byte, target esapi.TemplateTarget, secret *corev1.Secret) error {
+	for k, v := range tplMap {
 		val, err := execute(k, string(v), data)
 		if err != nil {
 			return fmt.Errorf(errExecute, k, err)
 		}
-		secret.ObjectMeta.Labels[k] = string(val)
-	}
-
-	for k, v := range annotationsTpl {
-		val, err := execute(k, string(v), data)
-		if err != nil {
-			return fmt.Errorf(errExecute, k, err)
-		}
-		secret.ObjectMeta.Annotations[k] = string(val)
+		applyToTarget(k, string(val), target, secret)
 	}
 	return nil
 }
 
-func SecretExecute(template string, data map[string][]byte, secret *corev1.Secret) error {
-	newSecret := &corev1.Secret{}
-	secretByte, err := execute("secret", template, data)
+func mapScopeApply(tpl string, data map[string][]byte, target esapi.TemplateTarget, secret *corev1.Secret) error {
+	val, err := execute(tpl, tpl, data)
 	if err != nil {
-		return err
+		return fmt.Errorf(errExecute, tpl, err)
 	}
-	err = yaml.Unmarshal(secretByte, newSecret)
+	src := make(map[string]string)
+	err = yaml.Unmarshal(val, &src)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not unmarshal template to 'map[string][]byte': %w", err)
 	}
-	// Making sure that only allowed fields are templated
-	if secret.ObjectMeta.Annotations == nil {
-		secret.ObjectMeta.Annotations = newSecret.ObjectMeta.Annotations
+	for k, val := range src {
+		applyToTarget(k, val, target, secret)
 	}
-	if secret.ObjectMeta.Labels == nil {
-		secret.ObjectMeta.Labels = newSecret.ObjectMeta.Labels
+	return nil
+}
+
+// Execute renders the secret data as template. If an error occurs processing is stopped immediately.
+func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error {
+	if tpl == nil {
+		return nil
 	}
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, newSecret.ObjectMeta.Annotations)
-	utils.MergeStringMap(secret.ObjectMeta.Labels, newSecret.ObjectMeta.Labels)
-	secret.Data = newSecret.Data
-	secret.StringData = newSecret.StringData
+	switch scope {
+	case esapi.TemplateScopeKeysAndValues:
+		for _, v := range tpl {
+			err := mapScopeApply(string(v), data, target, secret)
+			if err != nil {
+				return err
+			}
+		}
+	case esapi.TemplateScopeValues:
+		err := valueScopeApply(tpl, data, target, secret)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown scope '%v': expected 'Values' or 'KeysAndValues'", scope)
+	}
 	return nil
 }
 
