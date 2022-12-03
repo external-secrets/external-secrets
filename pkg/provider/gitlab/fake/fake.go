@@ -46,14 +46,9 @@ func (mc *GitlabMockProjectVariablesClient) ListVariables(pid interface{}, opt *
 	return mc.listVariables(pid)
 }
 
-func (mc *GitlabMockProjectVariablesClient) WithValue(envInput, keyInput string, output *gitlab.ProjectVariable, response *gitlab.Response, err error) {
+func (mc *GitlabMockProjectVariablesClient) WithValue(output *gitlab.ProjectVariable, response *gitlab.Response, err error) {
 	if mc != nil {
 		mc.getVariable = func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
-			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
-			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
-			// if !cmp.Equal(paramReq, input, cmpopts.IgnoreUnexported(gitlab.ProjectVariable{})) {
-			// 	return nil, nil, fmt.Errorf("unexpected test argument")
-			// }
 			return output, response, err
 		}
 
