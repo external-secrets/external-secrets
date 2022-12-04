@@ -18,6 +18,12 @@ You do not have to define your templates inline in an ExternalSecret but you can
 {% include 'template-v2-from-secret.yaml' %}
 ```
 
+`TemplateFrom` also gives you the ability to Target your template to the Secret's Annotations, Labels or the Data block. It also allows you to render the templated information as `Values` or as `KeysAndValues`:
+
+```yaml
+{% include 'template-v2-scope-and-target.yaml' %}
+```
+
 ### Extract Keys and Certificates from PKCS#12 Archive
 
 You can use pre-defined functions to extract data from your secrets. Here: extract keys and certificates from a PKCS#12 archive and store it as PEM.
