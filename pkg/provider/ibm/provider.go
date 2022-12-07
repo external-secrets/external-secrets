@@ -190,7 +190,7 @@ func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, error) {
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 	arbitrarySecretPayload := secretData["payload"].(string)
 	return []byte(arbitrarySecretPayload), nil
 }
@@ -206,7 +206,7 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
@@ -225,7 +225,7 @@ func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
@@ -244,7 +244,7 @@ func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ex
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
@@ -279,7 +279,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
@@ -296,7 +296,7 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 
 	log.Info("fetching secret", "secretName", secretName, "key", ref.Key)
 
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	payload, ok := secretData["payload"]
 	if !ok {
@@ -392,7 +392,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 		arbitrarySecretPayload := secretData["payload"].(string)
 
 		kv := make(map[string]interface{})
@@ -416,7 +416,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 
 		secretMap := byteArrayMap(secretData)
 
@@ -451,7 +451,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 
 		secretMap := byteArrayMap(secretData)
 
@@ -468,7 +468,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 
 		secretMap := byteArrayMap(secretData)
 
@@ -485,7 +485,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 
 		secretMap := byteArrayMap(secretData)
 
