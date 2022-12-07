@@ -71,8 +71,6 @@ func applyToTarget(k, val string, target esapi.TemplateTarget, secret *corev1.Se
 		secret.Annotations[k] = val
 	case esapi.TemplateTargetLabels:
 		secret.Labels[k] = val
-	case esapi.TemplateTargetStringData:
-		secret.StringData[k] = val
 	case esapi.TemplateTargetData:
 		secret.Data[k] = []byte(val)
 	default:

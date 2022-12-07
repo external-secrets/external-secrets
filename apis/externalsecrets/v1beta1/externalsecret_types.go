@@ -113,8 +113,6 @@ type TemplateFrom struct {
 	ConfigMap *TemplateRef `json:"configMap,omitempty"`
 	Secret    *TemplateRef `json:"secret,omitempty"`
 	// +optional
-	// +kubebuilder:default="Values"
-	Scope TemplateScope `json:"scope,omitempty"`
 	// +optional
 	// +kubebuilder:default="Data"
 	Target TemplateTarget `json:"target,omitempty"`
@@ -133,7 +131,6 @@ type TemplateTarget string
 
 const (
 	TemplateTargetData        TemplateTarget = "Data"
-	TemplateTargetStringData  TemplateTarget = "StringData"
 	TemplateTargetAnnotations TemplateTarget = "Annotations"
 	TemplateTargetLabels      TemplateTarget = "Labels"
 )
@@ -145,6 +142,8 @@ type TemplateRef struct {
 
 type TemplateRefItem struct {
 	Key string `json:"key"`
+	// +kubebuilder:default="Values"
+	TemplateAs TemplateScope `json:"templateAs,omitempty"`
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created

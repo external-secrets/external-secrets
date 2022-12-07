@@ -735,23 +735,23 @@ var _ = Describe("ExternalSecret controller", func() {
 			Type:     v1.SecretTypeOpaque,
 			TemplateFrom: []esv1beta1.TemplateFrom{
 				{
-					Scope: esv1beta1.TemplateScopeKeysAndValues,
 					ConfigMap: &esv1beta1.TemplateRef{
 						Name: tplFromCMName,
 						Items: []esv1beta1.TemplateRefItem{
 							{
-								Key: tplFromKey,
+								Key:        tplFromKey,
+								TemplateAs: esv1beta1.TemplateScopeKeysAndValues,
 							},
 						},
 					},
 				},
 				{
-					Scope: esv1beta1.TemplateScopeKeysAndValues,
 					Secret: &esv1beta1.TemplateRef{
 						Name: tplFromSecretName,
 						Items: []esv1beta1.TemplateRefItem{
 							{
-								Key: tplFromSecKey,
+								Key:        tplFromSecKey,
+								TemplateAs: esv1beta1.TemplateScopeKeysAndValues,
 							},
 						},
 					},
@@ -789,20 +789,16 @@ var _ = Describe("ExternalSecret controller", func() {
 			Type:     v1.SecretTypeOpaque,
 			TemplateFrom: []esv1beta1.TemplateFrom{
 				{
-					Scope:   esv1beta1.TemplateScopeKeysAndValues,
 					Literal: &tplDataVal,
 				},
 				{
-					Scope:   esv1beta1.TemplateScopeKeysAndValues,
 					Literal: &tplComplexVal,
 				},
 				{
-					Scope:   esv1beta1.TemplateScopeKeysAndValues,
 					Target:  esv1beta1.TemplateTargetAnnotations,
 					Literal: &tplAnnotationsVal,
 				},
 				{
-					Scope:   esv1beta1.TemplateScopeKeysAndValues,
 					Target:  esv1beta1.TemplateTargetLabels,
 					Literal: &tplLabelsVal,
 				},

@@ -489,10 +489,6 @@ func TestExecute(t *testing.T) {
 			if !ErrorContains(err, row.expAnnoErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
-			err = Execute(row.stringDataTpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetStringData, sec)
-			if !ErrorContains(err, row.expStrErr) {
-				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
-			}
 			if row.expectedData != nil {
 				assert.EqualValues(t, row.expectedData, sec.Data)
 			}
@@ -565,18 +561,6 @@ func TestScopeKeysAndValues(t *testing.T) {
 				"foo": "bar",
 			},
 		},
-		{
-			name:   "test String Data",
-			tpl:    map[string][]byte{"literal": []byte("{{ .key }}: {{ .value }}")},
-			target: esapi.TemplateTargetStringData,
-			data: map[string][]byte{
-				"key":   []byte("foo"),
-				"value": []byte("bar"),
-			},
-			expectedStringData: map[string]string{
-				"foo": "bar",
-			},
-		},
 	}
 	for i := range tbl {
 		row := tbl[i]
@@ -594,10 +578,6 @@ func TestScopeKeysAndValues(t *testing.T) {
 			case esapi.TemplateTargetData:
 				if row.expectedData != nil {
 					assert.EqualValues(t, row.expectedData, sec.Data)
-				}
-			case esapi.TemplateTargetStringData:
-				if row.expectedStringData != nil {
-					assert.EqualValues(t, row.expectedStringData, sec.StringData)
 				}
 			case esapi.TemplateTargetLabels:
 				if row.expectedStringData != nil {

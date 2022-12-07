@@ -315,6 +315,9 @@ spec:
                                           properties:
                                             key:
                                               type: string
+                                            templateAs:
+                                              default: Values
+                                              type: string
                                           required:
                                             - key
                                           type: object
@@ -327,15 +330,15 @@ spec:
                                     type: object
                                   literal:
                                     type: string
-                                  scope:
-                                    default: Values
-                                    type: string
                                   secret:
                                     properties:
                                       items:
                                         items:
                                           properties:
                                             key:
+                                              type: string
+                                            templateAs:
+                                              default: Values
                                               type: string
                                           required:
                                             - key
@@ -3426,6 +3429,9 @@ spec:
                                       properties:
                                         key:
                                           type: string
+                                        templateAs:
+                                          default: Values
+                                          type: string
                                       required:
                                         - key
                                       type: object
@@ -3438,15 +3444,15 @@ spec:
                                 type: object
                               literal:
                                 type: string
-                              scope:
-                                default: Values
-                                type: string
                               secret:
                                 properties:
                                   items:
                                     items:
                                       properties:
                                         key:
+                                          type: string
+                                        templateAs:
+                                          default: Values
                                           type: string
                                       required:
                                         - key
