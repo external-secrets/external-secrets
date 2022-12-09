@@ -18,11 +18,13 @@ You do not have to define your templates inline in an ExternalSecret but you can
 {% include 'template-v2-from-secret.yaml' %}
 ```
 
-`TemplateFrom` also gives you the ability to Target your template to the Secret's Annotations, Labels or the Data block. It also allows you to render the templated information as `Values` or as `KeysAndValues`:
+`TemplateFrom` also gives you the ability to Target your template to the Secret's Annotations, Labels or the Data block. It also allows you to render the templated information as `Values` or as `KeysAndValues` through the `templateAs` configuration:
 
 ```yaml
 {% include 'template-v2-scope-and-target.yaml' %}
 ```
+
+Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
 
 ### Extract Keys and Certificates from PKCS#12 Archive
 
