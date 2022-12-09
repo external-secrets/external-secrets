@@ -1,16 +1,16 @@
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
-  name: secretstore-sample
+  name: aws-secretsmanager
 spec:
   provider:
     aws:
       service: SecretsManager
       # define a specific role to limit access
       # to certain secrets.
-      # role is a optional field that 
+      # role is a optional field that
       # can be omitted for test purposes
-      role: iam-role
+      role: arn:aws:iam::123456789012:role/external-secrets
       region: eu-central-1
       auth:
         secretRef:

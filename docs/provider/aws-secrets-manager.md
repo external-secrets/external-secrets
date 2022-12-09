@@ -39,7 +39,7 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`.
 
 SecretsManager supports *simple* key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):
 
-Consider the following JSON object that is stored in the SecretsManager key `my-json-secret`:
+Consider the following JSON object that is stored in the SecretsManager key `friendslist`:
 ``` json
 {
   "name": {"first": "Tom", "last": "Anderson"},
@@ -63,26 +63,30 @@ SecretsManager creates a new version of a secret every time it is updated. The s
 
 The `version` field on the `remoteRef` of the ExternalSecret will normally consider the version to be a `VersionStage`, but if the field is prefixed with `uuid/`, then the version will be considered a `VersionId`.
 
-So in this example, the operator will request the secret with `VersionStage` as `AWSPREVIOUS`:
+So in this example, the operator will request the same secret with different versions: `AWSCURRENT` and `AWSPREVIOUS`:
 
 ``` yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: example
+  name: versioned-api-key
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: secretstore-sample
+    name: aws-secretsmanager
     kind: SecretStore
   target:
-    name: secret-to-be-created
+    name: versioned-api-key
     creationPolicy: Owner
   data:
-  - secretKey: secret-key-to-be-managed
+  - secretKey: previous-api-key
     remoteRef:
-      key: "example/secret"
+      key: "production/api-key"
       version: "AWSPREVIOUS"
+  - secretKey: current-api-key
+    remoteRef:
+      key: "production/api-key"
+      version: "AWSCURRENT"
 ```
 
 While in this example, the operator will request the secret with `VersionId` as `abcd-1234`
@@ -91,20 +95,20 @@ While in this example, the operator will request the secret with `VersionId` as 
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: example
+  name: versioned-api-key
 spec:
   refreshInterval: 1h
   secretStoreRef:
-    name: secretstore-sample
+    name: aws-secretsmanager
     kind: SecretStore
   target:
-    name: secret-to-be-created
+    name: versioned-api-key
     creationPolicy: Owner
   data:
-  - secretKey: secret-key-to-be-managed
+  - secretKey: api-key
     remoteRef:
-      key: "example/secret"
-      version: "uuid/abcd-1234"
+      key: "production/api-key"
+      version: "uuid/123e4567-e89b-12d3-a456-426614174000"
 ```
 
 --8<-- "snippets/provider-aws-access.md"

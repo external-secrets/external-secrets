@@ -296,7 +296,8 @@ var _ = Describe("ExternalSecret controller", func() {
 			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
-				return metric.GetCounter().GetValue() == 1.0 && metricDuration.GetGauge().GetValue() > 0.0
+				// three reconciliations: initial sync, status update, secret update
+				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 		}
 	}

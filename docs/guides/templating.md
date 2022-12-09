@@ -10,6 +10,12 @@ You can use templates to inject your secrets into a configuration file that you 
 {% include 'multiline-template-v2-external-secret.yaml' %}
 ```
 
+Another example with two keys in the same secret:
+
+```yaml
+{% include 'multikey-template-v2-external-secret.yaml' %}
+```
+
 ### TemplateFrom
 
 You do not have to define your templates inline in an ExternalSecret but you can pull `ConfigMaps` or other Secrets that contain a template. Consider the following example:

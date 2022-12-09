@@ -17,6 +17,8 @@ crds:
   createClusterExternalSecret: true
   # -- If true, create CRDs for Cluster Secret Store.
   createClusterSecretStore: true
+  # -- If true, create CRDs for Push Secret.
+  createPushSecret: true
 
 imagePullSecrets: []
 nameOverride: ""
