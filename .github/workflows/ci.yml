@@ -149,7 +149,7 @@ jobs:
 
       - name: Add setup-envtest
         run: |
-          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          go get sigs.k8s.io/controller-runtime/tools/setup-envtest
           setup-envtest use ${{env.KUBERNETES_VERSION}} -p env --os $(go env GOOS) --arch $(go env GOARCH)
 
       - name: Cache envtest binaries
