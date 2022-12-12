@@ -69,11 +69,7 @@ var certcontrollerCmd = &cobra.Command{
 		}
 		crdctrl := crds.New(mgr.GetClient(), mgr.GetScheme(),
 			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
-			crdRequeueInterval, serviceName, serviceNamespace, secretName, secretNamespace, []string{
-				"externalsecrets.external-secrets.io",
-				"clustersecretstores.external-secrets.io",
-				"secretstores.external-secrets.io",
-			})
+			crdRequeueInterval, serviceName, serviceNamespace, secretName, secretNamespace, crdNames)
 		if err := crdctrl.SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
@@ -120,6 +116,7 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
 	certcontrollerCmd.Flags().StringVar(&secretName, "secret-name", "external-secrets-webhook", "Secret to store certs for webhook")
 	certcontrollerCmd.Flags().StringVar(&secretNamespace, "secret-namespace", "default", "namespace of the secret to store certs")
+	certcontrollerCmd.Flags().StringSliceVar(&crdNames, "crd-names", []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"}, "CRD names reconciled by the controller")
 	certcontrollerCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")

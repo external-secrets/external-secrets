@@ -56,10 +56,10 @@ spec:
           - --enable-cluster-store-reconciler=false
           - --enable-cluster-external-secret-reconciler=false
           {{- else }}
-            {{- if not .Values.processClusterStore }}
+            {{- if or (not .Values.crds.createClusterSecretStore) (not .Values.processClusterStore) }}
           - --enable-cluster-store-reconciler=false
             {{- end }}
-            {{- if not .Values.processClusterExternalSecret }}
+            {{- if or (not .Values.crds.createClusterExternalSecret) (not .Values.processClusterExternalSecret) }}
           - --enable-cluster-external-secret-reconciler=false
             {{- end }}
           {{- end }}
