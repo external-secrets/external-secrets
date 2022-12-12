@@ -68,7 +68,7 @@ require (
 	github.com/prometheus/client_model v0.3.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.1
-	github.com/tidwall/gjson v1.14.3
+	github.com/tidwall/gjson v1.14.4
 	github.com/xanzy/go-gitlab v0.76.0
 	github.com/yandex-cloud/go-genproto v0.0.0-20220902133259-5be489ec3a5d
 	github.com/yandex-cloud/go-sdk v0.0.0-20220902133848-327f1859d27a
