@@ -93,7 +93,7 @@ require (
 require github.com/1Password/connect-sdk-go v1.5.0
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.0.0
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.2.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
