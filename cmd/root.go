@@ -67,6 +67,7 @@ var (
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
 	secretName, secretNamespace           string
+	crdNames                              []string
 	crdRequeueInterval                    time.Duration
 	certCheckInterval                     time.Duration
 	certLookaheadInterval                 time.Duration

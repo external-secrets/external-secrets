@@ -13,3 +13,4 @@ the API. Please pick one of the following guides:
 * [Decoding Strategy](decoding-strategy.md)
 * [v1beta1 Migration](v1beta1.md)
 * [Deploying image from main](using-latest-image.md)
+* [Deploying without cluster features](disable-cluster-features.md)
