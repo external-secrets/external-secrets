@@ -59,6 +59,7 @@ var (
 	clientQPS                             float32
 	clientBurst                           int
 	loglevel                              string
+	zapTimeEncoding                       string
 	namespace                             string
 	enableClusterStoreReconciler          bool
 	enableClusterExternalSecretReconciler bool
@@ -96,6 +97,7 @@ var rootCmd = &cobra.Command{
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var lvl zapcore.Level
+		var enc zapcore.TimeEncoder
 		// the client creates a ListWatch for all resource kinds that
 		// are requested with .Get().
 		// We want to avoid to cache all secrets or configmaps in memory.
@@ -109,12 +111,21 @@ var rootCmd = &cobra.Command{
 		if !enableConfigMapsCache {
 			cacheList = append(cacheList, &v1.ConfigMap{})
 		}
-		err := lvl.UnmarshalText([]byte(loglevel))
-		if err != nil {
-			setupLog.Error(err, "error unmarshalling loglevel")
+		lvlErr := lvl.UnmarshalText([]byte(loglevel))
+		if lvlErr != nil {
+			setupLog.Error(lvlErr, "error unmarshalling loglevel")
 			os.Exit(1)
 		}
-		logger := zap.New(zap.Level(lvl))
+		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
+		if encErr != nil {
+			setupLog.Error(encErr, "error unmarshalling timeEncoding")
+			os.Exit(1)
+		}
+		opts := zap.Options{
+			Level:       lvl,
+			TimeEncoder: enc,
+		}
+		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
@@ -224,6 +235,7 @@ func init() {
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 0, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 0, "Maximum Burst allowed to be passed to rest.Client")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
+	rootCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
 	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
 	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
