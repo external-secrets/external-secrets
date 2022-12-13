@@ -99,7 +99,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		expectedValidationResult: esv1beta1.ValidationResultReady,
 		expectedData:             map[string][]byte{},
 	}
-	smtc.mockProjectVarClient.WithValue(smtc.apiInputEnv, smtc.apiInputKey, smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
+	smtc.mockProjectVarClient.WithValue(smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
 	smtc.mockGroupVarClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
 	return &smtc
 }
@@ -203,7 +203,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 		fn(smtc)
 	}
 	smtc.mockProjectsClient.WithValue(smtc.projectGroupsAPIOutput, smtc.projectGroupsAPIResponse, smtc.apiErr)
-	smtc.mockProjectVarClient.WithValue(smtc.apiInputEnv, smtc.apiInputKey, smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
+	smtc.mockProjectVarClient.WithValue(smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
 	smtc.mockGroupVarClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
 	return smtc
 }
@@ -215,7 +215,7 @@ func makeValidSecretManagerGetAllTestCaseCustom(tweaks ...func(smtc *secretManag
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
-	smtc.mockProjectVarClient.WithValue(smtc.apiInputEnv, smtc.apiInputKey, smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
+	smtc.mockProjectVarClient.WithValue(smtc.projectAPIOutput, smtc.projectAPIResponse, smtc.apiErr)
 	smtc.mockGroupVarClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
 
 	return smtc
@@ -371,6 +371,13 @@ func TestGetSecret(t *testing.T) {
 		smtc.groupAPIOutput = nil
 		smtc.expectedSecret = smtc.projectAPIOutput.Value
 	}
+	onlyWildcardSecret := func(smtc *secretManagerTestCase) {
+		smtc.projectAPIOutput.Value = ""
+		smtc.projectAPIResponse.Response.StatusCode = 404
+		smtc.groupAPIResponse = nil
+		smtc.groupAPIOutput = nil
+		smtc.expectedSecret = smtc.projectAPIOutput.Value
+	}
 	groupSecretProjectOverride := func(smtc *secretManagerTestCase) {
 		smtc.projectAPIOutput.Value = projectvalue
 		smtc.groupAPIOutput.Key = "testkey"
@@ -387,6 +394,7 @@ func TestGetSecret(t *testing.T) {
 
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(onlyProjectSecret),
+		makeValidSecretManagerTestCaseCustom(onlyWildcardSecret),
 		makeValidSecretManagerTestCaseCustom(groupSecretProjectOverride),
 		makeValidSecretManagerTestCaseCustom(groupWithoutProjectOverride),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
@@ -399,6 +407,7 @@ func TestGetSecret(t *testing.T) {
 		sm.groupVariablesClient = v.mockGroupVarClient
 		sm.projectID = v.projectID
 		sm.groupIDs = v.groupIDs
+		sm.environment = v.apiInputEnv
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
