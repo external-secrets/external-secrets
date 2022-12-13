@@ -13,7 +13,7 @@
     
     
       
-        <title>Introduction - External Secrets Operator</title>
+        <title>Deploying without ClusterSecretStore and ClusterExternalSecret - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#guides" class="md-skip">
+        <a href="#deploying-without-clustersecretstore-and-clusterexternalsecret" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Introduction
+              Deploying without ClusterSecretStore and ClusterExternalSecret
             
           </span>
         </div>
@@ -221,15 +221,13 @@
         
   
   
-    
-  
 
 
   
   
   
     <li class="md-tabs__item">
-      <a href="./" class="md-tabs__link md-tabs__link--active">
+      <a href="../introduction/" class="md-tabs__link">
         Guides
       </a>
     </li>
@@ -852,14 +850,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" data-md-state="indeterminate" type="checkbox" id="__nav_3" checked>
       
       
       
@@ -908,21 +904,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../introduction/" class="md-nav__link">
         Introduction
       </a>
-      
     </li>
   
 
@@ -1815,27 +1801,27 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/main/docs/guides/introduction.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/main/docs/guides/disable-cluster-features.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-<h1 id="guides">Guides</h1>
-<p>The following guides demonstrate use-cases and provide examples of how to use
-the API. Please pick one of the following guides:</p>
+<h1 id="deploying-without-clustersecretstore-and-clusterexternalsecret">Deploying without ClusterSecretStore and ClusterExternalSecret</h1>
+<p>When deploying External Secrets Operator via Helm chart, the default configuration will install <code>ClusterSecretStore</code> and <code>ClusterExternalSecret</code> CRDs and these objects will be processed by the operator.</p>
+<p>In order to disable both or one of these features, it is necessary to configure the <code>crds.*</code> Helm value, as well as the <code>process*</code> Helm value, as these 2 values are connected.</p>
+<p>If you would like to install the operator without <code>ClusterSecretStore</code> and <code>ClusterExternalSecret</code> management, you will have to :</p>
 <ul>
-<li><a href="../multi-tenancy/">Multi-Tenancy Design Considerations</a></li>
-<li><a href="../getallsecrets/">Find multiple secrets &amp; Extract Secret values</a></li>
-<li><a href="../templating/">Advanced Templating</a></li>
-<li><a href="../generator/">Generating Passwords using generators</a></li>
-<li><a href="../ownership-deletion-policy/">Ownership and Deletion Policy</a></li>
-<li><a href="../datafrom-rewrite/">Key Rewriting</a></li>
-<li><a href="../controller-class/">Controller Class</a></li>
-<li><a href="../decoding-strategy/">Decoding Strategy</a></li>
-<li><a href="../v1beta1/">v1beta1 Migration</a></li>
-<li><a href="../using-latest-image/">Deploying image from main</a></li>
-<li><a href="../disable-cluster-features/">Deploying without cluster features</a></li>
+<li>set <code>crds.createClusterExternalSecret</code> to false</li>
+<li>set <code>crds.createClusterSecretStore</code> to false</li>
+<li>set <code>processClusterExternalSecret</code> to false</li>
+<li>set <code>processClusterStore</code> to false</li>
 </ul>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code>helm install external-secrets external-secrets/external-secrets --set crds.createClusterExternalSecret<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+--set crds.createClusterSecretStore<span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+--set <span class="nv">processClusterExternalSecret</span><span class="o">=</span><span class="nb">false</span> <span class="se">\</span>
+--set <span class="nv">processClusterStore</span><span class="o">=</span><span class="nb">false</span>
+</code></pre></div>
 
               
             </article>
@@ -1845,41 +1831,6 @@ the API. Please pick one of the following guides:</p>
       </main>
       
         <footer class="md-footer">
-  
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-        
-        <a href="../../api/metrics/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Metrics" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Metrics
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="../templating/" class="md-footer__link md-footer__link--next" aria-label="Next: v2" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              v2
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
