@@ -2090,7 +2090,9 @@ You just need to set the <code>projectID</code>, all other fields can be omitted
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alphabet-123</span><span class="w"></span>
 </code></pre></div>
 <h3 id="gcp-service-account-authentication">GCP Service Account authentication</h3>
-<p>You can use <a href="https://cloud.google.com/iam/docs/service-accounts">GCP Service Account</a> to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a <code>Kind=Secret</code>. ESO will use that Secret to authenticate with GCP. See here how you <a href="https://cloud.google.com/iam/docs/creating-managing-service-accounts">manage GCP Service Accounts</a>.</p>
+<p>You can use <a href="https://cloud.google.com/iam/docs/service-accounts">GCP Service Account</a> to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a <code>Kind=Secret</code>. ESO will use that Secret to authenticate with GCP. See here how you <a href="https://cloud.google.com/iam/docs/creating-managing-service-accounts">manage GCP Service Accounts</a>.
+After creating a GCP Service acount go to <code>IAM &amp; Admin</code> web UI, click <code>ADD ANOTHER ROLE</code> button, add <code>Secret Manager Secret Accessor</code> role to this service account.
+The <code>Secret Manager Secret Accessor</code> role is required to access secrets.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
