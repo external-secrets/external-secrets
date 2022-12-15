@@ -15,6 +15,7 @@ import (
 const (
 	folderID            = "a8ekf031k"
 	validExistingRecord = "record0/login"
+	invalidRecord       = "record5/login"
 	outputRecord0       = "{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
 	outputRecord1       = "{\"title\":\"record1\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
 	outputRecord2       = "{\"title\":\"record2\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
@@ -59,7 +60,7 @@ func TestClientDeleteSecret(t *testing.T) {
 			args: args{
 				context.Background(),
 				&v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record0/login",
+					RemoteKey: validExistingRecord,
 				},
 			},
 			wantErr: false,
@@ -77,7 +78,7 @@ func TestClientDeleteSecret(t *testing.T) {
 			args: args{
 				context.Background(),
 				&v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record0/login",
+					RemoteKey: validExistingRecord,
 				},
 			},
 			wantErr: true,
@@ -95,7 +96,7 @@ func TestClientDeleteSecret(t *testing.T) {
 			args: args{
 				context.Background(),
 				&v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record5/login",
+					RemoteKey: invalidRecord,
 				},
 			},
 			wantErr: true,
@@ -502,7 +503,7 @@ func TestClientPushSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				remoteRef: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record5/login",
+					RemoteKey: invalidRecord,
 				},
 				value: []byte("foo"),
 			},
@@ -568,7 +569,7 @@ func TestClientPushSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				remoteRef: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record5/login",
+					RemoteKey: invalidRecord,
 				},
 				value: []byte("foo"),
 			},
