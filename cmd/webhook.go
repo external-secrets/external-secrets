@@ -55,22 +55,31 @@ var webhookCmd = &cobra.Command{
 	For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var lvl zapcore.Level
-		err := lvl.UnmarshalText([]byte(loglevel))
-		if err != nil {
-			setupLog.Error(err, "error unmarshalling loglevel")
-			os.Exit(1)
-		}
+		var enc zapcore.TimeEncoder
 		c := crds.CertInfo{
 			CertDir:  certDir,
 			CertName: "tls.crt",
 			KeyName:  "tls.key",
 			CAName:   "ca.crt",
 		}
-
-		logger := zap.New(zap.Level(lvl))
+		lvlErr := lvl.UnmarshalText([]byte(loglevel))
+		if lvlErr != nil {
+			setupLog.Error(lvlErr, "error unmarshalling loglevel")
+			os.Exit(1)
+		}
+		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
+		if encErr != nil {
+			setupLog.Error(encErr, "error unmarshalling timeEncoding")
+			os.Exit(1)
+		}
+		opts := zap.Options{
+			Level:       lvl,
+			TimeEncoder: enc,
+		}
+		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
 
-		err = waitForCerts(c, time.Minute*2)
+		err := waitForCerts(c, time.Minute*2)
 		if err != nil {
 			setupLog.Error(err, "unable to validate certificates")
 			os.Exit(1)
@@ -212,6 +221,7 @@ func init() {
 	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port number that the webhook server will serve.")
 	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "localhost", "DNS name to validate certificates with")
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "path to check for certs")
+	webhookCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	webhookCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	webhookCmd.Flags().DurationVar(&certCheckInterval, "check-interval", 5*time.Minute, "certificate check interval")
 	webhookCmd.Flags().DurationVar(&certLookaheadInterval, "lookahead-interval", crds.LookaheadInterval, "certificate check interval")

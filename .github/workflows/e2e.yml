@@ -6,6 +6,7 @@ on:
 
 permissions:
   id-token: write
+  checks: write
   contents: read
 
 name: e2e tests

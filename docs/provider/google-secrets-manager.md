@@ -80,6 +80,8 @@ You just need to set the `projectID`, all other fields can be omitted.
 ### GCP Service Account authentication
 
 You can use [GCP Service Account](https://cloud.google.com/iam/docs/service-accounts) to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a `Kind=Secret`. ESO will use that Secret to authenticate with GCP. See here how you [manage GCP Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
+After creating a GCP Service acount go to `IAM & Admin` web UI, click `ADD ANOTHER ROLE` button, add `Secret Manager Secret Accessor` role to this service account.
+The `Secret Manager Secret Accessor` role is required to access secrets.
 
 ```yaml
 {% include 'gcpsm-credentials-secret.yaml' %}
