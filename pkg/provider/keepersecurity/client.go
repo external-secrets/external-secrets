@@ -8,12 +8,12 @@ import (
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"golang.org/x/exp/maps"
 	"regexp"
-	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sort"
 	"strings"
 )
 
 const (
+	errKeeperSecuritySecretsNotFound            = "Unable to find secrets. %w"
 	errKeeperSecuritySecretNotFound             = "Unable to find secret %s. Error: %w"
 	errKeeperSecuritySecretNotUnique            = "More than 1 secret %s found"
 	errKeeperSecurityInvalidSecretInvalidFormat = "Invalid secret. Invalid format: %w"
@@ -28,7 +28,7 @@ const (
 	errInvalidJsonSecret                        = "Invalid Secret. Secret %s can not be converted to JSON. %w"
 	errInvalidRegex                             = "find.name.regex. Invalid Regular expresion %s. %w"
 	errInvalidRemoteRefKey                      = "match.remoteRef.remoteKey. Invalid format. Format should match secretName/key got %s"
-	errInvalidSecretType                        = "ESO can only push to %s record types. Secret %s is type %s"
+	errInvalidSecretType                        = "ESO can only push/delete %s record types. Secret %s is type %s"
 	errFieldNotFound                            = "Secret %s does not contain any custom field with label %s"
 
 	externalSecretType = "externalSecrets"
@@ -41,10 +41,16 @@ const (
 )
 
 type Client struct {
-	ksmClient *ksm.SecretsManager
-	kube      kclient.Client
-	store     *esv1beta1.KeeperSecurityProvider
-	namespace string
+	ksmClient KeeperSecurityClient
+	folderID  string
+}
+
+type KeeperSecurityClient interface {
+	GetSecrets(filter []string) ([]*ksm.Record, error)
+	GetSecretByTitle(recordTitle string) (*ksm.Record, error)
+	CreateSecretWithRecordData(recUid, folderUid string, recordData *ksm.RecordCreate) (string, error)
+	DeleteSecrets(recrecordUids []string) (map[string]string, error)
+	Save(record *ksm.Record) error
 }
 
 type KeeperSecurityField struct {
@@ -78,8 +84,10 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	record, err := c.findSecretById(ref.Key)
+	if err != nil {
+		return nil, err
+	}
 	secret, err := c.getValidKeeperSecret(record)
-
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +97,9 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	record, err := c.findSecretById(ref.Key)
+	if err != nil {
+		return nil, err
+	}
 	secret, err := c.getValidKeeperSecret(record)
 	if err != nil {
 		return nil, err
@@ -142,10 +153,10 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 	secret, err := c.findSecretByName(parts[0])
 	if err != nil {
-		return err
-	}
-	if secret == nil {
 		_, err = c.createSecret(parts[0], parts[1], value)
+		if err != nil {
+			return err
+		}
 	} else {
 		if secret.Type() != externalSecretType {
 			return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
@@ -166,6 +177,12 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 		return err
 	}
 	secret, err := c.findSecretByName(parts[0])
+	if err != nil {
+		return err
+	}
+	if secret.Type() != externalSecretType {
+		return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
+	}
 	_, err = c.ksmClient.DeleteSecrets([]string{secret.Uid})
 	if err != nil {
 		return nil
@@ -210,7 +227,7 @@ func (c *Client) createSecret(name string, key string, value []byte) (string, er
 		)
 	}
 
-	return c.ksmClient.CreateSecretWithRecordData("", c.store.FolderID, externalSecretRecord)
+	return c.ksmClient.CreateSecretWithRecordData("", c.folderID, externalSecretRecord)
 
 }
 
@@ -237,9 +254,7 @@ func (c *Client) updateSecret(secret *ksm.Record, key string, value []byte) erro
 		}
 	}
 
-	c.ksmClient.Save(secret)
-
-	return nil
+	return c.ksmClient.Save(secret)
 }
 
 func (c *Client) getValidKeeperSecret(secret *ksm.Record) (*KeeperSecuritySecret, error) {
@@ -261,7 +276,7 @@ func (c *Client) findSecrets() ([]*ksm.Record, error) {
 
 	records, err := c.ksmClient.GetSecrets([]string{})
 	if err != nil {
-		return nil, fmt.Errorf(errKeeperSecuritySecretNotFound, err)
+		return nil, fmt.Errorf(errKeeperSecuritySecretsNotFound, err)
 	}
 
 	return records, nil

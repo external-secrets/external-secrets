@@ -15,24 +15,24 @@ import (
 )
 
 const (
-	errKeeperSecurityUnableToCreateConfig           = "Unable to create valid KeeperSecurity config: %w"
+	errKeeperSecurityUnableToCreateConfig           = "unable to create valid KeeperSecurity config: %w"
 	errKeeperSecurityStore                          = "received invalid KeeperSecurity SecretStore resource: %s"
 	errKeeperSecurityNilSpec                        = "nil spec"
 	errKeeperSecurityNilSpecProvider                = "nil spec.provider"
 	errKeeperSecurityNilSpecProviderKeeperSecurity  = "nil spec.provider.keepersecurity"
 	errKeeperSecurityStoreMissingAuth               = "missing: spec.provider.keepersecurity.auth"
-	errKeeperSecurityStoreMissingAppKey             = "missing: spec.provider.keepersecurity.auth.appKeySecretRef"
-	errKeeperSecurityStoreMissingAppOwnerPublicKey  = "missing: spec.provider.keepersecurity.auth.appOwnerPublicKeySecretRef"
-	errKeeperSecurityStoreMissingClientId           = "missing: spec.provider.keepersecurity.auth.clientIdSecretRef"
-	errKeeperSecurityStoreMissingPrivateKey         = "missing: spec.provider.keepersecurity.auth.privateKeySecretRef"
-	errKeeperSecurityStoreMissingServerPublicKeyId  = "missing: spec.provider.keepersecurity.auth.serverPublicKeyIdSecretRef"
+	errKeeperSecurityStoreMissingAppKey             = "missing: spec.provider.keepersecurity.auth.appKeySecretRef %w"
+	errKeeperSecurityStoreMissingAppOwnerPublicKey  = "missing: spec.provider.keepersecurity.auth.appOwnerPublicKeySecretRef %w"
+	errKeeperSecurityStoreMissingClientId           = "missing: spec.provider.keepersecurity.auth.clientIdSecretRef %w"
+	errKeeperSecurityStoreMissingPrivateKey         = "missing: spec.provider.keepersecurity.auth.privateKeySecretRef %w"
+	errKeeperSecurityStoreMissingServerPublicKeyId  = "missing: spec.provider.keepersecurity.auth.serverPublicKeyIdSecretRef %w"
 	errKeeperSecurityStoreInvalidConnectHost        = "unable to parse URL: spec.provider.keepersecurity.connectHost: %w"
 	errInvalidClusterStoreMissingK8sSecretNamespace = "invalid ClusterSecretStore: missing KeeperSecurity k8s Auth Secret Namespace"
 	errFetchK8sSecret                               = "could not fetch k8s Secret: %w"
-	errMissingK8sSecretKey                          = "missing Secret key: %w"
+	errMissingK8sSecretKey                          = "missing Secret key: %s"
 )
 
-// It implements the necessary NewClient() and ValidateStore() funcs.
+// Provider implements the necessary NewClient() and ValidateStore() funcs.
 type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -57,11 +57,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}
 
 	kStore := storeSpec.Provider.KeeperSecurity
-	client := &Client{
-		kube:      kube,
-		store:     kStore,
-		namespace: namespace,
-	}
 
 	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
 	clientConfig, err := getKeeperSecurityConfig(ctx, kStore, kube, isClusterKind, namespace)
@@ -73,7 +68,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		LogLevel: logger.ErrorLevel,
 	}
 	ksmClient := ksm.NewSecretsManager(ksmClientOptions)
-	client.ksmClient = ksmClient
+	client := &Client{
+		folderID:  kStore.FolderID,
+		ksmClient: ksmClient,
+	}
 
 	return client, nil
 }
@@ -184,7 +182,7 @@ func getAuthParameter(ctx context.Context, param smmeta.SecretKeySelector, kube 
 	}
 	data := credentialsSecret.Data[param.Key]
 	if (data == nil) || (len(data) == 0) {
-		return "", fmt.Errorf(errMissingK8sSecretKey)
+		return "", fmt.Errorf(errMissingK8sSecretKey, param.Key)
 	}
 
 	return string(data), nil
