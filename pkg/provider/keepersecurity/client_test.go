@@ -13,10 +13,20 @@ import (
 )
 
 const (
-	folderID = "a8ekf031k"
+	folderID            = "a8ekf031k"
+	validExistingRecord = "record0/login"
+	outputRecord0       = "{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
+	outputRecord1       = "{\"title\":\"record1\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
+	outputRecord2       = "{\"title\":\"record2\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
+	record0             = "record0"
+	record1             = "record1"
+	record2             = "record2"
+	LoginKey            = "login"
+	PasswordKey         = "password"
+	RecordNameFormat    = "record%d"
 )
 
-func TestClient_DeleteSecret(t *testing.T) {
+func TestClientDeleteSecret(t *testing.T) {
 	type fields struct {
 		ksmClient KeeperSecurityClient
 		folderID  string
@@ -37,7 +47,7 @@ func TestClient_DeleteSecret(t *testing.T) {
 				ksmClient: &fake.MockKeeperClient{
 					DeleteSecretsFn: func(recrecordUids []string) (map[string]string, error) {
 						return map[string]string{
-							"record0": "record0",
+							record0: record0,
 						}, nil
 					},
 					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
@@ -104,7 +114,7 @@ func TestClient_DeleteSecret(t *testing.T) {
 	}
 }
 
-func TestClient_GetAllSecrets(t *testing.T) {
+func TestClientGetAllSecrets(t *testing.T) {
 	type fields struct {
 		ksmClient KeeperSecurityClient
 		folderID  string
@@ -170,9 +180,9 @@ func TestClient_GetAllSecrets(t *testing.T) {
 				},
 			},
 			want: map[string][]byte{
-				"record0": []byte("{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"),
-				"record1": []byte("{\"title\":\"record1\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"),
-				"record2": []byte("{\"title\":\"record2\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"),
+				record0: []byte(outputRecord0),
+				record1: []byte(outputRecord1),
+				record2: []byte(outputRecord2),
 			},
 			wantErr: false,
 		},
@@ -190,12 +200,12 @@ func TestClient_GetAllSecrets(t *testing.T) {
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretFind{
 					Name: &v1beta1.FindName{
-						RegExp: "record0",
+						RegExp: record0,
 					},
 				},
 			},
 			want: map[string][]byte{
-				"record0": []byte("{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"),
+				record0: []byte(outputRecord0),
 			},
 			wantErr: false,
 		},
@@ -218,7 +228,7 @@ func TestClient_GetAllSecrets(t *testing.T) {
 	}
 }
 
-func TestClient_GetSecret(t *testing.T) {
+func TestClientGetSecret(t *testing.T) {
 	type fields struct {
 		ksmClient KeeperSecurityClient
 		folderID  string
@@ -247,8 +257,8 @@ func TestClient_GetSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "record0",
-					Property: "login",
+					Key:      record0,
+					Property: LoginKey,
 				},
 			},
 			want:    []byte("foo"),
@@ -267,10 +277,10 @@ func TestClient_GetSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key: "record0",
+					Key: record0,
 				},
 			},
-			want:    []byte("{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"),
+			want:    []byte(outputRecord0),
 			wantErr: false,
 		},
 		{
@@ -304,7 +314,7 @@ func TestClient_GetSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "record0",
+					Key:      record0,
 					Property: "invalid",
 				},
 			},
@@ -329,7 +339,7 @@ func TestClient_GetSecret(t *testing.T) {
 	}
 }
 
-func TestClient_GetSecretMap(t *testing.T) {
+func TestClientGetSecretMap(t *testing.T) {
 	type fields struct {
 		ksmClient KeeperSecurityClient
 		folderID  string
@@ -358,12 +368,12 @@ func TestClient_GetSecretMap(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "record0",
-					Property: "login",
+					Key:      record0,
+					Property: LoginKey,
 				},
 			},
 			want: map[string][]byte{
-				"login": []byte("foo"),
+				LoginKey: []byte("foo"),
 			},
 			wantErr: false,
 		},
@@ -380,12 +390,12 @@ func TestClient_GetSecretMap(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key: "record0",
+					Key: record0,
 				},
 			},
 			want: map[string][]byte{
-				"login":    []byte("foo"),
-				"password": []byte("bar"),
+				LoginKey:    []byte("foo"),
+				PasswordKey: []byte("bar"),
 			},
 			wantErr: false,
 		},
@@ -420,7 +430,7 @@ func TestClient_GetSecretMap(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "record0",
+					Key:      record0,
 					Property: "invalid",
 				},
 			},
@@ -445,7 +455,7 @@ func TestClient_GetSecretMap(t *testing.T) {
 	}
 }
 
-func TestClient_PushSecret(t *testing.T) {
+func TestClientPushSecret(t *testing.T) {
 	type fields struct {
 		ksmClient KeeperSecurityClient
 		folderID  string
@@ -470,7 +480,7 @@ func TestClient_PushSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				remoteRef: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record0",
+					RemoteKey: record0,
 				},
 				value: []byte("foo"),
 			},
@@ -514,7 +524,7 @@ func TestClient_PushSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				remoteRef: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record0/login",
+					RemoteKey: validExistingRecord,
 				},
 				value: []byte("foo2"),
 			},
@@ -536,7 +546,7 @@ func TestClient_PushSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				remoteRef: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record0/login",
+					RemoteKey: validExistingRecord,
 				},
 				value: []byte("foo2"),
 			},
@@ -580,7 +590,7 @@ func TestClient_PushSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				remoteRef: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "record0/login",
+					RemoteKey: validExistingRecord,
 				},
 				value: []byte("foo2"),
 			},
@@ -606,7 +616,7 @@ func generateRecords() []*ksm.Record {
 		var record ksm.Record
 		if i == 0 {
 			record = ksm.Record{
-				Uid: fmt.Sprintf("record%d", i),
+				Uid: fmt.Sprintf(RecordNameFormat, i),
 				RecordDict: map[string]interface{}{
 					"type":      externalSecretType,
 					"folderUid": folderID,
@@ -614,7 +624,7 @@ func generateRecords() []*ksm.Record {
 			}
 		} else {
 			record = ksm.Record{
-				Uid: fmt.Sprintf("record%d", i),
+				Uid: fmt.Sprintf(RecordNameFormat, i),
 				RecordDict: map[string]interface{}{
 					"type":      LoginType,
 					"folderUid": folderID,
@@ -622,9 +632,9 @@ func generateRecords() []*ksm.Record {
 			}
 		}
 		sec := fmt.Sprintf("{\"title\":\"record%d\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}]}", i)
-		record.SetTitle(fmt.Sprintf("record%d", i))
-		record.SetStandardFieldValue("login", "foo")
-		record.SetStandardFieldValue("password", "bar")
+		record.SetTitle(fmt.Sprintf(RecordNameFormat, i))
+		record.SetStandardFieldValue(LoginKey, "foo")
+		record.SetStandardFieldValue(PasswordKey, "bar")
 		record.RawJson = sec
 		records = append(records, &record)
 	}
