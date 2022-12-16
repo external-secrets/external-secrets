@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,9 +25,23 @@ type PP struct{}
 
 const shouldBeRegistered = "provider should be registered"
 
+func (p *PP) Capabilities() SecretStoreCapabilities {
+	return SecretStoreReadOnly
+}
+
 // New constructs a SecretsManager Provider.
 func (p *PP) NewClient(ctx context.Context, store GenericStore, kube client.Client, namespace string) (SecretsClient, error) {
 	return p, nil
+}
+
+// PushSecret writes a single secret into a provider.
+func (p *PP) PushSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error {
+	return nil
+}
+
+// DeleteSecret deletes a single secret from a provider.
+func (p *PP) DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error {
+	return nil
 }
 
 // GetSecret returns a single secret from the provider.

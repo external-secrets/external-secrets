@@ -34,6 +34,7 @@ type GenericStore interface {
 
 	GetObjectMeta() *metav1.ObjectMeta
 	GetTypeMeta() *metav1.TypeMeta
+	GetKind() string
 
 	GetSpec() *SecretStoreSpec
 	GetNamespacedName() string
@@ -70,6 +71,10 @@ func (c *SecretStore) GetNamespacedName() string {
 	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
 }
 
+func (c *SecretStore) GetKind() string {
+	return SecretStoreKind
+}
+
 func (c *SecretStore) Copy() GenericStore {
 	return c.DeepCopy()
 }
@@ -104,4 +109,8 @@ func (c *ClusterSecretStore) SetStatus(status SecretStoreStatus) {
 
 func (c *ClusterSecretStore) GetNamespacedName() string {
 	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
+}
+
+func (c *ClusterSecretStore) GetKind() string {
+	return ClusterSecretStoreKind
 }

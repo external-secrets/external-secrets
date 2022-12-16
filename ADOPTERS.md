@@ -4,6 +4,7 @@
 
 - [Amadeus](https://amadeus.com/)
 - [Container Solutions](http://container-solutions.com/)
+- [DaangnPay](https://www.daangnpay.com/)
 - [Epidemic Sound](https://www.epidemicsound.com/)
 - [Form3](https://www.form3.tech/)
 - [Heureka Group](https://heureka.group)
@@ -15,6 +16,7 @@
 - [Pier Insurance](https://www.pier.digital/)
 - [Polarpoint](https://www.polarpoint.io/)
 - [Radio France](https://www.radiofrance.fr/)
-
+- [Made People](https://madepeople.se/)
+- [Voiceflow](https://www.voiceflow.com/)
 
 Countless others that can't disclose that information! :)

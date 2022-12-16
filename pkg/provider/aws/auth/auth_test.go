@@ -16,7 +16,6 @@ package auth
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -423,7 +422,7 @@ func testRow(t *testing.T, row TestSessionRow) {
 		assert.Nil(t, err)
 	}
 	for k, v := range row.env {
-		os.Setenv(k, v)
+		t.Setenv(k, v)
 	}
 	if row.sa != nil {
 		err := kc.Create(context.Background(), row.sa)
@@ -436,11 +435,6 @@ func testRow(t *testing.T, row TestSessionRow) {
 		},
 	})
 	assert.Nil(t, err)
-	defer func() {
-		for k := range row.env {
-			os.Unsetenv(k)
-		}
-	}()
 	s, err := New(context.Background(), row.store, kc, row.namespace, row.stsProvider, row.jwtProvider)
 	if !ErrorContains(err, row.expectErr) {
 		t.Errorf("expected error %s but found %s", row.expectErr, err.Error())
@@ -460,10 +454,8 @@ func testRow(t *testing.T, row TestSessionRow) {
 
 func TestSMEnvCredentials(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
-	os.Setenv("AWS_ACCESS_KEY_ID", "2222")
-	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
-	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
+	t.Setenv("AWS_ACCESS_KEY_ID", "2222")
 	s, err := New(context.Background(), &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
@@ -500,10 +492,8 @@ func TestSMAssumeRole(t *testing.T) {
 			}, nil
 		},
 	}
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
-	os.Setenv("AWS_ACCESS_KEY_ID", "2222")
-	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
-	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
+	t.Setenv("AWS_ACCESS_KEY_ID", "2222")
 	s, err := New(context.Background(), &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{

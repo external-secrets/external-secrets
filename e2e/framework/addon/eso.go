@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,20 +34,8 @@ func NewESO(mutators ...MutationFunc) *ESO {
 			Chart:       "/k8s/deploy/charts/external-secrets",
 			Vars: []StringTuple{
 				{
-					Key:   "image.repository",
-					Value: os.Getenv("IMAGE_REGISTRY"),
-				},
-				{
 					Key:   "webhook.port",
 					Value: "9443",
-				},
-				{
-					Key:   "webhook.image.repository",
-					Value: os.Getenv("IMAGE_REGISTRY"),
-				},
-				{
-					Key:   "certController.image.repository",
-					Value: os.Getenv("IMAGE_REGISTRY"),
 				},
 				{
 					Key:   "webhook.image.tag",
@@ -60,6 +48,10 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				{
 					Key:   "image.tag",
 					Value: os.Getenv("VERSION"),
+				},
+				{
+					Key:   "extraArgs.loglevel",
+					Value: "debug",
 				},
 				{
 					Key:   installCRDsVar,

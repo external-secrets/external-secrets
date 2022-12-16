@@ -24,18 +24,17 @@ jobs:
       - name: Generate chart
         run: |
           make helm.generate
-
       - name: Set up Helm
-        uses: azure/setup-helm@v3.3
+        uses: azure/setup-helm@v3.4
         with:
           version: v3.4.2
 
-      - uses: actions/setup-python@v3.1.2
+      - uses: actions/setup-python@v4.3.1
         with:
           python-version: 3.7
 
       - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2.3.0
+        uses: helm/chart-testing-action@v2.3.1
 
       - name: Run chart-testing (list-changed)
         id: list-changed
@@ -44,7 +43,6 @@ jobs:
           if [[ -n "$changed" ]]; then
             echo "::set-output name=changed::true"
           fi
-
       - name: Run chart-testing (lint)
         run: ct lint --config=.github/ci/ct.yaml
 
@@ -60,18 +58,16 @@ jobs:
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
       - name: Set up Helm
-        uses: azure/setup-helm@v3.3
+        uses: azure/setup-helm@v3.4
         with:
           version: v3.4.2
 
       - name: Generate chart
         run: |
           make helm.generate
-
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.4.0
+        uses: helm/chart-releaser-action@v1.4.1
         if: github.ref == 'refs/heads/main'
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

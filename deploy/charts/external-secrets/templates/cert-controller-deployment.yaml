@@ -51,6 +51,10 @@ spec:
           - --service-namespace={{ .Release.Namespace }}
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook
           - --secret-namespace={{ .Release.Namespace }}
+          {{ if not .Values.crds.createClusterSecretStore -}}
+          - --crd-names=externalsecrets.external-secrets.io
+          - --crd-names=secretstores.external-secrets.io
+          {{- end -}}
           {{- range $key, $value := .Values.certController.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}

@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -48,5 +48,13 @@ func validateExternalSecret(obj runtime.Object) error {
 	if es.Spec.Target.DeletionPolicy == DeletionPolicyMerge && es.Spec.Target.CreationPolicy == CreatePolicyNone {
 		return fmt.Errorf("deletionPolicy=Merge must not be used with creationPolcy=None. There is no Secret to merge with")
 	}
+
+	for _, ref := range es.Spec.DataFrom {
+		findOrExtract := ref.Find != nil || ref.Extract != nil
+		if findOrExtract && ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
+			return fmt.Errorf("generator can not be used with find or extract")
+		}
+	}
+
 	return nil
 }

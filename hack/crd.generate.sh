@@ -8,11 +8,11 @@ BUNDLE_YAML="${BUNDLE_DIR}/bundle.yaml"
 
 cd "${SCRIPT_DIR}"/../
 
-go run sigs.k8s.io/controller-tools/cmd/controller-gen \
+go run sigs.k8s.io/controller-tools/cmd/controller-gen object \
   object:headerFile="hack/boilerplate.go.txt" \
-  paths="./..."
+  paths="./apis/..."
 go run sigs.k8s.io/controller-tools/cmd/controller-gen crd \
-  paths="./..." \
+  paths="./apis/..." \
   output:crd:artifacts:config="${CRD_DIR}/bases"
 
 # Remove extra header lines in generated CRDs

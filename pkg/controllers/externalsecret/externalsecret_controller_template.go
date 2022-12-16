@@ -23,7 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 	"github.com/external-secrets/external-secrets/pkg/template"
@@ -56,11 +55,30 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	}
 	r.Log.V(1).Info("found template data", "tpl_data", tplMap)
 
+	tplMapLabels := make(map[string][]byte)
+	tplMapAnnotations := make(map[string][]byte)
+
+	// get template data for labels
+	if es.Spec.Target.Template.Metadata.Labels != nil {
+		for k, v := range es.Spec.Target.Template.Metadata.Labels {
+			tplMapLabels[k] = []byte(v)
+		}
+		r.Log.V(1).Info("found template metadata (labels)", "tpl_labels", tplMapLabels)
+	}
+
+	// get template data for annotations
+	if es.Spec.Target.Template.Metadata.Annotations != nil {
+		for k, v := range es.Spec.Target.Template.Metadata.Annotations {
+			tplMapAnnotations[k] = []byte(v)
+		}
+		r.Log.V(1).Info("found template metadata (annotations)", "tpl_annotations", tplMapAnnotations)
+	}
+
 	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
 	if err != nil {
 		return err
 	}
-	err = execute(tplMap, dataMap, secret)
+	err = execute(tplMap, tplMapLabels, tplMapAnnotations, dataMap, secret)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}

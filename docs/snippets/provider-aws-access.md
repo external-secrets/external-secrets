@@ -2,7 +2,7 @@
 
 ### Controller's Pod Identity
 
-![Pod Identity Authentication](./pictures/diagrams-provider-aws-auth-pod-identity.png)
+![Pod Identity Authentication](../pictures/diagrams-provider-aws-auth-pod-identity.png)
 
 Note: If you are using Parameter Store replace `service: SecretsManager` with `service: ParameterStore` in all examples below.
 
@@ -28,7 +28,7 @@ spec:
 
 ### Access Key ID & Secret Access Key
 
-![SecretRef](./pictures/diagrams-provider-aws-auth-secret-ref.png)
+![SecretRef](../pictures/diagrams-provider-aws-auth-secret-ref.png)
 
 You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
 
@@ -58,7 +58,7 @@ spec:
 
 ### EKS Service Account credentials
 
-![Service Account](./pictures/diagrams-provider-aws-auth-service-account.png)
+![Service Account](../pictures/diagrams-provider-aws-auth-service-account.png)
 
 This feature lets you use short-lived service account tokens to authenticate with AWS.
 You must have [Service Account Volume Projection](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection) enabled - it is by default on EKS. See [EKS guide](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts-technical-overview.html) on how to set up IAM roles for service accounts.

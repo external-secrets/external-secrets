@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -101,6 +101,15 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
+func (ibm *providerIBM) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+// Not Implemented PushSecret.
+func (ibm *providerIBM) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
@@ -181,7 +190,7 @@ func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, error) {
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 	arbitrarySecretPayload := secretData["payload"].(string)
 	return []byte(arbitrarySecretPayload), nil
 }
@@ -197,7 +206,7 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
@@ -216,7 +225,7 @@ func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
@@ -235,7 +244,7 @@ func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ex
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
@@ -270,7 +279,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 	}
 
 	secret := response.Resources[0].(*sm.SecretResource)
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	if val, ok := secretData[ref.Property]; ok {
 		return []byte(val.(string)), nil
@@ -287,7 +296,7 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 
 	log.Info("fetching secret", "secretName", secretName, "key", ref.Key)
 
-	secretData := secret.SecretData.(map[string]interface{})
+	secretData := secret.SecretData
 
 	payload, ok := secretData["payload"]
 	if !ok {
@@ -383,7 +392,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 		arbitrarySecretPayload := secretData["payload"].(string)
 
 		kv := make(map[string]interface{})
@@ -407,7 +416,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 
 		secretMap := byteArrayMap(secretData)
 
@@ -442,7 +451,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 
 		secretMap := byteArrayMap(secretData)
 
@@ -459,7 +468,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 
 		secretMap := byteArrayMap(secretData)
 
@@ -476,7 +485,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 		}
 
 		secret := response.Resources[0].(*sm.SecretResource)
-		secretData := secret.SecretData.(map[string]interface{})
+		secretData := secret.SecretData
 
 		secretMap := byteArrayMap(secretData)
 
@@ -576,6 +585,11 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 		}
 	}
 	return nil
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (ibm *providerIBM) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {

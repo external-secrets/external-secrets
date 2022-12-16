@@ -4,11 +4,17 @@ on:
   repository_dispatch:
     types: [ok-to-test-command]
 
+permissions:
+  id-token: write
+  checks: write
+  contents: read
+
+name: e2e tests
+
 env:
   # Common versions
-  GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.33'
-  GINKGO_VERSION: 'v2.1.4'
+  GO_VERSION: '1.19'
+  GINKGO_VERSION: 'v2.1.6'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.14.0'
   KIND_IMAGE: 'kindest/node:v1.24.2'
@@ -22,17 +28,18 @@ env:
   GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
   GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  AWS_REGION: "eu-central-1"
+  AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+
   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID}}
   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET}}
   TENANT_ID: ${{ secrets.TENANT_ID}}
   VAULT_URL: ${{ secrets.VAULT_URL}}
 
-name: e2e tests
 
 jobs:
-  # Branch-based pull request
+
   integration-trusted:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
@@ -41,63 +48,15 @@ jobs:
     - name: Branch based PR checkout
       uses: actions/checkout@v3
 
-    # <insert integration tests needing secrets>
-
     - name: Fetch History
       run: git fetch --prune --unshallow
 
-    - name: Setup Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Find the Go Cache
-      id: go
-      run: |
-        echo "::set-output name=build-cache::$(go env GOCACHE)"
-        echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-    - name: Cache the Go Build Cache
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go.outputs.build-cache }}
-        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-build-unit-tests-
-
-    - name: Cache Go Dependencies
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go.outputs.mod-cache }}
-        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-pkg-
-
-    - name: Setup kind
-      uses: engineerd/setup-kind@v0.5.0
-      with:
-        version: ${{env.KIND_VERSION}}
-        wait: 10m
-        node_image: ${{env.KIND_IMAGE}}
-        name: external-secrets
-
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v2
-      with:
-        version: ${{ env.DOCKER_BUILDX_VERSION }}
-        install: true
-
-    - name: Run e2e Tests
-      env:
-        BUILD_ARGS: "--load"
-      run: |
-        export PATH=$PATH:$(go env GOPATH)/bin
-        go install github.com/onsi/ginkgo/v2/ginkgo@${{env.GINKGO_VERSION}}
-        make test.e2e
+    - uses: ./.github/actions/e2e
 
   # Repo owner has commented /ok-to-test on a (fork-based) pull request
   integration-fork:
     runs-on: ubuntu-latest
-    if:
-      github.event_name == 'repository_dispatch'
+    if: github.event_name == 'repository_dispatch'
     steps:
 
     # Check out merge commit
@@ -109,52 +68,7 @@ jobs:
     - name: Fetch History
       run: git fetch --prune --unshallow
 
-    - name: Setup Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Find the Go Cache
-      id: go
-      run: |
-        echo "::set-output name=build-cache::$(go env GOCACHE)"
-        echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-    - name: Cache the Go Build Cache
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go.outputs.build-cache }}
-        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-build-unit-tests-
-
-    - name: Cache Go Dependencies
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go.outputs.mod-cache }}
-        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-pkg-
-
-    - name: Setup kind
-      uses: engineerd/setup-kind@v0.5.0
-      with:
-        version: ${{env.KIND_VERSION}}
-        wait: 10m
-        node_image: ${{env.KIND_IMAGE}}
-        name: external-secrets
-
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v2
-      with:
-        version: ${{ env.DOCKER_BUILDX_VERSION }}
-        install: true
-
-    - name: Run e2e Tests
-      env:
-        BUILD_ARGS: "--load"
-      run: |
-        export PATH=$PATH:$(go env GOPATH)/bin
-        go install github.com/onsi/ginkgo/v2/ginkgo@${{env.GINKGO_VERSION}}
-        make test.e2e
+    - uses: ./.github/actions/e2e
 
     # Update check run called "integration-fork"
     - uses: actions/github-script@v6

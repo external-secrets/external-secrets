@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,11 +32,11 @@ import (
 	vault "github.com/hashicorp/vault/api"
 
 	// nolint
-	. "github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/external-secrets/external-secrets/e2e/framework/util"
+	"github.com/external-secrets/external-secrets-e2e/framework/util"
 )
 
 type Vault struct {
@@ -93,7 +93,7 @@ type OperatorInitResponse struct {
 }
 
 func (l *Vault) Install() error {
-	By("Installing vault in " + l.Namespace)
+	ginkgo.By("Installing vault in " + l.Namespace)
 	err := l.chart.Install()
 	if err != nil {
 		return err
@@ -168,13 +168,13 @@ func (l *Vault) initVault() error {
 	l.KubernetesAuthPath = "mykubernetes"              // see configure-vault.sh
 	l.KubernetesAuthRole = "external-secrets-operator" // see configure-vault.sh
 
-	By("Creating vault TLS secret")
+	ginkgo.By("Creating vault TLS secret")
 	err = l.chart.config.CRClient.Create(context.Background(), sec)
 	if err != nil {
 		return err
 	}
 
-	By("Waiting for vault pods to be running")
+	ginkgo.By("Waiting for vault pods to be running")
 	pl, err := util.WaitForPodsRunning(l.chart.config.KubeClientSet, 1, l.Namespace, metav1.ListOptions{
 		LabelSelector: "app.kubernetes.io/name=vault",
 	})
@@ -183,7 +183,7 @@ func (l *Vault) initVault() error {
 	}
 	l.PodName = pl.Items[0].Name
 
-	By("Initializing vault")
+	ginkgo.By("Initializing vault")
 	out, err := util.ExecCmd(
 		l.chart.config.KubeClientSet,
 		l.chart.config.KubeConfig,
@@ -192,7 +192,7 @@ func (l *Vault) initVault() error {
 		return fmt.Errorf("error initializing vault: %w", err)
 	}
 
-	By("Parsing init response")
+	ginkgo.By("Parsing init response")
 	var res OperatorInitResponse
 	err = json.Unmarshal([]byte(out), &res)
 	if err != nil {
@@ -200,7 +200,7 @@ func (l *Vault) initVault() error {
 	}
 	l.RootToken = res.RootToken
 
-	By("Unsealing vault")
+	ginkgo.By("Unsealing vault")
 	for _, k := range res.UnsealKeysB64 {
 		_, err = util.ExecCmd(
 			l.chart.config.KubeClientSet,
@@ -238,7 +238,7 @@ func (l *Vault) initVault() error {
 }
 
 func (l *Vault) configureVault() error {
-	By("configuring vault")
+	ginkgo.By("configuring vault")
 	cmd := `sh /etc/vault-config/configure-vault.sh %s`
 	_, err := util.ExecCmd(
 		l.chart.config.KubeClientSet,

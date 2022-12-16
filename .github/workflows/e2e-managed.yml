@@ -1,12 +1,16 @@
-# Run secret-dependent e2e tests only after /ok-to-test-managed approval
 on:
   repository_dispatch:
     types: [ok-to-test-managed-command]
 
+permissions:
+  id-token: write
+  checks: write
+  contents: read
+
 env:
   # Common versions
-  GO_VERSION: '1.17'
-  GOLANGCI_VERSION: 'v1.33'
+  GO_VERSION: '1.19'
+  GINKGO_VERSION: 'v2.1.6'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
@@ -23,15 +27,15 @@ env:
   GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account
   TF_VAR_GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account for tf
   TF_VAR_GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME}} # Kubernetes Service Account for tf
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN}}
   AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
   AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
-  AWS_REGION: "eu-west-1"
+  AWS_REGION: "eu-central-1"
   AWS_CLUSTER_NAME: "eso-e2e-managed"
   TF_VAR_AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
   TF_VAR_AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
-  TF_VAR_AWS_REGION: "eu-west-1"
+  TF_VAR_AWS_REGION: "eu-central-1"
   TF_VAR_AWS_CLUSTER_NAME: "eso-e2e-managed"
 
   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID}}
@@ -39,200 +43,71 @@ env:
   TENANT_ID: ${{ secrets.TENANT_ID}}
   VAULT_URL: ${{ secrets.VAULT_URL}}
 
-name: e2e tests
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
+  CLOUD_PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
+  INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+  GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
+name: managed e2e tests
 
 jobs:
+  integration-trusted:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
+    steps:
+
+    - name: Branch based PR checkout
+      uses: actions/checkout@v3
+
+    - name: Fetch History
+      run: git fetch --prune --unshallow
+
+    - uses: ./.github/actions/e2e-managed
+      env:
+        CLOUD_PROVIDER: aws
+        GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+
   integration-managed:
     runs-on: ubuntu-latest
     if: github.event_name == 'repository_dispatch'
 
     steps:
 
-    # create new status check for this specific provider
-    - uses: actions/github-script@v6
-      if: ${{ always() }}
-      env:
-        number: ${{ github.event.client_payload.pull_request.number }}
-        provider: ${{ github.event.client_payload.slash_command.args.named.provider }}
-        job: ${{ github.job }}
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const { data: pull } = await github.rest.pulls.get({
-            ...context.repo,
-            pull_number: process.env.number
-          });
-          const ref = pull.head.sha;
-          console.log("\n\nPR sha: " + ref)
-          const { data: checks } = await github.rest.checks.listForRef({
-            ...context.repo,
-            ref
-          });
-          const job_name = process.env.job + "-" + process.env.provider
-          console.log("\n\nPR CHECKS: " + checks)
-          const check = checks.check_runs.filter(c => c.name === job_name);
-          console.log("\n\nPR Filtered CHECK: " + check)
-          console.log(check)
-          if(check && check.length > 0){
-            const { data: result } = await github.rest.checks.update({
-              ...context.repo,
-              check_run_id: check[0].id,
-              status: 'in_progress',
-            });
-            return result;
-          }
-          const { data: result } = await github.rest.checks.create({
-            ...context.repo,
-            name: job_name,
-            head_sha: pull.head.sha,
-            status: 'in_progress',
-          });
-          return result;
-
-
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout
       uses: actions/checkout@v3
       with:
-        ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+        ref: 'refs/pull/${{ env.GITHUB_PR_NUMBER }}/merge'
 
     - name: Fetch History
       run: git fetch --prune --unshallow
 
-    - name: Setup Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Find the Go Cache
-      id: go
-      run: |
-        echo "::set-output name=build-cache::$(go env GOCACHE)"
-        echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-    - name: Cache the Go Build Cache
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go.outputs.build-cache }}
-        key: ${{ runner.os }}-build-unit-tests-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-build-unit-tests-
-
-    - name: Cache Go Dependencies
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.go.outputs.mod-cache }}
-        key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-        restore-keys: ${{ runner.os }}-pkg-
-
-    - name: Setup TFLint
-      uses: terraform-linters/setup-tflint@v2
-      with:
-        tflint_version: v0.28.0  # Must be specified. See: https://github.com/terraform-linters/tflint/releases for latest versions
-
-    - name: Run TFLint
-      run: find ${{ github.workspace }} | grep tf$ | xargs -n1 dirname | xargs -IXXX -n1 /bin/sh -c 'set -o errexit; cd XXX; pwd; tflint --loglevel=info .; cd - >/dev/null'
-
-    - name: Setup TF Gcloud Provider
-      if: github.event.client_payload.slash_command.args.named.provider == 'gcp'
-      run: |-
-        mkdir -p terraform/gcp/secrets
-        echo ${GCP_SM_SA_GKE_JSON} > terraform/gcp/secrets/gcloud-service-account-key.json
-
-    - name: Show TF
-      run: |-
-        PROVIDER=${{github.event.client_payload.slash_command.args.named.provider}}
-        make tf.show.${PROVIDER}
-
-    - name: Setup Infracost
-      uses: infracost/actions/setup@v2
-      with:
-        api-key: ${{ secrets.INFRACOST_API_KEY }}
-
-    - name: Generate Infracost JSON for provider
-      run: |
-        infracost breakdown \
-          --path terraform/${{github.event.client_payload.slash_command.args.named.provider}}/plan.json \
-          --format json \
-          --out-file /tmp/infracost.json
-
-    - name: Post Infracost comment
-      run: |
-        infracost comment github --path=/tmp/infracost.json \
-          --repo=$GITHUB_REPOSITORY \
-          --github-token=${{ secrets.GITHUB_TOKEN }} \
-          --pull-request=${{ github.event.client_payload.pull_request.number }} \
-          --behavior=update
-
-    - name: Apply TF
-      run: |-
-        PROVIDER=${{github.event.client_payload.slash_command.args.named.provider}}
-        make tf.apply.${PROVIDER}
-
-    - name: Setup gcloud CLI
-      if: github.event.client_payload.slash_command.args.named.provider == 'gcp'
-      uses: google-github-actions/setup-gcloud@v0
-      with:
-        service_account_key: ${{ env.GCP_SM_SA_GKE_JSON }}
-        project_id: ${{ env.GCP_PROJECT_ID }}
-
-    - name: Get the GKE credentials
-      if: github.event.client_payload.slash_command.args.named.provider == 'gcp'
-      run: |-
-        gcloud container clusters get-credentials "$GCP_GKE_CLUSTER" --zone "$GCP_GKE_ZONE" --project "$GCP_PROJECT_ID"
-
-    - name: Get the AWS credentials
-      if: github.event.client_payload.slash_command.args.named.provider == 'aws'
-      run: |-
-        aws --region $AWS_REGION eks update-kubeconfig --name $AWS_CLUSTER_NAME
-
-    - name: Login to Docker
-      uses: docker/login-action@v2
-      if: env.GHCR_USERNAME != ''
-      with:
-        registry: ghcr.io
-        username: ${{ secrets.GHCR_USERNAME }}
-        password: ${{ secrets.GHCR_TOKEN }}
-
-    - name: Run managed e2e Tests
-      run: |
-        export PATH=$PATH:$(go env GOPATH)/bin
-        PROVIDER=${{github.event.client_payload.slash_command.args.named.provider}}
-        go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
-        make test.e2e.managed GINKGO_LABELS="${PROVIDER}" TEST_SUITES="provider"
-
-    - name: Destroy TF
-      if: always()
-      run: |-
-        PROVIDER=${{github.event.client_payload.slash_command.args.named.provider}}
-        make tf.destroy.${PROVIDER}
+    - uses: ./.github/actions/e2e-managed
 
     # set status=completed
     - uses: actions/github-script@v6
       if: ${{ always() }}
       env:
-        number: ${{ github.event.client_payload.pull_request.number }}
-        provider: ${{ github.event.client_payload.slash_command.args.named.provider }}
+        number: ${{ env.GITHUB_PR_NUMBER }}
+        provider: ${{ env.CLOUD_PROVIDER }}
         job: ${{ github.job }}
         # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
         conclusion: ${{ job.status }}
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ env.GITHUB_TOKEN }}
         script: |
           const { data: pull } = await github.rest.pulls.get({
             ...context.repo,
             pull_number: process.env.number
           });
           const ref = pull.head.sha;
-          console.log("\n\nPR sha: " + ref)
           const { data: checks } = await github.rest.checks.listForRef({
             ...context.repo,
             ref
           });
-          const job_name = process.env.job + "-" + process.env.provider
-          console.log("\n\nPR CHECKS: " + checks)
+          const job_name = "e2e-managed-" + process.env.provider
           const check = checks.check_runs.filter(c => c.name === job_name);
-          console.log("\n\nPR Filtered CHECK: " + check)
-          console.log(check)
           const { data: result } = await github.rest.checks.update({
             ...context.repo,
             check_run_id: check[0].id,

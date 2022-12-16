@@ -45,9 +45,14 @@ resource "aws_iam_role" "eso-e2e-irsa" {
       Statement = [
         {
           Action = [
-            "ssm:GetParameter",
+            "ssm:GetParameter*",
             "ssm:PutParameter",
             "ssm:DescribeParameters",
+            "ssm:DeleteParameter*",
+            "ssm:AddTagsToResource",
+            "ssm:ListTagsForResource",
+            "ssm:RemoveTagsFromResource",
+            "tag:GetResources"
           ]
           Effect   = "Allow"
           Resource = "*"
@@ -55,8 +60,6 @@ resource "aws_iam_role" "eso-e2e-irsa" {
       ]
     })
   }
-
-
 }
 
 resource "null_resource" "apply_sa" {

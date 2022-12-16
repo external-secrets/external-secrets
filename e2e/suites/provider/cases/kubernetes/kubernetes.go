@@ -21,9 +21,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/e2e/framework"
-	"github.com/external-secrets/external-secrets/e2e/suites/provider/cases/common"
 )
 
 const referentAuth = "with referent auth"

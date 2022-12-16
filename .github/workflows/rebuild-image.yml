@@ -1,0 +1,53 @@
+name: Rebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'ref to rebuild, can be a tag, branch or commit sha.'
+        required: true
+        default: 'v0.6.1'
+
+jobs:
+  checkout:
+    name: Checkout repo
+    runs-on: ubuntu-latest
+    outputs:
+      timestamp: ${{ steps.timestamp.outputs.timestamp }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.ref }}
+      - name: set timestamp output
+        id: timestamp
+        run: |
+          echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
+
+  # this rebuilds the image and creates a new tag with a timestamp suffix
+  # e.g. v0.6.1-1669145271 and v0.6.1-ubi-1669145271
+  publish-artifacts:
+    uses: ./.github/workflows/publish.yml
+    needs: checkout
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+        - dockerfile: "Dockerfile"
+          tag-suffix: "-${{ needs.checkout.outputs.timestamp }}" # distroless
+        - dockerfile: "Dockerfile.ubi"
+          tag-suffix: "-ubi-${{ needs.checkout.outputs.timestamp }}"
+    with:
+      dockerfile: ${{ matrix.dockerfile }}
+      ref: ${{ github.event.inputs.ref }}
+      image-tag: ${{ github.event.inputs.ref }}
+      tag-suffix: ${{ matrix.tag-suffix }}
+      image-name: ghcr.io/${{ github.repository }}
+    secrets:
+      GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+

@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -67,6 +67,11 @@ type ProviderOnePassword struct {
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &ProviderOnePassword{}
 var _ esv1beta1.Provider = &ProviderOnePassword{}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (provider *ProviderOnePassword) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
 
 // NewClient constructs a 1Password Provider.
 func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
@@ -145,6 +150,15 @@ func validateStore(store esv1beta1.GenericStore) error {
 	}
 
 	return nil
+}
+
+func (provider *ProviderOnePassword) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+// Not Implemented PushSecret.
+func (provider *ProviderOnePassword) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
 }
 
 // GetSecret returns a single secret from the provider.

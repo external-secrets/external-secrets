@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,19 +23,19 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 
 	// nolint
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	. "github.com/onsi/gomega"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
-	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/e2e/framework"
 	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 )
 

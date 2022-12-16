@@ -23,7 +23,10 @@ import (
 	"time"
 
 	"github.com/akeylesslabs/akeyless-go/v2"
+	"k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -44,6 +47,7 @@ type Provider struct{}
 type akeylessBase struct {
 	kube      client.Client
 	store     esv1beta1.GenericStore
+	corev1    typedcorev1.CoreV1Interface
 	namespace string
 
 	akeylessGwAPIURL string
@@ -66,9 +70,26 @@ func init() {
 	})
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 // NewClient constructs a new secrets client based on the provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	return newClient(ctx, store, kube, namespace)
+	// controller-runtime/client does not support TokenRequest or other subresource APIs
+	// so we need to construct our own client and use it to fetch tokens
+	// (for Kubernetes service account token auth)
+	restCfg, err := ctrlcfg.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
@@ -86,6 +107,28 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		if url.Host == "" {
 			return fmt.Errorf(errInvalidAkeylessURL)
 		}
+	}
+	if akeylessSpec.Auth.KubernetesAuth != nil {
+		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef != nil {
+			if err := utils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef); err != nil {
+				return fmt.Errorf(errInvalidKubeSA, err)
+			}
+		}
+		if akeylessSpec.Auth.KubernetesAuth.SecretRef != nil {
+			err := utils.ValidateSecretSelector(store, *akeylessSpec.Auth.KubernetesAuth.SecretRef)
+			if err != nil {
+				return err
+			}
+		}
+
+		if akeylessSpec.Auth.KubernetesAuth.AccessID == "" {
+			return fmt.Errorf("missing kubernetes auth-method access-id")
+		}
+
+		if akeylessSpec.Auth.KubernetesAuth.K8sConfName == "" {
+			return fmt.Errorf("missing kubernetes config name")
+		}
+		return nil
 	}
 
 	accessID := akeylessSpec.Auth.SecretRef.AccessID
@@ -117,11 +160,12 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
 	akl := &akeylessBase{
 		kube:      kube,
 		store:     store,
 		namespace: namespace,
+		corev1:    corev1,
 	}
 
 	spec, err := GetAKeylessProvider(store)
@@ -163,6 +207,14 @@ func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
 	}
 
 	return esv1beta1.ValidationResultReady, nil
+}
+
+func (a *Akeyless) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (a *Akeyless) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
 }
 
 // Implements store.Client.GetSecret Interface.

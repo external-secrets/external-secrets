@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,7 @@ import (
 	v2 "github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
-type ExecFunc func(tpl, data map[string][]byte, secret *corev1.Secret) error
+type ExecFunc func(tpl, labelsTpl, annotationsTpl, data map[string][]byte, secret *corev1.Secret) error
 
 func EngineForVersion(version esapi.TemplateEngineVersion) (ExecFunc, error) {
 	switch version {

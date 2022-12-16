@@ -9,8 +9,7 @@ on:
         default: 'v0.1.0'
 
 env:
-  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-  GO_VERSION: '1.17'
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
   release:
@@ -41,12 +40,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: create changelog file
-        env:
-          VERSION: ${{ github.event.inputs.version }}
-          CHANGELOG: ${{ steps.build_changelog.outputs.changelog }}
         run: |
-          echo "Image: \`ghcr.io/${GITHUB_REPOSITORY}:${VERSION}\`" >> .changelog
-          echo "${CHANGELOG}" >> .changelog
+          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}\`" >> .changelog
+          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi\`" >> .changelog
+          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl\`" >> .changelog
+          echo "${{ steps.build_changelog.outputs.changelog }}" >> .changelog
 
       - name: Update Release
         uses: softprops/action-gh-release@v1
@@ -59,7 +57,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Update Docs
         run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
@@ -69,10 +72,20 @@ jobs:
   promote:
     name: Promote Container Image
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+        - tag_suffix: "" # distroless image
+        - tag_suffix: "-ubi" # ubi image
+        - tag_suffix: "-ubi-boringssl" # ubi image
 
     permissions:
       id-token: write
-      contents: read
+      contents: write
+
+    env:
+      SOURCE_TAG: main${{ matrix.tag_suffix }}
+      RELEASE_TAG: ${{ github.event.inputs.version }}${{ matrix.tag_suffix }}
 
     steps:
       - name: Checkout
@@ -83,7 +96,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: "go.mod"
 
       - name: Find the Go Cache
         id: go
@@ -95,43 +108,44 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-publish-artifacts-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-publish-artifacts-
+          key: ${{ runner.os }}-build-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
       - name: Cache Go Dependencies
         uses: actions/cache@v3
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-
+          key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
       - name: Login to Docker
         uses: docker/login-action@v2
-        if: env.GHCR_USERNAME != ''
         with:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Promote Container Image
-        if: env.GHCR_USERNAME != ''
         run: make docker.promote
+
+      - name: Build release manifests
+        run: make manifests
+
+      - name: Sign promoted image
+        id: sign
+        uses: ./.github/actions/sign
+        with:
+          image-name: ${{ env.IMAGE_NAME }}
+          image-tag: ${{ env.RELEASE_TAG }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          files: |
+            provenance.${{ env.RELEASE_TAG }}.intoto.jsonl
+            sbom.${{ env.RELEASE_TAG }}.spdx.json
+            bin/deploy/manifests/external-secrets.yaml
         env:
-          RELEASE_TAG: ${{ github.event.inputs.version }}
-          SOURCE_TAG: main
-
-      - name: Set up crane
-        if: env.GHCR_USERNAME != ''
-        run: go install github.com/google/go-containerregistry/cmd/crane@v0.8.0
-
-      - name: Install cosign
-        if: env.GHCR_USERNAME != ''
-        uses: sigstore/cosign-installer@v2.5.1
-
-      - name: Sign Container Image
-        if: env.GHCR_USERNAME != ''
-        run: make docker.sign
-        env:
-          RELEASE_TAG: ${{ github.event.inputs.version }}
-          SOURCE_TAG: main
-          COSIGN_EXPERIMENTAL: true
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

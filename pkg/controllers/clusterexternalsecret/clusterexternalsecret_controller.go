@@ -170,7 +170,6 @@ func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalS
 }
 
 func (r *Reconciler) removeExternalSecret(ctx context.Context, esName, namespace string) (string, error) {
-	//
 	var existingES esv1beta1.ExternalSecret
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      esName,
@@ -205,7 +204,11 @@ func (r *Reconciler) removeOldNamespaces(ctx context.Context, namespaceList v1.N
 	failedNamespaces := map[string]string{}
 	// Loop through existing namespaces first to make sure they still have our labels
 	for _, namespace := range getRemovedNamespaces(namespaceList, provisionedNamespaces) {
-		if result, _ := r.removeExternalSecret(ctx, esName, namespace); result != "" {
+		result, err := r.removeExternalSecret(ctx, esName, namespace)
+		if err != nil {
+			r.Log.Error(err, "unable to delete external-secret")
+		}
+		if result != "" {
 			failedNamespaces[namespace] = result
 		}
 	}

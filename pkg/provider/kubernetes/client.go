@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -47,6 +47,15 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf("unabled to marshal json: %w", err)
 	}
 	return jsonStr, nil
+}
+
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+// Not Implemented PushSecret.
+func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
