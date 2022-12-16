@@ -402,7 +402,7 @@ func (s *KeeperSecuritySecret) getFields() map[string][]byte {
 
 func (s *KeeperSecuritySecret) getCustomField(key string) ([]byte, error) {
 	for _, field := range s.Custom {
-		if field.Type == key && len(field.Value) > 0 {
+		if field.Label == key && len(field.Value) > 0 {
 			return []byte(field.Value[0]), nil
 		}
 	}
