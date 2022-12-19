@@ -20,8 +20,6 @@ export IMAGE_REGISTRY ?= ghcr.io
 export IMAGE_REPO     ?= external-secrets/external-secrets
 export IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE_REPO)
 
-#Valid licenses for license.check
-LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause
 BUNDLE_DIR     ?= deploy/crds
 CRD_DIR     ?= config/crds
 
@@ -77,19 +75,6 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 reviewable: generate docs manifests helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
-
-golicenses.check: ## Check install of go-licenses
-	@if ! go-licenses >> /dev/null 2>&1; then \
-		echo -e "\033[0;33mgo-licenses is not installed: run go install github.com/google/go-licenses@latest" ; \
-		exit 1; \
-	fi
-
-license.check: golicenses.check
-	@$(INFO) running dependency license checks
-	@ok=0; go-licenses csv github.com/external-secrets/external-secrets 2>/dev/null | \
-	 grep -v -E '${LICENSES}' | \
-	 tr "," " " | awk '{print "Invalid License " $$3 " for dependency " $$1 }'|| ok=1; \
-	 if [[ $$ok -eq 1 ]]; then $(OK) dependencies are compliant; else $(FAIL); fi
 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
