@@ -245,8 +245,8 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 			return nil, err
 		}
 		for _, data := range groupVars {
-			matching, key := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
-			if !matching {
+			matching, key, isWildcard := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
+			if !matching && !isWildcard {
 				continue
 			}
 			secretData[key] = []byte(data.Value)
@@ -260,8 +260,13 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	}
 
 	for _, data := range projectData {
-		matching, key := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
+		matching, key, isWildcard := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
+
 		if !matching {
+			continue
+		}
+		_, exists := secretData[key]
+		if exists && isWildcard {
 			continue
 		}
 		secretData[key] = []byte(data.Value)
@@ -389,19 +394,20 @@ func isEmptyOrWildcard(environment string) bool {
 	return environment == "" || environment == "*"
 }
 
-func matchesFilter(environment, varEnvironment, key string, matcher *find.Matcher) (bool, string) {
-	if !isEmptyOrWildcard(environment) {
+func matchesFilter(environment, varEnvironment, key string, matcher *find.Matcher) (bool, string, bool) {
+	isWildcard := isEmptyOrWildcard(varEnvironment)
+	if !isWildcard && !isEmptyOrWildcard(environment) {
 		// as of now gitlab does not support filtering of EnvironmentScope through the api call
 		if varEnvironment != environment {
-			return false, ""
+			return false, "", isWildcard
 		}
 	}
 
 	if key == "" || (matcher != nil && !matcher.MatchName(key)) {
-		return false, ""
+		return false, "", isWildcard
 	}
 
-	return true, key
+	return true, key, isWildcard
 }
 
 func (g *Gitlab) Close(ctx context.Context) error {

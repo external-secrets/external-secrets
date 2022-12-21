@@ -14,8 +14,16 @@ limitations under the License.
 package fake
 
 import (
-	gitlab "github.com/xanzy/go-gitlab"
+	"math"
+
+	"github.com/xanzy/go-gitlab"
 )
+
+type APIResponse[O any] struct {
+	Output   O
+	Response *gitlab.Response
+	Error    error
+}
 
 type GitlabMockProjectsClient struct {
 	listProjectsGroups func(pid interface{}, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error)
@@ -46,14 +54,28 @@ func (mc *GitlabMockProjectVariablesClient) ListVariables(pid interface{}, opt *
 	return mc.listVariables(pid)
 }
 
-func (mc *GitlabMockProjectVariablesClient) WithValue(output *gitlab.ProjectVariable, response *gitlab.Response, err error) {
+func (mc *GitlabMockProjectVariablesClient) WithValue(response APIResponse[[]*gitlab.ProjectVariable]) {
+	mc.WithValues([]APIResponse[[]*gitlab.ProjectVariable]{response})
+}
+
+func (mc *GitlabMockProjectVariablesClient) WithValues(responses []APIResponse[[]*gitlab.ProjectVariable]) {
 	if mc != nil {
+		count := 0
 		mc.getVariable = func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
-			return output, response, err
+			count = int(math.Min(float64(count), float64(len(responses)-1)))
+			var match *gitlab.ProjectVariable
+			for _, v := range responses[count].Output {
+				if v.Key == key {
+					match = v
+				}
+			}
+
+			return match, responses[count].Response, responses[count].Error
 		}
 
 		mc.listVariables = func(pid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
-			return []*gitlab.ProjectVariable{output}, response, err
+			count = int(math.Min(float64(count), float64(len(responses)-1)))
+			return responses[count].Output, responses[count].Response, responses[count].Error
 		}
 	}
 }
