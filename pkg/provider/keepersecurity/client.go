@@ -414,7 +414,7 @@ func (s *KeeperSecuritySecret) getCustomFields() map[string][]byte {
 	secretData := make(map[string][]byte)
 	for _, field := range s.Custom {
 		if len(field.Value) > 0 {
-			secretData[field.Type] = []byte(field.Value[0])
+			secretData[field.Label] = []byte(field.Value[0])
 		}
 	}
 
