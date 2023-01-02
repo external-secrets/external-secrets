@@ -228,7 +228,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.StringPtr("mytenant"),
+				TenantID: pointer.String("mytenant"),
 			},
 		},
 		{
@@ -238,7 +238,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType:      &authType,
 				VaultURL:      &vaultURL,
-				TenantID:      pointer.StringPtr("mytenant"),
+				TenantID:      pointer.String("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{},
 			},
 		},
@@ -249,7 +249,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.StringPtr("mytenant"),
+				TenantID: pointer.String("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
 					ClientSecret: &v1.SecretKeySelector{Name: "password"},
 					ClientID:     &v1.SecretKeySelector{Name: "password"},
@@ -268,10 +268,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.StringPtr("mytenant"),
+				TenantID: pointer.String("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.StringPtr("foo")},
-					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.StringPtr("foo")},
+					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo")},
+					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo")},
 				},
 			},
 		},
@@ -296,10 +296,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.StringPtr("mytenant"),
+				TenantID: pointer.String("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.StringPtr("foo"), Key: "secret"},
-					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.StringPtr("foo"), Key: "id"},
+					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo"), Key: "secret"},
+					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo"), Key: "id"},
 				},
 			},
 		},
