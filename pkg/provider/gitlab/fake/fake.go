@@ -14,15 +14,30 @@ limitations under the License.
 package fake
 
 import (
-	"math"
+	"net/http"
 
-	"github.com/xanzy/go-gitlab"
+	gitlab "github.com/xanzy/go-gitlab"
 )
 
 type APIResponse[O any] struct {
 	Output   O
 	Response *gitlab.Response
 	Error    error
+}
+
+type GitVariable interface {
+	gitlab.ProjectVariable |
+		gitlab.GroupVariable
+}
+
+type extractKey[V GitVariable] func(gv V) string
+
+func keyFromProjectVariable(pv gitlab.ProjectVariable) string {
+	return pv.Key
+}
+
+func keyFromGroupVariable(gv gitlab.GroupVariable) string {
+	return gv.Key
 }
 
 type GitlabMockProjectsClient struct {
@@ -60,23 +75,57 @@ func (mc *GitlabMockProjectVariablesClient) WithValue(response APIResponse[[]*gi
 
 func (mc *GitlabMockProjectVariablesClient) WithValues(responses []APIResponse[[]*gitlab.ProjectVariable]) {
 	if mc != nil {
-		count := 0
-		mc.getVariable = func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
-			count = int(math.Min(float64(count), float64(len(responses)-1)))
-			var match *gitlab.ProjectVariable
-			for _, v := range responses[count].Output {
-				if v.Key == key {
-					match = v
-				}
+		mc.getVariable = mockGetVariable(keyFromProjectVariable, responses)
+		mc.listVariables = mockListVariable(responses)
+	}
+}
+
+func mockGetVariable[V GitVariable](keyExtractor extractKey[V], responses []APIResponse[[]*V]) func(interface{}, string, ...gitlab.RequestOptionFunc) (*V, *gitlab.Response, error) {
+	getCount := -1
+	return func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*V, *gitlab.Response, error) {
+		getCount++
+		if getCount > len(responses)-1 {
+			return nil, make404APIResponse(), nil
+		}
+		var match *V
+		for _, v := range responses[getCount].Output {
+			if keyExtractor(*v) == key {
+				match = v
 			}
-
-			return match, responses[count].Response, responses[count].Error
 		}
-
-		mc.listVariables = func(pid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
-			count = int(math.Min(float64(count), float64(len(responses)-1)))
-			return responses[count].Output, responses[count].Response, responses[count].Error
+		if match == nil {
+			return nil, make404APIResponse(), nil
 		}
+		return match, responses[getCount].Response, responses[getCount].Error
+	}
+}
+
+func mockListVariable[V GitVariable](responses []APIResponse[[]*V]) func(interface{}, ...gitlab.RequestOptionFunc) ([]*V, *gitlab.Response, error) {
+	listCount := -1
+	return func(pid interface{}, options ...gitlab.RequestOptionFunc) ([]*V, *gitlab.Response, error) {
+		listCount++
+		if listCount > len(responses)-1 {
+			return nil, makeAPIResponse(listCount, len(responses)), nil
+		}
+		return responses[listCount].Output, responses[listCount].Response, responses[listCount].Error
+	}
+}
+
+func make404APIResponse() *gitlab.Response {
+	return &gitlab.Response{
+		Response: &http.Response{
+			StatusCode: http.StatusNotFound,
+		},
+	}
+}
+
+func makeAPIResponse(page, pages int) *gitlab.Response {
+	return &gitlab.Response{
+		Response: &http.Response{
+			StatusCode: http.StatusOK,
+		},
+		CurrentPage: page,
+		TotalPages:  pages,
 	}
 }
 
@@ -102,5 +151,12 @@ func (mc *GitlabMockGroupVariablesClient) WithValue(output *gitlab.GroupVariable
 		mc.listVariables = func(gid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error) {
 			return []*gitlab.GroupVariable{output}, response, err
 		}
+	}
+}
+
+func (mc *GitlabMockGroupVariablesClient) WithValues(responses []APIResponse[[]*gitlab.GroupVariable]) {
+	if mc != nil {
+		mc.getVariable = mockGetVariable(keyFromGroupVariable, responses)
+		mc.listVariables = mockListVariable(responses)
 	}
 }

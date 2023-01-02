@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/tidwall/gjson"
-	gitlab "github.com/xanzy/go-gitlab"
+	"github.com/xanzy/go-gitlab"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -237,39 +237,51 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		return nil, err
 	}
 
+	var gopts = &gitlab.ListGroupVariablesOptions{PerPage: 100}
 	secretData := make(map[string][]byte)
 	for _, groupID := range g.groupIDs {
-		var groupVars []*gitlab.GroupVariable
-		groupVars, _, err := g.groupVariablesClient.ListVariables(groupID, nil)
+		for groupPage := 1; ; groupPage++ {
+			gopts.Page = groupPage
+			groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
+			if err != nil {
+				return nil, err
+			}
+			for _, data := range groupVars {
+				matching, key, isWildcard := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
+				if !matching && !isWildcard {
+					continue
+				}
+				secretData[key] = []byte(data.Value)
+			}
+			if response.CurrentPage >= response.TotalPages {
+				break
+			}
+		}
+	}
+
+	var popts = &gitlab.ListProjectVariablesOptions{PerPage: 100}
+	for projectPage := 1; ; projectPage++ {
+		popts.Page = projectPage
+		projectData, response, err := g.projectVariablesClient.ListVariables(g.projectID, popts)
 		if err != nil {
 			return nil, err
 		}
-		for _, data := range groupVars {
+
+		for _, data := range projectData {
 			matching, key, isWildcard := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
-			if !matching && !isWildcard {
+
+			if !matching {
+				continue
+			}
+			_, exists := secretData[key]
+			if exists && isWildcard {
 				continue
 			}
 			secretData[key] = []byte(data.Value)
 		}
-	}
-
-	var projectData []*gitlab.ProjectVariable
-	projectData, _, err = g.projectVariablesClient.ListVariables(g.projectID, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, data := range projectData {
-		matching, key, isWildcard := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
-
-		if !matching {
-			continue
+		if response.CurrentPage >= response.TotalPages {
+			break
 		}
-		_, exists := secretData[key]
-		if exists && isWildcard {
-			continue
-		}
-		secretData[key] = []byte(data.Value)
 	}
 
 	return secretData, nil

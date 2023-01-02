@@ -41,6 +41,7 @@ const (
 	username              = "user-name"
 	userkey               = "user-key"
 	environment           = "prod"
+	environmentTest       = "test"
 	projectvalue          = "projectvalue"
 	groupvalue            = "groupvalue"
 	groupid               = "groupId"
@@ -62,6 +63,7 @@ type secretManagerTestCase struct {
 	projectAPIOutputs        []*fakegitlab.APIResponse[[]*gitlab.ProjectVariable]
 	projectGroupsAPIOutput   []*gitlab.ProjectGroup
 	projectGroupsAPIResponse *gitlab.Response
+	groupAPIOutputs          []*fakegitlab.APIResponse[[]*gitlab.GroupVariable]
 	groupAPIOutput           *gitlab.GroupVariable
 	groupAPIResponse         *gitlab.Response
 	ref                      *esv1beta1.ExternalSecretDataRemoteRef
@@ -102,7 +104,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		expectedData:             map[string][]byte{},
 	}
 	prepareMockProjectVarClient(&smtc)
-	smtc.mockGroupVarClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
+	prepareMockGroupVarClient(&smtc)
 	return &smtc
 }
 
@@ -148,6 +150,8 @@ func makeValidProjectAPIResponse() *gitlab.Response {
 		Response: &http.Response{
 			StatusCode: http.StatusOK,
 		},
+		CurrentPage: 1,
+		TotalPages:  1,
 	}
 }
 
@@ -156,6 +160,8 @@ func makeValidProjectGroupsAPIResponse() *gitlab.Response {
 		Response: &http.Response{
 			StatusCode: http.StatusOK,
 		},
+		CurrentPage: 1,
+		TotalPages:  1,
 	}
 }
 
@@ -164,6 +170,8 @@ func makeValidGroupAPIResponse() *gitlab.Response {
 		Response: &http.Response{
 			StatusCode: http.StatusOK,
 		},
+		CurrentPage: 1,
+		TotalPages:  1,
 	}
 }
 
@@ -206,7 +214,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 	}
 	smtc.mockProjectsClient.WithValue(smtc.projectGroupsAPIOutput, smtc.projectGroupsAPIResponse, smtc.apiErr)
 	prepareMockProjectVarClient(smtc)
-	smtc.mockGroupVarClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
+	prepareMockGroupVarClient(smtc)
 	return smtc
 }
 
@@ -218,8 +226,7 @@ func makeValidSecretManagerGetAllTestCaseCustom(tweaks ...func(smtc *secretManag
 		fn(smtc)
 	}
 	prepareMockProjectVarClient(smtc)
-	smtc.mockGroupVarClient.WithValue(smtc.groupAPIOutput, smtc.groupAPIResponse, smtc.apiErr)
-
+	prepareMockGroupVarClient(smtc)
 	return smtc
 }
 
@@ -232,6 +239,17 @@ func prepareMockProjectVarClient(smtc *secretManagerTestCase) {
 		responses = append(responses, *response)
 	}
 	smtc.mockProjectVarClient.WithValues(responses)
+}
+
+func prepareMockGroupVarClient(smtc *secretManagerTestCase) {
+	responses := make([]fakegitlab.APIResponse[[]*gitlab.GroupVariable], 0)
+	if smtc.projectAPIOutput != nil {
+		responses = append(responses, fakegitlab.APIResponse[[]*gitlab.GroupVariable]{Output: []*gitlab.GroupVariable{smtc.groupAPIOutput}, Response: smtc.groupAPIResponse, Error: smtc.apiErr})
+	}
+	for _, response := range smtc.groupAPIOutputs {
+		responses = append(responses, *response)
+	}
+	smtc.mockGroupVarClient.WithValues(responses)
 }
 
 // This case can be shared by both GetSecret and GetSecretMap tests.
@@ -476,7 +494,7 @@ func TestGetAllSecrets(t *testing.T) {
 		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              testKey,
 			Value:            projectvalue,
-			EnvironmentScope: "test",
+			EnvironmentScope: environmentTest,
 		}
 		smtc.expectedSecret = ""
 		smtc.refFind.Name = makeFindName("foo.*")
@@ -485,7 +503,7 @@ func TestGetAllSecrets(t *testing.T) {
 		smtc.projectAPIOutput = &gitlab.ProjectVariable{
 			Key:              testKey,
 			Value:            projectvalue,
-			EnvironmentScope: "test",
+			EnvironmentScope: environmentTest,
 		}
 		smtc.expectedSecret = ""
 		smtc.refFind.Name = makeFindName(findTestPrefix)
@@ -506,7 +524,6 @@ func TestGetAllSecrets(t *testing.T) {
 		smtc.refFind.Tags = map[string]string{"environment_scope": environment}
 	}
 	setWildcardDoesntOverwriteEnvironmentValue := func(smtc *secretManagerTestCase) {
-		smtc.projectAPIOutput = nil
 		var1 := gitlab.ProjectVariable{
 			Key:              testKey,
 			Value:            "wildcardValue",
@@ -515,7 +532,7 @@ func TestGetAllSecrets(t *testing.T) {
 		var2 := gitlab.ProjectVariable{
 			Key:              testKey,
 			Value:            "expectedValue",
-			EnvironmentScope: "test",
+			EnvironmentScope: environmentTest,
 		}
 		var3 := gitlab.ProjectVariable{
 			Key:              testKey,
@@ -523,13 +540,13 @@ func TestGetAllSecrets(t *testing.T) {
 			EnvironmentScope: "*",
 		}
 		vars := []*gitlab.ProjectVariable{&var1, &var2, &var3}
-		smtc.projectAPIOutputs = []*fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{{Output: vars, Response: nil, Error: nil}}
-		smtc.apiInputEnv = "test"
+		smtc.projectAPIOutputs = []*fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{{Output: vars, Response: smtc.projectAPIResponse, Error: nil}}
+		smtc.projectAPIOutput = nil
+		smtc.apiInputEnv = environmentTest
 		smtc.expectedSecret = "expectedValue"
 		smtc.refFind.Name = makeFindName(findTestPrefix)
 	}
 	setFilterByEnvironmentWithWildcard := func(smtc *secretManagerTestCase) {
-		smtc.projectAPIOutput = nil
 		var1 := gitlab.ProjectVariable{
 			Key:              testKey,
 			Value:            projectvalue,
@@ -543,7 +560,7 @@ func TestGetAllSecrets(t *testing.T) {
 		var3 := gitlab.ProjectVariable{
 			Key:              "testKey3",
 			Value:            "value3",
-			EnvironmentScope: "test",
+			EnvironmentScope: environmentTest,
 		}
 		var4 := gitlab.ProjectVariable{
 			Key:              "anotherKey4",
@@ -551,9 +568,61 @@ func TestGetAllSecrets(t *testing.T) {
 			EnvironmentScope: environment,
 		}
 		vars := []*gitlab.ProjectVariable{&var1, &var2, &var3, &var4}
-		smtc.projectAPIOutputs = []*fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{{Output: vars, Response: nil, Error: nil}}
+		smtc.projectAPIOutput = nil
+		smtc.projectAPIOutputs = []*fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{{Output: vars, Response: smtc.projectAPIResponse, Error: nil}}
 		smtc.apiInputEnv = environment
 		smtc.expectedData = map[string][]byte{testKey: []byte(projectvalue), "testKey2": []byte("value2")}
+		smtc.refFind.Name = makeFindName(findTestPrefix)
+	}
+	setPaginationInGroupAndProjectVars := func(smtc *secretManagerTestCase) {
+		smtc.groupIDs = []string{groupid}
+		gvar1 := gitlab.GroupVariable{
+			Key:              testKey + "Group",
+			Value:            "groupValue1",
+			EnvironmentScope: environmentTest,
+		}
+		gvar2 := gitlab.GroupVariable{
+			Key:              testKey,
+			Value:            "groupValue2",
+			EnvironmentScope: environmentTest,
+		}
+		pvar1 := gitlab.ProjectVariable{
+			Key:              testKey,
+			Value:            "testValue1",
+			EnvironmentScope: environmentTest,
+		}
+		pvar2a := gitlab.ProjectVariable{
+			Key:              testKey + "2a",
+			Value:            "testValue2a",
+			EnvironmentScope: environmentTest,
+		}
+		pvar2b := gitlab.ProjectVariable{
+			Key:              testKey + "2b",
+			Value:            "testValue2b",
+			EnvironmentScope: environmentTest,
+		}
+		gPage1 := []*gitlab.GroupVariable{&gvar1}
+		gResponsePage1 := makeValidGroupAPIResponse()
+		gResponsePage1.TotalPages = 2
+		gResponsePage1.CurrentPage = 1
+		gPage2 := []*gitlab.GroupVariable{&gvar2}
+		gResponsePage2 := makeValidGroupAPIResponse()
+		gResponsePage2.TotalPages = 2
+		gResponsePage2.CurrentPage = 1
+		pPage1 := []*gitlab.ProjectVariable{&pvar1}
+		pResponsePage1 := makeValidProjectAPIResponse()
+		pResponsePage1.TotalPages = 2
+		pResponsePage1.CurrentPage = 1
+		pPage2 := []*gitlab.ProjectVariable{&pvar2a, &pvar2b}
+		pResponsePage2 := makeValidProjectAPIResponse()
+		pResponsePage2.TotalPages = 2
+		pResponsePage2.CurrentPage = 2
+		smtc.groupAPIOutputs = []*fakegitlab.APIResponse[[]*gitlab.GroupVariable]{{Output: gPage1, Response: gResponsePage1, Error: nil}, {Output: gPage2, Response: gResponsePage2, Error: nil}}
+		smtc.groupAPIOutput = nil
+		smtc.projectAPIOutputs = []*fakegitlab.APIResponse[[]*gitlab.ProjectVariable]{{Output: pPage1, Response: pResponsePage1, Error: nil}, {Output: pPage2, Response: pResponsePage2, Error: nil}}
+		smtc.projectAPIOutput = nil
+		smtc.apiInputEnv = environmentTest
+		smtc.expectedData = map[string][]byte{testKey: []byte("testValue1"), "testKey2a": []byte("testValue2a"), "testKey2b": []byte("testValue2b"), "testKeyGroup": []byte("groupValue1")}
 		smtc.refFind.Name = makeFindName(findTestPrefix)
 	}
 
@@ -568,6 +637,7 @@ func TestGetAllSecrets(t *testing.T) {
 		makeValidSecretManagerGetAllTestCaseCustom(setWildcardDoesntOverwriteEnvironmentValue),
 		makeValidSecretManagerGetAllTestCaseCustom(setEnvironmentConstrainedByStore),
 		makeValidSecretManagerGetAllTestCaseCustom(setFilterByEnvironmentWithWildcard),
+		makeValidSecretManagerGetAllTestCaseCustom(setPaginationInGroupAndProjectVars),
 		makeValidSecretManagerGetAllTestCaseCustom(setAPIErr),
 		makeValidSecretManagerGetAllTestCaseCustom(setNilMockClient),
 	}
@@ -577,6 +647,7 @@ func TestGetAllSecrets(t *testing.T) {
 		sm.environment = v.apiInputEnv
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
+		sm.groupIDs = v.groupIDs
 		if v.expectedSecret != "" {
 			v.expectedData = map[string][]byte{testKey: []byte(v.expectedSecret)}
 		}
@@ -616,7 +687,7 @@ func TestGetAllSecretsWithGroups(t *testing.T) {
 	groupAndProjectWithDifferentEnvSecrets := func(smtc *secretManagerTestCase) {
 		smtc.groupIDs = []string{groupid}
 		smtc.projectAPIOutput.Value = projectvalue
-		smtc.projectAPIOutput.EnvironmentScope = "test"
+		smtc.projectAPIOutput.EnvironmentScope = environmentTest
 		smtc.groupAPIOutput.Key = smtc.projectAPIOutput.Key
 		smtc.groupAPIOutput.Value = groupvalue
 		smtc.expectedData = map[string][]byte{testKey: []byte(groupvalue)}
@@ -631,7 +702,7 @@ func TestGetAllSecretsWithGroups(t *testing.T) {
 	}
 
 	sm := Gitlab{}
-	sm.environment = "prod"
+	sm.environment = environment
 	for k, v := range cases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
