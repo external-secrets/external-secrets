@@ -258,9 +258,9 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 	filters := make([]*ssm.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &ssm.ParameterStringFilter{
-			Key:    utilpointer.StringPtr(fmt.Sprintf("tag:%s", k)),
-			Values: []*string{utilpointer.StringPtr(v)},
-			Option: utilpointer.StringPtr("Equals"),
+			Key:    utilpointer.String(fmt.Sprintf("tag:%s", k)),
+			Values: []*string{utilpointer.String(v)},
+			Option: utilpointer.String("Equals"),
 		})
 	}
 
@@ -301,7 +301,7 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 
 func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
 	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
-		Name:           utilpointer.StringPtr(name),
+		Name:           utilpointer.String(name),
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {

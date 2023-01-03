@@ -204,7 +204,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										AccessKeyID: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},
@@ -227,7 +227,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										SecretAccessKey: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},
@@ -325,7 +325,7 @@ func TestValidateStore(t *testing.T) {
 									JWTAuth: &esv1beta1.AWSJWTAuth{
 										ServiceAccountRef: &esmeta.ServiceAccountSelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},

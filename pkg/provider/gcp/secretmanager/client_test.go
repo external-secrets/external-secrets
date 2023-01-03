@@ -588,7 +588,7 @@ func TestValidateStore(t *testing.T) {
 					SecretRef: &esv1beta1.GCPSMAuthSecretRef{
 						SecretAccessKey: v1.SecretKeySelector{
 							Name:      "foo",
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
@@ -602,7 +602,7 @@ func TestValidateStore(t *testing.T) {
 					WorkloadIdentity: &esv1beta1.GCPWorkloadIdentity{
 						ServiceAccountRef: v1.ServiceAccountSelector{
 							Name:      "foo",
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
