@@ -8,19 +8,19 @@
       
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.10">
     
     
       
-        <title>API specification - External Secrets Operator</title>
+        <title>Spec - External Secrets Operator</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.d6be258b.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.d6be258b.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.e6a45f82.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.e6a45f82.min.css">
         
       
     
@@ -34,7 +34,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
   
@@ -78,7 +78,7 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../../..">
+  <a href="../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
@@ -93,7 +93,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="External Secrets Operator" class="md-header__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+    <a href=".." title="External Secrets Operator" class="md-header__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              API specification
+              Spec
             
           </span>
         </div>
@@ -190,7 +190,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href=".." class="md-tabs__link">
         Introduction
       </a>
     </li>
@@ -200,15 +200,13 @@
         
   
   
-    
-  
 
 
   
   
   
     <li class="md-tabs__item">
-      <a href="../components/" class="md-tabs__link md-tabs__link--active">
+      <a href="../api/components/" class="md-tabs__link">
         API
       </a>
     </li>
@@ -224,7 +222,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../guides/introduction/" class="md-tabs__link">
+      <a href="../guides/introduction/" class="md-tabs__link">
         Guides
       </a>
     </li>
@@ -240,7 +238,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../provider/aws-secrets-manager/" class="md-tabs__link">
+      <a href="../provider/aws-secrets-manager/" class="md-tabs__link">
         Provider
       </a>
     </li>
@@ -256,7 +254,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../examples/gitops-using-fluxcd/" class="md-tabs__link">
+      <a href="../examples/gitops-using-fluxcd/" class="md-tabs__link">
         Examples
       </a>
     </li>
@@ -277,7 +275,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../contributing/devguide/" class="md-tabs__link">
+      <a href="../contributing/devguide/" class="md-tabs__link">
         Community
       </a>
     </li>
@@ -307,7 +305,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="External Secrets Operator" class="md-nav__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+    <a href=".." title="External Secrets Operator" class="md-nav__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54z"/></svg>
@@ -365,7 +363,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../..">Introduction</a>
+          <a href="..">Introduction</a>
           
             <label for="__nav_1">
               <span class="md-nav__icon md-icon"></span>
@@ -388,7 +386,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/overview/" class="md-nav__link">
+      <a href="../introduction/overview/" class="md-nav__link">
         Overview
       </a>
     </li>
@@ -402,7 +400,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/getting-started/" class="md-nav__link">
+      <a href="../introduction/getting-started/" class="md-nav__link">
         Getting started
       </a>
     </li>
@@ -416,7 +414,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/faq/" class="md-nav__link">
+      <a href="../introduction/faq/" class="md-nav__link">
         FAQ
       </a>
     </li>
@@ -430,7 +428,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/stability-support/" class="md-nav__link">
+      <a href="../introduction/stability-support/" class="md-nav__link">
         Stability and Support
       </a>
     </li>
@@ -444,7 +442,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/deprecation-policy/" class="md-nav__link">
+      <a href="../introduction/deprecation-policy/" class="md-nav__link">
         Deprecation Policy
       </a>
     </li>
@@ -464,14 +462,12 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2" data-md-state="indeterminate" type="checkbox" id="__nav_2" checked>
       
       
       
@@ -504,7 +500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../components/" class="md-nav__link">
+      <a href="../api/components/" class="md-nav__link">
         Components
       </a>
     </li>
@@ -556,7 +552,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../externalsecret/" class="md-nav__link">
+      <a href="../api/externalsecret/" class="md-nav__link">
         ExternalSecret
       </a>
     </li>
@@ -570,7 +566,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../secretstore/" class="md-nav__link">
+      <a href="../api/secretstore/" class="md-nav__link">
         SecretStore
       </a>
     </li>
@@ -584,7 +580,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../clustersecretstore/" class="md-nav__link">
+      <a href="../api/clustersecretstore/" class="md-nav__link">
         ClusterSecretStore
       </a>
     </li>
@@ -598,7 +594,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../clusterexternalsecret/" class="md-nav__link">
+      <a href="../api/clusterexternalsecret/" class="md-nav__link">
         ClusterExternalSecret
       </a>
     </li>
@@ -612,7 +608,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pushsecret/" class="md-nav__link">
+      <a href="../api/pushsecret/" class="md-nav__link">
         PushSecret
       </a>
     </li>
@@ -660,7 +656,7 @@
         
         
         <div class="md-nav__link md-nav__link--index ">
-          <a href="../generator/">Generators</a>
+          <a href="../api/generator/">Generators</a>
           
             <label for="__nav_2_3">
               <span class="md-nav__icon md-icon"></span>
@@ -683,7 +679,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../generator/acr/" class="md-nav__link">
+      <a href="../api/generator/acr/" class="md-nav__link">
         Azure Container Registry
       </a>
     </li>
@@ -697,7 +693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../generator/ecr/" class="md-nav__link">
+      <a href="../api/generator/ecr/" class="md-nav__link">
         AWS Elastic Container Registry
       </a>
     </li>
@@ -711,7 +707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../generator/gcr/" class="md-nav__link">
+      <a href="../api/generator/gcr/" class="md-nav__link">
         Google Container Registry
       </a>
     </li>
@@ -725,7 +721,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../generator/password/" class="md-nav__link">
+      <a href="../api/generator/password/" class="md-nav__link">
         Password
       </a>
     </li>
@@ -739,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../generator/fake/" class="md-nav__link">
+      <a href="../api/generator/fake/" class="md-nav__link">
         Fake
       </a>
     </li>
@@ -758,14 +754,12 @@
               
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_4" type="checkbox" id="__nav_2_4" checked>
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_2_4" data-md-state="indeterminate" type="checkbox" id="__nav_2_4" checked>
       
       
       
@@ -794,19 +788,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../api/spec/" class="md-nav__link">
         API specification
       </a>
-      
     </li>
   
 
@@ -818,7 +804,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../controller-options/" class="md-nav__link">
+      <a href="../api/controller-options/" class="md-nav__link">
         Controller Options
       </a>
     </li>
@@ -832,7 +818,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics/" class="md-nav__link">
+      <a href="../api/metrics/" class="md-nav__link">
         Metrics
       </a>
     </li>
@@ -915,7 +901,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/introduction/" class="md-nav__link">
+      <a href="../guides/introduction/" class="md-nav__link">
         Introduction
       </a>
     </li>
@@ -961,7 +947,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/templating/" class="md-nav__link">
+      <a href="../guides/templating/" class="md-nav__link">
         v2
       </a>
     </li>
@@ -975,7 +961,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/templating-v1/" class="md-nav__link">
+      <a href="../guides/templating-v1/" class="md-nav__link">
         v1
       </a>
     </li>
@@ -996,7 +982,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/generator/" class="md-nav__link">
+      <a href="../guides/generator/" class="md-nav__link">
         Generators
       </a>
     </li>
@@ -1010,7 +996,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/all-keys-one-secret/" class="md-nav__link">
+      <a href="../guides/all-keys-one-secret/" class="md-nav__link">
         All keys, One secret
       </a>
     </li>
@@ -1024,7 +1010,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/common-k8s-secret-types/" class="md-nav__link">
+      <a href="../guides/common-k8s-secret-types/" class="md-nav__link">
         Common K8S Secret Types
       </a>
     </li>
@@ -1038,7 +1024,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/controller-class/" class="md-nav__link">
+      <a href="../guides/controller-class/" class="md-nav__link">
         Controller Classes
       </a>
     </li>
@@ -1052,7 +1038,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/ownership-deletion-policy/" class="md-nav__link">
+      <a href="../guides/ownership-deletion-policy/" class="md-nav__link">
         Lifecycle: ownership & deletion
       </a>
     </li>
@@ -1066,7 +1052,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/decoding-strategy/" class="md-nav__link">
+      <a href="../guides/decoding-strategy/" class="md-nav__link">
         Decoding Strategies
       </a>
     </li>
@@ -1080,7 +1066,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/getallsecrets/" class="md-nav__link">
+      <a href="../guides/getallsecrets/" class="md-nav__link">
         Getting Multiple Secrets
       </a>
     </li>
@@ -1094,7 +1080,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/multi-tenancy/" class="md-nav__link">
+      <a href="../guides/multi-tenancy/" class="md-nav__link">
         Multi Tenancy
       </a>
     </li>
@@ -1108,7 +1094,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/datafrom-rewrite/" class="md-nav__link">
+      <a href="../guides/datafrom-rewrite/" class="md-nav__link">
         Rewriting Keys
       </a>
     </li>
@@ -1122,7 +1108,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/v1beta1/" class="md-nav__link">
+      <a href="../guides/v1beta1/" class="md-nav__link">
         Upgrading to v1beta1
       </a>
     </li>
@@ -1136,7 +1122,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/using-latest-image/" class="md-nav__link">
+      <a href="../guides/using-latest-image/" class="md-nav__link">
         Using Latest Image
       </a>
     </li>
@@ -1220,7 +1206,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-secrets-manager/" class="md-nav__link">
+      <a href="../provider/aws-secrets-manager/" class="md-nav__link">
         AWS Secrets Manager
       </a>
     </li>
@@ -1234,7 +1220,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-parameter-store/" class="md-nav__link">
+      <a href="../provider/aws-parameter-store/" class="md-nav__link">
         AWS Parameter Store
       </a>
     </li>
@@ -1248,7 +1234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/azure-key-vault/" class="md-nav__link">
+      <a href="../provider/azure-key-vault/" class="md-nav__link">
         Azure Key Vault
       </a>
     </li>
@@ -1262,7 +1248,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/google-secrets-manager/" class="md-nav__link">
+      <a href="../provider/google-secrets-manager/" class="md-nav__link">
         Google Secret Manager
       </a>
     </li>
@@ -1276,7 +1262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/ibm-secrets-manager/" class="md-nav__link">
+      <a href="../provider/ibm-secrets-manager/" class="md-nav__link">
         IBM Secrets Manager
       </a>
     </li>
@@ -1290,7 +1276,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/akeyless/" class="md-nav__link">
+      <a href="../provider/akeyless/" class="md-nav__link">
         Akeyless
       </a>
     </li>
@@ -1304,7 +1290,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/hashicorp-vault/" class="md-nav__link">
+      <a href="../provider/hashicorp-vault/" class="md-nav__link">
         HashiCorp Vault
       </a>
     </li>
@@ -1318,7 +1304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/yandex-certificate-manager/" class="md-nav__link">
+      <a href="../provider/yandex-certificate-manager/" class="md-nav__link">
         Yandex Certificate Manager
       </a>
     </li>
@@ -1332,7 +1318,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/yandex-lockbox/" class="md-nav__link">
+      <a href="../provider/yandex-lockbox/" class="md-nav__link">
         Yandex Lockbox
       </a>
     </li>
@@ -1346,7 +1332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/gitlab-variables/" class="md-nav__link">
+      <a href="../provider/gitlab-variables/" class="md-nav__link">
         Gitlab Variables
       </a>
     </li>
@@ -1360,7 +1346,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/oracle-vault/" class="md-nav__link">
+      <a href="../provider/oracle-vault/" class="md-nav__link">
         Oracle Vault
       </a>
     </li>
@@ -1374,7 +1360,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/1password-automation/" class="md-nav__link">
+      <a href="../provider/1password-automation/" class="md-nav__link">
         1Password Secrets Automation
       </a>
     </li>
@@ -1388,7 +1374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/webhook/" class="md-nav__link">
+      <a href="../provider/webhook/" class="md-nav__link">
         Webhook
       </a>
     </li>
@@ -1402,7 +1388,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/fake/" class="md-nav__link">
+      <a href="../provider/fake/" class="md-nav__link">
         Fake
       </a>
     </li>
@@ -1416,7 +1402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/kubernetes/" class="md-nav__link">
+      <a href="../provider/kubernetes/" class="md-nav__link">
         Kubernetes
       </a>
     </li>
@@ -1430,7 +1416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/senhasegura-dsm/" class="md-nav__link">
+      <a href="../provider/senhasegura-dsm/" class="md-nav__link">
         senhasegura DevOps Secrets Management (DSM)
       </a>
     </li>
@@ -1444,7 +1430,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/doppler/" class="md-nav__link">
+      <a href="../provider/doppler/" class="md-nav__link">
         Doppler
       </a>
     </li>
@@ -1500,7 +1486,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/gitops-using-fluxcd/" class="md-nav__link">
+      <a href="../examples/gitops-using-fluxcd/" class="md-nav__link">
         FluxCD
       </a>
     </li>
@@ -1514,7 +1500,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/anchore-engine-credentials/" class="md-nav__link">
+      <a href="../examples/anchore-engine-credentials/" class="md-nav__link">
         Anchore Engine
       </a>
     </li>
@@ -1528,7 +1514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/jenkins-kubernetes-credentials/" class="md-nav__link">
+      <a href="../examples/jenkins-kubernetes-credentials/" class="md-nav__link">
         Jenkins
       </a>
     </li>
@@ -1620,7 +1606,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/devguide/" class="md-nav__link">
+      <a href="../contributing/devguide/" class="md-nav__link">
         Developer guide
       </a>
     </li>
@@ -1634,7 +1620,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/process/" class="md-nav__link">
+      <a href="../contributing/process/" class="md-nav__link">
         Contributing Process
       </a>
     </li>
@@ -1648,7 +1634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/release/" class="md-nav__link">
+      <a href="../contributing/release/" class="md-nav__link">
         Release Process
       </a>
     </li>
@@ -1662,7 +1648,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/coc/" class="md-nav__link">
+      <a href="../contributing/coc/" class="md-nav__link">
         Code of Conduct
       </a>
     </li>
@@ -1676,7 +1662,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/roadmap/" class="md-nav__link">
+      <a href="../contributing/roadmap/" class="md-nav__link">
         Roadmap
       </a>
     </li>
@@ -1731,7 +1717,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-talks/" class="md-nav__link">
+      <a href="../eso-talks/" class="md-nav__link">
         Talks
       </a>
     </li>
@@ -1745,7 +1731,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-demos/" class="md-nav__link">
+      <a href="../eso-demos/" class="md-nav__link">
         Demos
       </a>
     </li>
@@ -1759,7 +1745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-blogs/" class="md-nav__link">
+      <a href="../eso-blogs/" class="md-nav__link">
         Blogs
       </a>
     </li>
@@ -1792,12 +1778,12 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/main/docs/api/spec.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/main/docs/spec.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-  <h1>API specification</h1>
+  <h1>Spec</h1>
 
 <p>Packages:</p>
 <ul>
@@ -1880,9 +1866,7 @@ both AccessKeyID and SecretAccessKey must be defined in order to properly authen
 <td>
 <code>accessKeyIDSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -1893,9 +1877,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>secretAccessKeySecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -1906,9 +1888,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>sessionTokenSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -1940,9 +1920,7 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
-External Secrets meta/v1.ServiceAccountSelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
@@ -2117,9 +2095,7 @@ AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CO
 <td>
 <code>accessID</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2130,9 +2106,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>accessType</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2142,9 +2116,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>accessTypeParam</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2195,9 +2167,7 @@ string
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
-External Secrets meta/v1.ServiceAccountSelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
@@ -2212,9 +2182,7 @@ the secretRef will be used instead.</p>
 <td>
 <code>secretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2322,9 +2290,7 @@ AlibabaAuthSecretRef
 <td>
 <code>accessKeyIDSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2335,9 +2301,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>accessKeySecretSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2479,9 +2443,7 @@ PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
 <td>
 <code>clientId</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2493,9 +2455,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>clientSecret</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2596,9 +2556,7 @@ AzureKVAuth
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
-External Secrets meta/v1.ServiceAccountSelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
@@ -2732,9 +2690,7 @@ Can only be defined when used in a ClusterSecretStore.</p>
 <td>
 <code>clientCert</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2744,9 +2700,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>clientKey</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -2771,7 +2725,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>metadata</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -2823,7 +2777,7 @@ string
 <td>
 <code>namespaceSelector</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -2836,7 +2790,7 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <code>refreshTime</code></br>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -2973,7 +2927,7 @@ string
 <td>
 <code>namespaceSelector</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -2986,7 +2940,7 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <code>refreshTime</code></br>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -3087,7 +3041,7 @@ ClusterExternalSecretConditionType
 <td>
 <code>status</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#conditionstatus-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#conditionstatus-v1-core">
 Kubernetes core/v1.ConditionStatus
 </a>
 </em>
@@ -3125,7 +3079,7 @@ string
 <td>
 <code>metadata</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -3253,7 +3207,7 @@ for a ClusterSecretStore instance.</p>
 <td>
 <code>namespaceSelector</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -3326,9 +3280,7 @@ DopplerAuthSecretRef
 <td>
 <code>dopplerToken</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -3437,7 +3389,7 @@ string
 <td>
 <code>metadata</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -3490,7 +3442,7 @@ ExternalSecretTarget
 <td>
 <code>refreshInterval</code></br>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -4145,7 +4097,7 @@ ExternalSecretTarget
 <td>
 <code>refreshInterval</code></br>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -4207,7 +4159,7 @@ If multiple entries are specified, the Secret keys are merged in the specified o
 <td>
 <code>refreshTime</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Time">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -4275,7 +4227,7 @@ ExternalSecretConditionType
 <td>
 <code>status</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#conditionstatus-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#conditionstatus-v1-core">
 Kubernetes core/v1.ConditionStatus
 </a>
 </em>
@@ -4309,7 +4261,7 @@ string
 <td>
 <code>lastTransitionTime</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Time">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -4432,7 +4384,7 @@ we can not use native corev1.Secret, it will have empty ObjectMeta values: <a hr
 <td>
 <code>type</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#secrettype-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#secrettype-v1-core">
 Kubernetes core/v1.SecretType
 </a>
 </em>
@@ -4720,9 +4672,7 @@ GCPWorkloadIdentity
 <td>
 <code>secretAccessKeySecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -4796,9 +4746,7 @@ string
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
-External Secrets meta/v1.ServiceAccountSelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
@@ -5035,9 +4983,7 @@ string
 <td>
 <code>accessToken</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -5159,9 +5105,7 @@ string
 <td>
 <code>secretApiKeySecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -5262,9 +5206,7 @@ TokenAuth
 <td>
 <code>serviceAccount</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
-External Secrets meta/v1.ServiceAccountSelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
@@ -5445,9 +5387,7 @@ OnePasswordAuthSecretRef
 <td>
 <code>connectTokenSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -5640,9 +5580,7 @@ If empty, use the instance principal, otherwise the user credentials specified i
 <td>
 <code>privatekey</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -5653,9 +5591,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>fingerprint</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -5668,11 +5604,6 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
-</p>
-<h3 id="external-secrets.io/v1beta1.PushRemoteRef">PushRemoteRef
-</h3>
-<p>
-<p>This interface is to allow using v1alpha1 content in Provider registered in v1beta1.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.SecretStore">SecretStore
 </h3>
@@ -5691,7 +5622,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>metadata</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -5796,30 +5727,6 @@ SecretStoreStatus
 </td>
 </tr>
 </tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.SecretStoreCapabilities">SecretStoreCapabilities
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SecretStoreStatus">SecretStoreStatus</a>)
-</p>
-<p>
-<p>SecretStoreCapabilities defines the possible operations a SecretStore can do.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr><td><p>&#34;ReadOnly&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;ReadWrite&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;WriteOnly&#34;</p></td>
-<td></td>
-</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreConditionType">SecretStoreConditionType
 (<code>string</code> alias)</p></h3>
@@ -6296,19 +6203,6 @@ int
 <em>(Optional)</em>
 </td>
 </tr>
-<tr>
-<td>
-<code>capabilities</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreCapabilities">
-SecretStoreCapabilities
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreStatusCondition">SecretStoreStatusCondition
@@ -6343,7 +6237,7 @@ SecretStoreConditionType
 <td>
 <code>status</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#conditionstatus-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#conditionstatus-v1-core">
 Kubernetes core/v1.ConditionStatus
 </a>
 </em>
@@ -6377,7 +6271,7 @@ string
 <td>
 <code>lastTransitionTime</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Time">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -6424,9 +6318,7 @@ string
 <td>
 <code>clientSecretSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -6636,6 +6528,19 @@ TemplateRef
 </tr>
 <tr>
 <td>
+<code>scope</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateScope">
+TemplateScope
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
 <code>target</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.TemplateTarget">
@@ -6726,25 +6631,13 @@ string
 <td>
 </td>
 </tr>
-<tr>
-<td>
-<code>templateAs</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.TemplateScope">
-TemplateScope
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.TemplateScope">TemplateScope
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.TemplateRefItem">TemplateRefItem</a>)
+<a href="#external-secrets.io/v1beta1.TemplateFrom">TemplateFrom</a>)
 </p>
 <p>
 </p>
@@ -6782,6 +6675,8 @@ TemplateScope
 <td></td>
 </tr><tr><td><p>&#34;Labels&#34;</p></td>
 <td></td>
+</tr><tr><td><p>&#34;StringData&#34;</p></td>
+<td></td>
 </tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.TokenAuth">TokenAuth
@@ -6804,9 +6699,7 @@ TemplateScope
 <td>
 <code>bearerToken</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -6884,9 +6777,7 @@ up the authentication backend in Vault.</p>
 <td>
 <code>secretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -6921,9 +6812,7 @@ can be specified.</p>
 <td>
 <code>tokenSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7030,9 +6919,7 @@ method, with the role name and token stored in a Kubernetes Secret resource.</p>
 <td>
 <code>clientCert</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7045,9 +6932,7 @@ authentication method</p>
 <td>
 <code>secretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7105,9 +6990,7 @@ authentication method</p>
 <td>
 <code>secretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7188,9 +7071,7 @@ string
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
-External Secrets meta/v1.ServiceAccountSelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
@@ -7205,9 +7086,7 @@ the secretRef will be used instead.</p>
 <td>
 <code>secretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7254,9 +7133,7 @@ Kubernetes service account token retrieved by the <code>TokenRequest</code> API.
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
-External Secrets meta/v1.ServiceAccountSelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
@@ -7342,9 +7219,7 @@ authentication method</p>
 <td>
 <code>secretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7655,7 +7530,7 @@ string
 <td>
 <code>timeout</code></br>
 <em>
-<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -7785,9 +7660,7 @@ string
 <td>
 <code>secretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7816,9 +7689,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>authorizedKeySecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7848,9 +7719,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>certSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7936,9 +7805,7 @@ YandexCertificateManagerCAProvider
 <td>
 <code>authorizedKeySecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -7968,9 +7835,7 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>certSecretRef</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
@@ -8050,41 +7915,6 @@ Generated with <code>gen-crd-api-reference-docs</code>.
       
         <footer class="md-footer">
   
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-        
-        <a href="../generator/fake/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Fake" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Fake
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="../controller-options/" class="md-footer__link md-footer__link--next" aria-label="Next: Controller Options" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Controller Options
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
-  
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
       <div class="md-copyright">
@@ -8113,10 +7943,10 @@ For a list of trademarks of The Linux Foundation, please see our <a href="https:
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.indexes", "navigation.expand"], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.indexes", "navigation.expand"], "translations": {"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "search": "../assets/javascripts/workers/search.092fa1f6.min.js", "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.e3b2bf44.min.js"></script>
+      <script src="../assets/javascripts/bundle.e3b2bf44.min.js"></script>
       
     
   </body>

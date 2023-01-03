@@ -2061,9 +2061,23 @@
 <span class="w">      </span><span class="no">- name: Graphite</span><span class="w"></span>
 <span class="w">        </span><span class="no">type: graphite</span><span class="w"></span>
 <span class="w">        </span><span class="no">access: proxy</span><span class="w"></span>
-<span class="w">        </span><span class="no">url: http://localhost:8080</span><span class="w"></span>
+<span class="w">        </span><span class="no">url: &quot;{{ .uri }}&quot;</span><span class="w"></span>
 <span class="w">        </span><span class="no">password: &quot;{{ .password }}&quot;</span><span class="w"></span>
 <span class="w">        </span><span class="no">user: &quot;{{ .user }}&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="nt">templated</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="w"></span>
+<span class="w">     </span><span class="no"># key and value templated</span><span class="w"></span>
+<span class="w">     </span><span class="no">my-application-{{ .user}}: {{ .password | b64enc }}</span><span class="w"></span>
+<span class="w">     </span><span class="no"># conditional keys</span><span class="w"></span>
+<span class="w">     </span><span class="no">{{- if hasPrefix &quot;oci://&quot; .uri }}</span><span class="w"></span>
+<span class="w">     </span><span class="no">enableOCI: true</span><span class="w"></span>
+<span class="w">     </span><span class="no">{{- else }}</span><span class="w"></span>
+<span class="w">     </span><span class="no">enableOCI: false</span><span class="w"></span>
+<span class="w">     </span><span class="no">{{- end }}</span><span class="w"></span>
+<span class="w">     </span><span class="no"># Fixed values</span><span class="w"></span>
+<span class="w">     </span><span class="no">application-type: grafana</span><span class="w"></span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="w"></span>
+<span class="w">     </span><span class="no">#dynamic timestamp generation</span><span class="w"></span>
+<span class="w">     </span><span class="no">last-synced-for-user/{{ .user }}: {{ now }}</span><span class="w"></span>
 <span class="nn">---</span><span class="w"></span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
@@ -2076,12 +2090,49 @@
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span><span class="w"></span>
 <span class="w">      </span><span class="nt">templateFrom</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">configMap</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Data</span><span class="w"></span>
+<span class="w">        </span><span class="nt">configMap</span><span class="p">:</span><span class="w"></span>
 <span class="w">          </span><span class="c1"># name of the configmap to pull in</span><span class="w"></span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-config-tpl</span><span class="w"></span>
 <span class="w">          </span><span class="c1"># here you define the keys that should be used as template</span><span class="w"></span>
 <span class="w">          </span><span class="nt">items</span><span class="p">:</span><span class="w"></span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config.yaml</span><span class="w"></span>
+<span class="w">            </span><span class="nt">templateAs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Values</span><span class="w"></span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generated</span><span class="w"></span>
+<span class="w">            </span><span class="nt">templateAs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">KeysAndValues</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Annotations</span><span class="w"></span>
+<span class="w">        </span><span class="nt">configMap</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># name of the configmap to pull in</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grafana-config-tpl</span><span class="w"></span>
+<span class="w">          </span><span class="c1"># here you define the keys that should be used as template</span><span class="w"></span>
+<span class="w">          </span><span class="nt">items</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">annotations</span><span class="w"></span>
+<span class="w">            </span><span class="nt">templateAs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">KeysAndValues</span><span class="w"></span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/grafana/user</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/grafana/password</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uri</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/grafana/uri</span><span class="w"></span>
+</code></pre></div>
+<p><code>TemplateFrom</code> also gives you the ability to Target your template to the Secret's Annotations, Labels or the Data block. It also allows you to render the templated information as <code>Values</code> or as <code>KeysAndValues</code> through the <code>templateAs</code> configuration:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-template-example</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># ...</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span><span class="w"></span>
+<span class="w">      </span><span class="nt">templateFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Annotations</span><span class="w"></span>
+<span class="w">        </span><span class="nt">literal</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;last-sync-for-user/{{</span><span class="nv"> </span><span class="s">.user</span><span class="nv"> </span><span class="s">}}:</span><span class="nv"> </span><span class="s">{{</span><span class="nv"> </span><span class="s">.now</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user</span><span class="w"></span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
@@ -2090,6 +2141,7 @@
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/grafana/password</span><span class="w"></span>
 </code></pre></div>
+<p>Lastly, <code>TemplateFrom</code> also supports adding <code>Literal</code> blocks for quick templating. These <code>Literal</code> blocks differ from <code>Template.Data</code> as they are rendered as a a <code>key:value</code> pair (while the <code>Template.Data</code>, you can only template the value).</p>
 <h3 id="extract-keys-and-certificates-from-pkcs12-archive">Extract Keys and Certificates from PKCS#12 Archive</h3>
 <p>You can use pre-defined functions to extract data from your secrets. Here: extract keys and certificates from a PKCS#12 archive and store it as PEM.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
