@@ -307,8 +307,6 @@ spec:
                               type: object
                             templateFrom:
                               items:
-                                maxProperties: 1
-                                minProperties: 1
                                 properties:
                                   configMap:
                                     properties:
@@ -317,22 +315,8 @@ spec:
                                           properties:
                                             key:
                                               type: string
-                                          required:
-                                            - key
-                                          type: object
-                                        type: array
-                                      name:
-                                        type: string
-                                    required:
-                                      - items
-                                      - name
-                                    type: object
-                                  secret:
-                                    properties:
-                                      items:
-                                        items:
-                                          properties:
-                                            key:
+                                            templateAs:
+                                              default: Values
                                               type: string
                                           required:
                                             - key
@@ -344,6 +328,31 @@ spec:
                                       - items
                                       - name
                                     type: object
+                                  literal:
+                                    type: string
+                                  secret:
+                                    properties:
+                                      items:
+                                        items:
+                                          properties:
+                                            key:
+                                              type: string
+                                            templateAs:
+                                              default: Values
+                                              type: string
+                                          required:
+                                            - key
+                                          type: object
+                                        type: array
+                                      name:
+                                        type: string
+                                    required:
+                                      - items
+                                      - name
+                                    type: object
+                                  target:
+                                    default: Data
+                                    type: string
                                 type: object
                               type: array
                             type:
@@ -3418,8 +3427,6 @@ spec:
                           type: object
                         templateFrom:
                           items:
-                            maxProperties: 1
-                            minProperties: 1
                             properties:
                               configMap:
                                 properties:
@@ -3428,22 +3435,8 @@ spec:
                                       properties:
                                         key:
                                           type: string
-                                      required:
-                                        - key
-                                      type: object
-                                    type: array
-                                  name:
-                                    type: string
-                                required:
-                                  - items
-                                  - name
-                                type: object
-                              secret:
-                                properties:
-                                  items:
-                                    items:
-                                      properties:
-                                        key:
+                                        templateAs:
+                                          default: Values
                                           type: string
                                       required:
                                         - key
@@ -3455,6 +3448,31 @@ spec:
                                   - items
                                   - name
                                 type: object
+                              literal:
+                                type: string
+                              secret:
+                                properties:
+                                  items:
+                                    items:
+                                      properties:
+                                        key:
+                                          type: string
+                                        templateAs:
+                                          default: Values
+                                          type: string
+                                      required:
+                                        - key
+                                      type: object
+                                    type: array
+                                  name:
+                                    type: string
+                                required:
+                                  - items
+                                  - name
+                                type: object
+                              target:
+                                default: Data
+                                type: string
                             type: object
                           type: array
                         type:

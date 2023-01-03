@@ -349,7 +349,7 @@ func TestExecute(t *testing.T) {
 				Data:       make(map[string][]byte),
 				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
 			}
-			err := Execute(row.tpl, nil, nil, row.data, sec)
+			err := Execute(row.tpl, row.data, "", "", sec)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
