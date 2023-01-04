@@ -65,6 +65,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.resources | object | `{}` |  |
 | certController.securityContext | object | `{}` |  |
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
+| certController.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the pod |
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | certController.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
@@ -113,6 +114,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | scopedRBAC | bool | `false` | Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace and implicitly disable cluster stores and cluster external secrets |
 | securityContext | object | `{}` |  |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
+| serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the pod |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
@@ -159,6 +161,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.secretAnnotations | object | `{}` | Annotations to add to Secret |
 | webhook.securityContext | object | `{}` |  |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
+| webhook.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the pod |
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | webhook.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |

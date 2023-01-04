@@ -32,6 +32,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.certController.serviceAccount.automount }}
       {{- with .Values.certController.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}

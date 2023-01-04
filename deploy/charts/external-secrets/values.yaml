@@ -56,6 +56,8 @@ concurrent: 1
 serviceAccount:
   # -- Specifies whether a service account should be created.
   create: true
+  # -- Automounts the service account token in all containers of the pod
+  automount: true
   # -- Annotations to add to the service account.
   annotations: {}
   # -- Extra Labels to add to the service account.
@@ -179,6 +181,8 @@ webhook:
   serviceAccount:
     # -- Specifies whether a service account should be created.
     create: true
+    # -- Automounts the service account token in all containers of the pod
+    automount: true
     # -- Annotations to add to the service account.
     annotations: {}
     # -- Extra Labels to add to the service account.
@@ -296,6 +300,8 @@ certController:
   serviceAccount:
     # -- Specifies whether a service account should be created.
     create: true
+    # -- Automounts the service account token in all containers of the pod
+    automount: true
     # -- Annotations to add to the service account.
     annotations: {}
     # -- Extra Labels to add to the service account.
