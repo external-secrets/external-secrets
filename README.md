@@ -25,7 +25,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 ## Documentation
 
-External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io). Also see our [stability and support](https://external-secrets.io/main/stability-support/) policy.
+External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io). Also see our [stability and support](https://external-secrets.io/main/introduction/stability-support/) policy.
 
 ## Contributing
 
