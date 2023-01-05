@@ -315,6 +315,16 @@ or `Kind=ClusterSecretStore` resource.
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
+### PushSecret
+Vault supports PushSecret features which allow you to sync a given kubernetes secret key into a hashicorp vault secret. In order to do so, it is expected that the secret key is a valid JSON object.
+
+In order to use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets to. Use it with care!
+
+Here is an example on how to set it up:
+```yaml
+{% include 'vault-pushsecret.yaml' %}
+```
+
 ### Vault Enterprise
 
 #### Eventual Consistency and Performance Standby Nodes

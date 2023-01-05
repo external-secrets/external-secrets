@@ -15,6 +15,7 @@ limitations under the License.
 package vault
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -450,10 +451,13 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 			"managed-by": "external-secrets",
 		},
 	}
+	secretVal := make(map[string]interface{})
+	err := json.Unmarshal(value, &secretVal)
+	if err != nil {
+		return fmt.Errorf("failed to convert value to a valid JSON: %w", err)
+	}
 	secretToPush := map[string]interface{}{
-		"data": map[string]string{
-			remoteRef.GetRemoteKey(): string(value),
-		},
+		"data": secretVal,
 	}
 	path := v.buildPath(remoteRef.GetRemoteKey())
 	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
@@ -462,20 +466,11 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 
 	// Retrieve the secret map from vault and convert the secret value in string form.
-	vaultSecret, err := v.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: path})
-	vaultSecretValue := string(vaultSecret[remoteRef.GetRemoteKey()])
+	vaultSecret, err := v.readSecret(ctx, path, "")
 	// If error is not of type secret not found, we should error
 	if err != nil && !strings.Contains(err.Error(), "secret not found") {
 		return err
 	}
-
-	// Retrieve the secret value to be pushed and convert it to string form.
-	pushSecretValue := string(value)
-
-	if vaultSecretValue == pushSecretValue {
-		return nil
-	}
-
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
 	if err == nil {
 		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
@@ -486,6 +481,13 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		if !ok || manager != "external-secrets" {
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
+	}
+	vaultSecretValue, err := json.Marshal(vaultSecret)
+	if err != nil {
+		return fmt.Errorf("error marshaling vault secret: %w", err)
+	}
+	if bytes.Equal(vaultSecretValue, value) {
+		return nil
 	}
 	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
 	if err != nil {
