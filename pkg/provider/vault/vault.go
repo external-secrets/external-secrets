@@ -418,9 +418,9 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 		return err
 	}
 	// Retrieve the secret map from vault and convert the secret value in string form.
-	_, err = v.logical.ReadWithDataWithContext(ctx, path, nil)
+	_, err = v.readSecret(ctx, path, "")
 	// If error is not of type secret not found, we should error
-	if err != nil && !strings.Contains(err.Error(), "secret not found") {
+	if err != nil && errors.Is(err, esv1beta1.NoSecretError{}) {
 		return nil
 	}
 	if err != nil {
@@ -468,7 +468,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	// Retrieve the secret map from vault and convert the secret value in string form.
 	vaultSecret, err := v.readSecret(ctx, path, "")
 	// If error is not of type secret not found, we should error
-	if err != nil && !strings.Contains(err.Error(), "secret not found") {
+	if err != nil && !errors.Is(err, esv1beta1.NoSecretError{}) {
 		return err
 	}
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
@@ -878,7 +878,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
 	if vaultSecret == nil {
-		return nil, errors.New(errNotFound)
+		return nil, esv1beta1.NoSecretError{}
 	}
 	secretData := vaultSecret.Data
 	if v.store.Version == esv1beta1.VaultKVStoreV2 {

@@ -54,6 +54,9 @@ func NewDeleteWithContextFn(secret map[string]interface{}, err error) DeleteWith
 
 func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithDataWithContextFn {
 	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+		if secret == nil {
+			return nil, err
+		}
 		vault := &vault.Secret{
 			Data: secret,
 		}
