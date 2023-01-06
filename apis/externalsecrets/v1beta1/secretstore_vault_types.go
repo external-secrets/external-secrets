@@ -124,6 +124,7 @@ type VaultAppRole struct {
 
 	// RoleID configured in the App Role authentication backend when setting
 	// up the authentication backend in Vault.
+        //+optional
 	RoleID string `json:"roleId,omitempty"`
 
 	// Reference to a key in a Secret that contains the App Role ID used
