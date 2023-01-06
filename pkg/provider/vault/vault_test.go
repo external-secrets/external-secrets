@@ -1438,6 +1438,9 @@ func TestSetSecret(t *testing.T) {
 						"data": map[string]interface{}{
 							"fake-key": "fake-value",
 						},
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
 				},
 			},
@@ -1482,12 +1485,12 @@ func TestSetSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "fake-key"}
+			ref := fakeRef{key: "secret"}
 			client := &client{
 				logical: tc.args.vLogical,
 				store:   tc.args.store,
 			}
-			err := client.PushSecret(context.Background(), []byte("fake-value"), ref)
+			err := client.PushSecret(context.Background(), []byte(`{"fake-key":"fake-value"}`), ref)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
