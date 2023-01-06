@@ -1241,7 +1241,21 @@ func revokeTokenIfValid(ctx context.Context, client Client) error {
 }
 
 func (v *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1beta1.VaultAppRole) error {
-	roleID := strings.TrimSpace(appRole.RoleID)
+	var err error
+	var roleID string                                   // becomes the role_id used to authenticate with HashiCorp Vault
+	var emptySecretKeySelector esmeta.SecretKeySelector // used to detect empty configuration
+
+	// prefer roleId found in CRD, fallback to roleId found in Secret, give up after that.
+	if appRole.RoleID != "" { // use roleId from CRD, if configured
+		roleID = strings.TrimSpace(appRole.RoleID)
+	} else if appRole.RoleRef != emptySecretKeySelector { // use roleID from Secret, if configured
+		roleID, err = v.secretKeyRef(ctx, &appRole.RoleRef)
+		if err != nil {
+			return err
+		}
+	} else { // we ran out of ways to get roleId. return an appropriate error
+		return errors.New("one of RoleID or RoleRef are required")
+	}
 
 	secretID, err := v.secretKeyRef(ctx, &appRole.SecretRef)
 	if err != nil {

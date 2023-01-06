@@ -2439,6 +2439,19 @@ spec:
                                 roleId:
                                   description: RoleID configured in the App Role authentication backend when setting up the authentication backend in Vault.
                                   type: string
+                                roleRef:
+                                  description: Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
                                 secretRef:
                                   description: Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
                                   properties:
@@ -2454,7 +2467,6 @@ spec:
                                   type: object
                               required:
                                 - path
-                                - roleId
                                 - secretRef
                               type: object
                             cert:
@@ -5727,6 +5739,19 @@ spec:
                                 roleId:
                                   description: RoleID configured in the App Role authentication backend when setting up the authentication backend in Vault.
                                   type: string
+                                roleRef:
+                                  description: Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
                                 secretRef:
                                   description: Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
                                   properties:
@@ -5742,7 +5767,6 @@ spec:
                                   type: object
                               required:
                                 - path
-                                - roleId
                                 - secretRef
                               type: object
                             cert:

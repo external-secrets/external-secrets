@@ -5081,6 +5081,22 @@ up the authentication backend in Vault.</p>
 </tr>
 <tr>
 <td>
+<code>roleRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>Reference to a key in a Secret that contains the App Role ID used
+to authenticate with Vault.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role id.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>secretRef</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
