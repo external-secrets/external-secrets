@@ -131,6 +131,7 @@ type VaultAppRole struct {
 	// to authenticate with Vault.
 	// The `key` field must be specified and denotes which entry within the Secret
 	// resource is used as the app role id.
+        //+optional
 	RoleRef esmeta.SecretKeySelector `json:"roleRef,omitempty"`
 
 	// Reference to a key in a Secret that contains the App Role secret used
