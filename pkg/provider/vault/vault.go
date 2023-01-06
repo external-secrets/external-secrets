@@ -361,8 +361,21 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errInvalidVaultProv)
 	}
 	if p.Auth.AppRole != nil {
+		// check SecretRef for valid configuration
 		if err := utils.ValidateReferentSecretSelector(store, p.Auth.AppRole.SecretRef); err != nil {
 			return fmt.Errorf(errInvalidAppRoleSec, err)
+		}
+
+		// prefer .auth.appRole.roleId, fallback to .auth.appRole.roleRef, give up after that.
+		var emptySecretKeySelector esmeta.SecretKeySelector // used to detect empty configuration
+		if p.Auth.AppRole.RoleID == "" {                    // prevents further RoleID tests if .auth.appRole.roleId is given
+			if p.Auth.AppRole.RoleRef != emptySecretKeySelector { // check RoleRef for valid configuration
+				if err := utils.ValidateReferentSecretSelector(store, p.Auth.AppRole.RoleRef); err != nil {
+					return fmt.Errorf(errInvalidAppRoleSec, err)
+				}
+			} else { // we ran out of ways to get RoleID. return an appropriate error
+				return errors.New("one of RoleID or RoleRef are required")
+			}
 		}
 	}
 	if p.Auth.Cert != nil {
@@ -1244,18 +1257,18 @@ func revokeTokenIfValid(ctx context.Context, client Client) error {
 
 func (v *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1beta1.VaultAppRole) error {
 	var err error
-	var roleID string                                   // becomes the role_id used to authenticate with HashiCorp Vault
+	var roleID string                                   // becomes the RoleID used to authenticate with HashiCorp Vault
 	var emptySecretKeySelector esmeta.SecretKeySelector // used to detect empty configuration
 
-	// prefer roleId found in CRD, fallback to roleId found in Secret, give up after that.
+	// prefer .auth.appRole.roleId, fallback to .auth.appRole.roleRef, give up after that.
 	if appRole.RoleID != "" { // use roleId from CRD, if configured
 		roleID = strings.TrimSpace(appRole.RoleID)
-	} else if appRole.RoleRef != emptySecretKeySelector { // use roleID from Secret, if configured
+	} else if appRole.RoleRef != emptySecretKeySelector { // use RoleID from Secret, if configured
 		roleID, err = v.secretKeyRef(ctx, &appRole.RoleRef)
 		if err != nil {
 			return err
 		}
-	} else { // we ran out of ways to get roleId. return an appropriate error
+	} else { // we ran out of ways to get RoleID. return an appropriate error
 		return errors.New("one of RoleID or RoleRef are required")
 	}
 
