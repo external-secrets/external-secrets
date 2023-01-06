@@ -627,7 +627,7 @@ func TestGetSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: errors.New(errNotFound),
+				err: esv1beta1.NoSecretError{},
 			},
 		},
 	}
@@ -1386,7 +1386,6 @@ func (f fakeRef) GetRemoteKey() string {
 
 func TestSetSecret(t *testing.T) {
 	noPermission := errors.New("no permission")
-	secretNotFound := errors.New("secret not found")
 
 	type args struct {
 		store    *esv1beta1.VaultProvider
@@ -1406,7 +1405,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, secretNotFound),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
 					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, nil),
 				},
 			},
@@ -1420,7 +1419,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, secretNotFound),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
 					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, noPermission),
 				},
 			},
