@@ -311,7 +311,7 @@ func TestNewSession(t *testing.T) {
 			expectedSecretKey: "2222",
 		},
 		{
-			name:      "namespace is mandatory when using ClusterStore with SecretKeySelector",
+			name:      "ClusterStore should use credentials from a ExternalSecret namespace (referentAuth)",
 			namespace: esNamespaceKey,
 			store: &esv1beta1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
@@ -337,7 +337,21 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "invalid ClusterSecretStore: missing AWS AccessKeyID Namespace",
+			secrets: []v1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "onesecret",
+						Namespace: esNamespaceKey,
+					},
+					Data: map[string][]byte{
+						"one": []byte("7777"),
+						"two": []byte("4444"),
+					},
+				},
+			},
+			expectProvider:    true,
+			expectedKeyID:     "7777",
+			expectedSecretKey: "4444",
 		},
 		{
 			name:      "jwt auth via cluster secret store",

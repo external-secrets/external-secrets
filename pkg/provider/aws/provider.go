@@ -68,17 +68,17 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 
 	// case: static credentials
 	if prov.Auth.SecretRef != nil {
-		if err := utils.ValidateSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
 			return fmt.Errorf("invalid Auth.SecretRef.AccessKeyID: %w", err)
 		}
-		if err := utils.ValidateSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
 			return fmt.Errorf("invalid Auth.SecretRef.SecretAccessKey: %w", err)
 		}
 	}
 
 	// case: jwt credentials
 	if prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.ServiceAccountRef != nil {
-		if err := utils.ValidateServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
+		if err := utils.ValidateReferentServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
 			return fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
 		}
 	}
@@ -146,9 +146,9 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 
 	switch prov.Service {
 	case esv1beta1.AWSServiceSecretsManager:
-		return secretsmanager.New(sess, cfg)
+		return secretsmanager.New(sess, cfg, util.IsReferentSpec(&prov.Auth))
 	case esv1beta1.AWSServiceParameterStore:
-		return parameterstore.New(sess, cfg)
+		return parameterstore.New(sess, cfg, util.IsReferentSpec(&prov.Auth))
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
