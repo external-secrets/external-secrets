@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -66,6 +67,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	client := &Client{
 		kube:      kube,
 		store:     gcpStore,
+		storeKind: store.GetKind(),
 		namespace: namespace,
 	}
 	defer func() {
@@ -80,6 +82,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
+	// allow SecretStore controller validation to pass
+	// when using referent namespace.
+	if namespace == "" && isClusterKind && isReferentSpec(gcpStore) {
+		// dummy smClient to prevent closing the client twice
+		client.smClient, _ = secretmanager.NewClient(ctx, option.WithTokenSource(oauth2.StaticTokenSource(&oauth2.Token{})))
+		return client, nil
+	}
+
 	ts, err := NewTokenSource(ctx, gcpStore.Auth, clusterProjectID, isClusterKind, kube, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
@@ -115,12 +125,12 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errInvalidGCPProv)
 	}
 	if g.Auth.SecretRef != nil {
-		if err := utils.ValidateSecretSelector(store, g.Auth.SecretRef.SecretAccessKey); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, g.Auth.SecretRef.SecretAccessKey); err != nil {
 			return fmt.Errorf(errInvalidAuthSecretRef, err)
 		}
 	}
 	if g.Auth.WorkloadIdentity != nil {
-		if err := utils.ValidateServiceAccountSelector(store, g.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
+		if err := utils.ValidateReferentServiceAccountSelector(store, g.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
 			return fmt.Errorf(errInvalidWISARef, err)
 		}
 	}
@@ -135,4 +145,16 @@ func clusterProjectID(spec *esv1beta1.SecretStoreSpec) (string, error) {
 	} else {
 		return "", fmt.Errorf(errNoProjectID)
 	}
+}
+
+func isReferentSpec(prov *esv1beta1.GCPSMProvider) bool {
+	if prov.Auth.SecretRef != nil &&
+		prov.Auth.SecretRef.SecretAccessKey.Namespace == nil {
+		return true
+	}
+	if prov.Auth.WorkloadIdentity != nil &&
+		prov.Auth.WorkloadIdentity.ServiceAccountRef.Namespace == nil {
+		return true
+	}
+	return false
 }
