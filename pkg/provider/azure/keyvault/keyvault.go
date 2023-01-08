@@ -152,6 +152,14 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		provider:   provider,
 	}
 
+	// allow SecretStore controller validation to pass
+	// when using referent namespace.
+	if store.GetKind() == esv1beta1.ClusterSecretStoreKind &&
+		namespace == "" &&
+		isReferentSpec(provider) {
+		return az, nil
+	}
+
 	var authorizer autorest.Authorizer
 	switch *provider.AuthType {
 	case esv1beta1.AzureManagedIdentity:
@@ -197,18 +205,18 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 	}
 	if p.AuthSecretRef != nil {
 		if p.AuthSecretRef.ClientID != nil {
-			if err := utils.ValidateSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
+			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
 				return fmt.Errorf(errInvalidSecRefClientID, err)
 			}
 		}
 		if p.AuthSecretRef.ClientSecret != nil {
-			if err := utils.ValidateSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
+			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
 				return fmt.Errorf(errInvalidSecRefClientSecret, err)
 			}
 		}
 	}
 	if p.ServiceAccountRef != nil {
-		if err := utils.ValidateServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
+		if err := utils.ValidateReferentServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
 			return fmt.Errorf(errInvalidSARef, err)
 		}
 	}
@@ -722,7 +730,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		return autorest.NewBearerAuthorizer(tp), nil
 	}
 	ns := a.namespace
-	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
+	if a.store.GetKind() == esv1beta1.ClusterSecretStoreKind && a.provider.ServiceAccountRef.Namespace != nil {
 		ns = *a.provider.ServiceAccountRef.Namespace
 	}
 	var sa corev1.ServiceAccount
@@ -826,14 +834,14 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 		return nil, fmt.Errorf(errMissingClientIDSecret)
 	}
 	clusterScoped := false
-	if a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
+	if a.store.GetKind() == esv1beta1.ClusterSecretStoreKind {
 		clusterScoped = true
 	}
-	cid, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *a.provider.AuthSecretRef.ClientID, clusterScoped)
+	cid, err := a.secretKeyRef(ctx, a.namespace, *a.provider.AuthSecretRef.ClientID, clusterScoped)
 	if err != nil {
 		return nil, err
 	}
-	csec, err := a.secretKeyRef(ctx, a.store.GetNamespace(), *a.provider.AuthSecretRef.ClientSecret, clusterScoped)
+	csec, err := a.secretKeyRef(ctx, a.namespace, *a.provider.AuthSecretRef.ClientSecret, clusterScoped)
 	if err != nil {
 		return nil, err
 	}
@@ -847,8 +855,8 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef smmeta.SecretKeySelector, clusterScoped bool) (string, error) {
 	var secret corev1.Secret
 	ref := types.NamespacedName{
-		Namespace: namespace,
 		Name:      secretRef.Name,
+		Namespace: namespace,
 	}
 	if clusterScoped && secretRef.Namespace != nil {
 		ref.Namespace = *secretRef.Namespace
@@ -870,7 +878,25 @@ func (a *Azure) Close(ctx context.Context) error {
 }
 
 func (a *Azure) Validate() (esv1beta1.ValidationResult, error) {
+	if a.store.GetKind() == esv1beta1.ClusterSecretStoreKind && isReferentSpec(a.provider) {
+		return esv1beta1.ValidationResultUnknown, nil
+	}
 	return esv1beta1.ValidationResultReady, nil
+}
+
+func isReferentSpec(prov *esv1beta1.AzureKVProvider) bool {
+	if prov.AuthSecretRef != nil &&
+		((prov.AuthSecretRef.ClientID != nil &&
+			prov.AuthSecretRef.ClientID.Namespace == nil) ||
+			(prov.AuthSecretRef.ClientSecret != nil &&
+				prov.AuthSecretRef.ClientSecret.Namespace == nil)) {
+		return true
+	}
+	if prov.ServiceAccountRef != nil &&
+		prov.ServiceAccountRef.Namespace == nil {
+		return true
+	}
+	return false
 }
 
 func AadEndpointForType(t esv1beta1.AzureEnvironmentType) string {
