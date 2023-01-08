@@ -87,7 +87,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	// use credentials via service account token
 	jwtAuth := prov.Auth.JWTAuth
 	if jwtAuth != nil {
-		creds, err = credentialsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtProvider)
+		creds, err = credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +97,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	secretRef := prov.Auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		creds, err = credentialsFromSecretRef(ctx, prov.Auth, isClusterKind, kube, namespace)
+		creds, err = credsFromSecretRef(ctx, prov.Auth, isClusterKind, kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 	// use credentials via service account token
 	jwtAuth := auth.JWTAuth
 	if jwtAuth != nil {
-		creds, err = credentialsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
+		creds, err = credsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +146,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 	secretRef := auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		creds, err = credentialsFromSecretRef(ctx, auth, false, kube, namespace)
+		creds, err = credsFromSecretRef(ctx, auth, false, kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -173,11 +173,11 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 	return sess, nil
 }
 
-// credentialsFromSecretRef pulls access-key / secret-access-key from a secretRef to
+// credsFromSecretRef pulls access-key / secret-access-key from a secretRef to
 // construct a aws.Credentials object
-// The namespace of the external secret is used if the SecretStore does not specify a namespace (referentAuth)
-// If the SecretStore defines a namespace it will take precedence.
-func credentialsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isClusterKind bool, kube client.Client, namespace string) (*credentials.Credentials, error) {
+// The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
+// If the ClusterSecretStore defines a namespace it will take precedence.
+func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isClusterKind bool, kube client.Client, namespace string) (*credentials.Credentials, error) {
 	ke := client.ObjectKey{
 		Name:      auth.SecretRef.AccessKeyID.Name,
 		Namespace: namespace,
@@ -231,12 +231,12 @@ func credentialsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isClu
 	return credentials.NewStaticCredentials(aks, sak, sessionToken), err
 }
 
-// credentialsFromServiceAccount uses a Kubernetes Service Account to acquire temporary
+// credsFromServiceAccount uses a Kubernetes Service Account to acquire temporary
 // credentials using aws.AssumeRoleWithWebIdentity. It will assume the role defined
 // in the ServiceAccount annotation.
-// If the SecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
-// If the SecretStore defines the namespace it will take precedence.
-func credentialsFromServiceAccount(ctx context.Context, auth esv1beta1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
+// If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
+// If the ClusterSecretStore defines the namespace it will take precedence.
+func credsFromServiceAccount(ctx context.Context, auth esv1beta1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
