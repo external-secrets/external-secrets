@@ -164,7 +164,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	case esv1beta1.AWSServiceSecretsManager:
 		return secretsmanager.New(sess, cfg, util.IsReferentSpec(prov.Auth))
 	case esv1beta1.AWSServiceParameterStore:
-		return parameterstore.New(sess, cfg, util.IsReferentSpec(prov.Auth))
+		return parameterstore.New(sess, cfg, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
