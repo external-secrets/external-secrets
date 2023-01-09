@@ -75,6 +75,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
 			return fmt.Errorf("invalid Auth.SecretRef.SecretAccessKey: %w", err)
 		}
+		if prov.Auth.SecretRef.SessionToken != nil {
+			if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.SecretRef.SessionToken); err != nil {
+				return fmt.Errorf("invalid Auth.SecretRef.SessionToken: %w", err)
+			}
+		}
 	}
 
 	// case: jwt credentials

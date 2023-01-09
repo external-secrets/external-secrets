@@ -51,11 +51,9 @@ func IsReferentSpec(prov esv1beta1.AWSAuth) bool {
 		return true
 	}
 	if prov.SecretRef != nil &&
-		prov.SecretRef.AccessKeyID.Namespace == nil &&
-		prov.SecretRef.SecretAccessKey.Namespace == nil &&
-		(prov.SecretRef.SessionToken == nil ||
-			(prov.SecretRef.SessionToken != nil &&
-				prov.SecretRef.SessionToken.Namespace == nil)) {
+		(prov.SecretRef.AccessKeyID.Namespace == nil ||
+			prov.SecretRef.SecretAccessKey.Namespace == nil ||
+			(prov.SecretRef.SessionToken != nil && prov.SecretRef.SessionToken.Namespace == nil)) {
 		return true
 	}
 
