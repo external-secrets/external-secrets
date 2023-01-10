@@ -99,7 +99,6 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
 		return fmt.Errorf(errStoreClient, err)
 	}
-
 	validationResult, err := cl.Validate()
 	if err != nil && validationResult != esapi.ValidationResultUnknown {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, errUnableValidateStore)
