@@ -16,7 +16,6 @@ package keyvault
 
 import (
 	"context"
-	"crypto/sha1" //nolint
 	"crypto/x509"
 	b64 "encoding/base64"
 	"encoding/json"
@@ -37,6 +36,7 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/tidwall/gjson"
 	"golang.org/x/crypto/pkcs12"
+	"golang.org/x/crypto/sha3"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -378,7 +378,6 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 	if err != nil {
 		return fmt.Errorf("value from secret is not a valid certificate: %w", err)
 	}
-	b := sha1.Sum(localCert.Raw) //nolint
 	cert, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, "")
 	ok, err := canCreate(cert.Tags, err)
 	if err != nil {
@@ -387,8 +386,8 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 	if !ok {
 		return nil
 	}
-	sha1Fingerprint := b64.RawURLEncoding.EncodeToString(b[:])
-	if cert.X509Thumbprint != nil && *cert.X509Thumbprint == sha1Fingerprint {
+	b512 := sha3.Sum512(localCert.Raw)
+	if cert.Cer != nil && b512 == sha3.Sum512(*cert.Cer) {
 		return nil
 	}
 	params := keyvault.CertificateImportParameters{
