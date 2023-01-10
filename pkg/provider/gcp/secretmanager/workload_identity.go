@@ -105,10 +105,7 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1beta1.GCPSM
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if isClusterKind {
-		if wi.ServiceAccountRef.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingSANamespace)
-		}
+	if isClusterKind && wi.ServiceAccountRef.Namespace != nil {
 		saKey.Namespace = *wi.ServiceAccountRef.Namespace
 	}
 
