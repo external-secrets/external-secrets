@@ -36,6 +36,7 @@ func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID str
 		useMu.Unlock()
 		return nil, fmt.Errorf("unable to initialize workload identity")
 	}
+	defer wi.Close()
 	ts, err = wi.TokenSource(ctx, auth, isClusterKind, kube, namespace)
 	if ts != nil || err != nil {
 		return ts, err
