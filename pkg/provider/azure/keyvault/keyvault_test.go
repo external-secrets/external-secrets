@@ -467,7 +467,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr(fakeURL)},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.String(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -626,7 +626,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr(fakeURL)},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.String(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -781,7 +781,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.StringPtr(fakeURL)},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.String(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -890,7 +890,7 @@ func TestValidateStore(t *testing.T) {
 							AzureKV: &esv1beta1.AzureKVProvider{
 								AuthSecretRef: &esv1beta1.AzureKVAuth{
 									ClientID: &v1.SecretKeySelector{
-										Namespace: pointer.StringPtr("invalid"),
+										Namespace: pointer.String("invalid"),
 									},
 								},
 							},
@@ -909,7 +909,7 @@ func TestValidateStore(t *testing.T) {
 							AzureKV: &esv1beta1.AzureKVProvider{
 								AuthSecretRef: &esv1beta1.AzureKVAuth{
 									ClientSecret: &v1.SecretKeySelector{
-										Namespace: pointer.StringPtr("invalid"),
+										Namespace: pointer.String("invalid"),
 									},
 								},
 							},

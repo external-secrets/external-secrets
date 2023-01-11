@@ -18,13 +18,13 @@ import (
 	"time"
 
 	//nolint
-	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var TargetSecretName = "target-secret"
@@ -34,6 +34,7 @@ type TestCase struct {
 	Framework              *Framework
 	ExternalSecret         *esv1beta1.ExternalSecret
 	ExternalSecretV1Alpha1 *esv1alpha1.ExternalSecret
+	AdditionalObjects      []client.Object
 	Secrets                map[string]SecretEntry
 	ExpectedSecret         *v1.Secret
 	AfterSync              func(SecretStoreProvider, *v1.Secret)
@@ -81,7 +82,12 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 			err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
 			Expect(err).ToNot(HaveOccurred())
 		}
-
+		if tc.AdditionalObjects != nil {
+			for _, obj := range tc.AdditionalObjects {
+				err = tc.Framework.CRClient.Create(context.Background(), obj)
+				Expect(err).ToNot(HaveOccurred())
+			}
+		}
 		// in case target name is empty
 		if tc.ExternalSecret.Spec.Target.Name == "" {
 			TargetSecretName = tc.ExternalSecret.ObjectMeta.Name

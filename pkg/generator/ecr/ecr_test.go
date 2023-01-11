@@ -86,8 +86,8 @@ func TestGenerate(t *testing.T) {
 					return &ecr.GetAuthorizationTokenOutput{
 						AuthorizationData: []*ecr.AuthorizationData{
 							{
-								AuthorizationToken: utilpointer.StringPtr(base64.StdEncoding.EncodeToString([]byte("uuser:pass"))),
-								ProxyEndpoint:      utilpointer.StringPtr("foo"),
+								AuthorizationToken: utilpointer.String(base64.StdEncoding.EncodeToString([]byte("uuser:pass"))),
+								ProxyEndpoint:      utilpointer.String("foo"),
 								ExpiresAt:          &t,
 							},
 						},

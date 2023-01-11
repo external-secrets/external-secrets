@@ -232,7 +232,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 	filters := make([]*awssm.Filter, 0)
 	if ref.Path != nil {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeName),
+			Key: utilpointer.String(awssm.FilterNameStringTypeName),
 			Values: []*string{
 				ref.Path,
 			},
@@ -273,21 +273,21 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 	filters := make([]*awssm.Filter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeTagKey),
+			Key: utilpointer.String(awssm.FilterNameStringTypeTagKey),
 			Values: []*string{
-				utilpointer.StringPtr(k),
+				utilpointer.String(k),
 			},
 		}, &awssm.Filter{
-			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeTagValue),
+			Key: utilpointer.String(awssm.FilterNameStringTypeTagValue),
 			Values: []*string{
-				utilpointer.StringPtr(v),
+				utilpointer.String(v),
 			},
 		})
 	}
 
 	if ref.Path != nil {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.StringPtr(awssm.FilterNameStringTypeName),
+			Key: utilpointer.String(awssm.FilterNameStringTypeName),
 			Values: []*string{
 				ref.Path,
 			},

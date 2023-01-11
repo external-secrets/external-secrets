@@ -25,7 +25,7 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 ## Documentation
 
-External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io). Also see our [stability and support](https://external-secrets.io/main/stability-support/) policy.
+External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io). Also see our [stability and support](https://external-secrets.io/main/introduction/stability-support/) policy.
 
 ## Contributing
 
@@ -37,7 +37,7 @@ Please consider sponsoring this project, there are many ways you can help us wit
 
 ## Bi-weekly Development Meeting
 
-We host our development meeting every odd wednesday at [5:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=17:30&tz=Europe/Berlin) on [Jitsi](https://meet.jit.si/eso-community-meeting). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
+We host our development meeting every odd wednesday at [3:30 PM Berlin Time](https://dateful.com/time-zone-converter?t=15:30&tz=Europe/Berlin) on [Jitsi](https://meet.jit.si/eso-community-meeting). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
 
 Anyone is welcome to join. Feel free to ask questions, request feedback, raise awareness for an issue, or just say hi. ;)
 

@@ -307,8 +307,6 @@ spec:
                               type: object
                             templateFrom:
                               items:
-                                maxProperties: 1
-                                minProperties: 1
                                 properties:
                                   configMap:
                                     properties:
@@ -317,22 +315,8 @@ spec:
                                           properties:
                                             key:
                                               type: string
-                                          required:
-                                            - key
-                                          type: object
-                                        type: array
-                                      name:
-                                        type: string
-                                    required:
-                                      - items
-                                      - name
-                                    type: object
-                                  secret:
-                                    properties:
-                                      items:
-                                        items:
-                                          properties:
-                                            key:
+                                            templateAs:
+                                              default: Values
                                               type: string
                                           required:
                                             - key
@@ -344,6 +328,31 @@ spec:
                                       - items
                                       - name
                                     type: object
+                                  literal:
+                                    type: string
+                                  secret:
+                                    properties:
+                                      items:
+                                        items:
+                                          properties:
+                                            key:
+                                              type: string
+                                            templateAs:
+                                              default: Values
+                                              type: string
+                                          required:
+                                            - key
+                                          type: object
+                                        type: array
+                                      name:
+                                        type: string
+                                    required:
+                                      - items
+                                      - name
+                                    type: object
+                                  target:
+                                    default: Data
+                                    type: string
                                 type: object
                               type: array
                             type:
@@ -1772,6 +1781,11 @@ spec:
                     aws:
                       description: AWS configures this store to sync secrets using AWS Secret Manager provider
                       properties:
+                        additionalRoles:
+                          description: AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role
+                          items:
+                            type: string
+                          type: array
                         auth:
                           description: 'Auth defines the information necessary to authenticate against AWS if not set aws sdk will infer credentials from your environment see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials'
                           properties:
@@ -3506,8 +3520,6 @@ spec:
                           type: object
                         templateFrom:
                           items:
-                            maxProperties: 1
-                            minProperties: 1
                             properties:
                               configMap:
                                 properties:
@@ -3516,22 +3528,8 @@ spec:
                                       properties:
                                         key:
                                           type: string
-                                      required:
-                                        - key
-                                      type: object
-                                    type: array
-                                  name:
-                                    type: string
-                                required:
-                                  - items
-                                  - name
-                                type: object
-                              secret:
-                                properties:
-                                  items:
-                                    items:
-                                      properties:
-                                        key:
+                                        templateAs:
+                                          default: Values
                                           type: string
                                       required:
                                         - key
@@ -3543,6 +3541,31 @@ spec:
                                   - items
                                   - name
                                 type: object
+                              literal:
+                                type: string
+                              secret:
+                                properties:
+                                  items:
+                                    items:
+                                      properties:
+                                        key:
+                                          type: string
+                                        templateAs:
+                                          default: Values
+                                          type: string
+                                      required:
+                                        - key
+                                      type: object
+                                    type: array
+                                  name:
+                                    type: string
+                                required:
+                                  - items
+                                  - name
+                                type: object
+                              target:
+                                default: Data
+                                type: string
                             type: object
                           type: array
                         type:
@@ -5139,6 +5162,11 @@ spec:
                     aws:
                       description: AWS configures this store to sync secrets using AWS Secret Manager provider
                       properties:
+                        additionalRoles:
+                          description: AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role
+                          items:
+                            type: string
+                          type: array
                         auth:
                           description: 'Auth defines the information necessary to authenticate against AWS if not set aws sdk will infer credentials from your environment see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials'
                           properties:

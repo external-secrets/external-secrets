@@ -11,6 +11,7 @@ We are currently in beta and support **only the latest release** for the time be
 
 | ESO Version | Kubernetes Version |
 | ----------- | ------------------ |
+| 0.7.x       | 1.19 → 1.26        |
 | 0.6.x       | 1.19 → 1.24        |
 | 0.5.x       | 1.19 → 1.24        |
 | 0.4.x       | 1.16 → 1.24        |
@@ -48,7 +49,7 @@ The following table show the support for features across different providers.
 | AWS Secrets Manager       |      x       |      x       |                      |                         |        x         |             |
 | AWS Parameter Store       |      x       |      x       |                      |                         |        x         |             |
 | Hashicorp Vault           |      x       |      x       |                      |                         |        x         |             |
-| GCP Secret Manager        |      x       |      x       |                      |                         |        x         |             |
+| GCP Secret Manager        |      x       |      x       |                      |            x            |        x         |             |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |             |
 | Kubernetes                |      x       |      x       |                      |            x            |        x         |             |
 | IBM Cloud Secrets Manager |              |              |                      |                         |        x         |             |

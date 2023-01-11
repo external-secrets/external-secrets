@@ -627,7 +627,7 @@ func TestGetSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: errors.New(errNotFound),
+				err: esv1beta1.NoSecretError{},
 			},
 		},
 	}
@@ -1258,7 +1258,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					AppRole: &esv1beta1.VaultAppRole{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
@@ -1271,7 +1271,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Cert: &esv1beta1.VaultCertAuth{
 						ClientCert: esmeta.SecretKeySelector{
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
@@ -1284,7 +1284,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Cert: &esv1beta1.VaultCertAuth{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
@@ -1297,7 +1297,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Jwt: &esv1beta1.VaultJwtAuth{
 						SecretRef: &esmeta.SecretKeySelector{
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
@@ -1310,7 +1310,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Kubernetes: &esv1beta1.VaultKubernetesAuth{
 						ServiceAccountRef: &esmeta.ServiceAccountSelector{
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
@@ -1323,7 +1323,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Kubernetes: &esv1beta1.VaultKubernetesAuth{
 						SecretRef: &esmeta.SecretKeySelector{
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
@@ -1336,7 +1336,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Ldap: &esv1beta1.VaultLdapAuth{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.StringPtr("invalid"),
+							Namespace: pointer.String("invalid"),
 						},
 					},
 				},
@@ -1348,7 +1348,7 @@ func TestValidateStore(t *testing.T) {
 			args: args{
 				auth: esv1beta1.VaultAuth{
 					TokenSecretRef: &esmeta.SecretKeySelector{
-						Namespace: pointer.StringPtr("invalid"),
+						Namespace: pointer.String("invalid"),
 					},
 				},
 			},
@@ -1386,7 +1386,6 @@ func (f fakeRef) GetRemoteKey() string {
 
 func TestSetSecret(t *testing.T) {
 	noPermission := errors.New("no permission")
-	secretNotFound := errors.New("secret not found")
 
 	type args struct {
 		store    *esv1beta1.VaultProvider
@@ -1406,7 +1405,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, secretNotFound),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
 					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, nil),
 				},
 			},
@@ -1420,7 +1419,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, secretNotFound),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
 					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, noPermission),
 				},
 			},
@@ -1437,6 +1436,9 @@ func TestSetSecret(t *testing.T) {
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"data": map[string]interface{}{
 							"fake-key": "fake-value",
+						},
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
 						},
 					}, nil),
 				},
@@ -1482,12 +1484,12 @@ func TestSetSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "fake-key"}
+			ref := fakeRef{key: "secret"}
 			client := &client{
 				logical: tc.args.vLogical,
 				store:   tc.args.store,
 			}
-			err := client.PushSecret(context.Background(), []byte("fake-value"), ref)
+			err := client.PushSecret(context.Background(), []byte(`{"fake-key":"fake-value"}`), ref)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {

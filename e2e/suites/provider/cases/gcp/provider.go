@@ -39,11 +39,6 @@ import (
 	gcpsm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 )
 
-const (
-	PodIDSecretStoreName        = "pod-identity"
-	staticCredentialsSecretName = "provider-secret"
-)
-
 // nolint // Better to keep names consistent even if it stutters;
 type GcpProvider struct {
 	ServiceAccountName      string
@@ -71,9 +66,10 @@ func NewGCPProvider(f *framework.Framework, credentials, projectID string,
 	}
 
 	BeforeEach(func() {
-		prov.CreateSAKeyStore(f.Namespace.Name)
-		prov.CreateSpecifcSASecretStore(f.Namespace.Name)
-		prov.CreatePodIDStore(f.Namespace.Name)
+		prov.CreateSAKeyStore()
+		prov.CreateReferentSAKeyStore()
+		prov.CreateSpecifcSASecretStore()
+		prov.CreatePodIDStore()
 	})
 
 	AfterEach(func() {
@@ -163,14 +159,20 @@ func makeStore(s *GcpProvider) *esv1beta1.SecretStore {
 	}
 }
 
-func (s *GcpProvider) CreateSAKeyStore(ns string) {
+const (
+	serviceAccountKey           = "secret-access-credentials"
+	PodIDSecretStoreName        = "pod-identity"
+	staticCredentialsSecretName = "provider-secret"
+)
+
+func (s *GcpProvider) CreateSAKeyStore() {
 	gcpCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      staticCredentialsSecretName,
 			Namespace: s.framework.Namespace.Name,
 		},
 		StringData: map[string]string{
-			"secret-access-credentials": s.credentials,
+			serviceAccountKey: s.credentials,
 		},
 	}
 	err := s.framework.CRClient.Create(context.Background(), gcpCreds)
@@ -183,7 +185,7 @@ func (s *GcpProvider) CreateSAKeyStore(ns string) {
 		SecretRef: &esv1beta1.GCPSMAuthSecretRef{
 			SecretAccessKey: esmeta.SecretKeySelector{
 				Name: staticCredentialsSecretName,
-				Key:  "secret-access-credentials",
+				Key:  serviceAccountKey,
 			},
 		},
 	}
@@ -191,7 +193,52 @@ func (s *GcpProvider) CreateSAKeyStore(ns string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func (s *GcpProvider) CreatePodIDStore(ns string) {
+func (s *GcpProvider) CreateReferentSAKeyStore() {
+	gcpCreds := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      referentName(s.framework),
+			Namespace: s.framework.Namespace.Name,
+		},
+		StringData: map[string]string{
+			serviceAccountKey: s.credentials,
+		},
+	}
+	err := s.framework.CRClient.Create(context.Background(), gcpCreds)
+	if err != nil {
+		err = s.framework.CRClient.Update(context.Background(), gcpCreds)
+		Expect(err).ToNot(HaveOccurred())
+	}
+
+	css := &esv1beta1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: referentName(s.framework),
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Controller: s.controllerClass,
+			Provider: &esv1beta1.SecretStoreProvider{
+				GCPSM: &esv1beta1.GCPSMProvider{
+					ProjectID: s.projectID,
+					Auth: esv1beta1.GCPSMAuth{
+						SecretRef: &esv1beta1.GCPSMAuthSecretRef{
+							SecretAccessKey: esmeta.SecretKeySelector{
+								Name: referentName(s.framework),
+								Key:  serviceAccountKey,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	err = s.framework.CRClient.Create(context.Background(), css)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func referentName(f *framework.Framework) string {
+	return "referent-auth-" + f.Namespace.Name
+}
+
+func (s *GcpProvider) CreatePodIDStore() {
 	secretStore := makeStore(s)
 	secretStore.ObjectMeta.Name = PodIDSecretStoreName
 	err := s.framework.CRClient.Create(context.Background(), secretStore)
@@ -202,7 +249,7 @@ func (s *GcpProvider) SAClusterSecretStoreName() string {
 	return "gcpsa-" + s.framework.Namespace.Name
 }
 
-func (s *GcpProvider) CreateSpecifcSASecretStore(ns string) {
+func (s *GcpProvider) CreateSpecifcSASecretStore() {
 	clusterSecretStore := &esv1beta1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.SAClusterSecretStoreName(),
@@ -219,7 +266,7 @@ func (s *GcpProvider) CreateSpecifcSASecretStore(ns string) {
 						ClusterName:     s.clusterName,
 						ServiceAccountRef: esmeta.ServiceAccountSelector{
 							Name:      s.ServiceAccountName,
-							Namespace: utilpointer.StringPtr(s.ServiceAccountNamespace),
+							Namespace: utilpointer.String(s.ServiceAccountNamespace),
 						},
 					},
 				},
