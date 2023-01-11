@@ -494,7 +494,7 @@ func TestClientPushSecret(t *testing.T) {
 					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
 						return nil, errors.New("NotFound")
 					},
-					CreateSecretWithRecordDataFn: func(recUid, folderUid string, recordData *ksm.RecordCreate) (string, error) {
+					CreateSecretWithRecordDataFn: func(recUID, folderUid string, recordData *ksm.RecordCreate) (string, error) {
 						return "record5", nil
 					},
 				},
@@ -560,7 +560,7 @@ func TestClientPushSecret(t *testing.T) {
 					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
 						return nil, errors.New("NotFound")
 					},
-					CreateSecretWithRecordDataFn: func(recUid, folderUid string, recordData *ksm.RecordCreate) (string, error) {
+					CreateSecretWithRecordDataFn: func(recUID, folderUID string, recordData *ksm.RecordCreate) (string, error) {
 						return "", errors.New("Unable to push")
 					},
 				},
@@ -620,7 +620,7 @@ func generateRecords() []*ksm.Record {
 				Uid: fmt.Sprintf(RecordNameFormat, i),
 				RecordDict: map[string]interface{}{
 					"type":      externalSecretType,
-					"folderUid": folderID,
+					"folderUID": folderID,
 				},
 			}
 		} else {
@@ -628,7 +628,7 @@ func generateRecords() []*ksm.Record {
 				Uid: fmt.Sprintf(RecordNameFormat, i),
 				RecordDict: map[string]interface{}{
 					"type":      LoginType,
-					"folderUid": folderID,
+					"folderUID": folderID,
 				},
 			}
 		}

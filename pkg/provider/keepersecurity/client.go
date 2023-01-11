@@ -3,12 +3,12 @@ package keepersecurity
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"golang.org/x/exp/maps"
 	"regexp"
-	"sort"
 	"strings"
 )
 
@@ -16,8 +16,9 @@ const (
 	errKeeperSecuritySecretsNotFound            = "Unable to find secrets. %w"
 	errKeeperSecuritySecretNotFound             = "Unable to find secret %s. Error: %w"
 	errKeeperSecuritySecretNotUnique            = "More than 1 secret %s found"
+	errKeeperSecurityNoSecretsFound             = "No secrets found"
 	errKeeperSecurityInvalidSecretInvalidFormat = "Invalid secret. Invalid format: %w"
-	errKeeperSecurityInvalidSecretDuplicatedKey = "Invalid Secret. Keys are not unique"
+	errKeeperSecurityInvalidSecretDuplicatedKey = "Invalid Secret. Following keys are duplicated %s"
 	errKeeperSecurityInvalidProperty            = "Invalid Property. Secret %s does not have any key matching %s"
 	errKeeperSecurityInvalidField               = "Invalid Field. Key %s does not exists"
 	errKeeperSecurityNoFields                   = "Invalid Secret. Secret %s does not contain any valid field/file"
@@ -48,7 +49,7 @@ type Client struct {
 type KeeperSecurityClient interface {
 	GetSecrets(filter []string) ([]*ksm.Record, error)
 	GetSecretByTitle(recordTitle string) (*ksm.Record, error)
-	CreateSecretWithRecordData(recUid, folderUid string, recordData *ksm.RecordCreate) (string, error)
+	CreateSecretWithRecordData(recUID, folderUID string, recordData *ksm.RecordCreate) (string, error)
 	DeleteSecrets(recrecordUids []string) (map[string]string, error)
 	Save(record *ksm.Record) error
 }
@@ -157,7 +158,8 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		if err != nil {
 			return err
 		}
-	} else {
+	}
+	if secret != nil {
 		if secret.Type() != externalSecretType {
 			return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
 		}
@@ -265,8 +267,9 @@ func (c *Client) getValidKeeperSecret(secret *ksm.Record) (*KeeperSecuritySecret
 		return nil, fmt.Errorf(errKeeperSecurityInvalidSecretInvalidFormat, err)
 	}
 	keeperSecret.addFiles(secret.Files)
-	if !keeperSecret.validate() {
-		return nil, fmt.Errorf(errKeeperSecurityInvalidSecretDuplicatedKey)
+	err = keeperSecret.validate()
+	if err != nil {
+		return nil, err
 	}
 
 	return &keeperSecret, nil
@@ -290,7 +293,7 @@ func (c *Client) findSecretById(id string) (*ksm.Record, error) {
 	}
 
 	if len(records) != 1 {
-		return nil, fmt.Errorf(errKeeperSecuritySecretNotUnique, id)
+		return nil, errors.New(errKeeperSecurityNoSecretsFound)
 	}
 
 	return records[0], nil
@@ -306,7 +309,7 @@ func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
 	return record, nil
 }
 
-func (s *KeeperSecuritySecret) validate() bool {
+func (s *KeeperSecuritySecret) validate() error {
 	fields := make(map[string]int)
 	for _, field := range s.Fields {
 		fields[field.Type]++
@@ -319,17 +322,17 @@ func (s *KeeperSecuritySecret) validate() bool {
 	for _, file := range s.Files {
 		fields[file.Title]++
 	}
-	keys := make([]string, 0, len(fields))
-
-	for key := range fields {
-		keys = append(keys, key)
+	duplicates := []string{}
+	for key, ocurrences := range fields {
+		if ocurrences > 1 {
+			duplicates = append(duplicates, key)
+		}
+	}
+	if len(duplicates) != 0 {
+		return fmt.Errorf(errKeeperSecurityInvalidSecretDuplicatedKey, strings.Join(duplicates, ", "))
 	}
 
-	sort.SliceStable(keys, func(i, j int) bool {
-		return fields[keys[i]] > fields[keys[j]]
-	})
-
-	return fields[keys[0]] == 1
+	return nil
 }
 
 func (s *KeeperSecuritySecret) addFiles(keeperFiles []*ksm.KeeperFile) {

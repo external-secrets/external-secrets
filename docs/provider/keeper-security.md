@@ -33,14 +33,15 @@ Be sure the `keepersecurity` provider is listed in the `Kind=SecretStore`
 {% include 'keepersecurity-secret-store.yaml' %}
 ```
 
-**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `SecretAccessKeyRef` with the namespace of the secret that we just created.
+**NOTE 1:** `folderID` target the folder ID where the secrets should be pushed to. It requires write permissions within the folder
+**NOTE 2:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `SecretAccessKeyRef` with the namespace of the secret that we just created.
 
 ## External Secrets
 ### Behavior
 * How a Record is equated to an ExternalSecret:
-    * `remoteRef.key` is equated to a Record's Title
+    * `remoteRef.key` is equated to a Record's ID
     * `remoteRef.property` is equated to one of the following options:
-        * Fields: Record's field's Type
+        * Fields: [Record's field's Type](https://docs.keeper.io/secrets-manager/secrets-manager/about/field-record-types)
         * CustomFields: Record's field's Label
         * Files: Record's file's Name
         * If empty, defaults to the complete Record in JSON format
