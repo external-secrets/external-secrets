@@ -78,11 +78,11 @@ type saTokenGenerator interface {
 }
 
 func newWorkloadIdentity(ctx context.Context, projectID string) (*workloadIdentity, error) {
-	iamc, err := newIAMClient(ctx)
+	satg, err := newSATokenGenerator()
 	if err != nil {
 		return nil, err
 	}
-	satg, err := newSATokenGenerator()
+	iamc, err := newIAMClient(ctx)
 	if err != nil {
 		return nil, err
 	}
