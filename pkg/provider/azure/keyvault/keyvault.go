@@ -16,7 +16,10 @@ package keyvault
 
 import (
 	"context"
+	"crypto/x509"
+	b64 "encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
@@ -30,13 +33,17 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
+	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/tidwall/gjson"
+	"golang.org/x/crypto/pkcs12"
+	"golang.org/x/crypto/sha3"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
@@ -52,6 +59,7 @@ const (
 	AzureDefaultAudience = "api://AzureADTokenExchange"
 	AnnotationClientID   = "azure.workload.identity/client-id"
 	AnnotationTenantID   = "azure.workload.identity/tenant-id"
+	managerLabel         = "external-secrets"
 
 	errUnexpectedStoreSpec   = "unexpected store spec"
 	errMissingAuthType       = "cannot initialize Azure Client: no valid authType was specified"
@@ -90,6 +98,12 @@ type SecretClient interface {
 	GetSecret(ctx context.Context, vaultBaseURL string, secretName string, secretVersion string) (result keyvault.SecretBundle, err error)
 	GetSecretsComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error)
 	GetCertificate(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
+	SetSecret(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error)
+	ImportKey(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (result keyvault.KeyBundle, err error)
+	ImportCertificate(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error)
+	DeleteCertificate(ctx context.Context, vaultBaseURL string, certificateName string) (result keyvault.DeletedCertificateBundle, err error)
+	DeleteKey(ctx context.Context, vaultBaseURL string, keyName string) (result keyvault.DeletedKeyBundle, err error)
+	DeleteSecret(ctx context.Context, vaultBaseURL string, secretName string) (result keyvault.DeletedSecretBundle, err error)
 }
 
 type Azure struct {
@@ -201,13 +215,261 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+func canDelete(tags map[string]*string, err error) (bool, error) {
+	aerr := &autorest.DetailedError{}
+	conv := errors.As(err, aerr)
+	if err != nil && !conv {
+		return false, fmt.Errorf("could not parse error: %w", err)
+	}
+	if conv && aerr.StatusCode != 404 { // Secret is already deleted, nothing to do.
+		return false, fmt.Errorf("unexpected api error: %w", err)
+	}
+	if aerr.StatusCode == 404 {
+		return false, nil
+	}
+	manager, ok := tags["managed-by"]
+	if !ok || manager == nil || *manager != managerLabel {
+		return false, fmt.Errorf("not managed by external-secrets")
+	}
+	return true, nil
 }
 
-// Not Implemented PushSecret.
+func (a *Azure) deleteKeyVaultKey(ctx context.Context, keyName string) error {
+	value, err := a.baseClient.GetKey(ctx, *a.provider.VaultURL, keyName, "")
+	ok, err := canDelete(value.Tags, err)
+	if err != nil {
+		return fmt.Errorf("error getting key %v: %w", keyName, err)
+	}
+	if ok {
+		_, err = a.baseClient.DeleteKey(ctx, *a.provider.VaultURL, keyName)
+		if err != nil {
+			return fmt.Errorf("error deleting key %v: %w", keyName, err)
+		}
+	}
+	return nil
+}
+
+func (a *Azure) deleteKeyVaultSecret(ctx context.Context, secretName string) error {
+	value, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
+	ok, err := canDelete(value.Tags, err)
+	if err != nil {
+		return fmt.Errorf("error getting secret %v: %w", secretName, err)
+	}
+	if ok {
+		_, err = a.baseClient.DeleteSecret(ctx, *a.provider.VaultURL, secretName)
+		if err != nil {
+			return fmt.Errorf("error deleting secret %v: %w", secretName, err)
+		}
+	}
+	return nil
+}
+
+func (a *Azure) deleteKeyVaultCertificate(ctx context.Context, certName string) error {
+	value, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, certName, "")
+	ok, err := canDelete(value.Tags, err)
+	if err != nil {
+		return fmt.Errorf("error getting certificate %v: %w", certName, err)
+	}
+	if ok {
+		_, err = a.baseClient.DeleteCertificate(ctx, *a.provider.VaultURL, certName)
+		if err != nil {
+			return fmt.Errorf("error deleting certificate %v: %w", certName, err)
+		}
+	}
+	return nil
+}
+
+func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
+	switch objectType {
+	case defaultObjType:
+		return a.deleteKeyVaultSecret(ctx, secretName)
+	case objectTypeCert:
+		return a.deleteKeyVaultCertificate(ctx, secretName)
+	case objectTypeKey:
+		return a.deleteKeyVaultKey(ctx, secretName)
+	default:
+		return fmt.Errorf("secret type '%v' is not supported", objectType)
+	}
+}
+
+func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
+	_, localCert, err := pkcs12.Decode(value, "")
+	if err != nil {
+		pemBlock, _ := pem.Decode(value)
+		if pemBlock == nil {
+			return x509.ParseCertificate(value)
+		}
+		return x509.ParseCertificate(pemBlock.Bytes)
+	}
+	return localCert, err
+}
+
+func getKeyFromValue(value []byte) (interface{}, error) {
+	val := value
+	pemBlock, _ := pem.Decode(value)
+	// if a private key regular expression doesn't match, we should consider this key to be symmetric
+	if pemBlock == nil {
+		return val, nil
+	}
+	val = pemBlock.Bytes
+	switch pemBlock.Type {
+	case "PRIVATE KEY":
+		return x509.ParsePKCS8PrivateKey(val)
+	case "RSA PRIVATE KEY":
+		return x509.ParsePKCS1PrivateKey(val)
+	case "EC PRIVATE KEY":
+		return x509.ParseECPrivateKey(val)
+	default:
+		return nil, fmt.Errorf("key type %v is not supported", pemBlock.Type)
+	}
+}
+
+func canCreate(tags map[string]*string, err error) (bool, error) {
+	aerr := &autorest.DetailedError{}
+	conv := errors.As(err, aerr)
+	if err != nil && !conv {
+		return false, fmt.Errorf("could not parse error: %w", err)
+	}
+	if conv && aerr.StatusCode != 404 {
+		return false, fmt.Errorf("unexpected api error: %w", err)
+	}
+	if err == nil {
+		manager, ok := tags["managed-by"]
+		if !ok || manager == nil || *manager != managerLabel {
+			return false, fmt.Errorf("not managed by external-secrets")
+		}
+	}
+	return true, nil
+}
+
+func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte) error {
+	secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
+	ok, err := canCreate(secret.Tags, err)
+	if err != nil {
+		return fmt.Errorf("cannot get secret %v: %w", secretName, err)
+	}
+	if !ok {
+		return nil
+	}
+	val := string(value)
+	if secret.Value != nil && val == *secret.Value {
+		return nil
+	}
+	secretParams := keyvault.SecretSetParameters{
+		Value: &val,
+		Tags: map[string]*string{
+			"managed-by": pointer.String(managerLabel),
+		},
+		SecretAttributes: &keyvault.SecretAttributes{
+			Enabled: pointer.Bool(true),
+		},
+	}
+	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
+	if err != nil {
+		return fmt.Errorf("could not set secret %v: %w", secretName, err)
+	}
+	return nil
+}
+
+func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, value []byte) error {
+	val := b64.StdEncoding.EncodeToString(value)
+	localCert, err := getCertificateFromValue(value)
+	if err != nil {
+		return fmt.Errorf("value from secret is not a valid certificate: %w", err)
+	}
+	cert, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, "")
+	ok, err := canCreate(cert.Tags, err)
+	if err != nil {
+		return fmt.Errorf("cannot get certificate %v: %w", secretName, err)
+	}
+	if !ok {
+		return nil
+	}
+	b512 := sha3.Sum512(localCert.Raw)
+	if cert.Cer != nil && b512 == sha3.Sum512(*cert.Cer) {
+		return nil
+	}
+	params := keyvault.CertificateImportParameters{
+		Base64EncodedCertificate: &val,
+		Tags: map[string]*string{
+			"managed-by": pointer.String(managerLabel),
+		},
+	}
+	_, err = a.baseClient.ImportCertificate(ctx, *a.provider.VaultURL, secretName, params)
+	if err != nil {
+		return fmt.Errorf("could not import certificate %v: %w", secretName, err)
+	}
+	return nil
+}
+func equalKeys(newKey, oldKey keyvault.JSONWebKey) bool {
+	// checks for everything except KeyID and KeyOps
+	rsaCheck := newKey.E != nil && oldKey.E != nil && *newKey.E == *oldKey.E &&
+		newKey.N != nil && oldKey.N != nil && *newKey.N == *oldKey.N
+
+	symmetricCheck := newKey.Crv == oldKey.Crv &&
+		newKey.T != nil && oldKey.T != nil && *newKey.T == *oldKey.T &&
+		newKey.X != nil && oldKey.X != nil && *newKey.X == *oldKey.X &&
+		newKey.Y != nil && oldKey.Y != nil && *newKey.Y == *oldKey.Y
+
+	return newKey.Kty == oldKey.Kty && (rsaCheck || symmetricCheck)
+}
+func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []byte) error {
+	key, err := getKeyFromValue(value)
+	if err != nil {
+		return fmt.Errorf("could not load private key %v: %w", secretName, err)
+	}
+	jwKey, err := jwk.New(key)
+	if err != nil {
+		return fmt.Errorf("failed to generate a JWK from secret %v content: %w", secretName, err)
+	}
+	buf, err := json.Marshal(jwKey)
+	if err != nil {
+		return fmt.Errorf("error parsing key: %w", err)
+	}
+	azkey := keyvault.JSONWebKey{}
+	err = json.Unmarshal(buf, &azkey)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling key: %w", err)
+	}
+	keyFromVault, err := a.baseClient.GetKey(ctx, *a.provider.VaultURL, secretName, "")
+	ok, err := canCreate(keyFromVault.Tags, err)
+	if err != nil {
+		return fmt.Errorf("cannot get key %v: %w", secretName, err)
+	}
+	if !ok {
+		return nil
+	}
+	if keyFromVault.Key != nil && equalKeys(azkey, *keyFromVault.Key) {
+		return nil
+	}
+	params := keyvault.KeyImportParameters{
+		Key:           &azkey,
+		KeyAttributes: &keyvault.KeyAttributes{},
+		Tags: map[string]*string{
+			"managed-by": pointer.String(managerLabel),
+		},
+	}
+	_, err = a.baseClient.ImportKey(ctx, *a.provider.VaultURL, secretName, params)
+	if err != nil {
+		return fmt.Errorf("could not import key %v: %w", secretName, err)
+	}
+	return nil
+}
+
+// PushSecret stores secrets into a Key vault instance.
 func (a *Azure) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
+	switch objectType {
+	case defaultObjType:
+		return a.setKeyVaultSecret(ctx, secretName, value)
+	case objectTypeCert:
+		return a.setKeyVaultCertificate(ctx, secretName, value)
+	case objectTypeKey:
+		return a.setKeyVaultKey(ctx, secretName, value)
+	default:
+		return fmt.Errorf("secret type %v not supported", objectType)
+	}
 }
 
 // Implements store.Client.GetAllSecrets Interface.
