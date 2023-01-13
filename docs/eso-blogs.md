@@ -51,3 +51,7 @@ Emin writes about what problems ESO can solve and how to setup ESO on an Amazon 
 ## [External Secrets Operator Integration with HashiCorp Vault](https://eminalemdar.medium.com/external-secrets-operator-integration-with-hashicorp-vault-aff3f956237b)
 
 Emin writes about integration between External Secrets Operator and HashiCorp Vault with a demonstration on installing ESO and Vault on a Kubernetes Cluster and configuration of the permissions and other integration parts.
+
+## [Reversing the Workflow with External Secrets Operator’s Push Secret Feature](https://medium.com/@eminalemdar/reversing-the-workflow-with-external-secrets-operators-push-secret-feature-f2a64f3db748)
+
+Emin writes about the Push Secret feature of ESO and how this new feature reverse the workflow of ESO by pushing Kubernetes secrets to external secret management providers.
