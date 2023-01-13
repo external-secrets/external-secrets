@@ -42,8 +42,9 @@ var (
 
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
-	sess   *session.Session
-	client PMInterface
+	sess         *session.Session
+	client       PMInterface
+	referentAuth bool
 }
 
 // PMInterface is a subset of the parameterstore api.
@@ -61,10 +62,11 @@ const (
 )
 
 // New constructs a ParameterStore Provider that is specific to a store.
-func New(sess *session.Session, cfg *aws.Config) (*ParameterStore, error) {
+func New(sess *session.Session, cfg *aws.Config, referentAuth bool) (*ParameterStore, error) {
 	return &ParameterStore{
-		sess:   sess,
-		client: ssm.New(sess, cfg),
+		sess:         sess,
+		referentAuth: referentAuth,
+		client:       ssm.New(sess, cfg),
 	}, nil
 }
 
@@ -377,6 +379,11 @@ func (pm *ParameterStore) Close(ctx context.Context) error {
 }
 
 func (pm *ParameterStore) Validate() (esv1beta1.ValidationResult, error) {
+	// skip validation stack because it depends on the namespace
+	// of the ExternalSecret
+	if pm.referentAuth {
+		return esv1beta1.ValidationResultUnknown, nil
+	}
 	_, err := pm.sess.Config.Credentials.Get()
 	if err != nil {
 		return esv1beta1.ValidationResultError, err

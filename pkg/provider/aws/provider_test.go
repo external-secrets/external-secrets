@@ -238,8 +238,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid static creds auth / SecretAccessKey missing namespace",
-			wantErr: true,
+			name:    "referentAuth static creds / SecretAccessKey without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
@@ -263,8 +263,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid static creds auth / AccessKeyID missing namespace",
-			wantErr: true,
+			name:    "referentAuth static creds / AccessKeyID without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
@@ -288,8 +288,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid jwt auth: missing sa selector namespace",
-			wantErr: true,
+			name:    "referentAuth jwt: sa selector without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
