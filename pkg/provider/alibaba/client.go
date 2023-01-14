@@ -10,6 +10,7 @@ import (
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -62,6 +63,9 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 		}
 	}
 
+	logger := logrus.New()
+	logger.SetLevel(logrus.InfoLevel)
+	client.Logger = logger
 	return &secretsManagerClient{
 		config:   config,
 		options:  options,
