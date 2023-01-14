@@ -55,8 +55,8 @@ require (
 	github.com/onsi/ginkgo/v2 v2.6.1
 	github.com/onsi/gomega v1.24.2
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
-	github.com/xanzy/go-gitlab v0.77.0
-	golang.org/x/oauth2 v0.2.0
+	github.com/xanzy/go-gitlab v0.78.0
+	golang.org/x/oauth2 v0.3.0
 	google.golang.org/api v0.103.0
 	k8s.io/api v0.26.0
 	k8s.io/apiextensions-apiserver v0.26.0
