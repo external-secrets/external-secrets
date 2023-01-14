@@ -113,6 +113,13 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		smtc.apiOutput.Payload.Data = []byte("testtesttest")
 		smtc.expectedSecret = "testtesttest"
 	}
+	secretNotFound := func(smtc *secretManagerTestCase) {
+		fErr := status.Error(codes.NotFound, "failed")
+		notFoundError, _ := apierror.FromError(fErr)
+		smtc.apiErr = notFoundError
+		smtc.expectedSecret = ""
+		smtc.expectError = esv1beta1.NoSecretErr.Error()
+	}
 	// good case: with a dot in the key name
 	setDotRef := func(smtc *secretManagerTestCase) {
 		smtc.ref = &esv1beta1.ExternalSecretDataRemoteRef{
@@ -164,6 +171,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCase(),
 		makeValidSecretManagerTestCaseCustom(setSecretString),
+		makeValidSecretManagerTestCaseCustom(secretNotFound),
 		makeValidSecretManagerTestCaseCustom(setCustomVersion),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setCustomRef),
