@@ -35,7 +35,7 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
-	common "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
+	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
@@ -69,19 +69,16 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 	}
 
 	BeforeEach(func() {
-		common.SetupStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
+		awscommon.SetupStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
+		awscommon.CreateReferentStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
 		prov.SetupReferencedIRSAStore()
 		prov.SetupMountedIRSAStore()
 	})
 
 	AfterEach(func() {
-		// Cleanup ClusterSecretStore
-		err := prov.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: common.ReferencedIRSAStoreName(f),
-			},
-		})
-		Expect(err).ToNot(HaveOccurred())
+		prov.TeardownReferencedIRSAStore()
+		prov.TeardownMountedIRSAStore()
+
 	})
 
 	return prov
@@ -150,7 +147,7 @@ func (s *Provider) DeleteSecret(key string) {
 func (s *Provider) SetupMountedIRSAStore() {
 	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      common.MountedIRSAStoreName(s.framework),
+			Name:      awscommon.MountedIRSAStoreName(s.framework),
 			Namespace: s.framework.Namespace.Name,
 		},
 		Spec: esv1beta1.SecretStoreSpec{
@@ -167,13 +164,21 @@ func (s *Provider) SetupMountedIRSAStore() {
 	Expect(err).ToNot(HaveOccurred())
 }
 
+func (s *Provider) TeardownMountedIRSAStore() {
+	s.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: awscommon.MountedIRSAStoreName(s.framework),
+		},
+	})
+}
+
 // ReferncedIRSAStore is a ClusterStore
 // that references a (IRSA-) ServiceAccount in the default namespace.
 func (s *Provider) SetupReferencedIRSAStore() {
 	log.Logf("creating IRSA ClusterSecretStore %s", s.framework.Namespace.Name)
 	secretStore := &esv1beta1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: common.ReferencedIRSAStoreName(s.framework),
+			Name: awscommon.ReferencedIRSAStoreName(s.framework),
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(context.Background(), s.framework.CRClient, secretStore, func() error {
@@ -194,4 +199,12 @@ func (s *Provider) SetupReferencedIRSAStore() {
 		return nil
 	})
 	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *Provider) TeardownReferencedIRSAStore() {
+	s.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: awscommon.ReferencedIRSAStoreName(s.framework),
+		},
+	})
 }

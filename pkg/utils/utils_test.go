@@ -52,7 +52,7 @@ func TestObjectHash(t *testing.T) {
 			input: v1.Secret{Data: map[string][]byte{
 				"xx": []byte("yyy"),
 			}},
-			want: "7b6fb27a17a8e4a4be8fda6cb499f3d5",
+			want: "85eabdeb376371ffc5a658d7a162eba8",
 		},
 		{
 			name: "map also works",

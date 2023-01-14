@@ -9,7 +9,7 @@ If you want to design cross-namespace SecretStores you must use [ClusterSecretSt
 
 ## Example
 
-For a full list of supported fields see [spec](./spec.md) or dig into our [guides](../guides).
+For a full list of supported fields see [spec](./spec.md) or dig into our [guides](../guides/introduction.md).
 
 ``` yaml
 {% include 'full-secret-store.yaml' %}

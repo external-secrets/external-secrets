@@ -204,7 +204,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										AccessKeyID: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},
@@ -227,7 +227,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										SecretAccessKey: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},
@@ -238,8 +238,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid static creds auth / SecretAccessKey missing namespace",
-			wantErr: true,
+			name:    "referentAuth static creds / SecretAccessKey without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
@@ -263,8 +263,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid static creds auth / AccessKeyID missing namespace",
-			wantErr: true,
+			name:    "referentAuth static creds / AccessKeyID without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
@@ -288,8 +288,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid jwt auth: missing sa selector namespace",
-			wantErr: true,
+			name:    "referentAuth jwt: sa selector without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
@@ -325,7 +325,7 @@ func TestValidateStore(t *testing.T) {
 									JWTAuth: &esv1beta1.AWSJWTAuth{
 										ServiceAccountRef: &esmeta.ServiceAccountSelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},

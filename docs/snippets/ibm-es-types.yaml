@@ -25,9 +25,9 @@ spec:
       key: public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
       property: certificate
   - secretKey: prvt_cert
-      remoteRef:
-        key: private_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
-        property: certificate
+    remoteRef:
+      key: private_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: certificate
   - secretKey: kv_without_key
     remoteRef:
       key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
@@ -39,5 +39,3 @@ spec:
     remoteRef:
       key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
       property: 'key.path'
-  dataFrom:
-

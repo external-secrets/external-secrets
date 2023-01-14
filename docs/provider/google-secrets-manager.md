@@ -12,7 +12,7 @@ Your Google Kubernetes Engine (GKE) applications can consume GCP services like S
 
 You can find the documentation for Workload Identity [here](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity). We will walk you through how to navigate it here.
 
-Search [the document](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for this editable values and change them to your values:  
+Search [the document](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for this editable values and change them to your values:
 _Note: If you have installed ESO, a serviceaccount has already been created. You can either patch the existing `external-secrets` SA or create a new one that fits your needs._
 
 - `CLUSTER_NAME`: The name of your cluster
@@ -80,6 +80,8 @@ You just need to set the `projectID`, all other fields can be omitted.
 ### GCP Service Account authentication
 
 You can use [GCP Service Account](https://cloud.google.com/iam/docs/service-accounts) to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a `Kind=Secret`. ESO will use that Secret to authenticate with GCP. See here how you [manage GCP Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
+After creating a GCP Service acount go to `IAM & Admin` web UI, click `ADD ANOTHER ROLE` button, add `Secret Manager Secret Accessor` role to this service account.
+The `Secret Manager Secret Accessor` role is required to access secrets.
 
 ```yaml
 {% include 'gcpsm-credentials-secret.yaml' %}
@@ -107,4 +109,3 @@ The operator will fetch the GCP Secret Manager secret and inject it as a `Kind=S
 ```
 kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
-

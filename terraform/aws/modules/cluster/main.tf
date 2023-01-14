@@ -4,7 +4,7 @@ provider "aws" {
 
 locals {
   name            = var.cluster_name
-  cluster_version = "1.22"
+  cluster_version = "1.24"
   region          = var.cluster_region
 
   serviceaccount_name      = var.irsa_sa_name

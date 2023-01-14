@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/tidwall/gjson"
-	gitlab "github.com/xanzy/go-gitlab"
+	"github.com/xanzy/go-gitlab"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -139,6 +139,11 @@ func NewGitlabProvider() *Gitlab {
 	return &Gitlab{}
 }
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (g *Gitlab) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 // Method on Gitlab Provider to set up projectVariablesClient with credentials, populate projectID and environment.
 func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
@@ -187,6 +192,15 @@ func (g *Gitlab) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 	return g, nil
 }
 
+func (g *Gitlab) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+// Not Implemented PushSecret.
+func (g *Gitlab) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
 func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) {
@@ -223,34 +237,51 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		return nil, err
 	}
 
+	var gopts = &gitlab.ListGroupVariablesOptions{PerPage: 100}
 	secretData := make(map[string][]byte)
 	for _, groupID := range g.groupIDs {
-		var groupVars []*gitlab.GroupVariable
-		groupVars, _, err := g.groupVariablesClient.ListVariables(groupID, nil)
+		for groupPage := 1; ; groupPage++ {
+			gopts.Page = groupPage
+			groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
+			if err != nil {
+				return nil, err
+			}
+			for _, data := range groupVars {
+				matching, key, isWildcard := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
+				if !matching && !isWildcard {
+					continue
+				}
+				secretData[key] = []byte(data.Value)
+			}
+			if response.CurrentPage >= response.TotalPages {
+				break
+			}
+		}
+	}
+
+	var popts = &gitlab.ListProjectVariablesOptions{PerPage: 100}
+	for projectPage := 1; ; projectPage++ {
+		popts.Page = projectPage
+		projectData, response, err := g.projectVariablesClient.ListVariables(g.projectID, popts)
 		if err != nil {
 			return nil, err
 		}
-		for _, data := range groupVars {
-			matching, key := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
+
+		for _, data := range projectData {
+			matching, key, isWildcard := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
+
 			if !matching {
+				continue
+			}
+			_, exists := secretData[key]
+			if exists && isWildcard {
 				continue
 			}
 			secretData[key] = []byte(data.Value)
 		}
-	}
-
-	var projectData []*gitlab.ProjectVariable
-	projectData, _, err = g.projectVariablesClient.ListVariables(g.projectID, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, data := range projectData {
-		matching, key := matchesFilter(g.environment, data.EnvironmentScope, data.Key, matcher)
-		if !matching {
-			continue
+		if response.CurrentPage >= response.TotalPages {
+			break
 		}
-		secretData[key] = []byte(data.Value)
 	}
 
 	return secretData, nil
@@ -289,7 +320,12 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	data, resp, err := g.projectVariablesClient.GetVariable(g.projectID, ref.Key, vopts)
-	if resp.StatusCode >= 400 && resp.StatusCode != 404 && err != nil {
+	if !isEmptyOrWildcard(g.environment) && resp.StatusCode == http.StatusNotFound {
+		vopts.Filter.EnvironmentScope = "*"
+		data, resp, err = g.projectVariablesClient.GetVariable(g.projectID, ref.Key, vopts)
+	}
+
+	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
 		return nil, err
 	}
 
@@ -310,7 +346,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		}
 
 		groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, nil)
-		if resp.StatusCode >= 400 && resp.StatusCode != 404 && err != nil {
+		if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
 			return nil, err
 		}
 		if resp.StatusCode < 300 {
@@ -370,19 +406,20 @@ func isEmptyOrWildcard(environment string) bool {
 	return environment == "" || environment == "*"
 }
 
-func matchesFilter(environment, varEnvironment, key string, matcher *find.Matcher) (bool, string) {
-	if !isEmptyOrWildcard(environment) {
+func matchesFilter(environment, varEnvironment, key string, matcher *find.Matcher) (bool, string, bool) {
+	isWildcard := isEmptyOrWildcard(varEnvironment)
+	if !isWildcard && !isEmptyOrWildcard(environment) {
 		// as of now gitlab does not support filtering of EnvironmentScope through the api call
 		if varEnvironment != environment {
-			return false, ""
+			return false, "", isWildcard
 		}
 	}
 
 	if key == "" || (matcher != nil && !matcher.MatchName(key)) {
-		return false, ""
+		return false, "", isWildcard
 	}
 
-	return true, key
+	return true, key, isWildcard
 }
 
 func (g *Gitlab) Close(ctx context.Context) error {

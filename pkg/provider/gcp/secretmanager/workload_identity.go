@@ -78,11 +78,11 @@ type saTokenGenerator interface {
 }
 
 func newWorkloadIdentity(ctx context.Context, projectID string) (*workloadIdentity, error) {
-	iamc, err := newIAMClient(ctx)
+	satg, err := newSATokenGenerator()
 	if err != nil {
 		return nil, err
 	}
-	satg, err := newSATokenGenerator()
+	iamc, err := newIAMClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -105,10 +105,7 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1beta1.GCPSM
 	}
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if isClusterKind {
-		if wi.ServiceAccountRef.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingSANamespace)
-		}
+	if isClusterKind && wi.ServiceAccountRef.Namespace != nil {
 		saKey.Namespace = *wi.ServiceAccountRef.Namespace
 	}
 

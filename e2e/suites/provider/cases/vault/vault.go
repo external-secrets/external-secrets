@@ -52,6 +52,8 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withTokenAuth, f, common.JSONDataWithoutTargetName, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.SyncV1Alpha1, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.DecodingPolicySync, useTokenAuth),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplateFromLiteral, useTokenAuth),
+		framework.Compose(withTokenAuth, f, common.TemplateFromConfigmaps, useTokenAuth),
 		// use cert auth
 		framework.Compose(withCertAuth, f, common.FindByName, useCertAuth),
 		framework.Compose(withCertAuth, f, common.FindByNameAndRewrite, useCertAuth),

@@ -96,20 +96,14 @@ type Reconciler struct {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
-	syncCallsMetricLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
-
+	resourceLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
 	start := time.Now()
-
-	defer externalSecretReconcileDuration.With(prometheus.Labels{
-		"name":      req.Name,
-		"namespace": req.Namespace,
-	}).Set(float64(time.Since(start)))
+	defer externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
+	defer syncCallsTotal.With(resourceLabels).Inc()
 
 	var externalSecret esv1beta1.ExternalSecret
-
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
 	if apierrors.IsNotFound(err) {
-		syncCallsTotal.With(syncCallsMetricLabels).Inc()
 		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretDeleted, v1.ConditionFalse, esv1beta1.ConditionReasonSecretDeleted, "Secret was deleted")
 		SetExternalSecretCondition(&esv1beta1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -120,7 +114,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	} else if err != nil {
 		log.Error(err, errGetES)
-		syncCallsError.With(syncCallsMetricLabels).Inc()
+		syncCallsError.With(resourceLabels).Inc()
 		return ctrl.Result{}, nil
 	}
 
@@ -135,15 +129,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Info("skipping unmanaged store as it points to a unmanaged controllerClass")
 		return ctrl.Result{}, nil
 	}
-
-	// patch status when done processing
-	p := client.MergeFrom(externalSecret.DeepCopy())
-	defer func() {
-		err = r.Status().Patch(ctx, &externalSecret, p)
-		if err != nil {
-			log.Error(err, errPatchStatus)
-		}
-	}()
 
 	refreshInt := r.RequeueInterval
 	if externalSecret.Spec.RefreshInterval != nil {
@@ -182,6 +167,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}, nil
 	}
 
+	// patch status when done processing
+	p := client.MergeFrom(externalSecret.DeepCopy())
+	defer func() {
+		err = r.Status().Patch(ctx, &externalSecret, p)
+		if err != nil {
+			log.Error(err, errPatchStatus)
+		}
+	}()
+
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
@@ -197,7 +191,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
 		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errGetSecretData)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		syncCallsError.With(syncCallsMetricLabels).Inc()
+		syncCallsError.With(resourceLabels).Inc()
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
@@ -214,7 +208,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
 				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errDeleteSecret)
 				SetExternalSecretCondition(&externalSecret, *conditionSynced)
-				syncCallsError.With(syncCallsMetricLabels).Inc()
+				syncCallsError.With(resourceLabels).Inc()
 				return ctrl.Result{RequeueAfter: requeueAfter}, nil
 			}
 			err = r.Delete(ctx, secret)
@@ -223,7 +217,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
 				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errDeleteSecret)
 				SetExternalSecretCondition(&externalSecret, *conditionSynced)
-				syncCallsError.With(syncCallsMetricLabels).Inc()
+				syncCallsError.With(resourceLabels).Inc()
 			}
 
 			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretDeleted, "secret deleted due to DeletionPolicy")
@@ -285,7 +279,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
 		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errUpdateSecret)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		syncCallsError.With(syncCallsMetricLabels).Inc()
+		syncCallsError.With(resourceLabels).Inc()
 		return ctrl.Result{}, err
 	}
 
@@ -295,7 +289,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
 	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
-	syncCallsTotal.With(syncCallsMetricLabels).Inc()
 	if currCond == nil || currCond.Status != conditionSynced.Status {
 		log.Info("reconciled secret") // Log once if on success in any verbosity
 	} else {

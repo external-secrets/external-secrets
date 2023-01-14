@@ -37,6 +37,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault"
@@ -58,13 +59,16 @@ var (
 	clientQPS                             float32
 	clientBurst                           int
 	loglevel                              string
+	zapTimeEncoding                       string
 	namespace                             string
 	enableClusterStoreReconciler          bool
 	enableClusterExternalSecretReconciler bool
+	enablePushSecretReconciler            bool
 	enableFloodGate                       bool
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
 	secretName, secretNamespace           string
+	crdNames                              []string
 	crdRequeueInterval                    time.Duration
 	certCheckInterval                     time.Duration
 	certLookaheadInterval                 time.Duration
@@ -93,6 +97,7 @@ var rootCmd = &cobra.Command{
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var lvl zapcore.Level
+		var enc zapcore.TimeEncoder
 		// the client creates a ListWatch for all resource kinds that
 		// are requested with .Get().
 		// We want to avoid to cache all secrets or configmaps in memory.
@@ -106,12 +111,21 @@ var rootCmd = &cobra.Command{
 		if !enableConfigMapsCache {
 			cacheList = append(cacheList, &v1.ConfigMap{})
 		}
-		err := lvl.UnmarshalText([]byte(loglevel))
-		if err != nil {
-			setupLog.Error(err, "error unmarshalling loglevel")
+		lvlErr := lvl.UnmarshalText([]byte(loglevel))
+		if lvlErr != nil {
+			setupLog.Error(lvlErr, "error unmarshalling loglevel")
 			os.Exit(1)
 		}
-		logger := zap.New(zap.Level(lvl))
+		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
+		if encErr != nil {
+			setupLog.Error(encErr, "error unmarshalling timeEncoding")
+			os.Exit(1)
+		}
+		opts := zap.Options{
+			Level:       lvl,
+			TimeEncoder: enc,
+		}
+		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
@@ -166,6 +180,18 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 			os.Exit(1)
 		}
+		if enablePushSecretReconciler {
+			if err = (&pushsecret.Reconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
+				Scheme:          mgr.GetScheme(),
+				ControllerClass: controllerClass,
+				RequeueInterval: time.Hour,
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "PushSecret")
+				os.Exit(1)
+			}
+		}
 		if enableClusterExternalSecretReconciler {
 			if err = (&clusterexternalsecret.Reconciler{
 				Client:          mgr.GetClient(),
@@ -209,11 +235,13 @@ func init() {
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 0, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 0, "Maximum Burst allowed to be passed to rest.Client")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
+	rootCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
-	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enables the cluster store reconciler.")
-	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enables the cluster external secret reconciler.")
-	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enables the secrets caching for external-secrets pod.")
-	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enables the ConfigMap caching for external-secrets pod.")
+	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
+	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
+	rootCmd.Flags().BoolVar(&enablePushSecretReconciler, "enable-push-secret-reconciler", true, "Enable push secret reconciler.")
+	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enable secrets caching for external-secrets pod.")
+	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable secrets caching for external-secrets pod.")
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableAWSSession, "experimental-enable-aws-session-cache", false, "Enable experimental AWS session cache. External secret will reuse the AWS session without creating a new one on each request.")
