@@ -763,6 +763,26 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 			Value: &secretString,
 		}
 	}
+	// good case
+	secretNotFound := func(smtc *secretManagerTestCase) {
+		smtc.expectedSecret = ""
+		smtc.apiErr = autorest.DetailedError{StatusCode: 404}
+		smtc.expectError = esv1beta1.NoSecretError{}.Error()
+	}
+
+	certNotFound := func(smtc *secretManagerTestCase) {
+		smtc.expectedSecret = ""
+		smtc.secretName = certName
+		smtc.apiErr = autorest.DetailedError{StatusCode: 404}
+		smtc.expectError = esv1beta1.NoSecretError{}.Error()
+	}
+
+	keyNotFound := func(smtc *secretManagerTestCase) {
+		smtc.expectedSecret = ""
+		smtc.secretName = keyName
+		smtc.apiErr = autorest.DetailedError{StatusCode: 404}
+		smtc.expectError = esv1beta1.NoSecretError{}.Error()
+	}
 
 	setSecretStringWithVersion := func(smtc *secretManagerTestCase) {
 		smtc.expectedSecret = secretString
@@ -1062,6 +1082,9 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badSecretWithProperty),
 		makeValidSecretManagerTestCaseCustom(setPubRSAKey),
 		makeValidSecretManagerTestCaseCustom(setPubECKey),
+		makeValidSecretManagerTestCaseCustom(secretNotFound),
+		makeValidSecretManagerTestCaseCustom(certNotFound),
+		makeValidSecretManagerTestCaseCustom(keyNotFound),
 		makeValidSecretManagerTestCaseCustom(setCertificate),
 		makeValidSecretManagerTestCaseCustom(badSecretType),
 		makeValidSecretManagerTestCaseCustom(setSecretWithTag),
