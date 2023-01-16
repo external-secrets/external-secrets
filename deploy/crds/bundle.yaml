@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: clusterexternalsecrets.external-secrets.io
 spec:
@@ -456,7 +456,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: clustersecretstores.external-secrets.io
 spec:
@@ -2917,7 +2917,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: externalsecrets.external-secrets.io
 spec:
@@ -3535,7 +3535,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: pushsecrets.external-secrets.io
 spec:
@@ -3749,7 +3749,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: secretstores.external-secrets.io
 spec:
@@ -6210,7 +6210,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: acraccesstokens.generators.external-secrets.io
 spec:
@@ -6351,7 +6351,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
@@ -6479,7 +6479,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: fakes.generators.external-secrets.io
 spec:
@@ -6537,7 +6537,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: gcraccesstokens.generators.external-secrets.io
 spec:
@@ -6645,7 +6645,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: passwords.generators.external-secrets.io
 spec:
