@@ -35,12 +35,12 @@ replace (
 require (
 	cloud.google.com/go/iam v0.10.0
 	cloud.google.com/go/secretmanager v1.10.0
-	github.com/Azure/azure-sdk-for-go v67.2.0+incompatible
+	github.com/Azure/azure-sdk-for-go v67.3.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.28
 	github.com/Azure/go-autorest/autorest/adal v0.9.21
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.7.0
-	github.com/IBM/go-sdk-core/v5 v5.10.2
+	github.com/IBM/go-sdk-core/v5 v5.12.0
 	github.com/IBM/secrets-manager-go-sdk v1.0.49
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3
@@ -48,7 +48,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.3
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.83
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.134
 	github.com/aws/aws-sdk-go v1.44.175
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
@@ -87,13 +87,13 @@ require (
 	k8s.io/client-go v1.5.2
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	sigs.k8s.io/controller-runtime v0.14.1
-	sigs.k8s.io/controller-tools v0.10.0
+	sigs.k8s.io/controller-tools v0.11.0
 )
 
 require github.com/1Password/connect-sdk-go v1.5.0
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.2.0
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.3.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
@@ -105,7 +105,7 @@ require cloud.google.com/go/compute/metadata v0.2.1 // indirect
 
 require (
 	cloud.google.com/go/compute v1.13.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.1.1 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.6 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect

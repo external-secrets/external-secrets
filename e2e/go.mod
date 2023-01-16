@@ -39,11 +39,11 @@ replace (
 
 require (
 	cloud.google.com/go/secretmanager v1.10.0
-	github.com/Azure/azure-sdk-for-go v67.2.0+incompatible
+	github.com/Azure/azure-sdk-for-go v67.3.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.3
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.83
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.134
 	github.com/argoproj/argo-cd/v2 v2.4.8
 	github.com/aws/aws-sdk-go v1.44.175
 	github.com/external-secrets/external-secrets v0.0.0
