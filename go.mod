@@ -87,7 +87,7 @@ require (
 	k8s.io/client-go v1.5.2
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	sigs.k8s.io/controller-runtime v0.14.1
-	sigs.k8s.io/controller-tools v0.11.0
+	sigs.k8s.io/controller-tools v0.11.1
 )
 
 require github.com/1Password/connect-sdk-go v1.5.0
