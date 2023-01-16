@@ -48,7 +48,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.3
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.134
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.135
 	github.com/aws/aws-sdk-go v1.44.175
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
@@ -87,7 +87,7 @@ require (
 	k8s.io/client-go v1.5.2
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	sigs.k8s.io/controller-runtime v0.14.1
-	sigs.k8s.io/controller-tools v0.11.0
+	sigs.k8s.io/controller-tools v0.11.1
 )
 
 require github.com/1Password/connect-sdk-go v1.5.0
