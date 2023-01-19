@@ -21,7 +21,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -34,6 +36,7 @@ type fakeClient struct {
 	t                   *testing.T
 	secretMap           map[string]corev1.Secret
 	expectedListOptions metav1.ListOptions
+	err                 error
 }
 
 func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error) {
@@ -42,7 +45,7 @@ func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOption
 	if !ok {
 		return nil, errors.New(errSomethingWentWrong)
 	}
-	return &secret, nil
+	return &secret, fk.err
 }
 
 func (fk fakeClient) List(ctx context.Context, opts metav1.ListOptions) (*corev1.SecretList, error) {
@@ -68,6 +71,28 @@ func TestGetSecret(t *testing.T) {
 		want    []byte
 		wantErr bool
 	}{
+		{
+			name: "secretNotFound",
+			fields: fields{
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
+						},
+					},
+					err: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, "secret"),
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "mysec",
+				Property: "token",
+			},
+			wantErr: true,
+		},
 		{
 			name: "err GetSecretMap",
 			fields: fields{

@@ -107,6 +107,7 @@ runs:
       with:
         service_account_key: ${{ env.GCP_SM_SA_GKE_JSON }}
         project_id: ${{ env.GCP_PROJECT_ID }}
+        install_components: 'gke-gcloud-auth-plugin'
 
     - name: Get the GKE credentials
       shell: bash

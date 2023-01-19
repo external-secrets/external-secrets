@@ -16,8 +16,8 @@ env:
   GO_VERSION: '1.19'
   GINKGO_VERSION: 'v2.1.6'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
-  KIND_VERSION: 'v0.14.0'
-  KIND_IMAGE: 'kindest/node:v1.24.2'
+  KIND_VERSION: 'v0.17.0'
+  KIND_IMAGE: 'kindest/node:v1.26.0'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether

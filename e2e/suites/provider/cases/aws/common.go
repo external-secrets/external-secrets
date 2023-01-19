@@ -27,9 +27,10 @@ import (
 )
 
 const (
-	WithReferencedIRSA          = "with referenced IRSA"
-	WithMountedIRSA             = "with mounted IRSA"
-	StaticCredentialsSecretName = "provider-secret"
+	WithReferencedIRSA                  = "with referenced IRSA"
+	WithMountedIRSA                     = "with mounted IRSA"
+	StaticCredentialsSecretName         = "provider-secret"
+	StaticReferentCredentialsSecretName = "referent-provider-secret"
 )
 
 func ReferencedIRSAStoreName(f *framework.Framework) string {
@@ -50,6 +51,38 @@ func UseMountedIRSAStore(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = MountedIRSAStoreName(tc.Framework)
 }
 
+const (
+	StaticStoreName       = "aws-static-creds"
+	staticKeyID           = "kid"
+	staticSecretAccessKey = "sak"
+	staticySessionToken   = "st"
+)
+
+func newStaticStoreProvider(serviceType esv1beta1.AWSServiceType, region, secretName string) *esv1beta1.SecretStoreProvider {
+	return &esv1beta1.SecretStoreProvider{
+		AWS: &esv1beta1.AWSProvider{
+			Service: serviceType,
+			Region:  region,
+			Auth: esv1beta1.AWSAuth{
+				SecretRef: &esv1beta1.AWSAuthSecretRef{
+					AccessKeyID: esmetav1.SecretKeySelector{
+						Name: StaticReferentCredentialsSecretName,
+						Key:  staticKeyID,
+					},
+					SecretAccessKey: esmetav1.SecretKeySelector{
+						Name: StaticReferentCredentialsSecretName,
+						Key:  staticSecretAccessKey,
+					},
+					SessionToken: &esmetav1.SecretKeySelector{
+						Name: StaticReferentCredentialsSecretName,
+						Key:  staticySessionToken,
+					},
+				},
+			},
+		},
+	}
+}
+
 // StaticStore is namespaced and references
 // static credentials from a secret.
 func SetupStaticStore(f *framework.Framework, kid, sak, st, region string, serviceType esv1beta1.AWSServiceType) {
@@ -59,9 +92,9 @@ func SetupStaticStore(f *framework.Framework, kid, sak, st, region string, servi
 			Namespace: f.Namespace.Name,
 		},
 		StringData: map[string]string{
-			"kid": kid,
-			"sak": sak,
-			"st":  st,
+			staticKeyID:           kid,
+			staticSecretAccessKey: sak,
+			staticySessionToken:   st,
 		},
 	}
 	err := f.CRClient.Create(context.Background(), awsCreds)
@@ -69,34 +102,48 @@ func SetupStaticStore(f *framework.Framework, kid, sak, st, region string, servi
 
 	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      f.Namespace.Name,
+			Name:      StaticStoreName,
 			Namespace: f.Namespace.Name,
 		},
 		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				AWS: &esv1beta1.AWSProvider{
-					Service: serviceType,
-					Region:  region,
-					Auth: esv1beta1.AWSAuth{
-						SecretRef: &esv1beta1.AWSAuthSecretRef{
-							AccessKeyID: esmetav1.SecretKeySelector{
-								Name: StaticCredentialsSecretName,
-								Key:  "kid",
-							},
-							SecretAccessKey: esmetav1.SecretKeySelector{
-								Name: StaticCredentialsSecretName,
-								Key:  "sak",
-							},
-							SessionToken: &esmetav1.SecretKeySelector{
-								Name: StaticCredentialsSecretName,
-								Key:  "st",
-							},
-						},
-					},
-				},
-			},
+			Provider: newStaticStoreProvider(serviceType, region, StaticCredentialsSecretName),
 		},
 	}
 	err = f.CRClient.Create(context.Background(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
+}
+
+// CreateReferentStaticStore creates a CSS with referent auth and
+// creates a secret with static authentication credentials in the ExternalSecret namespace.
+func CreateReferentStaticStore(f *framework.Framework, kid, sak, st, region string, serviceType esv1beta1.AWSServiceType) {
+	ns := f.Namespace.Name
+
+	awsCreds := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      StaticReferentCredentialsSecretName,
+			Namespace: ns,
+		},
+		StringData: map[string]string{
+			staticKeyID:           kid,
+			staticSecretAccessKey: sak,
+			staticySessionToken:   st,
+		},
+	}
+	err := f.CRClient.Create(context.Background(), awsCreds)
+	Expect(err).ToNot(HaveOccurred())
+
+	secretStore := &esv1beta1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ReferentSecretStoreName(f),
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: newStaticStoreProvider(serviceType, region, StaticReferentCredentialsSecretName),
+		},
+	}
+	err = f.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func ReferentSecretStoreName(f *framework.Framework) string {
+	return "referent-auth" + f.Namespace.Name
 }

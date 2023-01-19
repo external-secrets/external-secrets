@@ -38,21 +38,19 @@ import (
 )
 
 const (
-	CloudPlatformRole                         = "https://www.googleapis.com/auth/cloud-platform"
-	defaultVersion                            = "latest"
-	errGCPSMStore                             = "received invalid GCPSM SecretStore resource"
-	errUnableGetCredentials                   = "unable to get credentials: %w"
-	errClientClose                            = "unable to close SecretManager client: %w"
-	errMissingStoreSpec                       = "invalid: missing store spec"
-	errInvalidClusterStoreMissingSAKNamespace = "invalid ClusterSecretStore: missing GCP SecretAccessKey Namespace"
-	errInvalidClusterStoreMissingSANamespace  = "invalid ClusterSecretStore: missing GCP Service Account Namespace"
-	errFetchSAKSecret                         = "could not fetch SecretAccessKey secret: %w"
-	errMissingSAK                             = "missing SecretAccessKey"
-	errUnableProcessJSONCredentials           = "failed to process the provided JSON credentials: %w"
-	errUnableCreateGCPSMClient                = "failed to create GCP secretmanager client: %w"
-	errUninitalizedGCPProvider                = "provider GCP is not initialized"
-	errClientGetSecretAccess                  = "unable to access Secret from SecretManager Client: %w"
-	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
+	CloudPlatformRole               = "https://www.googleapis.com/auth/cloud-platform"
+	defaultVersion                  = "latest"
+	errGCPSMStore                   = "received invalid GCPSM SecretStore resource"
+	errUnableGetCredentials         = "unable to get credentials: %w"
+	errClientClose                  = "unable to close SecretManager client: %w"
+	errMissingStoreSpec             = "invalid: missing store spec"
+	errFetchSAKSecret               = "could not fetch SecretAccessKey secret: %w"
+	errMissingSAK                   = "missing SecretAccessKey"
+	errUnableProcessJSONCredentials = "failed to process the provided JSON credentials: %w"
+	errUnableCreateGCPSMClient      = "failed to create GCP secretmanager client: %w"
+	errUninitalizedGCPProvider      = "provider GCP is not initialized"
+	errClientGetSecretAccess        = "unable to access Secret from SecretManager Client: %w"
+	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
 
 	errInvalidStore           = "invalid store"
 	errInvalidStoreSpec       = "invalid store spec"
@@ -64,9 +62,10 @@ const (
 )
 
 type Client struct {
-	smClient GoogleSecretManagerClient
-	kube     kclient.Client
-	store    *esv1beta1.GCPSMProvider
+	smClient  GoogleSecretManagerClient
+	kube      kclient.Client
+	store     *esv1beta1.GCPSMProvider
+	storeKind string
 
 	// namespace of the external secret
 	namespace        string
@@ -113,6 +112,14 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	}
 	return c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
+}
+
+func parseError(err error) error {
+	var gerr *apierror.APIError
+	if errors.As(err, &gerr) && gerr.GRPCStatus().Code() == codes.NotFound {
+		return esv1beta1.NoSecretError{}
+	}
+	return err
 }
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
@@ -326,6 +333,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", c.store.ProjectID, ref.Key, version),
 	}
 	result, err := c.smClient.AccessSecretVersion(ctx, req)
+	err = parseError(err)
 	if err != nil {
 		return nil, fmt.Errorf(errClientGetSecretAccess, err)
 	}
@@ -404,5 +412,8 @@ func (c *Client) Close(ctx context.Context) error {
 }
 
 func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(c.store) {
+		return esv1beta1.ValidationResultUnknown, nil
+	}
 	return esv1beta1.ValidationResultReady, nil
 }

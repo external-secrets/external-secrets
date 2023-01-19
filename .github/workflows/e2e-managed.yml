@@ -19,6 +19,7 @@ env:
   GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
   GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
+  USE_GKE_GCLOUD_AUTH_PLUGIN: true
   TF_VAR_GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
   GCP_SM_SA_GKE_JSON: ${{ secrets.GCP_SM_SA_GKE_JSON}}
   GCP_GKE_CLUSTER: test-cluster

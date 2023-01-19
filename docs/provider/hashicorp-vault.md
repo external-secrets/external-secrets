@@ -279,7 +279,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 #### Kubernetes authentication
 
 [Kubernetes-native authentication](https://www.vaultproject.io/docs/auth/kubernetes) has three
-options of optaining credentials for vault:
+options of obtaining credentials for vault:
 
 1.  by using a service account jwt referenced in `serviceAccountRef`
 2.  by using the jwt from a `Kind=Secret` referenced by the `secretRef`

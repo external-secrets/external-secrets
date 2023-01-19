@@ -23,6 +23,7 @@ import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -68,17 +69,22 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 
 	// case: static credentials
 	if prov.Auth.SecretRef != nil {
-		if err := utils.ValidateSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
 			return fmt.Errorf("invalid Auth.SecretRef.AccessKeyID: %w", err)
 		}
-		if err := utils.ValidateSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
 			return fmt.Errorf("invalid Auth.SecretRef.SecretAccessKey: %w", err)
+		}
+		if prov.Auth.SecretRef.SessionToken != nil {
+			if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.SecretRef.SessionToken); err != nil {
+				return fmt.Errorf("invalid Auth.SecretRef.SessionToken: %w", err)
+			}
 		}
 	}
 
 	// case: jwt credentials
 	if prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.ServiceAccountRef != nil {
-		if err := utils.ValidateServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
+		if err := utils.ValidateReferentServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
 			return fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
 		}
 	}
@@ -114,6 +120,21 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	storeSpec := store.GetSpec()
 	var cfg *aws.Config
 
+	// allow SecretStore controller validation to pass
+	// when using referent namespace.
+	if util.IsReferentSpec(prov.Auth) && namespace == "" &&
+		store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
+		cfg = aws.NewConfig().WithRegion("eu-west-1").WithEndpointResolver(awsauth.ResolveEndpoint())
+		sess := &session.Session{Config: cfg}
+		switch prov.Service {
+		case esv1beta1.AWSServiceSecretsManager:
+			return secretsmanager.New(sess, cfg, true)
+		case esv1beta1.AWSServiceParameterStore:
+			return parameterstore.New(sess, cfg, true)
+		}
+		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
+	}
+
 	sess, err := awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateSession, err)
@@ -146,9 +167,9 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 
 	switch prov.Service {
 	case esv1beta1.AWSServiceSecretsManager:
-		return secretsmanager.New(sess, cfg)
+		return secretsmanager.New(sess, cfg, false)
 	case esv1beta1.AWSServiceParameterStore:
-		return parameterstore.New(sess, cfg)
+		return parameterstore.New(sess, cfg, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
