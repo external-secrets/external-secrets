@@ -41,9 +41,10 @@ var _ esv1beta1.SecretsClient = &SecretsManager{}
 
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
-	sess   *session.Session
-	client SMInterface
-	cache  map[string]*awssm.GetSecretValueOutput
+	sess         *session.Session
+	client       SMInterface
+	referentAuth bool
+	cache        map[string]*awssm.GetSecretValueOutput
 }
 
 // SMInterface is a subset of the smiface api.
@@ -67,11 +68,12 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(sess *session.Session, cfg *aws.Config) (*SecretsManager, error) {
+func New(sess *session.Session, cfg *aws.Config, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
-		sess:   sess,
-		client: awssm.New(sess, cfg),
-		cache:  make(map[string]*awssm.GetSecretValueOutput),
+		sess:         sess,
+		client:       awssm.New(sess, cfg),
+		referentAuth: referentAuth,
+		cache:        make(map[string]*awssm.GetSecretValueOutput),
 	}, nil
 }
 
@@ -407,6 +409,11 @@ func (sm *SecretsManager) Close(ctx context.Context) error {
 }
 
 func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
+	// skip validation stack because it depends on the namespace
+	// of the ExternalSecret
+	if sm.referentAuth {
+		return esv1beta1.ValidationResultUnknown, nil
+	}
 	_, err := sm.sess.Config.Credentials.Get()
 	if err != nil {
 		return esv1beta1.ValidationResultError, err
