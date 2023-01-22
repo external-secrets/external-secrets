@@ -160,7 +160,14 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 		}
 		jsonvalue, ok := jsondata.(string)
 		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+			jsonvalues, ok := jsondata.([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+			}
+			if len(jsonvalues) == 0 {
+				return nil, fmt.Errorf("filter worked but didn't get any result")
+			}
+			jsonvalue = jsonvalues[0].(string)
 		}
 		return []byte(jsonvalue), nil
 	}
