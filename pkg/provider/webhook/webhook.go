@@ -145,18 +145,18 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 	if err != nil {
 		return nil, err
 	}
-	resultJsonPath, err := executeTemplateString(provider.Result.JSONPath, data)
+	resultJSONPath, err := executeTemplateString(provider.Result.JSONPath, data)
 	if err != nil {
 		return nil, err
 	}
-	if resultJsonPath != "" {
+	if resultJSONPath != "" {
 		jsondata := interface{}(nil)
 		if err := yaml.Unmarshal(result, &jsondata); err != nil {
 			return nil, fmt.Errorf("failed to parse response json: %w", err)
 		}
-		jsondata, err = jsonpath.Get(resultJsonPath, jsondata)
+		jsondata, err = jsonpath.Get(resultJSONPath, jsondata)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get response path %s: %w", resultJsonPath, err)
+			return nil, fmt.Errorf("failed to get response path %s: %w", resultJSONPath, err)
 		}
 		jsonvalue, ok := jsondata.(string)
 		if !ok {
