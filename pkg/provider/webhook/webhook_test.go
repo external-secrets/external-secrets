@@ -220,7 +220,19 @@ want:
   err: ''
   result: secret-value
 ---
-case: good json with bad temlated jsonpath
+case: good json with jsonpath filter
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.secrets[?@.name=="thesecret"].value
+  response: '{"secrets": [{"name": "thesecret", "value": "secret-value"}, {"name": "alsosecret", "value": "another-value"}]}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: secret-value
+---
+case: good json with bad templated jsonpath
 args:
   url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
   key: testkey
@@ -231,6 +243,17 @@ args:
 want:
   path: /api/getsecret?id=testkey&version=1
   err: 'template: webhooktemplate:1: unexpected "}" in operand'
+---
+case: error with jsonpath filter empty results
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.secrets[?@.name=="thebadsecret"].value
+  response: '{"secrets": [{"name": "thesecret", "value": "secret-value"}, {"name": "alsosecret", "value": "another-value"}]}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: "filter worked but didn't get any result"
 `
 
 func TestWebhookGetSecret(t *testing.T) {
