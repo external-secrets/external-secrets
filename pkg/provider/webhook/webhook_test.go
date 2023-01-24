@@ -227,13 +227,12 @@ args:
   version: 1
   jsonpath: $.secrets[?@.name=="thesecret"].value
   response: '{"secrets": [{"name": "thesecret", "value": "secret-value"}, {"name": "alsosecret", "value": "another-value"}]}'
->>>>>>> 2c2047c4 (Add jsonpath filter support to webhook)
 want:
   path: /api/getsecret?id=testkey&version=1
   err: ''
   result: secret-value
 ---
-case: good json with bad temlated jsonpath
+case: good json with bad templated jsonpath
 args:
   url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
   key: testkey
