@@ -50,8 +50,28 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("VERSION"),
 				},
 				{
+					Key:   "extraArgs.loglevel",
+					Value: "debug",
+				},
+				{
 					Key:   installCRDsVar,
 					Value: "false",
+				},
+				{
+					Key:   "concurrent",
+					Value: "100",
+				},
+				{
+					Key:   "extraArgs.experimental-enable-vault-token-cache",
+					Value: "true",
+				},
+				{
+					Key:   "extraArgs.experimental-enable-aws-session-cache",
+					Value: "true",
+				},
+				{
+					Key:   "extraArgs.experimental-vault-token-cache-size",
+					Value: "10",
 				},
 			},
 		},

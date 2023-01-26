@@ -97,6 +97,19 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>sessionTokenSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The SessionToken used for authentication
+This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a></p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AWSJWTAuth">AWSJWTAuth
@@ -1354,6 +1367,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1367,6 +1394,51 @@ SecretStoreStatus
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ClusterSecretStoreCondition">ClusterSecretStoreCondition
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
+</p>
+<p>
+<p>ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
+for a ClusterSecretStore instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>namespaceSelector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespace using a labelSelector</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Choose namespaces by name</p>
 </td>
 </tr>
 </tbody>
@@ -1563,6 +1635,7 @@ SecretStoreRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -1738,6 +1811,8 @@ string
 </em>
 </td>
 <td>
+<p>SecretKey defines the key in which the controller stores
+the value. This is the key in the Kind=Secret</p>
 </td>
 </tr>
 <tr>
@@ -1750,6 +1825,22 @@ ExternalSecretDataRemoteRef
 </em>
 </td>
 <td>
+<p>RemoteRef points to the remote secret and defines
+which secret (version/property/..) to fetch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sourceRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SourceRef">
+SourceRef
+</a>
+</em>
+</td>
+<td>
+<p>SourceRef allows you to override the source
+from which the value will pulled from.</p>
 </td>
 </tr>
 </tbody>
@@ -1781,7 +1872,8 @@ ExternalSecretDataRemoteRef
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to extract multiple key/value pairs from one secret</p>
+<p>Used to extract multiple key/value pairs from one secret
+Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.</p>
 </td>
 </tr>
 <tr>
@@ -1795,7 +1887,8 @@ ExternalSecretFind
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to find secrets based on tags or regular expressions</p>
+<p>Used to find secrets based on tags or regular expressions
+Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.</p>
 </td>
 </tr>
 <tr>
@@ -1811,6 +1904,24 @@ ExternalSecretFind
 <em>(Optional)</em>
 <p>Used to rewrite secret Keys after getting them from the secret Provider
 Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sourceRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SourceRef">
+SourceRef
+</a>
+</em>
+</td>
+<td>
+<p>SourceRef points to a store or generator
+which contains secret values ready to use.
+Use this in combination with Extract or Find pull values out of
+a specific SecretStore.
+When sourceRef points to a generator Extract or Find is not supported.
+The generator returns a static map of values</p>
 </td>
 </tr>
 </tbody>
@@ -2179,6 +2290,7 @@ SecretStoreRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -2885,6 +2997,58 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GeneratorRef">GeneratorRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+</p>
+<p>
+<p>GeneratorRef points to a generator custom resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the apiVersion of the generator resource</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the name of the generator resource</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.GenericStore">GenericStore
 </h3>
 <p>
@@ -2975,6 +3139,39 @@ string
 </td>
 <td>
 <p>ProjectID specifies a project where secrets are located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>inheritFromGroups</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>InheritFromGroups specifies whether parent groups should be discovered and checked for secrets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groupIDs</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>GroupIDs specify, which gitlab groups to pull secrets from. Group secrets are read from left to right followed by the project variables.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Environment environment_scope of gitlab CI/CD variables (Please see <a href="https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment">https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment</a> on how to create environments)</p>
 </td>
 </tr>
 </tbody>
@@ -3713,6 +3910,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -4010,7 +4221,8 @@ DopplerProvider
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>)
+<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
 </p>
 <p>
 <p>SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.</p>
@@ -4155,6 +4367,20 @@ int
 <td>
 <em>(Optional)</em>
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
 </td>
 </tr>
 </tbody>
@@ -4403,6 +4629,55 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.SourceRef">SourceRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
+</p>
+<p>
+<p>SourceRef allows you to override the source
+from which the secret will be pulled from.
+You can define at maximum one property.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreRef">
+SecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>generatorRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorRef">
+GeneratorRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GeneratorRef points to a generator custom resource in</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.TemplateEngineVersion">TemplateEngineVersion
 (<code>string</code> alias)</p></h3>
 <p>
@@ -4462,6 +4737,43 @@ TemplateRef
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>scope</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateScope">
+TemplateScope
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>target</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateTarget">
+TemplateTarget
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>literal</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -4533,6 +4845,52 @@ string
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.TemplateScope">TemplateScope
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.TemplateFrom">TemplateFrom</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;KeysAndValues&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Values&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.TemplateTarget">TemplateTarget
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.TemplateFrom">TemplateFrom</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Annotations&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Data&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Labels&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;StringData&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.TokenAuth">TokenAuth
 </h3>

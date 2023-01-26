@@ -20,6 +20,8 @@ spec:
     vault:
       server: "http://my.vault.server:8200"
       path: "secret"
+      # Version is the Vault KV secret engine version.
+      # This can be either "v1" or "v2", defaults to "v2"
       version: "v2"
       auth:
         # points to a secret that contains a vault token
@@ -42,6 +44,14 @@ Then create a simple k/v pair at path `secret/foo`:
 ```
 vault kv put secret/foo my-value=s3cr3t
 ```
+
+Can check kv version using following and check for `Options` column, it should indicate [version:2]:
+
+```
+vault secrets list -detailed
+```
+
+If you are using version: 1, just remember to update your SecretStore manifest appropriately
 
 Now create a ExternalSecret that uses the above SecretStore:
 
@@ -269,7 +279,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 #### Kubernetes authentication
 
 [Kubernetes-native authentication](https://www.vaultproject.io/docs/auth/kubernetes) has three
-options of optaining credentials for vault:
+options of obtaining credentials for vault:
 
 1.  by using a service account jwt referenced in `serviceAccountRef`
 2.  by using the jwt from a `Kind=Secret` referenced by the `secretRef`
@@ -304,6 +314,16 @@ or `Kind=ClusterSecretStore` resource.
 {% include 'vault-jwt-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
+
+### PushSecret
+Vault supports PushSecret features which allow you to sync a given kubernetes secret key into a hashicorp vault secret. In order to do so, it is expected that the secret key is a valid JSON object.
+
+In order to use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets to. Use it with care!
+
+Here is an example on how to set it up:
+```yaml
+{% include 'vault-pushsecret.yaml' %}
+```
 
 ### Vault Enterprise
 

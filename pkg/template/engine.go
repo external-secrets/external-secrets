@@ -20,7 +20,7 @@ import (
 	v2 "github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
-type ExecFunc func(tpl, data map[string][]byte, secret *corev1.Secret) error
+type ExecFunc func(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error
 
 func EngineForVersion(version esapi.TemplateEngineVersion) (ExecFunc, error) {
 	switch version {

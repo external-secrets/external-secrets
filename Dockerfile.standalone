@@ -1,6 +1,9 @@
 # This version of Dockerfile is for building without external dependencies.
-FROM golang:1.19.2-alpine AS builder
-ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+# Build a multi-platform image e.g. `docker buildx build --push --platform linux/arm64,linux/amd64 --tag external-secrets:dev --file Dockerfile.standalone .`
+FROM golang:1.19.5-alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
+ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 WORKDIR /app
 # Avoid invalidating the `go mod download` cache when only code has changed.
 COPY go.mod go.sum /app/

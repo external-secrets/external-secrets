@@ -1,6 +1,9 @@
-The `ClusterExternalSecret` is a cluster scoped resource that can be used to push an `ExternalSecret` to specific namespaces.
+![ClusterExternalSecret](../pictures/diagrams-cluster-external-secrets.png)
 
-Using the `namespaceSelector` you can select namespaces, and any matching namespaces will have the `ExternalSecret` specified in the `externalSecretSpec` created in it.
+The `ClusterExternalSecret` is a cluster scoped resource that can be used to manage `ExternalSecret` resources in specific namespaces.
+
+With `namespaceSelector` you can select namespaces in which the ExternalSecret should be created.
+If there is a conflict with an existing resource the controller will error out.
 
 ## Example
 

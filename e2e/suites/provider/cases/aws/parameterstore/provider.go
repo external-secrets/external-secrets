@@ -34,7 +34,7 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
-	common "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
+	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
@@ -48,10 +48,10 @@ type Provider struct {
 	framework *framework.Framework
 }
 
-func NewProvider(f *framework.Framework, kid, sak, region, saName, saNamespace string) *Provider {
+func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespace string) *Provider {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
-			Credentials: credentials.NewStaticCredentials(kid, sak, ""),
+			Credentials: credentials.NewStaticCredentials(kid, sak, st),
 			Region:      aws.String(region),
 		},
 	})
@@ -68,19 +68,15 @@ func NewProvider(f *framework.Framework, kid, sak, region, saName, saNamespace s
 	}
 
 	BeforeEach(func() {
-		common.SetupStaticStore(f, kid, sak, region, esv1beta1.AWSServiceParameterStore)
+		awscommon.SetupStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceParameterStore)
+		awscommon.CreateReferentStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceParameterStore)
 		prov.SetupReferencedIRSAStore()
 		prov.SetupMountedIRSAStore()
 	})
 
 	AfterEach(func() {
-		// Cleanup ClusterSecretStore
-		err := prov.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: common.ReferencedIRSAStoreName(f),
-			},
-		})
-		Expect(err).ToNot(HaveOccurred())
+		prov.TeardownReferencedIRSAStore()
+		prov.TeardownMountedIRSAStore()
 	})
 
 	return prov
@@ -89,10 +85,11 @@ func NewProvider(f *framework.Framework, kid, sak, region, saName, saNamespace s
 func NewFromEnv(f *framework.Framework) *Provider {
 	kid := os.Getenv("AWS_ACCESS_KEY_ID")
 	sak := os.Getenv("AWS_SECRET_ACCESS_KEY")
-	region := "eu-west-1"
+	st := os.Getenv("AWS_SESSION_TOKEN")
+	region := os.Getenv("AWS_REGION")
 	saName := os.Getenv("AWS_SA_NAME")
 	saNamespace := os.Getenv("AWS_SA_NAMESPACE")
-	return NewProvider(f, kid, sak, region, saName, saNamespace)
+	return NewProvider(f, kid, sak, st, region, saName, saNamespace)
 }
 
 // CreateSecret creates a secret at the provider.
@@ -131,7 +128,7 @@ func (s *Provider) DeleteSecret(key string) {
 func (s *Provider) SetupMountedIRSAStore() {
 	secretStore := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      common.MountedIRSAStoreName(s.framework),
+			Name:      awscommon.MountedIRSAStoreName(s.framework),
 			Namespace: s.framework.Namespace.Name,
 		},
 		Spec: esv1beta1.SecretStoreSpec{
@@ -148,13 +145,21 @@ func (s *Provider) SetupMountedIRSAStore() {
 	Expect(err).ToNot(HaveOccurred())
 }
 
+func (s *Provider) TeardownMountedIRSAStore() {
+	s.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: awscommon.MountedIRSAStoreName(s.framework),
+		},
+	})
+}
+
 // ReferncedIRSAStore is a ClusterStore
 // that references a (IRSA-) ServiceAccount in the default namespace.
 func (s *Provider) SetupReferencedIRSAStore() {
 	log.Logf("creating IRSA ClusterSecretStore %s", s.framework.Namespace.Name)
 	secretStore := &esv1beta1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: common.ReferencedIRSAStoreName(s.framework),
+			Name: awscommon.ReferencedIRSAStoreName(s.framework),
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(context.Background(), s.framework.CRClient, secretStore, func() error {
@@ -175,4 +180,12 @@ func (s *Provider) SetupReferencedIRSAStore() {
 		return nil
 	})
 	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *Provider) TeardownReferencedIRSAStore() {
+	s.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: awscommon.ReferencedIRSAStoreName(s.framework),
+		},
+	})
 }

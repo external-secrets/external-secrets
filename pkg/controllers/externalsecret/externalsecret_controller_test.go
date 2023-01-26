@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
@@ -295,7 +296,8 @@ var _ = Describe("ExternalSecret controller", func() {
 			Eventually(func() bool {
 				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
-				return metric.GetCounter().GetValue() == 1.0 && metricDuration.GetGauge().GetValue() > 0.0
+				// three reconciliations: initial sync, status update, secret update
+				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 		}
 	}
@@ -438,6 +440,124 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	syncWithGeneratorRef := func(tc *testCase) {
+		const secretKey = "somekey"
+		const secretVal = "someValue"
+
+		Expect(k8sClient.Create(context.Background(), &genv1alpha1.Fake{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mytestfake",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: genv1alpha1.FakeSpec{
+				Data: map[string]string{
+					secretKey: secretVal,
+				},
+			},
+		})).To(Succeed())
+
+		// reset secretStoreRef
+		tc.externalSecret.Spec.SecretStoreRef = esv1beta1.SecretStoreRef{}
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				SourceRef: &esv1beta1.SourceRef{
+					GeneratorRef: &esv1beta1.GeneratorRef{
+						APIVersion: genv1alpha1.Group + "/" + genv1alpha1.Version,
+						Kind:       "Fake",
+						Name:       "mytestfake",
+					},
+				},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
+		}
+	}
+
+	syncWithMultipleSecretStores := func(tc *testCase) {
+		Expect(k8sClient.Create(context.Background(), &esv1beta1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "foo",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					Fake: &esv1beta1.FakeProvider{
+						Data: []esv1beta1.FakeProviderData{
+							{
+								Key:     "foo",
+								Version: "",
+								ValueMap: map[string]string{
+									"foo":  "bar",
+									"foo2": "bar2",
+								},
+							},
+						},
+					},
+				},
+			},
+		})).To(Succeed())
+
+		Expect(k8sClient.Create(context.Background(), &esv1beta1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "baz",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: esv1beta1.SecretStoreSpec{
+				Provider: &esv1beta1.SecretStoreProvider{
+					Fake: &esv1beta1.FakeProvider{
+						Data: []esv1beta1.FakeProviderData{
+							{
+								Key:     "baz",
+								Version: "",
+								ValueMap: map[string]string{
+									"baz":  "bang",
+									"baz2": "bang2",
+								},
+							},
+						},
+					},
+				},
+			},
+		})).To(Succeed())
+
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: "foo",
+				},
+				SourceRef: &esv1beta1.SourceRef{
+					SecretStoreRef: &esv1beta1.SecretStoreRef{
+						Name: "foo",
+						Kind: esv1beta1.SecretStoreKind,
+					},
+				},
+			},
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: "baz",
+				},
+				SourceRef: &esv1beta1.SourceRef{
+					SecretStoreRef: &esv1beta1.SecretStoreRef{
+						Name: "baz",
+						Kind: esv1beta1.SecretStoreKind,
+					},
+				},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["foo"])).To(Equal("bar"))
+			Expect(string(secret.Data["foo2"])).To(Equal("bar2"))
+			Expect(string(secret.Data["baz"])).To(Equal("bang"))
+			Expect(string(secret.Data["baz2"])).To(Equal("bang2"))
+		}
+	}
+
 	// when using a template it should be used as a blueprint
 	// to construct a new secret: labels, annotations and type
 	syncWithTemplate := func(tc *testCase) {
@@ -497,12 +617,12 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(expectedSecretVal))
 		}
 	}
-
-	// secret should be synced with correct value precedence:
-	// * template
-	// * templateFrom
-	// * data
-	// * dataFrom
+	// // secret should be synced with correct value precedence:
+	// // * fromString
+	// // * template data
+	// // * templateFrom
+	// // * data
+	// // * dataFrom
 	syncWithTemplatePrecedence := func(tc *testCase) {
 		const secretVal = "someValue"
 		const tplStaticKey = "tplstatickey"
@@ -584,6 +704,127 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(string(secret.Data["bar"])).To(Equal("value from map: map-bar-value"))
 			Expect(string(secret.Data[tplFromKey])).To(Equal("tpl-from-value: someValue // map-bar-value"))
 			Expect(string(secret.Data[tplFromSecKey])).To(Equal("tpl-from-sec-value: someValue // map-bar-value"))
+		}
+	}
+	syncTemplateFromKeysAndValues := func(tc *testCase) {
+		const tplFromCMName = "template-cm"
+		const tplFromSecretName = "template-secret"
+		const tplFromKey = "tpl-from-key"
+		const tplFromSecKey = "tpl-from-sec-key"
+		const tplFromVal = "{{ .targetKey }}-cm: {{ .targetValue }}"
+		const tplFromSecVal = "{{ .targetKey }}-sec: {{ .targetValue }}"
+		Expect(k8sClient.Create(context.Background(), &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tplFromCMName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string]string{
+				tplFromKey: tplFromVal,
+			},
+		})).To(Succeed())
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tplFromSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				tplFromSecKey: []byte(tplFromSecVal),
+			},
+		})).To(Succeed())
+		tc.externalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+			Metadata: esv1beta1.ExternalSecretTemplateMetadata{},
+			Type:     v1.SecretTypeOpaque,
+			TemplateFrom: []esv1beta1.TemplateFrom{
+				{
+					ConfigMap: &esv1beta1.TemplateRef{
+						Name: tplFromCMName,
+						Items: []esv1beta1.TemplateRefItem{
+							{
+								Key:        tplFromKey,
+								TemplateAs: esv1beta1.TemplateScopeKeysAndValues,
+							},
+						},
+					},
+				},
+				{
+					Secret: &esv1beta1.TemplateRef{
+						Name: tplFromSecretName,
+						Items: []esv1beta1.TemplateRefItem{
+							{
+								Key:        tplFromSecKey,
+								TemplateAs: esv1beta1.TemplateScopeKeysAndValues,
+							},
+						},
+					},
+				},
+			},
+		}
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: "datamap",
+				},
+			},
+		}
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"targetKey":   []byte(FooValue),
+			"targetValue": []byte(BarValue),
+		}, nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["map-foo-value-cm"])).To(Equal(BarValue))
+			Expect(string(secret.Data["map-foo-value-sec"])).To(Equal(BarValue))
+		}
+	}
+	syncTemplateFromLiteral := func(tc *testCase) {
+		tplDataVal := "{{ .targetKey }}-literal: {{ .targetValue }}"
+		tplAnnotationsVal := "{{ .targetKey }}-annotations: {{ .targetValue }}"
+		tplLabelsVal := "{{ .targetKey }}-labels: {{ .targetValue }}"
+		tplComplexVal := `
+{{- range $k, $v := ( .complex | fromJson )}}
+{{ $k }}: {{ $v }}
+{{- end }}
+`
+		tc.externalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+			Metadata: esv1beta1.ExternalSecretTemplateMetadata{},
+			Type:     v1.SecretTypeOpaque,
+			TemplateFrom: []esv1beta1.TemplateFrom{
+				{
+					Literal: &tplDataVal,
+				},
+				{
+					Literal: &tplComplexVal,
+				},
+				{
+					Target:  esv1beta1.TemplateTargetAnnotations,
+					Literal: &tplAnnotationsVal,
+				},
+				{
+					Target:  esv1beta1.TemplateTargetLabels,
+					Literal: &tplLabelsVal,
+				},
+			},
+		}
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key: "datamap",
+				},
+			},
+		}
+		fakeProvider.WithGetSecretMap(map[string][]byte{
+			"targetKey":   []byte(FooValue),
+			"targetValue": []byte(BarValue),
+			"complex":     []byte("{\"nested\":\"json\",\"can\":\"be\",\"templated\":\"successfully\"}"),
+		}, nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data["map-foo-value-literal"])).To(Equal(BarValue))
+			Expect(string(secret.Data["nested"])).To(Equal("json"))
+			Expect(string(secret.Data["can"])).To(Equal("be"))
+			Expect(string(secret.Data["templated"])).To(Equal("successfully"))
+			Expect(secret.ObjectMeta.Annotations["map-foo-value-annotations"]).To(Equal(BarValue))
+			Expect(secret.ObjectMeta.Labels["map-foo-value-labels"]).To(Equal(BarValue))
 		}
 	}
 
@@ -1669,9 +1910,13 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
+		Entry("should sync with generatorRef", syncWithGeneratorRef),
+		Entry("should sync with multiple secret stores via sourceRef", syncWithMultipleSecretStores),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync with template engine v2", syncWithTemplateV2),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
+		Entry("should sync template from keys and values", syncTemplateFromKeysAndValues),
+		Entry("should sync template from literal", syncTemplateFromLiteral),
 		Entry("should refresh secret from template", refreshWithTemplate),
 		Entry("should be able to use only metadata from template", onlyMetadataFromTemplate),
 		Entry("should refresh secret value when provider secret changes", refreshSecretValue),

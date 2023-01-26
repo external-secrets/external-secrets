@@ -32,19 +32,56 @@ func (f Auth) Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Se
 type ReadWithDataWithContextFn func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
 type ListWithContextFn func(ctx context.Context, path string) (*vault.Secret, error)
 type WriteWithContextFn func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error)
-
+type DeleteWithContextFn func(ctx context.Context, path string) (*vault.Secret, error)
 type Logical struct {
 	ReadWithDataWithContextFn ReadWithDataWithContextFn
 	ListWithContextFn         ListWithContextFn
 	WriteWithContextFn        WriteWithContextFn
+	DeleteWithContextFn       DeleteWithContextFn
 }
 
-func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithDataWithContextFn {
-	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+func (f Logical) DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error) {
+	return f.DeleteWithContextFn(ctx, path)
+}
+func NewDeleteWithContextFn(secret map[string]interface{}, err error) DeleteWithContextFn {
+	return func(ctx context.Context, path string) (*vault.Secret, error) {
 		vault := &vault.Secret{
 			Data: secret,
 		}
 		return vault, err
+	}
+}
+
+func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithDataWithContextFn {
+	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+		if secret == nil {
+			return nil, err
+		}
+		vault := &vault.Secret{
+			Data: secret,
+		}
+		return vault, err
+	}
+}
+
+func NewWriteWithContextFn(secret map[string]interface{}, err error) WriteWithContextFn {
+	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		vault := &vault.Secret{
+			Data: secret,
+		}
+		return vault, err
+	}
+}
+
+func WriteChangingReadContext(secret map[string]interface{}, l Logical) WriteWithContextFn {
+	v := &vault.Secret{
+		Data: secret,
+	}
+	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		l.ReadWithDataWithContextFn = func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+			return v, nil
+		}
+		return v, nil
 	}
 }
 

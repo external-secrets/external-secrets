@@ -7,6 +7,10 @@ edit_uri: ./edit/main/docs/
 remote_branch: gh-pages
 theme:
   name: material
+  features:
+    - navigation.tabs
+    - navigation.indexes
+    - navigation.expand
   custom_dir: ../../overrides
 markdown_extensions:
   - pymdownx.highlight
@@ -31,19 +35,38 @@ extra:
     provider: google
     property: G-QP38TD8K7V
 nav:
-  - Introduction: index.md
-  - Overview: overview.md
-  - API Types:
-      ExternalSecret: api/externalsecret.md
-      SecretStore: api/secretstore.md
-      ClusterSecretStore: api/clustersecretstore.md
-      ClusterExternalSecret: api/clusterexternalsecret.md
+  - Introduction:
+    - Introduction: index.md
+    - Overview: introduction/overview.md
+    - Getting started: introduction/getting-started.md
+    - FAQ: introduction/faq.md
+    - Stability and Support: introduction/stability-support.md
+    - Deprecation Policy: introduction/deprecation-policy.md
+  - API:
+    - Components: api/components.md
+    - Core Resources:
+      - ExternalSecret: api/externalsecret.md
+      - SecretStore: api/secretstore.md
+      - ClusterSecretStore: api/clustersecretstore.md
+      - ClusterExternalSecret: api/clusterexternalsecret.md
+      - PushSecret: api/pushsecret.md
+    - Generators:
+      - "api/generator/index.md"
+      - Azure Container Registry: api/generator/acr.md
+      - AWS Elastic Container Registry: api/generator/ecr.md
+      - Google Container Registry: api/generator/gcr.md
+      - Password: api/generator/password.md
+      - Fake: api/generator/fake.md
+    - Reference Docs:
+      - API specification: api/spec.md
+      - Controller Options: api/controller-options.md
+      - Metrics: api/metrics.md
   - Guides:
     - Introduction: guides/introduction.md
-    - Getting started: guides/getting-started.md
     - Advanced Templating:
         v2: guides/templating.md
         v1: guides/templating-v1.md
+    - Generators: guides/generator.md
     - All keys, One secret: guides/all-keys-one-secret.md
     - Common K8S Secret Types: guides/common-k8s-secret-types.md
     - Controller Classes: guides/controller-class.md
@@ -51,54 +74,39 @@ nav:
     - Decoding Strategies: guides/decoding-strategy.md
     - Getting Multiple Secrets: guides/getallsecrets.md
     - Multi Tenancy: guides/multi-tenancy.md
-    - Metrics: guides/metrics.md
     - Rewriting Keys: guides/datafrom-rewrite.md
     - Upgrading to v1beta1: guides/v1beta1.md
     - Using Latest Image: guides/using-latest-image.md
   - Provider:
-    - AWS:
-      - Secrets Manager: provider/aws-secrets-manager.md
-      - Parameter Store: provider/aws-parameter-store.md
-    - Azure:
-      - Key Vault: provider/azure-key-vault.md
-
-    - Google:
-      - Secret Manager: provider/google-secrets-manager.md
-    - IBM:
-      - Secrets Manager: provider/ibm-secrets-manager.md
+    - AWS Secrets Manager: provider/aws-secrets-manager.md
+    - AWS Parameter Store: provider/aws-parameter-store.md
+    - Azure Key Vault: provider/azure-key-vault.md
+    - Google Secret Manager: provider/google-secrets-manager.md
+    - IBM Secrets Manager: provider/ibm-secrets-manager.md
     - Akeyless: provider/akeyless.md
     - HashiCorp Vault: provider/hashicorp-vault.md
-    - Yandex:
-        - Certificate Manager: provider/yandex-certificate-manager.md
-        - Lockbox: provider/yandex-lockbox.md
-    - Gitlab:
-      - Gitlab Project Variables: provider/gitlab-project-variables.md
-    - Oracle:
-      - Oracle Vault: provider/oracle-vault.md
-    - 1Password:
-      - Secrets Automation: provider/1password-automation.md
+    - Yandex Certificate Manager: provider/yandex-certificate-manager.md
+    - Yandex Lockbox: provider/yandex-lockbox.md
+    - Gitlab Variables: provider/gitlab-variables.md
+    - Oracle Vault: provider/oracle-vault.md
+    - 1Password Secrets Automation: provider/1password-automation.md
     - Webhook: provider/webhook.md
     - Fake: provider/fake.md
     - Kubernetes: provider/kubernetes.md
-    - senhasegura:
-      - DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
+    - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
     - Doppler: provider/doppler.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
     - Jenkins: examples/jenkins-kubernetes-credentials.md
-  - External Resources:
-    - Talks: eso-talks.md
-    - Demos: eso-demos.md
-    - Blogs: eso-blogs.md
-  - References:
-    - API specification: spec.md
-  - Contributing:
-    - Developer guide: contributing/devguide.md
-    - Contributing Process: contributing/process.md
-    - Release Process: contributing/release.md
-    - Code of Conduct: contributing/coc.md
-    - Roadmap: contributing/roadmap.md
-  - FAQ: faq.md
-  - Stability and Support: stability-support.md
-  - Deprecation Policy: deprecation-policy.md
+  - Community:
+    - Contributing:
+      - Developer guide: contributing/devguide.md
+      - Contributing Process: contributing/process.md
+      - Release Process: contributing/release.md
+      - Code of Conduct: contributing/coc.md
+      - Roadmap: contributing/roadmap.md
+    - External Resources:
+      - Talks: eso-talks.md
+      - Demos: eso-demos.md
+      - Blogs: eso-blogs.md

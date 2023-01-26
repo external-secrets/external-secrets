@@ -84,30 +84,48 @@ _Also see [examples below](#examples) for matching SecretStore and ExternalSecre
 #### Scripting (Password type with op [CLI](https://developer.1password.com/docs/cli/v1/get-started/))
 * Create `file.json` with the following contents, swapping in your keys and values. Note: `section.name`'s and `section.title`'s values are ignored by the Operator, but cannot be empty for the `op` CLI
     ```json
-    {
-      "sections": [
-        {
-          "fields": [
-            {
-              "k": "concealed",
-              "n": "MY_ENV_VAR1",
-              "t": "MY_ENV_VAR1",
-              "v": "value1"
+       {
+        "title": "my-title",
+        "vault": {
+          "id": "vault-id"
+        },
+        "category": "LOGIN",
+        "fields": [
+          {
+            "id": "username",
+            "type": "STRING",
+            "purpose": "USERNAME",
+            "label": "username",
+            "value": "a-username"
+          },
+          {
+            "id": "password",
+            "type": "CONCEALED",
+            "purpose": "PASSWORD",
+            "label": "password",
+            "password_details": {
+              "strength": "TERRIBLE"
             },
-            {
-              "k": "concealed",
-              "n": "MY_ENV_VAR2",
-              "t": "MY_ENV_VAR2",
-              "v": "value2"
-            }
-          ],
-          "name": "EXTERNAL-SECRETS",
-          "title": "EXTERNAL-SECRETS"
-        }
-      ]
-    }
+            "value": "a-password"
+          },
+          {
+            "id": "notesPlain",
+            "type": "STRING",
+            "purpose": "NOTES",
+            "label": "notesPlain",
+            "value": "notesPlain"
+          },
+          {
+            "id": "customField",
+            "type": "CONCEALED",
+            "purpose": "custom",
+            "label": "custom",
+            "value": "custom-value"
+          }
+        ]
+      }
     ```
-* Run `op create item password --template file.json --vault my-vault --title my-item`
+* Run `op item create --template file.json`
 #### Scripting (Document type)
 * Unfortunately the `op` CLI doesn't seem to support uploading multiple files to the same Item, and the current Go lib has a [bug](https://github.com/1Password/connect-sdk-go/issues/45). `op` can be used to create a Document type Item with one file in it, but for now it's necessary to add multiple files to the same Document via the GUI.
 

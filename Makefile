@@ -5,8 +5,9 @@ SHELL         := /bin/bash
 MAKEFLAGS     += --warn-undefined-variables
 .SHELLFLAGS   := -euo pipefail -c
 
-ARCH = amd64 arm64
-BUILD_ARGS ?=
+ARCH ?= amd64 arm64
+BUILD_ARGS ?= CGO_ENABLED=0
+DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
 
 # default target is build
@@ -19,8 +20,6 @@ export IMAGE_REGISTRY ?= ghcr.io
 export IMAGE_REPO     ?= external-secrets/external-secrets
 export IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE_REPO)
 
-#Valid licenses for license.check
-LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause
 BUNDLE_DIR     ?= deploy/crds
 CRD_DIR     ?= config/crds
 
@@ -73,22 +72,9 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate helm.generate helm.docs lint ## Ensure a PR is ready for review.
+reviewable: generate docs manifests helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
-
-golicenses.check: ## Check install of go-licenses
-	@if ! go-licenses >> /dev/null 2>&1; then \
-		echo -e "\033[0;33mgo-licenses is not installed: run go install github.com/google/go-licenses@latest" ; \
-		exit 1; \
-	fi
-
-license.check: golicenses.check
-	@$(INFO) running dependency license checks
-	@ok=0; go-licenses csv github.com/external-secrets/external-secrets 2>/dev/null | \
-	 grep -v -E '${LICENSES}' | \
-	 tr "," " " | awk '{print "Invalid License " $$3 " for dependency " $$1 }'|| ok=1; \
-	 if [[ $$ok -eq 1 ]]; then $(OK) dependencies are compliant; else $(FAIL); fi
 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
@@ -122,7 +108,7 @@ build: $(addprefix build-,$(ARCH)) ## Build binary
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$* \
+	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
@@ -220,7 +206,7 @@ docker.tag:
 
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	@docker build -f $(DOCKERFILE) . $(BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
 docker.push: ## Push the docker image to the registry
@@ -235,12 +221,12 @@ SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
-	docker manifest inspect $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
-	for digest in $$(jq -r '.manifests[].digest' < .tagmanifest); do \
+	docker manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
+	for digest in $$(jq -r 'if type=="array" then .[].Descriptor.digest else .Descriptor.digest end' < .tagmanifest); do \
 		docker pull $(IMAGE_NAME)@$$digest; \
 	done
 	docker manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
-		$$(jq -j '"--amend $(IMAGE_NAME)@" + .manifests[].digest + " "' < .tagmanifest)
+		$$(jq -j '"--amend $(IMAGE_NAME)@" + if type=="array" then .[].Descriptor.digest else .Descriptor.digest end + " "' < .tagmanifest)
 	docker manifest push $(IMAGE_NAME):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
 

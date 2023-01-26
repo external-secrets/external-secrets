@@ -21,10 +21,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
 	"github.com/googleapis/gax-go/v2"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
-	credentialspb "google.golang.org/genproto/googleapis/iam/credentials/v1"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,8 +83,8 @@ func TestWorkloadIdentity(t *testing.T) {
 			}),
 		),
 		composeTestcase(
-			defaultTestCase("invalid ClusterSecretStore: missing service account namespace"),
-			expErr("invalid ClusterSecretStore: missing GCP Service Account Namespace"),
+			defaultTestCase("ClusterSecretStore: referent auth / service account without namespace"),
+			expTokenSource(),
 			withStore(
 				composeStore(defaultClusterStore()),
 			),
@@ -92,6 +92,22 @@ func TestWorkloadIdentity(t *testing.T) {
 				&v1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "example",
+						Namespace:   "default",
+						Annotations: map[string]string{},
+					},
+				},
+			}),
+		),
+		composeTestcase(
+			defaultTestCase("ClusterSecretStore: invalid service account"),
+			expErr("foobar"),
+			withStore(
+				composeStore(defaultClusterStore()),
+			),
+			withK8sResources([]client.Object{
+				&v1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "does not exist",
 						Namespace:   "default",
 						Annotations: map[string]string{},
 					},
