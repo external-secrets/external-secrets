@@ -848,7 +848,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.secretName = "name"
 		smtc.expectedSecret = ""
 		smtc.expectError = fmt.Sprintf("unknown Azure Keyvault object Type for %s", smtc.secretName)
-		smtc.ref.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
+		smtc.ref.Key = fmt.Sprintf("example/%s", smtc.secretName)
 	}
 
 	setSecretWithTag := func(smtc *secretManagerTestCase) {
@@ -1193,7 +1193,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.secretName = "name"
 		smtc.expectedSecret = ""
 		smtc.expectError = fmt.Sprintf("unknown Azure Keyvault object Type for %s", smtc.secretName)
-		smtc.ref.Key = fmt.Sprintf("dummy/%s", smtc.secretName)
+		smtc.ref.Key = fmt.Sprintf("example/%s", smtc.secretName)
 	}
 
 	setSecretTags := func(smtc *secretManagerTestCase) {
