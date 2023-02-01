@@ -1400,7 +1400,8 @@ func init() {
 	var vaultTokenCacheSize int
 	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
 	fs.BoolVar(&enableCache, "experimental-enable-vault-token-cache", false, "Enable experimental Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.")
-	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", 100, "Maximum size of Vault token cache. Only used if --experimental-enable-vault-token-cache is set.")
+	// max. 265k vault leases with 30bytes each ~= 7MB
+	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", 2<<17, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
 	lateInit := func() {
 		logger.Info("initializing vault cache with size=%d", vaultTokenCacheSize)
 		clientCache = cache.Must(vaultTokenCacheSize, func(client Client) {
