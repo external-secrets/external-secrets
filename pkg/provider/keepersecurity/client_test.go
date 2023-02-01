@@ -29,7 +29,7 @@ const (
 
 func TestClientDeleteSecret(t *testing.T) {
 	type fields struct {
-		ksmClient KeeperSecurityClient
+		ksmClient SecurityClient
 		folderID  string
 	}
 	type args struct {
@@ -117,7 +117,7 @@ func TestClientDeleteSecret(t *testing.T) {
 
 func TestClientGetAllSecrets(t *testing.T) {
 	type fields struct {
-		ksmClient KeeperSecurityClient
+		ksmClient SecurityClient
 		folderID  string
 	}
 	type args struct {
@@ -231,7 +231,7 @@ func TestClientGetAllSecrets(t *testing.T) {
 
 func TestClientGetSecret(t *testing.T) {
 	type fields struct {
-		ksmClient KeeperSecurityClient
+		ksmClient SecurityClient
 		folderID  string
 	}
 	type args struct {
@@ -342,7 +342,7 @@ func TestClientGetSecret(t *testing.T) {
 
 func TestClientGetSecretMap(t *testing.T) {
 	type fields struct {
-		ksmClient KeeperSecurityClient
+		ksmClient SecurityClient
 		folderID  string
 	}
 	type args struct {
@@ -458,7 +458,7 @@ func TestClientGetSecretMap(t *testing.T) {
 
 func TestClientPushSecret(t *testing.T) {
 	type fields struct {
-		ksmClient KeeperSecurityClient
+		ksmClient SecurityClient
 		folderID  string
 	}
 	type args struct {

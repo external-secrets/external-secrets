@@ -13,40 +13,40 @@ import (
 )
 
 const (
-	errKeeperSecuritySecretsNotFound            = "Unable to find secrets. %w"
-	errKeeperSecuritySecretNotFound             = "Unable to find secret %s. Error: %w"
-	errKeeperSecuritySecretNotUnique            = "More than 1 secret %s found"
-	errKeeperSecurityNoSecretsFound             = "No secrets found"
-	errKeeperSecurityInvalidSecretInvalidFormat = "Invalid secret. Invalid format: %w"
-	errKeeperSecurityInvalidSecretDuplicatedKey = "Invalid Secret. Following keys are duplicated %s"
-	errKeeperSecurityInvalidProperty            = "Invalid Property. Secret %s does not have any key matching %s"
-	errKeeperSecurityInvalidField               = "Invalid Field. Key %s does not exists"
-	errKeeperSecurityNoFields                   = "Invalid Secret. Secret %s does not contain any valid field/file"
+	errKeeperSecuritySecretsNotFound            = "unable to find secrets. %w"
+	errKeeperSecuritySecretNotFound             = "unable to find secret %s. Error: %w"
+	errKeeperSecuritySecretNotUnique            = "more than 1 secret %s found"
+	errKeeperSecurityNoSecretsFound             = "no secrets found"
+	errKeeperSecurityInvalidSecretInvalidFormat = "invalid secret. Invalid format: %w"
+	errKeeperSecurityInvalidSecretDuplicatedKey = "invalid Secret. Following keys are duplicated %s"
+	errKeeperSecurityInvalidProperty            = "invalid Property. Secret %s does not have any key matching %s"
+	errKeeperSecurityInvalidField               = "invalid Field. Key %s does not exists"
+	errKeeperSecurityNoFields                   = "invalid Secret. Secret %s does not contain any valid field/file"
 	keeperSecurityFileRef                       = "fileRef"
 	keeperSecurityMfa                           = "oneTimeCode"
 	errTagsNotImplemented                       = "'find.tags' is not implemented in the KeeperSecurity provider"
 	errPathNotImplemented                       = "'find.path' is not implemented in the KeeperSecurity provider"
-	errInvalidJsonSecret                        = "Invalid Secret. Secret %s can not be converted to JSON. %w"
+	errInvalidJSONSecret                        = "invalid Secret. Secret %s can not be converted to JSON. %w"
 	errInvalidRegex                             = "find.name.regex. Invalid Regular expresion %s. %w"
 	errInvalidRemoteRefKey                      = "match.remoteRef.remoteKey. Invalid format. Format should match secretName/key got %s"
 	errInvalidSecretType                        = "ESO can only push/delete %s record types. Secret %s is type %s"
-	errFieldNotFound                            = "Secret %s does not contain any custom field with label %s"
+	errFieldNotFound                            = "secret %s does not contain any custom field with label %s"
 
 	externalSecretType = "externalSecrets"
 	secretType         = "secret"
 	LoginType          = "login"
 	LoginTypeExpr      = "login|username"
 	PasswordType       = "password"
-	UrlTypeExpr        = "url|baseurl"
-	UrlType            = "url"
+	URLTypeExpr        = "url|baseurl"
+	URLType            = "url"
 )
 
 type Client struct {
-	ksmClient KeeperSecurityClient
+	ksmClient SecurityClient
 	folderID  string
 }
 
-type KeeperSecurityClient interface {
+type SecurityClient interface {
 	GetSecrets(filter []string) ([]*ksm.Record, error)
 	GetSecretByTitle(recordTitle string) (*ksm.Record, error)
 	CreateSecretWithRecordData(recUID, folderUID string, recordData *ksm.RecordCreate) (string, error)
@@ -54,37 +54,36 @@ type KeeperSecurityClient interface {
 	Save(record *ksm.Record) error
 }
 
-type KeeperSecurityField struct {
+type Field struct {
 	Type  string   `json:"type"`
 	Value []string `json:"value"`
 }
 
-type KeeperSecurityCustomField struct {
+type CustomField struct {
 	Type  string   `json:"type"`
 	Label string   `json:"label"`
 	Value []string `json:"value"`
 }
 
-type KeeperSecurityFile struct {
+type File struct {
 	Title   string `json:"type"`
 	Content string `json:"content"`
 }
 
-type KeeperSecuritySecret struct {
-	Title  string                      `json:"title"`
-	Type   string                      `json:"type"`
-	Fields []KeeperSecurityField       `json:"fields"`
-	Custom []KeeperSecurityCustomField `json:"custom"`
-	Files  []KeeperSecurityFile        `json:"files"`
+type Secret struct {
+	Title  string        `json:"title"`
+	Type   string        `json:"type"`
+	Fields []Field       `json:"fields"`
+	Custom []CustomField `json:"custom"`
+	Files  []File        `json:"files"`
 }
 
 func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
-
 	return esv1beta1.ValidationResultReady, nil
 }
 
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	record, err := c.findSecretById(ref.Key)
+	record, err := c.findSecretByID(ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +96,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	record, err := c.findSecretById(ref.Key)
+	record, err := c.findSecretByID(ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +142,6 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 }
 
 func (c *Client) Close(ctx context.Context) error {
-
 	return nil
 }
 
@@ -173,7 +171,6 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-
 	parts, err := c.buildSecretNameAndKey(remoteRef)
 	if err != nil {
 		return err
@@ -207,7 +204,7 @@ func (c *Client) createSecret(name string, key string, value []byte) (string, er
 	externalSecretRecord := ksm.NewRecordCreate(externalSecretType, name)
 	login := regexp.MustCompile(LoginTypeExpr)
 	pass := regexp.MustCompile(PasswordType)
-	url := regexp.MustCompile(UrlTypeExpr)
+	url := regexp.MustCompile(URLTypeExpr)
 
 	switch {
 	case login.MatchString(normalizedKey):
@@ -234,11 +231,11 @@ func (c *Client) createSecret(name string, key string, value []byte) (string, er
 }
 
 func (c *Client) updateSecret(secret *ksm.Record, key string, value []byte) error {
-
 	normalizedKey := strings.ToLower(key)
 	login := regexp.MustCompile(LoginTypeExpr)
 	pass := regexp.MustCompile(PasswordType)
-	url := regexp.MustCompile(UrlTypeExpr)
+	url := regexp.MustCompile(URLTypeExpr)
+	custom := false
 
 	switch {
 	case login.MatchString(normalizedKey):
@@ -246,22 +243,24 @@ func (c *Client) updateSecret(secret *ksm.Record, key string, value []byte) erro
 	case pass.MatchString(normalizedKey):
 		secret.SetPassword(string(value))
 	case url.MatchString(normalizedKey):
-		secret.SetFieldValueSingle(UrlType, string(value))
+		secret.SetFieldValueSingle(URLType, string(value))
 	default:
+		custom = true
+	}
+	if custom {
 		field := secret.GetCustomFieldValueByLabel(key)
-		if field == "" {
-			return fmt.Errorf(errFieldNotFound, secret.Title(), key)
-		} else {
+		if field != "" {
 			secret.SetCustomFieldValueSingle(key, string(value))
+		} else {
+			return fmt.Errorf(errFieldNotFound, secret.Title(), key)
 		}
 	}
 
 	return c.ksmClient.Save(secret)
 }
 
-func (c *Client) getValidKeeperSecret(secret *ksm.Record) (*KeeperSecuritySecret, error) {
-
-	keeperSecret := KeeperSecuritySecret{}
+func (c *Client) getValidKeeperSecret(secret *ksm.Record) (*Secret, error) {
+	keeperSecret := Secret{}
 	err := json.Unmarshal([]byte(secret.RawJson), &keeperSecret)
 	if err != nil {
 		return nil, fmt.Errorf(errKeeperSecurityInvalidSecretInvalidFormat, err)
@@ -276,7 +275,6 @@ func (c *Client) getValidKeeperSecret(secret *ksm.Record) (*KeeperSecuritySecret
 }
 
 func (c *Client) findSecrets() ([]*ksm.Record, error) {
-
 	records, err := c.ksmClient.GetSecrets([]string{})
 	if err != nil {
 		return nil, fmt.Errorf(errKeeperSecuritySecretsNotFound, err)
@@ -285,8 +283,7 @@ func (c *Client) findSecrets() ([]*ksm.Record, error) {
 	return records, nil
 }
 
-func (c *Client) findSecretById(id string) (*ksm.Record, error) {
-
+func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 	records, err := c.ksmClient.GetSecrets([]string{id})
 	if err != nil {
 		return nil, fmt.Errorf(errKeeperSecuritySecretNotFound, id, err)
@@ -303,7 +300,6 @@ func (c *Client) findSecretById(id string) (*ksm.Record, error) {
 }
 
 func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
-
 	record, err := c.ksmClient.GetSecretByTitle(name)
 	if err != nil {
 		return nil, err
@@ -312,7 +308,7 @@ func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
 	return record, nil
 }
 
-func (s *KeeperSecuritySecret) validate() error {
+func (s *Secret) validate() error {
 	fields := make(map[string]int)
 	for _, field := range s.Fields {
 		fields[field.Type]++
@@ -338,11 +334,11 @@ func (s *KeeperSecuritySecret) validate() error {
 	return nil
 }
 
-func (s *KeeperSecuritySecret) addFiles(keeperFiles []*ksm.KeeperFile) {
+func (s *Secret) addFiles(keeperFiles []*ksm.KeeperFile) {
 	for _, f := range keeperFiles {
 		s.Files = append(
 			s.Files,
-			KeeperSecurityFile{
+			File{
 				Title:   f.Title,
 				Content: string(f.GetFileData()),
 			},
@@ -350,7 +346,7 @@ func (s *KeeperSecuritySecret) addFiles(keeperFiles []*ksm.KeeperFile) {
 	}
 }
 
-func (s *KeeperSecuritySecret) getItem(ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (s *Secret) getItem(ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Property != "" {
 		return s.getProperty(ref.Property)
 	}
@@ -359,7 +355,7 @@ func (s *KeeperSecuritySecret) getItem(ref esv1beta1.ExternalSecretDataRemoteRef
 	return []byte(secret), err
 }
 
-func (s *KeeperSecuritySecret) getItems(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (s *Secret) getItems(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	if ref.Property != "" {
 		value, err := s.getProperty(ref.Property)
@@ -385,7 +381,7 @@ func (s *KeeperSecuritySecret) getItems(ref esv1beta1.ExternalSecretDataRemoteRe
 	return secretData, nil
 }
 
-func (s *KeeperSecuritySecret) getField(key string) ([]byte, error) {
+func (s *Secret) getField(key string) ([]byte, error) {
 	for _, field := range s.Fields {
 		if field.Type == key && field.Type != keeperSecurityFileRef && field.Type != keeperSecurityMfa && len(field.Value) > 0 {
 			return []byte(field.Value[0]), nil
@@ -395,7 +391,7 @@ func (s *KeeperSecuritySecret) getField(key string) ([]byte, error) {
 	return nil, fmt.Errorf(errKeeperSecurityInvalidField, key)
 }
 
-func (s *KeeperSecuritySecret) getFields() map[string][]byte {
+func (s *Secret) getFields() map[string][]byte {
 	secretData := make(map[string][]byte)
 	for _, field := range s.Fields {
 		if len(field.Value) > 0 {
@@ -406,7 +402,7 @@ func (s *KeeperSecuritySecret) getFields() map[string][]byte {
 	return secretData
 }
 
-func (s *KeeperSecuritySecret) getCustomField(key string) ([]byte, error) {
+func (s *Secret) getCustomField(key string) ([]byte, error) {
 	for _, field := range s.Custom {
 		if field.Label == key && len(field.Value) > 0 {
 			return []byte(field.Value[0]), nil
@@ -416,7 +412,7 @@ func (s *KeeperSecuritySecret) getCustomField(key string) ([]byte, error) {
 	return nil, fmt.Errorf(errKeeperSecurityInvalidField, key)
 }
 
-func (s *KeeperSecuritySecret) getCustomFields() map[string][]byte {
+func (s *Secret) getCustomFields() map[string][]byte {
 	secretData := make(map[string][]byte)
 	for _, field := range s.Custom {
 		if len(field.Value) > 0 {
@@ -427,7 +423,7 @@ func (s *KeeperSecuritySecret) getCustomFields() map[string][]byte {
 	return secretData
 }
 
-func (s *KeeperSecuritySecret) getFile(key string) ([]byte, error) {
+func (s *Secret) getFile(key string) ([]byte, error) {
 	for _, file := range s.Files {
 		if file.Title == key {
 			return []byte(file.Content), nil
@@ -437,7 +433,7 @@ func (s *KeeperSecuritySecret) getFile(key string) ([]byte, error) {
 	return nil, fmt.Errorf(errKeeperSecurityInvalidField, key)
 }
 
-func (s *KeeperSecuritySecret) getProperty(key string) ([]byte, error) {
+func (s *Secret) getProperty(key string) ([]byte, error) {
 	field, _ := s.getField(key)
 	if field != nil {
 		return field, nil
@@ -454,7 +450,7 @@ func (s *KeeperSecuritySecret) getProperty(key string) ([]byte, error) {
 	return nil, fmt.Errorf(errKeeperSecurityInvalidProperty, s.Title, key)
 }
 
-func (s *KeeperSecuritySecret) getFiles() map[string][]byte {
+func (s *Secret) getFiles() map[string][]byte {
 	secretData := make(map[string][]byte)
 	for _, file := range s.Files {
 		secretData[file.Title] = []byte(file.Content)
@@ -463,12 +459,11 @@ func (s *KeeperSecuritySecret) getFiles() map[string][]byte {
 	return secretData
 }
 
-func (s *KeeperSecuritySecret) toString() (string, error) {
-
-	secretJson, err := json.Marshal(s)
+func (s *Secret) toString() (string, error) {
+	secretJSON, err := json.Marshal(s)
 	if err != nil {
-		return "", fmt.Errorf(errInvalidJsonSecret, s.Title, err)
+		return "", fmt.Errorf(errInvalidJSONSecret, s.Title, err)
 	}
 
-	return string(secretJson), nil
+	return string(secretJSON), nil
 }
