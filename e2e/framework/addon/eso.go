@@ -69,10 +69,6 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Key:   "extraArgs.experimental-enable-aws-session-cache",
 					Value: "true",
 				},
-				{
-					Key:   "extraArgs.experimental-vault-token-cache-size",
-					Value: "10",
-				},
 			},
 		},
 	}
