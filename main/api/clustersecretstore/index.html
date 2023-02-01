@@ -1970,6 +1970,7 @@
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span><span class="w"></span>
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span><span class="w"></span>
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myproject</span><span class="w"></span>
+
 <span class="w">    </span><span class="c1"># (3): Kubernetes provider</span><span class="w"></span>
 <span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"></span>
@@ -1983,6 +1984,28 @@
 <span class="w">        </span><span class="nt">serviceAccount</span><span class="p">:</span><span class="w"></span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example-sa&quot;</span><span class="w"></span>
 <span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example&quot;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1"># (4): Oracle provider</span><span class="w"></span>
+<span class="w">    </span><span class="nt">oracle</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># The vault OCID</span><span class="w"></span>
+<span class="w">      </span><span class="nt">vault</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocid1.vault.oc1.eu-frankfurt-1.aaa1aaaaaaaaa.aaaaaaaaaaaaaa1aaaaaaa111aaaaaaaaaaaaaaaa</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># The vault region</span><span class="w"></span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-frankfurt-1</span><span class="w"></span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># The user OCID</span><span class="w"></span>
+<span class="w">        </span><span class="nt">user</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocid1.user.oc1..aaa1aaaaaaaaa.aaaaaaaaaaaaaa1aaaaaaa111aaaaaaaaaaaaaaaa</span><span class="w"></span>
+<span class="w">        </span><span class="c1"># The tenancy OCID</span><span class="w"></span>
+<span class="w">        </span><span class="nt">tenancy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ocid1.tenancy.oc1..aaa1aaaaaaaaa.aaaaaaaaaaaaaa1aaaaaaa111aaaaaaaaaaaaaaaa</span><span class="w"></span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">privatekey</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="c1"># The secret that contains your privatekey</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-secret-name</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span><span class="w"></span>
+<span class="w">          </span><span class="nt">fingerprint</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="c1"># The secret that contains your fingerprint</span><span class="w"></span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oci-secret-name</span><span class="w"></span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fingerprint</span><span class="w"></span>
+
 <span class="w">    </span><span class="c1"># (TODO): add more provider examples here</span><span class="w"></span>
 
 <span class="w">  </span><span class="c1"># Conditions about namespaces in which the ClusterSecretStore is usable for ExternalSecrets</span><span class="w"></span>
