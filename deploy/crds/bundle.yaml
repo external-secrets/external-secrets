@@ -2462,6 +2462,29 @@ spec:
                         - region
                         - vault
                       type: object
+                    scaleway:
+                      description: Scaleway
+                      properties:
+                        access_key:
+                          type: string
+                        api_url:
+                          type: string
+                        organization_id:
+                          type: string
+                        project_id:
+                          type: string
+                        region:
+                          type: string
+                        secret_key:
+                          type: string
+                      required:
+                        - access_key
+                        - api_url
+                        - organization_id
+                        - project_id
+                        - region
+                        - secret_key
+                      type: object
                     senhasegura:
                       description: Senhasegura configures this store to sync secrets using senhasegura provider
                       properties:
@@ -5828,6 +5851,29 @@ spec:
                       required:
                         - region
                         - vault
+                      type: object
+                    scaleway:
+                      description: Scaleway
+                      properties:
+                        access_key:
+                          type: string
+                        api_url:
+                          type: string
+                        organization_id:
+                          type: string
+                        project_id:
+                          type: string
+                        region:
+                          type: string
+                        secret_key:
+                          type: string
+                      required:
+                        - access_key
+                        - api_url
+                        - organization_id
+                        - project_id
+                        - region
+                        - secret_key
                       type: object
                     senhasegura:
                       description: Senhasegura configures this store to sync secrets using senhasegura provider
