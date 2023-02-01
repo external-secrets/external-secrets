@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -34,6 +35,8 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/cache"
+	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
@@ -44,17 +47,10 @@ type Config struct {
 	APIRetries int
 }
 
-type SessionCache struct {
-	Name            string
-	Namespace       string
-	Kind            string
-	ResourceVersion string
-}
-
 var (
-	log         = ctrl.Log.WithName("provider").WithName("aws")
-	sessions    = make(map[SessionCache]*session.Session)
-	EnableCache bool
+	log                = ctrl.Log.WithName("provider").WithName("aws")
+	enableSessionCache bool
+	sessionCache       *cache.Cache[*session.Session]
 )
 
 const (
@@ -70,6 +66,15 @@ const (
 	errMissingSAK                              = "missing SecretAccessKey"
 	errMissingAKID                             = "missing AccessKeyID"
 )
+
+func init() {
+	fs := pflag.NewFlagSet("aws-auth", pflag.ExitOnError)
+	fs.BoolVar(&enableSessionCache, "experimental-enable-aws-session-cache", false, "Enable experimental AWS session cache. External secret will reuse the AWS session without creating a new one on each request.")
+	feature.Register(feature.Feature{
+		Flags: fs,
+	})
+	sessionCache = cache.Must[*session.Session](1024, nil)
+}
 
 // New creates a new aws session based on the provided store
 // it uses the following authentication mechanisms in order:
@@ -111,7 +116,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		config.WithRegion(prov.Region)
 	}
 
-	sess, err := getAWSSession(config, EnableCache, store.GetName(), store.GetTypeMeta().Kind, namespace, store.GetObjectMeta().ResourceVersion)
+	sess, err := getAWSSession(config, enableSessionCache, store.GetName(), store.GetTypeMeta().Kind, namespace, store.GetObjectMeta().ResourceVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -327,17 +332,16 @@ func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 // getAWSSession checks if an AWS session should be reused
 // it returns the aws session or an error.
 func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, resourceVersion string) (*session.Session, error) {
-	tmpSession := SessionCache{
-		Name:            name,
-		Namespace:       namespace,
-		Kind:            kind,
-		ResourceVersion: resourceVersion,
+	key := cache.Key{
+		Name:      name,
+		Namespace: namespace,
+		Kind:      kind,
 	}
 
 	if enableCache {
-		sess, ok := sessions[tmpSession]
+		sess, ok := sessionCache.Get(resourceVersion, key)
 		if ok {
-			log.Info("reusing aws session", "SecretStore", tmpSession.Name, "namespace", tmpSession.Namespace, "kind", tmpSession.Kind, "resourceversion", tmpSession.ResourceVersion)
+			log.Info("reusing aws session", "SecretStore", key.Name, "namespace", key.Namespace, "kind", key.Kind, "resourceversion", resourceVersion)
 			return sess, nil
 		}
 	}
@@ -354,7 +358,7 @@ func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, 
 	}
 
 	if enableCache {
-		sessions[tmpSession] = sess
+		sessionCache.Add(resourceVersion, key, sess)
 	}
 	return sess, nil
 }

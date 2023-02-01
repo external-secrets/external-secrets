@@ -96,6 +96,7 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 		// wait for Kind=Secret to have the expected data
 		secret, err := tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, TargetSecretName, tc.ExpectedSecret)
 		if err != nil {
+			f.printESDebugLogs(tc.ExternalSecret.Name, tc.ExternalSecret.Namespace)
 			log.Logf("Did not match. Expected: %+v, Got: %+v", tc.ExpectedSecret, secret)
 		}
 

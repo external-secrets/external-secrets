@@ -85,7 +85,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
 	if namespace == "" && isClusterKind && isReferentSpec(gcpStore) {
-		// dummy smClient to prevent closing the client twice
+		// placeholder smClient to prevent closing the client twice
 		client.smClient, _ = secretmanager.NewClient(ctx, option.WithTokenSource(oauth2.StaticTokenSource(&oauth2.Token{})))
 		return client, nil
 	}

@@ -489,6 +489,7 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 	checkName := ref.Name != nil && len(ref.Name.RegExp) > 0
 
 	secretListIter, err := basicClient.GetSecretsComplete(context.Background(), *a.provider.VaultURL, nil)
+	err = parseError(err)
 	if err != nil {
 		return nil, err
 	}
@@ -502,6 +503,7 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 			}
 
 			secretResp, err := basicClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, "")
+			err = parseError(err)
 			if err != nil {
 				return nil, err
 			}
@@ -568,6 +570,14 @@ func getProperty(secret, property, key string) ([]byte, error) {
 	return []byte(res.String()), nil
 }
 
+func parseError(err error) error {
+	aerr := autorest.DetailedError{}
+	if errors.As(err, &aerr) && aerr.StatusCode == 404 {
+		return esv1beta1.NoSecretError{}
+	}
+	return err
+}
+
 // Implements store.Client.GetSecret Interface.
 // Retrieves a secret/Key/Certificate/Tag with the secret name defined in ref.Name
 // The Object Type is defined as a prefix in the ref.Name , if no prefix is defined , we assume a secret is required.
@@ -579,6 +589,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 		// returns a SecretBundle with the secret value
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
 		secretResp, err := a.baseClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
+		err = parseError(err)
 		if err != nil {
 			return nil, err
 		}
@@ -590,6 +601,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 		// returns a CertBundle. We return CER contents of x509 certificate
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle
 		certResp, err := a.baseClient.GetCertificate(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
+		err = parseError(err)
 		if err != nil {
 			return nil, err
 		}
@@ -602,6 +614,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 		// azure kv returns only public keys
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
 		keyResp, err := a.baseClient.GetKey(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
+		err = parseError(err)
 		if err != nil {
 			return nil, err
 		}
@@ -618,7 +631,7 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 func (a *Azure) getSecretTags(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string]*string, error) {
 	_, secretName := getObjType(ref)
 	secretResp, err := a.baseClient.GetSecret(context.Background(), *a.provider.VaultURL, secretName, ref.Version)
-
+	err = parseError(err)
 	if err != nil {
 		return nil, err
 	}
