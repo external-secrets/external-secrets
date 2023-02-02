@@ -127,7 +127,7 @@ serviceMonitor:
   scrapeTimeout: 25s
 
   # -- Let prometheus add an exported_ prefix to conflicting labels
-  honorLabels: true
+  honorLabels: false
 
   # -- Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs)
   metricRelabelings: []

@@ -39,7 +39,7 @@ spec:
     honorLabels: {{ .Values.serviceMonitor.honorLabels }}
     {{- with .Values.serviceMonitor.metricRelabelings }}
     metricRelabelings:
-      {{- tpl (toYaml . | nindent 6) . }}
+      {{- toYaml . | nindent 6 }}
     {{- end }}
     {{- with .Values.serviceMonitor.relabelings }}
     relabelings:
