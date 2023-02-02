@@ -28,6 +28,20 @@ var db = buildDb(&fakeSecretApi{
 				},
 			},
 		},
+		{
+			secrets: []*fakeSecret{
+				{
+					name:     "push-me",
+					versions: []*fakeSecretVersion{},
+				},
+				{
+					name: "not-changed",
+					versions: []*fakeSecretVersion{
+						{revision: 1},
+					},
+				},
+			},
+		},
 	},
 })
 
@@ -94,6 +108,53 @@ func TestGetSecret(t *testing.T) {
 			}
 		})
 	}
+}
+
+type pushRemoteRef string
+
+func (ref pushRemoteRef) GetRemoteKey() string {
+	return string(ref)
+}
+
+func TestPushSecret(t *testing.T) {
+
+	t.Run("to existing empty secret", func(t *testing.T) {
+
+		ctx := context.Background()
+		c := newTestClient()
+		data := []byte("some secret data 6a8ff33b-c69a-4e42-b162-b7b595ee7f5f")
+		secret := db.secret("push-me")
+
+		pushErr := c.PushSecret(ctx, data, pushRemoteRef(secret.id))
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, 1, len(secret.versions))
+		assert.Equal(t, data, secret.versions[0].data)
+	})
+
+	t.Run("without change", func(t *testing.T) {
+
+		ctx := context.Background()
+		c := newTestClient()
+		secret := db.secret("not-changed")
+
+		pushErr := c.PushSecret(ctx, secret.versions[0].data, pushRemoteRef(secret.id))
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, 1, len(secret.versions))
+	})
+
+	t.Run("non existing secret", func(t *testing.T) {
+
+		ctx := context.Background()
+		c := newTestClient()
+		notASecret := "3fe3b79b-66c6-4b74-a03f-8a4be04afdd1"
+
+		pushErr := c.PushSecret(ctx, []byte("some data"), pushRemoteRef(notASecret))
+
+		assert.Error(t, pushErr)
+	})
+
 }
 
 func TestGetAllSecrets(t *testing.T) {

@@ -28,13 +28,15 @@ type fakeProject struct {
 }
 
 type fakeSecretApi struct {
-	projects []*fakeProject
-	_secrets map[string]*fakeSecret
+	projects       []*fakeProject
+	_secrets       map[string]*fakeSecret
+	_secretsByName map[string]*fakeSecret
 }
 
 func buildDb(f *fakeSecretApi) *fakeSecretApi {
 
 	f._secrets = map[string]*fakeSecret{}
+	f._secretsByName = map[string]*fakeSecret{}
 
 	for _, project := range f.projects {
 
@@ -54,6 +56,7 @@ func buildDb(f *fakeSecretApi) *fakeSecretApi {
 			}
 
 			f._secrets[secret.id] = secret
+			f._secretsByName[secret.name] = secret
 		}
 	}
 
@@ -115,6 +118,10 @@ func (s *fakeSecret) mustGetVersion(revision string) *fakeSecretVersion {
 	return version
 }
 
+func (s *fakeSecretApi) secret(name string) *fakeSecret {
+	return s._secretsByName[name]
+}
+
 func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRequest, _ ...scw.RequestOption) (*smapi.AccessSecretVersionResponse, error) {
 
 	// TODO: check region
@@ -122,7 +129,7 @@ func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 	secret, ok := f._secrets[request.SecretID]
 	if !ok {
 		return nil, &scw.ResourceNotFoundError{
-			Resource:   "", // TODO
+			Resource:   "secret",
 			ResourceID: request.SecretID,
 		}
 	}
@@ -130,8 +137,8 @@ func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 	version, ok := secret.getVersion(request.Revision)
 	if !ok {
 		return nil, &scw.ResourceNotFoundError{
-			Resource:   "",               // TODO
-			ResourceID: request.SecretID, // TODO
+			Resource:   "secret_version",
+			ResourceID: request.Revision,
 		}
 	}
 
@@ -216,4 +223,31 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 	}
 
 	return &response, nil
+}
+
+func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRequest, option ...scw.RequestOption) (*smapi.SecretVersion, error) {
+
+	// TODO: check region
+	// TODO: check projectId
+
+	secret, ok := f._secrets[request.SecretID]
+	if !ok {
+		return nil, &scw.ResourceNotFoundError{
+			Resource:   "secret",
+			ResourceID: request.SecretID,
+		}
+	}
+
+	newVersion := &fakeSecretVersion{
+		revision: len(secret.versions) + 1,
+		data:     request.Data,
+	}
+
+	secret.versions = append(secret.versions, newVersion)
+
+	return &smapi.SecretVersion{
+		SecretID: request.SecretID,
+		Revision: uint32(newVersion.revision),
+		Status:   "", // TODO
+	}, nil
 }

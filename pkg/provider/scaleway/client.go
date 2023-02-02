@@ -1,6 +1,7 @@
 package scaleway
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -36,8 +37,44 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 }
 
 func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	// TODO
-	return fmt.Errorf("PushSecret not implemented")
+
+	// TODO: add a tag to secrets managed by kubernetes?
+
+	accessSecretVersionRequest := smapi.AccessSecretVersionRequest{
+		SecretID: remoteRef.GetRemoteKey(),
+		Revision: "latest",
+	}
+
+	secretExistsButHasNoVersion := false
+
+	accessSecretVersionResponse, err := c.api.AccessSecretVersion(&accessSecretVersionRequest, scw.WithContext(ctx))
+	if err != nil {
+		if notFoundErr, isNotFoundErr := err.(*scw.ResourceNotFoundError); isNotFoundErr {
+			if notFoundErr.Resource == "secret_version" {
+				secretExistsButHasNoVersion = true
+			}
+		}
+		if !secretExistsButHasNoVersion {
+			return err
+		}
+	}
+
+	if !secretExistsButHasNoVersion && bytes.Equal(accessSecretVersionResponse.Data, value) {
+		// no change to push
+		return nil
+	}
+
+	createSecretVersionRequest := smapi.CreateSecretVersionRequest{
+		SecretID: remoteRef.GetRemoteKey(),
+		Data:     value,
+	}
+
+	_, err = c.api.CreateSecretVersion(&createSecretVersionRequest, scw.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
