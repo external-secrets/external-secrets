@@ -176,6 +176,15 @@ func TestGetAllSecrets(t *testing.T) {
 				db.projects[0].secrets[1].id: db.projects[0].secrets[1].mustGetVersion("latest").data,
 			},
 		},
+		"find secrets by project": {
+			ref: esv1beta1.ExternalSecretFind{
+				Path: &db.projects[0].id,
+			},
+			response: map[string][]byte{
+				db.projects[0].secrets[0].id: db.projects[0].secrets[0].mustGetVersion("latest").data,
+				db.projects[0].secrets[1].id: db.projects[0].secrets[1].mustGetVersion("latest").data,
+			},
+		},
 	}
 
 	for tcName, tc := range testCases {

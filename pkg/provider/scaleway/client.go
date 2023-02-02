@@ -95,17 +95,21 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 // GetAllSecrets lists secrets matching the given criteria and return their latest versions.
 func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 
-	// TODO: use ref.Path for scoping to project?
-
 	request := smapi.ListSecretsRequest{
-		OrganizationID: &c.organizationId, // TODO: scope to project or orga?
-		Page:           new(int32),
-		PageSize:       new(uint32),
+		Page:     new(int32),
+		PageSize: new(uint32),
 	}
 	*request.Page = 1
 	*request.PageSize = 50
 
-	// TODO: validate the name now?
+	// TODO: validate name, project id etc. early to avoid a 400 error?
+
+	if ref.Path != nil {
+		request.ProjectID = ref.Path
+	} else {
+		request.OrganizationID = &c.organizationId
+	}
+
 	if ref.Name != nil {
 		// TODO
 	}

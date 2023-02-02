@@ -43,6 +43,10 @@ func buildDb(f *fakeSecretApi) *fakeSecretApi {
 
 	for _, project := range f.projects {
 
+		if project.id == "" {
+			project.id = uuid.NewString()
+		}
+
 		for _, secret := range project.secrets {
 
 			if secret.id == "" {
@@ -186,9 +190,12 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 
 	// filtering
 
-	// TODO: scope by orga/project
-
 	for _, project := range f.projects {
+
+		if request.ProjectID != nil && *request.ProjectID != project.id {
+			continue
+		}
+
 		for _, secret := range project.secrets {
 			if matchListSecretFilter(secret, request) {
 				matches = append(matches, secret)
