@@ -9,4 +9,5 @@ type secretApi interface {
 	AccessSecretVersion(request *smapi.AccessSecretVersionRequest, option ...scw.RequestOption) (*smapi.AccessSecretVersionResponse, error)
 	ListSecrets(request *smapi.ListSecretsRequest, option ...scw.RequestOption) (*smapi.ListSecretsResponse, error)
 	CreateSecretVersion(request *smapi.CreateSecretVersionRequest, option ...scw.RequestOption) (*smapi.SecretVersion, error)
+	DeleteSecret(request *smapi.DeleteSecretRequest, option ...scw.RequestOption) error
 }

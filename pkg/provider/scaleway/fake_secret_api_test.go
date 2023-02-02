@@ -2,11 +2,12 @@ package scaleway
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
+
 	"github.com/google/uuid"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
-	"sort"
-	"strconv"
 )
 
 type fakeSecretVersion struct {
@@ -275,4 +276,20 @@ func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRe
 		Revision: uint32(newVersion.revision),
 		Status:   smapi.SecretVersionStatus(newVersion.status),
 	}, nil
+}
+
+func (f *fakeSecretApi) DeleteSecret(request *smapi.DeleteSecretRequest, _ ...scw.RequestOption) error {
+
+	// TODO: check region
+
+	secret, ok := f._secrets[request.SecretID]
+	if !ok {
+		return &scw.ResourceNotFoundError{
+			Resource:   "", // TODO
+			ResourceID: request.SecretID,
+		}
+	}
+	delete(f._secrets, secret.id)
+
+	return nil
 }

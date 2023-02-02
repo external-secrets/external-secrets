@@ -2,9 +2,11 @@ package scaleway
 
 import (
 	"context"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 var db = buildDb(&fakeSecretApi{
@@ -195,6 +197,49 @@ func TestGetAllSecrets(t *testing.T) {
 				assert.Equal(t, tc.response, response)
 			} else {
 				assert.Nil(t, response)
+				assert.ErrorIs(t, err, tc.err)
+				assert.Equal(t, tc.err, err)
+			}
+		})
+	}
+}
+
+type pushRemoteRef string
+
+func (ref pushRemoteRef) GetRemoteKey() string {
+	return string(ref)
+}
+
+func TestDeleteSecret(t *testing.T) {
+
+	ctx := context.Background()
+	c := newTestClient()
+
+	secret := db.projects[0].secrets[0]
+	inexistentSecretId := uuid.NewString()
+
+	// TODO: test that the error is NOT NoSecretErr when an error other than "not found" occurs
+
+	testCases := map[string]struct {
+		ref esv1beta1.PushRemoteRef
+		err error
+	}{
+		"Delete Successfully": {
+			ref: pushRemoteRef(secret.id),
+			err: nil,
+		},
+		"Secret Not Found": {
+			ref: pushRemoteRef(inexistentSecretId),
+			err: esv1beta1.NoSecretErr,
+		},
+	}
+
+	for tcName, tc := range testCases {
+		t.Run(tcName, func(t *testing.T) {
+			err := c.DeleteSecret(ctx, tc.ref)
+			if tc.err == nil {
+				assert.NoError(t, err)
+			} else {
 				assert.ErrorIs(t, err, tc.err)
 				assert.Equal(t, tc.err, err)
 			}

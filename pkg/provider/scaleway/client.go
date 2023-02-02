@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
@@ -78,8 +79,20 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 }
 
 func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	// TODO
-	return fmt.Errorf("DeleteSecret not implemented")
+
+	request := smapi.DeleteSecretRequest{
+		SecretID: remoteRef.GetRemoteKey(),
+	}
+
+	err := c.api.DeleteSecret(&request, scw.WithContext(ctx))
+	if err != nil {
+		if _, isNotFoundErr := err.(*scw.ResourceNotFoundError); isNotFoundErr {
+			return esv1beta1.NoSecretError{}
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
