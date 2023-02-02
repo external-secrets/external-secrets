@@ -2465,8 +2465,21 @@ spec:
                     scaleway:
                       description: Scaleway
                       properties:
-                        access_key:
-                          type: string
+                        accessKey:
+                          properties:
+                            secretKey:
+                              description: SecretKey is the specific key in the secret to be used.
+                              type: string
+                            secretName:
+                              description: SecretName is the name of the secret to use.
+                              type: string
+                            secretNamespace:
+                              description: SecretNamespace is the namespace of the secret to use. If not specified, default to the namespace of the SecretStore.
+                              type: string
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
                         api_url:
                           type: string
                         organization_id:
@@ -2475,15 +2488,28 @@ spec:
                           type: string
                         region:
                           type: string
-                        secret_key:
-                          type: string
+                        secretKey:
+                          properties:
+                            secretKey:
+                              description: SecretKey is the specific key in the secret to be used.
+                              type: string
+                            secretName:
+                              description: SecretName is the name of the secret to use.
+                              type: string
+                            secretNamespace:
+                              description: SecretNamespace is the namespace of the secret to use. If not specified, default to the namespace of the SecretStore.
+                              type: string
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
                       required:
-                        - access_key
+                        - accessKey
                         - api_url
                         - organization_id
                         - project_id
                         - region
-                        - secret_key
+                        - secretKey
                       type: object
                     senhasegura:
                       description: Senhasegura configures this store to sync secrets using senhasegura provider
@@ -5855,8 +5881,21 @@ spec:
                     scaleway:
                       description: Scaleway
                       properties:
-                        access_key:
-                          type: string
+                        accessKey:
+                          properties:
+                            secretKey:
+                              description: SecretKey is the specific key in the secret to be used.
+                              type: string
+                            secretName:
+                              description: SecretName is the name of the secret to use.
+                              type: string
+                            secretNamespace:
+                              description: SecretNamespace is the namespace of the secret to use. If not specified, default to the namespace of the SecretStore.
+                              type: string
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
                         api_url:
                           type: string
                         organization_id:
@@ -5865,15 +5904,28 @@ spec:
                           type: string
                         region:
                           type: string
-                        secret_key:
-                          type: string
+                        secretKey:
+                          properties:
+                            secretKey:
+                              description: SecretKey is the specific key in the secret to be used.
+                              type: string
+                            secretName:
+                              description: SecretName is the name of the secret to use.
+                              type: string
+                            secretNamespace:
+                              description: SecretNamespace is the namespace of the secret to use. If not specified, default to the namespace of the SecretStore.
+                              type: string
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
                       required:
-                        - access_key
+                        - accessKey
                         - api_url
                         - organization_id
                         - project_id
                         - region
-                        - secret_key
+                        - secretKey
                       type: object
                     senhasegura:
                       description: Senhasegura configures this store to sync secrets using senhasegura provider

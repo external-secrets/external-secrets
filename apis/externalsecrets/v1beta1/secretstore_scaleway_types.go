@@ -14,11 +14,31 @@ limitations under the License.
 
 package v1beta1
 
+type ScalewayProviderSecretRef struct {
+
+	// Value can be specified directly to set a value without using a secret.
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// SecretNamespace is the namespace of the secret to use. If not specified, default
+	// to the namespace of the SecretStore.
+	// +optional
+	SecretNamespace string `json:"secretNamespace,omitempty"`
+
+	// SecretName is the name of the secret to use.
+	// +optional
+	SecretName string `json:"secretName,omitempty"`
+
+	// SecretKey is the specific key in the secret to be used.
+	// +optional
+	SecretKey string `json:"secretKey,omitempty"`
+}
+
 type ScalewayProvider struct {
-	ApiUrl         string `json:"api_url"`
-	Region         string `json:"region"`
-	OrganizationId string `json:"organization_id"`
-	ProjectId      string `json:"project_id"`
-	AccessKey      string `json:"access_key"`
-	Secretkey      string `json:"secret_key"`
+	ApiUrl         string                     `json:"api_url"`
+	Region         string                     `json:"region"`
+	OrganizationId string                     `json:"organization_id"`
+	ProjectId      string                     `json:"project_id"`
+	AccessKey      *ScalewayProviderSecretRef `json:"accessKey"`
+	SecretKey      *ScalewayProviderSecretRef `json:"secretKey"`
 }

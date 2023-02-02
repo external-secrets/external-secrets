@@ -19,6 +19,7 @@ import (
 	"fmt"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	corev1 "k8s.io/api/core/v1"
 
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -26,18 +27,12 @@ import (
 )
 
 var (
+	// TODO: remove these variables or use more of them, for consistency
 	errMissingStore            = fmt.Errorf("missing store provider")
 	errMissingScalewayProvider = fmt.Errorf("missing store provider scaleway")
-	errMissingKeyField         = "key must be set in data %v"
-	errMissingValueField       = "at least one of value or valueMap must be set in data %v"
 )
 
 type SourceOrigin string
-
-const (
-	ScalewaySecretStore SourceOrigin = "SecretStore"
-	ScalewaySetSecret   SourceOrigin = "SetSecret"
-)
 
 type Config struct {
 	ApiUrl         string
@@ -45,7 +40,7 @@ type Config struct {
 	OrganizationId string
 	ProjectId      string
 	AccessKey      string
-	Secretkey      string
+	SecretKey      string
 }
 
 type Provider struct {
@@ -75,8 +70,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		Region:         c.Region,
 		OrganizationId: c.OrganizationId,
 		ProjectId:      c.ProjectId,
-		AccessKey:      c.AccessKey,
-		Secretkey:      c.Secretkey,
+	}
+
+	cfg.AccessKey, err = loadConfigSecret(ctx, c.AccessKey, kube, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.SecretKey, err = loadConfigSecret(ctx, c.SecretKey, kube, namespace)
+	if err != nil {
+		return nil, err
 	}
 
 	p.configs[store.GetName()] = cfg
@@ -86,7 +89,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		scw.WithDefaultRegion(scw.Region(cfg.Region)),
 		scw.WithDefaultOrganizationID(cfg.OrganizationId),
 		scw.WithDefaultProjectID(cfg.ProjectId),
-		scw.WithAuth(cfg.AccessKey, cfg.Secretkey),
+		scw.WithAuth(cfg.AccessKey, cfg.SecretKey),
 	)
 	if err != nil {
 		return nil, err
@@ -107,6 +110,50 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, err
 		return nil, errMissingScalewayProvider
 	}
 	return spc.Provider.Scaleway, nil
+}
+
+func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecretRef, kube kubeClient.Client, defaultNamespace string) (string, error) {
+
+	if ref.Value != "" {
+
+		if ref.SecretNamespace != "" || ref.SecretName != "" || ref.SecretKey != "" {
+			return "", fmt.Errorf("cannot specify both a value and a reference to a secret")
+		}
+
+		return ref.Value, nil
+	}
+
+	namespace := ref.SecretNamespace
+	if namespace == "" {
+		namespace = defaultNamespace
+	}
+
+	if ref.SecretName == "" {
+		return "", fmt.Errorf("must specify a value or a reference to a secret")
+	}
+
+	if ref.SecretKey == "" {
+		return "", fmt.Errorf("must specify a secret key")
+	}
+
+	objKey := kubeClient.ObjectKey{
+		Namespace: namespace,
+		Name:      ref.SecretName,
+	}
+
+	secret := corev1.Secret{}
+
+	err := kube.Get(ctx, objKey, &secret)
+	if err != nil {
+		return "", err
+	}
+
+	value, ok := secret.Data[ref.SecretKey]
+	if !ok {
+		return "", fmt.Errorf("no such key in secret: %v", ref.SecretKey)
+	}
+
+	return string(value), nil
 }
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
