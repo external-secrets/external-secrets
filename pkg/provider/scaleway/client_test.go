@@ -204,12 +204,6 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 }
 
-type pushRemoteRef string
-
-func (ref pushRemoteRef) GetRemoteKey() string {
-	return string(ref)
-}
-
 func TestDeleteSecret(t *testing.T) {
 
 	ctx := context.Background()
