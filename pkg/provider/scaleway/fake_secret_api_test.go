@@ -13,6 +13,7 @@ type fakeSecretVersion struct {
 	revision     int
 	data         []byte
 	dontFillData bool
+	status       string
 }
 
 type fakeSecret struct {
@@ -20,6 +21,8 @@ type fakeSecret struct {
 	name     string
 	versions []*fakeSecretVersion
 	tags     []string
+	status   string
+	_project *fakeProject
 }
 
 type fakeProject struct {
@@ -46,8 +49,20 @@ func buildDb(f *fakeSecretApi) *fakeSecretApi {
 				secret.id = uuid.NewString()
 			}
 
-			// TODO: check for duplicates
-			sort.Sort(fakeSecretVersionSlice(secret.versions))
+			sort.Slice(secret.versions, func(i, j int) bool {
+				return secret.versions[i].revision < secret.versions[j].revision
+			})
+
+			for index, version := range secret.versions {
+
+				if version.revision != index+1 {
+					panic("bad revision number in fixtures")
+				}
+
+				if version.status == "" {
+					version.status = "enabled"
+				}
+			}
 
 			for _, version := range secret.versions {
 				if len(version.data) == 0 && !version.dontFillData {
@@ -55,26 +70,18 @@ func buildDb(f *fakeSecretApi) *fakeSecretApi {
 				}
 			}
 
+			if secret.status == "" {
+				secret.status = "ready"
+			}
+
+			secret._project = project
+
 			f._secrets[secret.id] = secret
 			f._secretsByName[secret.name] = secret
 		}
 	}
 
 	return f
-}
-
-type fakeSecretVersionSlice []*fakeSecretVersion
-
-func (vs fakeSecretVersionSlice) Len() int {
-	return len(vs)
-}
-
-func (vs fakeSecretVersionSlice) Less(i, j int) bool {
-	return vs[i].revision < vs[j].revision
-}
-
-func (vs fakeSecretVersionSlice) Swap(i, j int) {
-	vs[i], vs[j] = vs[j], vs[i]
 }
 
 func (s *fakeSecret) getVersion(revision string) (*fakeSecretVersion, bool) {
@@ -118,13 +125,15 @@ func (s *fakeSecret) mustGetVersion(revision string) *fakeSecretVersion {
 	return version
 }
 
-func (s *fakeSecretApi) secret(name string) *fakeSecret {
-	return s._secretsByName[name]
+func (f *fakeSecretApi) secret(name string) *fakeSecret {
+	return f._secretsByName[name]
 }
 
 func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRequest, _ ...scw.RequestOption) (*smapi.AccessSecretVersionResponse, error) {
 
-	// TODO: check region
+	if request.Region != "" {
+		panic("explicit region in request is not supported")
+	}
 
 	secret, ok := f._secrets[request.SecretID]
 	if !ok {
@@ -177,7 +186,6 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 
 	// filtering
 
-	// TODO: order correctly
 	// TODO: scope by orga/project
 
 	for _, project := range f.projects {
@@ -187,6 +195,16 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 			}
 		}
 	}
+
+	// ordering
+
+	if request.OrderBy != "" {
+		panic("explicit order by is not implemented")
+	}
+
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].id >= matches[j].id
+	})
 
 	// pagination
 
@@ -213,11 +231,10 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 	for _, secret := range matches[startOffset:endOffset] {
 		response.Secrets = append(response.Secrets, &smapi.Secret{
 			ID:           secret.id,
-			ProjectID:    "", // TODO
+			ProjectID:    secret._project.id,
 			Name:         secret.name,
-			Status:       "", // TODO
+			Status:       smapi.SecretStatus(secret.status),
 			Tags:         secret.tags,
-			Region:       "", // TODO
 			VersionCount: uint32(len(secret.versions)),
 		})
 	}
@@ -225,10 +242,11 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 	return &response, nil
 }
 
-func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRequest, option ...scw.RequestOption) (*smapi.SecretVersion, error) {
+func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
 
-	// TODO: check region
-	// TODO: check projectId
+	if request.Region != "" {
+		panic("explicit region in request is not supported")
+	}
 
 	secret, ok := f._secrets[request.SecretID]
 	if !ok {
@@ -248,6 +266,6 @@ func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRe
 	return &smapi.SecretVersion{
 		SecretID: request.SecretID,
 		Revision: uint32(newVersion.revision),
-		Status:   "", // TODO
+		Status:   smapi.SecretVersionStatus(newVersion.status),
 	}, nil
 }
