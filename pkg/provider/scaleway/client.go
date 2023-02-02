@@ -3,11 +3,11 @@ package scaleway
 import (
 	"bytes"
 	"context"
-	"fmt"
-
+	"encoding/json"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"strings"
 )
 
 type client struct {
@@ -101,8 +101,34 @@ func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	// TODO
-	return nil, fmt.Errorf("GetSecretMap not implemented")
+
+	rawData, err := c.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	structuredData := make(map[string]json.RawMessage)
+
+	err = json.Unmarshal(rawData, &structuredData)
+	if err != nil {
+		return nil, err
+	}
+
+	values := make(map[string][]byte)
+
+	for key, value := range structuredData {
+
+		var stringValue string
+		err := json.Unmarshal(value, &stringValue)
+		if err == nil {
+			values[key] = []byte(stringValue)
+			continue
+		}
+
+		values[key] = []byte(strings.TrimSpace(string(value)))
+	}
+
+	return values, nil
 }
 
 // GetAllSecrets lists secrets matching the given criteria and return their latest versions.

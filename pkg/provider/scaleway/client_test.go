@@ -44,6 +44,19 @@ var db = buildDb(&fakeSecretApi{
 				},
 			},
 		},
+		{
+			secrets: []*fakeSecret{
+				{
+					name: "json-data",
+					versions: []*fakeSecretVersion{
+						{
+							revision: 1,
+							data:     []byte(`{"some_string": "abc def", "some_int": -100, "some_bool": false}`),
+						},
+					},
+				},
+			},
+		},
 	},
 })
 
@@ -157,6 +170,24 @@ func TestPushSecret(t *testing.T) {
 		assert.Error(t, pushErr)
 	})
 
+}
+
+func TestGetSecretMap(t *testing.T) {
+
+	ctx := context.Background()
+	c := newTestClient()
+
+	values, getErr := c.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{
+		Key:     db.secret("json-data").id,
+		Version: "latest",
+	})
+
+	assert.NoError(t, getErr)
+	assert.Equal(t, map[string][]byte{
+		"some_string": []byte("abc def"),
+		"some_int":    []byte("-100"),
+		"some_bool":   []byte("false"),
+	}, values)
 }
 
 func TestGetAllSecrets(t *testing.T) {
