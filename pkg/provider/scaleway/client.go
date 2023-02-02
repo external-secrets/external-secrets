@@ -55,13 +55,17 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	return nil, fmt.Errorf("GetSecretMap not implemented")
 }
 
+// GetAllSecrets lists secrets matching the given criteria and return their latest versions.
 func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+
+	// TODO: use ref.Path for scoping to project?
 
 	request := smapi.ListSecretsRequest{
 		OrganizationID: &c.organizationId, // TODO: scope to project or orga?
 		Page:           new(int32),
 		PageSize:       new(uint32),
 	}
+	*request.Page = 1
 	*request.PageSize = 50
 
 	// TODO: validate the name now?

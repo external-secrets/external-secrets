@@ -105,6 +105,16 @@ func (s *fakeSecret) getVersion(revision string) (*fakeSecretVersion, bool) {
 	}
 }
 
+func (s *fakeSecret) mustGetVersion(revision string) *fakeSecretVersion {
+
+	version, ok := s.getVersion(revision)
+	if !ok {
+		panic("no such version")
+	}
+
+	return version
+}
+
 func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRequest, _ ...scw.RequestOption) (*smapi.AccessSecretVersionResponse, error) {
 
 	// TODO: check region
@@ -132,7 +142,78 @@ func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 	}, nil
 }
 
+func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest) bool {
+
+	// TODO
+
+	for _, requiredTag := range filter.Tags {
+
+		found := false
+		for _, secretTag := range secret.tags {
+			if requiredTag == secretTag {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.RequestOption) (*smapi.ListSecretsResponse, error) {
-	//TODO implement me
-	panic("implement me")
+
+	var matches []*fakeSecret
+
+	// filtering
+
+	// TODO: order correctly
+	// TODO: scope by orga/project
+
+	for _, project := range f.projects {
+		for _, secret := range project.secrets {
+			if matchListSecretFilter(secret, request) {
+				matches = append(matches, secret)
+			}
+		}
+	}
+
+	// pagination
+
+	response := smapi.ListSecretsResponse{
+		TotalCount: uint32(len(matches)),
+	}
+
+	if request.Page == nil || request.PageSize == nil {
+		panic("list secrets without explicit pagination not implemented")
+	}
+	page := int(*request.Page)
+	pageSize := int(*request.PageSize)
+
+	startOffset := (page - 1) * pageSize
+	if startOffset > len(matches) {
+		startOffset = len(matches)
+	}
+
+	endOffset := page * pageSize
+	if endOffset > len(matches) {
+		endOffset = len(matches)
+	}
+
+	for _, secret := range matches[startOffset:endOffset] {
+		response.Secrets = append(response.Secrets, &smapi.Secret{
+			ID:           secret.id,
+			ProjectID:    "", // TODO
+			Name:         secret.name,
+			Status:       "", // TODO
+			Tags:         secret.tags,
+			Region:       "", // TODO
+			VersionCount: uint32(len(secret.versions)),
+		})
+	}
+
+	return &response, nil
 }

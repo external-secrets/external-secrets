@@ -14,12 +14,16 @@ var db = buildDb(&fakeSecretApi{
 				{
 					name: "secret-1",
 					versions: []*fakeSecretVersion{
-						{
-							revision: 1,
-						},
-						{
-							revision: 2,
-						},
+						{revision: 1},
+						{revision: 2},
+					},
+				},
+				{
+					name: "secret-2",
+					tags: []string{"secret-2-tag-1", "secret-2-tag-2"},
+					versions: []*fakeSecretVersion{
+						{revision: 1},
+						{revision: 2},
 					},
 				},
 			},
@@ -80,6 +84,42 @@ func TestGetSecret(t *testing.T) {
 	for tcName, tc := range testCases {
 		t.Run(tcName, func(t *testing.T) {
 			response, err := c.GetSecret(ctx, tc.ref)
+			if tc.err == nil {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.response, response)
+			} else {
+				assert.Nil(t, response)
+				assert.ErrorIs(t, err, tc.err)
+				assert.Equal(t, tc.err, err)
+			}
+		})
+	}
+}
+
+func TestGetAllSecrets(t *testing.T) {
+
+	ctx := context.Background()
+	c := newTestClient()
+
+	testCases := map[string]struct {
+		ref      esv1beta1.ExternalSecretFind
+		response map[string][]byte
+		err      error
+	}{
+		// TODO
+		"find secrets by tags": {
+			ref: esv1beta1.ExternalSecretFind{
+				Tags: map[string]string{"secret-2-tag-1": "ignored-value"},
+			},
+			response: map[string][]byte{
+				db.projects[0].secrets[1].id: db.projects[0].secrets[1].mustGetVersion("latest").data,
+			},
+		},
+	}
+
+	for tcName, tc := range testCases {
+		t.Run(tcName, func(t *testing.T) {
+			response, err := c.GetAllSecrets(ctx, tc.ref)
 			if tc.err == nil {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.response, response)
