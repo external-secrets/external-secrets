@@ -37,8 +37,8 @@ require (
 	cloud.google.com/go/secretmanager v1.10.0
 	github.com/Azure/azure-sdk-for-go v67.3.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.28
-	github.com/Azure/go-autorest/autorest/adal v0.9.21
-	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11
+	github.com/Azure/go-autorest/autorest/adal v0.9.22
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.7.0
 	github.com/IBM/go-sdk-core/v5 v5.12.0
 	github.com/IBM/secrets-manager-go-sdk v1.0.49
@@ -48,8 +48,8 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.3
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.135
-	github.com/aws/aws-sdk-go v1.44.175
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.146
+	github.com/aws/aws-sdk-go v1.44.192
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
@@ -61,8 +61,8 @@ require (
 	github.com/hashicorp/vault/api/auth/ldap v0.3.0
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/lestrrat-go/jwx v1.2.25
-	github.com/onsi/ginkgo/v2 v2.6.1
-	github.com/onsi/gomega v1.24.2
+	github.com/onsi/ginkgo/v2 v2.8.0
+	github.com/onsi/gomega v1.25.0
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/client_model v0.3.0
@@ -77,8 +77,8 @@ require (
 	golang.org/x/crypto v0.5.0
 	golang.org/x/oauth2 v0.3.0
 	google.golang.org/api v0.103.0
-	google.golang.org/genproto v0.0.0-20221205194025-8222ab48f5fc // indirect
-	google.golang.org/grpc v1.51.0
+	google.golang.org/genproto v0.0.0-20230131230820-1c016267d619 // indirect
+	google.golang.org/grpc v1.52.3
 	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.26.0
@@ -223,7 +223,7 @@ require (
 	golang.org/x/term v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.4.0 // indirect
+	golang.org/x/tools v0.5.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
