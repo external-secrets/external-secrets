@@ -3432,7 +3432,7 @@ string
 <a href="#external-secrets.io/v1beta1.KeeperSecurityProvider">KeeperSecurityProvider</a>)
 </p>
 <p>
-<p>Configuration used to authenticate with KeeperSecurity.</p>
+<p>KeeperSecurityAuth Configuration used to authenticate with KeeperSecurity.</p>
 </p>
 <table>
 <thead>
@@ -3511,7 +3511,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>Configures an store to sync secrets using Keeper Security.</p>
+<p>KeeperSecurityProvider Configures a store to sync secrets using Keeper Security.</p>
 </p>
 <table>
 <thead>
