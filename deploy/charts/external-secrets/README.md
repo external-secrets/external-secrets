@@ -63,6 +63,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.replicaCount | int | `1` |  |
 | certController.requeueInterval | string | `"5m"` |  |
 | certController.resources | object | `{}` |  |
+| certController.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | certController.securityContext | object | `{}` |  |
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | certController.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the pod |
@@ -110,6 +111,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
+| revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
 | scopedRBAC | bool | `false` | Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace and implicitly disable cluster stores and cluster external secrets |
 | securityContext | object | `{}` |  |
@@ -132,7 +134,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.extraEnv | list | `[]` |  |
 | webhook.extraVolumeMounts | list | `[]` |  |
 | webhook.extraVolumes | list | `[]` |  |
-| webhook.failurePolicy | string | `"Fail"` | specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore |
+| webhook.failurePolicy | string | `"Fail"` | Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore |
 | webhook.fullnameOverride | string | `""` |  |
 | webhook.hostNetwork | bool | `false` | Specifies if webhook pod should use hostNetwork or not. |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
@@ -158,6 +160,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
 | webhook.replicaCount | int | `1` |  |
 | webhook.resources | object | `{}` |  |
+| webhook.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | webhook.secretAnnotations | object | `{}` | Annotations to add to Secret |
 | webhook.securityContext | object | `{}` |  |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
