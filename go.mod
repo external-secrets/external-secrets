@@ -96,6 +96,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.3.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.0
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/keeper-security/secrets-manager-go/core v1.4.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
 	github.com/sethvargo/go-password v0.2.0
 	github.com/spf13/pflag v1.0.5

@@ -95,6 +95,7 @@ nav:
     - Kubernetes: provider/kubernetes.md
     - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
     - Doppler: provider/doppler.md
+    - Keeper Security: provider/keeper-security.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
