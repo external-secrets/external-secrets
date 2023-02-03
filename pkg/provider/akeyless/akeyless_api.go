@@ -249,7 +249,7 @@ func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error)
 }
 
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
-	if kubernetesAuth.ServiceAccountRef != nil {
+	if kubernetesAuth != nil && kubernetesAuth.ServiceAccountRef != nil {
 		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
 		jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
 		if jwt != "" {
@@ -261,7 +261,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 			return "", err
 		}
 		return jwt, nil
-	} else if kubernetesAuth.SecretRef != nil {
+	} else if kubernetesAuth != nil && kubernetesAuth.SecretRef != nil {
 		tokenRef := kubernetesAuth.SecretRef
 		if tokenRef.Key == "" {
 			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
@@ -272,9 +272,8 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 			return "", err
 		}
 		return jwt, nil
-	} else {
-		return readK8SServiceAccountJWT()
 	}
+	return readK8SServiceAccountJWT()
 }
 
 func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
