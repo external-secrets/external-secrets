@@ -24,7 +24,7 @@ type ScalewayProviderSecretRef struct {
 
 	// SecretRef references a key in a secret that will be used as value.
 	// +optional
-	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
 type ScalewayProvider struct {

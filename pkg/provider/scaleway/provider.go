@@ -17,7 +17,6 @@ package scaleway
 import (
 	"context"
 	"fmt"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
@@ -45,6 +44,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	cfg, err := getConfig(store)
 	if err != nil {
 		return nil, err
+	}
+
+	if store.GetKind() == esv1beta1.ClusterSecretStoreKind && doesConfigDependOnNamespace(cfg) {
+		// we are not attached to a specific namespace, but some config values are dependent on it
+		return nil, fmt.Errorf("when using a ClusterSecretStore, namespaces must be explicitly set")
 	}
 
 	accessKey, err := loadConfigSecret(ctx, cfg.AccessKey, kube, namespace)
@@ -75,9 +79,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecretRef, kube kubeClient.Client, defaultNamespace string) (string, error) {
 
-	var emptySecretKeySelector esmeta.SecretKeySelector
-
-	if ref.SecretRef == emptySecretKeySelector {
+	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
 
@@ -116,12 +118,11 @@ func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecret
 
 func validateSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.ScalewayProviderSecretRef) error {
 
-	var emptySecretKeySelector esmeta.SecretKeySelector
-	if ref.SecretRef != emptySecretKeySelector {
+	if ref.SecretRef != nil {
 		if ref.Value != "" {
 			return fmt.Errorf("cannot specify both secret reference and value")
 		}
-		err := utils.ValidateReferentSecretSelector(store, ref.SecretRef)
+		err := utils.ValidateReferentSecretSelector(store, *ref.SecretRef)
 		if err != nil {
 			return err
 		}
@@ -130,6 +131,19 @@ func validateSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.ScalewayProv
 	}
 
 	return nil
+}
+
+func doesConfigDependOnNamespace(cfg *esv1beta1.ScalewayProvider) bool {
+
+	if cfg.AccessKey.SecretRef != nil && cfg.AccessKey.SecretRef.Namespace != nil {
+		return true
+	}
+
+	if cfg.SecretKey.SecretRef != nil && cfg.SecretKey.SecretRef.Namespace != nil {
+		return true
+	}
+
+	return true
 }
 
 func getConfig(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, error) {

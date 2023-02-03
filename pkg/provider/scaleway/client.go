@@ -98,7 +98,20 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 }
 
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
+
 	// TODO
+
+	page := int32(1)
+	pageSize := uint32(0)
+	_, err := c.api.ListSecrets(&smapi.ListSecretsRequest{
+		ProjectID: &c.projectId,
+		Page:      &page,
+		PageSize:  &pageSize,
+	})
+	if err != nil {
+		return esv1beta1.ValidationResultError, nil
+	}
+
 	return esv1beta1.ValidationResultReady, nil
 }
 
