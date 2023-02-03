@@ -202,7 +202,7 @@ webhook:
   nameOverride: ""
   fullnameOverride: ""
   # -- The port the webhook will listen to
-  port: 10250
+  port: 9443
   rbac:
   # -- Specifies whether role and rolebinding resources should be created.
     create: true
