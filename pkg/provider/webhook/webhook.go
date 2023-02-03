@@ -27,7 +27,6 @@ import (
 	tpl "text/template"
 	"time"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/PaesslerAG/jsonpath"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -446,7 +445,7 @@ func executeTemplate(tmpl string, data map[string]map[string]string) (bytes.Buff
 	if tmpl == "" {
 		return result, nil
 	}
-	urlt, err := tpl.New("webhooktemplate").Funcs(sprig.TxtFuncMap()).Funcs(template.FuncMap()).Parse(tmpl)
+	urlt, err := tpl.New("webhooktemplate").Funcs(template.FuncMap()).Parse(tmpl)
 	if err != nil {
 		return result, err
 	}
