@@ -21,9 +21,10 @@ import (
 	"regexp"
 	"strings"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"golang.org/x/exp/maps"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -334,7 +335,7 @@ func (s *Secret) validate() error {
 	for _, file := range s.Files {
 		fields[file.Title]++
 	}
-	duplicates := []string{}
+	var duplicates []string
 	for key, ocurrences := range fields {
 		if ocurrences > 1 {
 			duplicates = append(duplicates, key)

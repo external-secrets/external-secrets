@@ -18,14 +18,15 @@ import (
 	"fmt"
 	"net/url"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"github.com/keeper-security/secrets-manager-go/core/logger"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (

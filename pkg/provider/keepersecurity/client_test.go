@@ -20,10 +20,11 @@ import (
 	"reflect"
 	"testing"
 
+	ksm "github.com/keeper-security/secrets-manager-go/core"
+
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider/keepersecurity/fake"
-	ksm "github.com/keeper-security/secrets-manager-go/core"
 )
 
 const (
