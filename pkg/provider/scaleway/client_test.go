@@ -187,7 +187,15 @@ func TestGetAllSecrets(t *testing.T) {
 		response map[string][]byte
 		err      error
 	}{
-		// TODO
+		"find secrets by name": {
+			ref: esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{RegExp: "secret-.*"},
+			},
+			response: map[string][]byte{
+				db.secret("secret-1").id: db.secret("secret-1").mustGetVersion("latest").data,
+				db.secret("secret-2").id: db.secret("secret-2").mustGetVersion("latest").data,
+			},
+		},
 		"find secrets by tags": {
 			ref: esv1beta1.ExternalSecretFind{
 				Tags: map[string]string{"secret-2-tag-1": "ignored-value"},
