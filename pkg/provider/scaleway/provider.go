@@ -17,8 +17,11 @@ package scaleway
 import (
 	"context"
 	"fmt"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"github.com/scaleway/scaleway-sdk-go/validation"
 	corev1 "k8s.io/api/core/v1"
 
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,24 +31,9 @@ import (
 
 var (
 	defaultApiUrl = "https://api.scaleway.com"
-	// TODO: remove these variables or use more of them, for consistency
-	errMissingStore            = fmt.Errorf("missing store provider")
-	errMissingScalewayProvider = fmt.Errorf("missing store provider scaleway")
 )
 
-type SourceOrigin string
-
-type Config struct {
-	ApiUrl    string
-	Region    string
-	ProjectId string
-	AccessKey string
-	SecretKey string
-}
-
-type Provider struct {
-	configs map[string]Config
-}
+type Provider struct{}
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
@@ -54,44 +42,26 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kubeClient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 
-	if p.configs == nil {
-		p.configs = make(map[string]Config)
-	}
-
-	cfg := p.configs[store.GetName()]
-
-	c, err := getProvider(store)
+	cfg, err := getConfig(store)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg = Config{
-		ApiUrl:    c.ApiUrl,
-		Region:    c.Region,
-		ProjectId: c.ProjectId,
-	}
-
-	if cfg.ApiUrl == "" {
-		cfg.ApiUrl = defaultApiUrl
-	}
-
-	cfg.AccessKey, err = loadConfigSecret(ctx, c.AccessKey, kube, namespace)
+	accessKey, err := loadConfigSecret(ctx, cfg.AccessKey, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg.SecretKey, err = loadConfigSecret(ctx, c.SecretKey, kube, namespace)
+	secretKey, err := loadConfigSecret(ctx, cfg.SecretKey, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
-
-	p.configs[store.GetName()] = cfg
 
 	scwClient, err := scw.NewClient(
 		scw.WithAPIURL(cfg.ApiUrl),
 		scw.WithDefaultRegion(scw.Region(cfg.Region)),
 		scw.WithDefaultProjectID(cfg.ProjectId),
-		scw.WithAuth(cfg.AccessKey, cfg.SecretKey),
+		scw.WithAuth(accessKey, secretKey),
 	)
 	if err != nil {
 		return nil, err
@@ -103,44 +73,30 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}, nil
 }
 
-func getProvider(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, error) {
-	if store == nil {
-		return nil, errMissingStore
-	}
-	spc := store.GetSpec()
-	if spc == nil || spc.Provider == nil || spc.Provider.Scaleway == nil {
-		return nil, errMissingScalewayProvider
-	}
-	return spc.Provider.Scaleway, nil
-}
-
 func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecretRef, kube kubeClient.Client, defaultNamespace string) (string, error) {
 
-	if ref.Value != "" {
+	var emptySecretKeySelector esmeta.SecretKeySelector
 
-		if ref.SecretNamespace != "" || ref.SecretName != "" || ref.SecretKey != "" {
-			return "", fmt.Errorf("cannot specify both a value and a reference to a secret")
-		}
-
+	if ref.SecretRef == emptySecretKeySelector {
 		return ref.Value, nil
 	}
 
-	namespace := ref.SecretNamespace
-	if namespace == "" {
-		namespace = defaultNamespace
+	namespace := defaultNamespace
+	if ref.SecretRef.Namespace != nil {
+		namespace = *ref.SecretRef.Namespace
 	}
 
-	if ref.SecretName == "" {
+	if ref.SecretRef.Name == "" {
 		return "", fmt.Errorf("must specify a value or a reference to a secret")
 	}
 
-	if ref.SecretKey == "" {
+	if ref.SecretRef.Key == "" {
 		return "", fmt.Errorf("must specify a secret key")
 	}
 
 	objKey := kubeClient.ObjectKey{
 		Namespace: namespace,
-		Name:      ref.SecretName,
+		Name:      ref.SecretRef.Name,
 	}
 
 	secret := corev1.Secret{}
@@ -150,21 +106,74 @@ func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecret
 		return "", err
 	}
 
-	value, ok := secret.Data[ref.SecretKey]
+	value, ok := secret.Data[ref.SecretRef.Key]
 	if !ok {
-		return "", fmt.Errorf("no such key in secret: %v", ref.SecretKey)
+		return "", fmt.Errorf("no such key in secret: %v", ref.SecretRef.Key)
 	}
 
 	return string(value), nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
-	prov := store.GetSpec().Provider.Scaleway
-	if prov == nil {
-		return nil
+func validateSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.ScalewayProviderSecretRef) error {
+
+	var emptySecretKeySelector esmeta.SecretKeySelector
+	if ref.SecretRef != emptySecretKeySelector {
+		if ref.Value != "" {
+			return fmt.Errorf("cannot specify both secret reference and value")
+		}
+		err := utils.ValidateReferentSecretSelector(store, ref.SecretRef)
+		if err != nil {
+			return err
+		}
+	} else if ref.Value == "" {
+		return fmt.Errorf("must specify either secret refernce or direct value")
 	}
-	// TODO
+
 	return nil
+}
+
+func getConfig(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, error) {
+
+	if store == nil {
+		return nil, fmt.Errorf("missing store specification")
+	}
+	storeSpec := store.GetSpec()
+
+	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Scaleway == nil {
+		return nil, fmt.Errorf("invalid specification for scaleway provider")
+	}
+	cfg := storeSpec.Provider.Scaleway
+
+	if cfg.ApiUrl == "" {
+		cfg.ApiUrl = defaultApiUrl
+	} else if !validation.IsURL(cfg.ApiUrl) {
+		return nil, fmt.Errorf("invalid api url: %q", cfg.ApiUrl)
+	}
+
+	if !validation.IsRegion(cfg.Region) {
+		return nil, fmt.Errorf("invalid region: %q", cfg.Region)
+	}
+
+	if !validation.IsProjectID(cfg.ProjectId) {
+		return nil, fmt.Errorf("invalid project id: %q", cfg.ProjectId)
+	}
+
+	err := validateSecretRef(store, cfg.AccessKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = validateSecretRef(store, cfg.SecretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	_, err := getConfig(store)
+	return err
 }
 
 func init() {

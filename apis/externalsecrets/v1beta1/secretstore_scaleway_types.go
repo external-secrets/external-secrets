@@ -14,24 +14,17 @@ limitations under the License.
 
 package v1beta1
 
+import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+
 type ScalewayProviderSecretRef struct {
 
 	// Value can be specified directly to set a value without using a secret.
 	// +optional
 	Value string `json:"value,omitempty"`
 
-	// SecretNamespace is the namespace of the secret to use. If not specified, default
-	// to the namespace of the SecretStore.
+	// SecretRef references a key in a secret that will be used as value.
 	// +optional
-	SecretNamespace string `json:"secretNamespace,omitempty"`
-
-	// SecretName is the name of the secret to use.
-	// +optional
-	SecretName string `json:"secretName,omitempty"`
-
-	// SecretKey is the specific key in the secret to be used.
-	// +optional
-	SecretKey string `json:"secretKey,omitempty"`
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
 type ScalewayProvider struct {
@@ -44,9 +37,9 @@ type ScalewayProvider struct {
 
 	ProjectId string `json:"projectId"`
 
-	// AccessKey is the non-secret par of the api key.
+	// AccessKey is the non-secret part of the api key.
 	AccessKey *ScalewayProviderSecretRef `json:"accessKey"`
 
-	// SecretKey is the non-secret par of the api key.
+	// SecretKey is the non-secret part of the api key.
 	SecretKey *ScalewayProviderSecretRef `json:"secretKey"`
 }

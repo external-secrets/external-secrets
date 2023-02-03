@@ -2466,17 +2466,21 @@ spec:
                       description: Scaleway
                       properties:
                         accessKey:
-                          description: AccessKey is the non-secret par of the api key.
+                          description: AccessKey is the non-secret part of the api key.
                           properties:
-                            secretKey:
-                              description: SecretKey is the specific key in the secret to be used.
-                              type: string
-                            secretName:
-                              description: SecretName is the name of the secret to use.
-                              type: string
-                            secretNamespace:
-                              description: SecretNamespace is the namespace of the secret to use. If not specified, default to the namespace of the SecretStore.
-                              type: string
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
                               type: string
@@ -2489,17 +2493,21 @@ spec:
                         region:
                           type: string
                         secretKey:
-                          description: SecretKey is the non-secret par of the api key.
+                          description: SecretKey is the non-secret part of the api key.
                           properties:
-                            secretKey:
-                              description: SecretKey is the specific key in the secret to be used.
-                              type: string
-                            secretName:
-                              description: SecretName is the name of the secret to use.
-                              type: string
-                            secretNamespace:
-                              description: SecretNamespace is the namespace of the secret to use. If not specified, default to the namespace of the SecretStore.
-                              type: string
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
                               type: string
@@ -5881,17 +5889,21 @@ spec:
                       description: Scaleway
                       properties:
                         accessKey:
-                          description: AccessKey is the non-secret par of the api key.
+                          description: AccessKey is the non-secret part of the api key.
                           properties:
-                            secretKey:
-                              description: SecretKey is the specific key in the secret to be used.
-                              type: string
-                            secretName:
-                              description: SecretName is the name of the secret to use.
-                              type: string
-                            secretNamespace:
-                              description: SecretNamespace is the namespace of the secret to use. If not specified, default to the namespace of the SecretStore.
-                              type: string
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
                               type: string
@@ -5904,17 +5916,21 @@ spec:
                         region:
                           type: string
                         secretKey:
-                          description: SecretKey is the non-secret par of the api key.
+                          description: SecretKey is the non-secret part of the api key.
                           properties:
-                            secretKey:
-                              description: SecretKey is the specific key in the secret to be used.
-                              type: string
-                            secretName:
-                              description: SecretName is the name of the secret to use.
-                              type: string
-                            secretNamespace:
-                              description: SecretNamespace is the namespace of the secret to use. If not specified, default to the namespace of the SecretStore.
-                              type: string
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
                               type: string
