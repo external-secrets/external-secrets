@@ -12,6 +12,7 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.webhook.replicaCount }}
+  revisionHistoryLimit: {{ .Values.webhook.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
