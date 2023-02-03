@@ -240,9 +240,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return fmt.Errorf(errSetCtrlReference, err)
 			}
 		}
-		if secret.Data == nil {
+		if secret.Data == nil || externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyMerge {
 			secret.Data = make(map[string][]byte)
 		}
+
 		err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
 		if err != nil {
 			return fmt.Errorf(errApplyTemplate, err)
