@@ -227,6 +227,31 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 	return &response, nil
 }
 
+func (f *fakeSecretApi) CreateSecret(request *smapi.CreateSecretRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
+
+	if request.Region != "" {
+		panic("explicit region in request is not supported")
+	}
+
+	secret := &fakeSecret{
+		id:     uuid.NewString(),
+		name:   request.Name,
+		status: "ready",
+	}
+
+	f.secrets = append(f.secrets, secret)
+	f._secretsById[secret.id] = secret
+	f._secretsByName[secret.name] = secret
+
+	return &smapi.Secret{
+		ID:           secret.id,
+		ProjectID:    request.ProjectID,
+		Name:         secret.name,
+		Status:       smapi.SecretStatus(secret.status),
+		VersionCount: 0,
+	}, nil
+}
+
 func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
 
 	if request.Region != "" {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
@@ -12,15 +13,89 @@ import (
 	"strings"
 )
 
+var errNoSecretForName = errors.New("no secret for this name")
+
 type client struct {
 	api       secretApi
 	projectId string
 }
 
+type scwSecretRef struct {
+	RefType string
+	Value   string
+}
+
+func decodeScwSecretRef(key string) (*scwSecretRef, error) {
+
+	sepIndex := strings.IndexRune(key, ':')
+	if sepIndex < 0 {
+		return nil, fmt.Errorf("invalid secret reference: missing colon ':'")
+	}
+
+	return &scwSecretRef{
+		RefType: key[:sepIndex],
+		Value:   key[sepIndex+1:],
+	}, nil
+}
+
+func (c *client) getSecretByName(ctx context.Context, name string) (*smapi.Secret, error) {
+
+	// TODO: optimize, once possible, with GetSecretByName()
+
+	request := smapi.ListSecretsRequest{
+		ProjectID: &c.projectId,
+		Page:      new(int32),
+		PageSize:  new(uint32),
+	}
+	*request.Page = 1
+	*request.PageSize = 50
+
+	var result *smapi.Secret
+
+	for done := false; !done; {
+
+		response, err := c.api.ListSecrets(&request, scw.WithContext(ctx))
+		if err != nil {
+			return nil, err
+		}
+
+		totalFetched := uint64(*request.Page-1)*uint64(*request.PageSize) + uint64(len(response.Secrets))
+		done = totalFetched == uint64(response.TotalCount)
+
+		*request.Page++
+
+		for _, secret := range response.Secrets {
+
+			if secret.Name == name {
+				if result != nil {
+					return nil, fmt.Errorf("multiple secrets are named %q", name)
+				}
+				result = secret
+			}
+		}
+	}
+
+	if result == nil {
+		return nil, errNoSecretForName
+	}
+
+	return result, nil
+}
+
 func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 
+	scwRef, err := decodeScwSecretRef(ref.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	if scwRef.RefType != "id" {
+		return nil, fmt.Errorf("secrets can only be accessed by id")
+	}
+	secretId := scwRef.Value
+
 	request := smapi.AccessSecretVersionRequest{
-		SecretID: ref.Key,
+		SecretID: secretId,
 		Revision: ref.Version,
 	}
 
@@ -39,12 +114,48 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return response.Data, nil
 }
 
+func (c *client) getOrCreateSecretByName(ctx context.Context, name string) (*smapi.Secret, error) {
+
+	secret, err := c.getSecretByName(ctx, name)
+	if err == nil {
+		return secret, nil
+	}
+	if err != errNoSecretForName {
+		return nil, err
+	}
+
+	secret, err = c.api.CreateSecret(&smapi.CreateSecretRequest{
+		ProjectID: c.projectId,
+		Name:      name,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return secret, nil
+}
+
 func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 
-	// TODO: add a tag to secrets managed by kubernetes?
+	// TODO: A cluster-specific prefix should be prepended to the secret name to reduce the probability of a collision.
+
+	scwRef, err := decodeScwSecretRef(remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+
+	if scwRef.RefType != "name" {
+		return fmt.Errorf("secrets can only be pushed by name")
+	}
+	secretName := scwRef.Value
+
+	secret, err := c.getOrCreateSecretByName(ctx, secretName)
+	if err != nil {
+		return err
+	}
 
 	accessSecretVersionRequest := smapi.AccessSecretVersionRequest{
-		SecretID: remoteRef.GetRemoteKey(),
+		SecretID: secret.ID,
 		Revision: "latest",
 	}
 
@@ -68,7 +179,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 
 	createSecretVersionRequest := smapi.CreateSecretVersionRequest{
-		SecretID: remoteRef.GetRemoteKey(),
+		SecretID: secret.ID,
 		Data:     value,
 	}
 
@@ -82,15 +193,30 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 
 func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
 
-	request := smapi.DeleteSecretRequest{
-		SecretID: remoteRef.GetRemoteKey(),
+	scwRef, err := decodeScwSecretRef(remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
 	}
 
-	err := c.api.DeleteSecret(&request, scw.WithContext(ctx))
+	if scwRef.RefType != "name" {
+		return fmt.Errorf("secrets can only be pushed by name")
+	}
+	secretName := scwRef.Value
+
+	secret, err := c.getSecretByName(ctx, secretName)
 	if err != nil {
-		if _, isNotFoundErr := err.(*scw.ResourceNotFoundError); isNotFoundErr {
-			return esv1beta1.NoSecretError{}
+		if err == errNoSecretForName {
+			return nil
 		}
+		return err
+	}
+
+	request := smapi.DeleteSecretRequest{
+		SecretID: secret.ID,
+	}
+
+	err = c.api.DeleteSecret(&request, scw.WithContext(ctx))
+	if err != nil {
 		return err
 	}
 

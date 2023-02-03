@@ -3,7 +3,6 @@ package scaleway
 import (
 	"context"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -69,28 +68,28 @@ func TestGetSecret(t *testing.T) {
 	}{
 		"empty version should mean latest": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				Key:     secret.id,
+				Key:     "id:" + secret.id,
 				Version: "",
 			},
 			response: secret.versions[1].data,
 		},
 		"asking for latest version": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				Key:     secret.id,
+				Key:     "id:" + secret.id,
 				Version: "latest",
 			},
 			response: secret.versions[1].data,
 		},
 		"asking for version by revision number": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				Key:     secret.id,
+				Key:     "id:" + secret.id,
 				Version: "1",
 			},
 			response: secret.versions[0].data,
 		},
 		"non existing revision should yield NoSecretErr": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				Key:     secret.id,
+				Key:     "id:" + secret.id,
 				Version: "9999",
 			},
 			err: esv1beta1.NoSecretErr,
@@ -127,7 +126,7 @@ func TestPushSecret(t *testing.T) {
 		data := []byte("some secret data 6a8ff33b-c69a-4e42-b162-b7b595ee7f5f")
 		secret := db.secret("push-me")
 
-		pushErr := c.PushSecret(ctx, data, pushRemoteRef(secret.id))
+		pushErr := c.PushSecret(ctx, data, pushRemoteRef("name:"+secret.name))
 
 		assert.NoError(t, pushErr)
 		assert.Equal(t, 1, len(secret.versions))
@@ -140,7 +139,7 @@ func TestPushSecret(t *testing.T) {
 		c := newTestClient()
 		secret := db.secret("not-changed")
 
-		pushErr := c.PushSecret(ctx, secret.versions[0].data, pushRemoteRef(secret.id))
+		pushErr := c.PushSecret(ctx, secret.versions[0].data, pushRemoteRef("name:"+secret.name))
 
 		assert.NoError(t, pushErr)
 		assert.Equal(t, 1, len(secret.versions))
@@ -165,7 +164,7 @@ func TestGetSecretMap(t *testing.T) {
 	c := newTestClient()
 
 	values, getErr := c.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{
-		Key:     db.secret("json-data").id,
+		Key:     "id:" + db.secret("json-data").id,
 		Version: "latest",
 	})
 
@@ -227,7 +226,6 @@ func TestDeleteSecret(t *testing.T) {
 	c := newTestClient()
 
 	secret := db.secrets[0]
-	inexistentSecretId := uuid.NewString()
 
 	// TODO: test that the error is NOT NoSecretErr when an error other than "not found" occurs
 
@@ -236,12 +234,12 @@ func TestDeleteSecret(t *testing.T) {
 		err error
 	}{
 		"Delete Successfully": {
-			ref: pushRemoteRef(secret.id),
+			ref: pushRemoteRef("name:" + secret.name),
 			err: nil,
 		},
 		"Secret Not Found": {
-			ref: pushRemoteRef(inexistentSecretId),
-			err: esv1beta1.NoSecretErr,
+			ref: pushRemoteRef("name:not-a-secret"),
+			err: nil,
 		},
 	}
 
