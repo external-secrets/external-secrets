@@ -1,5 +1,8 @@
 replicaCount: 1
 
+# -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+revisionHistoryLimit: 10
+
 image:
   repository: ghcr.io/external-secrets/external-secrets
   pullPolicy: IfNotPresent
@@ -160,8 +163,12 @@ webhook:
   # -- Specifices the lookaheadInterval for certificate validity
   lookaheadInterval: ""
   replicaCount: 1
+
+  # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+  revisionHistoryLimit: 10
+
   certDir: /tmp/certs
-  # -- specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
+  # -- Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
   failurePolicy: Fail
   # -- Specifies if webhook pod should use hostNetwork or not.
   hostNetwork: false
@@ -287,6 +294,10 @@ certController:
   create: true
   requeueInterval: "5m"
   replicaCount: 1
+
+  # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+  revisionHistoryLimit: 10
+
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
