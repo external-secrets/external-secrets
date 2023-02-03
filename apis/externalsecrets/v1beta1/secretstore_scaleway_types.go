@@ -35,10 +35,18 @@ type ScalewayProviderSecretRef struct {
 }
 
 type ScalewayProvider struct {
-	ApiUrl         string                     `json:"api_url"`
-	Region         string                     `json:"region"`
-	OrganizationId string                     `json:"organization_id"`
-	ProjectId      string                     `json:"project_id"`
-	AccessKey      *ScalewayProviderSecretRef `json:"accessKey"`
-	SecretKey      *ScalewayProviderSecretRef `json:"secretKey"`
+
+	// ApiUrl is the url of the api to use. Defaults to https://api.scaleway.com
+	// +optional
+	ApiUrl string `json:"apiUrl,omitempty"`
+
+	Region string `json:"region"`
+
+	ProjectId string `json:"projectId"`
+
+	// AccessKey is the non-secret par of the api key.
+	AccessKey *ScalewayProviderSecretRef `json:"accessKey"`
+
+	// SecretKey is the non-secret par of the api key.
+	SecretKey *ScalewayProviderSecretRef `json:"secretKey"`
 }

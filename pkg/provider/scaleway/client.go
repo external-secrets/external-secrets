@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/find"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"strings"
 )
 
 type client struct {
-	api            secretApi
-	organizationId string
+	api       secretApi
+	projectId string
 }
 
 func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -135,22 +137,24 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 
 	request := smapi.ListSecretsRequest{
-		Page:     new(int32),
-		PageSize: new(uint32),
+		ProjectID: &c.projectId,
+		Page:      new(int32),
+		PageSize:  new(uint32),
 	}
 	*request.Page = 1
 	*request.PageSize = 50
 
-	// TODO: validate name, project id etc. early to avoid a 400 error?
-
 	if ref.Path != nil {
-		request.ProjectID = ref.Path
-	} else {
-		request.OrganizationID = &c.organizationId
+		return nil, fmt.Errorf("searching by path is not supported")
 	}
 
+	var nameMatcher *find.Matcher
 	if ref.Name != nil {
-		// TODO
+		var err error
+		nameMatcher, err = find.New(*ref.Name)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for tag, _ := range ref.Tags {
@@ -173,6 +177,10 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		}
 
 		for _, secret := range response.Secrets {
+
+			if nameMatcher != nil && !nameMatcher.MatchName(secret.Name) {
+				continue
+			}
 
 			// TODO: update to latest-enabled when possible
 

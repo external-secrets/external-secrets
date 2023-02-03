@@ -2,58 +2,45 @@ package scaleway
 
 import (
 	"context"
-	"testing"
-
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 var db = buildDb(&fakeSecretApi{
-	projects: []*fakeProject{
+	secrets: []*fakeSecret{
 		{
-			secrets: []*fakeSecret{
-				{
-					name: "secret-1",
-					versions: []*fakeSecretVersion{
-						{revision: 1},
-						{revision: 2},
-					},
-				},
-				{
-					name: "secret-2",
-					tags: []string{"secret-2-tag-1", "secret-2-tag-2"},
-					versions: []*fakeSecretVersion{
-						{revision: 1},
-						{revision: 2},
-					},
-				},
+			name: "secret-1",
+			versions: []*fakeSecretVersion{
+				{revision: 1},
+				{revision: 2},
 			},
 		},
 		{
-			secrets: []*fakeSecret{
-				{
-					name:     "push-me",
-					versions: []*fakeSecretVersion{},
-				},
-				{
-					name: "not-changed",
-					versions: []*fakeSecretVersion{
-						{revision: 1},
-					},
-				},
+			name: "secret-2",
+			tags: []string{"secret-2-tag-1", "secret-2-tag-2"},
+			versions: []*fakeSecretVersion{
+				{revision: 1},
+				{revision: 2},
 			},
 		},
 		{
-			secrets: []*fakeSecret{
+			name:     "push-me",
+			versions: []*fakeSecretVersion{},
+		},
+		{
+			name: "not-changed",
+			versions: []*fakeSecretVersion{
+				{revision: 1},
+			},
+		},
+		{
+			name: "json-data",
+			versions: []*fakeSecretVersion{
 				{
-					name: "json-data",
-					versions: []*fakeSecretVersion{
-						{
-							revision: 1,
-							data:     []byte(`{"some_string": "abc def", "some_int": -100, "some_bool": false}`),
-						},
-					},
+					revision: 1,
+					data:     []byte(`{"some_string": "abc def", "some_int": -100, "some_bool": false}`),
 				},
 			},
 		},
@@ -71,7 +58,7 @@ func TestGetSecret(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
 
-	secret := db.projects[0].secrets[0]
+	secret := db.secrets[0]
 
 	// TODO: test that the error is NOT NoSecretErr when an error other than "not found" occurs
 
@@ -206,16 +193,7 @@ func TestGetAllSecrets(t *testing.T) {
 				Tags: map[string]string{"secret-2-tag-1": "ignored-value"},
 			},
 			response: map[string][]byte{
-				db.projects[0].secrets[1].id: db.projects[0].secrets[1].mustGetVersion("latest").data,
-			},
-		},
-		"find secrets by project": {
-			ref: esv1beta1.ExternalSecretFind{
-				Path: &db.projects[0].id,
-			},
-			response: map[string][]byte{
-				db.projects[0].secrets[0].id: db.projects[0].secrets[0].mustGetVersion("latest").data,
-				db.projects[0].secrets[1].id: db.projects[0].secrets[1].mustGetVersion("latest").data,
+				db.secrets[1].id: db.secrets[1].mustGetVersion("latest").data,
 			},
 		},
 	}
@@ -240,7 +218,7 @@ func TestDeleteSecret(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
 
-	secret := db.projects[0].secrets[0]
+	secret := db.secrets[0]
 	inexistentSecretId := uuid.NewString()
 
 	// TODO: test that the error is NOT NoSecretErr when an error other than "not found" occurs

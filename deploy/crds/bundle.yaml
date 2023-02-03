@@ -2466,6 +2466,7 @@ spec:
                       description: Scaleway
                       properties:
                         accessKey:
+                          description: AccessKey is the non-secret par of the api key.
                           properties:
                             secretKey:
                               description: SecretKey is the specific key in the secret to be used.
@@ -2480,15 +2481,15 @@ spec:
                               description: Value can be specified directly to set a value without using a secret.
                               type: string
                           type: object
-                        api_url:
+                        apiUrl:
+                          description: ApiUrl is the url of the api to use. Defaults to https://api.scaleway.com
                           type: string
-                        organization_id:
-                          type: string
-                        project_id:
+                        projectId:
                           type: string
                         region:
                           type: string
                         secretKey:
+                          description: SecretKey is the non-secret par of the api key.
                           properties:
                             secretKey:
                               description: SecretKey is the specific key in the secret to be used.
@@ -2505,9 +2506,7 @@ spec:
                           type: object
                       required:
                         - accessKey
-                        - api_url
-                        - organization_id
-                        - project_id
+                        - projectId
                         - region
                         - secretKey
                       type: object
@@ -5882,6 +5881,7 @@ spec:
                       description: Scaleway
                       properties:
                         accessKey:
+                          description: AccessKey is the non-secret par of the api key.
                           properties:
                             secretKey:
                               description: SecretKey is the specific key in the secret to be used.
@@ -5896,15 +5896,15 @@ spec:
                               description: Value can be specified directly to set a value without using a secret.
                               type: string
                           type: object
-                        api_url:
+                        apiUrl:
+                          description: ApiUrl is the url of the api to use. Defaults to https://api.scaleway.com
                           type: string
-                        organization_id:
-                          type: string
-                        project_id:
+                        projectId:
                           type: string
                         region:
                           type: string
                         secretKey:
+                          description: SecretKey is the non-secret par of the api key.
                           properties:
                             secretKey:
                               description: SecretKey is the specific key in the secret to be used.
@@ -5921,9 +5921,7 @@ spec:
                           type: object
                       required:
                         - accessKey
-                        - api_url
-                        - organization_id
-                        - project_id
+                        - projectId
                         - region
                         - secretKey
                       type: object

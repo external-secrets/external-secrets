@@ -23,67 +23,52 @@ type fakeSecret struct {
 	versions []*fakeSecretVersion
 	tags     []string
 	status   string
-	_project *fakeProject
-}
-
-type fakeProject struct {
-	id      string
-	secrets []*fakeSecret
 }
 
 type fakeSecretApi struct {
-	projects       []*fakeProject
-	_secrets       map[string]*fakeSecret
+	secrets        []*fakeSecret
+	_secretsById   map[string]*fakeSecret
 	_secretsByName map[string]*fakeSecret
 }
 
 func buildDb(f *fakeSecretApi) *fakeSecretApi {
 
-	f._secrets = map[string]*fakeSecret{}
+	f._secretsById = map[string]*fakeSecret{}
 	f._secretsByName = map[string]*fakeSecret{}
 
-	for _, project := range f.projects {
+	for _, secret := range f.secrets {
 
-		if project.id == "" {
-			project.id = uuid.NewString()
+		if secret.id == "" {
+			secret.id = uuid.NewString()
 		}
 
-		for _, secret := range project.secrets {
+		sort.Slice(secret.versions, func(i, j int) bool {
+			return secret.versions[i].revision < secret.versions[j].revision
+		})
 
-			if secret.id == "" {
-				secret.id = uuid.NewString()
+		for index, version := range secret.versions {
+
+			if version.revision != index+1 {
+				panic("bad revision number in fixtures")
 			}
 
-			sort.Slice(secret.versions, func(i, j int) bool {
-				return secret.versions[i].revision < secret.versions[j].revision
-			})
-
-			for index, version := range secret.versions {
-
-				if version.revision != index+1 {
-					panic("bad revision number in fixtures")
-				}
-
-				if version.status == "" {
-					version.status = "enabled"
-				}
+			if version.status == "" {
+				version.status = "enabled"
 			}
-
-			for _, version := range secret.versions {
-				if len(version.data) == 0 && !version.dontFillData {
-					version.data = []byte(fmt.Sprintf("some data for secret %s version %d: %s", secret.id, version.revision, uuid.NewString()))
-				}
-			}
-
-			if secret.status == "" {
-				secret.status = "ready"
-			}
-
-			secret._project = project
-
-			f._secrets[secret.id] = secret
-			f._secretsByName[secret.name] = secret
 		}
+
+		for _, version := range secret.versions {
+			if len(version.data) == 0 && !version.dontFillData {
+				version.data = []byte(fmt.Sprintf("some data for secret %s version %d: %s", secret.id, version.revision, uuid.NewString()))
+			}
+		}
+
+		if secret.status == "" {
+			secret.status = "ready"
+		}
+
+		f._secretsById[secret.id] = secret
+		f._secretsByName[secret.name] = secret
 	}
 
 	return f
@@ -140,7 +125,7 @@ func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 		panic("explicit region in request is not supported")
 	}
 
-	secret, ok := f._secrets[request.SecretID]
+	secret, ok := f._secretsById[request.SecretID]
 	if !ok {
 		return nil, &scw.ResourceNotFoundError{
 			Resource:   "secret",
@@ -191,16 +176,9 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 
 	// filtering
 
-	for _, project := range f.projects {
-
-		if request.ProjectID != nil && *request.ProjectID != project.id {
-			continue
-		}
-
-		for _, secret := range project.secrets {
-			if matchListSecretFilter(secret, request) {
-				matches = append(matches, secret)
-			}
+	for _, secret := range f.secrets {
+		if matchListSecretFilter(secret, request) {
+			matches = append(matches, secret)
 		}
 	}
 
@@ -239,7 +217,6 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 	for _, secret := range matches[startOffset:endOffset] {
 		response.Secrets = append(response.Secrets, &smapi.Secret{
 			ID:           secret.id,
-			ProjectID:    secret._project.id,
 			Name:         secret.name,
 			Status:       smapi.SecretStatus(secret.status),
 			Tags:         secret.tags,
@@ -256,7 +233,7 @@ func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRe
 		panic("explicit region in request is not supported")
 	}
 
-	secret, ok := f._secrets[request.SecretID]
+	secret, ok := f._secretsById[request.SecretID]
 	if !ok {
 		return nil, &scw.ResourceNotFoundError{
 			Resource:   "secret",
@@ -280,16 +257,14 @@ func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRe
 
 func (f *fakeSecretApi) DeleteSecret(request *smapi.DeleteSecretRequest, _ ...scw.RequestOption) error {
 
-	// TODO: check region
-
-	secret, ok := f._secrets[request.SecretID]
+	secret, ok := f._secretsById[request.SecretID]
 	if !ok {
 		return &scw.ResourceNotFoundError{
-			Resource:   "", // TODO
+			Resource:   "secret",
 			ResourceID: request.SecretID,
 		}
 	}
-	delete(f._secrets, secret.id)
+	delete(f._secretsById, secret.id)
 
 	return nil
 }

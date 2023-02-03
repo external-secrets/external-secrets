@@ -27,6 +27,7 @@ import (
 )
 
 var (
+	defaultApiUrl = "https://api.scaleway.com"
 	// TODO: remove these variables or use more of them, for consistency
 	errMissingStore            = fmt.Errorf("missing store provider")
 	errMissingScalewayProvider = fmt.Errorf("missing store provider scaleway")
@@ -35,12 +36,11 @@ var (
 type SourceOrigin string
 
 type Config struct {
-	ApiUrl         string
-	Region         string
-	OrganizationId string
-	ProjectId      string
-	AccessKey      string
-	SecretKey      string
+	ApiUrl    string
+	Region    string
+	ProjectId string
+	AccessKey string
+	SecretKey string
 }
 
 type Provider struct {
@@ -66,10 +66,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}
 
 	cfg = Config{
-		ApiUrl:         c.ApiUrl,
-		Region:         c.Region,
-		OrganizationId: c.OrganizationId,
-		ProjectId:      c.ProjectId,
+		ApiUrl:    c.ApiUrl,
+		Region:    c.Region,
+		ProjectId: c.ProjectId,
+	}
+
+	if cfg.ApiUrl == "" {
+		cfg.ApiUrl = defaultApiUrl
 	}
 
 	cfg.AccessKey, err = loadConfigSecret(ctx, c.AccessKey, kube, namespace)
@@ -87,7 +90,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	scwClient, err := scw.NewClient(
 		scw.WithAPIURL(cfg.ApiUrl),
 		scw.WithDefaultRegion(scw.Region(cfg.Region)),
-		scw.WithDefaultOrganizationID(cfg.OrganizationId),
 		scw.WithDefaultProjectID(cfg.ProjectId),
 		scw.WithAuth(cfg.AccessKey, cfg.SecretKey),
 	)
@@ -96,8 +98,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}
 
 	return &client{
-		api:            smapi.NewAPI(scwClient),
-		organizationId: cfg.OrganizationId,
+		api:       smapi.NewAPI(scwClient),
+		projectId: cfg.ProjectId,
 	}, nil
 }
 
