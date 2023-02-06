@@ -11,6 +11,7 @@ import (
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"strings"
+	"time"
 )
 
 var errNoSecretForName = errors.New("no secret for this name")
@@ -127,7 +128,7 @@ func (c *client) getOrCreateSecretByName(ctx context.Context, name string) (*sma
 	secret, err = c.api.CreateSecret(&smapi.CreateSecretRequest{
 		ProjectID: c.projectId,
 		Name:      name,
-	})
+	}, scw.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -225,13 +226,16 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	page := int32(1)
 	pageSize := uint32(0)
 	_, err := c.api.ListSecrets(&smapi.ListSecretsRequest{
 		ProjectID: &c.projectId,
 		Page:      &page,
 		PageSize:  &pageSize,
-	})
+	}, scw.WithContext(ctx))
 	if err != nil {
 		return esv1beta1.ValidationResultError, nil
 	}

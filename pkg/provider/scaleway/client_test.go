@@ -59,8 +59,6 @@ func TestGetSecret(t *testing.T) {
 
 	secret := db.secrets[0]
 
-	// TODO: test that the error is NOT NoSecretErr when an error other than "not found" occurs
-
 	testCases := map[string]struct {
 		ref      esv1beta1.ExternalSecretDataRemoteRef
 		response []byte
@@ -226,8 +224,6 @@ func TestDeleteSecret(t *testing.T) {
 	c := newTestClient()
 
 	secret := db.secrets[0]
-
-	// TODO: test that the error is NOT NoSecretErr when an error other than "not found" occurs
 
 	testCases := map[string]struct {
 		ref esv1beta1.PushRemoteRef
