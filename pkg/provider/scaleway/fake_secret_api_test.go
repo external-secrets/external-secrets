@@ -206,7 +206,7 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 
 	startOffset := (page - 1) * pageSize
 	if startOffset > len(matches) {
-		startOffset = len(matches)
+		return nil, fmt.Errorf("invalid page offset (page = %d, page size = %d, total = %d)", page, pageSize, len(matches))
 	}
 
 	endOffset := page * pageSize

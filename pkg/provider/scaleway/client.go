@@ -302,18 +302,17 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 	results := map[string][]byte{}
 
-	for {
+	for done := false; !done; {
 
 		response, err := c.api.ListSecrets(&request, scw.WithContext(ctx))
 		if err != nil {
 			return nil, err
 		}
 
-		*request.Page++
+		totalFetched := uint64(*request.Page-1)*uint64(*request.PageSize) + uint64(len(response.Secrets))
+		done = totalFetched == uint64(response.TotalCount)
 
-		if len(response.Secrets) == 0 {
-			break
-		}
+		*request.Page++
 
 		for _, secret := range response.Secrets {
 
