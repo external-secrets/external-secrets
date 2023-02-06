@@ -48,7 +48,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v2 v2.20.3
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.146
+	github.com/aliyun/alibaba-cloud-sdk-go v1.62.153
 	github.com/aws/aws-sdk-go v1.44.192
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
