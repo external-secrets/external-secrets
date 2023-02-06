@@ -225,8 +225,6 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 
-	// TODO
-
 	page := int32(1)
 	pageSize := uint32(0)
 	_, err := c.api.ListSecrets(&smapi.ListSecretsRequest{
@@ -330,7 +328,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 			accessResp, err := c.api.AccessSecretVersion(&accessReq, scw.WithContext(ctx))
 			if err != nil {
-				// TODO: log
+				log.Error(err, "failed to access secret")
 				continue
 			}
 

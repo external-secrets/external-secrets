@@ -22,7 +22,7 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/scaleway/scaleway-sdk-go/validation"
 	corev1 "k8s.io/api/core/v1"
-
+	ctrl "sigs.k8s.io/controller-runtime"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -30,6 +30,7 @@ import (
 
 var (
 	defaultApiUrl = "https://api.scaleway.com"
+	log           = ctrl.Log.WithName("provider").WithName("scaleway")
 )
 
 type Provider struct{}

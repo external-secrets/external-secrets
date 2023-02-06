@@ -150,8 +150,6 @@ func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 
 func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest) bool {
 
-	// TODO
-
 	for _, requiredTag := range filter.Tags {
 
 		found := false
