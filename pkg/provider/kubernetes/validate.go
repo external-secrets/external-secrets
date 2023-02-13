@@ -83,7 +83,9 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}
 	for _, rev := range authReview.Status.ResourceRules {
-		if contains("secrets", rev.Resources) && contains("get", rev.Verbs) {
+		if (contains("secrets", rev.Resources) || contains("*", rev.Resources)) &&
+			(contains("get", rev.Verbs) || contains("*", rev.Verbs)) &&
+			(len(rev.APIGroups) == 0 || (contains("", rev.APIGroups) || contains("*", rev.APIGroups))) {
 			return esv1beta1.ValidationResultReady, nil
 		}
 	}

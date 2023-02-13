@@ -273,6 +273,17 @@ func TestValidate(t *testing.T) {
 			},
 		},
 	}
+	successWildcardReview := authv1.SelfSubjectRulesReview{
+		Status: authv1.SubjectRulesReviewStatus{
+			ResourceRules: []authv1.ResourceRule{
+				{
+					Verbs:     []string{"*"},
+					Resources: []string{"*"},
+					APIGroups: []string{"*"},
+				},
+			},
+		},
+	}
 
 	type fields struct {
 		Client       KClient
@@ -328,6 +339,16 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				Namespace:    "default",
 				ReviewClient: fakeReviewClient{authReview: &successReview},
+				store:        &esv1beta1.KubernetesProvider{},
+			},
+			want:    esv1beta1.ValidationResultReady,
+			wantErr: false,
+		},
+		{
+			name: "allowed results in no error",
+			fields: fields{
+				Namespace:    "default",
+				ReviewClient: fakeReviewClient{authReview: &successWildcardReview},
 				store:        &esv1beta1.KubernetesProvider{},
 			},
 			want:    esv1beta1.ValidationResultReady,
