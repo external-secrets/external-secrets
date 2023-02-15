@@ -75,6 +75,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return &client{
 		api:       smapi.NewAPI(scwClient),
 		projectId: cfg.ProjectId,
+		cache:     newCache(),
 	}, nil
 }
 

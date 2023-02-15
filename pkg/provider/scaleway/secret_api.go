@@ -6,6 +6,7 @@ import (
 )
 
 type secretApi interface {
+	GetSecretVersion(req *smapi.GetSecretVersionRequest, opts ...scw.RequestOption) (*smapi.SecretVersion, error)
 	AccessSecretVersion(request *smapi.AccessSecretVersionRequest, option ...scw.RequestOption) (*smapi.AccessSecretVersionResponse, error)
 	ListSecrets(request *smapi.ListSecretsRequest, option ...scw.RequestOption) (*smapi.ListSecretsResponse, error)
 	CreateSecret(request *smapi.CreateSecretRequest, option ...scw.RequestOption) (*smapi.Secret, error)

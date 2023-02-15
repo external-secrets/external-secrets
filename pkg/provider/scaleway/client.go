@@ -10,6 +10,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -19,6 +20,7 @@ var errNoSecretForName = errors.New("no secret for this name")
 type client struct {
 	api       secretApi
 	projectId string
+	cache     cache
 }
 
 type scwSecretRef struct {
@@ -95,16 +97,12 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 	secretId := scwRef.Value
 
-	request := smapi.AccessSecretVersionRequest{
-		SecretID: secretId,
-		Revision: ref.Version,
+	versionSpec := "latest"
+	if ref.Version != "" {
+		versionSpec = ref.Version
 	}
 
-	if ref.Version == "" {
-		request.Revision = "latest"
-	}
-
-	response, err := c.api.AccessSecretVersion(&request, scw.WithContext(ctx))
+	value, err := c.accessSecretVersion(ctx, secretId, versionSpec)
 	if err != nil {
 		if _, isNotFoundErr := err.(*scw.ResourceNotFoundError); isNotFoundErr {
 			return nil, esv1beta1.NoSecretError{}
@@ -112,7 +110,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, err
 	}
 
-	return response.Data, nil
+	return value, nil
 }
 
 func (c *client) getOrCreateSecretByName(ctx context.Context, name string) (*smapi.Secret, error) {
@@ -155,14 +153,14 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		return err
 	}
 
-	accessSecretVersionRequest := smapi.AccessSecretVersionRequest{
+	getSecretVersionRequest := smapi.GetSecretVersionRequest{
 		SecretID: secret.ID,
 		Revision: "latest",
 	}
 
 	secretExistsButHasNoVersion := false
 
-	accessSecretVersionResponse, err := c.api.AccessSecretVersion(&accessSecretVersionRequest, scw.WithContext(ctx))
+	getSecretVersionResponse, err := c.api.GetSecretVersion(&getSecretVersionRequest, scw.WithContext(ctx))
 	if err != nil {
 		if notFoundErr, isNotFoundErr := err.(*scw.ResourceNotFoundError); isNotFoundErr {
 			if notFoundErr.Resource == "secret_version" {
@@ -174,9 +172,17 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		}
 	}
 
-	if !secretExistsButHasNoVersion && bytes.Equal(accessSecretVersionResponse.Data, value) {
-		// no change to push
-		return nil
+	if !secretExistsButHasNoVersion {
+
+		currentValue, err := c.accessSecretVersionByRevision(ctx, secret.ID, getSecretVersionResponse.Revision)
+		if err != nil {
+			return err
+		}
+
+		if bytes.Equal(currentValue, value) {
+			// no change to push
+			return nil
+		}
 	}
 
 	createSecretVersionRequest := smapi.CreateSecretVersionRequest{
@@ -184,10 +190,12 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		Data:     value,
 	}
 
-	_, err = c.api.CreateSecretVersion(&createSecretVersionRequest, scw.WithContext(ctx))
+	createSecretVersionResponse, err := c.api.CreateSecretVersion(&createSecretVersionRequest, scw.WithContext(ctx))
 	if err != nil {
 		return err
 	}
+
+	c.cache.Put(secret.ID, createSecretVersionResponse.Revision, value)
 
 	return nil
 }
@@ -345,4 +353,51 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 func (c *client) Close(context.Context) error {
 	return nil
+}
+
+func (c *client) accessSecretVersion(ctx context.Context, secretId string, versionSpec string) ([]byte, error) {
+
+	// if a revision number is explicitly set, we can use it directly
+
+	if len(versionSpec) > 0 && '0' <= versionSpec[0] && versionSpec[0] <= '9' {
+		revision, err := strconv.ParseUint(versionSpec, 10, 32)
+		if err == nil {
+			return c.accessSecretVersionByRevision(ctx, secretId, uint32(revision))
+		}
+	}
+
+	// otherwise, we need to do a GetSecret()
+
+	request := smapi.GetSecretVersionRequest{
+		SecretID: secretId,
+		Revision: versionSpec,
+	}
+
+	response, err := c.api.GetSecretVersion(&request, scw.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.accessSecretVersionByRevision(ctx, secretId, response.Revision)
+
+}
+
+func (c *client) accessSecretVersionByRevision(ctx context.Context, secretId string, revision uint32) ([]byte, error) {
+
+	cachedValue, cacheHit := c.cache.Get(secretId, revision)
+	if cacheHit {
+		return cachedValue, nil
+	}
+
+	request := smapi.AccessSecretVersionRequest{
+		SecretID: secretId,
+		Revision: fmt.Sprintf("%d", revision),
+	}
+
+	response, err := c.api.AccessSecretVersion(&request, scw.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Data, nil
 }

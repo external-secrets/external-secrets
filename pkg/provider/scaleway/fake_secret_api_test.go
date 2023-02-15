@@ -119,6 +119,35 @@ func (f *fakeSecretApi) secret(name string) *fakeSecret {
 	return f._secretsByName[name]
 }
 
+func (f *fakeSecretApi) GetSecretVersion(request *smapi.GetSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
+
+	if request.Region != "" {
+		panic("explicit region in request is not supported")
+	}
+
+	secret, ok := f._secretsById[request.SecretID]
+	if !ok {
+		return nil, &scw.ResourceNotFoundError{
+			Resource:   "secret",
+			ResourceID: request.SecretID,
+		}
+	}
+
+	version, ok := secret.getVersion(request.Revision)
+	if !ok {
+		return nil, &scw.ResourceNotFoundError{
+			Resource:   "secret_version",
+			ResourceID: request.Revision,
+		}
+	}
+
+	return &smapi.SecretVersion{
+		SecretID: secret.id,
+		Revision: uint32(version.revision),
+		Status:   smapi.SecretVersionStatus(secret.status),
+	}, nil
+}
+
 func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRequest, _ ...scw.RequestOption) (*smapi.AccessSecretVersionResponse, error) {
 
 	if request.Region != "" {

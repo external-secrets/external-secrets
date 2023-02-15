@@ -48,7 +48,8 @@ var db = buildDb(&fakeSecretApi{
 
 func newTestClient() esv1beta1.SecretsClient {
 	return &client{
-		api: db,
+		api:   db,
+		cache: newCache(),
 	}
 }
 
