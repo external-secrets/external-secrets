@@ -56,6 +56,7 @@ type SMInterface interface {
 	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
 	PutSecretValueWithContext(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
 	DescribeSecretWithContext(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
+	//DescribeSecret(*awssm.DescribeSecretInput) (*awssm.DescribeSecretOutput, error)
 	DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
 }
 
@@ -77,12 +78,44 @@ func New(sess *session.Session, cfg *aws.Config, referentAuth bool) (*SecretsMan
 	}, nil
 }
 
-func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
+func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
 	ver := "AWSCURRENT"
+	//	value := "SECRET"
 	if ref.Version != "" {
 		ver = ref.Version
 	}
+	// if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+	// 	value = "TAG"
+	// }
+
 	log.Info("fetching secret value", "key", ref.Key, "version", ver)
+
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		//describe the secret, GetSecretValue does not return the tags
+
+		describeSecretInput := &awssm.DescribeSecretInput{
+			SecretId: &ref.Key,
+		}
+
+		descOutput, err := sm.client.DescribeSecretWithContext(ctx, describeSecretInput)
+		if err != nil {
+			return nil, err
+		}
+		log.Info("found metadata secret", "key", ref.Key, "output", descOutput)
+
+		//jsonObj, _ := json.Marshal(descOutput.Tags)
+		//log.Info("found metadata secret", jsonObj)
+
+		taggedSecretOut := &awssm.GetSecretValueOutput{
+			ARN:          descOutput.ARN,
+			Name:         &ref.Key,
+			SecretString: tagsToJSONString(descOutput.Tags),
+			//VersionId:    *ver,
+			//VersionStages: descOutput.VersionIdsToStages[],
+		}
+
+		return taggedSecretOut, nil
+	}
 
 	cacheKey := fmt.Sprintf("%s#%s", ref.Key, ver)
 	if secretOut, found := sm.cache[cacheKey]; found {
@@ -114,6 +147,18 @@ func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretD
 	sm.cache[cacheKey] = secretOut
 
 	return secretOut, nil
+}
+
+func tagsToJSONString(tags []*awssm.Tag) *string {
+	jsonString := "{"
+	for _, tag := range tags {
+		jsonString += "\"" + *tag.Key + "\":\"" + *tag.Value + "\","
+	}
+
+	jsonString = strings.TrimSuffix(jsonString, ",")
+	jsonString += "}"
+
+	return &jsonString
 }
 
 func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
