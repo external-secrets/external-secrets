@@ -114,6 +114,14 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
 }
 
+func parseError(err error) error {
+	var gerr *apierror.APIError
+	if errors.As(err, &gerr) && gerr.GRPCStatus().Code() == codes.NotFound {
+		return esv1beta1.NoSecretError{}
+	}
+	return err
+}
+
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
 func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	createSecretReq := &secretmanagerpb.CreateSecretRequest{
@@ -325,6 +333,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", c.store.ProjectID, ref.Key, version),
 	}
 	result, err := c.smClient.AccessSecretVersion(ctx, req)
+	err = parseError(err)
 	if err != nil {
 		return nil, fmt.Errorf(errClientGetSecretAccess, err)
 	}

@@ -38,15 +38,29 @@ jobs:
       matrix:
         include:
         - dockerfile: "Dockerfile"
+          build-args: "CGO_ENABLED=0"
+          build-arch: "amd64 arm64"
+          build-platform: "linux/amd64,linux/arm64"
           tag-suffix: "-${{ needs.checkout.outputs.timestamp }}" # distroless
         - dockerfile: "Dockerfile.ubi"
-          tag-suffix: "-ubi-${{ needs.checkout.outputs.timestamp }}"
+          build-args: "CGO_ENABLED=0"
+          build-arch: "amd64 arm64"
+          build-platform: "linux/amd64,linux/arm64"
+          tag-suffix: "-ubi-${{ needs.checkout.outputs.timestamp }}" # ubi
+        - dockerfile: "Dockerfile.ubi"
+          build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto" # fips
+          build-arch: "amd64"
+          build-platform: "linux/amd64"
+          tag-suffix: "-ubi-boringssl-${{ needs.checkout.outputs.timestamp }}"
     with:
       dockerfile: ${{ matrix.dockerfile }}
-      ref: ${{ github.event.inputs.ref }}
-      image-tag: ${{ github.event.inputs.ref }}
       tag-suffix: ${{ matrix.tag-suffix }}
       image-name: ghcr.io/${{ github.repository }}
+      build-platform: ${{ matrix.build-platform }}
+      build-args: ${{ matrix.build-args }}
+      build-arch: ${{ matrix.build-arch }}
+      ref: ${{ github.event.inputs.ref }}
+      image-tag: ${{ github.event.inputs.ref }}
     secrets:
       GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
       GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}

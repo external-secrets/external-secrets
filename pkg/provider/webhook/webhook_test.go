@@ -41,6 +41,7 @@ type args struct {
 	Body       string `json:"body,omitempty"`
 	Timeout    string `json:"timeout,omitempty"`
 	Key        string `json:"key,omitempty"`
+	Property   string `json:"property,omitempty"`
 	Version    string `json:"version,omitempty"`
 	JSONPath   string `json:"jsonpath,omitempty"`
 	Response   string `json:"response,omitempty"`
@@ -137,6 +138,7 @@ args:
   response: secret-value
 want:
   path: /api/getsecret?id=testkey&version=1
+  err: ''
   result: secret-value
 ---
 case: good json
@@ -148,6 +150,7 @@ args:
   response: '{"result":{"thesecret":"secret-value"}}'
 want:
   path: /api/getsecret?id=testkey&version=1
+  err: ''
   result: secret-value
 ---
 case: good json map
@@ -159,6 +162,7 @@ args:
   response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value"}}'
 want:
   path: /api/getsecret?id=testkey&version=1
+  err: ''
   resultmap:
     thesecret: secret-value
     alsosecret: another-value
@@ -171,6 +175,7 @@ args:
   response: '{"thesecret":"secret-value","alsosecret":"another-value"}'
 want:
   path: /api/getsecret?id=testkey&version=1
+  err: ''
   resultmap:
     thesecret: secret-value
     alsosecret: another-value
@@ -201,6 +206,54 @@ want:
   resultmap:
     thesecret: secret-value
     alsosecret: another-value
+---
+case: good json with good templated jsonpath
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  property: thesecret
+  version: 1
+  jsonpath: $.result.{{ .remoteRef.property }}
+  response: '{"result":{"thesecret":"secret-value"}}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: secret-value
+---
+case: good json with jsonpath filter
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.secrets[?@.name=="thesecret"].value
+  response: '{"secrets": [{"name": "thesecret", "value": "secret-value"}, {"name": "alsosecret", "value": "another-value"}]}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: secret-value
+---
+case: good json with bad templated jsonpath
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  property: thesecret
+  version: 1
+  jsonpath: $.result.{{ .remoteRef.property }
+  response: '{"result":{"thesecret":"secret-value"}}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: 'template: webhooktemplate:1: unexpected "}" in operand'
+---
+case: error with jsonpath filter empty results
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.secrets[?@.name=="thebadsecret"].value
+  response: '{"secrets": [{"name": "thesecret", "value": "secret-value"}, {"name": "alsosecret", "value": "another-value"}]}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: "filter worked but didn't get any result"
 `
 
 func TestWebhookGetSecret(t *testing.T) {
@@ -294,8 +347,9 @@ func testGetSecretMap(tc testCase, t *testing.T, client esv1beta1.SecretsClient)
 
 func testGetSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
 	testRef := esv1beta1.ExternalSecretDataRemoteRef{
-		Key:     tc.Args.Key,
-		Version: tc.Args.Version,
+		Key:      tc.Args.Key,
+		Property: tc.Args.Property,
+		Version:  tc.Args.Version,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

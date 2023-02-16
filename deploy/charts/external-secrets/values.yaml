@@ -1,5 +1,8 @@
 replicaCount: 1
 
+# -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+revisionHistoryLimit: 10
+
 image:
   repository: ghcr.io/external-secrets/external-secrets
   pullPolicy: IfNotPresent
@@ -126,6 +129,27 @@ serviceMonitor:
   # -- Timeout if metrics can't be retrieved in given time interval
   scrapeTimeout: 25s
 
+  # -- Let prometheus add an exported_ prefix to conflicting labels
+  honorLabels: false
+
+  # -- Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs)
+  metricRelabelings: []
+  # - action: replace
+  #   regex: (.*)
+  #   replacement: $1
+  #   sourceLabels:
+  #   - exported_namespace
+  #   targetLabel: namespace
+
+  # -- Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config)
+  relabelings: []
+  # - sourceLabels: [__meta_kubernetes_pod_node_name]
+  #   separator: ;
+  #   regex: ^(.*)$
+  #   targetLabel: nodename
+  #   replacement: $1
+  #   action: replace
+
 metrics:
   service:
     # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
@@ -160,8 +184,12 @@ webhook:
   # -- Specifices the lookaheadInterval for certificate validity
   lookaheadInterval: ""
   replicaCount: 1
+
+  # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+  revisionHistoryLimit: 10
+
   certDir: /tmp/certs
-  # -- specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
+  # -- Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
   failurePolicy: Fail
   # -- Specifies if webhook pod should use hostNetwork or not.
   hostNetwork: false
@@ -287,6 +315,10 @@ certController:
   create: true
   requeueInterval: "5m"
   replicaCount: 1
+
+  # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+  revisionHistoryLimit: 10
+
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
