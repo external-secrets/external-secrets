@@ -83,4 +83,7 @@ type AWSProvider struct {
 	// AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role
 	// +optional
 	AdditionalRoles []string `json:"additionalRoles,omitempty"`
+
+	// AWS External ID set on assumed IAM roles
+	ExternalID string `json:"externalID,omitempty"`
 }
