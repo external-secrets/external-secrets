@@ -31,6 +31,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -185,6 +186,7 @@ func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, error) {
 			SecretType: core.StringPtr(sm.GetSecretOptionsSecretTypeArbitraryConst),
 			ID:         secretName,
 		})
+	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +203,7 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
 			ID:         secretName,
 		})
+	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +223,7 @@ func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
 			ID:         secretName,
 		})
+	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}
@@ -239,6 +243,7 @@ func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ex
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePrivateCertConst),
 			ID:         secretName,
 		})
+	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}
@@ -258,6 +263,7 @@ func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, erro
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst),
 			ID:         secretName,
 		})
+	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}
@@ -274,6 +280,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 			SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
 			ID:         secretName,
 		})
+	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}
@@ -357,6 +364,7 @@ func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*
 			SecretType: core.StringPtr(secretType),
 			ID:         secretName,
 		})
+	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}
@@ -387,6 +395,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				SecretType: core.StringPtr(sm.GetSecretOptionsSecretTypeArbitraryConst),
 				ID:         &ref.Key,
 			})
+		metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 		if err != nil {
 			return nil, err
 		}
@@ -411,6 +420,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeUsernamePasswordConst),
 				ID:         &secretName,
 			})
+		metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 		if err != nil {
 			return nil, err
 		}
@@ -428,6 +438,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeIamCredentialsConst),
 				ID:         &secretName,
 			})
+		metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 		if err != nil {
 			return nil, err
 		}
@@ -446,6 +457,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypeImportedCertConst),
 				ID:         &secretName,
 			})
+		metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 		if err != nil {
 			return nil, err
 		}
@@ -463,6 +475,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePublicCertConst),
 				ID:         &secretName,
 			})
+		metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 		if err != nil {
 			return nil, err
 		}
@@ -480,6 +493,7 @@ func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.External
 				SecretType: core.StringPtr(sm.CreateSecretOptionsSecretTypePrivateCertConst),
 				ID:         &secretName,
 			})
+		metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
 		if err != nil {
 			return nil, err
 		}
