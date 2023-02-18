@@ -56,7 +56,6 @@ type SMInterface interface {
 	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
 	PutSecretValueWithContext(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
 	DescribeSecretWithContext(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
-	//DescribeSecret(*awssm.DescribeSecretInput) (*awssm.DescribeSecretOutput, error)
 	DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
 }
 
@@ -80,19 +79,26 @@ func New(sess *session.Session, cfg *aws.Config, referentAuth bool) (*SecretsMan
 
 func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
 	ver := "AWSCURRENT"
-	//	value := "SECRET"
+	valueFrom := "SECRET"
 	if ref.Version != "" {
 		ver = ref.Version
 	}
-	// if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-	// 	value = "TAG"
-	// }
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		valueFrom = "TAG"
+	}
 
-	log.Info("fetching secret value", "key", ref.Key, "version", ver)
+	log.Info("fetching secret value", "key", ref.Key, "version", ver, "value", valueFrom)
+
+	cacheKey := fmt.Sprintf("%s#%s#%s", ref.Key, ver, valueFrom)
+	if secretOut, found := sm.cache[cacheKey]; found {
+		log.Info("found secret in cache", "key", ref.Key, "version", ver)
+		return secretOut, nil
+	}
+
+	var secretOut *awssm.GetSecretValueOutput
+	var err error
 
 	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-		//describe the secret, GetSecretValue does not return the tags
-
 		describeSecretInput := &awssm.DescribeSecretInput{
 			SecretId: &ref.Key,
 		}
@@ -103,53 +109,42 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 		}
 		log.Info("found metadata secret", "key", ref.Key, "output", descOutput)
 
-		//jsonObj, _ := json.Marshal(descOutput.Tags)
-		//log.Info("found metadata secret", jsonObj)
-
-		taggedSecretOut := &awssm.GetSecretValueOutput{
+		secretOut = &awssm.GetSecretValueOutput{
 			ARN:          descOutput.ARN,
-			Name:         &ref.Key,
-			SecretString: tagsToJSONString(descOutput.Tags),
-			//VersionId:    *ver,
-			//VersionStages: descOutput.VersionIdsToStages[],
-		}
-
-		return taggedSecretOut, nil
-	}
-
-	cacheKey := fmt.Sprintf("%s#%s", ref.Key, ver)
-	if secretOut, found := sm.cache[cacheKey]; found {
-		log.Info("found secret in cache", "key", ref.Key, "version", ver)
-		return secretOut, nil
-	}
-
-	var getSecretValueInput *awssm.GetSecretValueInput
-	if strings.HasPrefix(ver, "uuid/") {
-		versionID := strings.TrimPrefix(ver, "uuid/")
-		getSecretValueInput = &awssm.GetSecretValueInput{
-			SecretId:  &ref.Key,
-			VersionId: &versionID,
+			CreatedDate:  descOutput.CreatedDate,
+			Name:         descOutput.Name,
+			SecretString: TagsToJSONString(descOutput.Tags),
+			VersionId:    &ver,
 		}
 	} else {
-		getSecretValueInput = &awssm.GetSecretValueInput{
-			SecretId:     &ref.Key,
-			VersionStage: &ver,
+		var getSecretValueInput *awssm.GetSecretValueInput
+		if strings.HasPrefix(ver, "uuid/") {
+			versionID := strings.TrimPrefix(ver, "uuid/")
+			getSecretValueInput = &awssm.GetSecretValueInput{
+				SecretId:  &ref.Key,
+				VersionId: &versionID,
+			}
+		} else {
+			getSecretValueInput = &awssm.GetSecretValueInput{
+				SecretId:     &ref.Key,
+				VersionStage: &ver,
+			}
 		}
-	}
-	secretOut, err := sm.client.GetSecretValue(getSecretValueInput)
-	var nf *awssm.ResourceNotFoundException
-	if errors.As(err, &nf) {
-		return nil, esv1beta1.NoSecretErr
-	}
-	if err != nil {
-		return nil, err
+		secretOut, err = sm.client.GetSecretValue(getSecretValueInput)
+		var nf *awssm.ResourceNotFoundException
+		if errors.As(err, &nf) {
+			return nil, esv1beta1.NoSecretErr
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	sm.cache[cacheKey] = secretOut
 
 	return secretOut, nil
 }
 
-func tagsToJSONString(tags []*awssm.Tag) *string {
+func TagsToJSONString(tags []*awssm.Tag) *string {
 	jsonString := "{"
 	for _, tag := range tags {
 		jsonString += "\"" + *tag.Key + "\":\"" + *tag.Value + "\","
