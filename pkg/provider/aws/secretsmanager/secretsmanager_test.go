@@ -743,7 +743,6 @@ func makeValidSecretStore() *esv1beta1.SecretStore {
 }
 
 func getTagSlice() []*awssm.Tag {
-
 	tagKey1 := tagname1
 	tagValue1 := tagvalue1
 	tagKey2 := tagname2
