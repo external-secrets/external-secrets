@@ -107,81 +107,79 @@ var setAPIErr = func(smtc *secretsManagerTestCase) {
 // test the sm<->aws interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestSecretsManagerGetSecret(t *testing.T) {
-	//tagMap := getTagMap()
+	// good case: default version is set
+	// key is passed in, output is sent back
+	setSecretString := func(smtc *secretsManagerTestCase) {
+		smtc.apiOutput.SecretString = aws.String("testtesttest")
+		smtc.expectedSecret = "testtesttest"
+	}
 
-	// // good case: default version is set
-	// // key is passed in, output is sent back
-	// setSecretString := func(smtc *secretsManagerTestCase) {
-	// 	smtc.apiOutput.SecretString = aws.String("testtesttest")
-	// 	smtc.expectedSecret = "testtesttest"
-	// }
+	// good case: extract property
+	// Testing that the property exists in the SecretString
+	setRemoteRefPropertyExistsInKey := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.Property = "/shmoo"
+		smtc.apiOutput.SecretString = aws.String(`{"/shmoo": "bang"}`)
+		smtc.expectedSecret = "bang"
+	}
 
-	// // good case: extract property
-	// // Testing that the property exists in the SecretString
-	// setRemoteRefPropertyExistsInKey := func(smtc *secretsManagerTestCase) {
-	// 	smtc.remoteRef.Property = "/shmoo"
-	// 	smtc.apiOutput.SecretString = aws.String(`{"/shmoo": "bang"}`)
-	// 	smtc.expectedSecret = "bang"
-	// }
+	// bad case: missing property
+	setRemoteRefMissingProperty := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.Property = "INVALPROP"
+		smtc.expectError = "key INVALPROP does not exist in secret"
+	}
 
-	// // bad case: missing property
-	// setRemoteRefMissingProperty := func(smtc *secretsManagerTestCase) {
-	// 	smtc.remoteRef.Property = "INVALPROP"
-	// 	smtc.expectError = "key INVALPROP does not exist in secret"
-	// }
+	// bad case: extract property failure due to invalid json
+	setRemoteRefMissingPropertyInvalidJSON := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.Property = "INVALPROP"
+		smtc.apiOutput.SecretString = aws.String(`------`)
+		smtc.expectError = "key INVALPROP does not exist in secret"
+	}
 
-	// // bad case: extract property failure due to invalid json
-	// setRemoteRefMissingPropertyInvalidJSON := func(smtc *secretsManagerTestCase) {
-	// 	smtc.remoteRef.Property = "INVALPROP"
-	// 	smtc.apiOutput.SecretString = aws.String(`------`)
-	// 	smtc.expectError = "key INVALPROP does not exist in secret"
-	// }
+	// good case: set .SecretString to nil but set binary with value
+	setSecretBinaryNotSecretString := func(smtc *secretsManagerTestCase) {
+		smtc.apiOutput.SecretBinary = []byte("yesplease")
+		// needs to be set as nil, empty quotes ("") is considered existing
+		smtc.apiOutput.SecretString = nil
+		smtc.expectedSecret = "yesplease"
+	}
 
-	// // good case: set .SecretString to nil but set binary with value
-	// setSecretBinaryNotSecretString := func(smtc *secretsManagerTestCase) {
-	// 	smtc.apiOutput.SecretBinary = []byte("yesplease")
-	// 	// needs to be set as nil, empty quotes ("") is considered existing
-	// 	smtc.apiOutput.SecretString = nil
-	// 	smtc.expectedSecret = "yesplease"
-	// }
+	// bad case: both .SecretString and .SecretBinary are nil
+	setSecretBinaryAndSecretStringToNil := func(smtc *secretsManagerTestCase) {
+		smtc.apiOutput.SecretBinary = nil
+		smtc.apiOutput.SecretString = nil
+		smtc.expectError = "no secret string nor binary for key"
+	}
+	// good case: secretOut.SecretBinary JSON parsing
+	setNestedSecretValueJSONParsing := func(smtc *secretsManagerTestCase) {
+		smtc.apiOutput.SecretString = nil
+		smtc.apiOutput.SecretBinary = []byte(`{"foobar":{"baz":"nestedval"}}`)
+		smtc.remoteRef.Property = "foobar.baz"
+		smtc.expectedSecret = "nestedval"
+	}
+	// good case: secretOut.SecretBinary no JSON parsing if name on key
+	setSecretValueWithDot := func(smtc *secretsManagerTestCase) {
+		smtc.apiOutput.SecretString = nil
+		smtc.apiOutput.SecretBinary = []byte(`{"foobar.baz":"nestedval"}`)
+		smtc.remoteRef.Property = "foobar.baz"
+		smtc.expectedSecret = "nestedval"
+	}
 
-	// // bad case: both .SecretString and .SecretBinary are nil
-	// setSecretBinaryAndSecretStringToNil := func(smtc *secretsManagerTestCase) {
-	// 	smtc.apiOutput.SecretBinary = nil
-	// 	smtc.apiOutput.SecretString = nil
-	// 	smtc.expectError = "no secret string nor binary for key"
-	// }
-	// // good case: secretOut.SecretBinary JSON parsing
-	// setNestedSecretValueJSONParsing := func(smtc *secretsManagerTestCase) {
-	// 	smtc.apiOutput.SecretString = nil
-	// 	smtc.apiOutput.SecretBinary = []byte(`{"foobar":{"baz":"nestedval"}}`)
-	// 	smtc.remoteRef.Property = "foobar.baz"
-	// 	smtc.expectedSecret = "nestedval"
-	// }
-	// // good case: secretOut.SecretBinary no JSON parsing if name on key
-	// setSecretValueWithDot := func(smtc *secretsManagerTestCase) {
-	// 	smtc.apiOutput.SecretString = nil
-	// 	smtc.apiOutput.SecretBinary = []byte(`{"foobar.baz":"nestedval"}`)
-	// 	smtc.remoteRef.Property = "foobar.baz"
-	// 	smtc.expectedSecret = "nestedval"
-	// }
+	// good case: custom version stage set
+	setCustomVersionStage := func(smtc *secretsManagerTestCase) {
+		smtc.apiInput.VersionStage = aws.String("1234")
+		smtc.remoteRef.Version = "1234"
+		smtc.apiOutput.SecretString = aws.String("FOOBA!")
+		smtc.expectedSecret = "FOOBA!"
+	}
 
-	// // good case: custom version stage set
-	// setCustomVersionStage := func(smtc *secretsManagerTestCase) {
-	// 	smtc.apiInput.VersionStage = aws.String("1234")
-	// 	smtc.remoteRef.Version = "1234"
-	// 	smtc.apiOutput.SecretString = aws.String("FOOBA!")
-	// 	smtc.expectedSecret = "FOOBA!"
-	// }
-
-	// // good case: custom version id set
-	// setCustomVersionID := func(smtc *secretsManagerTestCase) {
-	// 	smtc.apiInput.VersionStage = nil
-	// 	smtc.apiInput.VersionId = aws.String("1234-5678")
-	// 	smtc.remoteRef.Version = "uuid/1234-5678"
-	// 	smtc.apiOutput.SecretString = aws.String("myvalue")
-	// 	smtc.expectedSecret = "myvalue"
-	// }
+	// good case: custom version id set
+	setCustomVersionID := func(smtc *secretsManagerTestCase) {
+		smtc.apiInput.VersionStage = nil
+		smtc.apiInput.VersionId = aws.String("1234-5678")
+		smtc.remoteRef.Version = "uuid/1234-5678"
+		smtc.apiOutput.SecretString = aws.String("myvalue")
+		smtc.expectedSecret = "myvalue"
+	}
 
 	fetchMetadata := func(smtc *secretsManagerTestCase) {
 		smtc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
@@ -189,7 +187,6 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 			Tags: getTagSlice(),
 		}
 		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
-		//smtc.remoteRef.Property = tagname
 		smtc.apiOutput.SecretString = TagsToJSONString(getTagSlice())
 		smtc.expectedSecret = *TagsToJSONString(getTagSlice())
 	}
@@ -205,21 +202,33 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = tagvalue2
 	}
 
+	failMetadataWrongProperty := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		describeSecretOutput := &awssm.DescribeSecretOutput{
+			Tags: getTagSlice(),
+		}
+		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.remoteRef.Property = "fail"
+		smtc.apiOutput.SecretString = TagsToJSONString(getTagSlice())
+		smtc.expectError = "key fail does not exist in secret /baz"
+	}
+
 	successCases := []*secretsManagerTestCase{
-		//makeValidSecretsManagerTestCase(),
-		// makeValidSecretsManagerTestCaseCustom(setSecretString),
-		// makeValidSecretsManagerTestCaseCustom(setRemoteRefPropertyExistsInKey),
-		// makeValidSecretsManagerTestCaseCustom(setRemoteRefMissingProperty),
-		// makeValidSecretsManagerTestCaseCustom(setRemoteRefMissingPropertyInvalidJSON),
-		// makeValidSecretsManagerTestCaseCustom(setSecretBinaryNotSecretString),
-		// makeValidSecretsManagerTestCaseCustom(setSecretBinaryAndSecretStringToNil),
-		// makeValidSecretsManagerTestCaseCustom(setNestedSecretValueJSONParsing),
-		// makeValidSecretsManagerTestCaseCustom(setSecretValueWithDot),
-		// makeValidSecretsManagerTestCaseCustom(setCustomVersionStage),
-		// makeValidSecretsManagerTestCaseCustom(setCustomVersionID),
-		// makeValidSecretsManagerTestCaseCustom(setAPIErr),
+		makeValidSecretsManagerTestCase(),
+		makeValidSecretsManagerTestCaseCustom(setSecretString),
+		makeValidSecretsManagerTestCaseCustom(setRemoteRefPropertyExistsInKey),
+		makeValidSecretsManagerTestCaseCustom(setRemoteRefMissingProperty),
+		makeValidSecretsManagerTestCaseCustom(setRemoteRefMissingPropertyInvalidJSON),
+		makeValidSecretsManagerTestCaseCustom(setSecretBinaryNotSecretString),
+		makeValidSecretsManagerTestCaseCustom(setSecretBinaryAndSecretStringToNil),
+		makeValidSecretsManagerTestCaseCustom(setNestedSecretValueJSONParsing),
+		makeValidSecretsManagerTestCaseCustom(setSecretValueWithDot),
+		makeValidSecretsManagerTestCaseCustom(setCustomVersionStage),
+		makeValidSecretsManagerTestCaseCustom(setCustomVersionID),
+		makeValidSecretsManagerTestCaseCustom(setAPIErr),
 		makeValidSecretsManagerTestCaseCustom(fetchMetadata),
 		makeValidSecretsManagerTestCaseCustom(fetchMetadataProperty),
+		makeValidSecretsManagerTestCaseCustom(failMetadataWrongProperty),
 	}
 
 	for k, v := range successCases {
