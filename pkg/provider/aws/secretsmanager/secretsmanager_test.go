@@ -46,6 +46,12 @@ type secretsManagerTestCase struct {
 }
 
 const unexpectedErrorString = "[%d] unexpected error: %s, expected: '%s'"
+const (
+	tagname1  = "tagname1"
+	tagvalue1 = "tagvalue1"
+	tagname2  = "tagname2"
+	tagvalue2 = "tagvalue2"
+)
 
 func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 	smtc := secretsManagerTestCase{
@@ -175,6 +181,41 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = "myvalue"
 	}
 
+	fetchMetadata := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		describeSecretOutput := &awssm.DescribeSecretOutput{
+			Tags: getTagSlice(),
+		}
+		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		jsonTags, _ := TagsToJSONString(getTagSlice())
+		smtc.apiOutput.SecretString = &jsonTags
+		smtc.expectedSecret = jsonTags
+	}
+
+	fetchMetadataProperty := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		describeSecretOutput := &awssm.DescribeSecretOutput{
+			Tags: getTagSlice(),
+		}
+		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.remoteRef.Property = tagname2
+		jsonTags, _ := TagsToJSONString(getTagSlice())
+		smtc.apiOutput.SecretString = &jsonTags
+		smtc.expectedSecret = tagvalue2
+	}
+
+	failMetadataWrongProperty := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		describeSecretOutput := &awssm.DescribeSecretOutput{
+			Tags: getTagSlice(),
+		}
+		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.remoteRef.Property = "fail"
+		jsonTags, _ := TagsToJSONString(getTagSlice())
+		smtc.apiOutput.SecretString = &jsonTags
+		smtc.expectError = "key fail does not exist in secret /baz"
+	}
+
 	successCases := []*secretsManagerTestCase{
 		makeValidSecretsManagerTestCase(),
 		makeValidSecretsManagerTestCaseCustom(setSecretString),
@@ -188,6 +229,9 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		makeValidSecretsManagerTestCaseCustom(setCustomVersionStage),
 		makeValidSecretsManagerTestCaseCustom(setCustomVersionID),
 		makeValidSecretsManagerTestCaseCustom(setAPIErr),
+		makeValidSecretsManagerTestCaseCustom(fetchMetadata),
+		makeValidSecretsManagerTestCaseCustom(fetchMetadataProperty),
+		makeValidSecretsManagerTestCaseCustom(failMetadataWrongProperty),
 	}
 
 	for k, v := range successCases {
@@ -697,6 +741,24 @@ func makeValidSecretStore() *esv1beta1.SecretStore {
 					Region:  "eu-west-2",
 				},
 			},
+		},
+	}
+}
+
+func getTagSlice() []*awssm.Tag {
+	tagKey1 := tagname1
+	tagValue1 := tagvalue1
+	tagKey2 := tagname2
+	tagValue2 := tagvalue2
+
+	return []*awssm.Tag{
+		{
+			Key:   &tagKey1,
+			Value: &tagValue1,
+		},
+		{
+			Key:   &tagKey2,
+			Value: &tagValue2,
 		},
 	}
 }
