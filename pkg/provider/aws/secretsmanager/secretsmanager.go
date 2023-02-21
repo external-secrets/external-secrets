@@ -159,7 +159,7 @@ func TagsToJSONString(tags []*awssm.Tag) (string, error) {
 		return "", err
 	}
 
-	return string(byteArr[:]), nil
+	return string(byteArr), nil
 }
 
 func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
