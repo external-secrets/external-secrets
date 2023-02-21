@@ -43,46 +43,19 @@ func decodeScwSecretRef(key string) (*scwSecretRef, error) {
 
 func (c *client) getSecretByName(ctx context.Context, name string) (*smapi.Secret, error) {
 
-	// TODO: optimize, once possible, with GetSecretByName()
-
-	request := smapi.ListSecretsRequest{
-		ProjectID: &c.projectId,
-		Page:      new(int32),
-		PageSize:  new(uint32),
+	request := smapi.GetSecretRequest{
+		SecretName: &name,
 	}
-	*request.Page = 1
-	*request.PageSize = 50
 
-	var result *smapi.Secret
-
-	for done := false; !done; {
-
-		response, err := c.api.ListSecrets(&request, scw.WithContext(ctx))
-		if err != nil {
-			return nil, err
+	response, err := c.api.GetSecret(&request, scw.WithContext(ctx))
+	if err != nil {
+		if _, isErrNotFound := err.(*scw.ResourceNotFoundError); isErrNotFound {
+			return nil, errNoSecretForName
 		}
-
-		totalFetched := uint64(*request.Page-1)*uint64(*request.PageSize) + uint64(len(response.Secrets))
-		done = totalFetched == uint64(response.TotalCount)
-
-		*request.Page++
-
-		for _, secret := range response.Secrets {
-
-			if secret.Name == name {
-				if result != nil {
-					return nil, fmt.Errorf("multiple secrets are named %q", name)
-				}
-				result = secret
-			}
-		}
+		return nil, err
 	}
 
-	if result == nil {
-		return nil, errNoSecretForName
-	}
-
-	return result, nil
+	return response, nil
 }
 
 func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -154,7 +127,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 
 	getSecretVersionRequest := smapi.GetSecretVersionRequest{
-		SecretID: secret.ID,
+		SecretID: &secret.ID,
 		Revision: "latest",
 	}
 
@@ -334,7 +307,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 			accessReq := smapi.AccessSecretVersionRequest{
 				Region:   secret.Region,
-				SecretID: secret.ID,
+				SecretID: &secret.ID,
 				Revision: "latest",
 			}
 
@@ -369,7 +342,7 @@ func (c *client) accessSecretVersion(ctx context.Context, secretId string, versi
 	// otherwise, we need to do a GetSecret()
 
 	request := smapi.GetSecretVersionRequest{
-		SecretID: secretId,
+		SecretID: &secretId,
 		Revision: versionSpec,
 	}
 
@@ -390,7 +363,7 @@ func (c *client) accessSecretVersionByRevision(ctx context.Context, secretId str
 	}
 
 	request := smapi.AccessSecretVersionRequest{
-		SecretID: secretId,
+		SecretID: &secretId,
 		Revision: fmt.Sprintf("%d", revision),
 	}
 

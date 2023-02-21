@@ -86,6 +86,12 @@ func TestGetSecret(t *testing.T) {
 			},
 			response: secret.versions[0].data,
 		},
+		"non existing secret id should yield NoSecretErr": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "id:730aa98d-ec0c-4426-8202-b11aeec8ea1e",
+			},
+			err: esv1beta1.NoSecretErr,
+		},
 		"non existing revision should yield NoSecretErr": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "id:" + secret.id,

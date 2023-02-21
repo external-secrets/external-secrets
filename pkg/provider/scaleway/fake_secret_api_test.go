@@ -119,18 +119,62 @@ func (f *fakeSecretApi) secret(name string) *fakeSecret {
 	return f._secretsByName[name]
 }
 
+func (f *fakeSecretApi) getSecret(secretId *string, secretName *string) (*fakeSecret, error) {
+
+	var secretMap map[string]*fakeSecret
+	var secretRef string
+
+	if secretId != nil {
+		secretMap = f._secretsById
+		secretRef = *secretId
+	} else if secretName != nil {
+		secretMap = f._secretsByName
+		secretRef = *secretName
+	} else {
+		panic("must specify either secret id or name")
+	}
+
+	secret, foundSecret := secretMap[secretRef]
+
+	if !foundSecret {
+		return nil, &scw.ResourceNotFoundError{
+			Resource:   "secret",
+			ResourceID: secretRef,
+		}
+	}
+
+	return secret, nil
+}
+
+func (f *fakeSecretApi) GetSecret(request *smapi.GetSecretRequest, opts ...scw.RequestOption) (*smapi.Secret, error) {
+
+	if request.Region != "" {
+		panic("explicit region in request is not supported")
+	}
+
+	secret, err := f.getSecret(request.SecretID, request.SecretName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &smapi.Secret{
+		ID:           secret.id,
+		Name:         secret.name,
+		Status:       smapi.SecretStatus(secret.status),
+		Tags:         secret.tags,
+		VersionCount: uint32(len(secret.versions)),
+	}, nil
+}
+
 func (f *fakeSecretApi) GetSecretVersion(request *smapi.GetSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
 
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
 
-	secret, ok := f._secretsById[request.SecretID]
-	if !ok {
-		return nil, &scw.ResourceNotFoundError{
-			Resource:   "secret",
-			ResourceID: request.SecretID,
-		}
+	secret, err := f.getSecret(request.SecretID, request.SecretName)
+	if err != nil {
+		return nil, err
 	}
 
 	version, ok := secret.getVersion(request.Revision)
@@ -154,12 +198,9 @@ func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 		panic("explicit region in request is not supported")
 	}
 
-	secret, ok := f._secretsById[request.SecretID]
-	if !ok {
-		return nil, &scw.ResourceNotFoundError{
-			Resource:   "secret",
-			ResourceID: request.SecretID,
-		}
+	secret, err := f.getSecret(request.SecretID, request.SecretName)
+	if err != nil {
+		return nil, err
 	}
 
 	version, ok := secret.getVersion(request.Revision)
