@@ -79,6 +79,13 @@ func TestGetSecret(t *testing.T) {
 			},
 			response: secret.versions[1].data,
 		},
+		"asking for latest version by name": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "name:" + secret.name,
+				Version: "latest",
+			},
+			response: secret.versions[1].data,
+		},
 		"asking for version by revision number": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "id:" + secret.id,
@@ -86,9 +93,22 @@ func TestGetSecret(t *testing.T) {
 			},
 			response: secret.versions[0].data,
 		},
+		"asking for version by revision number and name": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "name:" + secret.name,
+				Version: "1",
+			},
+			response: secret.versions[0].data,
+		},
 		"non existing secret id should yield NoSecretErr": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: "id:730aa98d-ec0c-4426-8202-b11aeec8ea1e",
+			},
+			err: esv1beta1.NoSecretErr,
+		},
+		"non existing secret name should yield NoSecretErr": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "name:not-a-secret",
 			},
 			err: esv1beta1.NoSecretErr,
 		},

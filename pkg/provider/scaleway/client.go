@@ -28,6 +28,10 @@ type scwSecretRef struct {
 	Value   string
 }
 
+func (r scwSecretRef) String() string {
+	return fmt.Sprintf("%s:%s", r.RefType, r.Value)
+}
+
 func decodeScwSecretRef(key string) (*scwSecretRef, error) {
 
 	sepIndex := strings.IndexRune(key, ':')
@@ -65,17 +69,12 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, err
 	}
 
-	if scwRef.RefType != "id" {
-		return nil, fmt.Errorf("secrets can only be accessed by id")
-	}
-	secretId := scwRef.Value
-
 	versionSpec := "latest"
 	if ref.Version != "" {
 		versionSpec = ref.Version
 	}
 
-	value, err := c.accessSecretVersion(ctx, secretId, versionSpec)
+	value, err := c.accessSecretVersion(ctx, scwRef, versionSpec)
 	if err != nil {
 		if _, isNotFoundErr := err.(*scw.ResourceNotFoundError); isNotFoundErr {
 			return nil, esv1beta1.NoSecretError{}
@@ -147,7 +146,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 
 	if !secretExistsButHasNoVersion {
 
-		currentValue, err := c.accessSecretVersionByRevision(ctx, secret.ID, getSecretVersionResponse.Revision)
+		currentValue, err := c.accessSpecificSecretVersion(ctx, secret.ID, getSecretVersionResponse.Revision)
 		if err != nil {
 			return err
 		}
@@ -328,22 +327,33 @@ func (c *client) Close(context.Context) error {
 	return nil
 }
 
-func (c *client) accessSecretVersion(ctx context.Context, secretId string, versionSpec string) ([]byte, error) {
+func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRef, versionSpec string) ([]byte, error) {
 
-	// if a revision number is explicitly set, we can use it directly
+	// if we have a secret id and a revision number, we can avoid an extra GetSecret()
 
-	if len(versionSpec) > 0 && '0' <= versionSpec[0] && versionSpec[0] <= '9' {
+	if secretRef.RefType == "id" && len(versionSpec) > 0 && '0' <= versionSpec[0] && versionSpec[0] <= '9' {
+
+		secretId := secretRef.Value
+
 		revision, err := strconv.ParseUint(versionSpec, 10, 32)
 		if err == nil {
-			return c.accessSecretVersionByRevision(ctx, secretId, uint32(revision))
+			return c.accessSpecificSecretVersion(ctx, secretId, uint32(revision))
 		}
 	}
 
-	// otherwise, we need to do a GetSecret()
+	// otherwise, we do a GetSecret() first to avoid transferring the secret value if it is cached
 
 	request := smapi.GetSecretVersionRequest{
-		SecretID: &secretId,
 		Revision: versionSpec,
+	}
+
+	switch secretRef.RefType {
+	case "id":
+		request.SecretID = &secretRef.Value
+	case "name":
+		request.SecretName = &secretRef.Value
+	default:
+		return nil, fmt.Errorf("invalid secret reference: %q", secretRef.Value)
 	}
 
 	response, err := c.api.GetSecretVersion(&request, scw.WithContext(ctx))
@@ -351,11 +361,10 @@ func (c *client) accessSecretVersion(ctx context.Context, secretId string, versi
 		return nil, err
 	}
 
-	return c.accessSecretVersionByRevision(ctx, secretId, response.Revision)
-
+	return c.accessSpecificSecretVersion(ctx, response.SecretID, response.Revision)
 }
 
-func (c *client) accessSecretVersionByRevision(ctx context.Context, secretId string, revision uint32) ([]byte, error) {
+func (c *client) accessSpecificSecretVersion(ctx context.Context, secretId string, revision uint32) ([]byte, error) {
 
 	cachedValue, cacheHit := c.cache.Get(secretId, revision)
 	if cacheHit {
