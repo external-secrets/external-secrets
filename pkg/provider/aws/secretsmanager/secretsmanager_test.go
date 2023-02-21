@@ -187,8 +187,9 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 			Tags: getTagSlice(),
 		}
 		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
-		smtc.apiOutput.SecretString = TagsToJSONString(getTagSlice())
-		smtc.expectedSecret = *TagsToJSONString(getTagSlice())
+		jsonTags, _ := TagsToJSONString(getTagSlice())
+		smtc.apiOutput.SecretString = &jsonTags
+		smtc.expectedSecret = jsonTags
 	}
 
 	fetchMetadataProperty := func(smtc *secretsManagerTestCase) {
@@ -198,7 +199,8 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		}
 		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = tagname2
-		smtc.apiOutput.SecretString = TagsToJSONString(getTagSlice())
+		jsonTags, _ := TagsToJSONString(getTagSlice())
+		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectedSecret = tagvalue2
 	}
 
@@ -209,7 +211,8 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		}
 		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = "fail"
-		smtc.apiOutput.SecretString = TagsToJSONString(getTagSlice())
+		jsonTags, _ := TagsToJSONString(getTagSlice())
+		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectError = "key fail does not exist in secret /baz"
 	}
 
