@@ -78,6 +78,11 @@ type VaultProvider struct {
 	// https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header
 	// +optional
 	ForwardInconsistent bool `json:"forwardInconsistent,omitempty"`
+
+	// Don't revoke Vault token after secret reading/writing is finished.
+	// This makes the provider compatible with dynamic Vault secrets, as it
+	// avoids revoking the issued dynamic secret's lease along with the token.
+	KeepTokenValid bool `json:"keepTokenValid,omitempty"`
 }
 
 // VaultAuth is the configuration used to authenticate with a Vault server.

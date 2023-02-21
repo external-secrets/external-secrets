@@ -5855,6 +5855,20 @@ the option is enabled serverside.
 <a href="https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header">https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header</a></p>
 </td>
 </tr>
+<tr>
+<td>
+<code>keepTokenValid</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeepTokenValid prevents the automatic revoke of the Vault token right after a
+secret is read or written. This can be useful when, for example, dynamic secrets are
+to be issued by Vault, as it prevents their auto-revoking along with the token.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.WebhookCAProvider">WebhookCAProvider

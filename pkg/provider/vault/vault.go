@@ -701,9 +701,12 @@ func getTypedKey(data map[string]interface{}, key string) ([]byte, error) {
 }
 
 func (v *client) Close(ctx context.Context) error {
-	// Revoke the token if we have one set, it wasn't sourced from a TokenSecretRef,
-	// and token caching isn't enabled
-	if !enableCache && v.client.Token() != "" && v.store.Auth.TokenSecretRef == nil {
+	// Revoke the token under following conditions:
+	// - token caching isn't enabled;
+	// - keeping token valid wasn't requested;
+	// - the token is set; and
+	// - the token wasn't sourced from a TokenSecretRef.
+	if !enableCache && !v.store.KeepTokenValid && v.client.Token() != "" && v.store.Auth.TokenSecretRef == nil {
 		err := revokeTokenIfValid(ctx, v.client)
 		if err != nil {
 			return err
