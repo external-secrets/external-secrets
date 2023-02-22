@@ -14,6 +14,7 @@ var db = buildDb(&fakeSecretApi{
 			versions: []*fakeSecretVersion{
 				{revision: 1},
 				{revision: 2},
+				{revision: 3, status: "disabled"},
 			},
 		},
 		{
@@ -65,7 +66,7 @@ func TestGetSecret(t *testing.T) {
 		response []byte
 		err      error
 	}{
-		"empty version should mean latest": {
+		"empty version should mean latest_enabled": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "id:" + secret.id,
 				Version: "",
@@ -77,14 +78,14 @@ func TestGetSecret(t *testing.T) {
 				Key:     "id:" + secret.id,
 				Version: "latest",
 			},
-			response: secret.versions[1].data,
+			response: secret.versions[2].data,
 		},
 		"asking for latest version by name": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "name:" + secret.name,
 				Version: "latest",
 			},
-			response: secret.versions[1].data,
+			response: secret.versions[2].data,
 		},
 		"asking for version by revision number": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
@@ -216,8 +217,8 @@ func TestGetAllSecrets(t *testing.T) {
 				Name: &esv1beta1.FindName{RegExp: "secret-.*"},
 			},
 			response: map[string][]byte{
-				db.secret("secret-1").id: db.secret("secret-1").mustGetVersion("latest").data,
-				db.secret("secret-2").id: db.secret("secret-2").mustGetVersion("latest").data,
+				db.secret("secret-1").id: db.secret("secret-1").mustGetVersion("latest_enabled").data,
+				db.secret("secret-2").id: db.secret("secret-2").mustGetVersion("latest_enabled").data,
 			},
 		},
 		"find secrets by tags": {

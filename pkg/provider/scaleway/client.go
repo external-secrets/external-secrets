@@ -69,7 +69,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, err
 	}
 
-	versionSpec := "latest"
+	versionSpec := "latest_enabled"
 	if ref.Version != "" {
 		versionSpec = ref.Version
 	}
@@ -127,7 +127,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 
 	getSecretVersionRequest := smapi.GetSecretVersionRequest{
 		SecretID: &secret.ID,
-		Revision: "latest",
+		Revision: "latest_enabled",
 	}
 
 	secretExistsButHasNoVersion := false
@@ -302,12 +302,10 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 				continue
 			}
 
-			// TODO: update to latest-enabled when possible
-
 			accessReq := smapi.AccessSecretVersionRequest{
 				Region:   secret.Region,
 				SecretID: &secret.ID,
-				Revision: "latest",
+				Revision: "latest_enabled",
 			}
 
 			accessResp, err := c.api.AccessSecretVersion(&accessReq, scw.WithContext(ctx))

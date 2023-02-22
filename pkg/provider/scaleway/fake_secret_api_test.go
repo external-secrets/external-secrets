@@ -84,6 +84,15 @@ func (s *fakeSecret) getVersion(revision string) (*fakeSecretVersion, bool) {
 		return s.versions[len(s.versions)-1], true
 	}
 
+	if revision == "latest_enabled" {
+		for i := len(s.versions) - 1; i >= 0; i-- {
+			if s.versions[i].status == "enabled" {
+				return s.versions[i], true
+			}
+		}
+		return nil, false
+	}
+
 	revisionNumber, err := strconv.Atoi(revision)
 	if err != nil {
 		return nil, false
