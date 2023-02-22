@@ -123,7 +123,7 @@ You can manage keys/secrets/certificates saved inside the keyvault , by setting 
 The operator will fetch the Azure Key vault secret and inject it as a `Kind=Secret`. Then the Kubernetes secret can be fetched by issuing:
 
 ```sh
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
 
 To select all secrets inside the key vault or all tags inside a secret, you can use the `dataFrom` directive:
