@@ -64,6 +64,20 @@ func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithData
 	}
 }
 
+func NewReadMetadataWithContextFn(secret map[string]interface{}, err error) ReadWithDataWithContextFn {
+	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+		if secret == nil {
+			return nil, err
+		}
+		metadata := make(map[string]interface{})
+		metadata["custom_metadata"] = secret
+		vault := &vault.Secret{
+			Data: metadata,
+		}
+		return vault, err
+	}
+}
+
 func NewWriteWithContextFn(secret map[string]interface{}, err error) WriteWithContextFn {
 	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
 		vault := &vault.Secret{
