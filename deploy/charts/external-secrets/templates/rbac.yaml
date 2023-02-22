@@ -49,11 +49,12 @@ rules:
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
-    - "fakes"
-    - "passwords"
     - "acraccesstokens"
-    - "gcraccesstokens"
     - "ecrauthorizationtokens"
+    - "fakes"
+    - "gcraccesstokens"
+    - "passwords"
+    - "vaultdynamicsecrets"
     verbs:
     - "get"
     - "list"
