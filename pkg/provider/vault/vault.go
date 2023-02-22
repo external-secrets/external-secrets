@@ -631,14 +631,13 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		if err != nil {
 			return nil, err
 		}
-		if metadata == nil || len(metadata) == 0 {
+		if len(metadata) == 0 {
 			return nil, nil
 		}
 		data = make(map[string]interface{}, len(metadata))
 		for k, v := range metadata {
 			data[k] = v
 		}
-
 	} else {
 		data, err = v.readSecret(ctx, ref.Key, ref.Version)
 		if err != nil {
