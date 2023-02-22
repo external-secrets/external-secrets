@@ -619,10 +619,32 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 //  2. get a key from the secret.
 //     Nested values are supported by specifying a gjson expression
 func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, err := v.readSecret(ctx, ref.Key, ref.Version)
-	if err != nil {
-		return nil, err
+	var data map[string]interface{}
+	var err error
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		if v.store.Version != "v2" {
+			return nil, errors.New("fetch metadata only available in v2")
+		}
+
+		metadata, err := v.readSecretMetadata(ctx, ref.Key)
+		if err != nil {
+			return nil, err
+		}
+		if metadata == nil {
+			return nil, nil
+		}
+		data = make(map[string]interface{}, len(metadata))
+		for k, v := range metadata {
+			data[k] = v
+		}
+
+	} else {
+		data, err = v.readSecret(ctx, ref.Key, ref.Version)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	// Return nil if secret value is null
 	if data == nil {
 		return nil, nil
