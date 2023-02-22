@@ -44,6 +44,12 @@ var db = buildDb(&fakeSecretApi{
 				},
 			},
 		},
+		{
+			name: "cant-push",
+			versions: []*fakeSecretVersion{
+				{revision: 1},
+			},
+		},
 	},
 })
 
@@ -145,21 +151,70 @@ func (ref pushRemoteRef) GetRemoteKey() string {
 
 func TestPushSecret(t *testing.T) {
 
-	t.Run("to existing empty secret", func(t *testing.T) {
+	t.Run("to new secret", func(t *testing.T) {
 
 		ctx := context.Background()
 		c := newTestClient()
 		data := []byte("some secret data 6a8ff33b-c69a-4e42-b162-b7b595ee7f5f")
-		secret := db.secret("push-me")
+		secretName := "secret-creation-test"
 
-		pushErr := c.PushSecret(ctx, data, pushRemoteRef("name:"+secret.name))
+		pushErr := c.PushSecret(ctx, data, pushRemoteRef("name:"+secretName))
 
 		assert.NoError(t, pushErr)
-		assert.Equal(t, 1, len(secret.versions))
-		assert.Equal(t, data, secret.versions[0].data)
+		assert.Len(t, db.secret(secretName).versions, 1)
+		assert.Equal(t, data, db.secret(secretName).versions[0].data)
 	})
 
-	t.Run("without change", func(t *testing.T) {
+	t.Run("to secret created by us", func(t *testing.T) {
+
+		ctx := context.Background()
+		c := newTestClient()
+		data := []byte("some secret data a11d416b-9169-4f4a-8c27-d2959b22e189")
+		secretName := "secret-update-test"
+		assert.NoError(t, c.PushSecret(ctx, []byte("original data"), pushRemoteRef("name:"+secretName)))
+
+		pushErr := c.PushSecret(ctx, data, pushRemoteRef("name:"+secretName))
+
+		assert.NoError(t, pushErr)
+		assert.Len(t, db.secret(secretName).versions, 2)
+		assert.Equal(t, data, db.secret(secretName).versions[1].data)
+	})
+
+	t.Run("to secret partially created by us with no version", func(t *testing.T) {
+
+		ctx := context.Background()
+		c := newTestClient()
+		data := []byte("some secret data a11d416b-9169-4f4a-8c27-d2959b22e189")
+		secretName := "push-me"
+
+		pushErr := c.PushSecret(ctx, data, pushRemoteRef("name:"+secretName))
+
+		assert.NoError(t, pushErr)
+		assert.Len(t, db.secret(secretName).versions, 1)
+		assert.Equal(t, data, db.secret(secretName).versions[0].data)
+	})
+
+	t.Run("by invalid secret ref is an error", func(t *testing.T) {
+
+		ctx := context.Background()
+		c := newTestClient()
+
+		pushErr := c.PushSecret(ctx, []byte("some data"), pushRemoteRef("invalid:abcd"))
+
+		assert.Error(t, pushErr)
+	})
+
+	t.Run("by id is an error", func(t *testing.T) {
+
+		ctx := context.Background()
+		c := newTestClient()
+
+		pushErr := c.PushSecret(ctx, []byte("some data"), pushRemoteRef("id:"+db.secret("cant-push").id))
+
+		assert.Error(t, pushErr)
+	})
+
+	t.Run("without change does not create a version", func(t *testing.T) {
 
 		ctx := context.Background()
 		c := newTestClient()
@@ -170,18 +225,6 @@ func TestPushSecret(t *testing.T) {
 		assert.NoError(t, pushErr)
 		assert.Equal(t, 1, len(secret.versions))
 	})
-
-	t.Run("non existing secret", func(t *testing.T) {
-
-		ctx := context.Background()
-		c := newTestClient()
-		notASecret := "3fe3b79b-66c6-4b74-a03f-8a4be04afdd1"
-
-		pushErr := c.PushSecret(ctx, []byte("some data"), pushRemoteRef(notASecret))
-
-		assert.Error(t, pushErr)
-	})
-
 }
 
 func TestGetSecretMap(t *testing.T) {
