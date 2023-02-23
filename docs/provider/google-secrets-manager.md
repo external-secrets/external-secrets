@@ -19,7 +19,7 @@ _Note: If you have installed ESO, a serviceaccount has already been created. You
 - `PROJECT_ID`: Your project ID (not your Project number nor your Project name)
 - `K8S_NAMESPACE`: For us following these steps here it will be `es`, but this will be the namespace where you deployed the external-secrets operator
 - `KSA_NAME`: external-secrets (if you are not creating a new one to attach to the deployment)
-- `GSA_NAME`: external-secrets for simplicity, or something else if you have to follow different naming convetions for cloud resources
+- `GSA_NAME`: external-secrets for simplicity, or something else if you have to follow different naming conventions for cloud resources
 - `ROLE_NAME`: should be `roles/secretmanager.secretAccessor` - so you make the pod only be able to access secrets on Secret Manager
 
 #### Using Service Accounts directly
@@ -80,7 +80,7 @@ You just need to set the `projectID`, all other fields can be omitted.
 ### GCP Service Account authentication
 
 You can use [GCP Service Account](https://cloud.google.com/iam/docs/service-accounts) to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a `Kind=Secret`. ESO will use that Secret to authenticate with GCP. See here how you [manage GCP Service Accounts](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
-After creating a GCP Service acount go to `IAM & Admin` web UI, click `ADD ANOTHER ROLE` button, add `Secret Manager Secret Accessor` role to this service account.
+After creating a GCP Service account go to `IAM & Admin` web UI, click `ADD ANOTHER ROLE` button, add `Secret Manager Secret Accessor` role to this service account.
 The `Secret Manager Secret Accessor` role is required to access secrets.
 
 ```yaml
