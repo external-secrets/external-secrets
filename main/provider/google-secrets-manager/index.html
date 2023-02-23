@@ -2040,7 +2040,7 @@
 <li><code>PROJECT_ID</code>: Your project ID (not your Project number nor your Project name)</li>
 <li><code>K8S_NAMESPACE</code>: For us following these steps here it will be <code>es</code>, but this will be the namespace where you deployed the external-secrets operator</li>
 <li><code>KSA_NAME</code>: external-secrets (if you are not creating a new one to attach to the deployment)</li>
-<li><code>GSA_NAME</code>: external-secrets for simplicity, or something else if you have to follow different naming convetions for cloud resources</li>
+<li><code>GSA_NAME</code>: external-secrets for simplicity, or something else if you have to follow different naming conventions for cloud resources</li>
 <li><code>ROLE_NAME</code>: should be <code>roles/secretmanager.secretAccessor</code> - so you make the pod only be able to access secrets on Secret Manager</li>
 </ul>
 <h4 id="using-service-accounts-directly">Using Service Accounts directly</h4>
@@ -2107,7 +2107,7 @@ You just need to set the <code>projectID</code>, all other fields can be omitted
 </code></pre></div>
 <h3 id="gcp-service-account-authentication">GCP Service Account authentication</h3>
 <p>You can use <a href="https://cloud.google.com/iam/docs/service-accounts">GCP Service Account</a> to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a <code>Kind=Secret</code>. ESO will use that Secret to authenticate with GCP. See here how you <a href="https://cloud.google.com/iam/docs/creating-managing-service-accounts">manage GCP Service Accounts</a>.
-After creating a GCP Service acount go to <code>IAM &amp; Admin</code> web UI, click <code>ADD ANOTHER ROLE</code> button, add <code>Secret Manager Secret Accessor</code> role to this service account.
+After creating a GCP Service account go to <code>IAM &amp; Admin</code> web UI, click <code>ADD ANOTHER ROLE</code> button, add <code>Secret Manager Secret Accessor</code> role to this service account.
 The <code>Secret Manager Secret Accessor</code> role is required to access secrets.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>

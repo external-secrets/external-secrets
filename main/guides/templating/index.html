@@ -2310,9 +2310,9 @@ NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
 <h5 id="functions-removedreplaced">Functions removed/replaced</h5>
 <ul>
 <li><code>base64encode</code> was renamed to <code>b64enc</code>.</li>
-<li><code>base64decode</code> was renamed to <code>b64dec</code>. Any errors that occurr during decoding are silenced.</li>
-<li><code>fromJSON</code> was renamed to <code>fromJson</code>. Any errors that occurr during unmarshalling are silenced.</li>
-<li><code>toJSON</code> was renamed to <code>toJson</code>. Any errors that occurr during marshalling are silenced.</li>
+<li><code>base64decode</code> was renamed to <code>b64dec</code>. Any errors that occur during decoding are silenced.</li>
+<li><code>fromJSON</code> was renamed to <code>fromJson</code>. Any errors that occur during unmarshalling are silenced.</li>
+<li><code>toJSON</code> was renamed to <code>toJson</code>. Any errors that occur during marshalling are silenced.</li>
 <li><code>pkcs12key</code> and <code>pkcs12keyPass</code> encode the PKCS#8 key directly into PEM format. There is no need to call <code>pemPrivateKey</code> anymore. Also, these functions do extract all private keys from the PKCS#12 archive not just the first one.</li>
 <li><code>pkcs12cert</code> and <code>pkcs12certPass</code> encode the certs directly into PEM format. There is no need to call <code>pemCertificate</code> anymore. These functions now <strong>extract all certificates</strong> from the PKCS#12 archive not just the first one.</li>
 <li><code>toString</code> implementation was replaced by the <code>sprig</code> implementation and should be api-compatible.</li>
