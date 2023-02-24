@@ -138,6 +138,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 		return nil, fmt.Errorf(errGetSecret, ref.Key, err)
 	}
 
+
 	return []byte(secret.Value), nil
 }
 
