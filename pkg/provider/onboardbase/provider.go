@@ -115,9 +115,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	client.environment = client.store.Environment
 	
 
-	fmt.Println(client.onboardbaseAPIKey, client.onboardbasePasscode)
-	
-
 	return client, nil
 }
 

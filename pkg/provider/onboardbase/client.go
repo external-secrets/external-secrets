@@ -103,24 +103,6 @@ func (c *Client) setAuth(ctx context.Context) error {
 
 	c.onboardbasePasscode = string(onboardbasePasscode)
 
-fmt.Println(string(onboardbasePasscode))
-
-	onboardbaseEnvironment := credentialsSecret.Data[c.store.Auth.SecretRef.OnboardbaseEnvironment.Key]
-	if (onboardbaseEnvironment == nil) || (len(onboardbaseEnvironment) == 0) {
-		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.SecretRef.OnboardbaseEnvironment.Key, credentialsSecretName)
-	}
-fmt.Println(string(onboardbasePasscode))
-
-	c.project = string(onboardbaseEnvironment)
-
-
-	onboardbaseProject := credentialsSecret.Data[c.store.Auth.SecretRef.OnboardbaseProject.Key]
-	if (onboardbaseEnvironment == nil) || (len(onboardbaseEnvironment) == 0) {
-		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.SecretRef.OnboardbaseProject.Key, credentialsSecretName)
-	}
-
-	c.project = string(onboardbaseProject)
-
 	return nil
 }
 
@@ -157,6 +139,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 	if err != nil {
 		return nil, fmt.Errorf(errGetSecret, ref.Key, err)
 	}
+
 
 	return []byte(secret.Value), nil
 }
