@@ -76,6 +76,7 @@ require (
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/go-playground/validator/v10 v10.11.2 // indirect
+	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20220614131811-bce91dc210ca // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 )
 
