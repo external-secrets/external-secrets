@@ -277,6 +277,22 @@ func (r *SecretRequest) buildQueryParams() queryParams {
 	return params
 }
 
+
+func (r *SecretRequest) buildQueryParams() queryParams {
+	params := queryParams{}
+
+	if r.Project != "" {
+		params["project"] = r.Project
+	}
+
+
+	if r.Project != "" {
+		params["environment"] = r.Environment
+	}
+
+	return params
+}
+
 func (c *OnboardbaseClient) performRequest(path, method string, headers headers, params queryParams, body httpRequestBody) (*apiResponse, error) {
 	urlStr := c.BaseURL().String() + path
 	reqURL, err := url.Parse(urlStr)
