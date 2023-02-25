@@ -21,10 +21,6 @@ import (
 // Set DOPPLER_BASE_URL and DOPPLER_VERIFY_TLS environment variables to override defaults
 
 type OnboardbaseAuth struct {
-	SecretRef OnboardbaseAuthSecretRef `json:"secretRef"`
-}
-
-type OnboardbaseAuthSecretRef struct {
 	// The OnboardbaseToken is used for authentication.
 	// See https://docs.doppler.com/reference/api#authentication for auth token types.
 	// The Key attribute defaults to dopplerToken if not specified.
@@ -37,7 +33,6 @@ type OnboardbaseAuthSecretRef struct {
 type OnboardbaseProvider struct {
 	// Auth configures how the Operator authenticates with the Onboardbase API
 	Auth *OnboardbaseAuth `json:"auth"`
-
 
 	Environment string `json:"onboardbaseEnvironment"`
 	Project string `json:"onboardbaseProject"`
