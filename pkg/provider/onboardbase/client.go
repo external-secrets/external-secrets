@@ -62,13 +62,13 @@ type Client struct {
 type SecretsClientInterface interface {
 	BaseURL() *url.URL
 	Authenticate() error
-	GetSecret(request dClient.SecretsRequest) (*dClient.SecretResponse, error)
+	GetSecret(request dClient.SecretRequest) (*dClient.SecretResponse, error)
 	GetSecrets(request dClient.SecretsRequest) (*dClient.SecretsResponse, error)
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.OnboardbaseAPIKey.Name
+	credentialsSecretName := c.store.Auth.OnboardbaseAPIKey.Name
 	if credentialsSecretName == "" {
 		return fmt.Errorf(errOnboardbaseAPIKeySecretName)
 	}
@@ -78,10 +78,10 @@ func (c *Client) setAuth(ctx context.Context) error {
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.OnboardbaseAPIKey.Namespace == nil {
+		if c.store.Auth.OnboardbaseAPIKey.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingOnboardbaseAPIKeyNamespace)
 		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.OnboardbaseAPIKey.Namespace
+		objectKey.Namespace = *c.store.Auth.OnboardbaseAPIKey.Namespace
 	}
 
 	err := c.kube.Get(ctx, objectKey, credentialsSecret)
@@ -89,16 +89,16 @@ func (c *Client) setAuth(ctx context.Context) error {
 		return fmt.Errorf(errFetchOnboardbaseAPIKeySecret, err)
 	}
 
-	onboardbaseAPIKey := credentialsSecret.Data[c.store.Auth.SecretRef.OnboardbaseAPIKey.Key]
+	onboardbaseAPIKey := credentialsSecret.Data[c.store.Auth.OnboardbaseAPIKey.Key]
 	if (onboardbaseAPIKey == nil) || (len(onboardbaseAPIKey) == 0) {
-		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.SecretRef.OnboardbaseAPIKey.Key, credentialsSecretName)
+		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.OnboardbaseAPIKey.Key, credentialsSecretName)
 	}
 	c.onboardbaseAPIKey = string(onboardbaseAPIKey)
 
 
-	onboardbasePasscode := credentialsSecret.Data[c.store.Auth.SecretRef.OnboardbasePasscode.Key]
+	onboardbasePasscode := credentialsSecret.Data[c.store.Auth.OnboardbasePasscode.Key]
 	if (onboardbasePasscode == nil) || (len(onboardbasePasscode) == 0) {
-		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.SecretRef.OnboardbasePasscode.Key, credentialsSecretName)
+		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.OnboardbasePasscode.Key, credentialsSecretName)
 	}
 
 	c.onboardbasePasscode = string(onboardbasePasscode)
@@ -130,9 +130,10 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 }
 
 func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	request := dClient.SecretsRequest{
+	request := dClient.SecretRequest{
 		Project: c.project,
 		Environment: c.environment,
+		Name: ref.Key,
 	}
 
 	secret, err := c.onboardbase.GetSecret(request)
