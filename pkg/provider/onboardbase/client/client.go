@@ -120,7 +120,7 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*Onboa
 		UserAgent:    "onboardbase-external-secrets",
 	}
 
-	if err := client.SetBaseURL("https://public.Onboardbase.com/api/v1/"); err != nil {
+	if err := client.SetBaseURL("https://public.onboardbase.com/api/v1/"); err != nil {
 		return nil, &APIError{Err: err, Message: "setting base URL failed"}
 	}
 
@@ -220,7 +220,7 @@ func (r *SecretsRequest) buildQueryParams() queryParams {
 	}
 
 
-	if r.Project != "" {
+	if r.Environment != "" {
 		params["environment"] = r.Environment
 	}
 
@@ -236,7 +236,7 @@ func (r *SecretRequest) buildQueryParams() queryParams {
 	}
 
 
-	if r.Project != "" {
+	if r.Environment != "" {
 		params["environment"] = r.Environment
 	}
 
