@@ -45,8 +45,8 @@ type httpRequestBody []byte
 type Secrets map[string]string
 
 type RawSecret struct {
-	Key interface{} `json:"key,omitempty"`
-	Value interface{} `json:"value,omitempty"`
+	Key string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 type RawSecrets []RawSecret
@@ -65,6 +65,12 @@ type apiResponse struct {
 type apiErrorResponse struct {
 	Messages []string
 	Success  bool
+}
+
+type SecretRequest struct {
+	Environment    string
+	Project string
+	Name    string
 }
 
 type SecretsRequest struct {
@@ -104,8 +110,6 @@ type SecretResponse struct {
 type SecretsResponse struct {
 	Secrets  Secrets
 	Body     []byte
-	Modified bool
-	ETag     string
 }
 
 func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*OnboardbaseClient, error) {
@@ -152,25 +156,23 @@ func (c *OnboardbaseClient) Authenticate() error {
 	return nil
 }
 
-func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (map[string]interface{}, error) {
-	kv := make(map[string]interface{})
+func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (map[string]string, error) {
+	kv := make(map[string]string)
 	for _, secret := range data.Secrets {
 		passphrase := c.OnboardbasePassCode
 		decrypted := aesdecrypt.Run(secret, passphrase)
-		fmt.Println(decrypted)
-
-		// var decryptedJSON RawSecret
-		// if err := json.Unmarshal([]byte(decrypted), &decryptedJSON); err != nil {
-		//     return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: decrypted}
-	    // }
-		// fmt.Println(decryptedJSON)
+		var decryptedJSON RawSecret
+		if err := json.Unmarshal([]byte(decrypted), &decryptedJSON); err != nil {
+		    return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: decrypted}
+	    }
+		kv[decryptedJSON.Key] = decryptedJSON.Value
 	}
 	return kv, nil
 }
 
-func (c *OnboardbaseClient) GetSecret(request SecretsRequest) (*SecretResponse, error) {
-	fmt.Println("Getting Secret")
+func (c *OnboardbaseClient) GetSecret(request SecretRequest) (*SecretResponse, error) {
 	params := request.buildQueryParams()
+
 	response, err := c.performRequest("/secrets", "GET", headers{}, params, httpRequestBody{})
 	if err != nil {
 		return nil, err
@@ -182,48 +184,51 @@ func (c *OnboardbaseClient) GetSecret(request SecretsRequest) (*SecretResponse, 
 	}
 
 	secrets, _ := c.getSecretsFromPayload(data.Data)
-	fmt.Println(secrets)
+	secret := secrets[request.Name]
 
-	// if data.Value.Computed == nil {
-	// 	return nil, &APIError{Message: fmt.Sprintf("secret for project '%s' and environment '%s' not found", request.Project, request.Environment)}
-	// }
+	if secret == "" {
+		return nil, &APIError{Message: fmt.Sprintf("secret %s for project '%s' and environment '%s' not found", request.Name, request.Project, request.Environment)}
+	}
 
-	return &SecretResponse{Name: "", Value: ""}, nil
+	return &SecretResponse{Name: request.Name, Value: secrets[request.Name]}, nil
 }
 
-// GetSecrets should only have an ETag supplied if Secrets are cached as SecretsResponse.Secrets will be nil if 304 (not modified) returned.
 func (c *OnboardbaseClient) GetSecrets(request SecretsRequest) (*SecretsResponse, error) {
 	headers := headers{}
 
 	params := request.buildQueryParams()
-	response, apiErr := c.performRequest("/v3/configs/config/secrets/download", "GET", headers, params, httpRequestBody{})
+	response, apiErr := c.performRequest("/secrets", "GET", headers, params, httpRequestBody{})
 	if apiErr != nil {
 		return nil, apiErr
 	}
 
 
-	eTag := response.HTTPResponse.Header.Get("etag")
+	var data secretResponseBody
+	if err := json.Unmarshal(response.Body, &data); err != nil {
+		return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: string(response.Body)}
+	}
 
-	var secrets Secrets
-	if err := json.Unmarshal(response.Body, &secrets); err != nil {
-		return nil, &APIError{Err: err, Message: "unable to unmarshal secrets payload"}
-	}
-	return &SecretsResponse{Modified: true, Secrets: secrets, Body: response.Body, ETag: eTag}, nil
-}
-
-func (c *OnboardbaseClient) UpdateSecrets(request UpdateSecretsRequest) error {
-	body, jsonErr := json.Marshal(request)
-	if jsonErr != nil {
-		return &APIError{Err: jsonErr, Message: "unable to unmarshal update secrets payload"}
-	}
-	_, err := c.performRequest("/v3/configs/config/secrets", "POST", headers{}, queryParams{}, body)
-	if err != nil {
-		return err
-	}
-	return nil
+	secrets, _ := c.getSecretsFromPayload(data.Data)
+	return &SecretsResponse{ Secrets: secrets, Body: response.Body}, nil
 }
 
 func (r *SecretsRequest) buildQueryParams() queryParams {
+	params := queryParams{}
+
+	if r.Project != "" {
+		params["project"] = r.Project
+	}
+
+
+	if r.Project != "" {
+		params["environment"] = r.Environment
+	}
+
+	return params
+}
+
+
+func (r *SecretRequest) buildQueryParams() queryParams {
 	params := queryParams{}
 
 	if r.Project != "" {
@@ -293,7 +298,6 @@ func (c *OnboardbaseClient) performRequest(path, method string, headers headers,
 	}
 
 	r, err := httpClient.Do(req)
-		fmt.Println(r.StatusCode)
 
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "unable to load response"}

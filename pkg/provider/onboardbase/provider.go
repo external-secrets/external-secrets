@@ -60,13 +60,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	onboardbaseStoreSpec := storeSpec.Provider.Onboardbase
 
 	// Default Key to onboardbaseToken if not specified
-	if onboardbaseStoreSpec.Auth.SecretRef.OnboardbaseAPIKey.Key == "" {
-		storeSpec.Provider.Onboardbase.Auth.SecretRef.OnboardbaseAPIKey.Key = "onboardbaseToken"
+	if onboardbaseStoreSpec.Auth.OnboardbaseAPIKey.Key == "" {
+		storeSpec.Provider.Onboardbase.Auth.OnboardbaseAPIKey.Key = "onboardbaseToken"
 	}
 
 	// Default Key to onboardbaseToken if not specified
-	if onboardbaseStoreSpec.Auth.SecretRef.OnboardbasePasscode.Key == "" {
-		storeSpec.Provider.Onboardbase.Auth.SecretRef.OnboardbasePasscode.Key = "onboardbasePasscode"
+	if onboardbaseStoreSpec.Auth.OnboardbasePasscode.Key == "" {
+		storeSpec.Provider.Onboardbase.Auth.OnboardbasePasscode.Key = "onboardbasePasscode"
 	}
 
 
@@ -121,7 +121,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	onboardbaseStoreSpec := storeSpec.Provider.Onboardbase
-	onboardbaseAPIKeySecretRef := onboardbaseStoreSpec.Auth.SecretRef.OnboardbaseAPIKey
+	onboardbaseAPIKeySecretRef := onboardbaseStoreSpec.Auth.OnboardbaseAPIKey
 	if err := utils.ValidateSecretSelector(store, onboardbaseAPIKeySecretRef); err != nil {
 		return fmt.Errorf(errInvalidStore, err)
 	}
@@ -130,7 +130,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errInvalidStore, "onboardbaseAPIKey.name cannot be empty")
 	}
 
-	onboardbasePasscodeKeySecretRef := onboardbaseStoreSpec.Auth.SecretRef.OnboardbaseAPIKey
+	onboardbasePasscodeKeySecretRef := onboardbaseStoreSpec.Auth.OnboardbaseAPIKey
 	if err := utils.ValidateSecretSelector(store, onboardbasePasscodeKeySecretRef); err != nil {
 		return fmt.Errorf(errInvalidStore, err)
 	}
