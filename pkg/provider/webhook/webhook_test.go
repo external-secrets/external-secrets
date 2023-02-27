@@ -75,7 +75,7 @@ args:
 want:
   err: failed to call endpoint
 ---
-case: error not found
+case: error no secret err
 args:
   url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
   key: testkey
@@ -84,7 +84,18 @@ args:
   response: not found
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: endpoint gave error 404
+  err: ` + esv1beta1.NoSecretErr.Error() + `
+---
+case: error server error
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  statuscode: 500
+  response: server error
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: endpoint gave error 500
 ---
 case: error bad json
 args:
