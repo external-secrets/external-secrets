@@ -51,6 +51,11 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
+{{- define "external-secrets-webhook-metrics.labels" -}}
+{{ include "external-secrets-webhook.selectorLabels" . }}
+app.kubernetes.io/metrics: "webhook"
+{{- end }}
+
 {{- define "external-secrets-cert-controller.labels" -}}
 helm.sh/chart: {{ include "external-secrets.chart" . }}
 {{ include "external-secrets-cert-controller.selectorLabels" . }}
@@ -58,6 +63,11 @@ helm.sh/chart: {{ include "external-secrets.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{- define "external-secrets-cert-controller-metrics.labels" -}}
+{{ include "external-secrets-cert-controller.selectorLabels" . }}
+app.kubernetes.io/metrics: "cert-controller"
 {{- end }}
 
 {{/*
