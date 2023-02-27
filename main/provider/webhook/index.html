@@ -2016,6 +2016,10 @@
 </code></pre></div>
 <h4 id="limitations">Limitations</h4>
 <p>Webhook does not support authorization, other than what can be sent by generating http headers</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If a webhook endpoint for a given <code>ExternalSecret</code> returns a 404 status code, the secret is considered to have been deleted.  This will trigger the <code>deletionPolicy</code> set on the <code>ExternalSecret</code>.</p>
+</div>
 <h3 id="templating">Templating</h3>
 <p>Generic WebHook provider uses the templating engine to generate the API call.  It can be used in the url, headers, body and result.jsonPath fields.</p>
 <p>The provider inserts the secret to be retrieved in the object named <code>remoteRef</code>.</p>
