@@ -145,7 +145,7 @@ func doesConfigDependOnNamespace(cfg *esv1beta1.ScalewayProvider) bool {
 		return true
 	}
 
-	return true
+	return false
 }
 
 func getConfig(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, error) {
