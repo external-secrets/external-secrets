@@ -47,11 +47,11 @@ func decodeScwSecretRef(key string) (*scwSecretRef, error) {
 
 func (c *client) getSecretByName(ctx context.Context, name string) (*smapi.Secret, error) {
 
-	request := smapi.GetSecretRequest{
-		SecretName: &name,
+	request := smapi.GetSecretByNameRequest{
+		SecretName: name,
 	}
 
-	response, err := c.api.GetSecret(&request, scw.WithContext(ctx))
+	response, err := c.api.GetSecretByName(&request, scw.WithContext(ctx))
 	if err != nil {
 		if _, isErrNotFound := err.(*scw.ResourceNotFoundError); isErrNotFound {
 			return nil, errNoSecretForName
@@ -105,8 +105,8 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	secretExists := false
 	secretHasVersions := false
 
-	secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
-		SecretName: &secretName,
+	secretVersion, err := c.api.GetSecretVersionByName(&smapi.GetSecretVersionByNameRequest{
+		SecretName: secretName,
 		Revision:   "latest",
 	}, scw.WithContext(ctx))
 	if err != nil {
@@ -145,8 +145,8 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 			// If the secret exists but has no versions, we need an additional GetSecret() to resolve the secret id.
 			// This may happen if a push was interrupted.
 
-			secret, err := c.api.GetSecret(&smapi.GetSecretRequest{
-				SecretName: &secretName,
+			secret, err := c.api.GetSecretByName(&smapi.GetSecretByNameRequest{
+				SecretName: secretName,
 			}, scw.WithContext(ctx))
 			if err != nil {
 				return err
@@ -319,7 +319,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 			accessReq := smapi.AccessSecretVersionRequest{
 				Region:   secret.Region,
-				SecretID: &secret.ID,
+				SecretID: secret.ID,
 				Revision: "latest_enabled",
 			}
 
@@ -356,25 +356,37 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 
 	// otherwise, we do a GetSecret() first to avoid transferring the secret value if it is cached
 
-	request := smapi.GetSecretVersionRequest{
-		Revision: versionSpec,
-	}
+	var secretId string
+	var secretRevision uint32
 
 	switch secretRef.RefType {
 	case "id":
-		request.SecretID = &secretRef.Value
+		request := smapi.GetSecretVersionRequest{
+			SecretID: secretRef.Value,
+			Revision: versionSpec,
+		}
+		response, err := c.api.GetSecretVersion(&request, scw.WithContext(ctx))
+		if err != nil {
+			return nil, err
+		}
+		secretId = response.SecretID
+		secretRevision = response.Revision
 	case "name":
-		request.SecretName = &secretRef.Value
+		request := smapi.GetSecretVersionByNameRequest{
+			SecretName: secretRef.Value,
+			Revision:   versionSpec,
+		}
+		response, err := c.api.GetSecretVersionByName(&request, scw.WithContext(ctx))
+		if err != nil {
+			return nil, err
+		}
+		secretId = response.SecretID
+		secretRevision = response.Revision
 	default:
 		return nil, fmt.Errorf("invalid secret reference: %q", secretRef.Value)
 	}
 
-	response, err := c.api.GetSecretVersion(&request, scw.WithContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-
-	return c.accessSpecificSecretVersion(ctx, response.SecretID, response.Revision)
+	return c.accessSpecificSecretVersion(ctx, secretId, secretRevision)
 }
 
 func (c *client) accessSpecificSecretVersion(ctx context.Context, secretId string, revision uint32) ([]byte, error) {
@@ -385,7 +397,7 @@ func (c *client) accessSpecificSecretVersion(ctx context.Context, secretId strin
 	}
 
 	request := smapi.AccessSecretVersionRequest{
-		SecretID: &secretId,
+		SecretID: secretId,
 		Revision: fmt.Sprintf("%d", revision),
 	}
 

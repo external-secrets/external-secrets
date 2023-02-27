@@ -128,40 +128,61 @@ func (f *fakeSecretApi) secret(name string) *fakeSecret {
 	return f._secretsByName[name]
 }
 
-func (f *fakeSecretApi) getSecret(secretId *string, secretName *string) (*fakeSecret, error) {
+func (f *fakeSecretApi) getSecretById(secretId string) (*fakeSecret, error) {
 
-	var secretMap map[string]*fakeSecret
-	var secretRef string
-
-	if secretId != nil {
-		secretMap = f._secretsById
-		secretRef = *secretId
-	} else if secretName != nil {
-		secretMap = f._secretsByName
-		secretRef = *secretName
-	} else {
-		panic("must specify either secret id or name")
-	}
-
-	secret, foundSecret := secretMap[secretRef]
+	secret, foundSecret := f._secretsById[secretId]
 
 	if !foundSecret {
 		return nil, &scw.ResourceNotFoundError{
 			Resource:   "secret",
-			ResourceID: secretRef,
+			ResourceID: secretId,
 		}
 	}
 
 	return secret, nil
 }
 
-func (f *fakeSecretApi) GetSecret(request *smapi.GetSecretRequest, opts ...scw.RequestOption) (*smapi.Secret, error) {
+func (f *fakeSecretApi) getSecretByName(secretName string) (*fakeSecret, error) {
+
+	secret, foundSecret := f._secretsByName[secretName]
+
+	if !foundSecret {
+		return nil, &scw.ResourceNotFoundError{
+			Resource:   "secret",
+			ResourceID: secretName,
+		}
+	}
+
+	return secret, nil
+}
+
+func (f *fakeSecretApi) GetSecret(request *smapi.GetSecretRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
 
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
 
-	secret, err := f.getSecret(request.SecretID, request.SecretName)
+	secret, err := f.getSecretById(request.SecretID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &smapi.Secret{
+		ID:           secret.id,
+		Name:         secret.name,
+		Status:       smapi.SecretStatus(secret.status),
+		Tags:         secret.tags,
+		VersionCount: uint32(len(secret.versions)),
+	}, nil
+}
+
+func (f *fakeSecretApi) GetSecretByName(request *smapi.GetSecretByNameRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
+
+	if request.Region != "" {
+		panic("explicit region in request is not supported")
+	}
+
+	secret, err := f.getSecretByName(request.SecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +202,33 @@ func (f *fakeSecretApi) GetSecretVersion(request *smapi.GetSecretVersionRequest,
 		panic("explicit region in request is not supported")
 	}
 
-	secret, err := f.getSecret(request.SecretID, request.SecretName)
+	secret, err := f.getSecretById(request.SecretID)
+	if err != nil {
+		return nil, err
+	}
+
+	version, ok := secret.getVersion(request.Revision)
+	if !ok {
+		return nil, &scw.ResourceNotFoundError{
+			Resource:   "secret_version",
+			ResourceID: request.Revision,
+		}
+	}
+
+	return &smapi.SecretVersion{
+		SecretID: secret.id,
+		Revision: uint32(version.revision),
+		Status:   smapi.SecretVersionStatus(secret.status),
+	}, nil
+}
+
+func (f *fakeSecretApi) GetSecretVersionByName(request *smapi.GetSecretVersionByNameRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
+
+	if request.Region != "" {
+		panic("explicit region in request is not supported")
+	}
+
+	secret, err := f.getSecretByName(request.SecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +254,7 @@ func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 		panic("explicit region in request is not supported")
 	}
 
-	secret, err := f.getSecret(request.SecretID, request.SecretName)
+	secret, err := f.getSecretById(request.SecretID)
 	if err != nil {
 		return nil, err
 	}
