@@ -31,79 +31,119 @@ const (
 )
 
 var (
+	NonConditionMetricLabelNames = []string{
+		"name", "namespace",
+		"app_kubernetes_io_name", "app_kubernetes_io_instance",
+		"app_kubernetes_io_version", "app_kubernetes_io_component",
+		"app_kubernetes_io_part_of", "app_kubernetes_io_managed_by",
+	}
+
+	NonConditionMetricLabels = prometheus.Labels{
+		"name":                         "",
+		"namespace":                    "",
+		"app_kubernetes_io_name":       "",
+		"app_kubernetes_io_instance":   "",
+		"app_kubernetes_io_version":    "",
+		"app_kubernetes_io_component":  "",
+		"app_kubernetes_io_part_of":    "",
+		"app_kubernetes_io_managed_by": "",
+	}
+
+	ConditionMetricLabelNames = []string{
+		"name", "namespace",
+		"condition", "status",
+		"app_kubernetes_io_name", "app_kubernetes_io_instance",
+		"app_kubernetes_io_version", "app_kubernetes_io_component",
+		"app_kubernetes_io_part_of", "app_kubernetes_io_managed_by",
+	}
+
+	ConditionMetricLabels = prometheus.Labels{
+		"name":                         "",
+		"namespace":                    "",
+		"condition":                    "",
+		"status":                       "",
+		"app_kubernetes_io_name":       "",
+		"app_kubernetes_io_instance":   "",
+		"app_kubernetes_io_version":    "",
+		"app_kubernetes_io_component":  "",
+		"app_kubernetes_io_part_of":    "",
+		"app_kubernetes_io_managed_by": "",
+	}
+)
+
+var (
 	syncCallsTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Subsystem: ExternalSecretSubsystem,
 		Name:      SyncCallsKey,
 		Help:      "Total number of the External Secret sync calls",
-	}, []string{"name", "namespace"})
+	}, NonConditionMetricLabelNames)
 
 	syncCallsError = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Subsystem: ExternalSecretSubsystem,
 		Name:      SyncCallsErrorKey,
 		Help:      "Total number of the External Secret sync errors",
-	}, []string{"name", "namespace"})
+	}, NonConditionMetricLabelNames)
 
 	externalSecretCondition = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Subsystem: ExternalSecretSubsystem,
 		Name:      externalSecretStatusConditionKey,
 		Help:      "The status condition of a specific External Secret",
-	}, []string{"name", "namespace", "condition", "status"})
+	}, ConditionMetricLabelNames)
 
 	externalSecretReconcileDuration = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Subsystem: ExternalSecretSubsystem,
 		Name:      externalSecretReconcileDurationKey,
 		Help:      "The duration time to reconcile the External Secret",
-	}, []string{"name", "namespace"})
+	}, NonConditionMetricLabelNames)
 )
 
 // updateExternalSecretCondition updates the ExternalSecret conditions.
 func updateExternalSecretCondition(es *esv1beta1.ExternalSecret, condition *esv1beta1.ExternalSecretStatusCondition, value float64) {
+	conditionLabels := RefineLabelsWithMaps(ConditionMetricLabels, map[string]string{"name": es.Name, "namespace": es.Namespace}, es.Labels)
+
 	switch condition.Type {
 	case esv1beta1.ExternalSecretDeleted:
 		// Remove condition=Ready metrics when the object gets deleted.
-		externalSecretCondition.Delete(prometheus.Labels{
-			"name":      es.Name,
-			"namespace": es.Namespace,
-			"condition": string(esv1beta1.ExternalSecretReady),
-			"status":    string(v1.ConditionFalse),
-		})
-		externalSecretCondition.Delete(prometheus.Labels{
-			"name":      es.Name,
-			"namespace": es.Namespace,
-			"condition": string(esv1beta1.ExternalSecretReady),
-			"status":    string(v1.ConditionTrue),
-		})
+		externalSecretCondition.Delete(RefineLabels(conditionLabels,
+			map[string]string{
+				"condition": string(esv1beta1.ExternalSecretReady),
+				"status":    string(v1.ConditionFalse),
+			}))
+
+		externalSecretCondition.Delete(RefineLabels(conditionLabels,
+			map[string]string{
+				"condition": string(esv1beta1.ExternalSecretReady),
+				"status":    string(v1.ConditionTrue),
+			}))
 
 	case esv1beta1.ExternalSecretReady:
 		// Remove condition=Deleted metrics when the object gets ready.
-		externalSecretCondition.Delete(prometheus.Labels{
-			"name":      es.Name,
-			"namespace": es.Namespace,
-			"condition": string(esv1beta1.ExternalSecretDeleted),
-			"status":    string(v1.ConditionFalse),
-		})
-		externalSecretCondition.Delete(prometheus.Labels{
-			"name":      es.Name,
-			"namespace": es.Namespace,
-			"condition": string(esv1beta1.ExternalSecretDeleted),
-			"status":    string(v1.ConditionTrue),
-		})
+		externalSecretCondition.Delete(RefineLabels(conditionLabels,
+			map[string]string{
+				"condition": string(esv1beta1.ExternalSecretDeleted),
+				"status":    string(v1.ConditionFalse),
+			}))
+
+		externalSecretCondition.Delete(RefineLabels(conditionLabels,
+			map[string]string{
+				"condition": string(esv1beta1.ExternalSecretDeleted),
+				"status":    string(v1.ConditionTrue),
+			}))
+
 		// Toggle opposite Status to 0
 		switch condition.Status {
 		case v1.ConditionFalse:
-			externalSecretCondition.With(prometheus.Labels{
-				"name":      es.Name,
-				"namespace": es.Namespace,
-				"condition": string(esv1beta1.ExternalSecretReady),
-				"status":    string(v1.ConditionTrue),
-			}).Set(0)
+			externalSecretCondition.With(RefineLabels(conditionLabels,
+				map[string]string{
+					"condition": string(esv1beta1.ExternalSecretReady),
+					"status":    string(v1.ConditionTrue),
+				})).Set(0)
 		case v1.ConditionTrue:
-			externalSecretCondition.With(prometheus.Labels{
-				"name":      es.Name,
-				"namespace": es.Namespace,
-				"condition": string(esv1beta1.ExternalSecretReady),
-				"status":    string(v1.ConditionFalse),
-			}).Set(0)
+			externalSecretCondition.With(RefineLabels(conditionLabels,
+				map[string]string{
+					"condition": string(esv1beta1.ExternalSecretReady),
+					"status":    string(v1.ConditionFalse),
+				})).Set(0)
 		case v1.ConditionUnknown:
 			break
 		default:
@@ -114,12 +154,11 @@ func updateExternalSecretCondition(es *esv1beta1.ExternalSecret, condition *esv1
 		break
 	}
 
-	externalSecretCondition.With(prometheus.Labels{
-		"name":      es.Name,
-		"namespace": es.Namespace,
-		"condition": string(condition.Type),
-		"status":    string(condition.Status),
-	}).Set(value)
+	externalSecretCondition.With(RefineLabels(conditionLabels,
+		map[string]string{
+			"condition": string(condition.Type),
+			"status":    string(condition.Status),
+		})).Set(value)
 }
 
 func init() {

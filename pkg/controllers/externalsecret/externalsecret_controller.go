@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -96,27 +95,40 @@ type Reconciler struct {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
-	resourceLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
+	resourceLabels := RefineLabels(NonConditionMetricLabels, map[string]string{"name": req.Name, "namespace": req.Namespace})
 	start := time.Now()
-	defer externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
-	defer syncCallsTotal.With(resourceLabels).Inc()
 
 	var externalSecret esv1beta1.ExternalSecret
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
-	if apierrors.IsNotFound(err) {
-		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretDeleted, v1.ConditionFalse, esv1beta1.ConditionReasonSecretDeleted, "Secret was deleted")
-		SetExternalSecretCondition(&esv1beta1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      req.Name,
-				Namespace: req.Namespace,
-			},
-		}, *conditionSynced)
-		return ctrl.Result{}, nil
-	} else if err != nil {
+
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretDeleted, v1.ConditionFalse, esv1beta1.ConditionReasonSecretDeleted, "Secret was deleted")
+			SetExternalSecretCondition(&esv1beta1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      req.Name,
+					Namespace: req.Namespace,
+				},
+			}, *conditionSynced)
+
+			externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
+			syncCallsTotal.With(resourceLabels).Inc()
+
+			return ctrl.Result{}, nil
+		}
+
 		log.Error(err, errGetES)
 		syncCallsError.With(resourceLabels).Inc()
+
+		externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
+		syncCallsTotal.With(resourceLabels).Inc()
+
 		return ctrl.Result{}, nil
 	}
+
+	resourceLabels = RefineLabels(resourceLabels, externalSecret.Labels)
+	defer externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
+	defer syncCallsTotal.With(resourceLabels).Inc()
 
 	if shouldSkipClusterSecretStore(r, externalSecret) {
 		log.Info("skipping cluster secret store as it is disabled")

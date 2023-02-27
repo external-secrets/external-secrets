@@ -23,6 +23,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,6 +43,28 @@ var (
 	metricDuration dto.Metric
 	timeout        = time.Second * 10
 	interval       = time.Millisecond * 250
+)
+
+// Curry the GaugeVecs to provide default values for the
+// K8s labels because there is no point in setting those in
+// tests.
+var (
+	defaultLabels = prometheus.Labels{
+		"app_kubernetes_io_name":       "",
+		"app_kubernetes_io_instance":   "",
+		"app_kubernetes_io_version":    "",
+		"app_kubernetes_io_component":  "",
+		"app_kubernetes_io_part_of":    "",
+		"app_kubernetes_io_managed_by": "",
+	}
+
+	curriedSyncCallsTotal = syncCallsTotal.MustCurryWith(defaultLabels)
+
+	curriedSyncCallsError = syncCallsError.MustCurryWith(defaultLabels)
+
+	curriedExternalSecretCondition = externalSecretCondition.MustCurryWith(defaultLabels)
+
+	curriedExternalSecretReconcileDuration = externalSecretReconcileDuration.MustCurryWith(defaultLabels)
 )
 
 type testCase struct {
@@ -160,10 +183,10 @@ var _ = Describe("ExternalSecret controller", func() {
 		ExternalSecretNamespace, err = ctest.CreateNamespaceWithLabels("test-ns", k8sClient, map[string]string{NamespaceLabelKey: NamespaceLabelValue})
 		Expect(err).ToNot(HaveOccurred())
 		metric.Reset()
-		syncCallsTotal.Reset()
-		syncCallsError.Reset()
-		externalSecretCondition.Reset()
-		externalSecretReconcileDuration.Reset()
+		curriedSyncCallsTotal.Reset()
+		curriedSyncCallsError.Reset()
+		curriedExternalSecretCondition.Reset()
+		curriedExternalSecretReconcileDuration.Reset()
 		fakeProvider.Reset()
 	})
 
@@ -294,8 +317,8 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 			Eventually(func() bool {
-				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(curriedSyncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				// three reconciliations: initial sync, status update, secret update
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
@@ -400,8 +423,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(curriedSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1286,8 +1309,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(curriedSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1334,8 +1357,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(curriedSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1466,8 +1489,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(curriedSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1504,8 +1527,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(curriedSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1530,8 +1553,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(curriedSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1550,12 +1573,12 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			// Condition True and False should be 0, since the Condition was not created
 			Eventually(func() float64 {
-				Expect(externalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1beta1.ExternalSecretReady), string(v1.ConditionTrue)).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1beta1.ExternalSecretReady), string(v1.ConditionTrue)).Write(&metric)).To(Succeed())
 				return metric.GetGauge().GetValue()
 			}, timeout, interval).Should(Equal(0.0))
 
 			Eventually(func() float64 {
-				Expect(externalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1beta1.ExternalSecretReady), string(v1.ConditionFalse)).Write(&metric)).To(Succeed())
+				Expect(curriedExternalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1beta1.ExternalSecretReady), string(v1.ConditionFalse)).Write(&metric)).To(Succeed())
 				return metric.GetGauge().GetValue()
 			}, timeout, interval).Should(Equal(0.0))
 
@@ -2182,7 +2205,7 @@ var _ = Describe("Controller Reconcile logic", func() {
 
 func externalSecretConditionShouldBe(name, ns string, ct esv1beta1.ExternalSecretConditionType, cs v1.ConditionStatus, v float64) bool {
 	return Eventually(func() float64 {
-		Expect(externalSecretCondition.WithLabelValues(name, ns, string(ct), string(cs)).Write(&metric)).To(Succeed())
+		Expect(curriedExternalSecretCondition.WithLabelValues(name, ns, string(ct), string(cs)).Write(&metric)).To(Succeed())
 		return metric.GetGauge().GetValue()
 	}, timeout, interval).Should(Equal(v))
 }

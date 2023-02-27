@@ -14,6 +14,9 @@ limitations under the License.
 package externalsecret
 
 import (
+	"regexp"
+
+	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -65,6 +68,35 @@ func SetExternalSecretCondition(es *esv1beta1.ExternalSecret, condition esv1beta
 	}
 
 	updateExternalSecretCondition(es, &condition, 1.0)
+}
+
+// Refine the given Prometheus Labels with values from a map `newLabels`
+// Only overwrite a value if the corresponding key is present in the
+// Prometheus' Labels already to avoid adding label names which are
+// not defined in a metric's description. Note that non-alphanumeric
+// characters from keys of `newLabels` are replaced by an underscore
+// because Promtheus does not accept non-alphanumeric, non-underscore
+// characters in label names.
+func RefineLabels(promLabels prometheus.Labels, newLabels map[string]string) prometheus.Labels {
+	var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
+
+	for k, v := range newLabels {
+		cleanKey := nonAlphanumericRegex.ReplaceAllString(k, "_")
+		if _, ok := promLabels[cleanKey]; ok {
+			promLabels[cleanKey] = v
+		}
+	}
+
+	return promLabels
+}
+
+// Apply RefineLabels with sevrel maps in a row.
+func RefineLabelsWithMaps(promLabels prometheus.Labels, maps ...map[string]string) prometheus.Labels {
+	for _, m := range maps {
+		RefineLabels(promLabels, m)
+	}
+
+	return promLabels
 }
 
 // filterOutCondition returns an empty set of conditions with the provided type.
