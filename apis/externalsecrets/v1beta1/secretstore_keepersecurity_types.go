@@ -18,18 +18,7 @@ import smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 // KeeperSecurityProvider Configures a store to sync secrets using Keeper Security.
 type KeeperSecurityProvider struct {
-	Auth *KeeperSecurityAuth `json:"auth"`
-
-	// Keeper Url from which the secrets to be fetched from.
-	Hostname string `json:"hostname"`
-	FolderID string `json:"folderID"`
-}
-
-// KeeperSecurityAuth Configuration used to authenticate with KeeperSecurity.
-type KeeperSecurityAuth struct {
-	AppKey            smmeta.SecretKeySelector `json:"appKeySecretRef"`
-	AppOwnerPublicKey smmeta.SecretKeySelector `json:"appOwnerPublicKeySecretRef"`
-	ClientID          smmeta.SecretKeySelector `json:"clientIdSecretRef"`
-	PrivateKey        smmeta.SecretKeySelector `json:"privateKeySecretRef"`
-	ServerPublicKeyID smmeta.SecretKeySelector `json:"serverPublicKeyIdSecretRef"`
+	Auth     smmeta.SecretKeySelector `json:"authRef"`
+	Hostname string                   `json:"hostname"`
+	FolderID string                   `json:"folderID"`
 }

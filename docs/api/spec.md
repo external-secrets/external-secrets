@@ -3425,85 +3425,6 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.KeeperSecurityAuth">KeeperSecurityAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.KeeperSecurityProvider">KeeperSecurityProvider</a>)
-</p>
-<p>
-<p>KeeperSecurityAuth Configuration used to authenticate with KeeperSecurity.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>appKeySecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>appOwnerPublicKeySecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>clientIdSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>privateKeySecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>serverPublicKeyIdSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1beta1.KeeperSecurityProvider">KeeperSecurityProvider
 </h3>
 <p>
@@ -3523,10 +3444,10 @@ External Secrets meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
-<code>auth</code></br>
+<code>authRef</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.KeeperSecurityAuth">
-KeeperSecurityAuth
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
 </a>
 </em>
 </td>
@@ -3541,7 +3462,6 @@ string
 </em>
 </td>
 <td>
-<p>Keeper Url from which the secrets to be fetched from.</p>
 </td>
 </tr>
 <tr>
@@ -5185,7 +5105,7 @@ External Secrets meta/v1.SecretKeySelector
 <td><p>Error indicates that there is a misconfiguration.</p>
 </td>
 </tr><tr><td><p>0</p></td>
-<td><p>Ready indicates that the client is configured correctly
+<td><p>Ready indicates that the client is confgured correctly
 and can be used.</p>
 </td>
 </tr><tr><td><p>1</p></td>

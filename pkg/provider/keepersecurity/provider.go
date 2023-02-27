@@ -25,7 +25,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -36,11 +35,7 @@ const (
 	errKeeperSecurityNilSpecProvider                = "nil spec.provider"
 	errKeeperSecurityNilSpecProviderKeeperSecurity  = "nil spec.provider.keepersecurity"
 	errKeeperSecurityStoreMissingAuth               = "missing: spec.provider.keepersecurity.auth"
-	errKeeperSecurityStoreMissingAppKey             = "missing: spec.provider.keepersecurity.auth.appKeySecretRef %w"
-	errKeeperSecurityStoreMissingAppOwnerPublicKey  = "missing: spec.provider.keepersecurity.auth.appOwnerPublicKeySecretRef %w"
-	errKeeperSecurityStoreMissingClientID           = "missing: spec.provider.keepersecurity.auth.clientIdSecretRef %w"
-	errKeeperSecurityStoreMissingPrivateKey         = "missing: spec.provider.keepersecurity.auth.privateKeySecretRef %w"
-	errKeeperSecurityStoreMissingServerPublicKeyID  = "missing: spec.provider.keepersecurity.auth.serverPublicKeyIDSecretRef %w"
+	errKeeperSecurityStoreMissingFolderID           = "missing: spec.provider.keepersecurity.folderID"
 	errKeeperSecurityStoreInvalidConnectHost        = "unable to parse URL: spec.provider.keepersecurity.connectHost: %w"
 	errInvalidClusterStoreMissingK8sSecretNamespace = "invalid ClusterSecretStore: missing KeeperSecurity k8s Auth Secret Namespace"
 	errFetchK8sSecret                               = "could not fetch k8s Secret: %w"
@@ -74,7 +69,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	keeperStore := storeSpec.Provider.KeeperSecurity
 
 	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
-	clientConfig, err := getKeeperSecurityConfig(ctx, keeperStore, kube, isClusterKind, namespace)
+	clientConfig, err := getKeeperSecurityAuth(ctx, keeperStore, kube, isClusterKind, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errKeeperSecurityUnableToCreateConfig, err)
 	}
@@ -114,69 +109,21 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errKeeperSecurityStoreInvalidConnectHost, err)
 	}
 
-	if config.Auth == nil {
+	if err := utils.ValidateSecretSelector(store, config.Auth); err != nil {
 		return fmt.Errorf(errKeeperSecurityStoreMissingAuth)
 	}
-
-	if err := utils.ValidateSecretSelector(store, config.Auth.AppKey); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreMissingAppKey, err)
-	}
-
-	if err := utils.ValidateSecretSelector(store, config.Auth.AppOwnerPublicKey); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreMissingAppOwnerPublicKey, err)
-	}
-
-	if err := utils.ValidateSecretSelector(store, config.Auth.PrivateKey); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreMissingPrivateKey, err)
-	}
-
-	if err := utils.ValidateSecretSelector(store, config.Auth.ClientID); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreMissingClientID, err)
-	}
-
-	if err := utils.ValidateSecretSelector(store, config.Auth.ServerPublicKeyID); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreMissingServerPublicKeyID, err)
+	if config.FolderID == "" {
+		return fmt.Errorf(errKeeperSecurityStoreMissingFolderID)
 	}
 
 	return nil
 }
 
-func getKeeperSecurityConfig(ctx context.Context, store *esv1beta1.KeeperSecurityProvider, kube kclient.Client, isClusterKind bool, namespace string) (map[string]string, error) {
+func getKeeperSecurityAuth(ctx context.Context, store *esv1beta1.KeeperSecurityProvider, kube kclient.Client, isClusterKind bool, namespace string) (string, error) {
 	auth := store.Auth
-	apiKey, err := getAuthParameter(ctx, auth.AppKey, kube, isClusterKind, namespace)
-	if err != nil {
-		return nil, err
-	}
-	appOwnerPublicKey, err := getAuthParameter(ctx, auth.AppOwnerPublicKey, kube, isClusterKind, namespace)
-	if err != nil {
-		return nil, err
-	}
-	clientID, err := getAuthParameter(ctx, auth.ClientID, kube, isClusterKind, namespace)
-	if err != nil {
-		return nil, err
-	}
-	privateKey, err := getAuthParameter(ctx, auth.PrivateKey, kube, isClusterKind, namespace)
-	if err != nil {
-		return nil, err
-	}
-	serverPublicKeyID, err := getAuthParameter(ctx, auth.ServerPublicKeyID, kube, isClusterKind, namespace)
-	if err != nil {
-		return nil, err
-	}
 
-	return map[string]string{
-		"appKey":            apiKey,
-		"appOwnerPublicKey": appOwnerPublicKey,
-		"clientId":          clientID,
-		"hostname":          store.Hostname,
-		"privateKey":        privateKey,
-		"serverPublicKeyID": serverPublicKeyID,
-	}, nil
-}
-
-func getAuthParameter(ctx context.Context, param smmeta.SecretKeySelector, kube kclient.Client, isClusterKind bool, namespace string) (string, error) {
 	credentialsSecret := &v1.Secret{}
-	credentialsSecretName := param.Name
+	credentialsSecretName := auth.Name
 	objectKey := types.NamespacedName{
 		Name:      credentialsSecretName,
 		Namespace: namespace,
@@ -184,10 +131,10 @@ func getAuthParameter(ctx context.Context, param smmeta.SecretKeySelector, kube 
 
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if isClusterKind {
-		if credentialsSecretName != "" && param.Namespace == nil {
+		if credentialsSecretName != "" && auth.Namespace == nil {
 			return "", fmt.Errorf(errInvalidClusterStoreMissingK8sSecretNamespace)
 		} else if credentialsSecretName != "" {
-			objectKey.Namespace = *param.Namespace
+			objectKey.Namespace = *auth.Namespace
 		}
 	}
 
@@ -195,9 +142,9 @@ func getAuthParameter(ctx context.Context, param smmeta.SecretKeySelector, kube 
 	if err != nil {
 		return "", fmt.Errorf(errFetchK8sSecret, err)
 	}
-	data := credentialsSecret.Data[param.Key]
+	data := credentialsSecret.Data[auth.Key]
 	if (data == nil) || (len(data) == 0) {
-		return "", fmt.Errorf(errMissingK8sSecretKey, param.Key)
+		return "", fmt.Errorf(errMissingK8sSecretKey, auth.Key)
 	}
 
 	return string(data), nil
