@@ -871,6 +871,61 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#dashboard" class="md-nav__link">
+    Dashboard
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-level-indicators-and-alerts" class="md-nav__link">
+    Service Level Indicators and Alerts
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Level Indicators and Alerts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webhook-http-status-codes" class="md-nav__link">
+    Webhook HTTP Status Codes
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook-http-request-latency" class="md-nav__link">
+    Webhook HTTP Request Latency
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controller-workqueue-depth" class="md-nav__link">
+    Controller Workqueue Depth
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controller-reconcile-latency" class="md-nav__link">
+    Controller Reconcile Latency
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controller-reconcile-error" class="md-nav__link">
+    Controller Reconcile Error
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1871,6 +1926,61 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#dashboard" class="md-nav__link">
+    Dashboard
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#service-level-indicators-and-alerts" class="md-nav__link">
+    Service Level Indicators and Alerts
+  </a>
+  
+    <nav class="md-nav" aria-label="Service Level Indicators and Alerts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webhook-http-status-codes" class="md-nav__link">
+    Webhook HTTP Status Codes
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhook-http-request-latency" class="md-nav__link">
+    Webhook HTTP Request Latency
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controller-workqueue-depth" class="md-nav__link">
+    Controller Workqueue Depth
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controller-reconcile-latency" class="md-nav__link">
+    Controller Reconcile Latency
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controller-reconcile-error" class="md-nav__link">
+    Controller Reconcile Error
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1902,6 +2012,11 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>externalsecret_provider_api_calls_count</code></td>
+<td>Counter</td>
+<td>Number of API calls made to an upstream secret provider API. The metric provides a <code>provider</code>, <code>call</code> and <code>status</code> labels.</td>
+</tr>
 <tr>
 <td><code>externalsecret_sync_calls_total</code></td>
 <td>Counter</td>
@@ -1954,6 +2069,48 @@
 </tr>
 </tbody>
 </table>
+<h2 id="dashboard">Dashboard</h2>
+<p>We provide a <a href="https://raw.githubusercontent.com/external-secrets/external-secrets/main/docs/snippets/dashboard.json">Grafana Dashboard</a> that gives you an overview of External Secrets Operator:</p>
+<p><img alt="ESO Dashboard" src="../../pictures/eso-dashboard-1.png" />
+<img alt="ESO Dashboard" src="../../pictures/eso-dashboard-2.png" /></p>
+<h2 id="service-level-indicators-and-alerts">Service Level Indicators and Alerts</h2>
+<p>We find the following Service Level Indicators (SLIs) useful when operating ESO. They should give you a good starting point and hints to develop your own Service Level Objectives (SLOs).</p>
+<h4 id="webhook-http-status-codes">Webhook HTTP Status Codes</h4>
+<p>The webhook HTTP status code indicates that a HTTP Request was answered successfully or not.
+If the Webhook pod is not able to serve the requests properly then that failure may cascade down to the controller or any other user of <code>kube-apiserver</code>.</p>
+<p>SLI Example: request error percentage.
+<div class="highlight"><pre><span></span><code>sum(increase(controller_runtime_webhook_requests_total{service=~&quot;external-secrets.*&quot;,code=&quot;500&quot;}[1m]))
+/
+sum(increase(controller_runtime_webhook_requests_total{service=~&quot;external-secrets.*&quot;}[1m]))
+</code></pre></div></p>
+<h4 id="webhook-http-request-latency">Webhook HTTP Request Latency</h4>
+<p>If the webhook server is not able to respond in time then that may cause a timeout at the client.
+This failure may cascade down to the controller or any other user of <code>kube-apiserver</code>.</p>
+<p>SLI Example: p99 across all webhook requests.
+<div class="highlight"><pre><span></span><code>histogram_quantile(0.99,
+  sum(rate(controller_runtime_webhook_latency_seconds_bucket{service=~&quot;external-secrets.*&quot;}[5m])) by (le)
+)
+</code></pre></div></p>
+<h4 id="controller-workqueue-depth">Controller Workqueue Depth</h4>
+<p>If the workqueue depth is &gt; 0 for a longer period of time then this is an indicator for the controller not being able to reconcile resources in time. I.e. delivery of secret updates is delayed.</p>
+<p>Note: when a controller is restarted, then <code>queue length = total number of resources</code>. Make sure to measure the time it takes for the controller to fully reconcile all secrets after a restart. In large clusters this may take a while, make sure to define an acceptable timeframe to fully reconcile all resources.</p>
+<div class="highlight"><pre><span></span><code>sum(
+  workqueue_depth{service=~&quot;external-secrets.*&quot;}
+) by (name)
+</code></pre></div>
+<h4 id="controller-reconcile-latency">Controller Reconcile Latency</h4>
+<p>The controller should be able to reconcile resources within a reasonable timeframe. When latency is high secret delivery may impacted.</p>
+<p>SLI Example: p99 across all controllers.
+<div class="highlight"><pre><span></span><code>histogram_quantile(0.99,
+  sum(rate(controller_runtime_reconcile_time_seconds_bucket{service=~&quot;external-secrets.*&quot;}[5m])) by (le)
+)
+</code></pre></div></p>
+<h4 id="controller-reconcile-error">Controller Reconcile Error</h4>
+<p>The controller should be able to reconcile resources without errors. When errors occurr secret delivery may be impacted which could cascade down to the secret consuming applications.</p>
+<div class="highlight"><pre><span></span><code>sum(increase(
+  controller_runtime_reconcile_total{service=~&quot;external-secrets.*&quot;,controller=~&quot;$controller&quot;}[1m])
+) by (result)
+</code></pre></div>
 
               
             </article>
