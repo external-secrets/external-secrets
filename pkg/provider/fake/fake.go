@@ -166,15 +166,6 @@ func convertMap(in map[string]string) map[string][]byte {
 	return m
 }
 
-func propertyMatch(data *Data, ref esv1beta1.ExternalSecretDataRemoteRef) bool {
-	if ref.Property == "" {
-		return true
-	}
-
-	val := gjson.Get(data.Value, ref.Property)
-	return val.Exists()
-}
-
 func (p *Provider) Close(ctx context.Context) error {
 	return nil
 }
