@@ -112,8 +112,8 @@ github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4 h1:vTckjyBhHOBiOWSC/oaEU2Oo4
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4/go.mod h1:As/RomC2w/fa3y+yHRlVHPmkbP+zrKBFRow41y5dk+E=
 github.com/akeylesslabs/akeyless-go/v2 v2.20.3 h1:NIRMynmpQbfgQyRLf5DMQC8p5iLgaUu1MXBB4ijLCxM=
 github.com/akeylesslabs/akeyless-go/v2 v2.20.3/go.mod h1:uOdXD49NCCe4rexeSc2aBU5Qv4KZgJE6YlbtYalvb+I=
-github.com/aliyun/alibaba-cloud-sdk-go v1.62.174 h1:K5561f5qv64GmtQuY0OtkY0H2x1bTXBeYwwWFPzc4D8=
-github.com/aliyun/alibaba-cloud-sdk-go v1.62.174/go.mod h1:Api2AkmMgGaSUAhmk76oaFObkoeCPc/bKAqcyplPODs=
+github.com/aliyun/alibaba-cloud-sdk-go v1.62.192 h1:tsF4NZgpWu/2vxTKJUTpg24UxLlkzmox3ezOqPZGcr8=
+github.com/aliyun/alibaba-cloud-sdk-go v1.62.192/go.mod h1:Api2AkmMgGaSUAhmk76oaFObkoeCPc/bKAqcyplPODs=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
