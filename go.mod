@@ -40,7 +40,7 @@ require (
 	github.com/Azure/go-autorest/autorest/adal v0.9.22
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.8.1
-	github.com/IBM/go-sdk-core/v5 v5.12.1
+	github.com/IBM/go-sdk-core/v5 v5.13.0
 	github.com/IBM/secrets-manager-go-sdk v1.0.49
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3
@@ -62,7 +62,7 @@ require (
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/lestrrat-go/jwx v1.2.25
 	github.com/onsi/ginkgo/v2 v2.8.3
-	github.com/onsi/gomega v1.27.0
+	github.com/onsi/gomega v1.27.1
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/client_model v0.3.0
@@ -105,6 +105,7 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	github.com/go-playground/validator/v10 v10.11.2 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 )
 
@@ -218,7 +219,6 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
-	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
