@@ -146,9 +146,9 @@ spec:
 ##### Functions removed/replaced
 
 - `base64encode` was renamed to `b64enc`.
-- `base64decode` was renamed to `b64dec`. Any errors that occurr during decoding are silenced.
-- `fromJSON` was renamed to `fromJson`. Any errors that occurr during unmarshalling are silenced.
-- `toJSON` was renamed to `toJson`. Any errors that occurr during marshalling are silenced.
+- `base64decode` was renamed to `b64dec`. Any errors that occur during decoding are silenced.
+- `fromJSON` was renamed to `fromJson`. Any errors that occur during unmarshalling are silenced.
+- `toJSON` was renamed to `toJson`. Any errors that occur during marshalling are silenced.
 - `pkcs12key` and `pkcs12keyPass` encode the PKCS#8 key directly into PEM format. There is no need to call `pemPrivateKey` anymore. Also, these functions do extract all private keys from the PKCS#12 archive not just the first one.
 - `pkcs12cert` and `pkcs12certPass` encode the certs directly into PEM format. There is no need to call `pemCertificate` anymore. These functions now **extract all certificates** from the PKCS#12 archive not just the first one.
 - `toString` implementation was replaced by the `sprig` implementation and should be api-compatible.

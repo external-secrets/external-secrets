@@ -40,7 +40,7 @@ A service Principal client and Secret is created and the JSON keyfile is stored 
 
 A Managed Identity should be created in Azure, and that Identity should have proper rights to the keyvault to be managed by the operator.
 
-If there are multiple Managed Identitites for different keyvaults, the operator should have been assigned all identities via [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/), then the SecretStore configuration should include the Id of the idenetity to be used via the `identityId` field.
+If there are multiple Managed Identities for different keyvaults, the operator should have been assigned all identities via [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/), then the SecretStore configuration should include the Id of the identity to be used via the `identityId` field.
 
 ```yaml
 {% include 'azkv-secret-store-mi.yaml' %}
@@ -94,7 +94,7 @@ Be sure the `azurekv` provider is listed in the `Kind=SecretStore`
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `clientId` and `clientSecret`  with the namespaces where the secrets reside.
 
-Or in case of Managed Idenetity authentication:
+Or in case of Managed Identity authentication:
 
 ```yaml
 {% include 'azkv-secret-store-mi.yaml' %}
@@ -123,7 +123,7 @@ You can manage keys/secrets/certificates saved inside the keyvault , by setting 
 The operator will fetch the Azure Key vault secret and inject it as a `Kind=Secret`. Then the Kubernetes secret can be fetched by issuing:
 
 ```sh
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
 
 To select all secrets inside the key vault or all tags inside a secret, you can use the `dataFrom` directive:
