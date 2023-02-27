@@ -284,6 +284,9 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1beta1.Webhoo
 		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == 404 {
+		return nil, esv1beta1.NoSecretError{}
+	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("endpoint gave error %s", resp.Status)
 	}
