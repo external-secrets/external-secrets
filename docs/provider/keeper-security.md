@@ -14,6 +14,7 @@ KSM can authenticate using *One Time Access Token* or *Secret Manager Configurat
 You can find the documentation for the Secret Manager Configuration creation [here](https://docs.keeper.io/secrets-manager/secrets-manager/about/secrets-manager-configuration). Make sure you add the proper permissions to your device in order to be able to read and write secrets
 
 Once you have created your SMC, you will get a config.json file or a base64 json encoded string containing the following keys:
+
 - `hostname`
 - `clientId`
 - `privateKey`
@@ -34,6 +35,7 @@ Be sure the `keepersecurity` provider is listed in the `Kind=SecretStore`
 ```
 
 **NOTE 1:** `folderID` target the folder ID where the secrets should be pushed to. It requires write permissions within the folder
+
 **NOTE 2:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `SecretAccessKeyRef` with the namespace of the secret that we just created.
 
 ## External Secrets
@@ -69,6 +71,7 @@ kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev
 ## Limitations
 
 There are some limitations using this provider.
+
 * Keeper Secret Manager does not work with `General` Records types nor legacy non-typed records
 * Using tags `find.tags` is not supported by KSM
 * Using path `find.path` is not supported at the moment
