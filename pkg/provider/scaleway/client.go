@@ -87,8 +87,6 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 
-	// TODO: A cluster-specific prefix should be prepended to the secret name to reduce the probability of a collision.
-
 	scwRef, err := decodeScwSecretRef(remoteRef.GetRemoteKey())
 	if err != nil {
 		return err
