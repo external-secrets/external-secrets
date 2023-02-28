@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#macro-syntax-error" class="md-skip">
+        <a href="#output-keys-and-values" class="md-skip">
           Skip to content
         </a>
       
@@ -696,12 +696,60 @@
       <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
       
       
-        
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Azure Container Registry
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         Azure Container Registry
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#output-keys-and-values" class="md-nav__link">
+    Output Keys and Values
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    Scope
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-manifest" class="md-nav__link">
+    Example Manifest
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1820,8 +1868,42 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#output-keys-and-values" class="md-nav__link">
+    Output Keys and Values
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    Scope
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-manifest" class="md-nav__link">
+    Example Manifest
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1838,9 +1920,119 @@
 </a>
 
 
-<h1 id="macro-syntax-error"><em>Macro Syntax Error</em></h1>
-<p><em>Line 71 in Markdown file:</em> <strong>unexpected '.'</strong> 
-<div class="highlight"><pre><span></span><code>                <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="s2">&quot;{{ .username }}&quot;</span><span class="p">,</span>
+  <h1>Azure Container Registry</h1>
+
+<p>The Azure Container Registry (ACR) generator creates a short-lived refresh or access token for accessing ACR.
+The token is generated for a particular ACR registry defined in <code>spec.registry</code>.</p>
+<h2 id="output-keys-and-values">Output Keys and Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>username</td>
+<td>username for the <code>docker login</code> command</td>
+</tr>
+<tr>
+<td>password</td>
+<td>password for the <code>docker login</code> command</td>
+</tr>
+</tbody>
+</table>
+<h2 id="authentication">Authentication</h2>
+<p>You must choose one out of three authentication mechanisms:</p>
+<ul>
+<li>service principal</li>
+<li>managed identity</li>
+<li>workload identity</li>
+</ul>
+<p>The generated token will inherit the permissions from the assigned policy. I.e. when you assign a read-only policy all generated tokens will be read-only.</p>
+<p>You can scope tokens to a particular repository using <code>spec.scope</code>.</p>
+<h2 id="scope">Scope</h2>
+<p>First, an Azure Active Directory access token is obtained with the desired authentication method.
+This AAD access token will be used to authenticate against ACR to issue a refresh token or access token.
+If <code>spec.scope</code> if it is defined it obtains an ACR access token. If  <code>spec.scope</code> is missing it obtains an ACR refresh token:</p>
+<ul>
+<li>access tokens are scoped to a specific repository or action (pull,push)</li>
+<li>refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token</li>
+</ul>
+<p>The Scope grammar is defined in the <a href="https://docs.docker.com/registry/spec/auth/scope/">Docker Registry spec</a>.
+Note: You <strong>can not</strong> use a wildcards in the scope parameter, you can match exactly one repository and defined multiple actions like <code>pull</code> or <code>push</code>.</p>
+<p>Example scopes:</p>
+<div class="highlight"><pre><span></span><code>repository:my-repository:pull,push
+repository:my-repository:pull
+</code></pre></div>
+<h2 id="example-manifest">Example Manifest</h2>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACRAccessToken</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">tenantId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">11111111-2222-3333-4444-111111111111</span><span class="w"></span>
+<span class="w">  </span><span class="nt">registry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example.azurecr.io</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># optional; scope token down to a single repository/action</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># if set, it will generate an access token instead of an refresh token.</span><span class="w"></span>
+<span class="w">  </span><span class="nt">scope</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;repository:foo:pull,push&quot;</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># Specify Azure cloud type, defaults to PublicCloud.</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># This is used for authenticating with Azure Active Directory.</span><span class="w"></span>
+<span class="w">  </span><span class="c1"># available options: PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</span><span class="w"></span>
+<span class="w">  </span><span class="nt">environmentType</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;PublicCloud&quot;</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># choose one authentication method</span><span class="w"></span>
+<span class="w">  </span><span class="nt">auth</span><span class="p">:</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1"># option 1: point to a secret that contains a client-id and client-secret</span><span class="w"></span>
+<span class="w">    </span><span class="nt">servicePrincipal</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">clientSecret</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">az-secret</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientsecret</span><span class="w"></span>
+<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">az-secret</span><span class="w"></span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientid</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1"># option 2:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">managedIdentity</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xxxxx&quot;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1"># option 3:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">workloadIdentity</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="c1"># note: you can reference service accounts across namespaces.</span><span class="w"></span>
+<span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-service-account&quot;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">audiences</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span><span class="w"></span>
+</code></pre></div>
+<p>Example ExternalSecret that references the ACR generator:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azurecr-credentials</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">generatorRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span><span class="w"></span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACRAccessToken</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myregistry.azurecr.io</span><span class="w"></span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12h</span><span class="w"></span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azurecr-credentials</span><span class="w"></span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span><span class="w"></span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">.dockerconfigjson</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span><span class="w"></span>
+<span class="w">          </span><span class="no">{</span><span class="w"></span>
+<span class="w">            </span><span class="no">&quot;auths&quot;: {</span><span class="w"></span>
+<span class="w">              </span><span class="no">&quot;myregistry.azurecr.io&quot;: {</span><span class="w"></span>
+<span class="w">                </span><span class="no">&quot;username&quot;: &quot;{{ .username }}&quot;,</span><span class="w"></span>
+<span class="w">                </span><span class="no">&quot;identitytoken&quot;: &quot;{{ .password }}&quot;,</span><span class="w"></span>
+<span class="w">              </span><span class="no">}</span><span class="w"></span>
+<span class="w">            </span><span class="no">}</span><span class="w"></span>
+<span class="w">          </span><span class="no">}</span><span class="w"></span>
 </code></pre></div></p>
 
               
