@@ -31,6 +31,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
+const (
+	errInvalidProperty = "key INVALPROP does not exist in secret"
+)
+
 type parameterstoreTestCase struct {
 	fakeClient     *fakeps.Client
 	apiInput       *ssm.GetParameterInput
@@ -483,7 +487,7 @@ func TestGetSecret(t *testing.T) {
 	setPropertyFail := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`------`)
 		pstc.remoteRef.Property = "INVALPROP"
-		pstc.expectError = "key INVALPROP does not exist in secret"
+		pstc.expectError = errInvalidProperty
 	}
 
 	// bad case: parameter.Value may be nil but binary is set
@@ -528,7 +532,7 @@ func TestGetSecret(t *testing.T) {
 		}
 		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
 		pstc.remoteRef.Property = "INVALPROP"
-		pstc.expectError = "key INVALPROP does not exist in secret"
+		pstc.expectError = errInvalidProperty
 	}
 
 	successCases := []*parameterstoreTestCase{
