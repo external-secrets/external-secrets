@@ -109,7 +109,7 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 		}
 		log.Info("found metadata secret", "key", ref.Key, "output", descOutput)
 
-		jsonTags, err := util.TagsToJSONString(descOutput.Tags)
+		jsonTags, err := util.SecretTagsToJSONString(descOutput.Tags)
 		if err != nil {
 			return nil, err
 		}
