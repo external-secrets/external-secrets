@@ -109,7 +109,7 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 		}
 		log.Info("found metadata secret", "key", ref.Key, "output", descOutput)
 
-		jsonTags, err := TagsToJSONString(descOutput.Tags)
+		jsonTags, err := util.TagsToJSONString(descOutput.Tags)
 		if err != nil {
 			return nil, err
 		}
@@ -146,20 +146,6 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 	sm.cache[cacheKey] = secretOut
 
 	return secretOut, nil
-}
-
-func TagsToJSONString(tags []*awssm.Tag) (string, error) {
-	tagMap := make(map[string]string, len(tags))
-	for _, tag := range tags {
-		tagMap[*tag.Key] = *tag.Value
-	}
-
-	byteArr, err := json.Marshal(tagMap)
-	if err != nil {
-		return "", err
-	}
-
-	return string(byteArr), nil
 }
 
 func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {

@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
 	utilpointer "k8s.io/utils/pointer"
@@ -316,19 +317,54 @@ func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byt
 
 // GetSecret returns a single secret from the provider.
 func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
-		Name:           &ref.Key,
-		WithDecryption: aws.Bool(true),
-	})
+	var out *ssm.GetParameterOutput
+	var err error
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 
-	nsf := esv1beta1.NoSecretError{}
-	var nf *ssm.ParameterNotFound
-	if errors.As(err, &nf) || errors.As(err, &nsf) {
-		return nil, esv1beta1.NoSecretErr
+		param := ssm.GetParameterOutput{
+			Parameter: &ssm.Parameter{
+				Name: &ref.Key,
+				//Version:          ref.Version
+			},
+		}
+		tags, err := pm.getTagsByName(ctx, &param)
+		if err != nil {
+			return nil, util.SanitizeErr(err)
+		}
+		secretTags := make([]*secretsmanager.Tag, len(tags))
+		for i, tag := range tags {
+			secretTags[i] = &secretsmanager.Tag{
+				Key:   tag.Key,
+				Value: tag.Value,
+			}
+		}
+		json, err := util.TagsToJSONString(secretTags)
+		if err != nil {
+			return nil, util.SanitizeErr(err)
+		}
+		out = &ssm.GetParameterOutput{
+			Parameter: &ssm.Parameter{
+				Value: &json,
+			},
+		}
+	} else {
+
+		out, err = pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
+			Name:           &ref.Key,
+			WithDecryption: aws.Bool(true),
+		})
+
+		nsf := esv1beta1.NoSecretError{}
+		var nf *ssm.ParameterNotFound
+		if errors.As(err, &nf) || errors.As(err, &nsf) {
+			return nil, esv1beta1.NoSecretErr
+		}
+		if err != nil {
+			return nil, util.SanitizeErr(err)
+		}
+
 	}
-	if err != nil {
-		return nil, util.SanitizeErr(err)
-	}
+
 	if ref.Property == "" {
 		if out.Parameter.Value != nil {
 			return []byte(*out.Parameter.Value), nil
