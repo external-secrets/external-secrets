@@ -24,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
 	utilpointer "k8s.io/utils/pointer"
@@ -320,7 +319,6 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	var out *ssm.GetParameterOutput
 	var err error
 	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-
 		param := ssm.GetParameterOutput{
 			Parameter: &ssm.Parameter{
 				Name: &ref.Key,
@@ -331,14 +329,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		if err != nil {
 			return nil, util.SanitizeErr(err)
 		}
-		secretTags := make([]*secretsmanager.Tag, len(tags))
-		for i, tag := range tags {
-			secretTags[i] = &secretsmanager.Tag{
-				Key:   tag.Key,
-				Value: tag.Value,
-			}
-		}
-		json, err := util.TagsToJSONString(secretTags)
+		json, err := util.ParameterTagsToJSONString(tags)
 		if err != nil {
 			return nil, util.SanitizeErr(err)
 		}
@@ -362,7 +353,6 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		if err != nil {
 			return nil, util.SanitizeErr(err)
 		}
-
 	}
 
 	if ref.Property == "" {

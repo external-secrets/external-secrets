@@ -29,6 +29,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
 type secretsManagerTestCase struct {
@@ -187,7 +188,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 			Tags: getTagSlice(),
 		}
 		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
-		jsonTags, _ := TagsToJSONString(getTagSlice())
+		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectedSecret = jsonTags
 	}
@@ -199,7 +200,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		}
 		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = tagname2
-		jsonTags, _ := TagsToJSONString(getTagSlice())
+		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectedSecret = tagvalue2
 	}
@@ -211,7 +212,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		}
 		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = "fail"
-		jsonTags, _ := TagsToJSONString(getTagSlice())
+		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectError = "key fail does not exist in secret /baz"
 	}
