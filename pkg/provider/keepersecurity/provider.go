@@ -34,7 +34,6 @@ const (
 	errKeeperSecurityNilSpecProviderKeeperSecurity  = "nil spec.provider.keepersecurity"
 	errKeeperSecurityStoreMissingAuth               = "missing: spec.provider.keepersecurity.auth"
 	errKeeperSecurityStoreMissingFolderID           = "missing: spec.provider.keepersecurity.folderID"
-	errKeeperSecurityStoreInvalidConnectHost        = "unable to parse URL: spec.provider.keepersecurity.connectHost: %w"
 	errInvalidClusterStoreMissingK8sSecretNamespace = "invalid ClusterSecretStore: missing KeeperSecurity k8s Auth Secret Namespace"
 	errFetchK8sSecret                               = "could not fetch k8s Secret: %w"
 	errMissingK8sSecretKey                          = "missing Secret key: %s"
