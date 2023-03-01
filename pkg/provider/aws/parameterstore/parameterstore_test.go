@@ -520,6 +520,17 @@ func TestGetSecret(t *testing.T) {
 		pstc.expectedSecret = "tagvalue2"
 	}
 
+	// bad case: metadata property not found
+	setMetadataMissingProperty := func(pstc *parameterstoreTestCase) {
+		pstc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		output := ssm.ListTagsForResourceOutput{
+			TagList: getTagSlice(),
+		}
+		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
+		pstc.remoteRef.Property = "INVALPROP"
+		pstc.expectError = "key INVALPROP does not exist in secret"
+	}
+
 	successCases := []*parameterstoreTestCase{
 		makeValidParameterStoreTestCaseCustom(setSecretString),
 		makeValidParameterStoreTestCaseCustom(setExtractProperty),
@@ -531,6 +542,7 @@ func TestGetSecret(t *testing.T) {
 		makeValidParameterStoreTestCaseCustom(setParameterValueNotFound),
 		makeValidParameterStoreTestCaseCustom(setMetadataString),
 		makeValidParameterStoreTestCaseCustom(setMetadataProperty),
+		makeValidParameterStoreTestCaseCustom(setMetadataMissingProperty),
 	}
 
 	ps := ParameterStore{}
