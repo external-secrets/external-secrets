@@ -16,8 +16,6 @@ package keepersecurity
 import (
 	"context"
 	"fmt"
-	"net/url"
-
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"github.com/keeper-security/secrets-manager-go/core/logger"
 	v1 "k8s.io/api/core/v1"
@@ -103,11 +101,6 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 
 	// check mandatory fields
 	config := spc.Provider.KeeperSecurity
-
-	// check valid URL
-	if _, err := url.Parse(config.Hostname); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreInvalidConnectHost, err)
-	}
 
 	if err := utils.ValidateSecretSelector(store, config.Auth); err != nil {
 		return fmt.Errorf(errKeeperSecurityStoreMissingAuth)

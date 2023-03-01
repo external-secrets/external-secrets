@@ -2191,12 +2191,9 @@ spec:
                           type: object
                         folderID:
                           type: string
-                        hostname:
-                          type: string
                       required:
                         - authRef
                         - folderID
-                        - hostname
                       type: object
                     kubernetes:
                       description: Kubernetes configures this store to sync secrets using a Kubernetes cluster provider
@@ -5509,12 +5506,9 @@ spec:
                           type: object
                         folderID:
                           type: string
-                        hostname:
-                          type: string
                       required:
                         - authRef
                         - folderID
-                        - hostname
                       type: object
                     kubernetes:
                       description: Kubernetes configures this store to sync secrets using a Kubernetes cluster provider

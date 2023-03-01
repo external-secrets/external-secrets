@@ -19,6 +19,5 @@ import smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 // KeeperSecurityProvider Configures a store to sync secrets using Keeper Security.
 type KeeperSecurityProvider struct {
 	Auth     smmeta.SecretKeySelector `json:"authRef"`
-	Hostname string                   `json:"hostname"`
 	FolderID string                   `json:"folderID"`
 }
