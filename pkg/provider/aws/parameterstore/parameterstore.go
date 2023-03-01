@@ -332,7 +332,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		out, err = pm.getParameterValue(ctx, ref)
 	}
 	metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSGetParameter, err)
-  nsf := esv1beta1.NoSecretError{}
+	nsf := esv1beta1.NoSecretError{}
 	var nf *ssm.ParameterNotFound
 	if errors.As(err, &nf) || errors.As(err, &nsf) {
 		return nil, esv1beta1.NoSecretErr
