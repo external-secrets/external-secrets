@@ -33,6 +33,7 @@ import (
 
 const (
 	errInvalidProperty = "key INVALPROP does not exist in secret"
+	invalidProp        = "INVALPROP"
 )
 
 type parameterstoreTestCase struct {
@@ -486,7 +487,7 @@ func TestGetSecret(t *testing.T) {
 	// bad case: extract property failure due to invalid json
 	setPropertyFail := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`------`)
-		pstc.remoteRef.Property = "INVALPROP"
+		pstc.remoteRef.Property = invalidProp
 		pstc.expectError = errInvalidProperty
 	}
 
@@ -531,7 +532,7 @@ func TestGetSecret(t *testing.T) {
 			TagList: getTagSlice(),
 		}
 		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
-		pstc.remoteRef.Property = "INVALPROP"
+		pstc.remoteRef.Property = invalidProp
 		pstc.expectError = errInvalidProperty
 	}
 
