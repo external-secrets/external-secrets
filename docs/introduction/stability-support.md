@@ -59,7 +59,7 @@ The following table show the support for features across different providers.
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |              |              |                      |                         |        x         |             |                             |
 | 1Password                 |      x       |              |                      |                         |        x         |             |                             |
-| Generic Webhook           |              |              |                      |                         |                  |             |                             |
+| Generic Webhook           |              |              |                      |                         |                  |             |            x                |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 
