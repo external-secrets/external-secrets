@@ -5105,7 +5105,7 @@ External Secrets meta/v1.SecretKeySelector
 <td><p>Error indicates that there is a misconfiguration.</p>
 </td>
 </tr><tr><td><p>0</p></td>
-<td><p>Ready indicates that the client is confgured correctly
+<td><p>Ready indicates that the client is configured correctly
 and can be used.</p>
 </td>
 </tr><tr><td><p>1</p></td>
