@@ -16,7 +16,6 @@ package keepersecurity
 import (
 	"context"
 	"fmt"
-	"net/url"
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"github.com/keeper-security/secrets-manager-go/core/logger"
@@ -36,7 +35,6 @@ const (
 	errKeeperSecurityNilSpecProviderKeeperSecurity  = "nil spec.provider.keepersecurity"
 	errKeeperSecurityStoreMissingAuth               = "missing: spec.provider.keepersecurity.auth"
 	errKeeperSecurityStoreMissingFolderID           = "missing: spec.provider.keepersecurity.folderID"
-	errKeeperSecurityStoreInvalidConnectHost        = "unable to parse URL: spec.provider.keepersecurity.connectHost: %w"
 	errInvalidClusterStoreMissingK8sSecretNamespace = "invalid ClusterSecretStore: missing KeeperSecurity k8s Auth Secret Namespace"
 	errFetchK8sSecret                               = "could not fetch k8s Secret: %w"
 	errMissingK8sSecretKey                          = "missing Secret key: %s"
@@ -103,11 +101,6 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 
 	// check mandatory fields
 	config := spc.Provider.KeeperSecurity
-
-	// check valid URL
-	if _, err := url.Parse(config.Hostname); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreInvalidConnectHost, err)
-	}
 
 	if err := utils.ValidateSecretSelector(store, config.Auth); err != nil {
 		return fmt.Errorf(errKeeperSecurityStoreMissingAuth)

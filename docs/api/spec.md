@@ -3456,16 +3456,6 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 <tr>
 <td>
-<code>hostname</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
 <code>folderID</code></br>
 <em>
 string
