@@ -50,6 +50,14 @@ var db = buildDb(&fakeSecretApi{
 				{revision: 1},
 			},
 		},
+		{
+			name: "json-nested",
+			versions: []*fakeSecretVersion{
+				{revision: 1, data: []byte(
+					`{"root":{"intermediate":{"leaf":9}}}`,
+				)},
+			},
+		},
 	},
 })
 
@@ -107,6 +115,14 @@ func TestGetSecret(t *testing.T) {
 			},
 			response: secret.versions[0].data,
 		},
+		"asking for nested json property": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "id:" + db.secret("json-nested").id,
+				Property: "root.intermediate.leaf",
+				Version:  "latest",
+			},
+			response: []byte("9"),
+		},
 		"non existing secret id should yield NoSecretErr": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: "id:730aa98d-ec0c-4426-8202-b11aeec8ea1e",
@@ -123,6 +139,14 @@ func TestGetSecret(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:     "id:" + secret.id,
 				Version: "9999",
+			},
+			err: esv1beta1.NoSecretErr,
+		},
+		"non existing json property should yield not found": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "id:" + db.secret("json-nested").id,
+				Property: "root.intermediate.missing",
+				Version:  "latest",
 			},
 			err: esv1beta1.NoSecretErr,
 		},
@@ -242,6 +266,23 @@ func TestGetSecretMap(t *testing.T) {
 		"some_string": []byte("abc def"),
 		"some_int":    []byte("-100"),
 		"some_bool":   []byte("false"),
+	}, values)
+}
+
+func TestGetSecretMapNested(t *testing.T) {
+
+	ctx := context.Background()
+	c := newTestClient()
+
+	values, getErr := c.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{
+		Key:      "id:" + db.secret("json-nested").id,
+		Property: "root.intermediate",
+		Version:  "latest",
+	})
+
+	assert.NoError(t, getErr)
+	assert.Equal(t, map[string][]byte{
+		"leaf": []byte("9"),
 	}, values)
 }
 

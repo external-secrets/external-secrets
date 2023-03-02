@@ -10,6 +10,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
+	"github.com/tidwall/gjson"
 	"strconv"
 	"strings"
 	"time"
@@ -80,6 +81,16 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 			return nil, esv1beta1.NoSecretError{}
 		}
 		return nil, err
+	}
+
+	if ref.Property != "" {
+
+		extracted, err := extractJsonProperty(value, ref.Property)
+		if err != nil {
+			return nil, err
+		}
+
+		value = extracted
 	}
 
 	return value, nil
@@ -253,15 +264,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	values := make(map[string][]byte)
 
 	for key, value := range structuredData {
-
-		var stringValue string
-		err := json.Unmarshal(value, &stringValue)
-		if err == nil {
-			values[key] = []byte(stringValue)
-			continue
-		}
-
-		values[key] = []byte(strings.TrimSpace(string(value)))
+		values[key] = jsonToSecretData(value)
 	}
 
 	return values, nil
@@ -405,4 +408,26 @@ func (c *client) accessSpecificSecretVersion(ctx context.Context, secretId strin
 	}
 
 	return response.Data, nil
+}
+
+func jsonToSecretData(value json.RawMessage) []byte {
+
+	var stringValue string
+	err := json.Unmarshal(value, &stringValue)
+	if err == nil {
+		return []byte(stringValue)
+	}
+
+	return []byte(strings.TrimSpace(string(value)))
+}
+
+func extractJsonProperty(secretData []byte, property string) ([]byte, error) {
+
+	result := gjson.Get(string(secretData), property)
+
+	if !result.Exists() {
+		return nil, esv1beta1.NoSecretError{}
+	}
+
+	return jsonToSecretData(json.RawMessage(result.Raw)), nil
 }
