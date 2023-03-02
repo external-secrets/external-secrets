@@ -128,6 +128,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceMonitor.relabelings | list | `[]` | Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) |
 | serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | tolerations | list | `[]` |  |
+| topologySpreadConstraints | list | `[]` | Topology spread constraints. |
 | webhook.affinity | object | `{}` |  |
 | webhook.certCheckInterval | string | `"5m"` | Specifices the time to check if the cert is valid |
 | webhook.certDir | string | `"/tmp/certs"` |  |

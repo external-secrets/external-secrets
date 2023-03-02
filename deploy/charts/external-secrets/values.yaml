@@ -165,6 +165,8 @@ nodeSelector: {}
 
 tolerations: []
 
+topologySpreadConstraints: []
+
 affinity: {}
 
 # -- Pod priority class name.
