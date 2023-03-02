@@ -46,12 +46,15 @@ type Framework struct {
 	Namespace *api.Namespace
 
 	Addons []addon.Addon
+
+	MakeRemoteRefKey func(base string) string
 }
 
 // New returns a new framework instance with defaults.
 func New(baseName string) *Framework {
 	f := &Framework{
-		BaseName: baseName,
+		BaseName:         baseName,
+		MakeRemoteRefKey: func(base string) string { return base },
 	}
 	f.KubeConfig, f.KubeClientSet, f.CRClient = util.NewConfig()
 
