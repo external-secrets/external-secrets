@@ -260,8 +260,8 @@ func TestGetAllSecrets(t *testing.T) {
 				Name: &esv1beta1.FindName{RegExp: "secret-.*"},
 			},
 			response: map[string][]byte{
-				db.secret("secret-1").id: db.secret("secret-1").mustGetVersion("latest_enabled").data,
-				db.secret("secret-2").id: db.secret("secret-2").mustGetVersion("latest_enabled").data,
+				db.secret("secret-1").name: db.secret("secret-1").mustGetVersion("latest_enabled").data,
+				db.secret("secret-2").name: db.secret("secret-2").mustGetVersion("latest_enabled").data,
 			},
 		},
 		"find secrets by tags": {
@@ -269,7 +269,7 @@ func TestGetAllSecrets(t *testing.T) {
 				Tags: map[string]string{"secret-2-tag-1": "ignored-value"},
 			},
 			response: map[string][]byte{
-				db.secrets[1].id: db.secrets[1].mustGetVersion("latest").data,
+				db.secrets[1].name: db.secrets[1].mustGetVersion("latest").data,
 			},
 		},
 	}

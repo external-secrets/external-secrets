@@ -327,7 +327,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 				continue
 			}
 
-			results[secret.ID] = accessResp.Data
+			results[secret.Name] = accessResp.Data
 		}
 	}
 
