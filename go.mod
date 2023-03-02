@@ -10,7 +10,6 @@ replace (
 	k8s.io/apimachinery => k8s.io/apimachinery v0.26.0
 	k8s.io/apiserver => k8s.io/apiserver v0.26.0
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.26.0
-	k8s.io/client-go => k8s.io/client-go v0.26.0
 	k8s.io/cloud-provider => k8s.io/cloud-provider v0.26.0
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.26.0
 	k8s.io/code-generator => k8s.io/code-generator v0.26.0
@@ -84,7 +83,7 @@ require (
 	k8s.io/api v0.26.1
 	k8s.io/apiextensions-apiserver v0.26.1
 	k8s.io/apimachinery v0.26.1
-	k8s.io/client-go v1.5.2
+	k8s.io/client-go v0.26.1
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	sigs.k8s.io/controller-runtime v0.14.4
 	sigs.k8s.io/controller-tools v0.11.3
