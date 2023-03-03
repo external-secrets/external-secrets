@@ -3955,6 +3955,126 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 <p>This interface is to allow using v1alpha1 content in Provider registered in v1beta1.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.ScalewayProvider">ScalewayProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ApiUrl is the url of the api to use. Defaults to <a href="https://api.scaleway.com">https://api.scaleway.com</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProviderSecretRef">
+ScalewayProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>AccessKey is the non-secret part of the api key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProviderSecretRef">
+ScalewayProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretKey is the non-secret part of the api key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ScalewayProviderSecretRef">ScalewayProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ScalewayProvider">ScalewayProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.SecretStore">SecretStore
 </h3>
 <p>
@@ -4360,6 +4480,20 @@ SenhaseguraProvider
 <td>
 <em>(Optional)</em>
 <p>Senhasegura configures this store to sync secrets using senhasegura provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>scaleway</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProvider">
+ScalewayProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Scaleway</p>
 </td>
 </tr>
 <tr>
