@@ -1,13 +1,28 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package scaleway
 
 import (
 	"context"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-var db = buildDb(&fakeSecretApi{
+var db = buildDB(&fakeSecretAPI{
 	secrets: []*fakeSecret{
 		{
 			name: "secret-1",
@@ -69,7 +84,6 @@ func newTestClient() esv1beta1.SecretsClient {
 }
 
 func TestGetSecret(t *testing.T) {
-
 	ctx := context.Background()
 	c := newTestClient()
 
@@ -174,9 +188,7 @@ func (ref pushRemoteRef) GetRemoteKey() string {
 }
 
 func TestPushSecret(t *testing.T) {
-
 	t.Run("to new secret", func(t *testing.T) {
-
 		ctx := context.Background()
 		c := newTestClient()
 		data := []byte("some secret data 6a8ff33b-c69a-4e42-b162-b7b595ee7f5f")
@@ -190,7 +202,6 @@ func TestPushSecret(t *testing.T) {
 	})
 
 	t.Run("to secret created by us", func(t *testing.T) {
-
 		ctx := context.Background()
 		c := newTestClient()
 		data := []byte("some secret data a11d416b-9169-4f4a-8c27-d2959b22e189")
@@ -205,7 +216,6 @@ func TestPushSecret(t *testing.T) {
 	})
 
 	t.Run("to secret partially created by us with no version", func(t *testing.T) {
-
 		ctx := context.Background()
 		c := newTestClient()
 		data := []byte("some secret data a11d416b-9169-4f4a-8c27-d2959b22e189")
@@ -219,7 +229,6 @@ func TestPushSecret(t *testing.T) {
 	})
 
 	t.Run("by invalid secret ref is an error", func(t *testing.T) {
-
 		ctx := context.Background()
 		c := newTestClient()
 
@@ -229,7 +238,6 @@ func TestPushSecret(t *testing.T) {
 	})
 
 	t.Run("by id is an error", func(t *testing.T) {
-
 		ctx := context.Background()
 		c := newTestClient()
 
@@ -239,7 +247,6 @@ func TestPushSecret(t *testing.T) {
 	})
 
 	t.Run("without change does not create a version", func(t *testing.T) {
-
 		ctx := context.Background()
 		c := newTestClient()
 		secret := db.secret("not-changed")
@@ -252,7 +259,6 @@ func TestPushSecret(t *testing.T) {
 }
 
 func TestGetSecretMap(t *testing.T) {
-
 	ctx := context.Background()
 	c := newTestClient()
 
@@ -270,7 +276,6 @@ func TestGetSecretMap(t *testing.T) {
 }
 
 func TestGetSecretMapNested(t *testing.T) {
-
 	ctx := context.Background()
 	c := newTestClient()
 
@@ -287,7 +292,6 @@ func TestGetSecretMapNested(t *testing.T) {
 }
 
 func TestGetAllSecrets(t *testing.T) {
-
 	ctx := context.Background()
 	c := newTestClient()
 
@@ -331,7 +335,6 @@ func TestGetAllSecrets(t *testing.T) {
 }
 
 func TestDeleteSecret(t *testing.T) {
-
 	ctx := context.Background()
 	c := newTestClient()
 

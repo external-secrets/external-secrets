@@ -3980,7 +3980,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ApiUrl is the url of the api to use. Defaults to <a href="https://api.scaleway.com">https://api.scaleway.com</a></p>
+<p>APIURL is the url of the api to use. Defaults to <a href="https://api.scaleway.com">https://api.scaleway.com</a></p>
 </td>
 </tr>
 <tr>

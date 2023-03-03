@@ -1,3 +1,16 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package scaleway
 
 import (
@@ -25,19 +38,17 @@ type fakeSecret struct {
 	status   string
 }
 
-type fakeSecretApi struct {
+type fakeSecretAPI struct {
 	secrets        []*fakeSecret
-	_secretsById   map[string]*fakeSecret
+	_secretsByID   map[string]*fakeSecret
 	_secretsByName map[string]*fakeSecret
 }
 
-func buildDb(f *fakeSecretApi) *fakeSecretApi {
-
-	f._secretsById = map[string]*fakeSecret{}
+func buildDB(f *fakeSecretAPI) *fakeSecretAPI {
+	f._secretsByID = map[string]*fakeSecret{}
 	f._secretsByName = map[string]*fakeSecret{}
 
 	for _, secret := range f.secrets {
-
 		if secret.id == "" {
 			secret.id = uuid.NewString()
 		}
@@ -47,7 +58,6 @@ func buildDb(f *fakeSecretApi) *fakeSecretApi {
 		})
 
 		for index, version := range secret.versions {
-
 			if version.revision != index+1 {
 				panic("bad revision number in fixtures")
 			}
@@ -67,7 +77,7 @@ func buildDb(f *fakeSecretApi) *fakeSecretApi {
 			secret.status = "ready"
 		}
 
-		f._secretsById[secret.id] = secret
+		f._secretsByID[secret.id] = secret
 		f._secretsByName[secret.name] = secret
 	}
 
@@ -75,7 +85,6 @@ func buildDb(f *fakeSecretApi) *fakeSecretApi {
 }
 
 func (s *fakeSecret) getVersion(revision string) (*fakeSecretVersion, bool) {
-
 	if len(s.versions) == 0 {
 		return nil, false
 	}
@@ -109,13 +118,11 @@ func (s *fakeSecret) getVersion(revision string) (*fakeSecretVersion, bool) {
 	})
 	if found {
 		return s.versions[i], true
-	} else {
-		return nil, false
 	}
+	return nil, false
 }
 
 func (s *fakeSecret) mustGetVersion(revision string) *fakeSecretVersion {
-
 	version, ok := s.getVersion(revision)
 	if !ok {
 		panic("no such version")
@@ -124,26 +131,24 @@ func (s *fakeSecret) mustGetVersion(revision string) *fakeSecretVersion {
 	return version
 }
 
-func (f *fakeSecretApi) secret(name string) *fakeSecret {
+func (f *fakeSecretAPI) secret(name string) *fakeSecret {
 	return f._secretsByName[name]
 }
 
-func (f *fakeSecretApi) getSecretById(secretId string) (*fakeSecret, error) {
-
-	secret, foundSecret := f._secretsById[secretId]
+func (f *fakeSecretAPI) getSecretByID(secretID string) (*fakeSecret, error) {
+	secret, foundSecret := f._secretsByID[secretID]
 
 	if !foundSecret {
 		return nil, &scw.ResourceNotFoundError{
 			Resource:   "secret",
-			ResourceID: secretId,
+			ResourceID: secretID,
 		}
 	}
 
 	return secret, nil
 }
 
-func (f *fakeSecretApi) getSecretByName(secretName string) (*fakeSecret, error) {
-
+func (f *fakeSecretAPI) getSecretByName(secretName string) (*fakeSecret, error) {
 	secret, foundSecret := f._secretsByName[secretName]
 
 	if !foundSecret {
@@ -156,13 +161,12 @@ func (f *fakeSecretApi) getSecretByName(secretName string) (*fakeSecret, error) 
 	return secret, nil
 }
 
-func (f *fakeSecretApi) GetSecret(request *smapi.GetSecretRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
-
+func (f *fakeSecretAPI) GetSecret(request *smapi.GetSecretRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
 
-	secret, err := f.getSecretById(request.SecretID)
+	secret, err := f.getSecretByID(request.SecretID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,8 +180,7 @@ func (f *fakeSecretApi) GetSecret(request *smapi.GetSecretRequest, _ ...scw.Requ
 	}, nil
 }
 
-func (f *fakeSecretApi) GetSecretByName(request *smapi.GetSecretByNameRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
-
+func (f *fakeSecretAPI) GetSecretByName(request *smapi.GetSecretByNameRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
@@ -196,13 +199,12 @@ func (f *fakeSecretApi) GetSecretByName(request *smapi.GetSecretByNameRequest, _
 	}, nil
 }
 
-func (f *fakeSecretApi) GetSecretVersion(request *smapi.GetSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
-
+func (f *fakeSecretAPI) GetSecretVersion(request *smapi.GetSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
 
-	secret, err := f.getSecretById(request.SecretID)
+	secret, err := f.getSecretByID(request.SecretID)
 	if err != nil {
 		return nil, err
 	}
@@ -222,8 +224,7 @@ func (f *fakeSecretApi) GetSecretVersion(request *smapi.GetSecretVersionRequest,
 	}, nil
 }
 
-func (f *fakeSecretApi) GetSecretVersionByName(request *smapi.GetSecretVersionByNameRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
-
+func (f *fakeSecretAPI) GetSecretVersionByName(request *smapi.GetSecretVersionByNameRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
@@ -248,13 +249,12 @@ func (f *fakeSecretApi) GetSecretVersionByName(request *smapi.GetSecretVersionBy
 	}, nil
 }
 
-func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRequest, _ ...scw.RequestOption) (*smapi.AccessSecretVersionResponse, error) {
-
+func (f *fakeSecretAPI) AccessSecretVersion(request *smapi.AccessSecretVersionRequest, _ ...scw.RequestOption) (*smapi.AccessSecretVersionResponse, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
 
-	secret, err := f.getSecretById(request.SecretID)
+	secret, err := f.getSecretByID(request.SecretID)
 	if err != nil {
 		return nil, err
 	}
@@ -275,10 +275,9 @@ func (f *fakeSecretApi) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 }
 
 func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest) bool {
-
 	for _, requiredTag := range filter.Tags {
-
 		found := false
+
 		for _, secretTag := range secret.tags {
 			if requiredTag == secretTag {
 				found = true
@@ -294,8 +293,7 @@ func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest)
 	return true
 }
 
-func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.RequestOption) (*smapi.ListSecretsResponse, error) {
-
+func (f *fakeSecretAPI) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.RequestOption) (*smapi.ListSecretsResponse, error) {
 	var matches []*fakeSecret
 
 	// filtering
@@ -351,8 +349,7 @@ func (f *fakeSecretApi) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 	return &response, nil
 }
 
-func (f *fakeSecretApi) CreateSecret(request *smapi.CreateSecretRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
-
+func (f *fakeSecretAPI) CreateSecret(request *smapi.CreateSecretRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
@@ -364,7 +361,7 @@ func (f *fakeSecretApi) CreateSecret(request *smapi.CreateSecretRequest, _ ...sc
 	}
 
 	f.secrets = append(f.secrets, secret)
-	f._secretsById[secret.id] = secret
+	f._secretsByID[secret.id] = secret
 	f._secretsByName[secret.name] = secret
 
 	return &smapi.Secret{
@@ -376,13 +373,12 @@ func (f *fakeSecretApi) CreateSecret(request *smapi.CreateSecretRequest, _ ...sc
 	}, nil
 }
 
-func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
-
+func (f *fakeSecretAPI) CreateSecretVersion(request *smapi.CreateSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
 
-	secret, ok := f._secretsById[request.SecretID]
+	secret, ok := f._secretsByID[request.SecretID]
 	if !ok {
 		return nil, &scw.ResourceNotFoundError{
 			Resource:   "secret",
@@ -404,16 +400,15 @@ func (f *fakeSecretApi) CreateSecretVersion(request *smapi.CreateSecretVersionRe
 	}, nil
 }
 
-func (f *fakeSecretApi) DeleteSecret(request *smapi.DeleteSecretRequest, _ ...scw.RequestOption) error {
-
-	secret, ok := f._secretsById[request.SecretID]
+func (f *fakeSecretAPI) DeleteSecret(request *smapi.DeleteSecretRequest, _ ...scw.RequestOption) error {
+	secret, ok := f._secretsByID[request.SecretID]
 	if !ok {
 		return &scw.ResourceNotFoundError{
 			Resource:   "secret",
 			ResourceID: request.SecretID,
 		}
 	}
-	delete(f._secretsById, secret.id)
+	delete(f._secretsByID, secret.id)
 
 	return nil
 }

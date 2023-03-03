@@ -1,3 +1,16 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package scaleway
 
 import (
@@ -9,8 +22,8 @@ import (
 // cache is for caching values of the secrets. Secret versions are immutable, thus there is no need
 // for time-based expiration.
 type cache interface {
-	Get(secretId string, revision uint32) ([]byte, bool)
-	Put(secretId string, revision uint32, value []byte)
+	Get(secretID string, revision uint32) ([]byte, bool)
+	Put(secretID string, revision uint32, value []byte)
 }
 
 type cacheEntry struct {
@@ -32,12 +45,11 @@ func newCache() cache {
 	}
 }
 
-func (c *cacheImpl) Get(secretId string, revision uint32) ([]byte, bool) {
-
+func (c *cacheImpl) Get(secretID string, revision uint32) ([]byte, bool) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	key := c.key(secretId, revision)
+	key := c.key(secretID, revision)
 
 	entry, ok := c.entries[key]
 	if !ok {
@@ -49,12 +61,11 @@ func (c *cacheImpl) Get(secretId string, revision uint32) ([]byte, bool) {
 	return entry.value, true
 }
 
-func (c *cacheImpl) Put(secretId string, revision uint32, value []byte) {
-
+func (c *cacheImpl) Put(secretID string, revision uint32, value []byte) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	key := c.key(secretId, revision)
+	key := c.key(secretID, revision)
 
 	_, alreadyPresent := c.entries[key]
 	if alreadyPresent {
@@ -74,7 +85,6 @@ func (c *cacheImpl) Put(secretId string, revision uint32, value []byte) {
 }
 
 func (c *cacheImpl) evictLeastRecentlyUsed() {
-
 	elem := c.entryKeysByLastUsage.Back()
 
 	delete(c.entries, elem.Value.(string))
@@ -82,6 +92,6 @@ func (c *cacheImpl) evictLeastRecentlyUsed() {
 	c.entryKeysByLastUsage.Remove(elem)
 }
 
-func (c *cacheImpl) key(secretId string, revision uint32) string {
-	return fmt.Sprintf("%s/%d", secretId, revision)
+func (c *cacheImpl) key(secretID string, revision uint32) string {
+	return fmt.Sprintf("%s/%d", secretID, revision)
 }

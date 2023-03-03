@@ -97,7 +97,7 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 			Provider: &esv1beta1.SecretStoreProvider{
 				Scaleway: &esv1beta1.ScalewayProvider{
 					Region:    cfg.region,
-					ProjectId: cfg.projectId,
+					ProjectID: cfg.projectId,
 					AccessKey: &esv1beta1.ScalewayProviderSecretRef{
 						Value: cfg.accessKey, // TODO: test with secretRef as well
 					},
@@ -113,7 +113,7 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 	}
 
 	if cfg.apiUrl != nil {
-		secretStoreSpec.Spec.Provider.Scaleway.ApiUrl = *cfg.apiUrl
+		secretStoreSpec.Spec.Provider.Scaleway.APIURL = *cfg.apiUrl
 	}
 
 	err = f.CRClient.Create(ctx, &secretStoreSpec)

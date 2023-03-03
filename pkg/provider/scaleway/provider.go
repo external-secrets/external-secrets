@@ -17,7 +17,7 @@ package scaleway
 import (
 	"context"
 	"fmt"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/scaleway/scaleway-sdk-go/validation"
@@ -26,10 +26,11 @@ import (
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
-	defaultApiUrl = "https://api.scaleway.com"
+	defaultAPIURL = "https://api.scaleway.com"
 	log           = ctrl.Log.WithName("provider").WithName("scaleway")
 )
 
@@ -41,7 +42,6 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kubeClient.Client, namespace string) (esv1beta1.SecretsClient, error) {
-
 	cfg, err := getConfig(store)
 	if err != nil {
 		return nil, err
@@ -63,9 +63,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}
 
 	scwClient, err := scw.NewClient(
-		scw.WithAPIURL(cfg.ApiUrl),
+		scw.WithAPIURL(cfg.APIURL),
 		scw.WithDefaultRegion(scw.Region(cfg.Region)),
-		scw.WithDefaultProjectID(cfg.ProjectId),
+		scw.WithDefaultProjectID(cfg.ProjectID),
 		scw.WithAuth(accessKey, secretKey),
 	)
 	if err != nil {
@@ -74,13 +74,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	return &client{
 		api:       smapi.NewAPI(scwClient),
-		projectId: cfg.ProjectId,
+		projectID: cfg.ProjectID,
 		cache:     newCache(),
 	}, nil
 }
 
 func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecretRef, kube kubeClient.Client, defaultNamespace string) (string, error) {
-
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
@@ -119,7 +118,6 @@ func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecret
 }
 
 func validateSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.ScalewayProviderSecretRef) error {
-
 	if ref.SecretRef != nil {
 		if ref.Value != "" {
 			return fmt.Errorf("cannot specify both secret reference and value")
@@ -129,14 +127,13 @@ func validateSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.ScalewayProv
 			return err
 		}
 	} else if ref.Value == "" {
-		return fmt.Errorf("must specify either secret refernce or direct value")
+		return fmt.Errorf("must specify either secret reference or direct value")
 	}
 
 	return nil
 }
 
 func doesConfigDependOnNamespace(cfg *esv1beta1.ScalewayProvider) bool {
-
 	if cfg.AccessKey.SecretRef != nil && cfg.AccessKey.SecretRef.Namespace != nil {
 		return true
 	}
@@ -149,7 +146,6 @@ func doesConfigDependOnNamespace(cfg *esv1beta1.ScalewayProvider) bool {
 }
 
 func getConfig(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, error) {
-
 	if store == nil {
 		return nil, fmt.Errorf("missing store specification")
 	}
@@ -160,18 +156,18 @@ func getConfig(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, error
 	}
 	cfg := storeSpec.Provider.Scaleway
 
-	if cfg.ApiUrl == "" {
-		cfg.ApiUrl = defaultApiUrl
-	} else if !validation.IsURL(cfg.ApiUrl) {
-		return nil, fmt.Errorf("invalid api url: %q", cfg.ApiUrl)
+	if cfg.APIURL == "" {
+		cfg.APIURL = defaultAPIURL
+	} else if !validation.IsURL(cfg.APIURL) {
+		return nil, fmt.Errorf("invalid api url: %q", cfg.APIURL)
 	}
 
 	if !validation.IsRegion(cfg.Region) {
 		return nil, fmt.Errorf("invalid region: %q", cfg.Region)
 	}
 
-	if !validation.IsProjectID(cfg.ProjectId) {
-		return nil, fmt.Errorf("invalid project id: %q", cfg.ProjectId)
+	if !validation.IsProjectID(cfg.ProjectID) {
+		return nil, fmt.Errorf("invalid project id: %q", cfg.ProjectID)
 	}
 
 	err := validateSecretRef(store, cfg.AccessKey)
