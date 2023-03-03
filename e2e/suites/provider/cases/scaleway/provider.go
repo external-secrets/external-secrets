@@ -7,11 +7,17 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+const remoteRefPrefix = "name:"
+const cleanupTag = "eso-e2e" // tag for easy cleanup
+
 type secretStoreProvider struct {
 	api *smapi.API
+	cfg *config
 }
 
 func (p *secretStoreProvider) init(cfg *config) {
+
+	p.cfg = cfg
 
 	options := []scw.ClientOption{
 		scw.WithDefaultRegion(scw.Region(cfg.region)),
@@ -29,15 +35,40 @@ func (p *secretStoreProvider) init(cfg *config) {
 	p.api = smapi.NewAPI(scwClient)
 }
 
+// cleanup prevents accumulation of secrets after aborted runs.
+func (p *secretStoreProvider) cleanup() {
+
+	//for {
+	//	listResp, err := p.api.ListSecrets(&smapi.ListSecretsRequest{
+	//		ProjectID: &p.cfg.projectId,
+	//		Tags:      []string{cleanupTag},
+	//	})
+	//	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	//	for _, secret := range listResp.Secrets {
+	//		err := p.api.DeleteSecret(&smapi.DeleteSecretRequest{
+	//			SecretID: secret.ID,
+	//		})
+	//		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	//	}
+
+	//	if uint32(len(listResp.Secrets)) == listResp.TotalCount {
+	//		break
+	//	}
+	//}
+}
+
 func (p *secretStoreProvider) CreateSecret(key string, val framework.SecretEntry) {
 
-	gomega.Expect(key).To(gomega.HavePrefix("name:"))
-	secretName := key[len("name:"):]
+	gomega.Expect(key).To(gomega.HavePrefix(remoteRefPrefix))
+	secretName := key[len(remoteRefPrefix):]
 
 	var tags []string
 	for tag := range val.Tags {
 		tags = append(tags, tag)
 	}
+
+	tags = append(tags, cleanupTag)
 
 	secret, err := p.api.CreateSecret(&smapi.CreateSecretRequest{
 		Name: secretName,
@@ -54,8 +85,8 @@ func (p *secretStoreProvider) CreateSecret(key string, val framework.SecretEntry
 
 func (p *secretStoreProvider) DeleteSecret(key string) {
 
-	gomega.Expect(key).To(gomega.HavePrefix("name:"))
-	secretName := key[len("name:"):]
+	gomega.Expect(key).To(gomega.HavePrefix(remoteRefPrefix))
+	secretName := key[len(remoteRefPrefix):]
 
 	secret, err := p.api.GetSecretByName(&smapi.GetSecretByNameRequest{
 		SecretName: secretName,

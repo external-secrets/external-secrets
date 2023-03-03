@@ -10,9 +10,10 @@ import (
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sync"
 )
 
-// TODO: cleanup resources from previous runs
+var cleanupOnce sync.Once
 
 var _ = ginkgo.Describe("[scaleway]", ginkgo.Label("scaleway"), func() {
 
@@ -30,6 +31,8 @@ var _ = ginkgo.Describe("[scaleway]", ginkgo.Label("scaleway"), func() {
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		provider.init(cfg)
+
+		cleanupOnce.Do(provider.cleanup)
 
 		createResources(context.Background(), f, cfg)
 	})
