@@ -38,24 +38,24 @@ func (p *secretStoreProvider) init(cfg *config) {
 // cleanup prevents accumulation of secrets after aborted runs.
 func (p *secretStoreProvider) cleanup() {
 
-	//for {
-	//	listResp, err := p.api.ListSecrets(&smapi.ListSecretsRequest{
-	//		ProjectID: &p.cfg.projectId,
-	//		Tags:      []string{cleanupTag},
-	//	})
-	//	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	for {
+		listResp, err := p.api.ListSecrets(&smapi.ListSecretsRequest{
+			ProjectID: &p.cfg.projectId,
+			Tags:      []string{cleanupTag},
+		})
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	//	for _, secret := range listResp.Secrets {
-	//		err := p.api.DeleteSecret(&smapi.DeleteSecretRequest{
-	//			SecretID: secret.ID,
-	//		})
-	//		gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	//	}
+		for _, secret := range listResp.Secrets {
+			err := p.api.DeleteSecret(&smapi.DeleteSecretRequest{
+				SecretID: secret.ID,
+			})
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		}
 
-	//	if uint32(len(listResp.Secrets)) == listResp.TotalCount {
-	//		break
-	//	}
-	//}
+		if uint32(len(listResp.Secrets)) == listResp.TotalCount {
+			break
+		}
+	}
 }
 
 func (p *secretStoreProvider) CreateSecret(key string, val framework.SecretEntry) {
