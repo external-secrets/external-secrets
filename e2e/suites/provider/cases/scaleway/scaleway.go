@@ -5,8 +5,10 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,44 +36,54 @@ var _ = ginkgo.Describe("[scaleway]", ginkgo.Label("scaleway"), func() {
 
 	ginkgo.DescribeTable("sync secrets", framework.TableFunc(f, provider),
 
-		//framework.Compose("", f, common.SyncV1Alpha1, useStaticAuth), // not supported
-		framework.Compose("", f, common.SimpleDataSync, useStaticAuth),
-		framework.Compose("", f, common.SyncWithoutTargetName, useStaticAuth),
-		framework.Compose("", f, common.JSONDataWithProperty, useStaticAuth),
-		framework.Compose("", f, common.JSONDataWithoutTargetName, useStaticAuth),
-		framework.Compose("", f, common.JSONDataWithTemplate, useStaticAuth),
-		framework.Compose("", f, common.JSONDataWithTemplateFromLiteral, useStaticAuth),
-		framework.Compose("", f, common.TemplateFromConfigmaps, useStaticAuth),
-		framework.Compose("", f, common.JSONDataFromSync, useStaticAuth),
-		framework.Compose("", f, common.JSONDataFromRewrite, useStaticAuth),
-		framework.Compose("", f, common.NestedJSONWithGJSON, useStaticAuth),
-		framework.Compose("", f, common.DockerJSONConfig, useStaticAuth),
-		framework.Compose("", f, common.DataPropertyDockerconfigJSON, useStaticAuth),
-		framework.Compose("", f, common.SSHKeySync, useStaticAuth),
-		framework.Compose("", f, common.SSHKeySyncDataProperty, useStaticAuth),
-		framework.Compose("", f, common.DeletionPolicyDelete, useStaticAuth),
-		//framework.Compose("", f, common.DecodingPolicySync, useStaticAuth), // not supported
+		//ginkgo.Entry(common.SyncV1Alpha1(f)), // not supported
+		ginkgo.Entry(common.SimpleDataSync(f)),
+		ginkgo.Entry(common.SyncWithoutTargetName(f)),
+		ginkgo.Entry(common.JSONDataWithProperty(f)),
+		ginkgo.Entry(common.JSONDataWithoutTargetName(f)),
+		ginkgo.Entry(common.JSONDataWithTemplate(f)),
+		ginkgo.Entry(common.JSONDataWithTemplateFromLiteral(f)),
+		ginkgo.Entry(common.TemplateFromConfigmaps(f)),
+		ginkgo.Entry(common.JSONDataFromSync(f)),
+		ginkgo.Entry(common.JSONDataFromRewrite(f)),
+		ginkgo.Entry(common.NestedJSONWithGJSON(f)),
+		ginkgo.Entry(common.DockerJSONConfig(f)),
+		ginkgo.Entry(common.DataPropertyDockerconfigJSON(f)),
+		ginkgo.Entry(common.SSHKeySync(f)),
+		ginkgo.Entry(common.SSHKeySyncDataProperty(f)),
+		ginkgo.Entry(common.DeletionPolicyDelete(f)),
+		//ginkgo.Entry(common.DecodingPolicySync(f)), // not supported
 
-		framework.Compose("", f, common.FindByName, useStaticAuth),
-		framework.Compose("", f, common.FindByNameAndRewrite, useStaticAuth),
-		//framework.Compose("", f, common.FindByNameWithPath, useStaticAuth), // not supported
+		ginkgo.Entry(common.FindByName(f)),
+		ginkgo.Entry(common.FindByNameAndRewrite(f)),
+		//ginkgo.Entry(common.FindByNameWithPath(f)), // not supported
 
-		framework.Compose("", f, common.FindByTag, useStaticAuth),
-		//framework.Compose("", f, common.FindByTagWithPath, useStaticAuth), // not supported
+		ginkgo.Entry(common.FindByTag(f)),
+		//ginkgo.Entry(common.FindByTagWithPath(f)), // not supported
 	)
 })
 
-func useStaticAuth(tc *framework.TestCase) {
-
-	// TODO
-
-	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
-	if tc.ExternalSecretV1Alpha1 != nil {
-		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
-	}
-}
-
 func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
+
+	apiKeySecretName := "scw-api-key"
+	apiKeySecretKey := "secret-key"
+
+	// Creating a secret to hold the API key.
+
+	secretSpec := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      apiKeySecretName,
+			Namespace: f.Namespace.Name,
+		},
+		StringData: map[string]string{
+			"secret-key": cfg.secretKey,
+		},
+	}
+
+	err := f.CRClient.Create(ctx, &secretSpec)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	// Creating SecretStore.
 
 	secretStoreSpec := esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,7 +99,10 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 						Value: cfg.accessKey, // TODO: test with secretRef as well
 					},
 					SecretKey: &esv1beta1.ScalewayProviderSecretRef{
-						Value: cfg.secretKey, // TODO: test with secretRef as well
+						SecretRef: &esmeta.SecretKeySelector{
+							Name: apiKeySecretName,
+							Key:  apiKeySecretKey,
+						},
 					},
 				},
 			},
@@ -98,6 +113,6 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 		secretStoreSpec.Spec.Provider.Scaleway.ApiUrl = *cfg.apiUrl
 	}
 
-	err := f.CRClient.Create(ctx, &secretStoreSpec)
+	err = f.CRClient.Create(ctx, &secretStoreSpec)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 }
