@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +27,12 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/tidwall/gjson"
+)
+
+const (
+	metaLabels      = "labels"
+	metaAnnotations = "annotations"
 )
 
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -34,11 +41,21 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, err
 	}
 	if ref.Property != "" {
-		val, ok := secretMap[ref.Property]
-		if !ok {
+		jsonTags := metadataToJSONString(secretMap)
+		idx := strings.Index(ref.Property, ".")
+		if idx > -1 {
+			refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+			val := gjson.Get(string(jsonTags), refProperty)
+			if val.Exists() {
+				return []byte(val.String()), nil
+			}
+		}
+		val := gjson.Get(string(jsonTags), ref.Property)
+		if !val.Exists() {
 			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
 		}
-		return val, nil
+
+		return []byte(val.String()), nil
 	}
 	strMap := make(map[string]string)
 	for k, v := range secretMap {
@@ -49,6 +66,14 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf("unabled to marshal json: %w", err)
 	}
 	return jsonStr, nil
+}
+
+func metadataToJSONString(metadata map[string][]byte) string {
+	retData := "{"
+	retData += "\"" + metaLabels + "\":" + string(metadata[metaLabels]) + ","
+	retData += "\"" + metaAnnotations + "\":" + string(metadata[metaAnnotations]) + "}"
+
+	return retData
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
@@ -68,6 +93,18 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	}
 	if err != nil {
 		return nil, err
+	}
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		retData := make(map[string][]byte)
+		retData[metaLabels], err = json.Marshal(secret.ObjectMeta.Labels)
+		if err != nil {
+			return nil, err
+		}
+		retData[metaAnnotations], err = json.Marshal(secret.ObjectMeta.Annotations)
+		if err != nil {
+			return nil, err
+		}
+		return retData, nil
 	}
 	return secret.Data, nil
 }
