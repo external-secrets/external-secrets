@@ -601,7 +601,7 @@ spec:
                               type: object
                           type: object
                         caBundle:
-                          description: PEM encoded CA bundle used to validate Vault server certificate. Only used if the Server URL is using HTTPS protocol. This parameter is ignored for plain HTTP protocol connection. If not set the system root certificates are used to validate the TLS connection.
+                          description: PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates are used to validate the TLS connection.
                           format: byte
                           type: string
                         caProvider:
@@ -1418,7 +1418,7 @@ spec:
                           format: byte
                           type: string
                         caProvider:
-                          description: The provider for the CA bundle to use to validate webhook server certificate.
+                          description: The provider for the CA bundle to use to validate Akeyless Gateway certificate..
                           properties:
                             key:
                               description: The key the value inside of the provider type to use, only used with "Secret" type
@@ -1750,7 +1750,7 @@ spec:
                               type: object
                           type: object
                         caBundle:
-                          description: PEM encoded CA bundle used to validate Akeyless Gateway certificate. Only used if the AkeylessGWApiURL URL is using HTTPS protocol. This parameter is ignored for plain HTTP protocol connection. If not set the system root certificates are used to validate the TLS connection.
+                          description: PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates are used to validate the TLS connection.
                           format: byte
                           type: string
                         caProvider:
@@ -3968,7 +3968,7 @@ spec:
                               type: object
                           type: object
                         caBundle:
-                          description: PEM encoded CA bundle used to validate Vault server certificate. Only used if the Server URL is using HTTPS protocol. This parameter is ignored for plain HTTP protocol connection. If not set the system root certificates are used to validate the TLS connection.
+                          description: PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates are used to validate the TLS connection.
                           format: byte
                           type: string
                         caProvider:
@@ -4785,7 +4785,7 @@ spec:
                           format: byte
                           type: string
                         caProvider:
-                          description: The provider for the CA bundle to use to validate webhook server certificate.
+                          description: The provider for the CA bundle to use to validate Akeyless Gateway certificate..
                           properties:
                             key:
                               description: The key the value inside of the provider type to use, only used with "Secret" type
@@ -5117,7 +5117,7 @@ spec:
                               type: object
                           type: object
                         caBundle:
-                          description: PEM encoded CA bundle used to validate Akeyless Gateway certificate. Only used if the AkeylessGWApiURL URL is using HTTPS protocol. This parameter is ignored for plain HTTP protocol connection. If not set the system root certificates are used to validate the TLS connection.
+                          description: PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates are used to validate the TLS connection.
                           format: byte
                           type: string
                         caProvider:

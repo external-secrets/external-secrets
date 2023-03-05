@@ -488,9 +488,8 @@ AkeylessAuth
 </td>
 <td>
 <em>(Optional)</em>
-<p>PEM encoded CA bundle used to validate Akeyless Gateway certificate. Only used
-if the AkeylessGWApiURL URL is using HTTPS protocol. This parameter is ignored for
-plain HTTP protocol connection. If not set the system root certificates
+<p>PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used
+if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates
 are used to validate the TLS connection.</p>
 </td>
 </tr>

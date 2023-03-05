@@ -27,9 +27,8 @@ type AkeylessProvider struct {
 	// Auth configures how the operator authenticates with Akeyless.
 	Auth *AkeylessAuth `json:"authSecretRef"`
 
-	// PEM encoded CA bundle used to validate Akeyless Gateway certificate. Only used
-	// if the AkeylessGWApiURL URL is using HTTPS protocol. This parameter is ignored for
-	// plain HTTP protocol connection. If not set the system root certificates
+	// PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used
+	// if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates
 	// are used to validate the TLS connection.
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
