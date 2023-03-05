@@ -27,7 +27,7 @@ import (
 	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
 	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
 	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
-	"github.com/akeylesslabs/akeyless-go/v2"
+	"github.com/akeylesslabs/akeyless-go/v3"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,9 +79,8 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 	return token, nil
 }
 
-func (a *akeylessBase) GetSecretByType(secretName, token string, version int32) (string, error) {
-
-	item, err := a.DescribeItem(secretName, token)
+func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName, token string, version int32) (string, error) {
+	item, err := a.DescribeItem(ctx, secretName, token)
 	if err != nil {
 		return "", err
 	}
@@ -89,19 +88,17 @@ func (a *akeylessBase) GetSecretByType(secretName, token string, version int32) 
 
 	switch secretType {
 	case "STATIC_SECRET":
-		return a.GetStaticSecret(secretName, token, version)
+		return a.GetStaticSecret(ctx, secretName, token, version)
 	case "DYNAMIC_SECRET":
-		return a.GetDynamicSecrets(secretName, token)
+		return a.GetDynamicSecrets(ctx, secretName, token)
 	case "ROTATED_SECRET":
-		return a.GetRotatedSecrets(secretName, token, version)
+		return a.GetRotatedSecrets(ctx, secretName, token, version)
 	default:
 		return "", fmt.Errorf("invalid item type: %v", secretType)
 	}
 }
 
-func (a *akeylessBase) DescribeItem(itemName, token string) (*akeyless.Item, error) {
-	ctx := context.Background()
-
+func (a *akeylessBase) DescribeItem(ctx context.Context, itemName, token string) (*akeyless.Item, error) {
 	body := akeyless.DescribeItem{
 		Name: itemName,
 	}
@@ -117,14 +114,12 @@ func (a *akeylessBase) DescribeItem(itemName, token string) (*akeyless.Item, err
 		}
 		return nil, fmt.Errorf("can't describe item: %w", err)
 	}
-	res.Body.Close()
+	defer res.Body.Close()
 
 	return &gsvOut, nil
 }
 
-func (a *akeylessBase) GetRotatedSecrets(secretName, token string, version int32) (string, error) {
-	ctx := context.Background()
-
+func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName, token string, version int32) (string, error) {
 	body := akeyless.GetRotatedSecretValue{
 		Names:   secretName,
 		Version: &version,
@@ -142,7 +137,7 @@ func (a *akeylessBase) GetRotatedSecrets(secretName, token string, version int32
 		}
 		return "", fmt.Errorf("can't get rotated secret value: %w", err)
 	}
-	res.Body.Close()
+	defer res.Body.Close()
 
 	valI, ok := gsvOut["value"]
 	if ok {
@@ -173,9 +168,7 @@ func (a *akeylessBase) GetRotatedSecrets(secretName, token string, version int32
 	return string(out), nil
 }
 
-func (a *akeylessBase) GetDynamicSecrets(secretName, token string) (string, error) {
-	ctx := context.Background()
-
+func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName, token string) (string, error) {
 	body := akeyless.GetDynamicSecretValue{
 		Name: secretName,
 	}
@@ -192,7 +185,7 @@ func (a *akeylessBase) GetDynamicSecrets(secretName, token string) (string, erro
 		}
 		return "", fmt.Errorf("can't get dynamic secret value: %w", err)
 	}
-	res.Body.Close()
+	defer res.Body.Close()
 
 	out, err := json.Marshal(gsvOut)
 	if err != nil {
@@ -202,9 +195,7 @@ func (a *akeylessBase) GetDynamicSecrets(secretName, token string) (string, erro
 	return string(out), nil
 }
 
-func (a *akeylessBase) GetStaticSecret(secretName, token string, version int32) (string, error) {
-	ctx := context.Background()
-
+func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName, token string, version int32) (string, error) {
 	gsvBody := akeyless.GetSecretValue{
 		Names:   []string{secretName},
 		Version: &version,
@@ -223,7 +214,7 @@ func (a *akeylessBase) GetStaticSecret(secretName, token string, version int32) 
 		}
 		return "", fmt.Errorf("can't get secret value: %w", err)
 	}
-	res.Body.Close()
+	defer res.Body.Close()
 	val, ok := gsvOut[secretName]
 	if !ok {
 		return "", fmt.Errorf("can't get secret: %v", secretName)
@@ -268,13 +259,14 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag, token string)
 		gsvBody.Token = &token
 	}
 
-	lipOut, _, err := a.RestAPI.ListItems(ctx).Body(gsvBody).Execute()
+	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(gsvBody).Execute()
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
 		}
-		return nil, fmt.Errorf("Error on get secrets list: %v", err)
+		return nil, fmt.Errorf("error on get secrets list: %w", err)
 	}
+	defer res.Body.Close()
 	if lipOut.Items == nil {
 		return nil, nil
 	}

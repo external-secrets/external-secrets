@@ -25,7 +25,7 @@ func (mc *AkeylessMockClient) TokenFromSecretRef(ctx context.Context) (string, e
 	return "newToken", nil
 }
 
-func (mc *AkeylessMockClient) GetSecretByType(secretName, token string, version int32) (string, error) {
+func (mc *AkeylessMockClient) GetSecretByType(_ context.Context, secretName, token string, version int32) (string, error) {
 	return mc.getSecret(secretName, token, version)
 }
 

@@ -28,7 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/akeylesslabs/akeyless-go/v2"
+	"github.com/akeylesslabs/akeyless-go/v3"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +39,6 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -70,7 +70,7 @@ type Akeyless struct {
 }
 
 type akeylessVaultInterface interface {
-	GetSecretByType(secretName, token string, version int32) (string, error)
+	GetSecretByType(ctx context.Context, secretName, token string, version int32) (string, error)
 	TokenFromSecretRef(ctx context.Context) (string, error)
 	ListSecrets(ctx context.Context, path, tag, token string) ([]string, error)
 }
@@ -253,14 +253,15 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 			version = int32(i)
 		}
 	}
-	value, err := a.Client.GetSecretByType(ref.Key, token, version)
+	value, err := a.Client.GetSecretByType(ctx, ref.Key, token, version)
 	if err != nil {
 		return nil, err
 	}
 	return []byte(value), nil
 }
 
-// GetAllSecrets.
+// Implements store.Client.GetAllSecrets Interface.
+// Retrieves a all secrets with defined in ref.Name or tags.
 func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(a.Client) {
 		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
@@ -273,7 +274,7 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 			searchPath = "/" + searchPath
 		}
 		if !strings.HasSuffix(searchPath, "/") {
-			searchPath = searchPath + "/"
+			searchPath += "/"
 		}
 	}
 	token, err := a.Client.TokenFromSecretRef(ctx)
@@ -314,7 +315,7 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 func (a *Akeyless) getSecrets(ctx context.Context, candidates []string, token string) (map[string][]byte, error) {
 	secrets := make(map[string][]byte)
 	for _, name := range candidates {
-		secretValue, err := a.Client.GetSecretByType(name, token, 0)
+		secretValue, err := a.Client.GetSecretByType(ctx, name, token, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -334,7 +335,7 @@ func (a *Akeyless) findSecretsFromName(ctx context.Context, candidates []string,
 	for _, name := range candidates {
 		ok := matcher.MatchName(name)
 		if ok {
-			secretValue, err := a.Client.GetSecretByType(name, token, 0)
+			secretValue, err := a.Client.GetSecretByType(ctx, name, token, 0)
 			if err != nil {
 				return nil, err
 			}
