@@ -56,7 +56,7 @@ type WebhookProvider struct {
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 
-	// The provider for the CA bundle to use to validate webhook server certificate..
+	// The provider for the CA bundle to use to validate webhook server certificate.
 	// +optional
 	CAProvider *WebhookCAProvider `json:"caProvider,omitempty"`
 }

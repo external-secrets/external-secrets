@@ -1418,7 +1418,7 @@ spec:
                           format: byte
                           type: string
                         caProvider:
-                          description: The provider for the CA bundle to use to validate webhook server certificate..
+                          description: The provider for the CA bundle to use to validate webhook server certificate.
                           properties:
                             key:
                               description: The key the value inside of the provider type to use, only used with "Secret" type
@@ -4785,7 +4785,7 @@ spec:
                           format: byte
                           type: string
                         caProvider:
-                          description: The provider for the CA bundle to use to validate webhook server certificate..
+                          description: The provider for the CA bundle to use to validate webhook server certificate.
                           properties:
                             key:
                               description: The key the value inside of the provider type to use, only used with "Secret" type
