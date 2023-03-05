@@ -1,10 +1,10 @@
-## Akeyless
+## Akeyless Secrets Management Platform
 
 External Secrets Operator integrates with the [Akeyless Secrets Management Platform](https://www.akeyless.io/).
 ### Create Secret Store:
 SecretStore resource specifies how to access Akeyless. This resource is namespaced.
 
-Make sure the Akeyless provider is listed in the Kind=SecretStore.
+**NOTE:** Make sure the Akeyless provider is listed in the Kind=SecretStore.
 If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: https://your.akeyless.gw:8080/v2.
 
 Akeyelss provide several Authentication Methods:
