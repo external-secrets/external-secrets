@@ -33,7 +33,7 @@ type AkeylessProvider struct {
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 
-	// The provider for the CA bundle to use to validate Vault server certificate.
+	// The provider for the CA bundle to use to validate Akeyless Gateway certificate.
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
