@@ -26,6 +26,17 @@ type AkeylessProvider struct {
 
 	// Auth configures how the operator authenticates with Akeyless.
 	Auth *AkeylessAuth `json:"authSecretRef"`
+
+	// PEM encoded CA bundle used to validate Vault server certificate. Only used
+	// if the Server URL is using HTTPS protocol. This parameter is ignored for
+	// plain HTTP protocol connection. If not set the system root certificates
+	// are used to validate the TLS connection.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// The provider for the CA bundle to use to validate Vault server certificate.
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
 type AkeylessAuth struct {

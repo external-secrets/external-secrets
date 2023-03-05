@@ -80,6 +80,7 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 }
 
 func (a *akeylessBase) GetSecretByType(secretName, token string, version int32) (string, error) {
+
 	item, err := a.DescribeItem(secretName, token)
 	if err != nil {
 		return "", err
@@ -248,6 +249,45 @@ func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error)
 	return cloudID, err
 }
 
+func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag, token string) ([]string, error) {
+	secretTypes := &[]string{"static-secret", "dynamic-secret", "rotated-secret"}
+	MinimalView := true
+	if tag != "" {
+		MinimalView = false
+	}
+	gsvBody := akeyless.ListItems{
+		Filter:      &path,
+		Type:        secretTypes,
+		MinimalView: &MinimalView,
+		Tag:         &tag,
+	}
+
+	if strings.HasPrefix(token, "u-") {
+		gsvBody.UidToken = &token
+	} else {
+		gsvBody.Token = &token
+	}
+
+	lipOut, _, err := a.RestAPI.ListItems(ctx).Body(gsvBody).Execute()
+	if err != nil {
+		if errors.As(err, &apiErr) {
+			return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
+		}
+		return nil, fmt.Errorf("Error on get secrets list: %v", err)
+	}
+	if lipOut.Items == nil {
+		return nil, nil
+	}
+
+	listNames := make([]string, 0)
+	for _, v := range *lipOut.Items {
+		if path == "" || strings.HasPrefix(*v.ItemName, path) {
+			listNames = append(listNames, *v.ItemName)
+		}
+	}
+	return listNames, nil
+}
+
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
 	if kubernetesAuth != nil && kubernetesAuth.ServiceAccountRef != nil {
 		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
@@ -282,7 +322,7 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 		Namespace: a.namespace,
 		Name:      serviceAccountRef.Name,
 	}
-	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		ref.Namespace = *serviceAccountRef.Namespace
 	}
@@ -314,7 +354,7 @@ func (a *akeylessBase) secretKeyRef(ctx context.Context, secretRef *esmeta.Secre
 		Namespace: a.namespace,
 		Name:      secretRef.Name,
 	}
-	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(secretRef.Namespace != nil) {
 		ref.Namespace = *secretRef.Namespace
 	}
@@ -347,7 +387,7 @@ func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, servic
 			ExpirationSeconds: &expirationSeconds,
 		},
 	}
-	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		tokenRequest.Namespace = *serviceAccountRef.Namespace
 	}

@@ -29,6 +29,10 @@ func (mc *AkeylessMockClient) GetSecretByType(secretName, token string, version 
 	return mc.getSecret(secretName, token, version)
 }
 
+func (mc *AkeylessMockClient) ListSecrets(ctx context.Context, path, tag, token string) ([]string, error) {
+	return nil, nil
+}
+
 func (mc *AkeylessMockClient) WithValue(in *Input, out *Output) {
 	if mc != nil {
 		mc.getSecret = func(secretName, token string, version int32) (string, error) {
