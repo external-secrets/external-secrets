@@ -45,12 +45,12 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		idx := strings.Index(ref.Property, ".")
 		if idx > -1 {
 			refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
-			val := gjson.Get(string(jsonTags), refProperty)
+			val := gjson.Get(jsonTags, refProperty)
 			if val.Exists() {
 				return []byte(val.String()), nil
 			}
 		}
-		val := gjson.Get(string(jsonTags), ref.Property)
+		val := gjson.Get(jsonTags, ref.Property)
 		if !val.Exists() {
 			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
 		}
