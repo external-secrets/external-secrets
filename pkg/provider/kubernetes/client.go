@@ -27,6 +27,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+
 	"github.com/tidwall/gjson"
 )
 
@@ -40,38 +41,43 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if err != nil {
 		return nil, err
 	}
+	strMap := make(map[string]string)
+	for k, v := range secretMap {
+		strMap[k] = string(v)
+	}
+	byteArr, err := json.Marshal(strMap)
+	if err != nil {
+		return nil, fmt.Errorf("unabled to marshal json: %w", err)
+	}
+	jsonStr := string(byteArr)
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		jsonStr = metadataToJSONString(strMap)
+	}
 	if ref.Property != "" {
-		jsonTags := metadataToJSONString(secretMap)
+		//jsonTags := metadataToJSONString(secretMap)
 		idx := strings.Index(ref.Property, ".")
 		if idx > -1 {
 			refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
-			val := gjson.Get(jsonTags, refProperty)
+			val := gjson.Get(jsonStr, refProperty)
 			if val.Exists() {
 				return []byte(val.String()), nil
 			}
 		}
-		val := gjson.Get(jsonTags, ref.Property)
+		val := gjson.Get(jsonStr, ref.Property)
 		if !val.Exists() {
 			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
 		}
 
 		return []byte(val.String()), nil
 	}
-	strMap := make(map[string]string)
-	for k, v := range secretMap {
-		strMap[k] = string(v)
-	}
-	jsonStr, err := json.Marshal(strMap)
-	if err != nil {
-		return nil, fmt.Errorf("unabled to marshal json: %w", err)
-	}
-	return jsonStr, nil
+
+	return byteArr, nil
 }
 
-func metadataToJSONString(metadata map[string][]byte) string {
+func metadataToJSONString(metadata map[string]string) string {
 	retData := "{"
-	retData += "\"" + metaLabels + "\":" + string(metadata[metaLabels]) + ","
-	retData += "\"" + metaAnnotations + "\":" + string(metadata[metaAnnotations]) + "}"
+	retData += "\"" + metaLabels + "\":" + metadata[metaLabels] + ","
+	retData += "\"" + metaAnnotations + "\":" + metadata[metaAnnotations] + "}"
 
 	return retData
 }
