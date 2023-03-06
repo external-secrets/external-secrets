@@ -129,7 +129,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 
 	var secretID string
 	secretExists := false
-	secretHasVersions := false
+	existingSecretVersion := int64(-1)
 
 	secretVersion, err := c.api.GetSecretVersionByName(&smapi.GetSecretVersionByNameRequest{
 		SecretName: secretName,
@@ -146,11 +146,11 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		}
 	} else {
 		secretExists = true
-		secretHasVersions = true
+		existingSecretVersion = int64(secretVersion.Revision)
 	}
 
 	if secretExists {
-		if secretHasVersions {
+		if existingSecretVersion != -1 {
 			// If the secret exists, we can fetch its last value to see if we have any change to make.
 
 			secretID = secretVersion.SecretID
@@ -204,6 +204,16 @@ func (c *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 
 	c.cache.Put(secretID, createSecretVersionResponse.Revision, value)
+
+	if secretExists && existingSecretVersion != -1 {
+		_, err := c.api.DisableSecretVersion(&smapi.DisableSecretVersionRequest{
+			SecretID: secretID,
+			Revision: fmt.Sprintf("%d", existingSecretVersion),
+		})
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

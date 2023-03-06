@@ -274,6 +274,33 @@ func (f *fakeSecretAPI) AccessSecretVersion(request *smapi.AccessSecretVersionRe
 	}, nil
 }
 
+func (f *fakeSecretAPI) DisableSecretVersion(request *smapi.DisableSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
+	if request.Region != "" {
+		panic("explicit region in request is not supported")
+	}
+
+	secret, err := f.getSecretByID(request.SecretID)
+	if err != nil {
+		return nil, err
+	}
+
+	version, ok := secret.getVersion(request.Revision)
+	if !ok {
+		return nil, &scw.ResourceNotFoundError{
+			Resource:   "secret_version",
+			ResourceID: request.Revision,
+		}
+	}
+
+	version.status = "disabled"
+
+	return &smapi.SecretVersion{
+		SecretID: secret.id,
+		Revision: uint32(version.revision),
+		Status:   smapi.SecretVersionStatus(version.status),
+	}, nil
+}
+
 func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest) bool {
 	for _, requiredTag := range filter.Tags {
 		found := false

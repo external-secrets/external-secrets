@@ -51,6 +51,12 @@ var db = buildDB(&fakeSecretAPI{
 			},
 		},
 		{
+			name: "disabling-old-versions",
+			versions: []*fakeSecretVersion{
+				{revision: 1},
+			},
+		},
+		{
 			name: "json-data",
 			versions: []*fakeSecretVersion{
 				{
@@ -255,6 +261,18 @@ func TestPushSecret(t *testing.T) {
 
 		assert.NoError(t, pushErr)
 		assert.Equal(t, 1, len(secret.versions))
+	})
+
+	t.Run("previous version is disabled", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secret := db.secret("disabling-old-versions")
+
+		pushErr := c.PushSecret(ctx, []byte("some new data"), pushRemoteRef("name:"+secret.name))
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, 2, len(secret.versions))
+		assert.Equal(t, "disabled", secret.versions[0].status)
 	})
 }
 
