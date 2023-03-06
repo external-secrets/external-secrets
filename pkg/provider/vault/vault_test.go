@@ -630,6 +630,85 @@ func TestGetSecret(t *testing.T) {
 				err: esv1beta1.NoSecretError{},
 			},
 		},
+		"ReadSecretMetadataWithoutProperty": {
+			reason: "Should return the json encoded metadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(secret, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte(`{"access_key":"access_key","access_secret":"access_secret"}`),
+			},
+		},
+		"ReadSecretMetadataWithProperty": {
+			reason: "Should return the access_key value from the metadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+					Property:       "access_key",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(secret, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte("access_key"),
+			},
+		},
+		"FailReadSecretMetadataInvalidProperty": {
+			reason: "Should return error of non existent key inmetadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+					Property:       "does_not_exist",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(secret, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errSecretKeyFmt, "does_not_exist"),
+			},
+		},
+		"FailReadSecretMetadataNoMetadata": {
+			reason: "Should return the access_key value from the metadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errNotFound),
+			},
+		},
+		"FailReadSecretMetadataWrongVersion": {
+			reason: "Should return the access_key value from the metadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errUnsupportedMetadataKvVersion),
+			},
+		},
 	}
 
 	for name, tc := range cases {
