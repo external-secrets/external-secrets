@@ -54,7 +54,6 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		jsonStr = metadataToJSONString(strMap)
 	}
 	if ref.Property != "" {
-		// jsonTags := metadataToJSONString(secretMap)
 		idx := strings.Index(ref.Property, ".")
 		if idx > -1 {
 			refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
