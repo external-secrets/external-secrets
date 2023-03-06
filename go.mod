@@ -61,7 +61,7 @@ require (
 	github.com/hashicorp/vault/api/auth/ldap v0.4.0
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/lestrrat-go/jwx v1.2.25
-	github.com/onsi/ginkgo/v2 v2.8.3
+	github.com/onsi/ginkgo/v2 v2.9.0
 	github.com/onsi/gomega v1.27.1
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
 	github.com/prometheus/client_golang v1.14.0
