@@ -84,6 +84,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | dnsConfig | object | `{}` | Specifies `dnsOptions` to deployment |
 | extraArgs | object | `{}` |  |
+| extraContainers | list | `[]` |  |
 | extraEnv | list | `[]` |  |
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
