@@ -64,26 +64,27 @@ var (
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
-	errVaultStore           = "received invalid Vault SecretStore resource: %w"
-	errVaultCacheCreate     = "cannot create Vault client cache: %s"
-	errVaultCacheRemove     = "error removing item from Vault client cache: %w"
-	errVaultCacheEviction   = "unexpected eviction from Vault client cache"
-	errVaultClient          = "cannot setup new vault client: %w"
-	errVaultCert            = "cannot set Vault CA certificate: %w"
-	errReadSecret           = "cannot read secret data from Vault: %w"
-	errAuthFormat           = "cannot initialize Vault client: no valid auth method specified"
-	errInvalidCredentials   = "invalid vault credentials: %w"
-	errDataField            = "failed to find data field"
-	errJSONUnmarshall       = "failed to unmarshall JSON"
-	errPathInvalid          = "provided Path isn't a valid kv v2 path"
-	errSecretFormat         = "secret data not in expected format"
-	errUnexpectedKey        = "unexpected key in data: %s"
-	errVaultToken           = "cannot parse Vault authentication token: %w"
-	errVaultRequest         = "error from Vault request: %w"
-	errServiceAccount       = "cannot read Kubernetes service account token from file system: %w"
-	errJwtNoTokenSource     = "neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication"
-	errUnsupportedKvVersion = "cannot perform find operations with kv version v1"
-	errNotFound             = "secret not found"
+	errVaultStore                   = "received invalid Vault SecretStore resource: %w"
+	errVaultCacheCreate             = "cannot create Vault client cache: %s"
+	errVaultCacheRemove             = "error removing item from Vault client cache: %w"
+	errVaultCacheEviction           = "unexpected eviction from Vault client cache"
+	errVaultClient                  = "cannot setup new vault client: %w"
+	errVaultCert                    = "cannot set Vault CA certificate: %w"
+	errReadSecret                   = "cannot read secret data from Vault: %w"
+	errAuthFormat                   = "cannot initialize Vault client: no valid auth method specified"
+	errInvalidCredentials           = "invalid vault credentials: %w"
+	errDataField                    = "failed to find data field"
+	errJSONUnmarshall               = "failed to unmarshall JSON"
+	errPathInvalid                  = "provided Path isn't a valid kv v2 path"
+	errSecretFormat                 = "secret data not in expected format"
+	errUnexpectedKey                = "unexpected key in data: %s"
+	errVaultToken                   = "cannot parse Vault authentication token: %w"
+	errVaultRequest                 = "error from Vault request: %w"
+	errServiceAccount               = "cannot read Kubernetes service account token from file system: %w"
+	errJwtNoTokenSource             = "neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication"
+	errUnsupportedKvVersion         = "cannot perform find operations with kv version v1"
+	errUnsupportedMetadataKvVersion = "cannot perform metadata fetch operations with kv version v1"
+	errNotFound                     = "secret not found"
 
 	errGetKubeSA             = "cannot get Kubernetes service account %q: %w"
 	errGetKubeSASecrets      = "cannot find secrets bound to service account: %q"
@@ -626,10 +627,31 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 //  2. get a key from the secret.
 //     Nested values are supported by specifying a gjson expression
 func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, err := v.readSecret(ctx, ref.Key, ref.Version)
-	if err != nil {
-		return nil, err
+	var data map[string]interface{}
+	var err error
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		if v.store.Version == esv1beta1.VaultKVStoreV1 {
+			return nil, errors.New(errUnsupportedMetadataKvVersion)
+		}
+
+		metadata, err := v.readSecretMetadata(ctx, ref.Key)
+		if err != nil {
+			return nil, err
+		}
+		if len(metadata) == 0 {
+			return nil, nil
+		}
+		data = make(map[string]interface{}, len(metadata))
+		for k, v := range metadata {
+			data[k] = v
+		}
+	} else {
+		data, err = v.readSecret(ctx, ref.Key, ref.Version)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	// Return nil if secret value is null
 	if data == nil {
 		return nil, nil

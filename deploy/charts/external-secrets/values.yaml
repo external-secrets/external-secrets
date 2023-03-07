@@ -85,6 +85,9 @@ extraVolumes: []
 ## -- Extra volumes to mount to the container.
 extraVolumeMounts: []
 
+## -- Extra containers to add to the pod.
+extraContainers: []
+
 # -- Annotations to add to Deployment
 deploymentAnnotations: {}
 
@@ -164,6 +167,8 @@ metrics:
 nodeSelector: {}
 
 tolerations: []
+
+topologySpreadConstraints: []
 
 affinity: {}
 
