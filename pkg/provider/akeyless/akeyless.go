@@ -18,7 +18,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -394,7 +393,7 @@ func (a *akeylessBase) getAkeylessHTTPClient(provider *esv1beta1.AkeylessProvide
 func (a *akeylessBase) getCACertPool(provider *esv1beta1.AkeylessProvider) (*x509.CertPool, error) {
 	caCertPool := x509.NewCertPool()
 	if len(provider.CABundle) > 0 {
-		pem, err := base64.StdEncoding.DecodeString(string(provider.CABundle))
+		pem, err := base64decode(provider.CABundle)
 		if err != nil {
 			pem = provider.CABundle
 		}
@@ -424,7 +423,7 @@ func (a *akeylessBase) getCACertPool(provider *esv1beta1.AkeylessProvider) (*x50
 		if err != nil {
 			return nil, err
 		}
-		pem, err := base64.StdEncoding.DecodeString(string(cert))
+		pem, err := base64decode(cert)
 		if err != nil {
 			pem = cert
 		}

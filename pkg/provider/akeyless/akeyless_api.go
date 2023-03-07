@@ -281,29 +281,31 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag, token string)
 }
 
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
-	if kubernetesAuth != nil && kubernetesAuth.ServiceAccountRef != nil {
-		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
-		jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
-		if jwt != "" {
-			return jwt, err
+	if kubernetesAuth != nil {
+		if kubernetesAuth.ServiceAccountRef != nil {
+			// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
+			jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+			if jwt != "" {
+				return jwt, err
+			}
+			// Kubernetes >=v1.24: fetch token via TokenRequest API
+			jwt, err = a.getJWTfromServiceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
+			if err != nil {
+				return "", err
+			}
+			return jwt, nil
+		} else if kubernetesAuth.SecretRef != nil {
+			tokenRef := kubernetesAuth.SecretRef
+			if tokenRef.Key == "" {
+				tokenRef = kubernetesAuth.SecretRef.DeepCopy()
+				tokenRef.Key = "token"
+			}
+			jwt, err := a.secretKeyRef(ctx, tokenRef)
+			if err != nil {
+				return "", err
+			}
+			return jwt, nil
 		}
-		// Kubernetes >=v1.24: fetch token via TokenRequest API
-		jwt, err = a.getJWTfromServiceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
-		if err != nil {
-			return "", err
-		}
-		return jwt, nil
-	} else if kubernetesAuth != nil && kubernetesAuth.SecretRef != nil {
-		tokenRef := kubernetesAuth.SecretRef
-		if tokenRef.Key == "" {
-			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
-			tokenRef.Key = "token"
-		}
-		jwt, err := a.secretKeyRef(ctx, tokenRef)
-		if err != nil {
-			return "", err
-		}
-		return jwt, nil
 	}
 	return readK8SServiceAccountJWT()
 }
