@@ -45,7 +45,7 @@ The following table describes the stability level of each provider and who's res
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-|---------------------------|:------------:|:------------:| :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: 
+|---------------------------|:------------:|:------------:| :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------:
 | AWS Secrets Manager       |      x       |      x       |                      |            x            |        x         |     x       |            x                |
 | AWS Parameter Store       |      x       |      x       |                      |            x            |        x         |     x       |            x                |
 | Hashicorp Vault           |      x       |      x       |                      |            x            |        x         |     x       |            x                |
@@ -57,7 +57,7 @@ The following table show the support for features across different providers.
 | Gitlab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
-| Akeyless                  |              |              |                      |                         |        x         |             |                             |
+| Akeyless                  |      x       |      x       |                      |                         |        x         |             |                             |
 | 1Password                 |      x       |              |                      |                         |        x         |             |                             |
 | Generic Webhook           |              |              |                      |                         |                  |             |            x                |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
