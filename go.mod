@@ -17,7 +17,6 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/akeylesslabs/akeyless-go/v2 v2.20.3
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.217
 	github.com/aws/aws-sdk-go v1.44.214
 	github.com/go-logr/logr v1.2.3
