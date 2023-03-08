@@ -14,8 +14,8 @@ limitations under the License.
 
 package utils
 
-import ( //nolint:gosec
-	"crypto/md5"
+import (
+	"crypto/md5" //nolint:gosec
 	"encoding/base64"
 	"errors"
 	"fmt"
