@@ -40,21 +40,9 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if err != nil {
 		return nil, err
 	}
-	var byteArr []byte
-	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-		byteArr, err = metadataToJSONString(secretMap)
-		if err != nil {
-			return nil, fmt.Errorf("unabled to marshal json: %w", err)
-		}
-	} else {
-		strMap := make(map[string]string)
-		for k, v := range secretMap {
-			strMap[k] = string(v)
-		}
-		byteArr, err = json.Marshal(strMap)
-		if err != nil {
-			return nil, fmt.Errorf("unabled to marshal json: %w", err)
-		}
+	byteArr, err := getSecretValues(secretMap, ref.MetadataPolicy)
+	if err != nil {
+		return nil, err
 	}
 	if ref.Property != "" {
 		jsonStr := string(byteArr)
@@ -78,15 +66,25 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return byteArr, nil
 }
 
-func metadataToJSONString(metadata map[string][]byte) ([]byte, error) {
-	data := make(map[string]json.RawMessage, len(metadata))
-	for k, v := range metadata {
-		data[k] = v
+func getSecretValues(secretMap map[string][]byte, policy esv1beta1.ExternalSecretMetadataPolicy) ([]byte, error) {
+	var byteArr []byte
+	var err error
+	if policy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		data := make(map[string]json.RawMessage, len(secretMap))
+		for k, v := range secretMap {
+			data[k] = v
+		}
+		byteArr, err = json.Marshal(data)
+	} else {
+		strMap := make(map[string]string)
+		for k, v := range secretMap {
+			strMap[k] = string(v)
+		}
+		byteArr, err = json.Marshal(strMap)
 	}
 
-	byteArr, err := json.Marshal(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unabled to marshal json: %w", err)
 	}
 
 	return byteArr, nil
