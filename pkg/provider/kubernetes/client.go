@@ -40,19 +40,25 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if err != nil {
 		return nil, err
 	}
-	strMap := make(map[string]string)
-	for k, v := range secretMap {
-		strMap[k] = string(v)
-	}
-	byteArr, err := json.Marshal(strMap)
-	if err != nil {
-		return nil, fmt.Errorf("unabled to marshal json: %w", err)
-	}
-	jsonStr := string(byteArr)
+	var byteArr []byte
 	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-		jsonStr = metadataToJSONString(strMap)
+		byteArr, err = metadataToJSONString(secretMap)
+		if err != nil {
+			return nil, fmt.Errorf("unabled to marshal json: %w", err)
+		}
+	} else {
+		strMap := make(map[string]string)
+		for k, v := range secretMap {
+			strMap[k] = string(v)
+		}
+		byteArr, err = json.Marshal(strMap)
+		if err != nil {
+			return nil, fmt.Errorf("unabled to marshal json: %w", err)
+		}
 	}
 	if ref.Property != "" {
+		jsonStr := string(byteArr)
+		// We need to search if a given key with a . exists before using gjson operations.
 		idx := strings.Index(ref.Property, ".")
 		if idx > -1 {
 			refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
@@ -72,12 +78,18 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return byteArr, nil
 }
 
-func metadataToJSONString(metadata map[string]string) string {
-	retData := "{"
-	retData += "\"" + metaLabels + "\":" + metadata[metaLabels] + ","
-	retData += "\"" + metaAnnotations + "\":" + metadata[metaAnnotations] + "}"
+func metadataToJSONString(metadata map[string][]byte) ([]byte, error) {
+	data := make(map[string]json.RawMessage, len(metadata))
+	for k, v := range metadata {
+		data[k] = v
+	}
 
-	return retData
+	byteArr, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return byteArr, nil
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
