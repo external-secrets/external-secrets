@@ -70,7 +70,7 @@ spec:
   data:
   - secretKey: foobar
     remoteRef:
-      key: secret/foo
+      key: foo
       property: my-value
 ---
 # will create a secret with:
