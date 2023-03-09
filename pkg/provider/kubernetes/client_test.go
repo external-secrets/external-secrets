@@ -170,6 +170,97 @@ func TestGetSecret(t *testing.T) {
 			},
 			want: []byte(`{"token":"foobar"}`),
 		},
+		{
+			name: "successful case metadata without property",
+			fields: fields{
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							ObjectMeta: metav1.ObjectMeta{
+								Annotations: map[string]string{"date": "today"},
+								Labels:      map[string]string{"dev": "seb"},
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Key:            "mysec",
+			},
+			want: []byte(`{"annotations":{"date":"today"},"labels":{"dev":"seb"}}`),
+		},
+		{
+			name: "successful case metadata with single property",
+			fields: fields{
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							ObjectMeta: metav1.ObjectMeta{
+								Annotations: map[string]string{"date": "today"},
+								Labels:      map[string]string{"dev": "seb"},
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Key:            "mysec",
+				Property:       "labels",
+			},
+			want: []byte(`{"dev":"seb"}`),
+		},
+		{
+			name: "successful case metadata with multiple properties",
+			fields: fields{
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							ObjectMeta: metav1.ObjectMeta{
+								Annotations: map[string]string{"date": "today"},
+								Labels:      map[string]string{"dev": "seb"},
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Key:            "mysec",
+				Property:       "labels.dev",
+			},
+			want: []byte(`seb`),
+		},
+		{
+			name: "error case metadata with wrong property",
+			fields: fields{
+				Client: fakeClient{
+					t: t,
+					secretMap: map[string]corev1.Secret{
+						"mysec": {
+							ObjectMeta: metav1.ObjectMeta{
+								Annotations: map[string]string{"date": "today"},
+								Labels:      map[string]string{"dev": "seb"},
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Key:            "mysec",
+				Property:       "foo",
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
