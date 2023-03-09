@@ -2,7 +2,7 @@
     <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
 </p>
 
-# External Secrets
+# External Secrets Test
 
 ![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5327/badge)](https://bestpractices.coreinfrastructure.org/projects/5947)
