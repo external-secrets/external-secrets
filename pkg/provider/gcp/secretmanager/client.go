@@ -34,7 +34,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -92,7 +91,6 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	gcpSecret, err = c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMGetSecret, err)
 	var gErr *apierror.APIError
 
 	if errors.As(err, &gErr) {
@@ -113,9 +111,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	deleteSecretVersionReq := &secretmanagerpb.DeleteSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	}
-	err = c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMDeleteSecret, err)
-	return err
+	return c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
 }
 
 func parseError(err error) error {
@@ -149,14 +145,12 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	gcpSecret, err = c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMGetSecret, err)
 
 	var gErr *apierror.APIError
 
 	if err != nil && errors.As(err, &gErr) {
 		if gErr.GRPCStatus().Code() == codes.NotFound {
 			gcpSecret, err = c.smClient.CreateSecret(ctx, createSecretReq)
-			metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMCreateSecret, err)
 			if err != nil {
 				return err
 			}
@@ -174,7 +168,6 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	gcpVersion, err := c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMAccessSecretVersion, err)
 
 	if errors.As(err, &gErr) {
 		if err != nil && gErr.GRPCStatus().Code() != codes.NotFound {
@@ -196,7 +189,7 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	}
 
 	_, err = c.smClient.AddSecretVersion(ctx, addSecretVersionReq)
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMAddSecretVersion, err)
+
 	if err != nil {
 		return err
 	}
@@ -231,10 +224,8 @@ func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	// Call the API.
 	it := c.smClient.ListSecrets(ctx, req)
 	secretMap := make(map[string][]byte)
-	var resp *secretmanagerpb.Secret
-	defer metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMListSecrets, err)
 	for {
-		resp, err = it.Next()
+		resp, err := it.Next()
 		if errors.Is(err, iterator.Done) {
 			break
 		}
@@ -289,12 +280,9 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	req.Filter = tagFilter
 	// Call the API.
 	it := c.smClient.ListSecrets(ctx, req)
-	var resp *secretmanagerpb.Secret
-	var err error
-	defer metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMListSecrets, err)
 	secretMap := make(map[string][]byte)
 	for {
-		resp, err = it.Next()
+		resp, err := it.Next()
 		if errors.Is(err, iterator.Done) {
 			break
 		}
@@ -331,36 +319,51 @@ func (c *Client) extractProjectIDNumber(secretFullName string) string {
 }
 
 // GetSecret returns a single secret from the provider.
+// entrypoint to get metadata for secret (labels)
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(c.smClient) || c.store.ProjectID == "" {
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
-	version := ref.Version
-	if version == "" {
-		version = defaultVersion
-	}
+	var arr []byte
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		// Call the API.
+		secret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
+			Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, ref.Key),
+		})
+		if err != nil {
+			return nil, err
+		}
+		arr, err = json.Marshal(secret.Labels)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		version := ref.Version
+		if version == "" {
+			version = defaultVersion
+		}
 
-	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", c.store.ProjectID, ref.Key, version),
-	}
-	result, err := c.smClient.AccessSecretVersion(ctx, req)
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMAccessSecretVersion, err)
-	err = parseError(err)
-	if err != nil {
-		return nil, fmt.Errorf(errClientGetSecretAccess, err)
+		req := &secretmanagerpb.AccessSecretVersionRequest{
+			Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", c.store.ProjectID, ref.Key, version),
+		}
+		result, err := c.smClient.AccessSecretVersion(ctx, req)
+		err = parseError(err)
+		if err != nil {
+			return nil, fmt.Errorf(errClientGetSecretAccess, err)
+		}
+		arr = result.Payload.Data
 	}
 
 	if ref.Property == "" {
-		if result.Payload.Data != nil {
-			return result.Payload.Data, nil
+		if arr != nil {
+			return arr, nil
 		}
 		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
-
 	var payload string
-	if result.Payload.Data != nil {
-		payload = string(result.Payload.Data)
+	if arr != nil {
+		payload = string(arr)
 	}
 	idx := strings.Index(ref.Property, ".")
 	refProperty := ref.Property

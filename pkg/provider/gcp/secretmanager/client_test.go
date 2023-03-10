@@ -41,6 +41,7 @@ type secretManagerTestCase struct {
 	apiErr         error
 	expectError    string
 	expectedSecret string
+	labels         map[string]string
 	// for testing secretmap
 	expectedData map[string][]byte
 }
@@ -55,11 +56,17 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		apiErr:         nil,
 		expectError:    "",
 		expectedSecret: "",
+		labels:         makeValidLabels(),
 		expectedData:   map[string][]byte{},
 	}
 	smtc.mockClient.NilClose()
 	smtc.mockClient.WithValue(context.Background(), smtc.apiInput, smtc.apiOutput, smtc.apiErr)
+	smtc.mockClient.WithLabels(context.Background(), &secretmanagerpb.GetSecretRequest{}, smtc.labels, smtc.apiErr)
 	return &smtc
+}
+
+func makeValidLabels() map[string]string {
+	return map[string]string{"name-label": "test-value"}
 }
 
 func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
@@ -136,7 +143,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 				{"first": "Roger", "last": "Craig"},
 				{"first": "Jane", "last": "Murphy"}
 			]
-        }`)
+	    }`)
 		smtc.expectedSecret = "Tom"
 	}
 
@@ -156,7 +163,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 				{"first": "Roger", "last": "Craig"},
 				{"first": "Jane", "last": "Murphy"}
 			]
-        }`)
+	    }`)
 		smtc.expectedSecret = "Tom"
 	}
 
@@ -168,6 +175,40 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = "FOOBA!"
 	}
 
+	// good case: with a dot in the key name
+	getLabels := func(smtc *secretManagerTestCase) {
+		smtc.ref = &esv1beta1.ExternalSecretDataRemoteRef{
+			Key:            "/baz",
+			Version:        "default",
+			MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+		}
+		smtc.apiInput.Name = "projects/default/secrets//baz/versions/default"
+		// smtc.labels = map[string]string{"name-label": "test-value"}
+		smtc.expectedSecret = "{\"name-label\":\"test-value\"}"
+	}
+
+	getLabelsProperty := func(smtc *secretManagerTestCase) {
+		smtc.ref = &esv1beta1.ExternalSecretDataRemoteRef{
+			Key:            "/baz",
+			Version:        "default",
+			Property:       "name-label",
+			MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+		}
+		smtc.apiInput.Name = "projects/default/secrets//baz/versions/default"
+		// smtc.labels = map[string]string{"name-label": "test-value"}
+		smtc.expectedSecret = "test-value"
+	}
+
+	getLabelsWrongProperty := func(smtc *secretManagerTestCase) {
+		smtc.ref = &esv1beta1.ExternalSecretDataRemoteRef{
+			Key:            "/baz",
+			Version:        "default",
+			Property:       "something-different",
+			MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+		}
+		smtc.apiInput.Name = "projects/default/secrets//baz/versions/default"
+		smtc.expectError = "key something-different does not exist in secret /baz"
+	}
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCase(),
 		makeValidSecretManagerTestCaseCustom(setSecretString),
@@ -177,6 +218,9 @@ func TestSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setCustomRef),
 		makeValidSecretManagerTestCaseCustom(setDotRef),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
+		makeValidSecretManagerTestCaseCustom(getLabels),
+		makeValidSecretManagerTestCaseCustom(getLabelsProperty),
+		makeValidSecretManagerTestCaseCustom(getLabelsWrongProperty),
 	}
 
 	sm := Client{}

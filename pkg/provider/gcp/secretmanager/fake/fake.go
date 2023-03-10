@@ -189,3 +189,13 @@ func (mc *MockSMClient) WithValue(ctx context.Context, req *secretmanagerpb.Acce
 		}
 	}
 }
+func (mc *MockSMClient) WithLabels(ctx context.Context, req *secretmanagerpb.GetSecretRequest, labels map[string]string, err error) {
+	if mc != nil {
+		mc.GetSecretFn = func(paramCtx context.Context, paramReq *secretmanagerpb.GetSecretRequest, paramOpts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+			return &secretmanagerpb.Secret{
+				Labels: labels,
+			}, err
+		}
+
+	}
+}
