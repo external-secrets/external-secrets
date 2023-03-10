@@ -686,6 +686,8 @@ func GetTypedKey(data map[string]interface{}, key string) ([]byte, error) {
 		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
 	case json.Number:
 		return []byte(t.String()), nil
+	case []interface{}:
+		return json.Marshal(t)
 	case bool:
 		return []byte(strconv.FormatBool(t)), nil
 	case nil:
