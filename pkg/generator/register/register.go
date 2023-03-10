@@ -12,10 +12,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:revive
 package register
 
 // packages imported here are registered to the controller schema.
-//nolint:revive
 
 import (
 	_ "github.com/external-secrets/external-secrets/pkg/generator/acr"
