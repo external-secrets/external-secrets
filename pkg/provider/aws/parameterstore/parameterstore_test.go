@@ -28,6 +28,12 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakeps "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+)
+
+const (
+	errInvalidProperty = "key INVALPROP does not exist in secret"
+	invalidProp        = "INVALPROP"
 )
 
 type parameterstoreTestCase struct {
@@ -481,8 +487,8 @@ func TestGetSecret(t *testing.T) {
 	// bad case: extract property failure due to invalid json
 	setPropertyFail := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`------`)
-		pstc.remoteRef.Property = "INVALPROP"
-		pstc.expectError = "key INVALPROP does not exist in secret"
+		pstc.remoteRef.Property = invalidProp
+		pstc.expectError = errInvalidProperty
 	}
 
 	// bad case: parameter.Value may be nil but binary is set
@@ -498,6 +504,38 @@ func TestGetSecret(t *testing.T) {
 		pstc.expectError = "oh no"
 	}
 
+	// good case: metadata returned
+	setMetadataString := func(pstc *parameterstoreTestCase) {
+		pstc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		output := ssm.ListTagsForResourceOutput{
+			TagList: getTagSlice(),
+		}
+		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
+		pstc.expectedSecret, _ = util.ParameterTagsToJSONString(getTagSlice())
+	}
+
+	// good case: metadata property returned
+	setMetadataProperty := func(pstc *parameterstoreTestCase) {
+		pstc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		output := ssm.ListTagsForResourceOutput{
+			TagList: getTagSlice(),
+		}
+		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
+		pstc.remoteRef.Property = "tagname2"
+		pstc.expectedSecret = "tagvalue2"
+	}
+
+	// bad case: metadata property not found
+	setMetadataMissingProperty := func(pstc *parameterstoreTestCase) {
+		pstc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		output := ssm.ListTagsForResourceOutput{
+			TagList: getTagSlice(),
+		}
+		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
+		pstc.remoteRef.Property = invalidProp
+		pstc.expectError = errInvalidProperty
+	}
+
 	successCases := []*parameterstoreTestCase{
 		makeValidParameterStoreTestCaseCustom(setSecretString),
 		makeValidParameterStoreTestCaseCustom(setExtractProperty),
@@ -507,6 +545,9 @@ func TestGetSecret(t *testing.T) {
 		makeValidParameterStoreTestCaseCustom(setAPIError),
 		makeValidParameterStoreTestCaseCustom(setExtractPropertyWithDot),
 		makeValidParameterStoreTestCaseCustom(setParameterValueNotFound),
+		makeValidParameterStoreTestCaseCustom(setMetadataString),
+		makeValidParameterStoreTestCaseCustom(setMetadataProperty),
+		makeValidParameterStoreTestCaseCustom(setMetadataMissingProperty),
 	}
 
 	ps := ParameterStore{}
@@ -594,4 +635,22 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func getTagSlice() []*ssm.Tag {
+	tagKey1 := "tagname1"
+	tagValue1 := "tagvalue1"
+	tagKey2 := "tagname2"
+	tagValue2 := "tagvalue2"
+
+	return []*ssm.Tag{
+		{
+			Key:   &tagKey1,
+			Value: &tagValue1,
+		},
+		{
+			Key:   &tagKey2,
+			Value: &tagValue2,
+		},
+	}
 }

@@ -14,7 +14,11 @@ limitations under the License.
 package util
 
 import (
+	"encoding/json"
 	"fmt"
+
+	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/ssm"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -58,4 +62,32 @@ func IsReferentSpec(prov esv1beta1.AWSAuth) bool {
 	}
 
 	return false
+}
+
+func SecretTagsToJSONString(tags []*awssm.Tag) (string, error) {
+	tagMap := make(map[string]string, len(tags))
+	for _, tag := range tags {
+		tagMap[*tag.Key] = *tag.Value
+	}
+
+	byteArr, err := json.Marshal(tagMap)
+	if err != nil {
+		return "", err
+	}
+
+	return string(byteArr), nil
+}
+
+func ParameterTagsToJSONString(tags []*ssm.Tag) (string, error) {
+	tagMap := make(map[string]string, len(tags))
+	for _, tag := range tags {
+		tagMap[*tag.Key] = *tag.Value
+	}
+
+	byteArr, err := json.Marshal(tagMap)
+	if err != nil {
+		return "", err
+	}
+
+	return string(byteArr), nil
 }
