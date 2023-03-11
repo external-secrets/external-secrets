@@ -42,7 +42,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/akeylesslabs/akeyless-go/v2 v2.20.3
+	github.com/akeylesslabs/akeyless-go/v3 v3.2.6
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.217
 	github.com/argoproj/argo-cd/v2 v2.4.8
 	github.com/aws/aws-sdk-go v1.44.214

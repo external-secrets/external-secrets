@@ -27,7 +27,7 @@ import (
 	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
 	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
 	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
-	"github.com/akeylesslabs/akeyless-go/v2"
+	"github.com/akeylesslabs/akeyless-go/v3"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,8 +79,8 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 	return token, nil
 }
 
-func (a *akeylessBase) GetSecretByType(secretName, token string, version int32) (string, error) {
-	item, err := a.DescribeItem(secretName, token)
+func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName, token string, version int32) (string, error) {
+	item, err := a.DescribeItem(ctx, secretName, token)
 	if err != nil {
 		return "", err
 	}
@@ -88,19 +88,17 @@ func (a *akeylessBase) GetSecretByType(secretName, token string, version int32) 
 
 	switch secretType {
 	case "STATIC_SECRET":
-		return a.GetStaticSecret(secretName, token, version)
+		return a.GetStaticSecret(ctx, secretName, token, version)
 	case "DYNAMIC_SECRET":
-		return a.GetDynamicSecrets(secretName, token)
+		return a.GetDynamicSecrets(ctx, secretName, token)
 	case "ROTATED_SECRET":
-		return a.GetRotatedSecrets(secretName, token, version)
+		return a.GetRotatedSecrets(ctx, secretName, token, version)
 	default:
 		return "", fmt.Errorf("invalid item type: %v", secretType)
 	}
 }
 
-func (a *akeylessBase) DescribeItem(itemName, token string) (*akeyless.Item, error) {
-	ctx := context.Background()
-
+func (a *akeylessBase) DescribeItem(ctx context.Context, itemName, token string) (*akeyless.Item, error) {
 	body := akeyless.DescribeItem{
 		Name: itemName,
 	}
@@ -116,14 +114,12 @@ func (a *akeylessBase) DescribeItem(itemName, token string) (*akeyless.Item, err
 		}
 		return nil, fmt.Errorf("can't describe item: %w", err)
 	}
-	res.Body.Close()
+	defer res.Body.Close()
 
 	return &gsvOut, nil
 }
 
-func (a *akeylessBase) GetRotatedSecrets(secretName, token string, version int32) (string, error) {
-	ctx := context.Background()
-
+func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName, token string, version int32) (string, error) {
 	body := akeyless.GetRotatedSecretValue{
 		Names:   secretName,
 		Version: &version,
@@ -141,7 +137,7 @@ func (a *akeylessBase) GetRotatedSecrets(secretName, token string, version int32
 		}
 		return "", fmt.Errorf("can't get rotated secret value: %w", err)
 	}
-	res.Body.Close()
+	defer res.Body.Close()
 
 	valI, ok := gsvOut["value"]
 	if ok {
@@ -172,9 +168,7 @@ func (a *akeylessBase) GetRotatedSecrets(secretName, token string, version int32
 	return string(out), nil
 }
 
-func (a *akeylessBase) GetDynamicSecrets(secretName, token string) (string, error) {
-	ctx := context.Background()
-
+func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName, token string) (string, error) {
 	body := akeyless.GetDynamicSecretValue{
 		Name: secretName,
 	}
@@ -191,7 +185,7 @@ func (a *akeylessBase) GetDynamicSecrets(secretName, token string) (string, erro
 		}
 		return "", fmt.Errorf("can't get dynamic secret value: %w", err)
 	}
-	res.Body.Close()
+	defer res.Body.Close()
 
 	out, err := json.Marshal(gsvOut)
 	if err != nil {
@@ -201,9 +195,7 @@ func (a *akeylessBase) GetDynamicSecrets(secretName, token string) (string, erro
 	return string(out), nil
 }
 
-func (a *akeylessBase) GetStaticSecret(secretName, token string, version int32) (string, error) {
-	ctx := context.Background()
-
+func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName, token string, version int32) (string, error) {
 	gsvBody := akeyless.GetSecretValue{
 		Names:   []string{secretName},
 		Version: &version,
@@ -222,7 +214,7 @@ func (a *akeylessBase) GetStaticSecret(secretName, token string, version int32) 
 		}
 		return "", fmt.Errorf("can't get secret value: %w", err)
 	}
-	res.Body.Close()
+	defer res.Body.Close()
 	val, ok := gsvOut[secretName]
 	if !ok {
 		return "", fmt.Errorf("can't get secret: %v", secretName)
@@ -248,30 +240,72 @@ func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error)
 	return cloudID, err
 }
 
+func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag, token string) ([]string, error) {
+	secretTypes := &[]string{"static-secret", "dynamic-secret", "rotated-secret"}
+	MinimalView := true
+	if tag != "" {
+		MinimalView = false
+	}
+	gsvBody := akeyless.ListItems{
+		Filter:      &path,
+		Type:        secretTypes,
+		MinimalView: &MinimalView,
+		Tag:         &tag,
+	}
+
+	if strings.HasPrefix(token, "u-") {
+		gsvBody.UidToken = &token
+	} else {
+		gsvBody.Token = &token
+	}
+
+	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(gsvBody).Execute()
+	if err != nil {
+		if errors.As(err, &apiErr) {
+			return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
+		}
+		return nil, fmt.Errorf("error on get secrets list: %w", err)
+	}
+	defer res.Body.Close()
+	if lipOut.Items == nil {
+		return nil, nil
+	}
+
+	listNames := make([]string, 0)
+	for _, v := range *lipOut.Items {
+		if path == "" || strings.HasPrefix(*v.ItemName, path) {
+			listNames = append(listNames, *v.ItemName)
+		}
+	}
+	return listNames, nil
+}
+
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
-	if kubernetesAuth != nil && kubernetesAuth.ServiceAccountRef != nil {
-		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
-		jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
-		if jwt != "" {
-			return jwt, err
+	if kubernetesAuth != nil {
+		if kubernetesAuth.ServiceAccountRef != nil {
+			// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
+			jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+			if jwt != "" {
+				return jwt, err
+			}
+			// Kubernetes >=v1.24: fetch token via TokenRequest API
+			jwt, err = a.getJWTfromServiceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
+			if err != nil {
+				return "", err
+			}
+			return jwt, nil
+		} else if kubernetesAuth.SecretRef != nil {
+			tokenRef := kubernetesAuth.SecretRef
+			if tokenRef.Key == "" {
+				tokenRef = kubernetesAuth.SecretRef.DeepCopy()
+				tokenRef.Key = "token"
+			}
+			jwt, err := a.secretKeyRef(ctx, tokenRef)
+			if err != nil {
+				return "", err
+			}
+			return jwt, nil
 		}
-		// Kubernetes >=v1.24: fetch token via TokenRequest API
-		jwt, err = a.getJWTfromServiceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
-		if err != nil {
-			return "", err
-		}
-		return jwt, nil
-	} else if kubernetesAuth != nil && kubernetesAuth.SecretRef != nil {
-		tokenRef := kubernetesAuth.SecretRef
-		if tokenRef.Key == "" {
-			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
-			tokenRef.Key = "token"
-		}
-		jwt, err := a.secretKeyRef(ctx, tokenRef)
-		if err != nil {
-			return "", err
-		}
-		return jwt, nil
 	}
 	return readK8SServiceAccountJWT()
 }
@@ -282,7 +316,7 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 		Namespace: a.namespace,
 		Name:      serviceAccountRef.Name,
 	}
-	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		ref.Namespace = *serviceAccountRef.Namespace
 	}
@@ -314,7 +348,7 @@ func (a *akeylessBase) secretKeyRef(ctx context.Context, secretRef *esmeta.Secre
 		Namespace: a.namespace,
 		Name:      secretRef.Name,
 	}
-	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(secretRef.Namespace != nil) {
 		ref.Namespace = *secretRef.Namespace
 	}
@@ -347,7 +381,7 @@ func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, servic
 			ExpirationSeconds: &expirationSeconds,
 		},
 	}
-	if (a.store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind) &&
+	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		tokenRequest.Namespace = *serviceAccountRef.Namespace
 	}
