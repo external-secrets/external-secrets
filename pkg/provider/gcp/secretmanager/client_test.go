@@ -206,7 +206,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:            "bar",
 				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
-				Property:       "annotations/managed-by",
+				Property:       "annotations.managed-by",
 			},
 			getSecretMockReturn: fakesm.GetSecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
@@ -224,7 +224,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:            "bar",
 				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
-				Property:       "labels/managed-by",
+				Property:       "labels.managed-by",
 			},
 			getSecretMockReturn: fakesm.GetSecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
@@ -262,7 +262,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:            "bar",
 				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
-				Property:       "annotations/unknown",
+				Property:       "annotations.unknown",
 			},
 			getSecretMockReturn: fakesm.GetSecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
@@ -280,7 +280,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:            "bar",
 				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
-				Property:       "labels/unknown",
+				Property:       "labels.unknown",
 			},
 			getSecretMockReturn: fakesm.GetSecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
@@ -298,7 +298,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:            "bar",
 				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
-				Property:       "invalid/managed-by",
+				Property:       "invalid.managed-by",
 			},
 			getSecretMockReturn: fakesm.GetSecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
@@ -309,7 +309,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 				},
 				Err: nil,
 			},
-			expectedErr: "invalid property invalid/managed-by",
+			expectedErr: "invalid property invalid.managed-by",
 		},
 	}
 

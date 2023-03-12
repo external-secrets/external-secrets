@@ -393,8 +393,8 @@ func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSe
 	}
 
 	const (
-		annotations = "annotations/"
-		labels      = "labels/"
+		annotations = "annotations."
+		labels      = "labels."
 	)
 
 	extractMetadataKey := func(s string, p string) string {
