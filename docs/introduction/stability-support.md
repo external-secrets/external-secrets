@@ -46,12 +46,12 @@ The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
 |---------------------------|:------------:|:------------:| :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------:
-| AWS Secrets Manager       |      x       |      x       |                      |            x            |        x         |     x       |            x                |
-| AWS Parameter Store       |      x       |      x       |                      |            x            |        x         |     x       |            x                |
-| Hashicorp Vault           |      x       |      x       |                      |            x            |        x         |     x       |            x                |
+| AWS Secrets Manager       |      x       |      x       |         x            |            x            |        x         |     x       |            x                |
+| AWS Parameter Store       |      x       |      x       |         x            |            x            |        x         |     x       |            x                |
+| Hashicorp Vault           |      x       |      x       |         x            |            x            |        x         |     x       |            x                |
 | GCP Secret Manager        |      x       |      x       |                      |            x            |        x         |     x       |            x                |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |     x       |            x                |
-| Kubernetes                |      x       |      x       |                      |            x            |        x         |     x       |            x                |
+| Kubernetes                |      x       |      x       |          x           |            x            |        x         |     x       |            x                |
 | IBM Cloud Secrets Manager |              |              |                      |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | Gitlab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
