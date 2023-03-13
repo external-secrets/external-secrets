@@ -30,7 +30,7 @@ The following table describes the stability level of each provider and who's res
 | [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                  |  stable   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
 | [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                             |  stable   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
 | [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)              |  stable   | [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta) [@IdanAdar](https://github.com/IdanAdar) |
-| [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |   beta    |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
+| [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |   alpha   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
 | [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              |   alpha   |                                                                                     [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
 | [Gitlab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          |   alpha   |                                                                                                                                                  [@Jabray5](https://github.com/Jabray5) |
 | Alibaba Cloud KMS                                                                                          |   alpha   |                                                                                                                                          [@ElsaChelala](https://github.com/ElsaChelala) |
@@ -40,7 +40,6 @@ The following table describes the stability level of each provider and who's res
 | [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                     |   alpha   |                                                                                                                                                  [@willemm](https://github.com/willemm) |
 | [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider/senhasegura-dsm) |   alpha   |                                                                                                                                                    [@lfraga](https://github.com/lfraga) |
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |   alpha   |                                                                                         [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/) |
-| [Keeper Security](https://www.keepersecurity.com/)                                                         |   alpha   |                                                                                                                                              [@ppodevlab](https://github.com/ppodevlab) |
 
 ## Provider Feature Support
 
@@ -64,7 +63,6 @@ The following table show the support for features across different providers.
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
-| Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 
 ## Support Policy
 
