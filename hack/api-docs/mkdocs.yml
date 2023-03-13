@@ -78,6 +78,7 @@ nav:
     - Rewriting Keys: guides/datafrom-rewrite.md
     - Upgrading to v1beta1: guides/v1beta1.md
     - Using Latest Image: guides/using-latest-image.md
+    - Disable Cluster Features: guides/disable-cluster-features.md
   - Provider:
     - AWS Secrets Manager: provider/aws-secrets-manager.md
     - AWS Parameter Store: provider/aws-parameter-store.md
