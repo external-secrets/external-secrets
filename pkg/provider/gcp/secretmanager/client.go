@@ -319,7 +319,6 @@ func (c *Client) extractProjectIDNumber(secretFullName string) string {
 }
 
 // GetSecret returns a single secret from the provider.
-// entrypoint to get metadata for secret (labels)
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(c.smClient) || c.store.ProjectID == "" {
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
