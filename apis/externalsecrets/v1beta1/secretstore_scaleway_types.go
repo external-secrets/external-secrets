@@ -33,8 +33,10 @@ type ScalewayProvider struct {
 	// +optional
 	APIURL string `json:"apiUrl,omitempty"`
 
+	// Region where your secrets are located: https://developers.scaleway.com/en/quickstart/#region-and-zone
 	Region string `json:"region"`
 
+	// ProjectID is the id of your project, which you can find in the console: https://console.scaleway.com/project/settings
 	ProjectID string `json:"projectId"`
 
 	// AccessKey is the non-secret part of the api key.

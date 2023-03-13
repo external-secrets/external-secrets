@@ -3991,6 +3991,7 @@ string
 </em>
 </td>
 <td>
+<p>Region where your secrets are located: <a href="https://developers.scaleway.com/en/quickstart/#region-and-zone">https://developers.scaleway.com/en/quickstart/#region-and-zone</a></p>
 </td>
 </tr>
 <tr>
@@ -4001,6 +4002,7 @@ string
 </em>
 </td>
 <td>
+<p>ProjectID is the id of your project, which you can find in the console: <a href="https://console.scaleway.com/project/settings">https://console.scaleway.com/project/settings</a></p>
 </td>
 </tr>
 <tr>
