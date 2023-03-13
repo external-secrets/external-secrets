@@ -33,12 +33,9 @@ import (
 )
 
 const (
-	customBaseURLEnvVar                                = "DOPPLER_BASE_URL"
-	verifyTLSOverrideEnvVar                            = "DOPPLER_VERIFY_TLS"
 	errGetSecret                                       = "could not get secret %s: %s"
 	errGetSecrets                                      = "could not get secrets %s"
 	errUnmarshalSecretMap                              = "unable to unmarshal secret %s: %w"
-	secretsDownloadFileKey                             = "DOPPLER_SECRETS_FILE"
 	errOnboardbaseAPIKeySecretName                          = "missing auth.secretRef.onboardbaseAPIKey.name"
 	errInvalidClusterStoreMissingOnboardbaseAPIKeyNamespace = "missing auth.secretRef.onboardbaseAPIKey.namespace"
 	errFetchOnboardbaseAPIKeySecret                         = "unable to find find OnboardbaseAPIKey secret: %w"
@@ -58,7 +55,7 @@ type Client struct {
 	storeKind string
 }
 
-// SecretsClientInterface defines the required Doppler Client methods.
+// SecretsClientInterface defines the required Onboardbase Client methods.
 type SecretsClientInterface interface {
 	BaseURL() *url.URL
 	Authenticate() error
