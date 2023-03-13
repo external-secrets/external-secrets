@@ -522,6 +522,9 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 		}
 		if match {
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if errors.Is(err, esv1beta1.NoSecretError{}) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -543,6 +546,9 @@ func (v *client) findSecretsFromName(ctx context.Context, candidates []string, r
 		ok := matcher.MatchName(name)
 		if ok {
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if errors.Is(err, esv1beta1.NoSecretError{}) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -899,7 +905,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			return nil, errors.New(errDataField)
 		}
 		if dataInt == nil {
-			return nil, nil
+			return nil, esv1beta1.NoSecretError{}
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {

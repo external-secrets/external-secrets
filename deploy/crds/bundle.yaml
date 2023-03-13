@@ -293,6 +293,9 @@ spec:
                             engineVersion:
                               default: v2
                               type: string
+                            mergePolicy:
+                              default: Replace
+                              type: string
                             metadata:
                               description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
                               properties:
@@ -3491,6 +3494,9 @@ spec:
                           type: object
                         engineVersion:
                           default: v2
+                          type: string
+                        mergePolicy:
+                          default: Replace
                           type: string
                         metadata:
                           description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.

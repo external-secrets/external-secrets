@@ -155,6 +155,12 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 		secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 		return nil
 	}
+	// Merge Policy should merge secrets
+	if es.Spec.Target.Template.MergePolicy == esv1beta1.MergePolicyMerge {
+		for k, v := range dataMap {
+			secret.Data[k] = v
+		}
+	}
 	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
 	if err != nil {
 		return err
