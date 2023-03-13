@@ -17,8 +17,6 @@ package onboardbase
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -95,19 +93,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	onboardbase, err := dClient.NewOnboardbaseClient(client.onboardbaseAPIKey, client.onboardbasePasscode)
 	if err != nil {
 		return nil, fmt.Errorf(errNewClient, err)
-	}
-
-	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
-		if err := onboardbase.SetBaseURL(customBaseURL); err != nil {
-			return nil, fmt.Errorf(errNewClient, err)
-		}
-	}
-
-	if customVerifyTLS, found := os.LookupEnv(verifyTLSOverrideEnvVar); found {
-		customVerifyTLS, err := strconv.ParseBool(customVerifyTLS)
-		if err == nil {
-			onboardbase.VerifyTLS = customVerifyTLS
-		}
 	}
 
 	client.onboardbase = onboardbase
