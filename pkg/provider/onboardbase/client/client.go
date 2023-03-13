@@ -34,6 +34,7 @@ type OnboardbaseClient struct {
 	VerifyTLS    bool
 	UserAgent    string
 	OnboardbasePassCode string
+	httpClient *http.Client
 }
 
 type queryParams map[string]string
@@ -113,12 +114,26 @@ type SecretsResponse struct {
 }
 
 func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*OnboardbaseClient, error) {
+
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	httpTransport := &http.Transport{
+		DisableKeepAlives: true,
+		TLSClientConfig:   tlsConfig,
+	}
 	client := &OnboardbaseClient{
 		OnboardbaseAPIKey: onboardbaseAPIKey,
 		OnboardbasePassCode: onboardbasePasscode,
 		VerifyTLS:    true,
 		UserAgent:    "onboardbase-external-secrets",
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: httpTransport,
+		},
 	}
+
 
 	if err := client.SetBaseURL("https://public.onboardbase.com/api/v1/"); err != nil {
 		return nil, &APIError{Err: err, Message: "setting base URL failed"}
@@ -282,22 +297,7 @@ func (c *OnboardbaseClient) performRequest(path, method string, headers headers,
 	}
 	req.URL.RawQuery = query.Encode()
 
-	httpClient := &http.Client{Timeout: 10 * time.Second}
-
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-
-	if !c.VerifyTLS {
-		tlsConfig.InsecureSkipVerify = true
-	}
-
-	httpClient.Transport = &http.Transport{
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsConfig,
-	}
-
-	r, err := httpClient.Do(req)
+	r, err := c.httpClient.Do(req)
 
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "unable to load response"}
