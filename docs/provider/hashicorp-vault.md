@@ -72,6 +72,20 @@ spec:
     remoteRef:
       key: foo
       property: my-value
+
+  # metadataPolicy to fetch all the labels in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: foo
+
+  # metadataPolicy to fetch a specific label (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: foo
+      property: dev
+
 ---
 # will create a secret with:
 kind: Secret
@@ -80,6 +94,8 @@ metadata:
 data:
   foobar: czNjcjN0
 ```
+
+Keep in mind that fetching the labels with `metadataPolicy: Fetch` only works with KV sercrets engine version v2.
 
 #### Fetching Raw Values
 
