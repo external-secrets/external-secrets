@@ -658,6 +658,8 @@
         
           
         
+          
+        
       
       
         
@@ -716,6 +718,20 @@
     <li class="md-nav__item">
       <a href="../../api/generator/gcr/" class="md-nav__link">
         Google Container Registry
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/vault/" class="md-nav__link">
+        Vault Dynamic Secret
       </a>
     </li>
   
@@ -2166,9 +2182,10 @@
 
 <p><img alt="HCP Vault" src="../../pictures/diagrams-provider-vault.png" /></p>
 <h2 id="hashicorp-vault">Hashicorp Vault</h2>
-<p>External Secrets Operator integrates with <a href="https://www.vaultproject.io/">HashiCorp Vault</a> for secret
-management. Vault itself implements lots of different secret engines, as of now we only support the
-<a href="https://www.vaultproject.io/docs/secrets/kv">KV Secrets Engine</a>.</p>
+<p>External Secrets Operator integrates with <a href="https://www.vaultproject.io/">HashiCorp Vault</a> for secret management.</p>
+<p>The <a href="https://www.vaultproject.io/docs/secrets/kv">KV Secrets Engine</a> is the only
+one supported by this provider. For other secrets engines, please refer to the
+<a href="../../api/generator/vault/">Vault Generator</a>.</p>
 <h3 id="example">Example</h3>
 <p>First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token <code>root</code>:</p>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
@@ -2672,8 +2689,8 @@ be explicitly enabled in the server's <a href="https://www.vaultproject.io/docs/
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      &copy; 2022 The external-secrets Authors.<br/>
-&copy; 2022 The Linux Foundation. All rights reserved.<br/><br/>
+      &copy; 2023 The external-secrets Authors.<br/>
+&copy; 2023 The Linux Foundation. All rights reserved.<br/><br/>
 The Linux Foundation has registered trademarks and uses trademarks.<br/>
 For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 
