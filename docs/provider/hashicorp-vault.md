@@ -2,9 +2,11 @@
 
 ## Hashicorp Vault
 
-External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret
-management. Vault itself implements lots of different secret engines, as of now we only support the
-[KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv).
+External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret management.
+
+The [KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv) is the only
+one supported by this provider. For other secrets engines, please refer to the
+[Vault Generator](../api/generator/vault.md).
 
 ### Example
 
