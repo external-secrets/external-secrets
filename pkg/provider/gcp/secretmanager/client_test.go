@@ -183,7 +183,6 @@ func TestSecretManagerGetSecret(t *testing.T) {
 			MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
 		}
 		smtc.apiInput.Name = "projects/default/secrets//baz/versions/default"
-		// smtc.labels = map[string]string{"name-label": "test-value"}
 		smtc.expectedSecret = "{\"name-label\":\"test-value\"}"
 	}
 
@@ -195,7 +194,6 @@ func TestSecretManagerGetSecret(t *testing.T) {
 			MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
 		}
 		smtc.apiInput.Name = "projects/default/secrets//baz/versions/default"
-		// smtc.labels = map[string]string{"name-label": "test-value"}
 		smtc.expectedSecret = "test-value"
 	}
 
