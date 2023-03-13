@@ -2098,6 +2098,19 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">friendslist</span><span class="w"></span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">friends.1.first</span><span class="w"> </span><span class="c1"># Roger</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># metadataPolicy to fetch all the labels in JSON format</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tags</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># metadataPolicy to fetch a specific label (dev) from the source secret</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">developer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span><span class="w"></span>
 </code></pre></div>
 <h3 id="secret-versions">Secret Versions</h3>
 <p>SecretsManager creates a new version of a secret every time it is updated. The secret version can be reference in two ways, the <code>VersionStage</code> and the <code>VersionId</code>. The <code>VersionId</code> is a unique uuid which is generated every time the secret changes. This id is immutable and will always refer to the same secret data. The <code>VersionStage</code> is an alias to a <code>VersionId</code>, and can refer to different secret data as the secret is updated. By default, SecretsManager will add the version stages <code>AWSCURRENT</code> and <code>AWSPREVIOUS</code> to every secret, but other stages can be created via the <a href="https://docs.aws.amazon.com/cli/latest/reference/secretsmanager/update-secret-version-stage.html">update-secret-version-stage</a> api.</p>
