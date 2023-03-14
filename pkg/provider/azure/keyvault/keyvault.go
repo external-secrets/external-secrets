@@ -124,7 +124,7 @@ func init() {
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (a *Azure) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+	return esv1beta1.SecretStoreReadWrite
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -309,15 +309,31 @@ func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemote
 }
 
 func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
+	// 1st: try decode pkcs12
 	_, localCert, err := pkcs12.Decode(value, "")
-	if err != nil {
-		pemBlock, _ := pem.Decode(value)
-		if pemBlock == nil {
-			return x509.ParseCertificate(value)
-		}
-		return x509.ParseCertificate(pemBlock.Bytes)
+	if err == nil {
+		return localCert, nil
 	}
-	return localCert, err
+
+	// 2nd: try DER
+	localCert, err = x509.ParseCertificate(value)
+	if err == nil {
+		return localCert, nil
+	}
+
+	// 3nd: parse PEM blocks
+	for {
+		block, rest := pem.Decode(value)
+		value = rest
+		if block == nil {
+			break
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err == nil {
+			return cert, nil
+		}
+	}
+	return nil, fmt.Errorf("could not parse certificate value as PKCS#12, DER or PEM")
 }
 
 func getKeyFromValue(value []byte) (interface{}, error) {
@@ -818,9 +834,7 @@ func NewTokenProvider(ctx context.Context, token, clientID, tenantID, aadEndpoin
 	cred := confidential.NewCredFromAssertionCallback(func(ctx context.Context, aro confidential.AssertionRequestOptions) (string, error) {
 		return token, nil
 	})
-	cClient, err := confidential.New(clientID, cred, confidential.WithAuthority(
-		fmt.Sprintf("%s%s/oauth2/token", aadEndpoint, tenantID),
-	))
+	cClient, err := confidential.New(fmt.Sprintf("%s%s/oauth2/token", aadEndpoint, tenantID), clientID, cred)
 	if err != nil {
 		return nil, err
 	}

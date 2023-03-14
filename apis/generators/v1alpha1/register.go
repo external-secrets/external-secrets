@@ -76,10 +76,19 @@ var (
 	FakeGroupVersionKind = SchemeGroupVersion.WithKind(FakeKind)
 )
 
+// Vault type metadata.
+var (
+	VaultDynamicSecretKind             = reflect.TypeOf(VaultDynamicSecret{}).Name()
+	VaultDynamicSecretGroupKind        = schema.GroupKind{Group: Group, Kind: VaultDynamicSecretKind}.String()
+	VaultDynamicSecretKindAPIVersion   = VaultDynamicSecretKind + "." + SchemeGroupVersion.String()
+	VaultDynamicSecretGroupVersionKind = SchemeGroupVersion.WithKind(VaultDynamicSecretKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
+	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
 }

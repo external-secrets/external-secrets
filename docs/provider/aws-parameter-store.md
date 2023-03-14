@@ -73,6 +73,18 @@ spec:
       key: friendslist
       property: friends.1.first # Roger
 
+  # metadataPolicy to fetch all the tags in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: database-credentials
+
+  # metadataPolicy to fetch a specific tag (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: database-credentials
+      property: dev
 ```
 ### Parameter Versions
 
