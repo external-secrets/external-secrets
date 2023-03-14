@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/tidwall/gjson"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -36,11 +37,21 @@ const (
 )
 
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	secretMap, err := c.GetSecretMap(ctx, ref)
+	secret, err := c.userSecretClient.Get(ctx, ref.Key, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	byteArr, err := getSecretValues(secretMap, ref.MetadataPolicy)
+	var values map[string][]byte
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		values, err = getSecretMetadata(secret)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		values = secret.Data
+	}
+
+	byteArr, err := getSecretValues(values, ref.MetadataPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -108,19 +119,43 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	if err != nil {
 		return nil, err
 	}
+	var tmpMap map[string][]byte
 	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-		retData := make(map[string][]byte)
-		retData[metaLabels], err = json.Marshal(secret.ObjectMeta.Labels)
+		tmpMap, err = getSecretMetadata(secret)
 		if err != nil {
 			return nil, err
 		}
-		retData[metaAnnotations], err = json.Marshal(secret.ObjectMeta.Annotations)
-		if err != nil {
-			return nil, err
-		}
-		return retData, nil
+	} else {
+		tmpMap = secret.Data
 	}
-	return secret.Data, nil
+
+	if ref.Property != "" {
+		for key := range tmpMap {
+			if key != ref.Property {
+				delete(tmpMap, key)
+			}
+		}
+		if len(tmpMap) == 0 {
+			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+		}
+	}
+
+	return tmpMap, nil
+}
+
+func getSecretMetadata(secret *v1.Secret) (map[string][]byte, error) {
+	var err error
+	tmpMap := make(map[string][]byte)
+	tmpMap[metaLabels], err = json.Marshal(secret.ObjectMeta.Labels)
+	if err != nil {
+		return nil, err
+	}
+	tmpMap[metaAnnotations], err = json.Marshal(secret.ObjectMeta.Annotations)
+	if err != nil {
+		return nil, err
+	}
+
+	return tmpMap, nil
 }
 
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
