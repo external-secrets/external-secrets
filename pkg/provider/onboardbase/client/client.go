@@ -175,7 +175,10 @@ func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (
 	kv := make(map[string]string)
 	for _, secret := range data.Secrets {
 		passphrase := c.OnboardbasePassCode
-		decrypted := aesdecrypt.Run(secret, passphrase)
+		decrypted, err := aesdecrypt.Run(secret, passphrase)
+		if err != nil {
+			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret}
+		}
 		var decryptedJSON RawSecret
 		if err := json.Unmarshal([]byte(decrypted), &decryptedJSON); err != nil {
 		    return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: decrypted}
