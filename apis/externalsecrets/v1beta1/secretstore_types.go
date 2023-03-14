@@ -125,7 +125,7 @@ type SecretStoreProvider struct {
 	// +optional
 	Doppler *DopplerProvider `json:"doppler,omitempty"`
 
-	// Doppler configures this store to sync secrets using the Doppler provider
+	// Onboardbase configures this store to sync secrets using the Onboardbase provider
 	// +optional
 	Onboardbase *OnboardbaseProvider `json:"onboardbase,omitempty"`
 

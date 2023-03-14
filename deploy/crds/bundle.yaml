@@ -2362,7 +2362,7 @@ spec:
                         - auth
                       type: object
                     onboardbase:
-                      description: Doppler configures this store to sync secrets using the Doppler provider
+                      description: Onboardbase configures this store to sync secrets using the Onboardbase provider
                       properties:
                         auth:
                           description: Auth configures how the Operator authenticates with the Onboardbase API
@@ -5778,7 +5778,7 @@ spec:
                         - auth
                       type: object
                     onboardbase:
-                      description: Doppler configures this store to sync secrets using the Doppler provider
+                      description: Onboardbase configures this store to sync secrets using the Onboardbase provider
                       properties:
                         auth:
                           description: Auth configures how the Operator authenticates with the Onboardbase API

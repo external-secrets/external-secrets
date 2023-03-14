@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+echo "${SCRIPT_DIR}"
 BUNDLE_DIR="${1}"
 CRD_DIR="${2}"
 BUNDLE_YAML="${BUNDLE_DIR}/bundle.yaml"
