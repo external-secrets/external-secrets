@@ -2,9 +2,11 @@
 
 ## Hashicorp Vault
 
-External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret
-management. Vault itself implements lots of different secret engines, as of now we only support the
-[KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv).
+External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret management.
+
+The [KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv) is the only
+one supported by this provider. For other secrets engines, please refer to the
+[Vault Generator](../api/generator/vault.md).
 
 ### Example
 
@@ -72,6 +74,20 @@ spec:
     remoteRef:
       key: foo
       property: my-value
+
+  # metadataPolicy to fetch all the labels in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: foo
+
+  # metadataPolicy to fetch a specific label (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: foo
+      property: dev
+
 ---
 # will create a secret with:
 kind: Secret
@@ -80,6 +96,8 @@ metadata:
 data:
   foobar: czNjcjN0
 ```
+
+Keep in mind that fetching the labels with `metadataPolicy: Fetch` only works with KV sercrets engine version v2.
 
 #### Fetching Raw Values
 

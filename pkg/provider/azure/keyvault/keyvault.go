@@ -124,7 +124,7 @@ func init() {
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (a *Azure) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+	return esv1beta1.SecretStoreReadWrite
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -834,9 +834,7 @@ func NewTokenProvider(ctx context.Context, token, clientID, tenantID, aadEndpoin
 	cred := confidential.NewCredFromAssertionCallback(func(ctx context.Context, aro confidential.AssertionRequestOptions) (string, error) {
 		return token, nil
 	})
-	cClient, err := confidential.New(clientID, cred, confidential.WithAuthority(
-		fmt.Sprintf("%s%s/oauth2/token", aadEndpoint, tenantID),
-	))
+	cClient, err := confidential.New(fmt.Sprintf("%s%s/oauth2/token", aadEndpoint, tenantID), clientID, cred)
 	if err != nil {
 		return nil, err
 	}
