@@ -57,28 +57,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	onboardbaseStoreSpec := storeSpec.Provider.Onboardbase
 
-	// Default Key to onboardbaseToken if not specified
-	if onboardbaseStoreSpec.Auth.OnboardbaseAPIKey.Key == "" {
-		storeSpec.Provider.Onboardbase.Auth.OnboardbaseAPIKey.Key = "onboardbaseToken"
-	}
-
-	// Default Key to onboardbaseToken if not specified
-	if onboardbaseStoreSpec.Auth.OnboardbasePasscode.Key == "" {
-		storeSpec.Provider.Onboardbase.Auth.OnboardbasePasscode.Key = "onboardbasePasscode"
-	}
-
-
-	// Default Key to onboardbaseToken if not specified
-	if onboardbaseStoreSpec.Environment == "" {
-		storeSpec.Provider.Onboardbase.Environment = "development"
-	}
-
-
-	// Default Key to onboardbaseProject if not specified
-	if onboardbaseStoreSpec.Project == "" {
-		storeSpec.Provider.Onboardbase.Project = "test"
-	}
-
 	client := &Client{
 		kube:      kube,
 		store:     onboardbaseStoreSpec,
