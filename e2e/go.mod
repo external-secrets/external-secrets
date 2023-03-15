@@ -55,13 +55,13 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.1
 	github.com/onsi/gomega v1.27.3
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
+	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13.0.20230227165516-144b3e06ecf2
 	github.com/xanzy/go-gitlab v0.81.0
 	golang.org/x/oauth2 v0.6.0
 	google.golang.org/api v0.112.0
 	k8s.io/api v0.26.2
 	k8s.io/apiextensions-apiserver v0.26.2
 	k8s.io/apimachinery v0.26.2
-	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13.0.20230227165516-144b3e06ecf2
 	k8s.io/client-go v1.5.2
 	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749
 	sigs.k8s.io/controller-runtime v0.14.5

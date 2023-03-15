@@ -507,12 +507,6 @@ github.com/rwtodd/Go.Sed v0.0.0-20210816025313-55464686f9ef/go.mod h1:8AEUvGVi2u
 github.com/ryanuber/columnize v2.1.0+incompatible/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
 github.com/ryanuber/go-glob v1.0.0 h1:iQh3xXAumdQ+4Ufa5b25cRpC5TYKlno6hsv6Cb3pkBk=
 github.com/ryanuber/go-glob v1.0.0/go.mod h1:807d1WSdnB0XRJzKNil9Om6lcp/3a0v4qIHxIXzX/Yc=
-github.com/scaleway/scaleway-sdk-go v1.0.0-beta.12 h1:Aaz4T7dZp7cB2cv7D/tGtRdSMh48sRaDYr7Jh0HV4qQ=
-github.com/scaleway/scaleway-sdk-go v1.0.0-beta.12/go.mod h1:fCa7OJZ/9DRTnOKmxvT6pn+LPWUptQAmHF/SBJUGEcg=
-github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13 h1:n5J2K6g/kl/iT6mODjCoSoRBGQVmIG3aMtYbofi9kxc=
-github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13/go.mod h1:fCa7OJZ/9DRTnOKmxvT6pn+LPWUptQAmHF/SBJUGEcg=
-github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13.0.20230220140215-c7365b47d752 h1:lTMI1wWE6WGxgt4ObtEo3FOqFATqilEy79bzsqc81vY=
-github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13.0.20230220140215-c7365b47d752/go.mod h1:fCa7OJZ/9DRTnOKmxvT6pn+LPWUptQAmHF/SBJUGEcg=
 github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13.0.20230227165516-144b3e06ecf2 h1:LyHBuaec79FY+tmMHUdnctd/es78NzZ7VKcE2QmdPTc=
 github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13.0.20230227165516-144b3e06ecf2/go.mod h1:fCa7OJZ/9DRTnOKmxvT6pn+LPWUptQAmHF/SBJUGEcg=
 github.com/sclevine/spec v1.4.0 h1:z/Q9idDcay5m5irkZ28M7PtQM4aOISzOpj4bUPkDee8=
