@@ -16,6 +16,7 @@ limitations under the License.
 package register
 
 // packages imported here are registered to the controller schema.
+
 import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/akeyless"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/alibaba"
@@ -30,6 +31,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/kubernetes"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onepassword"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/oracle"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/scaleway"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/senhasegura"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/webhook"

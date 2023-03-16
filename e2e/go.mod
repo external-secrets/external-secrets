@@ -55,6 +55,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.1
 	github.com/onsi/gomega v1.27.3
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
+	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.13.0.20230227165516-144b3e06ecf2
 	github.com/xanzy/go-gitlab v0.81.0
 	golang.org/x/oauth2 v0.6.0
 	google.golang.org/api v0.112.0
