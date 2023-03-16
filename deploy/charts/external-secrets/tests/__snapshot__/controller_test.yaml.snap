@@ -7,8 +7,8 @@ should match snapshot of default values:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets
-        app.kubernetes.io/version: v0.7.2
-        helm.sh/chart: external-secrets-0.7.2
+        app.kubernetes.io/version: v0.8.0
+        helm.sh/chart: external-secrets-0.8.0
       name: RELEASE-NAME-external-secrets
       namespace: NAMESPACE
     spec:
