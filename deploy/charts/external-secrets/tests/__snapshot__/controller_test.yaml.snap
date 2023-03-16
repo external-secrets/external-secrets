@@ -28,7 +28,7 @@ should match snapshot of default values:
           containers:
             - args:
                 - --concurrent=1
-              image: ghcr.io/external-secrets/external-secrets:v0.7.2
+              image: ghcr.io/external-secrets/external-secrets:v0.8.0
               imagePullPolicy: IfNotPresent
               name: external-secrets
               ports:
