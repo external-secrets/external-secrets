@@ -1992,6 +1992,9 @@ setup-envtest use -p path 1.20.2
 source &lt;(setup-envtest use 1.20.2 -p env --os $(go env GOOS) --arch $(go env GOARCH))
 </code></pre></div>
 <p>for more information, please see <a href="https://github.com/kubernetes-sigs/controller-runtime/tree/master/tools/setup-envtest">setup-envtest docs</a></p>
+<p>Our helm chart is tested using <code>helm-unittest</code>. You will need it to run tests locally if you modify the helm chart. Install it with the following command:</p>
+<div class="highlight"><pre><span></span><code>$ helm plugin install https://github.com/helm-unittest/helm-unittest
+</code></pre></div>
 <h2 id="building-testing">Building &amp; Testing</h2>
 <p>The project uses the <code>make</code> build system. It'll run code generators, tests and
 static code analysis.</p>
