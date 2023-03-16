@@ -188,6 +188,9 @@ helm.generate:
 helm.test: helm.generate
 	@helm unittest --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
 
+helm.test.update: helm.generate
+	@helm unittest -u --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+
 helm.update.appversion:
 	@chartversion=$$(yq .version ./deploy/charts/external-secrets/Chart.yaml) ; \
 	chartappversion=$$(yq .appVersion ./deploy/charts/external-secrets/Chart.yaml) ; \
@@ -195,6 +198,7 @@ helm.update.appversion:
 	$(INFO) Update chartname and chartversion string in test snapshots.; \
 	sed -s -i "s/^\([[:space:]]\+helm\.sh\/chart:\).*/\1 $${chartname}-$${chartversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
 	sed -s -i "s/^\([[:space:]]\+app\.kubernetes\.io\/version:\).*/\1 $${chartappversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
+	sed -s -i "s/^\([[:space:]]\+image: ghcr\.io\/external-secrets\/external-secrets:\).*/\1$${chartappversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
 	$(OK) "Version strings updated"
 
 # ====================================================================================

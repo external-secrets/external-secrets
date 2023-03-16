@@ -2020,6 +2020,64 @@ should match snapshot of default values:
                             - region
                             - vault
                           type: object
+                        scaleway:
+                          description: Scaleway
+                          properties:
+                            accessKey:
+                              description: AccessKey is the non-secret part of the api key.
+                              properties:
+                                secretRef:
+                                  description: SecretRef references a key in a secret that will be used as value.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                value:
+                                  description: Value can be specified directly to set a value without using a secret.
+                                  type: string
+                              type: object
+                            apiUrl:
+                              description: APIURL is the url of the api to use. Defaults to https://api.scaleway.com
+                              type: string
+                            projectId:
+                              description: 'ProjectID is the id of your project, which you can find in the console: https://console.scaleway.com/project/settings'
+                              type: string
+                            region:
+                              description: 'Region where your secrets are located: https://developers.scaleway.com/en/quickstart/#region-and-zone'
+                              type: string
+                            secretKey:
+                              description: SecretKey is the non-secret part of the api key.
+                              properties:
+                                secretRef:
+                                  description: SecretRef references a key in a secret that will be used as value.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                value:
+                                  description: Value can be specified directly to set a value without using a secret.
+                                  type: string
+                              type: object
+                          required:
+                            - accessKey
+                            - projectId
+                            - region
+                            - secretKey
+                          type: object
                         senhasegura:
                           description: Senhasegura configures this store to sync secrets using senhasegura provider
                           properties:
