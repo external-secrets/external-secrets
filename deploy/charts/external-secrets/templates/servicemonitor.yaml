@@ -95,6 +95,7 @@ spec:
     {{- end }}
 {{- end }}
 {{- if .Values.certController.create }}
+---
 apiVersion: v1
 kind: Service
 metadata:
