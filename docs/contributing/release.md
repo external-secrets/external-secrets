@@ -13,6 +13,7 @@ The external-secrets project is released on a as-needed basis. Feel free to open
 ## Release Helm Chart
 
 1. Update `version` and/or `appVersion` in `Chart.yaml` and run `make helm.docs helm.update.appversion`
+1. If there is any CRD change, run `make helm.test.update` and `make helm.test`
 1. push to branch and open pr
 1. run `/ok-to-test-managed` commands for all cloud providers
 1. merge PR if everyhing is green
