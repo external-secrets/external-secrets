@@ -1969,6 +1969,7 @@
 <h2 id="release-helm-chart">Release Helm Chart</h2>
 <ol>
 <li>Update <code>version</code> and/or <code>appVersion</code> in <code>Chart.yaml</code> and run <code>make helm.docs helm.update.appversion</code></li>
+<li>If there is any CRD change, run <code>make helm.test.update</code> and <code>make helm.test</code></li>
 <li>push to branch and open pr</li>
 <li>run <code>/ok-to-test-managed</code> commands for all cloud providers</li>
 <li>merge PR if everyhing is green</li>
