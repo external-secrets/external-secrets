@@ -393,15 +393,16 @@ func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSe
 	}
 
 	const (
-		annotations = "annotations."
-		labels      = "labels."
+		annotations = "annotations"
+		labels      = "labels"
 	)
 
 	extractMetadataKey := func(s string, p string) string {
-		if !strings.HasPrefix(s, p) {
+		prefix := p + "."
+		if !strings.HasPrefix(s, prefix) {
 			return ""
 		}
-		return strings.TrimPrefix(s, p)
+		return strings.TrimPrefix(s, prefix)
 	}
 
 	if annotation := extractMetadataKey(ref.Property, annotations); annotation != "" {
@@ -420,6 +421,24 @@ func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSe
 		}
 
 		return []byte(v), nil
+	}
+
+	if ref.Property == annotations {
+		j, err := json.Marshal(secret.GetAnnotations())
+		if err != nil {
+			return nil, fmt.Errorf("faild marshaling annotations into json: %w", err)
+		}
+
+		return j, nil
+	}
+
+	if ref.Property == labels {
+		j, err := json.Marshal(secret.GetLabels())
+		if err != nil {
+			return nil, fmt.Errorf("faild marshaling labels into json: %w", err)
+		}
+
+		return j, nil
 	}
 
 	if ref.Property != "" {

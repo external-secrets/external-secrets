@@ -238,6 +238,52 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			expectedSecret: "external-secrets",
 		},
 		{
+			name: "annotations is specified",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "annotations",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Annotations: map[string]string{
+						"annotationKey1": "annotationValue1",
+						"annotationKey2": "annotationValue2",
+					},
+					Labels: map[string]string{
+						"labelKey1": "labelValue1",
+						"labelKey2": "labelValue2",
+					},
+				},
+				Err: nil,
+			},
+			expectedSecret: `{"annotationKey1":"annotationValue1","annotationKey2":"annotationValue2"}`,
+		},
+		{
+			name: "labels is specified",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "labels",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Annotations: map[string]string{
+						"annotationKey1": "annotationValue1",
+						"annotationKey2": "annotationValue2",
+					},
+					Labels: map[string]string{
+						"labelKey1": "labelValue1",
+						"labelKey2": "labelValue2",
+					},
+				},
+				Err: nil,
+			},
+			expectedSecret: `{"labelKey1":"labelValue1","labelKey2":"labelValue2"}`,
+		},
+		{
 			name: "no property is specified",
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:            "bar",
