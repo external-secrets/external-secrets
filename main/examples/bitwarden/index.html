@@ -13,7 +13,7 @@
     
     
       
-        <title>Jenkins - External Secrets Operator</title>
+        <title>BitWarden - External Secrets Operator</title>
       
     
     
@@ -68,7 +68,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started" class="md-skip">
+        <a href="#bitwarden-support-using-webhook-provider" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Jenkins
+              BitWarden
             
           </span>
         </div>
@@ -1587,6 +1587,20 @@
               
   
   
+  
+    <li class="md-nav__item">
+      <a href="../jenkins-kubernetes-credentials/" class="md-nav__link">
+        Jenkins
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
     
   
   
@@ -1599,12 +1613,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Jenkins
+          BitWarden
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Jenkins
+        BitWarden
       </a>
       
         
@@ -1623,96 +1637,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    Examples
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#secrettext" class="md-nav__link">
-    SecretText
-  </a>
-  
-    <nav class="md-nav" aria-label="SecretText">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hashicorp-vault" class="md-nav__link">
-    Hashicorp Vault
+  <a href="#how-is-it-working" class="md-nav__link">
+    How is it working ?
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#aws-secrets-manager" class="md-nav__link">
-    AWS Secrets Manager
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    Requirements
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#usernamepassword" class="md-nav__link">
-    UsernamePassword
-  </a>
-  
-    <nav class="md-nav" aria-label="UsernamePassword">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hashicorp-vault_1" class="md-nav__link">
-    Hashicorp Vault
+      
+        <li class="md-nav__item">
+  <a href="#deploy-bitwarden-credentials" class="md-nav__link">
+    Deploy Bitwarden Credentials
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#aws-secrets-manager_1" class="md-nav__link">
-    AWS Secrets Manager
+      
+        <li class="md-nav__item">
+  <a href="#deploy-bitwarden-cli-container" class="md-nav__link">
+    Deploy Bitwarden CLI container
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basicsshuserprivatekey" class="md-nav__link">
-    basicSSHUserPrivateKey
-  </a>
-  
-    <nav class="md-nav" aria-label="basicSSHUserPrivateKey">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hashicorp-vault_2" class="md-nav__link">
-    Hashicorp Vault
+      
+        <li class="md-nav__item">
+  <a href="#deploy-clustersecretstore-or-secretstore" class="md-nav__link">
+    Deploy ClusterSecretStore (Or SecretStore)
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#aws-secrets-manager_2" class="md-nav__link">
-    AWS Secrets Manager
+      
+        <li class="md-nav__item">
+  <a href="#how-to-use-it" class="md-nav__link">
+    How to use it ?
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1720,20 +1682,6 @@
   
 </nav>
       
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../bitwarden/" class="md-nav__link">
-        BitWarden
-      </a>
     </li>
   
 
@@ -2010,96 +1958,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    Examples
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#secrettext" class="md-nav__link">
-    SecretText
-  </a>
-  
-    <nav class="md-nav" aria-label="SecretText">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hashicorp-vault" class="md-nav__link">
-    Hashicorp Vault
+  <a href="#how-is-it-working" class="md-nav__link">
+    How is it working ?
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#aws-secrets-manager" class="md-nav__link">
-    AWS Secrets Manager
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    Requirements
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#usernamepassword" class="md-nav__link">
-    UsernamePassword
-  </a>
-  
-    <nav class="md-nav" aria-label="UsernamePassword">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hashicorp-vault_1" class="md-nav__link">
-    Hashicorp Vault
+      
+        <li class="md-nav__item">
+  <a href="#deploy-bitwarden-credentials" class="md-nav__link">
+    Deploy Bitwarden Credentials
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#aws-secrets-manager_1" class="md-nav__link">
-    AWS Secrets Manager
+      
+        <li class="md-nav__item">
+  <a href="#deploy-bitwarden-cli-container" class="md-nav__link">
+    Deploy Bitwarden CLI container
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#basicsshuserprivatekey" class="md-nav__link">
-    basicSSHUserPrivateKey
-  </a>
-  
-    <nav class="md-nav" aria-label="basicSSHUserPrivateKey">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hashicorp-vault_2" class="md-nav__link">
-    Hashicorp Vault
+      
+        <li class="md-nav__item">
+  <a href="#deploy-clustersecretstore-or-secretstore" class="md-nav__link">
+    Deploy ClusterSecretStore (Or SecretStore)
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#aws-secrets-manager_2" class="md-nav__link">
-    AWS Secrets Manager
+      
+        <li class="md-nav__item">
+  <a href="#how-to-use-it" class="md-nav__link">
+    How to use it ?
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -2115,200 +2011,281 @@
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/external-secrets/external-secrets/edit/main/docs/examples/jenkins-kubernetes-credentials.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/external-secrets/external-secrets/edit/main/docs/examples/bitwarden.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-<h1 id="getting-started">Getting started</h1>
-<p>Jenkins is one of the most popular automation servers for continuous integration, automation, scheduling jobs and for generic pipelining. It has an extensive set of plugins that extend or provide additional functionality including the <a href="https://github.com/jenkinsci/kubernetes-credentials-provider-plugin">kubernetes credentials plugin</a>. This plugin takes kubernetes secrets and creates Jenkins credentials from them removing the need for manual entry of secrets, local storage and manual secret rotation.</p>
-<h2 id="examples">Examples</h2>
-<p>The Jenkins credentials plugin uses labels and annotations on a kubernetes secret to create a Jenkins credential.</p>
-<p>The different types of Jenkins credentials that can be created are SecretText, privateSSHKey, UsernamePassword.</p>
-<h3 id="secrettext">SecretText</h3>
-<p>Here are some examples of SecretText with the Hashicorp Vault and AWS External Secrets providers:</p>
-<h4 id="hashicorp-vault">Hashicorp Vault</h4>
+<h1 id="bitwarden-support-using-webhook-provider">Bitwarden support using webhook provider</h1>
+<p>Bitwarden is an integrated open source password management solution for individuals, teams, and business organizations.</p>
+<h2 id="how-is-it-working">How is it working ?</h2>
+<p>To make external-secret compatible with BitWarden, we need:</p>
+<ul>
+<li>External-Secret &gt;= 0.8.0</li>
+<li>To use the Webhook Provider</li>
+<li>2 (Cluster)SecretStores</li>
+<li>BitWarden CLI image running <code>bw serve</code></li>
+</ul>
+<p>When you create a new external-secret object,
+External-Secret Webhook provider will do a query to the Bitwarden CLI pod,
+which is synced with the BitWarden server.</p>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>Bitwarden account (it works also with VaultWarden)</li>
+<li>A Kubernetes secret which contains your BitWarden Credentials</li>
+<li>You need a Docker image with BitWarden CLI installed.
+  You could use <code>registry.gitlab.com/ttblt-oss/docker-bw:2023.1.0</code> or build your own.</li>
+</ul>
+<p>Here an example of Dockerfile use to build this image:
+<div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">debian:sid</span>
+
+<span class="k">ENV</span><span class="w"> </span><span class="nv">BW_CLI_VERSION</span><span class="o">=</span><span class="m">2023</span>.1.0
+
+<span class="k">RUN</span><span class="w"> </span>apt update <span class="o">&amp;&amp;</span> <span class="se">\</span>
+    apt install -y wget unzip <span class="o">&amp;&amp;</span> <span class="se">\</span>
+    wget https://github.com/bitwarden/clients/releases/download/cli-v<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>/bw-linux-<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>.zip <span class="o">&amp;&amp;</span> <span class="se">\</span>
+    unzip bw-linux-<span class="si">${</span><span class="nv">BW_CLI_VERSION</span><span class="si">}</span>.zip <span class="o">&amp;&amp;</span> <span class="se">\</span>
+    chmod +x bw <span class="o">&amp;&amp;</span> <span class="se">\</span>
+    mv bw /usr/local/bin/bw <span class="o">&amp;&amp;</span> <span class="se">\</span>
+    rm -rfv *.zip
+
+<span class="k">COPY</span><span class="w"> </span>entrypoint.sh /
+
+<span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;/entrypoint.sh&quot;</span><span class="p">]</span>
+</code></pre></div></p>
+<p>And the content of <code>entrypoint.sh</code>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+
+<span class="nb">set</span> -e
+
+bw config server <span class="si">${</span><span class="nv">BW_HOST</span><span class="si">}</span>
+
+<span class="nb">export</span> <span class="nv">BW_SESSION</span><span class="o">=</span><span class="k">$(</span>bw login <span class="si">${</span><span class="nv">BW_USER</span><span class="si">}</span> --passwordenv BW_PASSWORD --raw<span class="k">)</span>
+
+bw unlock --check
+
+<span class="nb">echo</span> <span class="s1">&#39;Running `bw server` on port 8087&#39;</span>
+bw serve --hostname <span class="m">0</span>.0.0.0 <span class="c1">#--disable-origin-protection</span>
+</code></pre></div></p>
+<h2 id="deploy-bitwarden-credentials">Deploy Bitwarden Credentials</h2>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">data</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BW_HOST</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BW_USERNAME</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"></span>
+<span class="w">  </span><span class="nt">BW_PASSWORD</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">....</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden</span><span class="w"></span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span><span class="w"></span>
+</code></pre></div>
+<h2 id="deploy-bitwarden-cli-container">Deploy Bitwarden CLI container</h2>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden</span><span class="w"></span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">    </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<span class="w">  </span><span class="nt">strategy</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Recreate</span><span class="w"></span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">      </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">        </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">    </span><span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">containers</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YOUR_BITWARDEN_CLI_IMAGE</span><span class="w"></span>
+<span class="w">          </span><span class="nt">imagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IfNotPresent</span><span class="w"></span>
+<span class="w">          </span><span class="nt">env</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BW_HOST</span><span class="w"></span>
+<span class="w">              </span><span class="nt">valueFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">                </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">                  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">                  </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BW_HOST</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BW_USER</span><span class="w"></span>
+<span class="w">              </span><span class="nt">valueFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">                </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">                  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">                  </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BW_USERNAME</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BW_PASSWORD</span><span class="w"></span>
+<span class="w">              </span><span class="nt">valueFrom</span><span class="p">:</span><span class="w"></span>
+<span class="w">                </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">                  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">                  </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BW_PASSWORD</span><span class="w"></span>
+<span class="w">          </span><span class="nt">ports</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span><span class="w"></span>
+<span class="w">              </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8087</span><span class="w"></span>
+<span class="w">              </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TCP</span><span class="w"></span>
+<span class="w">          </span><span class="nt">livenessProbe</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">exec</span><span class="p">:</span><span class="w"></span>
+<span class="w">              </span><span class="nt">command</span><span class="p">:</span><span class="w"></span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wget</span><span class="w"></span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-q</span><span class="w"></span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://127.0.0.1:8087/sync</span><span class="w"></span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--post-data=&#39;&#39;</span><span class="w"></span>
+<span class="w">            </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span><span class="w"></span>
+<span class="w">            </span><span class="nt">failureThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w"></span>
+<span class="w">            </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<span class="w">            </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">120</span><span class="w"></span>
+<span class="w">          </span><span class="nt">readinessProbe</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">tcpSocket</span><span class="p">:</span><span class="w"></span>
+<span class="w">              </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8087</span><span class="w"></span>
+<span class="w">            </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span><span class="w"></span>
+<span class="w">            </span><span class="nt">failureThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w"></span>
+<span class="w">            </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<span class="w">            </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"></span>
+<span class="w">          </span><span class="nt">startupProbe</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">tcpSocket</span><span class="p">:</span><span class="w"></span>
+<span class="w">              </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8087</span><span class="w"></span>
+<span class="w">            </span><span class="nt">initialDelaySeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"></span>
+<span class="w">            </span><span class="nt">failureThreshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span><span class="w"></span>
+<span class="w">            </span><span class="nt">timeoutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"></span>
+<span class="w">            </span><span class="nt">periodSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Service</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden</span><span class="w"></span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">    </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterIP</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ports</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8087</span><span class="w"></span>
+<span class="w">    </span><span class="nt">targetPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span><span class="w"></span>
+<span class="w">    </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TCP</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span><span class="w"></span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">    </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NetworkPolicy</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">networking.k8s.io/v1</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secret-2-bw-cli</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">podSelector</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">      </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-cli</span><span class="w"></span>
+<span class="w">  </span><span class="nt">ingress</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">from</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">podSelector</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"></span>
+<span class="w">            </span><span class="nt">app.kubernetes.io/instance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+<span class="w">            </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"></span>
+</code></pre></div>
+<blockquote>
+<p>NOTE: Deploying a network policy is recommended since, there is no authentication to query the BitWarden CLI, which means that your secrets are exposed.</p>
+<p>NOTE: In this example the Liveness probe is quering /sync to ensure that the BitWarden CLI is able to connect to the server and also to sync secrets. (The secret sync is only every 2 minutes in this example)</p>
+</blockquote>
+<h2 id="deploy-clustersecretstore-or-secretstore">Deploy ClusterSecretStore (Or SecretStore)</h2>
+<p>Here the two ClusterSecretStore to deploy</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-login</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://bitwarden-cli:8087/object/item/{{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">headers</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span><span class="w"></span>
+<span class="w">      </span><span class="nt">result</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.data.login.{{</span><span class="nv"> </span><span class="s">.remoteRef.property</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
+<span class="nn">---</span><span class="w"></span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
+<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-fields</span><span class="w"></span>
+<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"></span>
+<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://bitwarden-cli:8087/object/item/{{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">result</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.data.fields[?@.name==\&quot;{{</span><span class="nv"> </span><span class="s">.remoteRef.property</span><span class="nv"> </span><span class="s">}}\&quot;].value&quot;</span><span class="w"></span>
+</code></pre></div>
+<h2 id="how-to-use-it">How to use it ?</h2>
+<ul>
+<li>If you need the <code>username</code> or the <code>password</code> of a secret, you have to use <code>bitwarden-login</code></li>
+<li>If you need a custom field of a secret, you have to use <code>bitwarden-fields</code></li>
+<li>The <code>key</code> is the ID of a secret, which can be find in the URL with the <code>itemId</code> value:
+  <code>https://myvault.com/#/vault?itemId=........-....-....-....-............</code></li>
+<li>The <code>property</code> is the name of the field:</li>
+<li><code>username</code> for the username of a secret (<code>bitwarden-login</code> SecretStore)</li>
+<li><code>password</code> for the password of a secret (<code>bitwarden-login</code> SecretStore)</li>
+<li><code>name_of_the_custom_field</code> for any custom field (<code>bitwarden-fields</code> SecretStore)</li>
+</ul>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-db-secrets</span><span class="w"></span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"></span>
 <span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-db-secrets</span><span class="w"></span>
+<span class="w">    </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span><span class="w"></span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;secretText&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;sonarqube</span><span class="nv"> </span><span class="s">api</span><span class="nv"> </span><span class="s">token&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span><span class="w"></span>
 <span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .password | toString }}&quot; }}</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jenkins-credentials</span><span class="w"></span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
-</code></pre></div>
-<h4 id="aws-secrets-manager">AWS Secrets Manager</h4>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets-store</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sonarqube-api-token</span><span class="w"></span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;secretText&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;Sonar</span><span class="nv"> </span><span class="s">API</span><span class="nv"> </span><span class="s">token&quot;</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service/sonarqube/apiToken</span><span class="w"></span>
-</code></pre></div>
-<h3 id="usernamepassword">UsernamePassword</h3>
-<p>Here are some examples of UsernamePassword credentials with the Hashicorp Vault and AWS External Secrets providers:</p>
-<h4 id="hashicorp-vault_1">Hashicorp Vault</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span><span class="w"></span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span><span class="w"></span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;usernamePassword&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;harbor</span><span class="nv"> </span><span class="s">chart</span><span class="nv"> </span><span class="s">robot&quot;</span><span class="w"></span>
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .username | toString }}&quot; }}</span><span class="w"></span>
-<span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .password | toString }}&quot; }}</span><span class="w"></span>
+<span class="w">        </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ .username }}</span><span class="w"></span>
+<span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ .password }}</span><span class="w"></span>
+<span class="w">        </span><span class="nt">postgres-password</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ .postgres_password }}</span><span class="w"></span>
+<span class="w">        </span><span class="nt">postgres-replication-password</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span><span class="w"></span>
+<span class="w">          </span><span class="no">{{ .postgres_replication_password }}</span><span class="w"></span>
+<span class="w">        </span><span class="nt">db_url</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span><span class="w"></span>
+<span class="w">          </span><span class="no">postgresql://{{ .username }}:{{ .password }}@my-postgresql:5432/mydb</span><span class="w"></span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
+<span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">storeRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-login</span><span class="w"></span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w">  </span><span class="c1"># or SecretStore</span><span class="w"></span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-kv</span><span class="w"></span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot-username</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-kv</span><span class="w"></span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot-token</span><span class="w"></span>
-</code></pre></div>
-<h4 id="aws-secrets-manager_1">AWS Secrets Manager</h4>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span><span class="w"></span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets-store</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-chart-robot</span><span class="w"></span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;usernamePassword&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;harbor</span><span class="nv"> </span><span class="s">chart</span><span class="nv"> </span><span class="s">robot</span><span class="nv"> </span><span class="s">access&quot;</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service/harbor/chartRobot</span><span class="w"></span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service/harbor/chartRobot</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aaaabbbb-cccc-dddd-eeee-000011112222</span><span class="w"></span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
-</code></pre></div>
-<h3 id="basicsshuserprivatekey">basicSSHUserPrivateKey</h3>
-<p>Here are some examples of basicSSHUserPrivateKey credentials with the Hashicorp Vault and AWS External Secrets providers:</p>
-<h4 id="hashicorp-vault_2">Hashicorp Vault</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span><span class="w"></span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span><span class="w"></span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;basicSSHUserPrivateKey&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;github-ssh-access</span><span class="nv"> </span><span class="s">key&quot;</span><span class="w"></span>
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .username | toString }}&quot; }}</span><span class="w"></span>
-<span class="w">        </span><span class="nt">privateKey</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span><span class="w"></span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .privateKey | toString }}&quot; }}</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
+<span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">storeRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-login</span><span class="w"></span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w">  </span><span class="c1"># or SecretStore</span><span class="w"></span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-kv</span><span class="w"></span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access-username</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aaaabbbb-cccc-dddd-eeee-000011112222</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres_password</span><span class="w"></span>
+<span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">storeRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-fields</span><span class="w"></span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w">  </span><span class="c1"># or SecretStore</span><span class="w"></span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-kv</span><span class="w"></span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access-private-key</span><span class="w"></span>
-</code></pre></div>
-<h4 id="aws-secrets-manager_2">AWS Secrets Manager</h4>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span><span class="w"></span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
-<span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span><span class="w"></span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span><span class="w"></span>
-<span class="nt">spec</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span><span class="w"></span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-parameter-store</span><span class="w"></span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w"></span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-ssh-access</span><span class="w"></span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-type&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;basicSSHUserPrivateKey&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"></span>
-<span class="w">          </span><span class="s">&quot;jenkins.io/credentials-description&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;github-ssh-access</span><span class="nv"> </span><span class="s">key&quot;</span><span class="w"></span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aaaabbbb-cccc-dddd-eeee-000011112222</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">admin-password</span><span class="w"></span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres_replication_password</span><span class="w"></span>
+<span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">        </span><span class="nt">storeRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-fields</span><span class="w"></span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w">  </span><span class="c1"># or SecretStore</span><span class="w"></span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/service/github/sshUserPrivateKeyUserName</span><span class="w"></span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span><span class="w"></span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/service/github/sshUserPrivateKey</span><span class="w"></span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aaaabbbb-cccc-dddd-eeee-000011112222</span><span class="w"></span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres-replication-password</span><span class="w"></span>
 </code></pre></div>
 
               
@@ -2323,7 +2300,7 @@
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
         
-        <a href="../anchore-engine-credentials/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Anchore Engine" rel="prev">
+        <a href="../jenkins-kubernetes-credentials/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Jenkins" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -2332,20 +2309,20 @@
               <span class="md-footer__direction">
                 Previous
               </span>
-              Anchore Engine
+              Jenkins
             </div>
           </div>
         </a>
       
       
         
-        <a href="../bitwarden/" class="md-footer__link md-footer__link--next" aria-label="Next: BitWarden" rel="next">
+        <a href="../../contributing/devguide/" class="md-footer__link md-footer__link--next" aria-label="Next: Developer guide" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              BitWarden
+              Developer guide
             </div>
           </div>
           <div class="md-footer__button md-icon">
