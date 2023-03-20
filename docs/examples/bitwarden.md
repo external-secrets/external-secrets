@@ -4,7 +4,8 @@ Bitwarden is an integrated open source password management solution for individu
 
 ## How is it working ?
 
-To make external-secret compatible with BitWarden, we need *
+To make external-secret compatible with BitWarden, we need:
+
 * External-Secret >= 0.8.0
 * To use the Webhook Provider
 * 2 (Cluster)SecretStores
