@@ -2076,6 +2076,26 @@
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"></span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># metadataPolicy to fetch all the labels and annotations in JSON format</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tags</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># metadataPolicy to fetch all the labels in JSON format</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">labels</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">labels</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1"># metadataPolicy to fetch a specific label (dev) from the source secret</span><span class="w"></span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">developer</span><span class="w"></span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"></span>
+<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"></span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">labels.dev</span><span class="w"></span>
 </code></pre></div>
 <h4 id="find-by-tag-name">find by tag &amp; name</h4>
 <p>You can fetch secrets based on labels or names matching a regexp:</p>
