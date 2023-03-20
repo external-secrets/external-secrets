@@ -131,35 +131,43 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	}
 
 	if ref.Property != "" {
-		byteArr, err := json.Marshal(tmpMap)
+		retMap, err := getPropertyMap(ref.Key, ref.Property, tmpMap)
 		if err != nil {
 			return nil, err
-		}
-		var retMap map[string][]byte
-		jsonStr := string(byteArr)
-		// We need to search if a given key with a . exists before using gjson operations.
-		idx := strings.Index(ref.Property, ".")
-		if idx > -1 {
-			refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
-			retMap, err = getMapFromValues(refProperty, jsonStr)
-			if err != nil {
-				return nil, err
-			}
-			if retMap != nil {
-				return retMap, nil
-			}
-		}
-		retMap, err = getMapFromValues(ref.Property, jsonStr)
-		if err != nil {
-			return nil, err
-		}
-		if retMap == nil {
-			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
 		}
 		return retMap, nil
 	}
 
 	return tmpMap, nil
+}
+
+func getPropertyMap(key, property string, tmpMap map[string][]byte) (map[string][]byte, error) {
+	byteArr, err := json.Marshal(tmpMap)
+	if err != nil {
+		return nil, err
+	}
+	var retMap map[string][]byte
+	jsonStr := string(byteArr)
+	// We need to search if a given key with a . exists before using gjson operations.
+	idx := strings.Index(property, ".")
+	if idx > -1 {
+		refProperty := strings.ReplaceAll(property, ".", "\\.")
+		retMap, err = getMapFromValues(refProperty, jsonStr)
+		if err != nil {
+			return nil, err
+		}
+		if retMap != nil {
+			return retMap, nil
+		}
+	}
+	retMap, err = getMapFromValues(property, jsonStr)
+	if err != nil {
+		return nil, err
+	}
+	if retMap == nil {
+		return nil, fmt.Errorf("property %s does not exist in key %s", property, key)
+	}
+	return retMap, nil
 }
 
 func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
