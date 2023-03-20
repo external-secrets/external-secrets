@@ -54,7 +54,7 @@ The following table show the support for features across different providers.
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | GCP Secret Manager        |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| Kubernetes                |      x       |      x       |                      |            x            |        x         |             |              x              |
+| Kubernetes                |      x       |      x       |          x           |            x            |        x         |             |              x              |
 | IBM Cloud Secrets Manager |              |              |                      |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | Gitlab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
