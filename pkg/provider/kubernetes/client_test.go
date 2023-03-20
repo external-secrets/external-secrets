@@ -338,7 +338,7 @@ func TestGetSecretMap(t *testing.T) {
 				Key:            "mysec",
 				Property:       "labels",
 			},
-			want: map[string][]byte{"labels": []byte("{\"dev\":\"seb\"}")},
+			want: map[string][]byte{"dev": []byte("\"seb\"")},
 		},
 		{
 			name: "error case metadata with wrong property",
