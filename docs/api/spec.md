@@ -2708,6 +2708,18 @@ ExternalSecretTemplateMetadata
 </tr>
 <tr>
 <td>
+<code>mergePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateMergePolicy">
+TemplateMergePolicy
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>data</code></br>
 <em>
 map[string]string
@@ -5090,6 +5102,27 @@ string
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.TemplateMergePolicy">TemplateMergePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretTemplate">ExternalSecretTemplate</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Merge&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Replace&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.TemplateRef">TemplateRef
 </h3>
