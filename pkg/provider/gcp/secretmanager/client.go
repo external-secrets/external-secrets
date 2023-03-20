@@ -336,6 +336,10 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf(errUninitalizedGCPProvider)
 	}
 
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		return c.getSecretMetadata(ctx, ref)
+	}
+
 	version := ref.Version
 	if version == "" {
 		version = defaultVersion
@@ -376,6 +380,80 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
 	return []byte(val.String()), nil
+}
+
+func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	secret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, ref.Key),
+	})
+
+	err = parseError(err)
+	if err != nil {
+		return nil, fmt.Errorf(errClientGetSecretAccess, err)
+	}
+
+	const (
+		annotations = "annotations"
+		labels      = "labels"
+	)
+
+	extractMetadataKey := func(s string, p string) string {
+		prefix := p + "."
+		if !strings.HasPrefix(s, prefix) {
+			return ""
+		}
+		return strings.TrimPrefix(s, prefix)
+	}
+
+	if annotation := extractMetadataKey(ref.Property, annotations); annotation != "" {
+		v, ok := secret.GetAnnotations()[annotation]
+		if !ok {
+			return nil, fmt.Errorf("annotation with key %s does not exist in secret %s", annotation, ref.Key)
+		}
+
+		return []byte(v), nil
+	}
+
+	if label := extractMetadataKey(ref.Property, labels); label != "" {
+		v, ok := secret.GetLabels()[label]
+		if !ok {
+			return nil, fmt.Errorf("label with key %s does not exist in secret %s", label, ref.Key)
+		}
+
+		return []byte(v), nil
+	}
+
+	if ref.Property == annotations {
+		j, err := json.Marshal(secret.GetAnnotations())
+		if err != nil {
+			return nil, fmt.Errorf("faild marshaling annotations into json: %w", err)
+		}
+
+		return j, nil
+	}
+
+	if ref.Property == labels {
+		j, err := json.Marshal(secret.GetLabels())
+		if err != nil {
+			return nil, fmt.Errorf("faild marshaling labels into json: %w", err)
+		}
+
+		return j, nil
+	}
+
+	if ref.Property != "" {
+		return nil, fmt.Errorf("invalid property %s: metadata property should start with either %s or %s", ref.Property, annotations, labels)
+	}
+
+	j, err := json.Marshal(map[string]map[string]string{
+		"annotations": secret.GetAnnotations(),
+		"labels":      secret.GetLabels(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("faild marshaling metadata map into json: %w", err)
+	}
+
+	return j, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
