@@ -103,6 +103,7 @@ nav:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
     - Jenkins: examples/jenkins-kubernetes-credentials.md
+    - BitWarden: examples/bitwarden.md
   - Community:
     - Contributing:
       - Developer guide: contributing/devguide.md
