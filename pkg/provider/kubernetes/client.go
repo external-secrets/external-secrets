@@ -15,6 +15,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -130,17 +131,60 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	}
 
 	if ref.Property != "" {
-		for key := range tmpMap {
-			if key != ref.Property {
-				delete(tmpMap, key)
+		byteArr, err := json.Marshal(tmpMap)
+		if err != nil {
+			return nil, err
+		}
+		var retMap map[string][]byte
+		jsonStr := string(byteArr)
+		// We need to search if a given key with a . exists before using gjson operations.
+		idx := strings.Index(ref.Property, ".")
+		if idx > -1 {
+			refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+			retMap, err = getMapFromValues(refProperty, jsonStr)
+			if err != nil {
+				return nil, err
+			}
+			if retMap != nil {
+				return retMap, nil
 			}
 		}
-		if len(tmpMap) == 0 {
+		retMap, err = getMapFromValues(ref.Property, jsonStr)
+		if err != nil {
+			return nil, err
+		}
+		if retMap == nil {
 			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
 		}
+		return retMap, nil
 	}
 
 	return tmpMap, nil
+}
+
+func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
+	val := gjson.Get(jsonStr, property)
+	if val.Exists() {
+		retMap := make(map[string][]byte)
+		var tmpMap map[string]interface{}
+		decoded, err := base64.StdEncoding.DecodeString(val.String())
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(decoded, &tmpMap)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range tmpMap {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+			retMap[k] = b
+		}
+		return retMap, nil
+	}
+	return nil, nil
 }
 
 func getSecretMetadata(secret *v1.Secret) (map[string][]byte, error) {
