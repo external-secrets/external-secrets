@@ -1,0 +1,73 @@
+name: "Update dependencies"
+on:
+  schedule:
+    # Sunday, 1PM UTC
+    - cron: "0 13 * * 0"
+
+  workflow_dispatch:
+    inputs: {}
+
+
+jobs:
+  branches:
+    name: get branch data
+    runs-on: ubuntu-latest
+    outputs:
+      branches: ${{ steps.branches.outputs.branches }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.ref }}
+      - name: set branches output
+        id: branches
+        # outputs the two most recent `release-x.y` branches plus `main` as JSON
+        run: |
+          echo "branches=$(git branch -a | grep -E "remotes/origin/(main|release-)" | sed 's/  remotes\/origin\///' | sort -V | tail -2 | jq -R -s -c 'split("\n") | map(select(length > 0)) | . + ["main"]')" >> $GITHUB_OUTPUT
+
+  update-dependencies:
+    runs-on: ubuntu-latest
+    needs: branches
+    strategy:
+      matrix:
+        branch: ${{ fromJson(needs.branches.outputs.branches) }}
+    steps:
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: "1.19"
+
+      # we can not use the default GHA token, as it prevents subsequent GHA
+      # from running: we can create a PR but the tests won't run :/
+    - name: Generate token
+      id: generate_token
+      uses: tibdex/github-app-token@v1
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.PRIVATE_KEY }}
+    - uses: actions/checkout@v3
+      with:
+        token: ${{ steps.generate_token.outputs.token }}
+        ref: ${{ matrix.branch }}
+        fetch-depth: 0
+    - name: create pull request
+      run: |
+        git config --global user.email "ExternalSecretsOperator@users.noreply.github.com"
+        git config --global user.name "External Secrets Operator"
+        BRANCH=update-deps-$(date "+%s")
+        make update-deps || true
+
+        if git diff-index --quiet HEAD --; then
+          echo "nothing changed. skipping."
+          exit 0;
+        fi
+
+        git checkout -b $BRANCH
+        git add -A
+        git commit -m "update dependencies" -s
+        git push origin $BRANCH
+        gh pr create -B ${{ matrix.branch }} -H ${BRANCH} --title 'chore: update dependencies' --body 'Update dependencies'
+      env:
+        GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
