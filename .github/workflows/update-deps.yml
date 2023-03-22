@@ -1,0 +1,30 @@
+name: "Update dependencies"
+on:
+  push:
+    branches:
+      - mj-auto-update-deps
+
+  schedule:
+    # Sunday, 1PM UTC
+  - cron: "0 13 * * 0"
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: "1.19"
+    - name: create pull request
+      run: |
+        BRANCH=update-deps-$(date "+%s")
+        touch example.foo
+        # make update-deps
+        git checkout -b $BRANCH
+        git add -A
+        git push origin $BRANCH
+        gh pr create -B main -H ${BRANCH}- --title 'chore: update dependencies' -s --body 'Created by Github action'
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
