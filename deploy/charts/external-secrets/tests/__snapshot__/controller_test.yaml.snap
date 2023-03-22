@@ -1,0 +1,38 @@
+should match snapshot of default values:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/version: v0.8.1
+        helm.sh/chart: external-secrets-0.8.1
+      name: RELEASE-NAME-external-secrets
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: external-secrets
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: external-secrets
+        spec:
+          automountServiceAccountToken: true
+          containers:
+            - args:
+                - --concurrent=1
+              image: ghcr.io/external-secrets/external-secrets:v0.8.1
+              imagePullPolicy: IfNotPresent
+              name: external-secrets
+              ports:
+                - containerPort: 8080
+                  name: metrics
+                  protocol: TCP
+          serviceAccountName: RELEASE-NAME-external-secrets

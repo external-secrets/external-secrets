@@ -24,8 +24,8 @@ plugins:
   - macros:
       include_dir: docs/snippets
 copyright: |
-  &copy; 2022 The external-secrets Authors.<br/>
-  &copy; 2022 The Linux Foundation. All rights reserved.<br/><br/>
+  &copy; 2023 The external-secrets Authors.<br/>
+  &copy; 2023 The Linux Foundation. All rights reserved.<br/><br/>
   The Linux Foundation has registered trademarks and uses trademarks.<br/>
   For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 extra:
@@ -55,6 +55,7 @@ nav:
       - Azure Container Registry: api/generator/acr.md
       - AWS Elastic Container Registry: api/generator/ecr.md
       - Google Container Registry: api/generator/gcr.md
+      - Vault Dynamic Secret: api/generator/vault.md
       - Password: api/generator/password.md
       - Fake: api/generator/fake.md
     - Reference Docs:
@@ -77,6 +78,7 @@ nav:
     - Rewriting Keys: guides/datafrom-rewrite.md
     - Upgrading to v1beta1: guides/v1beta1.md
     - Using Latest Image: guides/using-latest-image.md
+    - Disable Cluster Features: guides/disable-cluster-features.md
   - Provider:
     - AWS Secrets Manager: provider/aws-secrets-manager.md
     - AWS Parameter Store: provider/aws-parameter-store.md
@@ -96,10 +98,12 @@ nav:
     - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
     - Doppler: provider/doppler.md
     - Keeper Security: provider/keeper-security.md
+    - Scaleway: provider/scaleway.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
     - Jenkins: examples/jenkins-kubernetes-credentials.md
+    - BitWarden: examples/bitwarden.md
   - Community:
     - Contributing:
       - Developer guide: contributing/devguide.md

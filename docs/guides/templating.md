@@ -16,6 +16,13 @@ Another example with two keys in the same secret:
 {% include 'multikey-template-v2-external-secret.yaml' %}
 ```
 
+### MergePolicy
+By default, the templating mechanism will not use any information available from the original `data` and `dataFrom` queries to the provider, and only keep the templated information. It is possible to change this behavior through the use of the `mergePolicy` field. `mergePolicy` currently accepts two values: `Replace` (the default) and `Merge`. When using `Merge`, `data` and `dataFrom` keys will also be embedded into the templated secret, having lower priority than the template outcome. See the example for more information:
+
+```yaml
+{% include 'merge-template-v2-external-secret.yaml' %}
+
+```
 ### TemplateFrom
 
 You do not have to define your templates inline in an ExternalSecret but you can pull `ConfigMaps` or other Secrets that contain a template. Consider the following example:

@@ -45,7 +45,6 @@ import (
 )
 
 const (
-	requeueAfter            = time.Second * 30
 	fieldOwnerTemplate      = "externalsecrets.external-secrets.io/%v"
 	errGetES                = "could not get ExternalSecret"
 	errConvert              = "could not apply conversion strategy to keys: %v"
@@ -204,7 +203,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errGetSecretData)
 		SetExternalSecretCondition(&externalSecret, *conditionSynced)
 		syncCallsError.With(resourceLabels).Inc()
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		return ctrl.Result{}, err
 	}
 
 	// if no data was found we can delete the secret if needed.
@@ -221,7 +220,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errDeleteSecret)
 				SetExternalSecretCondition(&externalSecret, *conditionSynced)
 				syncCallsError.With(resourceLabels).Inc()
-				return ctrl.Result{RequeueAfter: requeueAfter}, nil
+				return ctrl.Result{}, err
 			}
 			err = r.Delete(ctx, secret)
 			if err != nil && !apierrors.IsNotFound(err) {
@@ -234,14 +233,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretDeleted, "secret deleted due to DeletionPolicy")
 			SetExternalSecretCondition(&externalSecret, *conditionSynced)
-			return ctrl.Result{RequeueAfter: requeueAfter}, nil
+			return ctrl.Result{RequeueAfter: refreshInt}, err
 
 		case esv1beta1.DeletionPolicyMerge:
 			// noop, handled below
 
 		// In case provider secrets don't exist the kubernetes secret will be kept as-is.
 		case esv1beta1.DeletionPolicyRetain:
-			return ctrl.Result{RequeueAfter: requeueAfter}, nil
+			return ctrl.Result{RequeueAfter: refreshInt}, nil
 		}
 	}
 
@@ -255,23 +254,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
 		}
+		// diff existing keys
+		keys, err := getManagedKeys(&existingSecret, externalSecret.Name)
+		if err != nil {
+			return err
+		}
+		// Sanitize data map for any updates on the ES
+		for _, key := range keys {
+			if dataMap[key] == nil {
+				secret.Data[key] = nil
+				// Sanitizing any templated / updated keys
+				delete(secret.Data, key)
+			}
+		}
 		err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
 		if err != nil {
 			return fmt.Errorf(errApplyTemplate, err)
 		}
 
-		// diff existing keys
-		if externalSecret.Spec.Target.DeletionPolicy == esv1beta1.DeletionPolicyMerge {
-			keys, err := getManagedKeys(&existingSecret, externalSecret.Name)
-			if err != nil {
-				return err
-			}
-			for _, key := range keys {
-				if dataMap[key] == nil {
-					secret.Data[key] = nil
-				}
-			}
-		}
 		return nil
 	}
 
@@ -283,7 +283,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
-		_, err = ctrl.CreateOrUpdate(ctx, r.Client, secret, mutationFunc)
+		err = createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
 	}
 
 	if err != nil {
@@ -310,6 +310,38 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{
 		RequeueAfter: refreshInt,
 	}, nil
+}
+
+func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f func() error, fieldOwner string) error {
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
+	key := client.ObjectKeyFromObject(obj)
+	if err := c.Get(ctx, key, obj); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		if err := f(); err != nil {
+			return err
+		}
+		// Setting Field Owner even for CreationPolicy==Create
+		if err := c.Create(ctx, obj, client.FieldOwner(fqdn)); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	existing := obj.DeepCopyObject()
+	if err := f(); err != nil {
+		return err
+	}
+
+	if equality.Semantic.DeepEqual(existing, obj) {
+		return nil
+	}
+
+	if err := c.Update(ctx, obj, client.FieldOwner(fqdn)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, secret *v1.Secret, mutationFunc func() error, fieldOwner string) error {
@@ -344,7 +376,8 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	if equality.Semantic.DeepEqual(existing, secret) {
 		return nil
 	}
-
+	// Cleaning up Managed fields manually as to keep patch coherence
+	secret.ObjectMeta.ManagedFields = nil
 	// we're not able to resolve conflicts so we force ownership
 	// see: https://kubernetes.io/docs/reference/using-api/server-side-apply/#using-server-side-apply-in-a-controller
 	err = c.Patch(ctx, secret, client.Apply, client.FieldOwner(fqdn), client.ForceOwnership)
@@ -370,7 +403,7 @@ func getManagedKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
 		if dataFields == nil {
 			continue
 		}
-		df, ok := dataFields.(map[string]string)
+		df, ok := dataFields.(map[string]interface{})
 		if !ok {
 			continue
 		}

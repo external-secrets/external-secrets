@@ -324,10 +324,13 @@ func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byt
 
 // GetSecret returns a single secret from the provider.
 func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
-		Name:           &ref.Key,
-		WithDecryption: aws.Bool(true),
-	})
+	var out *ssm.GetParameterOutput
+	var err error
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		out, err = pm.getParameterTags(ctx, ref)
+	} else {
+		out, err = pm.getParameterValue(ctx, ref)
+	}
 	metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSGetParameter, err)
 	nsf := esv1beta1.NoSecretError{}
 	var nf *ssm.ParameterNotFound
@@ -356,6 +359,37 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
 	return []byte(val.String()), nil
+}
+
+func (pm *ParameterStore) getParameterTags(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*ssm.GetParameterOutput, error) {
+	param := ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Name: &ref.Key,
+		},
+	}
+	tags, err := pm.getTagsByName(ctx, &param)
+	if err != nil {
+		return nil, err
+	}
+	json, err := util.ParameterTagsToJSONString(tags)
+	if err != nil {
+		return nil, err
+	}
+	out := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Value: &json,
+		},
+	}
+	return out, nil
+}
+
+func (pm *ParameterStore) getParameterValue(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*ssm.GetParameterOutput, error) {
+	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
+		Name:           &ref.Key,
+		WithDecryption: aws.Bool(true),
+	})
+
+	return out, err
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.

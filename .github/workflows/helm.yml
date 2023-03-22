@@ -43,8 +43,24 @@ jobs:
           if [[ -n "$changed" ]]; then
             echo "::set-output name=changed::true"
           fi
+      - name: Install chart unittest
+        run: |
+          helm env
+          helm plugin install https://github.com/helm-unittest/helm-unittest
       - name: Run chart-testing (lint)
         run: ct lint --config=.github/ci/ct.yaml
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.5.0
+        if: steps.list-changed.outputs.changed == 'true'
+
+      - name: Run chart-testing (install)
+        run: ct install --config=.github/ci/ct.yaml --charts deploy/charts/external-secrets
+        if: steps.list-changed.outputs.changed == 'true'
+
+      - name: Run unitests
+        if: steps.list-changed.outputs.changed == 'true'
+        run: make helm.test
 
   release:
     runs-on: ubuntu-latest

@@ -1677,6 +1677,55 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	// When we update the template, remaining keys should not be preserved
+	templateShouldRewrite := func(tc *testCase) {
+		const secretVal = "someValue"
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Minute * 10}
+		tc.externalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+			Data: map[string]string{
+				"key": `{{.targetProperty}}-foo`,
+			},
+		}
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["key"]).To(Equal([]byte("someValue-foo")))
+			newEs := es.DeepCopy()
+			newEs.Spec.Target.Template.Data = map[string]string{
+				"new": "foo",
+			}
+			Expect(k8sClient.Patch(context.Background(), newEs, client.MergeFrom(es))).To(Succeed())
+
+			var refreshedSecret v1.Secret
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, &refreshedSecret)
+				if err != nil {
+					return false
+				}
+				_, ok := refreshedSecret.Data["key"]
+				return !ok && bytes.Equal(refreshedSecret.Data["new"], []byte("foo"))
+			}, timeout, interval).Should(BeTrue())
+		}
+	}
+	// When we update the template, remaining keys should not be preserved
+	templateShouldMerge := func(tc *testCase) {
+		const secretVal = "someValue"
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Minute * 10}
+		tc.externalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+			MergePolicy: esv1beta1.MergePolicyMerge,
+			Data: map[string]string{
+				"key": `{{.targetProperty}}-foo`,
+			},
+		}
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["key"]).To(Equal([]byte("someValue-foo")))
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1beta1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1940,6 +1989,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should sync template from keys and values", syncTemplateFromKeysAndValues),
 		Entry("should sync template from literal", syncTemplateFromLiteral),
+		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
+		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),
 		Entry("should be able to use only metadata from template", onlyMetadataFromTemplate),
 		Entry("should refresh secret value when provider secret changes", refreshSecretValue),
