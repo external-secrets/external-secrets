@@ -107,10 +107,13 @@ jobs:
         env:
           GITHUB_REF: ${{ github.ref }}
         run: |
+          # rebuild-image
           if [ "${{ inputs.image-tag }}" != "" ]; then
             TAG="${{ inputs.image-tag }}${{ inputs.tag-suffix }}"
-          elif [ "$GITHUB_REF" == "refs/heads/main" ]; then
-            TAG=main${{ inputs.tag-suffix }}
+          # main / release-x.y
+          elif [[ "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" =~ "refs/heads/release-.*"  ]]; then
+            TAG=${GITHUB_REF#refs/heads/}${{ inputs.tag-suffix }}
+          # Pull Request
           else
             TAG=$(make docker.tag)
           fi
