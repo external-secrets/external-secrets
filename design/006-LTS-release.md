@@ -34,7 +34,7 @@ We'll have a release issue template that gives the release lead a task list to w
 
 #### Release Preparation Tasks
 - [ ] ask in `#external-secrets-dev` if we're ready for a release cut-off or if something needs to get urgently in
-- [ ] docs: [support page](https://external-secrets.io/main/introduction/stability-support/) is up to date
+- [ ] docs: [stability & support page](https://external-secrets.io/main/introduction/stability-support/) is up to date
     - [ ] version table
     - [ ] Provider Stability and Support table
     - [ ] Provider Feature Support table

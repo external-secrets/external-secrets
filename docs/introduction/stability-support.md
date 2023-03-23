@@ -5,18 +5,26 @@ hide:
 
 This page lists the status, timeline and policy for currently supported ESO releases and its providers. Please also see our [deprecation policy](deprecation-policy.md) that describes API versioning, deprecation and API surface.
 
-## External Secrets Operator
+## Supported Versions
 
-We are currently in beta and support **only the latest release** for the time being.
+We want to provide security patches and critical bug fixes in a timely manner to our users.
+To do so, we offer long-term support for our latest two (N, N-1) software releases.
+We aim for a 2-3 month minor release cycle, i.e. a given release is supported for about 4-6 months.
 
-| ESO Version | Kubernetes Version |
-| ----------- | ------------------ |
-| 0.8.x       | 1.19 → 1.26        |
-| 0.7.x       | 1.19 → 1.26        |
-| 0.6.x       | 1.19 → 1.24        |
-| 0.5.x       | 1.19 → 1.24        |
-| 0.4.x       | 1.16 → 1.24        |
-| 0.3.x       | 1.16 → 1.24        |
+We want to cover the following cases:
+
+* regular image rebuilds to update OS dependencies
+* regular go dependency updates
+* backport bug fixes on demand
+
+| ESO Version | Kubernetes Version | Release Date | End of Life    |
+| ----------- | ------------------ | ------------ | -------------- |
+| 0.8.x       | 1.19 → 1.26        | Mar 16, 2023 | Release of 1.0 |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Mar 16, 2023   |
+| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |
+| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022   |
+| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022    |
+| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021 | Apr 6, 2022    |
 
 ## Provider Stability and Support Level
 

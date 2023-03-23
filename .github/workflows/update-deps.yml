@@ -1,8 +1,8 @@
 name: "Update dependencies"
 on:
   schedule:
-    # Sunday, 1PM UTC
-    - cron: "0 13 * * 0"
+    # Monday, 10AM UTC
+    - cron: "0 10 * * 1"
 
   workflow_dispatch:
     inputs: {}

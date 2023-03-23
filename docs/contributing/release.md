@@ -5,10 +5,10 @@ The external-secrets project is released on a as-needed basis. Feel free to open
 ## Release ESO
 
 1. Run `Create Release` Action to create a new release, pass in the desired version number to release.
-2. GitHub Release, Changelog will be created by the `release.yml` workflow which also promotes the container image.
-3. update Helm Chart, see below
-4. update OLM bundle, see [helm-operator docs](https://github.com/external-secrets/external-secrets-helm-operator/blob/main/docs/release.md#operatorhubio)
-5. Announce the new release in the `#external-secrets` Kubernetes Slack
+    1. note: choose the right `branch` to execute the action: use `main` when creating a new release. Use `release-x.y` when you want to bump a LTS release.
+1. GitHub Release, Changelog will be created by the `release.yml` workflow which also promotes the container image.
+1. update Helm Chart, see below
+1. update OLM bundle, see [helm-operator docs](https://github.com/external-secrets/external-secrets-helm-operator/blob/main/docs/release.md#operatorhubio)
 
 ## Release Helm Chart
 
@@ -18,6 +18,9 @@ The external-secrets project is released on a as-needed basis. Feel free to open
 1. run `/ok-to-test-managed` commands for all cloud providers
 1. merge PR if everyhing is green
 1. CI picks up the new chart version and creates a new GitHub Release for it
+1. create/merge into release branch
+    1. on a `minor` release: create a new branch `release-x.y`
+    1. on a `patch` release: merge main into `release-x.y`
 
 ## Release OLM Bundle
 
