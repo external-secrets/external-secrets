@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release-*
   pull_request: {}
 
 env:
@@ -39,7 +40,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
 
@@ -83,7 +84,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
 
@@ -125,7 +126,7 @@ jobs:
         run: git fetch --prune --unshallow
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
 
@@ -185,7 +186,7 @@ jobs:
           build-platform: "linux/amd64,linux/arm64"
           tag-suffix: "-ubi"
         - dockerfile: "Dockerfile.ubi"
-          build-args: "CGO_ENABLED=1 GOEXPERIMENT=boringcrypto"
+          build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto"
           build-arch: "amd64"
           build-platform: "linux/amd64"
           tag-suffix: "-ubi-boringssl"

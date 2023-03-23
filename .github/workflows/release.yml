@@ -7,6 +7,10 @@ on:
         description: 'version to release, e.g. v1.5.13'
         required: true
         default: 'v0.1.0'
+      source_ref:
+        description: 'source ref to publish from. E.g.: main or release-x.y'
+        required: true
+        default: 'main'
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
@@ -55,7 +59,7 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
 
@@ -65,6 +69,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Update Docs
+        if: github.ref == 'refs/heads/main'
         run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
@@ -84,7 +89,7 @@ jobs:
       contents: write
 
     env:
-      SOURCE_TAG: main${{ matrix.tag_suffix }}
+      SOURCE_TAG: ${{ github.event.inputs.source_ref }}${{ matrix.tag_suffix }}
       RELEASE_TAG: ${{ github.event.inputs.version }}${{ matrix.tag_suffix }}
 
     steps:
@@ -94,7 +99,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: "go.mod"
 
