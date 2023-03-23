@@ -18,8 +18,6 @@ We'll build a Github Action (GHA) which will automatically update the `go.mod` d
 The GHA will make the necessary code changes and opens a PR. Once approved and merged into `main` or `release-x.y` our build pipelines
 will build and push the artefact to ghcr.
 
-Note: a released image tag will be overridden and will point to a different SHA (including signature).
-
 ## Process
 
 ### Branch Management
