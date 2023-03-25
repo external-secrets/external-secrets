@@ -10,7 +10,6 @@ import (
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -63,9 +62,7 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 		}
 	}
 
-	logger := logrus.New()
-	logger.SetLevel(logrus.InfoLevel)
-	client.Logger = logger
+	client.Logger = log
 	return &secretsManagerClient{
 		config:   config,
 		options:  options,
@@ -166,11 +163,10 @@ func (s *secretsManagerClient) parseErrorResponse(resp *http.Response) error {
 		return err
 	}
 
-	requestId := defaultAny(errorMap["RequestId"], errorMap["requestId"])
 	errorMap["statusCode"] = utils.Ptr(resp.StatusCode)
 	err = tea.NewSDKError(map[string]interface{}{
 		"code":               tea.ToString(defaultAny(errorMap["Code"], errorMap["code"])),
-		"message":            fmt.Sprintf("code: %s, %s request id: %s", tea.ToString(resp.StatusCode), tea.ToString(defaultAny(errorMap["Message"], errorMap["message"])), tea.ToString(requestId)),
+		"message":            fmt.Sprintf("code: %s, %s", tea.ToString(resp.StatusCode), tea.ToString(defaultAny(errorMap["Message"], errorMap["message"]))),
 		"data":               errorMap,
 		"description":        tea.ToString(defaultAny(errorMap["Description"], errorMap["description"])),
 		"accessDeniedDetail": errorMap["AccessDeniedDetail"],

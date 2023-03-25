@@ -21,11 +21,9 @@ import (
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"time"
-
-	"github.com/tidwall/gjson"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
@@ -50,6 +48,7 @@ var _ esv1beta1.Provider = &KeyManagementService{}
 
 type KeyManagementService struct {
 	Client SMInterface
+	Config *openapi.Config
 }
 
 type SMInterface interface {
@@ -151,6 +150,7 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.
 	}
 
 	kms.Client = client
+	kms.Config = config
 	return kms, nil
 }
 
@@ -277,12 +277,11 @@ func (kms *KeyManagementService) Close(ctx context.Context) error {
 }
 
 func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	url := fmt.Sprintf("https://%s", kms.Client.Endpoint())
-
-	if err := utils.NetworkValidate(url, timeout); err != nil {
+	_, err := kms.Config.Credential.GetSecurityToken()
+	if err != nil {
 		return esv1beta1.ValidationResultError, err
 	}
+
 	return esv1beta1.ValidationResultReady, nil
 }
 
