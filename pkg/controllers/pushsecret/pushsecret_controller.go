@@ -195,7 +195,7 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 		if err != nil {
 			// if store is not handled by this controller instance
 			if err.Error() == "can not reference unmanaged store" {
-				return out, nil
+				continue
 			}else{
 				return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 			}
@@ -250,7 +250,7 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 		if err != nil {
 			// if store is not handled by this controller instance
 			if err.Error() == "can not reference unmanaged store" {
-				return out, nil
+				continue
 			}else{
 				return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
 			}
