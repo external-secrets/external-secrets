@@ -17,7 +17,6 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/aliyun/alibaba-cloud-sdk-go v1.62.247
 	github.com/aws/aws-sdk-go v1.44.225
 	github.com/go-logr/logr v1.2.3
 	github.com/go-test/deep v1.0.4 // indirect
@@ -65,6 +64,12 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.4.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.2
 	github.com/akeylesslabs/akeyless-go/v3 v3.3.0
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.4
+	github.com/alibabacloud-go/kms-20160120/v3 v3.0.1
+	github.com/alibabacloud-go/openapi-util v0.1.0
+	github.com/alibabacloud-go/tea v1.1.20
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.1
+	github.com/aliyun/credentials-go v1.2.7
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/keeper-security/secrets-manager-go/core v1.5.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1
@@ -76,8 +81,15 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
+	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
+	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
+	github.com/alibabacloud-go/tea-utils v1.3.1 // indirect
+	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
+	github.com/clbanning/mxj/v2 v2.5.5 // indirect
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	github.com/tjfoc/gmsm v1.3.2 // indirect
 )
 
 require (
@@ -129,7 +141,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.4.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.2 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
