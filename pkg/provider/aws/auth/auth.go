@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -34,6 +35,8 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/cache"
+	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
@@ -44,17 +47,10 @@ type Config struct {
 	APIRetries int
 }
 
-type SessionCache struct {
-	Name            string
-	Namespace       string
-	Kind            string
-	ResourceVersion string
-}
-
 var (
-	log         = ctrl.Log.WithName("provider").WithName("aws")
-	sessions    = make(map[SessionCache]*session.Session)
-	EnableCache bool
+	log                = ctrl.Log.WithName("provider").WithName("aws")
+	enableSessionCache bool
+	sessionCache       *cache.Cache[*session.Session]
 )
 
 const (
@@ -70,6 +66,15 @@ const (
 	errMissingSAK                              = "missing SecretAccessKey"
 	errMissingAKID                             = "missing AccessKeyID"
 )
+
+func init() {
+	fs := pflag.NewFlagSet("aws-auth", pflag.ExitOnError)
+	fs.BoolVar(&enableSessionCache, "experimental-enable-aws-session-cache", false, "Enable experimental AWS session cache. External secret will reuse the AWS session without creating a new one on each request.")
+	feature.Register(feature.Feature{
+		Flags: fs,
+	})
+	sessionCache = cache.Must[*session.Session](1024, nil)
+}
 
 // New creates a new aws session based on the provided store
 // it uses the following authentication mechanisms in order:
@@ -87,7 +92,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	// use credentials via service account token
 	jwtAuth := prov.Auth.JWTAuth
 	if jwtAuth != nil {
-		creds, err = sessionFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtProvider)
+		creds, err = credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +102,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	secretRef := prov.Auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		creds, err = sessionFromSecretRef(ctx, prov.Auth, isClusterKind, kube, namespace)
+		creds, err = credsFromSecretRef(ctx, prov.Auth, isClusterKind, kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -111,9 +116,14 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		config.WithRegion(prov.Region)
 	}
 
-	sess, err := getAWSSession(config, EnableCache, store.GetName(), store.GetTypeMeta().Kind, namespace, store.GetObjectMeta().ResourceVersion)
+	sess, err := getAWSSession(config, enableSessionCache, store.GetName(), store.GetTypeMeta().Kind, namespace, store.GetObjectMeta().ResourceVersion)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, aRole := range prov.AdditionalRoles {
+		stsclient := assumeRoler(sess)
+		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, aRole))
 	}
 
 	if prov.Role != "" {
@@ -136,7 +146,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 	// use credentials via service account token
 	jwtAuth := auth.JWTAuth
 	if jwtAuth != nil {
-		creds, err = sessionFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
+		creds, err = credsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +156,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 	secretRef := auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		creds, err = sessionFromSecretRef(ctx, auth, false, kube, namespace)
+		creds, err = credsFromSecretRef(ctx, auth, false, kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -173,16 +183,16 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 	return sess, nil
 }
 
-func sessionFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isClusterKind bool, kube client.Client, namespace string) (*credentials.Credentials, error) {
+// credsFromSecretRef pulls access-key / secret-access-key from a secretRef to
+// construct a aws.Credentials object
+// The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
+// If the ClusterSecretStore defines a namespace it will take precedence.
+func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isClusterKind bool, kube client.Client, namespace string) (*credentials.Credentials, error) {
 	ke := client.ObjectKey{
 		Name:      auth.SecretRef.AccessKeyID.Name,
-		Namespace: namespace, // default to ExternalSecret namespace
+		Namespace: namespace,
 	}
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if isClusterKind {
-		if auth.SecretRef.AccessKeyID.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingAKIDNamespace)
-		}
+	if isClusterKind && auth.SecretRef.AccessKeyID.Namespace != nil {
 		ke.Namespace = *auth.SecretRef.AccessKeyID.Namespace
 	}
 	akSecret := v1.Secret{}
@@ -192,13 +202,9 @@ func sessionFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isCluster
 	}
 	ke = client.ObjectKey{
 		Name:      auth.SecretRef.SecretAccessKey.Name,
-		Namespace: namespace, // default to ExternalSecret namespace
+		Namespace: namespace,
 	}
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if isClusterKind {
-		if auth.SecretRef.SecretAccessKey.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
-		}
+	if isClusterKind && auth.SecretRef.SecretAccessKey.Namespace != nil {
 		ke.Namespace = *auth.SecretRef.SecretAccessKey.Namespace
 	}
 	sakSecret := v1.Secret{}
@@ -219,13 +225,9 @@ func sessionFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isCluster
 	if auth.SecretRef.SessionToken != nil {
 		ke = client.ObjectKey{
 			Name:      auth.SecretRef.SessionToken.Name,
-			Namespace: namespace, // default to ExternalSecret namespace
+			Namespace: namespace,
 		}
-		// only ClusterStore is allowed to set namespace (and then it's required)
-		if isClusterKind {
-			if auth.SecretRef.SessionToken.Namespace == nil {
-				return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
-			}
+		if isClusterKind && auth.SecretRef.SessionToken.Namespace != nil {
 			ke.Namespace = *auth.SecretRef.SessionToken.Namespace
 		}
 		stSecret := v1.Secret{}
@@ -239,9 +241,14 @@ func sessionFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isCluster
 	return credentials.NewStaticCredentials(aks, sak, sessionToken), err
 }
 
-func sessionFromServiceAccount(ctx context.Context, auth esv1beta1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
+// credsFromServiceAccount uses a Kubernetes Service Account to acquire temporary
+// credentials using aws.AssumeRoleWithWebIdentity. It will assume the role defined
+// in the ServiceAccount annotation.
+// If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
+// If the ClusterSecretStore defines the namespace it will take precedence.
+func credsFromServiceAccount(ctx context.Context, auth esv1beta1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
-	if isClusterKind {
+	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
 	}
 	sa := v1.ServiceAccount{}
@@ -322,20 +329,19 @@ func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
 	return sts.New(sess)
 }
 
-// getAWSSession check if an AWS session should be reused
+// getAWSSession checks if an AWS session should be reused
 // it returns the aws session or an error.
 func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, resourceVersion string) (*session.Session, error) {
-	tmpSession := SessionCache{
-		Name:            name,
-		Namespace:       namespace,
-		Kind:            kind,
-		ResourceVersion: resourceVersion,
+	key := cache.Key{
+		Name:      name,
+		Namespace: namespace,
+		Kind:      kind,
 	}
 
 	if enableCache {
-		sess, ok := sessions[tmpSession]
+		sess, ok := sessionCache.Get(resourceVersion, key)
 		if ok {
-			log.Info("reusing aws session", "SecretStore", tmpSession.Name, "namespace", tmpSession.Namespace, "kind", tmpSession.Kind, "resourceversion", tmpSession.ResourceVersion)
+			log.Info("reusing aws session", "SecretStore", key.Name, "namespace", key.Namespace, "kind", key.Kind, "resourceversion", resourceVersion)
 			return sess, nil
 		}
 	}
@@ -352,7 +358,7 @@ func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, 
 	}
 
 	if enableCache {
-		sessions[tmpSession] = sess
+		sessionCache.Add(resourceVersion, key, sess)
 	}
 	return sess, nil
 }

@@ -20,6 +20,7 @@ rules:
     - "clustersecretstores"
     - "externalsecrets"
     - "clusterexternalsecrets"
+    - "pushsecrets"
     verbs:
     - "get"
     - "list"
@@ -39,17 +40,21 @@ rules:
     - "clusterexternalsecrets"
     - "clusterexternalsecrets/status"
     - "clusterexternalsecrets/finalizers"
+    - "pushsecrets"
+    - "pushsecrets/status"
+    - "pushsecrets/finalizers"
     verbs:
     - "update"
     - "patch"
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
-    - "fakes"
-    - "passwords"
     - "acraccesstokens"
-    - "gcraccesstokens"
     - "ecrauthorizationtokens"
+    - "fakes"
+    - "gcraccesstokens"
+    - "passwords"
+    - "vaultdynamicsecrets"
     verbs:
     - "get"
     - "list"
@@ -128,6 +133,7 @@ rules:
       - "externalsecrets"
       - "secretstores"
       - "clustersecretstores"
+      - "pushsecrets"
     verbs:
       - "get"
       - "watch"
@@ -155,6 +161,7 @@ rules:
       - "externalsecrets"
       - "secretstores"
       - "clustersecretstores"
+      - "pushsecrets"
     verbs:
       - "create"
       - "delete"

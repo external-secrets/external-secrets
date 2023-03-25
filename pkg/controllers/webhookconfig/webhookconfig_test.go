@@ -236,27 +236,27 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 		Webhooks: []admissionregistration.ValidatingWebhook{
 			{
 				Name:                    "secretstores.external-secrets.io",
-				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.StringPtr(string(admissionregistration.SideEffectClassNone))),
+				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.String(string(admissionregistration.SideEffectClassNone))),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionregistration.WebhookClientConfig{
 					CABundle: []byte("Cg=="),
 					Service: &admissionregistration.ServiceReference{
 						Name:      "noop",
 						Namespace: "noop",
-						Path:      pointer.StringPtr("/validate-secretstore"),
+						Path:      pointer.String("/validate-secretstore"),
 					},
 				},
 			},
 			{
 				Name:                    "clustersecretstores.external-secrets.io",
-				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.StringPtr(string(admissionregistration.SideEffectClassNone))),
+				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.String(string(admissionregistration.SideEffectClassNone))),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionregistration.WebhookClientConfig{
 					CABundle: []byte("Cg=="),
 					Service: &admissionregistration.ServiceReference{
 						Name:      "noop",
 						Namespace: "noop",
-						Path:      pointer.StringPtr("/validate-clustersecretstore"),
+						Path:      pointer.String("/validate-clustersecretstore"),
 					},
 				},
 			},

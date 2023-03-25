@@ -79,7 +79,9 @@ both AccessKeyID and SecretAccessKey must be defined in order to properly authen
 <td>
 <code>accessKeyIDSecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -90,11 +92,28 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>secretAccessKeySecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
 <p>The SecretAccessKey is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The SessionToken used for authentication
+This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a></p>
 </td>
 </tr>
 </tbody>
@@ -120,7 +139,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
 </em>
 </td>
 <td>
@@ -195,6 +216,18 @@ string
 </td>
 <td>
 <p>AWS Region to be used for the provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalRoles</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role</p>
 </td>
 </tr>
 </tbody>
@@ -295,7 +328,9 @@ AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CO
 <td>
 <code>accessID</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -306,7 +341,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>accessType</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -316,7 +353,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>accessTypeParam</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -367,7 +406,9 @@ string
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
 </em>
 </td>
 <td>
@@ -382,7 +423,9 @@ the secretRef will be used instead.</p>
 <td>
 <code>secretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -434,6 +477,34 @@ AkeylessAuth
 </td>
 <td>
 <p>Auth configures how the operator authenticates with Akeyless.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used
+if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates
+are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Akeyless Gateway certificate.</p>
 </td>
 </tr>
 </tbody>
@@ -490,7 +561,9 @@ AlibabaAuthSecretRef
 <td>
 <code>accessKeyIDSecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -501,7 +574,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>accessKeySecretSecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -643,7 +718,9 @@ PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
 <td>
 <code>clientId</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -655,7 +732,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>clientSecret</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -756,7 +835,9 @@ AzureKVAuth
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
 </em>
 </td>
 <td>
@@ -783,6 +864,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
 <a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
@@ -890,7 +972,9 @@ Can only be defined when used in a ClusterSecretStore.</p>
 <td>
 <code>clientCert</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -900,7 +984,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>clientKey</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -925,7 +1011,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>metadata</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -977,7 +1063,7 @@ string
 <td>
 <code>namespaceSelector</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -990,7 +1076,7 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <code>refreshTime</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -1127,7 +1213,7 @@ string
 <td>
 <code>namespaceSelector</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -1140,7 +1226,7 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <code>refreshTime</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -1241,7 +1327,7 @@ ClusterExternalSecretConditionType
 <td>
 <code>status</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#conditionstatus-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#conditionstatus-v1-core">
 Kubernetes core/v1.ConditionStatus
 </a>
 </em>
@@ -1279,7 +1365,7 @@ string
 <td>
 <code>metadata</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -1354,6 +1440,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1367,6 +1467,51 @@ SecretStoreStatus
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ClusterSecretStoreCondition">ClusterSecretStoreCondition
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
+</p>
+<p>
+<p>ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
+for a ClusterSecretStore instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>namespaceSelector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespace using a labelSelector</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Choose namespaces by name</p>
 </td>
 </tr>
 </tbody>
@@ -1421,7 +1566,9 @@ DopplerAuthSecretRef
 <td>
 <code>dopplerToken</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -1530,7 +1677,7 @@ string
 <td>
 <code>metadata</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -1563,6 +1710,7 @@ SecretStoreRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -1582,7 +1730,7 @@ ExternalSecretTarget
 <td>
 <code>refreshInterval</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -1738,6 +1886,8 @@ string
 </em>
 </td>
 <td>
+<p>SecretKey defines the key in which the controller stores
+the value. This is the key in the Kind=Secret</p>
 </td>
 </tr>
 <tr>
@@ -1750,6 +1900,22 @@ ExternalSecretDataRemoteRef
 </em>
 </td>
 <td>
+<p>RemoteRef points to the remote secret and defines
+which secret (version/property/..) to fetch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sourceRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SourceRef">
+SourceRef
+</a>
+</em>
+</td>
+<td>
+<p>SourceRef allows you to override the source
+from which the value will pulled from.</p>
 </td>
 </tr>
 </tbody>
@@ -1781,7 +1947,8 @@ ExternalSecretDataRemoteRef
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to extract multiple key/value pairs from one secret</p>
+<p>Used to extract multiple key/value pairs from one secret
+Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.</p>
 </td>
 </tr>
 <tr>
@@ -1795,7 +1962,8 @@ ExternalSecretFind
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to find secrets based on tags or regular expressions</p>
+<p>Used to find secrets based on tags or regular expressions
+Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.</p>
 </td>
 </tr>
 <tr>
@@ -1811,6 +1979,24 @@ ExternalSecretFind
 <em>(Optional)</em>
 <p>Used to rewrite secret Keys after getting them from the secret Provider
 Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sourceRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SourceRef">
+SourceRef
+</a>
+</em>
+</td>
+<td>
+<p>SourceRef points to a store or generator
+which contains secret values ready to use.
+Use this in combination with Extract or Find pull values out of
+a specific SecretStore.
+When sourceRef points to a generator Extract or Find is not supported.
+The generator returns a static map of values</p>
 </td>
 </tr>
 </tbody>
@@ -2179,6 +2365,7 @@ SecretStoreRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -2198,7 +2385,7 @@ ExternalSecretTarget
 <td>
 <code>refreshInterval</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -2260,7 +2447,7 @@ If multiple entries are specified, the Secret keys are merged in the specified o
 <td>
 <code>refreshTime</code></br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Time">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -2328,7 +2515,7 @@ ExternalSecretConditionType
 <td>
 <code>status</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#conditionstatus-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#conditionstatus-v1-core">
 Kubernetes core/v1.ConditionStatus
 </a>
 </em>
@@ -2362,7 +2549,7 @@ string
 <td>
 <code>lastTransitionTime</code></br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Time">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -2485,7 +2672,7 @@ we can not use native corev1.Secret, it will have empty ObjectMeta values: <a hr
 <td>
 <code>type</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#secrettype-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#secrettype-v1-core">
 Kubernetes core/v1.SecretType
 </a>
 </em>
@@ -2517,6 +2704,18 @@ ExternalSecretTemplateMetadata
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>mergePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateMergePolicy">
+TemplateMergePolicy
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 <tr>
@@ -2773,7 +2972,9 @@ GCPWorkloadIdentity
 <td>
 <code>secretAccessKeySecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -2847,7 +3048,9 @@ string
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
 </em>
 </td>
 <td>
@@ -2881,6 +3084,58 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GeneratorRef">GeneratorRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+</p>
+<p>
+<p>GeneratorRef points to a generator custom resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the apiVersion of the generator resource</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the name of the generator resource</p>
 </td>
 </tr>
 </tbody>
@@ -2977,6 +3232,39 @@ string
 <p>ProjectID specifies a project where secrets are located.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>inheritFromGroups</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>InheritFromGroups specifies whether parent groups should be discovered and checked for secrets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groupIDs</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>GroupIDs specify, which gitlab groups to pull secrets from. Group secrets are read from left to right followed by the project variables.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Environment environment_scope of gitlab CI/CD variables (Please see <a href="https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment">https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment</a> on how to create environments)</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.GitlabSecretRef">GitlabSecretRef
@@ -2999,7 +3287,9 @@ string
 <td>
 <code>accessToken</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -3121,7 +3411,9 @@ string
 <td>
 <code>secretApiKeySecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -3174,6 +3466,47 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.KeeperSecurityProvider">KeeperSecurityProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>KeeperSecurityProvider Configures a store to sync secrets using Keeper Security.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>folderID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.KubernetesAuth">KubernetesAuth
 </h3>
 <p>
@@ -3222,7 +3555,9 @@ TokenAuth
 <td>
 <code>serviceAccount</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
 </em>
 </td>
 <td>
@@ -3403,7 +3738,9 @@ OnePasswordAuthSecretRef
 <td>
 <code>connectTokenSecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -3596,7 +3933,9 @@ If empty, use the instance principal, otherwise the user credentials specified i
 <td>
 <code>privatekey</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -3607,7 +3946,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>fingerprint</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -3621,6 +3962,133 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.PushRemoteRef">PushRemoteRef
+</h3>
+<p>
+<p>This interface is to allow using v1alpha1 content in Provider registered in v1beta1.</p>
+</p>
+<h3 id="external-secrets.io/v1beta1.ScalewayProvider">ScalewayProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIURL is the url of the api to use. Defaults to <a href="https://api.scaleway.com">https://api.scaleway.com</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region where your secrets are located: <a href="https://developers.scaleway.com/en/quickstart/#region-and-zone">https://developers.scaleway.com/en/quickstart/#region-and-zone</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID is the id of your project, which you can find in the console: <a href="https://console.scaleway.com/project/settings">https://console.scaleway.com/project/settings</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProviderSecretRef">
+ScalewayProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>AccessKey is the non-secret part of the api key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProviderSecretRef">
+ScalewayProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretKey is the non-secret part of the api key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ScalewayProviderSecretRef">ScalewayProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ScalewayProvider">ScalewayProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.SecretStore">SecretStore
 </h3>
 <p>
@@ -3638,7 +4106,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>metadata</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -3713,6 +4181,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -3729,6 +4211,30 @@ SecretStoreStatus
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.SecretStoreCapabilities">SecretStoreCapabilities
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreStatus">SecretStoreStatus</a>)
+</p>
+<p>
+<p>SecretStoreCapabilities defines the possible operations a SecretStore can do.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ReadOnly&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;ReadWrite&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;WriteOnly&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreConditionType">SecretStoreConditionType
 (<code>string</code> alias)</p></h3>
@@ -3992,6 +4498,20 @@ SenhaseguraProvider
 </tr>
 <tr>
 <td>
+<code>scaleway</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProvider">
+ScalewayProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Scaleway</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>doppler</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.DopplerProvider">
@@ -4004,13 +4524,28 @@ DopplerProvider
 <p>Doppler configures this store to sync secrets using the Doppler provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>keepersecurity</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.KeeperSecurityProvider">
+KeeperSecurityProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreRef">SecretStoreRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>)
+<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
 </p>
 <p>
 <p>SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.</p>
@@ -4157,6 +4692,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreStatus">SecretStoreStatus
@@ -4183,6 +4732,19 @@ int
 <em>
 <a href="#external-secrets.io/v1beta1.SecretStoreStatusCondition">
 []SecretStoreStatusCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>capabilities</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreCapabilities">
+SecretStoreCapabilities
 </a>
 </em>
 </td>
@@ -4224,7 +4786,7 @@ SecretStoreConditionType
 <td>
 <code>status</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#conditionstatus-v1-core">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#conditionstatus-v1-core">
 Kubernetes core/v1.ConditionStatus
 </a>
 </em>
@@ -4258,7 +4820,7 @@ string
 <td>
 <code>lastTransitionTime</code></br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Time">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -4305,7 +4867,9 @@ string
 <td>
 <code>clientSecretSecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -4403,6 +4967,55 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.SourceRef">SourceRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
+</p>
+<p>
+<p>SourceRef allows you to override the source
+from which the secret will be pulled from.
+You can define at maximum one property.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreRef">
+SecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>generatorRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorRef">
+GeneratorRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GeneratorRef points to a generator custom resource in</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.TemplateEngineVersion">TemplateEngineVersion
 (<code>string</code> alias)</p></h3>
 <p>
@@ -4464,7 +5077,52 @@ TemplateRef
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>target</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateTarget">
+TemplateTarget
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>literal</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.TemplateMergePolicy">TemplateMergePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretTemplate">ExternalSecretTemplate</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Merge&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Replace&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.TemplateRef">TemplateRef
 </h3>
@@ -4532,7 +5190,63 @@ string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>templateAs</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateScope">
+TemplateScope
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.TemplateScope">TemplateScope
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.TemplateRefItem">TemplateRefItem</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;KeysAndValues&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Values&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.TemplateTarget">TemplateTarget
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.TemplateFrom">TemplateFrom</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Annotations&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Data&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Labels&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.TokenAuth">TokenAuth
 </h3>
@@ -4554,7 +5268,9 @@ string
 <td>
 <code>bearerToken</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -4577,7 +5293,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td><p>Error indicates that there is a misconfiguration.</p>
 </td>
 </tr><tr><td><p>0</p></td>
-<td><p>Ready indicates that the client is confgured correctly
+<td><p>Ready indicates that the client is configured correctly
 and can be used.</p>
 </td>
 </tr><tr><td><p>1</p></td>
@@ -4632,7 +5348,9 @@ up the authentication backend in Vault.</p>
 <td>
 <code>secretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -4667,7 +5385,9 @@ can be specified.</p>
 <td>
 <code>tokenSecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -4774,7 +5494,9 @@ method, with the role name and token stored in a Kubernetes Secret resource.</p>
 <td>
 <code>clientCert</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -4787,7 +5509,9 @@ authentication method</p>
 <td>
 <code>secretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -4845,7 +5569,9 @@ authentication method</p>
 <td>
 <code>secretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -4926,7 +5652,9 @@ string
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
 </em>
 </td>
 <td>
@@ -4941,7 +5669,9 @@ the secretRef will be used instead.</p>
 <td>
 <code>secretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -4988,7 +5718,9 @@ Kubernetes service account token retrieved by the <code>TokenRequest</code> API.
 <td>
 <code>serviceAccountRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
 </em>
 </td>
 <td>
@@ -5074,7 +5806,9 @@ authentication method</p>
 <td>
 <code>secretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -5385,7 +6119,7 @@ string
 <td>
 <code>timeout</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#duration-v1-meta">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -5515,7 +6249,9 @@ string
 <td>
 <code>secretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -5544,7 +6280,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>authorizedKeySecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -5574,7 +6312,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>certSecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -5660,7 +6400,9 @@ YandexCertificateManagerCAProvider
 <td>
 <code>authorizedKeySecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>
@@ -5690,7 +6432,9 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <code>certSecretRef</code></br>
 <em>
-github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
 </em>
 </td>
 <td>

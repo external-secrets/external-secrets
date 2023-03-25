@@ -10,6 +10,19 @@ You can use templates to inject your secrets into a configuration file that you 
 {% include 'multiline-template-v2-external-secret.yaml' %}
 ```
 
+Another example with two keys in the same secret:
+
+```yaml
+{% include 'multikey-template-v2-external-secret.yaml' %}
+```
+
+### MergePolicy
+By default, the templating mechanism will not use any information available from the original `data` and `dataFrom` queries to the provider, and only keep the templated information. It is possible to change this behavior through the use of the `mergePolicy` field. `mergePolicy` currently accepts two values: `Replace` (the default) and `Merge`. When using `Merge`, `data` and `dataFrom` keys will also be embedded into the templated secret, having lower priority than the template outcome. See the example for more information:
+
+```yaml
+{% include 'merge-template-v2-external-secret.yaml' %}
+
+```
 ### TemplateFrom
 
 You do not have to define your templates inline in an ExternalSecret but you can pull `ConfigMaps` or other Secrets that contain a template. Consider the following example:
@@ -17,6 +30,14 @@ You do not have to define your templates inline in an ExternalSecret but you can
 ```yaml
 {% include 'template-v2-from-secret.yaml' %}
 ```
+
+`TemplateFrom` also gives you the ability to Target your template to the Secret's Annotations, Labels or the Data block. It also allows you to render the templated information as `Values` or as `KeysAndValues` through the `templateAs` configuration:
+
+```yaml
+{% include 'template-v2-scope-and-target.yaml' %}
+```
+
+Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
 
 ### Extract Keys and Certificates from PKCS#12 Archive
 
@@ -132,9 +153,9 @@ spec:
 ##### Functions removed/replaced
 
 - `base64encode` was renamed to `b64enc`.
-- `base64decode` was renamed to `b64dec`. Any errors that occurr during decoding are silenced.
-- `fromJSON` was renamed to `fromJson`. Any errors that occurr during unmarshalling are silenced.
-- `toJSON` was renamed to `toJson`. Any errors that occurr during marshalling are silenced.
+- `base64decode` was renamed to `b64dec`. Any errors that occur during decoding are silenced.
+- `fromJSON` was renamed to `fromJson`. Any errors that occur during unmarshalling are silenced.
+- `toJSON` was renamed to `toJson`. Any errors that occur during marshalling are silenced.
 - `pkcs12key` and `pkcs12keyPass` encode the PKCS#8 key directly into PEM format. There is no need to call `pemPrivateKey` anymore. Also, these functions do extract all private keys from the PKCS#12 archive not just the first one.
 - `pkcs12cert` and `pkcs12certPass` encode the certs directly into PEM format. There is no need to call `pemCertificate` anymore. These functions now **extract all certificates** from the PKCS#12 archive not just the first one.
 - `toString` implementation was replaced by the `sprig` implementation and should be api-compatible.

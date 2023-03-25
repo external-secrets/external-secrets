@@ -33,9 +33,9 @@ func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID str
 	}
 	wi, err := newWorkloadIdentity(ctx, projectID)
 	if err != nil {
-		useMu.Unlock()
 		return nil, fmt.Errorf("unable to initialize workload identity")
 	}
+	defer wi.Close()
 	ts, err = wi.TokenSource(ctx, auth, isClusterKind, kube, namespace)
 	if ts != nil || err != nil {
 		return ts, err
@@ -54,14 +54,8 @@ func serviceAccountTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, is
 		Name:      credentialsSecretName,
 		Namespace: namespace,
 	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if isClusterKind {
-		if credentialsSecretName != "" && sr.SecretAccessKey.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
-		} else if credentialsSecretName != "" {
-			objectKey.Namespace = *sr.SecretAccessKey.Namespace
-		}
+	if isClusterKind && sr.SecretAccessKey.Namespace != nil {
+		objectKey.Namespace = *sr.SecretAccessKey.Namespace
 	}
 	err := kube.Get(ctx, objectKey, credentialsSecret)
 	if err != nil {

@@ -6,6 +6,7 @@ on:
 
 permissions:
   id-token: write
+  checks: write
   contents: read
 
 name: e2e tests
@@ -13,10 +14,10 @@ name: e2e tests
 env:
   # Common versions
   GO_VERSION: '1.19'
-  GINKGO_VERSION: 'v2.1.6'
+  GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
-  KIND_VERSION: 'v0.14.0'
-  KIND_IMAGE: 'kindest/node:v1.24.2'
+  KIND_VERSION: 'v0.17.0'
+  KIND_IMAGE: 'kindest/node:v1.26.0'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
@@ -35,7 +36,11 @@ env:
   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET}}
   TENANT_ID: ${{ secrets.TENANT_ID}}
   VAULT_URL: ${{ secrets.VAULT_URL}}
-
+  SCALEWAY_API_URL: ${{ secrets.SCALEWAY_API_URL }}
+  SCALEWAY_REGION: ${{ secrets.SCALEWAY_REGION }}
+  SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
+  SCALEWAY_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+  SCALEWAY_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
 
 jobs:
 

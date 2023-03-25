@@ -80,7 +80,7 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		return nil, err
 	}
 	g.clientSecretCreds = func(tenantID, clientID, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error) {
-		return azidentity.NewClientSecretCredential(clientID, clientID, clientSecret, options)
+		return azidentity.NewClientSecretCredential(tenantID, clientID, clientSecret, options)
 	}
 
 	return g.generate(
@@ -175,7 +175,7 @@ func fetchACRAccessToken(acrRefreshToken, tenantID, registryURL, scope string) (
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", res.StatusCode)
+		return "", fmt.Errorf("could not generate access token, unexpected status code: %d", res.StatusCode)
 	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -210,7 +210,7 @@ func fetchACRRefreshToken(aadAccessToken, tenantID, registryURL string) (string,
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code %d, expected %d", res.StatusCode, http.StatusOK)
+		return "", fmt.Errorf("count not generate refresh token, unexpected status code %d, expected %d", res.StatusCode, http.StatusOK)
 	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {

@@ -4,7 +4,7 @@ provider "aws" {
 
 locals {
   name            = var.cluster_name
-  cluster_version = "1.22"
+  cluster_version = "1.24"
   region          = var.cluster_region
 
   serviceaccount_name      = var.irsa_sa_name
@@ -81,9 +81,9 @@ module "vpc" {
   single_nat_gateway   = true
   enable_dns_hostnames = true
 
-  enable_flow_log                      = true
-  create_flow_log_cloudwatch_iam_role  = true
-  create_flow_log_cloudwatch_log_group = true
+  enable_flow_log                      = false
+  create_flow_log_cloudwatch_iam_role  = false
+  create_flow_log_cloudwatch_log_group = false
 
   public_subnet_tags = {
     "kubernetes.io/cluster/${local.name}" = "shared"

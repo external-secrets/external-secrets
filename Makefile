@@ -20,8 +20,6 @@ export IMAGE_REGISTRY ?= ghcr.io
 export IMAGE_REPO     ?= external-secrets/external-secrets
 export IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE_REPO)
 
-#Valid licenses for license.check
-LICENSES ?= Apache-2.0|MIT|BSD-3-Clause|ISC|MPL-2.0|BSD-2-Clause
 BUNDLE_DIR     ?= deploy/crds
 CRD_DIR     ?= config/crds
 
@@ -74,27 +72,20 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate manifests helm.generate helm.docs lint ## Ensure a PR is ready for review.
+reviewable: generate docs manifests helm.generate helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
-
-golicenses.check: ## Check install of go-licenses
-	@if ! go-licenses >> /dev/null 2>&1; then \
-		echo -e "\033[0;33mgo-licenses is not installed: run go install github.com/google/go-licenses@latest" ; \
-		exit 1; \
-	fi
-
-license.check: golicenses.check
-	@$(INFO) running dependency license checks
-	@ok=0; go-licenses csv github.com/external-secrets/external-secrets 2>/dev/null | \
-	 grep -v -E '${LICENSES}' | \
-	 tr "," " " | awk '{print "Invalid License " $$3 " for dependency " $$1 }'|| ok=1; \
-	 if [[ $$ok -eq 1 ]]; then $(OK) dependencies are compliant; else $(FAIL); fi
 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
 	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
 	@$(OK) branch is clean
+
+update-deps:
+	go get -u
+	cd e2e && go get -u
+	@go mod tidy
+	@cd e2e/ && go mod tidy
 
 # ====================================================================================
 # Golang
@@ -194,6 +185,22 @@ helm.generate:
 	./hack/helm.generate.sh $(BUNDLE_DIR) $(HELM_DIR)
 	@$(OK) Finished generating helm chart files
 
+helm.test: helm.generate
+	@helm unittest --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+
+helm.test.update: helm.generate
+	@helm unittest -u --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+
+helm.update.appversion:
+	@chartversion=$$(yq .version ./deploy/charts/external-secrets/Chart.yaml) ; \
+	chartappversion=$$(yq .appVersion ./deploy/charts/external-secrets/Chart.yaml) ; \
+	chartname=$$(yq .name ./deploy/charts/external-secrets/Chart.yaml) ; \
+	$(INFO) Update chartname and chartversion string in test snapshots.; \
+	sed -s -i "s/^\([[:space:]]\+helm\.sh\/chart:\).*/\1 $${chartname}-$${chartversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
+	sed -s -i "s/^\([[:space:]]\+app\.kubernetes\.io\/version:\).*/\1 $${chartappversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
+	sed -s -i "s/^\([[:space:]]\+image: ghcr\.io\/external-secrets\/external-secrets:\).*/\1$${chartappversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
+	$(OK) "Version strings updated"
+
 # ====================================================================================
 # Documentation
 .PHONY: docs
@@ -236,12 +243,12 @@ SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
-	docker manifest inspect $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
-	for digest in $$(jq -r '.manifests[].digest' < .tagmanifest); do \
+	docker manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
+	for digest in $$(jq -r 'if type=="array" then .[].Descriptor.digest else .Descriptor.digest end' < .tagmanifest); do \
 		docker pull $(IMAGE_NAME)@$$digest; \
 	done
 	docker manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
-		$$(jq -j '"--amend $(IMAGE_NAME)@" + .manifests[].digest + " "' < .tagmanifest)
+		$$(jq -j '"--amend $(IMAGE_NAME)@" + if type=="array" then .[].Descriptor.digest else .Descriptor.digest end + " "' < .tagmanifest)
 	docker manifest push $(IMAGE_NAME):$(RELEASE_TAG)
 	@$(OK) docker push $(RELEASE_TAG) \
 

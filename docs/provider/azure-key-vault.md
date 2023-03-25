@@ -13,7 +13,7 @@ To use Managed Identity authentication, you should use [aad-pod-identity](https:
 
 We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud` and `GermanCloud`. You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
 
-```
+```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
@@ -40,7 +40,7 @@ A service Principal client and Secret is created and the JSON keyfile is stored 
 
 A Managed Identity should be created in Azure, and that Identity should have proper rights to the keyvault to be managed by the operator.
 
-If there are multiple Managed Identitites for different keyvaults, the operator should have been assigned all identities via [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/), then the SecretStore configuration should include the Id of the idenetity to be used via the `identityId` field.
+If there are multiple Managed Identities for different keyvaults, the operator should have been assigned all identities via [aad-pod-identity](https://azure.github.io/aad-pod-identity/docs/), then the SecretStore configuration should include the Id of the identity to be used via the `identityId` field.
 
 ```yaml
 {% include 'azkv-secret-store-mi.yaml' %}
@@ -94,7 +94,7 @@ Be sure the `azurekv` provider is listed in the `Kind=SecretStore`
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `clientId` and `clientSecret`  with the namespaces where the secrets reside.
 
-Or in case of Managed Idenetity authentication:
+Or in case of Managed Identity authentication:
 
 ```yaml
 {% include 'azkv-secret-store-mi.yaml' %}
@@ -123,7 +123,7 @@ You can manage keys/secrets/certificates saved inside the keyvault , by setting 
 The operator will fetch the Azure Key vault secret and inject it as a `Kind=Secret`. Then the Kubernetes secret can be fetched by issuing:
 
 ```sh
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
 
 To select all secrets inside the key vault or all tags inside a secret, you can use the `dataFrom` directive:
@@ -137,3 +137,33 @@ To get a PKCS#12 certificate from Azure Key Vault and inject it as a `Kind=Secre
 ```yaml
 {% include 'azkv-pkcs12-cert-external-secret.yaml' %}
 ```
+
+### Creating a PushSecret
+You can push secrets to Keyvault into the different `secret`, `key` and `certificate` APIs.
+
+#### Pushing to a Secret
+Pushing to a Secret requires no previous setup. with the secret available in kubernetes, you can simply refer it to a PushSecret object to have it created on Azure Keyvault:
+```yaml
+{% include 'azkv-pushsecret-secret.yaml' %}
+```
+!!! note
+      In order to create a PushSecret targeting keys, `CreateSecret` and `DeleteSecret` actions must be granted to the Service Principal/Identity configured on the SecretStore.
+
+#### Pushing to a Key
+The first step is to generate a valid Private Key. Supported Formats include `PRIVATE KEY`, `RSA PRIVATE KEY` AND `EC PRIVATE KEY` (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:
+
+```yaml
+{% include 'azkv-pushsecret-key.yaml' %}
+```
+
+!!! note
+      In order to create a PushSecret targeting keys, `ImportKey` and `DeleteKey` actions must be granted to the Service Principal/Identity configured on the SecretStore.
+#### Pushing to a Certificate
+The first step is to generate a valid P12 certificate. Currently, only PKCS1/PKCS8 types are supported. Currently only passwordless P12 certificates are supported.
+
+After uploading your P12 certificate to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration
+```yaml
+{% include 'azkv-pushsecret-certificate.yaml' %}
+```
+!!! note
+       In order to create a PushSecret targeting keys, `ImportCertificate` and `DeleteCertificate` actions must be granted to the Service Principal/Identity configured on the SecretStore.

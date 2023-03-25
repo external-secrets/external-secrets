@@ -27,7 +27,6 @@ import (
 	tpl "text/template"
 	"time"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/PaesslerAG/jsonpath"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +34,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -59,6 +59,11 @@ func init() {
 	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Webhook: &esv1beta1.WebhookProvider{},
 	})
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
 }
 
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
@@ -111,6 +116,15 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 	return secret, nil
 }
 
+func (w *WebHook) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+// Not Implemented PushSecret.
+func (w *WebHook) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
 // Empty GetAllSecrets.
 func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
@@ -127,18 +141,33 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 		return nil, err
 	}
 	// Only parse as json if we have a jsonpath set
-	if provider.Result.JSONPath != "" {
+	data, err := w.getTemplateData(ctx, ref, provider.Secrets)
+	if err != nil {
+		return nil, err
+	}
+	resultJSONPath, err := executeTemplateString(provider.Result.JSONPath, data)
+	if err != nil {
+		return nil, err
+	}
+	if resultJSONPath != "" {
 		jsondata := interface{}(nil)
 		if err := yaml.Unmarshal(result, &jsondata); err != nil {
 			return nil, fmt.Errorf("failed to parse response json: %w", err)
 		}
-		jsondata, err = jsonpath.Get(provider.Result.JSONPath, jsondata)
+		jsondata, err = jsonpath.Get(resultJSONPath, jsondata)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
+			return nil, fmt.Errorf("failed to get response path %s: %w", resultJSONPath, err)
 		}
 		jsonvalue, ok := jsondata.(string)
 		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+			jsonvalues, ok := jsondata.([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+			}
+			if len(jsonvalues) == 0 {
+				return nil, fmt.Errorf("filter worked but didn't get any result")
+			}
+			jsonvalue = jsonvalues[0].(string)
 		}
 		return []byte(jsonvalue), nil
 	}
@@ -252,10 +281,14 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1beta1.Webhoo
 	}
 
 	resp, err := w.http.Do(req)
+	metrics.ObserveAPICall(metrics.ProviderWebhook, metrics.CallWebhookHTTPReq, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == 404 {
+		return nil, esv1beta1.NoSecretError{}
+	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("endpoint gave error %s", resp.Status)
 	}
@@ -417,7 +450,7 @@ func executeTemplate(tmpl string, data map[string]map[string]string) (bytes.Buff
 	if tmpl == "" {
 		return result, nil
 	}
-	urlt, err := tpl.New("webhooktemplate").Funcs(sprig.TxtFuncMap()).Funcs(template.FuncMap()).Parse(tmpl)
+	urlt, err := tpl.New("webhooktemplate").Funcs(template.FuncMap()).Parse(tmpl)
 	if err != nil {
 		return result, err
 	}

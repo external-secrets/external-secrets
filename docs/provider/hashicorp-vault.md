@@ -2,9 +2,11 @@
 
 ## Hashicorp Vault
 
-External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret
-management. Vault itself implements lots of different secret engines, as of now we only support the
-[KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv).
+External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret management.
+
+The [KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv) is the only
+one supported by this provider. For other secrets engines, please refer to the
+[Vault Generator](../api/generator/vault.md).
 
 ### Example
 
@@ -70,8 +72,22 @@ spec:
   data:
   - secretKey: foobar
     remoteRef:
-      key: secret/foo
+      key: foo
       property: my-value
+
+  # metadataPolicy to fetch all the labels in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: foo
+
+  # metadataPolicy to fetch a specific label (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: foo
+      property: dev
+
 ---
 # will create a secret with:
 kind: Secret
@@ -80,6 +96,8 @@ metadata:
 data:
   foobar: czNjcjN0
 ```
+
+Keep in mind that fetching the labels with `metadataPolicy: Fetch` only works with KV sercrets engine version v2.
 
 #### Fetching Raw Values
 
@@ -254,7 +272,7 @@ We support five different modes for authentication:
 [appRole](https://www.vaultproject.io/docs/auth/approle),
 [kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
 [ldap](https://www.vaultproject.io/docs/auth/ldap) and
-[jwt/odic](https://www.vaultproject.io/docs/auth/jwt), each one comes with it's own
+[jwt/oidc](https://www.vaultproject.io/docs/auth/jwt), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
 #### Token-based authentication
@@ -279,7 +297,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 #### Kubernetes authentication
 
 [Kubernetes-native authentication](https://www.vaultproject.io/docs/auth/kubernetes) has three
-options of optaining credentials for vault:
+options of obtaining credentials for vault:
 
 1.  by using a service account jwt referenced in `serviceAccountRef`
 2.  by using the jwt from a `Kind=Secret` referenced by the `secretRef`
@@ -314,6 +332,16 @@ or `Kind=ClusterSecretStore` resource.
 {% include 'vault-jwt-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
+
+### PushSecret
+Vault supports PushSecret features which allow you to sync a given kubernetes secret key into a hashicorp vault secret. In order to do so, it is expected that the secret key is a valid JSON object.
+
+In order to use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets to. Use it with care!
+
+Here is an example on how to set it up:
+```yaml
+{% include 'vault-pushsecret.yaml' %}
+```
 
 ### Vault Enterprise
 

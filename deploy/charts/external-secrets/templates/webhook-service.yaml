@@ -13,7 +13,7 @@ metadata:
     prometheus.io/scrape: "true"
     prometheus.io/port: {{ .Values.prometheus.service.port | quote }}
   {{- else }}
-  {{- with .Values.metrics.service.annotations }}
+  {{- with .Values.webhook.metrics.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
