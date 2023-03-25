@@ -193,7 +193,12 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 		}
 		client, err := mgr.Get(ctx, storeRef, ps.Namespace, nil)
 		if err != nil {
-			return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
+			// if store is not handled by this controller instance
+			if err.Error() == "can not reference unmanaged store" {
+				return out, nil
+			}else{
+				return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
+			}
 		}
 		newData, ok := newMap[storeName]
 		if !ok {
@@ -243,7 +248,12 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 		}
 		client, err := mgr.Get(ctx, storeRef, ps.GetNamespace(), nil)
 		if err != nil {
-			return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
+			// if store is not handled by this controller instance
+			if err.Error() == "can not reference unmanaged store" {
+				return out, nil
+			}else{
+				return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
+			}
 		}
 		for _, ref := range ps.Spec.Data {
 			secretValue, ok := secret.Data[ref.Match.SecretKey]
