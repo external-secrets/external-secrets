@@ -16,6 +16,7 @@ package vault
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -35,6 +36,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
 const (
@@ -172,7 +174,7 @@ func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.SecretStore {
 }
 
 type args struct {
-	newClientFunc func(c *vault.Config) (Client, error)
+	newClientFunc func(c *vault.Config) (util.Client, error)
 	store         esv1beta1.GenericStore
 	kube          kclient.Client
 	corev1        typedcorev1.CoreV1Interface
@@ -187,30 +189,6 @@ type testCase struct {
 	reason string
 	args   args
 	want   want
-}
-
-func clientWithLoginMock(c *vault.Config) (Client, error) {
-	cl := fake.VaultClient{
-		MockAuthToken: fake.NewAuthTokenFn(),
-		MockSetToken:  fake.NewSetTokenFn(),
-		MockToken:     fake.NewTokenFn(""),
-		MockAuth:      fake.NewVaultAuth(),
-		MockLogical:   fake.NewVaultLogical(),
-	}
-	auth := cl.Auth()
-	token := cl.AuthToken()
-	logical := cl.Logical()
-	out := VClient{
-		setToken:     cl.SetToken,
-		token:        cl.Token,
-		clearToken:   cl.ClearToken,
-		auth:         auth,
-		authToken:    token,
-		logical:      logical,
-		setNamespace: cl.SetNamespace,
-		addHeader:    cl.AddHeader,
-	}
-	return out, nil
 }
 
 func TestNewVault(t *testing.T) {
@@ -258,7 +236,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"GetKubeServiceAccountError": {
 			reason: "Should return error if fetching kubernetes secret fails.",
 			args: args{
-				newClientFunc: clientWithLoginMock,
+				newClientFunc: fake.ClientWithLoginMock,
 				ns:            "default",
 				kube:          clientfake.NewClientBuilder().Build(),
 				store:         makeSecretStore(),
@@ -300,14 +278,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						"tls.crt": clientCrt,
 					},
 				}).Build(),
-				newClientFunc: clientWithLoginMock,
+				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
 				err: nil,
 			},
 		},
 		"SuccessfulVaultStoreWithK8sCertSecret": {
-			reason: "Should return a Vault prodvider with the cert from k8s",
+			reason: "Should return a Vault provider with the cert from k8s",
 			args: args{
 				store: makeValidSecretStoreWithK8sCerts(true),
 				ns:    "default",
@@ -322,7 +300,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					},
 				}).Build(),
 				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
-				newClientFunc: clientWithLoginMock,
+				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
 				err: nil,
@@ -351,7 +329,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					},
 					Data: map[string][]byte{},
 				}).Build(),
-				newClientFunc: clientWithLoginMock,
+				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
 				err: fmt.Errorf(errVaultCert, errors.New(`cannot find secret data for key: "cert"`)),
@@ -371,7 +349,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					},
 				}).Build(),
 				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
-				newClientFunc: clientWithLoginMock,
+				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
 				err: nil,
@@ -398,7 +376,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					},
 					Data: map[string]string{},
 				}).Build(),
-				newClientFunc: clientWithLoginMock,
+				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
 				err: fmt.Errorf(errConfigMapFmt, "cert"),
@@ -419,7 +397,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						"tls.crt": []byte("cert with mistak"),
 					},
 				}).Build(),
-				newClientFunc: clientWithLoginMock,
+				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
 				err: fmt.Errorf(errClientTLSAuth, "tls: failed to find any PEM data in certificate input"),
@@ -440,7 +418,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						"tls.crt": clientCrt,
 					},
 				}).Build(),
-				newClientFunc: clientWithLoginMock,
+				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
 				err: fmt.Errorf(errClientTLSAuth, "tls: failed to find any PEM data in key input"),
@@ -456,11 +434,11 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 }
 
 func vaultTest(t *testing.T, name string, tc testCase) {
-	conn := &connector{
-		newVaultClient: tc.args.newClientFunc,
+	conn := &Connector{
+		NewVaultClient: tc.args.newClientFunc,
 	}
 	if tc.args.newClientFunc == nil {
-		conn.newVaultClient = newVaultClient
+		conn.NewVaultClient = NewVaultClient
 	}
 	_, err := conn.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
 	if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
@@ -487,12 +465,18 @@ func TestGetSecret(t *testing.T) {
 			"foo": "oke",
 			"bar": "also ok?",
 		},
+		"list_of_values": []string{
+			"first_value",
+			"second_value",
+			"third_value",
+		},
+		"json_number": json.Number("42"),
 	}
 
 	type args struct {
 		store    *esv1beta1.VaultProvider
 		kube     kclient.Client
-		vLogical Logical
+		vLogical util.Logical
 		ns       string
 		data     esv1beta1.ExternalSecretDataRemoteRef
 	}
@@ -586,6 +570,38 @@ func TestGetSecret(t *testing.T) {
 				val: []byte("something different"),
 			},
 		},
+		"ReadSecretWithSliceValue": {
+			reason: "Should return property as a joined slice",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					Property: "list_of_values",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretWithNestedVal, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte("first_value\nsecond_value\nthird_value"),
+			},
+		},
+		"ReadSecretWithJsonNumber": {
+			reason: "Should return parsed json.Number property",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					Property: "json_number",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretWithNestedVal, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte("42"),
+			},
+		},
 		"NonexistentProperty": {
 			reason: "Should return error property does not exist.",
 			args: args{
@@ -628,6 +644,85 @@ func TestGetSecret(t *testing.T) {
 			},
 			want: want{
 				err: esv1beta1.NoSecretError{},
+			},
+		},
+		"ReadSecretMetadataWithoutProperty": {
+			reason: "Should return the json encoded metadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(secret, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte(`{"access_key":"access_key","access_secret":"access_secret"}`),
+			},
+		},
+		"ReadSecretMetadataWithProperty": {
+			reason: "Should return the access_key value from the metadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+					Property:       "access_key",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(secret, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte("access_key"),
+			},
+		},
+		"FailReadSecretMetadataInvalidProperty": {
+			reason: "Should return error of non existent key inmetadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+					Property:       "does_not_exist",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(secret, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errSecretKeyFmt, "does_not_exist"),
+			},
+		},
+		"FailReadSecretMetadataNoMetadata": {
+			reason: "Should return the access_key value from the metadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errNotFound),
+			},
+		},
+		"FailReadSecretMetadataWrongVersion": {
+			reason: "Should return the access_key value from the metadata",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errUnsupportedMetadataKvVersion),
 			},
 		},
 	}
@@ -684,7 +779,7 @@ func TestGetSecretMap(t *testing.T) {
 	type args struct {
 		store   *esv1beta1.VaultProvider
 		kube    kclient.Client
-		vClient Logical
+		vClient util.Logical
 		ns      string
 		data    esv1beta1.ExternalSecretDataRemoteRef
 	}
@@ -996,7 +1091,7 @@ func TestGetAllSecrets(t *testing.T) {
 	type args struct {
 		store    *esv1beta1.VaultProvider
 		kube     kclient.Client
-		vLogical Logical
+		vLogical util.Logical
 		ns       string
 		data     esv1beta1.ExternalSecretFind
 	}
@@ -1357,8 +1452,8 @@ func TestValidateStore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &connector{
-				newVaultClient: nil,
+			c := &Connector{
+				NewVaultClient: nil,
 			}
 			store := &esv1beta1.SecretStore{
 				Spec: esv1beta1.SecretStoreSpec{
@@ -1389,7 +1484,7 @@ func TestSetSecret(t *testing.T) {
 
 	type args struct {
 		store    *esv1beta1.VaultProvider
-		vLogical Logical
+		vLogical util.Logical
 	}
 
 	type want struct {

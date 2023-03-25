@@ -124,6 +124,24 @@ func TestGetSecret(t *testing.T) {
 			},
 			expValue: "bar2",
 		},
+		{
+			name: "get correct value from multiple properties",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:   "junk",
+					Value: "xxxxx",
+				},
+				{
+					Key:   "/foo",
+					Value: `{"p1":"bar","p2":"bar2"}`,
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "/foo",
+				Property: "p2",
+			},
+			expValue: "bar2",
+		},
 	}
 
 	for i, row := range tbl {

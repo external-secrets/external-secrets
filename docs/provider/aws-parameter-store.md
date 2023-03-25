@@ -30,9 +30,9 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`, for further 
     {
       "Effect": "Allow",
       "Action": [
-        "ssm:GetParameterWithContext",
-        "ssm:ListTagsForResourceWithContext",
-        "ssm:DescribeParametersWithContext",
+        "ssm:GetParameter",
+        "ssm:ListTagsForResource",
+        "ssm:DescribeParameters"
       ],
       "Resource": "arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*"
     }
@@ -73,6 +73,18 @@ spec:
       key: friendslist
       property: friends.1.first # Roger
 
+  # metadataPolicy to fetch all the tags in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: database-credentials
+
+  # metadataPolicy to fetch a specific tag (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: database-credentials
+      property: dev
 ```
 ### Parameter Versions
 

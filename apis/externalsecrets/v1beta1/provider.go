@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	// Ready indicates that the client is confgured correctly
+	// Ready indicates that the client is configured correctly
 	// and can be used.
 	ValidationResultReady ValidationResult = iota
 

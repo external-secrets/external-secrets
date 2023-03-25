@@ -12,6 +12,7 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.certController.replicaCount }}
+  revisionHistoryLimit: {{ .Values.certController.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}

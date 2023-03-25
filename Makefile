@@ -81,6 +81,12 @@ check-diff: reviewable ## Ensure branch is clean.
 	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
 	@$(OK) branch is clean
 
+update-deps:
+	go get -u
+	cd e2e && go get -u
+	@go mod tidy
+	@cd e2e/ && go mod tidy
+
 # ====================================================================================
 # Golang
 
@@ -178,6 +184,22 @@ helm.build: helm.generate ## Build helm chart
 helm.generate:
 	./hack/helm.generate.sh $(BUNDLE_DIR) $(HELM_DIR)
 	@$(OK) Finished generating helm chart files
+
+helm.test: helm.generate
+	@helm unittest --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+
+helm.test.update: helm.generate
+	@helm unittest -u --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+
+helm.update.appversion:
+	@chartversion=$$(yq .version ./deploy/charts/external-secrets/Chart.yaml) ; \
+	chartappversion=$$(yq .appVersion ./deploy/charts/external-secrets/Chart.yaml) ; \
+	chartname=$$(yq .name ./deploy/charts/external-secrets/Chart.yaml) ; \
+	$(INFO) Update chartname and chartversion string in test snapshots.; \
+	sed -s -i "s/^\([[:space:]]\+helm\.sh\/chart:\).*/\1 $${chartname}-$${chartversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
+	sed -s -i "s/^\([[:space:]]\+app\.kubernetes\.io\/version:\).*/\1 $${chartappversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
+	sed -s -i "s/^\([[:space:]]\+image: ghcr\.io\/external-secrets\/external-secrets:\).*/\1$${chartappversion}/" ./deploy/charts/external-secrets/tests/__snapshot__/*.yaml.snap ; \
+	$(OK) "Version strings updated"
 
 # ====================================================================================
 # Documentation

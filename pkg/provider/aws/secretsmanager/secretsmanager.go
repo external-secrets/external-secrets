@@ -34,6 +34,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -77,39 +78,72 @@ func New(sess *session.Session, cfg *aws.Config, referentAuth bool) (*SecretsMan
 	}, nil
 }
 
-func (sm *SecretsManager) fetch(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
+func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*awssm.GetSecretValueOutput, error) {
 	ver := "AWSCURRENT"
+	valueFrom := "SECRET"
 	if ref.Version != "" {
 		ver = ref.Version
 	}
-	log.Info("fetching secret value", "key", ref.Key, "version", ver)
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		valueFrom = "TAG"
+	}
 
-	cacheKey := fmt.Sprintf("%s#%s", ref.Key, ver)
+	log.Info("fetching secret value", "key", ref.Key, "version", ver, "value", valueFrom)
+
+	cacheKey := fmt.Sprintf("%s#%s#%s", ref.Key, ver, valueFrom)
 	if secretOut, found := sm.cache[cacheKey]; found {
 		log.Info("found secret in cache", "key", ref.Key, "version", ver)
 		return secretOut, nil
 	}
 
-	var getSecretValueInput *awssm.GetSecretValueInput
-	if strings.HasPrefix(ver, "uuid/") {
-		versionID := strings.TrimPrefix(ver, "uuid/")
-		getSecretValueInput = &awssm.GetSecretValueInput{
-			SecretId:  &ref.Key,
-			VersionId: &versionID,
+	var secretOut *awssm.GetSecretValueOutput
+	var err error
+
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		describeSecretInput := &awssm.DescribeSecretInput{
+			SecretId: &ref.Key,
+		}
+
+		descOutput, err := sm.client.DescribeSecretWithContext(ctx, describeSecretInput)
+		if err != nil {
+			return nil, err
+		}
+		log.Info("found metadata secret", "key", ref.Key, "output", descOutput)
+
+		jsonTags, err := util.SecretTagsToJSONString(descOutput.Tags)
+		if err != nil {
+			return nil, err
+		}
+		secretOut = &awssm.GetSecretValueOutput{
+			ARN:          descOutput.ARN,
+			CreatedDate:  descOutput.CreatedDate,
+			Name:         descOutput.Name,
+			SecretString: &jsonTags,
+			VersionId:    &ver,
 		}
 	} else {
-		getSecretValueInput = &awssm.GetSecretValueInput{
-			SecretId:     &ref.Key,
-			VersionStage: &ver,
+		var getSecretValueInput *awssm.GetSecretValueInput
+		if strings.HasPrefix(ver, "uuid/") {
+			versionID := strings.TrimPrefix(ver, "uuid/")
+			getSecretValueInput = &awssm.GetSecretValueInput{
+				SecretId:  &ref.Key,
+				VersionId: &versionID,
+			}
+		} else {
+			getSecretValueInput = &awssm.GetSecretValueInput{
+				SecretId:     &ref.Key,
+				VersionStage: &ver,
+			}
 		}
-	}
-	secretOut, err := sm.client.GetSecretValue(getSecretValueInput)
-	var nf *awssm.ResourceNotFoundException
-	if errors.As(err, &nf) {
-		return nil, esv1beta1.NoSecretErr
-	}
-	if err != nil {
-		return nil, err
+		secretOut, err = sm.client.GetSecretValue(getSecretValueInput)
+		metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMGetSecretValue, err)
+		var nf *awssm.ResourceNotFoundException
+		if errors.As(err, &nf) {
+			return nil, esv1beta1.NoSecretErr
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	sm.cache[cacheKey] = secretOut
 
@@ -125,6 +159,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		SecretId: &secretName,
 	}
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMGetSecretValue, err)
 	var aerr awserr.Error
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
@@ -136,6 +171,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		return err
 	}
 	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
 	}
@@ -146,6 +182,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		SecretId: awsSecret.ARN,
 	}
 	_, err = sm.client.DeleteSecretWithContext(ctx, deleteInput)
+	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMDeleteSecret, err)
 	return err
 }
 
@@ -174,6 +211,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 	}
 
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMGetSecretValue, err)
 	var aerr awserr.Error
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
@@ -181,11 +219,13 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 		}
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
 			_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
+			metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMCreateSecret, err)
 			return err
 		}
 		return err
 	}
 	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
 	}
@@ -200,6 +240,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 		SecretBinary: value,
 	}
 	_, err = sm.client.PutSecretValueWithContext(ctx, input)
+	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMPutSecretValue, err)
 	return err
 }
 
@@ -249,6 +290,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 			Filters:   filters,
 			NextToken: nextToken,
 		})
+		metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMListSecrets, err)
 		if err != nil {
 			return nil, err
 		}
@@ -304,6 +346,7 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 			Filters:   filters,
 			NextToken: nextToken,
 		})
+		metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMListSecrets, err)
 		if err != nil {
 			return nil, err
 		}

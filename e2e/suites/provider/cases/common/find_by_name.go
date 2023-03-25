@@ -34,9 +34,9 @@ func FindByName(f *framework.Framework) (string, func(*framework.TestCase)) {
 		secretKeyThree := fmt.Sprintf(namePrefix, f.Namespace.Name, "three")
 		secretValue := findValue
 		tc.Secrets = map[string]framework.SecretEntry{
-			secretKeyOne:   {Value: secretValue},
-			secretKeyTwo:   {Value: secretValue},
-			secretKeyThree: {Value: secretValue},
+			f.MakeRemoteRefKey(secretKeyOne):   {Value: secretValue},
+			f.MakeRemoteRefKey(secretKeyTwo):   {Value: secretValue},
+			f.MakeRemoteRefKey(secretKeyThree): {Value: secretValue},
 		}
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
@@ -70,9 +70,9 @@ func FindByNameAndRewrite(f *framework.Framework) (string, func(*framework.TestC
 		expectedKeyThree := fmt.Sprintf("%s_%s", f.Namespace.Name, "three")
 		secretValue := findValue
 		tc.Secrets = map[string]framework.SecretEntry{
-			secretKeyOne:   {Value: secretValue},
-			secretKeyTwo:   {Value: secretValue},
-			secretKeyThree: {Value: secretValue},
+			f.MakeRemoteRefKey(secretKeyOne):   {Value: secretValue},
+			f.MakeRemoteRefKey(secretKeyTwo):   {Value: secretValue},
+			f.MakeRemoteRefKey(secretKeyThree): {Value: secretValue},
 		}
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,

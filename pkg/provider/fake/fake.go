@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tidwall/gjson"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -134,6 +135,16 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	if !ok || data.Version != ref.Version {
 		return nil, esv1beta1.NoSecretErr
 	}
+
+	if ref.Property != "" {
+		val := gjson.Get(data.Value, ref.Property)
+		if !val.Exists() {
+			return nil, esv1beta1.NoSecretErr
+		}
+
+		return []byte(val.String()), nil
+	}
+
 	return []byte(data.Value), nil
 }
 
