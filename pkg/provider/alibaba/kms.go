@@ -209,8 +209,8 @@ func newRRSAAuth(store esv1beta1.GenericStore) (credential.Credential, error) {
 		RoleArn:           &alibabaSpec.Auth.RRSAAuth.RoleARN,
 		RoleSessionName:   &alibabaSpec.Auth.RRSAAuth.SessionName,
 		Type:              utils.Ptr("oidc_role_arn"),
-		ConnectTimeout:    utils.Ptr(10),
-		Timeout:           utils.Ptr(10),
+		ConnectTimeout:    utils.Ptr(30),
+		Timeout:           utils.Ptr(30),
 	}
 
 	return credential.NewCredential(credentialConfig)
@@ -269,8 +269,8 @@ func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.
 		AccessKeyId:     utils.Ptr(string(accessKeyId)),
 		AccessKeySecret: utils.Ptr(string(accessKeySecret)),
 		Type:            utils.Ptr("access_key"),
-		ConnectTimeout:  utils.Ptr(10),
-		Timeout:         utils.Ptr(10),
+		ConnectTimeout:  utils.Ptr(30),
+		Timeout:         utils.Ptr(30),
 	}
 
 	return credential.NewCredential(credentialConfig)
