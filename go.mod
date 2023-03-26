@@ -70,12 +70,12 @@ require (
 	github.com/alibabacloud-go/tea v1.1.20
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.1
 	github.com/aliyun/credentials-go v1.2.7
+	github.com/avast/retry-go/v4 v4.3.3
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/keeper-security/secrets-manager-go/core v1.5.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.14
 	github.com/sethvargo/go-password v0.2.0
-	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
 	sigs.k8s.io/yaml v1.3.0
 )

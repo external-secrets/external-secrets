@@ -20,15 +20,15 @@ import (
 	"fmt"
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
+	util "github.com/alibabacloud-go/tea-utils/v2/service"
+	credential "github.com/aliyun/credentials-go/credentials"
+	"github.com/avast/retry-go/v4"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	util "github.com/alibabacloud-go/tea-utils/v2/service"
-	credential "github.com/aliyun/credentials-go/credentials"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -209,6 +209,8 @@ func newRRSAAuth(store esv1beta1.GenericStore) (credential.Credential, error) {
 		RoleArn:           &alibabaSpec.Auth.RRSAAuth.RoleARN,
 		RoleSessionName:   &alibabaSpec.Auth.RRSAAuth.SessionName,
 		Type:              utils.Ptr("oidc_role_arn"),
+		ConnectTimeout:    utils.Ptr(10),
+		Timeout:           utils.Ptr(10),
 	}
 
 	return credential.NewCredential(credentialConfig)
@@ -267,6 +269,8 @@ func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.
 		AccessKeyId:     utils.Ptr(string(accessKeyId)),
 		AccessKeySecret: utils.Ptr(string(accessKeySecret)),
 		Type:            utils.Ptr("access_key"),
+		ConnectTimeout:  utils.Ptr(10),
+		Timeout:         utils.Ptr(10),
 	}
 
 	return credential.NewCredential(credentialConfig)
@@ -277,7 +281,17 @@ func (kms *KeyManagementService) Close(ctx context.Context) error {
 }
 
 func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) {
-	_, err := kms.Config.Credential.GetSecurityToken()
+	err := retry.Do(
+		func() error {
+			_, err := kms.Config.Credential.GetSecurityToken()
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+		retry.Attempts(5),
+	)
 	if err != nil {
 		return esv1beta1.ValidationResultError, err
 	}
