@@ -12,6 +12,7 @@ We want to cover the following cases:
 * weekly go dependency updates
 * backport bug fixes on demand
 
+Note: features cut off on a minor release will not be backported to older releases.
 ## Automatic Updates
 
 We'll build a Github Action (GHA) which will automatically update the `go.mod` dependencies once per week or on request.
