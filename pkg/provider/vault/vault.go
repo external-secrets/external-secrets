@@ -461,18 +461,33 @@ func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	if err != nil {
 		return nil, err
 	}
-	if ref.Name != nil {
-		return v.findSecretsFromName(ctx, potentialSecrets, *ref.Name)
-	}
-	return v.findSecretsFromTags(ctx, potentialSecrets, ref.Tags)
+	return v.findSecretsFromNameAndTags(ctx, potentialSecrets, ref.Name, ref.Tags)
 }
 
-func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, tags map[string]string) (map[string][]byte, error) {
+func (v *client) findSecretsFromNameAndTags(ctx context.Context, candidates []string, findName *esv1beta1.FindName, tags map[string]string) (map[string][]byte, error) {
+	var matcher *find.Matcher
+	var err error
 	secrets := make(map[string][]byte)
+	if findName != nil {
+		matcher, err = find.New(*findName)
+		if err != nil {
+			return nil, err
+		}
+	}
 	for _, name := range candidates {
+		if findName != nil {
+			//check if secret matches the name
+			ok := matcher.MatchName(name)
+			if !ok {
+				break
+			}
+		}
 		match := true
 		metadata, err := v.readSecretMetadata(ctx, name)
 		if err != nil {
+			if errors.Is(err, esv1beta1.NoSecretErr) {
+				continue
+			}
 			return nil, err
 		}
 		for tk, tv := range tags {
@@ -484,34 +499,10 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 		}
 		if match {
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
-			if errors.Is(err, esv1beta1.NoSecretError{}) {
-				continue
-			}
 			if err != nil {
-				return nil, err
-			}
-			if secret != nil {
-				secrets[name] = secret
-			}
-		}
-	}
-	return secrets, nil
-}
-
-func (v *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName) (map[string][]byte, error) {
-	secrets := make(map[string][]byte)
-	matcher, err := find.New(ref)
-	if err != nil {
-		return nil, err
-	}
-	for _, name := range candidates {
-		ok := matcher.MatchName(name)
-		if ok {
-			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
-			if errors.Is(err, esv1beta1.NoSecretError{}) {
-				continue
-			}
-			if err != nil {
+				if errors.Is(err, esv1beta1.NoSecretErr) {
+					continue
+				}
 				return nil, err
 			}
 			if secret != nil {

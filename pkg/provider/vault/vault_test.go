@@ -1150,6 +1150,54 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 		},
+		"FindByNameAndTag": {
+			reason: "should map secrets matching names and tags",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ListWithContextFn:         newListWithContextFn(secret),
+					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Name: &esv1beta1.FindName{
+						RegExp: "secret.*",
+					},
+					Tags: map[string]string{
+						"foo": "bar",
+					},
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"secret1": secret1Bytes,
+				},
+			},
+		},
+		"FindByNameAndTagAgainstMultipleSecrets": {
+			reason: "should map secrets matching names and tags",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ListWithContextFn:         newListWithContextFn(secret),
+					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Name: &esv1beta1.FindName{
+						RegExp: "secret.*",
+					},
+					Tags: map[string]string{
+						"foo": "baz",
+					},
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"secret2": secret2Bytes,
+				},
+			},
+		},
 		"FilterByPath": {
 			reason: "should filter secrets based on path",
 			args: args{
