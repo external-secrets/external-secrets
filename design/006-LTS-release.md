@@ -17,7 +17,7 @@ Note: features cut off on a minor release will not be backported to older releas
 
 We have set up a Github Action (GHA) which will automatically update the `go.mod` dependencies once per week or on request.
 The GHA will make the necessary code changes and opens a PR. Once approved and merged into `main` or `release-x.y` our build pipelines
-will build and push the artefact to ghcr.
+will build and push the artifact to ghcr.
 
 ## Manual Updates
 
