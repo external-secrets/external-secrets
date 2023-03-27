@@ -111,7 +111,7 @@ jobs:
           if [ "${{ inputs.image-tag }}" != "" ]; then
             TAG="${{ inputs.image-tag }}${{ inputs.tag-suffix }}"
           # main / release-x.y
-          elif [[ "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" =~ "refs/heads/release-.*"  ]]; then
+          elif [[ "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" =~ refs/heads/release-.*  ]]; then
             TAG=${GITHUB_REF#refs/heads/}${{ inputs.tag-suffix }}
           # Pull Request
           else
