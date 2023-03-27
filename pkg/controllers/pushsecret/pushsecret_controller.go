@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"log"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -47,6 +48,7 @@ const (
 	errSetSecretFailed        = "could not write remote ref %v to target secretstore %v: %v"
 	errFailedSetSecret        = "set secret failed: %v"
 	pushSecretFinalizer       = "pushsecret.externalsecrets.io/finalizer"
+	errGetSecretClient        = "could not get secrets client for store test-store: can not reference unmanaged store"
 )
 
 type Reconciler struct {
@@ -137,6 +139,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
 	if err != nil {
+		if err.Error() == errGetSecretClient{
+			log.Info("skipping unmanaged store as it points to a unmanaged controllerClass")
+			return ctrl.Result{}, nil
+		}
 		msg := fmt.Sprintf(errFailedSetSecret, err)
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 		ps = SetPushSecretCondition(ps, *cond)
@@ -149,6 +155,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case esapi.PushSecretDeletionPolicyDelete:
 		badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets, mgr)
 		if err != nil {
+			if err.Error() == errGetSecretClient{
+				log.Info("skipping unmanaged store as it points to a unmanaged controllerClass")
+				return ctrl.Result{}, nil
+			}
 			msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
 			cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 			ps = SetPushSecretCondition(ps, *cond)
@@ -193,12 +203,7 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 		}
 		client, err := mgr.Get(ctx, storeRef, ps.Namespace, nil)
 		if err != nil {
-			// if store is not handled by this controller instance
-			if err.Error() == "can not reference unmanaged store" {
-				continue
-			}else{
-				return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
-			}
+			return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 		}
 		newData, ok := newMap[storeName]
 		if !ok {
@@ -248,12 +253,7 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 		}
 		client, err := mgr.Get(ctx, storeRef, ps.GetNamespace(), nil)
 		if err != nil {
-			// if store is not handled by this controller instance
-			if err.Error() == "can not reference unmanaged store" {
-				continue
-			}else{
-				return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
-			}
+			return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
 		}
 		for _, ref := range ps.Spec.Data {
 			secretValue, ok := secret.Data[ref.Match.SecretKey]
