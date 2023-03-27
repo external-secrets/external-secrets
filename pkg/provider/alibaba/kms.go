@@ -293,7 +293,7 @@ func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) 
 		retry.Attempts(5),
 	)
 	if err != nil {
-		return esv1beta1.ValidationResultError, err
+		return esv1beta1.ValidationResultError, SanitizeErr(err)
 	}
 
 	return esv1beta1.ValidationResultReady, nil
