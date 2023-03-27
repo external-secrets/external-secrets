@@ -13,14 +13,14 @@ We aim for a 2-3 month minor release cycle, i.e. a given release is supported fo
 
 We want to cover the following cases:
 
-* regular image rebuilds to update OS dependencies
-* regular go dependency updates
-* backport bug fixes on demand
+- regular image rebuilds to update OS dependencies
+- regular go dependency updates
+- backport bug fixes on demand
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 | ----------- | ------------------ | ------------ | -------------- |
 | 0.8.x       | 1.19 → 1.26        | Mar 16, 2023 | Release of 1.0 |
-| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Mar 16, 2023   |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Release of 0.9 |
 | 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |
 | 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022   |
 | 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022    |
