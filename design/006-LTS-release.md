@@ -19,6 +19,12 @@ We have set up a Github Action (GHA) which will automatically update the `go.mod
 The GHA will make the necessary code changes and opens a PR. Once approved and merged into `main` or `release-x.y` our build pipelines
 will build and push the artefact to ghcr.
 
+## Manual Updates
+
+Bug Fixes will be merged onto each release branch individually.
+This is achieved by creating separate PRs from a corresponding branch of the release
+(e.g. bug fixes targetting `release-1.0` should be created from `release-1.0` branch).
+Once approved and merged into `main`  or `release-x.y`, ou build pipeline will build and push the artifact to ghcr
 ## Process
 
 ### Branch Management
