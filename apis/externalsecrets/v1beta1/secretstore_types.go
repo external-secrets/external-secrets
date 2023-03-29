@@ -121,6 +121,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Senhasegura *SenhaseguraProvider `json:"senhasegura,omitempty"`
 
+	// Scaleway
+	// +optional
+	Scaleway *ScalewayProvider `json:"scaleway,omitempty"`
+
 	// Doppler configures this store to sync secrets using the Doppler provider
 	// +optional
 	Doppler *DopplerProvider `json:"doppler,omitempty"`

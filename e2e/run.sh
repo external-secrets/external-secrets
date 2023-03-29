@@ -73,6 +73,11 @@ kubectl run --rm \
   --env="ORACLE_REGION=${ORACLE_REGION:-}" \
   --env="ORACLE_FINGERPRINT=${ORACLE_FINGERPRINT:-}" \
   --env="ORACLE_KEY=${ORACLE_KEY:-}" \
+  --env="SCALEWAY_API_URL=${SCALEWAY_API_URL:-}" \
+  --env="SCALEWAY_REGION=${SCALEWAY_REGION:-}" \
+  --env="SCALEWAY_PROJECT_ID=${SCALEWAY_PROJECT_ID:-}" \
+  --env="SCALEWAY_ACCESS_KEY=${SCALEWAY_ACCESS_KEY:-}" \
+  --env="SCALEWAY_SECRET_KEY=${SCALEWAY_SECRET_KEY:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \

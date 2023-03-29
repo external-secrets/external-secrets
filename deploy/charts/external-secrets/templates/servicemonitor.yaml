@@ -94,6 +94,7 @@ spec:
       {{- toYaml . | nindent 6 }}
     {{- end }}
 {{- end }}
+---
 {{- if .Values.certController.create }}
 apiVersion: v1
 kind: Service

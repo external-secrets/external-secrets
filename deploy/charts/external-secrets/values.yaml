@@ -22,6 +22,9 @@ crds:
   createClusterSecretStore: true
   # -- If true, create CRDs for Push Secret.
   createPushSecret: true
+  annotations: {}
+  conversion:
+    enabled: true
 
 imagePullSecrets: []
 nameOverride: ""

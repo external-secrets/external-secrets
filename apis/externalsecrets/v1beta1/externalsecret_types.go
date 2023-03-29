@@ -95,12 +95,20 @@ type ExternalSecretTemplate struct {
 	EngineVersion TemplateEngineVersion `json:"engineVersion,omitempty"`
 	// +optional
 	Metadata ExternalSecretTemplateMetadata `json:"metadata,omitempty"`
-
+	// +kubebuilder:default="Replace"
+	MergePolicy TemplateMergePolicy `json:"mergePolicy,omitempty"`
 	// +optional
 	Data map[string]string `json:"data,omitempty"`
 	// +optional
 	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
 }
+
+type TemplateMergePolicy string
+
+const (
+	MergePolicyReplace TemplateMergePolicy = "Replace"
+	MergePolicyMerge   TemplateMergePolicy = "Merge"
+)
 
 type TemplateEngineVersion string
 

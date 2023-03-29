@@ -484,6 +484,9 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 		}
 		if match {
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if errors.Is(err, esv1beta1.NoSecretError{}) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -505,6 +508,9 @@ func (v *client) findSecretsFromName(ctx context.Context, candidates []string, r
 		ok := matcher.MatchName(name)
 		if ok {
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if errors.Is(err, esv1beta1.NoSecretError{}) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -867,7 +873,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 			return nil, errors.New(errDataField)
 		}
 		if dataInt == nil {
-			return nil, nil
+			return nil, esv1beta1.NoSecretError{}
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
@@ -1408,7 +1414,7 @@ func init() {
 	// max. 265k vault leases with 30bytes each ~= 7MB
 	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", 2<<17, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
 	lateInit := func() {
-		logger.Info("initializing vault cache with size=%d", vaultTokenCacheSize)
+		logger.Info("initializing vault cache", "size", vaultTokenCacheSize)
 		clientCache = cache.Must(vaultTokenCacheSize, func(client util.Client) {
 			err := revokeTokenIfValid(context.Background(), client)
 			if err != nil {
