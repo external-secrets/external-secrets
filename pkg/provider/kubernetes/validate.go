@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,10 +21,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-func (p *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
 	if k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
@@ -65,25 +66,28 @@ func (p *ProviderKubernetes) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (p *ProviderKubernetes) Validate() (esv1beta1.ValidationResult, error) {
+func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called
 	// from the SecretStore controller.
-	if p.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(p.store) {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(c.store) {
 		return esv1beta1.ValidationResultUnknown, nil
 	}
 	ctx := context.Background()
 	t := authv1.SelfSubjectRulesReview{
 		Spec: authv1.SelfSubjectRulesReviewSpec{
-			Namespace: p.Namespace,
+			Namespace: c.store.RemoteNamespace,
 		},
 	}
-	authReview, err := p.ReviewClient.Create(ctx, &t, metav1.CreateOptions{})
+	authReview, err := c.userReviewClient.Create(ctx, &t, metav1.CreateOptions{})
+	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesCreateSelfSubjectRulesReview, err)
 	if err != nil {
 		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}
 	for _, rev := range authReview.Status.ResourceRules {
-		if contains("secrets", rev.Resources) && contains("get", rev.Verbs) {
+		if (contains("secrets", rev.Resources) || contains("*", rev.Resources)) &&
+			(contains("get", rev.Verbs) || contains("*", rev.Verbs)) &&
+			(len(rev.APIGroups) == 0 || (contains("", rev.APIGroups) || contains("*", rev.APIGroups))) {
 			return esv1beta1.ValidationResultReady, nil
 		}
 	}

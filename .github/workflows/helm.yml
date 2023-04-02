@@ -24,18 +24,17 @@ jobs:
       - name: Generate chart
         run: |
           make helm.generate
-
       - name: Set up Helm
-        uses: azure/setup-helm@v3.0
+        uses: azure/setup-helm@v3.5
         with:
           version: v3.4.2
 
-      - uses: actions/setup-python@v3.1.2
+      - uses: actions/setup-python@v4.5.0
         with:
           python-version: 3.7
 
       - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2.2.1
+        uses: helm/chart-testing-action@v2.4.0
 
       - name: Run chart-testing (list-changed)
         id: list-changed
@@ -44,9 +43,24 @@ jobs:
           if [[ -n "$changed" ]]; then
             echo "::set-output name=changed::true"
           fi
-
+      - name: Install chart unittest
+        run: |
+          helm env
+          helm plugin install https://github.com/helm-unittest/helm-unittest
       - name: Run chart-testing (lint)
         run: ct lint --config=.github/ci/ct.yaml
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.5.0
+        if: steps.list-changed.outputs.changed == 'true'
+
+      - name: Run chart-testing (install)
+        run: ct install --config=.github/ci/ct.yaml --charts deploy/charts/external-secrets
+        if: steps.list-changed.outputs.changed == 'true'
+
+      - name: Run unitests
+        if: steps.list-changed.outputs.changed == 'true'
+        run: make helm.test
 
   release:
     runs-on: ubuntu-latest
@@ -60,18 +74,16 @@ jobs:
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
       - name: Set up Helm
-        uses: azure/setup-helm@v3.0
+        uses: azure/setup-helm@v3.4
         with:
           version: v3.4.2
 
       - name: Generate chart
         run: |
           make helm.generate
-
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.4.0
+        uses: helm/chart-releaser-action@v1.5.0
         if: github.ref == 'refs/heads/main'
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

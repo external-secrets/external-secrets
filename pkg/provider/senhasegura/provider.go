@@ -43,8 +43,13 @@ const (
 	errMissingClientID            = "missing senhasegura authentication Client ID"
 )
 
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadOnly
+}
+
 /*
-	Construct a new secrets client based on provided store
+Construct a new secrets client based on provided store.
 */
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	spec := store.GetSpec()
@@ -111,7 +116,7 @@ func validateStore(store esv1beta1.GenericStore) error {
 }
 
 /*
-	Register SenhaseguraProvider in ESO init
+Register SenhaseguraProvider in ESO init.
 */
 func init() {
 	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{

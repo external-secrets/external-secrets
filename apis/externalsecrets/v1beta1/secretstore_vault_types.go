@@ -25,31 +25,6 @@ const (
 	VaultKVStoreV2 VaultKVStoreVersion = "v2"
 )
 
-type CAProviderType string
-
-const (
-	CAProviderTypeSecret    CAProviderType = "Secret"
-	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
-)
-
-// Defines a location to fetch the cert for the vault provider from.
-type CAProvider struct {
-	// The type of provider to use such as "Secret", or "ConfigMap".
-	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
-	Type CAProviderType `json:"type"`
-
-	// The name of the object located at the provider type.
-	Name string `json:"name"`
-
-	// The key the value inside of the provider type to use, only used with "Secret" type
-	// +kubebuilder:validation:Optional
-	Key string `json:"key,omitempty"`
-
-	// The namespace the Provider type is in.
-	// +optional
-	Namespace *string `json:"namespace,omitempty"`
-}
-
 // Configures an store to sync secrets using a HashiCorp Vault
 // KV backend.
 type VaultProvider struct {
@@ -212,12 +187,14 @@ type VaultKubernetesServiceAccountTokenAuth struct {
 	// Optional audiences field that will be used to request a temporary Kubernetes service
 	// account token for the service account referenced by `serviceAccountRef`.
 	// Defaults to a single audience `vault` it not specified.
+	// Deprecated: use serviceAccountRef.Audiences instead
 	// +optional
 	Audiences *[]string `json:"audiences,omitempty"`
 
 	// Optional expiration time in seconds that will be used to request a temporary
 	// Kubernetes service account token for the service account referenced by
 	// `serviceAccountRef`.
+	// Deprecated: this will be removed in the future.
 	// Defaults to 10 minutes.
 	// +optional
 	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`

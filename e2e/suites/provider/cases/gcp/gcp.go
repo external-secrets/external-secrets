@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,9 +24,14 @@ import (
 	p12 "software.sslmate.com/src/go-pkcs12"
 
 	// nolint
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/e2e/framework"
-	"github.com/external-secrets/external-secrets/e2e/suites/provider/cases/common"
+)
+
+const (
+	withStaticAuth         = "with service account"
+	withReferentStaticAuth = "with service acount from referent namespace"
 )
 
 // This test uses the global ESO.
@@ -35,31 +40,49 @@ var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 	prov := NewFromEnv(f, "")
 
 	DescribeTable("sync secrets", framework.TableFunc(f, prov),
-		Entry(common.SimpleDataSync(f)),
-		Entry(common.JSONDataWithProperty(f)),
-		Entry(common.JSONDataFromSync(f)),
-		Entry(common.NestedJSONWithGJSON(f)),
-		Entry(common.JSONDataWithTemplate(f)),
-		Entry(common.DockerJSONConfig(f)),
-		Entry(common.DataPropertyDockerconfigJSON(f)),
-		Entry(common.SSHKeySync(f)),
-		Entry(common.SSHKeySyncDataProperty(f)),
-		Entry(common.SyncWithoutTargetName(f)),
-		Entry(common.JSONDataWithoutTargetName(f)),
-		Entry(common.FindByName(f)),
-		Entry(common.FindByNameWithPath(f)),
-		Entry(common.FindByTag(f)),
-		Entry(common.FindByTagWithPath(f)),
-		Entry(common.SyncV1Alpha1(f)),
-		Entry("should sync p12 encoded cert secret", p12Cert),
+		framework.Compose(withStaticAuth, f, common.SimpleDataSync, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.JSONDataWithProperty, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.JSONDataFromSync, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.JSONDataFromRewrite, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.NestedJSONWithGJSON, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.JSONDataWithTemplate, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.DockerJSONConfig, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.DataPropertyDockerconfigJSON, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.SSHKeySync, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.SSHKeySyncDataProperty, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.SyncWithoutTargetName, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.JSONDataWithoutTargetName, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.FindByName, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.FindByNameAndRewrite, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.FindByNameWithPath, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.FindByTag, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.FindByTagWithPath, useStaticAuth),
+		framework.Compose(withStaticAuth, f, common.SyncV1Alpha1, useStaticAuth),
+		framework.Compose(withStaticAuth, f, p12Cert, useStaticAuth),
+
+		// referent auth
+		framework.Compose(withReferentStaticAuth, f, common.SimpleDataSync, useReferentAuth),
 	)
 })
 
+func useStaticAuth(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
+	if tc.ExternalSecretV1Alpha1 != nil {
+		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
+	}
+}
+
+func useReferentAuth(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentName(tc.Framework)
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1beta1.ClusterSecretStoreKind
+}
+
 // P12Cert case creates a secret with a p12 cert containing a privkey and cert bundled together.
 // It uses templating to generate a k8s secret of type tls with pem values.
-var p12Cert = func(tc *framework.TestCase) {
-	cloudSecretName := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "p12-cert-example")
-	certPEM := `-----BEGIN CERTIFICATE-----
+func p12Cert(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "should sync p12 encoded cert secret", func(tc *framework.TestCase) {
+		cloudSecretName := fmt.Sprintf("%s-%s", tc.Framework.Namespace.Name, "p12-cert-example")
+		certPEM := `-----BEGIN CERTIFICATE-----
 MIIFQjCCBCqgAwIBAgISBHszg5W2maz/7CIxGrf7mqukMA0GCSqGSIb3DQEBCwUA
 MDIxCzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MQswCQYDVQQD
 EwJSMzAeFw0yMTA3MjQxMjQyMzNaFw0yMTEwMjIxMjQyMzFaMCgxJjAkBgNVBAMT
@@ -91,7 +114,7 @@ XMYitHfpGhc+DTTiTWMQ13J0b1j4yv8A7ZaG2366aa28oSTD6eQFhmVCBwa54j++
 IOwzHn5R
 -----END CERTIFICATE-----
 `
-	privkeyPEM := `-----BEGIN PRIVATE KEY-----
+		privkeyPEM := `-----BEGIN PRIVATE KEY-----
 MIIEwAIBADANBgkqhkiG9w0BAQEFAASCBKowggSmAgEAAoIBAQDJFE51myQDyqca
 egyBDlHLkxVj+WCjcfOWEqrTa7bcnbDXjD4uIRTaFxIkpi/k5fKxt+rszna7bNdh
 lezqSuRBmVg2kXDul5nQm1RtWRKlJP9fhvUYkoNKRGzt9OL6/6lv05P2tNu13yN8
@@ -120,40 +143,41 @@ Jdx0ECYawviQoreDAyIXV6HouoeRbDtLZ9AJvxMoIjGcjAR2FQHc3yx4h/lf3Tfx
 x6HaRh+EUwU51von6M9lEF9/p5Q=
 -----END PRIVATE KEY-----
 `
-	blockCert, _ := pem.Decode([]byte(certPEM))
-	cert, _ := x509.ParseCertificate(blockCert.Bytes)
-	blockPrivKey, _ := pem.Decode([]byte(privkeyPEM))
-	privkey, _ := x509.ParsePKCS8PrivateKey(blockPrivKey.Bytes)
-	emptyCACerts := []*x509.Certificate{}
-	p12Cert, _ := p12.Encode(rand.Reader, privkey, cert, emptyCACerts, "")
+		blockCert, _ := pem.Decode([]byte(certPEM))
+		cert, _ := x509.ParseCertificate(blockCert.Bytes)
+		blockPrivKey, _ := pem.Decode([]byte(privkeyPEM))
+		privkey, _ := x509.ParsePKCS8PrivateKey(blockPrivKey.Bytes)
+		emptyCACerts := []*x509.Certificate{}
+		p12Cert, _ := p12.Encode(rand.Reader, privkey, cert, emptyCACerts, "")
 
-	tc.Secrets = map[string]framework.SecretEntry{
-		cloudSecretName: {Value: string(p12Cert)},
-	}
+		tc.Secrets = map[string]framework.SecretEntry{
+			cloudSecretName: {Value: string(p12Cert)},
+		}
 
-	tc.ExpectedSecret = &v1.Secret{
-		Type: v1.SecretTypeTLS,
-		Data: map[string][]byte{
-			"tls.crt": []byte(certPEM),
-			"tls.key": []byte(privkeyPEM),
-		},
-	}
-
-	tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
-		{
-			SecretKey: "mysecret",
-			RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
-				Key: cloudSecretName,
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeTLS,
+			Data: map[string][]byte{
+				"tls.crt": []byte(certPEM),
+				"tls.key": []byte(privkeyPEM),
 			},
-		},
-	}
+		}
 
-	tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
-		Type:          v1.SecretTypeTLS,
-		EngineVersion: esv1beta1.TemplateEngineV1,
-		Data: map[string]string{
-			"tls.crt": "{{ .mysecret | pkcs12cert | pemCertificate }}",
-			"tls.key": "{{ .mysecret | pkcs12key | pemPrivateKey }}",
-		},
+		tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
+			{
+				SecretKey: "mysecret",
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+					Key: cloudSecretName,
+				},
+			},
+		}
+
+		tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+			Type:          v1.SecretTypeTLS,
+			EngineVersion: esv1beta1.TemplateEngineV1,
+			Data: map[string]string{
+				"tls.crt": "{{ .mysecret | pkcs12cert | pemCertificate }}",
+				"tls.key": "{{ .mysecret | pkcs12key | pemPrivateKey }}",
+			},
+		}
 	}
 }

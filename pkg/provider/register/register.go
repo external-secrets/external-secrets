@@ -12,22 +12,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:revive
 package register
 
 // packages imported here are registered to the controller schema.
-// nolint:revive
+
 import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/akeyless"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/alibaba"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/doppler"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gitlab"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/ibm"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/keepersecurity"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/kubernetes"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onepassword"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/oracle"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/scaleway"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/senhasegura"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/webhook"

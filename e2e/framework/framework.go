@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,9 +25,9 @@ import (
 	"k8s.io/client-go/rest"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/external-secrets/external-secrets/e2e/framework/addon"
-	"github.com/external-secrets/external-secrets/e2e/framework/log"
-	"github.com/external-secrets/external-secrets/e2e/framework/util"
+	"github.com/external-secrets/external-secrets-e2e/framework/addon"
+	"github.com/external-secrets/external-secrets-e2e/framework/log"
+	"github.com/external-secrets/external-secrets-e2e/framework/util"
 )
 
 type Framework struct {
@@ -46,12 +46,15 @@ type Framework struct {
 	Namespace *api.Namespace
 
 	Addons []addon.Addon
+
+	MakeRemoteRefKey func(base string) string
 }
 
 // New returns a new framework instance with defaults.
 func New(baseName string) *Framework {
 	f := &Framework{
-		BaseName: baseName,
+		BaseName:         baseName,
+		MakeRemoteRefKey: func(base string) string { return base },
 	}
 	f.KubeConfig, f.KubeClientSet, f.CRClient = util.NewConfig()
 
@@ -71,6 +74,7 @@ func (f *Framework) BeforeEach() {
 
 // AfterEach deletes the namespace and cleans up the registered addons.
 func (f *Framework) AfterEach() {
+	addon.PrintLogs()
 	for _, a := range f.Addons {
 		if CurrentSpecReport().Failed() {
 			err := a.Logs()

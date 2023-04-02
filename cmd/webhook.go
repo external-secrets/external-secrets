@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,9 +17,12 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -28,6 +31,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -51,22 +55,31 @@ var webhookCmd = &cobra.Command{
 	For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var lvl zapcore.Level
-		err := lvl.UnmarshalText([]byte(loglevel))
-		if err != nil {
-			setupLog.Error(err, "error unmarshalling loglevel")
-			os.Exit(1)
-		}
+		var enc zapcore.TimeEncoder
 		c := crds.CertInfo{
 			CertDir:  certDir,
 			CertName: "tls.crt",
 			KeyName:  "tls.key",
 			CAName:   "ca.crt",
 		}
-
-		logger := zap.New(zap.Level(lvl))
+		lvlErr := lvl.UnmarshalText([]byte(loglevel))
+		if lvlErr != nil {
+			setupLog.Error(lvlErr, "error unmarshalling loglevel")
+			os.Exit(1)
+		}
+		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
+		if encErr != nil {
+			setupLog.Error(encErr, "error unmarshalling timeEncoding")
+			os.Exit(1)
+		}
+		opts := zap.Options{
+			Level:       lvl,
+			TimeEncoder: enc,
+		}
+		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
 
-		err = waitForCerts(c, time.Minute*2)
+		err := waitForCerts(c, time.Minute*2)
 		if err != nil {
 			setupLog.Error(err, "unable to validate certificates")
 			os.Exit(1)
@@ -83,7 +96,7 @@ var webhookCmd = &cobra.Command{
 					cancel()
 				case <-ticker.C:
 					setupLog.Info("validating certs")
-					err = crds.CheckCerts(c, dnsName, time.Now().Add(crds.LookaheadInterval+time.Minute))
+					err = crds.CheckCerts(c, dnsName, time.Now().Add(certLookaheadInterval))
 					if err != nil {
 						cancel()
 					}
@@ -92,12 +105,26 @@ var webhookCmd = &cobra.Command{
 			}
 		}(c, dnsName, certCheckInterval)
 
+		cipherList, err := getTLSCipherSuitesIDs(tlsCiphers)
+		if err != nil {
+			ctrl.Log.Error(err, "unable to fetch tls ciphers")
+			os.Exit(1)
+		}
+		mgrTLSOptions := func(cfg *tls.Config) {
+			cfg.CipherSuites = cipherList
+		}
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:                 scheme,
 			MetricsBindAddress:     metricsAddr,
 			HealthProbeBindAddress: healthzAddr,
-			Port:                   port,
-			CertDir:                certDir,
+			WebhookServer: &webhook.Server{
+				CertDir:       certDir,
+				Port:          port,
+				TLSMinVersion: tlsMinVersion,
+				TLSOpts: []func(*tls.Config){
+					mgrTLSOptions,
+				},
+			},
 		})
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
@@ -167,13 +194,42 @@ func waitForCerts(c crds.CertInfo, timeout time.Duration) error {
 	}
 }
 
+func getTLSCipherSuitesIDs(cipherListString string) ([]uint16, error) {
+	if cipherListString == "" {
+		return nil, nil
+	}
+	cipherList := strings.Split(cipherListString, ",")
+	cipherIds := map[string]uint16{}
+	for _, cs := range tls.CipherSuites() {
+		cipherIds[cs.Name] = cs.ID
+	}
+	ret := make([]uint16, 0, len(cipherList))
+	for _, c := range cipherList {
+		id, ok := cipherIds[c]
+		if !ok {
+			return ret, fmt.Errorf("cipher %s was not found", c)
+		}
+		ret = append(ret, id)
+	}
+	return ret, nil
+}
+
 func init() {
 	rootCmd.AddCommand(webhookCmd)
 	webhookCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	webhookCmd.Flags().StringVar(&healthzAddr, "healthz-addr", ":8081", "The address the health endpoint binds to.")
-	webhookCmd.Flags().IntVar(&port, "port", 10250, "The address the health endpoint binds to.")
+	webhookCmd.Flags().IntVar(&port, "port", 10250, "Port number that the webhook server will serve.")
 	webhookCmd.Flags().StringVar(&dnsName, "dns-name", "localhost", "DNS name to validate certificates with")
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "path to check for certs")
+	webhookCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	webhookCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	webhookCmd.Flags().DurationVar(&certCheckInterval, "check-interval", 5*time.Minute, "certificate check interval")
+	webhookCmd.Flags().DurationVar(&certLookaheadInterval, "lookahead-interval", crds.LookaheadInterval, "certificate check interval")
+	// https://go.dev/blog/tls-cipher-suites explains the ciphers selection process
+	webhookCmd.Flags().StringVar(&tlsCiphers, "tls-ciphers", "", "comma separated list of tls ciphers allowed."+
+		" This does not apply to TLS 1.3 as the ciphers are selected automatically."+
+		" The order of this list does not give preference to the ciphers, the ordering is done automatically."+
+		" Full lists of available ciphers can be found at https://pkg.go.dev/crypto/tls#pkg-constants."+
+		" E.g. 'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256'")
+	webhookCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "1.2", "minimum version of TLS supported.")
 }

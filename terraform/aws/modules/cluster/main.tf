@@ -4,7 +4,7 @@ provider "aws" {
 
 locals {
   name            = var.cluster_name
-  cluster_version = "1.21"
+  cluster_version = "1.24"
   region          = var.cluster_region
 
   serviceaccount_name      = var.irsa_sa_name
@@ -44,7 +44,7 @@ module "eks" {
   eks_managed_node_group_defaults = {
     ami_type               = "AL2_x86_64"
     disk_size              = 50
-    instance_types         = ["m6i.large", "m5.large", "m5n.large", "m5zn.large"]
+    instance_types         = ["t3.large"]
     vpc_security_group_ids = [aws_security_group.additional.id]
   }
 
@@ -55,6 +55,7 @@ module "eks" {
 
       instance_types = ["t3.large"]
       tags           = local.tags
+
     }
   }
 
@@ -67,7 +68,7 @@ module "eks" {
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 3.0"
+  version = "~> 3.14"
 
   name = local.name
   cidr = "10.0.0.0/16"
@@ -80,9 +81,9 @@ module "vpc" {
   single_nat_gateway   = true
   enable_dns_hostnames = true
 
-  enable_flow_log                      = true
-  create_flow_log_cloudwatch_iam_role  = true
-  create_flow_log_cloudwatch_log_group = true
+  enable_flow_log                      = false
+  create_flow_log_cloudwatch_iam_role  = false
+  create_flow_log_cloudwatch_log_group = false
 
   public_subnet_tags = {
     "kubernetes.io/cluster/${local.name}" = "shared"
@@ -142,4 +143,3 @@ resource "aws_security_group" "additional" {
 
   tags = local.tags
 }
-

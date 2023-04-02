@@ -1,4 +1,4 @@
-{{- if .Values.prometheus.enabled }}
+{{- if or .Values.prometheus.enabled .Values.metrics.service.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -6,14 +6,25 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
+  {{- if .Values.prometheus.enabled }}
   annotations:
     prometheus.io/path: "/metrics"
     prometheus.io/scrape: "true"
     prometheus.io/port: {{ .Values.prometheus.service.port | quote }}
+  {{- else }}
+  {{- with .Values.metrics.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
 spec:
   type: ClusterIP
   ports:
+    {{- if .Values.prometheus.enabled }}
     - port: {{ .Values.prometheus.service.port }}
+    {{- else }}
+    - port: {{ .Values.metrics.service.port }}
+    {{- end }}
       protocol: TCP
       name: metrics
   selector:

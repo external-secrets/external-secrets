@@ -15,6 +15,7 @@ limitations under the License.
 package vault
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -23,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -31,6 +33,7 @@ import (
 	approle "github.com/hashicorp/vault/api/auth/approle"
 	authkubernetes "github.com/hashicorp/vault/api/auth/kubernetes"
 	authldap "github.com/hashicorp/vault/api/auth/ldap"
+	"github.com/spf13/pflag"
 	"github.com/tidwall/gjson"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -44,35 +47,46 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/cache"
+	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/find"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
-	_ esv1beta1.Provider      = &connector{}
-	_ esv1beta1.SecretsClient = &client{}
+	_           esv1beta1.Provider      = &Connector{}
+	_           esv1beta1.SecretsClient = &client{}
+	enableCache bool
+	logger      = ctrl.Log.WithName("provider").WithName("vault")
+	clientCache *cache.Cache[util.Client]
 )
 
 const (
 	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
-	errVaultStore           = "received invalid Vault SecretStore resource: %w"
-	errVaultClient          = "cannot setup new vault client: %w"
-	errVaultCert            = "cannot set Vault CA certificate: %w"
-	errReadSecret           = "cannot read secret data from Vault: %w"
-	errAuthFormat           = "cannot initialize Vault client: no valid auth method specified"
-	errInvalidCredentials   = "invalid vault credentials: %w"
-	errDataField            = "failed to find data field"
-	errJSONUnmarshall       = "failed to unmarshall JSON"
-	errPathInvalid          = "provided Path isn't a valid kv v2 path"
-	errSecretFormat         = "secret data not in expected format"
-	errUnexpectedKey        = "unexpected key in data: %s"
-	errVaultToken           = "cannot parse Vault authentication token: %w"
-	errVaultRequest         = "error from Vault request: %w"
-	errServiceAccount       = "cannot read Kubernetes service account token from file system: %w"
-	errJwtNoTokenSource     = "neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication"
-	errUnsupportedKvVersion = "cannot perform find operations with kv version v1"
-	errNotFound             = "secret not found"
+	errVaultStore                   = "received invalid Vault SecretStore resource: %w"
+	errVaultCacheCreate             = "cannot create Vault client cache: %s"
+	errVaultCacheRemove             = "error removing item from Vault client cache: %w"
+	errVaultCacheEviction           = "unexpected eviction from Vault client cache"
+	errVaultClient                  = "cannot setup new vault client: %w"
+	errVaultCert                    = "cannot set Vault CA certificate: %w"
+	errReadSecret                   = "cannot read secret data from Vault: %w"
+	errAuthFormat                   = "cannot initialize Vault client: no valid auth method specified"
+	errInvalidCredentials           = "invalid vault credentials: %w"
+	errDataField                    = "failed to find data field"
+	errJSONUnmarshall               = "failed to unmarshall JSON"
+	errPathInvalid                  = "provided Path isn't a valid kv v2 path"
+	errSecretFormat                 = "secret data for property %s not in expected format: %s"
+	errUnexpectedKey                = "unexpected key in data: %s"
+	errVaultToken                   = "cannot parse Vault authentication token: %w"
+	errVaultRequest                 = "error from Vault request: %w"
+	errServiceAccount               = "cannot read Kubernetes service account token from file system: %w"
+	errJwtNoTokenSource             = "neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication"
+	errUnsupportedKvVersion         = "cannot perform find operations with kv version v1"
+	errUnsupportedMetadataKvVersion = "cannot perform metadata fetch operations with kv version v1"
+	errNotFound                     = "secret not found"
 
 	errGetKubeSA             = "cannot get Kubernetes service account %q: %w"
 	errGetKubeSASecrets      = "cannot find secrets bound to service account: %q"
@@ -107,99 +121,22 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &client{}
-var _ esv1beta1.Provider = &connector{}
-
-type Auth interface {
-	Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
-}
-
-type Token interface {
-	RevokeSelfWithContext(ctx context.Context, token string) error
-	LookupSelfWithContext(ctx context.Context) (*vault.Secret, error)
-}
-
-type Logical interface {
-	ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
-	ListWithContext(ctx context.Context, path string) (*vault.Secret, error)
-	WriteWithContext(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error)
-}
-
-type Client interface {
-	SetToken(v string)
-	Token() string
-	ClearToken()
-	Auth() Auth
-	Logical() Logical
-	AuthToken() Token
-	SetNamespace(namespace string)
-	AddHeader(key, value string)
-}
-
-type VClient struct {
-	setToken     func(v string)
-	token        func() string
-	clearToken   func()
-	auth         Auth
-	logical      Logical
-	authToken    Token
-	setNamespace func(namespace string)
-	addHeader    func(key, value string)
-}
-
-func (v VClient) AddHeader(key, value string) {
-	v.addHeader(key, value)
-}
-
-func (v VClient) SetNamespace(namespace string) {
-	v.setNamespace(namespace)
-}
-
-func (v VClient) ClearToken() {
-	v.clearToken()
-}
-
-func (v VClient) Token() string {
-	return v.token()
-}
-
-func (v VClient) SetToken(token string) {
-	v.setToken(token)
-}
-
-func (v VClient) Auth() Auth {
-	return v.auth
-}
-
-func (v VClient) AuthToken() Token {
-	return v.authToken
-}
-
-func (v VClient) Logical() Logical {
-	return v.logical
-}
+var _ esv1beta1.Provider = &Connector{}
 
 type client struct {
 	kube      kclient.Client
 	store     *esv1beta1.VaultProvider
 	log       logr.Logger
 	corev1    typedcorev1.CoreV1Interface
-	client    Client
-	auth      Auth
-	logical   Logical
-	token     Token
+	client    util.Client
+	auth      util.Auth
+	logical   util.Logical
+	token     util.Token
 	namespace string
 	storeKind string
 }
 
-func init() {
-	esv1beta1.Register(&connector{
-		newVaultClient: newVaultClient,
-	}, &esv1beta1.SecretStoreProvider{
-		Vault: &esv1beta1.VaultProvider{},
-	})
-}
-
-func newVaultClient(c *vault.Config) (Client, error) {
+func NewVaultClient(c *vault.Config) (util.Client, error) {
 	cl, err := vault.NewClient(c)
 	if err != nil {
 		return nil, err
@@ -207,24 +144,55 @@ func newVaultClient(c *vault.Config) (Client, error) {
 	auth := cl.Auth()
 	logical := cl.Logical()
 	token := cl.Auth().Token()
-	out := VClient{
-		setToken:     cl.SetToken,
-		token:        cl.Token,
-		clearToken:   cl.ClearToken,
-		auth:         auth,
-		authToken:    token,
-		logical:      logical,
-		setNamespace: cl.SetNamespace,
-		addHeader:    cl.AddHeader,
+	out := util.VClient{
+		SetTokenFunc:     cl.SetToken,
+		TokenFunc:        cl.Token,
+		ClearTokenFunc:   cl.ClearToken,
+		AuthField:        auth,
+		AuthTokenField:   token,
+		LogicalField:     logical,
+		SetNamespaceFunc: cl.SetNamespace,
+		AddHeaderFunc:    cl.AddHeader,
 	}
-	return out, nil
+	return &out, nil
 }
 
-type connector struct {
-	newVaultClient func(c *vault.Config) (Client, error)
+func getVaultClient(c *Connector, store esv1beta1.GenericStore, cfg *vault.Config) (util.Client, error) {
+	isStaticToken := store.GetSpec().Provider.Vault.Auth.TokenSecretRef != nil
+	useCache := enableCache && !isStaticToken
+
+	key := cache.Key{
+		Name:      store.GetObjectMeta().Name,
+		Namespace: store.GetObjectMeta().Namespace,
+		Kind:      store.GetTypeMeta().Kind,
+	}
+	if useCache {
+		client, ok := clientCache.Get(store.GetObjectMeta().ResourceVersion, key)
+		if ok {
+			return client, nil
+		}
+	}
+
+	client, err := c.NewVaultClient(cfg)
+	if err != nil {
+		return nil, fmt.Errorf(errVaultClient, err)
+	}
+
+	if useCache && !clientCache.Contains(key) {
+		clientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+	}
+	return client, nil
 }
 
-func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+type Connector struct {
+	NewVaultClient func(c *vault.Config) (util.Client, error)
+}
+
+// Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+func (c *Connector) Capabilities() esv1beta1.SecretStoreCapabilities {
+	return esv1beta1.SecretStoreReadWrite
+}
+func (c *Connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to fetch tokens
 	// (for Kubernetes service account token auth)
@@ -236,35 +204,67 @@ func (c *connector) NewClient(ctx context.Context, store esv1beta1.GenericStore,
 	if err != nil {
 		return nil, err
 	}
+
 	return c.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
-func (c *connector) newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
+func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {
 		return nil, errors.New(errVaultStore)
 	}
 	vaultSpec := storeSpec.Provider.Vault
 
-	vStore := &client{
-		kube:      kube,
-		corev1:    corev1,
-		store:     vaultSpec,
-		log:       ctrl.Log.WithName("provider").WithName("vault"),
-		namespace: namespace,
-		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
-	}
-
-	cfg, err := vStore.newConfig()
+	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := c.newVaultClient(cfg)
+	client, err := getVaultClient(c, store, cfg)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
 
+	return c.initClient(ctx, vStore, client, cfg, vaultSpec)
+}
+
+func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
+	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, "Generator")
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := c.NewVaultClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = c.initClient(ctx, vStore, client, cfg, vaultSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace, storeKind string) (*client, *vault.Config, error) {
+	vStore := &client{
+		kube:      kube,
+		corev1:    corev1,
+		store:     vaultSpec,
+		log:       logger,
+		namespace: namespace,
+		storeKind: storeKind,
+	}
+
+	cfg, err := vStore.newConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	return vStore, cfg, nil
+}
+
+func (c *Connector) initClient(ctx context.Context, vStore *client, client util.Client, cfg *vault.Config, vaultSpec *esv1beta1.VaultProvider) (esv1beta1.SecretsClient, error) {
 	if vaultSpec.Namespace != nil {
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
@@ -289,7 +289,7 @@ func (c *connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 	return vStore, nil
 }
 
-func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
+func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 	if store == nil {
 		return fmt.Errorf(errInvalidStore)
 	}
@@ -355,9 +355,99 @@ func (c *connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-// Empty GetAllSecrets.
-// GetAllSecrets
-// First load all secrets from secretStore path configuration.
+func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	path := v.buildPath(remoteRef.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+	// Retrieve the secret map from vault and convert the secret value in string form.
+	_, err = v.readSecret(ctx, path, "")
+	// If error is not of type secret not found, we should error
+	if err != nil && errors.Is(err, esv1beta1.NoSecretError{}) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+	manager, ok := metadata["managed-by"]
+	if !ok || manager != "external-secrets" {
+		return nil
+	}
+	_, err = v.logical.DeleteWithContext(ctx, path)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultDeleteSecret, err)
+	if err != nil {
+		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
+	}
+	_, err = v.logical.DeleteWithContext(ctx, metaPath)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultDeleteSecret, err)
+	if err != nil {
+		return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
+	}
+	return nil
+}
+
+func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	label := map[string]interface{}{
+		"custom_metadata": map[string]string{
+			"managed-by": "external-secrets",
+		},
+	}
+	secretVal := make(map[string]interface{})
+	err := json.Unmarshal(value, &secretVal)
+	if err != nil {
+		return fmt.Errorf("failed to convert value to a valid JSON: %w", err)
+	}
+	secretToPush := map[string]interface{}{
+		"data": secretVal,
+	}
+	path := v.buildPath(remoteRef.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+
+	// Retrieve the secret map from vault and convert the secret value in string form.
+	vaultSecret, err := v.readSecret(ctx, path, "")
+	// If error is not of type secret not found, we should error
+	if err != nil && !errors.Is(err, esv1beta1.NoSecretError{}) {
+		return err
+	}
+	// If the secret exists (err == nil), we should check if it is managed by external-secrets
+	if err == nil {
+		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+		if err != nil {
+			return err
+		}
+		manager, ok := metadata["managed-by"]
+		if !ok || manager != "external-secrets" {
+			return fmt.Errorf("secret not managed by external-secrets")
+		}
+	}
+	vaultSecretValue, err := json.Marshal(vaultSecret)
+	if err != nil {
+		return fmt.Errorf("error marshaling vault secret: %w", err)
+	}
+	if bytes.Equal(vaultSecretValue, value) {
+		return nil
+	}
+	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultWriteSecretData, err)
+	if err != nil {
+		return err
+	}
+	// Otherwise, create or update the version.
+	_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultWriteSecretData, err)
+	return err
+}
+
+// GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
+// First load all secrets from secretStore path configuration
 // Then, gets secrets from a matching name or matching custom_metadata.
 func (v *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if v.store.Version == esv1beta1.VaultKVStoreV1 {
@@ -394,10 +484,15 @@ func (v *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 		}
 		if match {
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if errors.Is(err, esv1beta1.NoSecretError{}) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
-			secrets[name] = secret
+			if secret != nil {
+				secrets[name] = secret
+			}
 		}
 	}
 	return secrets, nil
@@ -413,10 +508,15 @@ func (v *client) findSecretsFromName(ctx context.Context, candidates []string, r
 		ok := matcher.MatchName(name)
 		if ok {
 			secret, err := v.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: name})
+			if errors.Is(err, esv1beta1.NoSecretError{}) {
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
-			secrets[name] = secret
+			if secret != nil {
+				secrets[name] = secret
+			}
 		}
 	}
 	return secrets, nil
@@ -429,8 +529,12 @@ func (v *client) listSecrets(ctx context.Context, path string) ([]string, error)
 		return nil, err
 	}
 	secret, err := v.logical.ListWithContext(ctx, url)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultListSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
+	}
+	if secret == nil {
+		return nil, fmt.Errorf("provided path %v does not contain any secrets", url)
 	}
 	t, ok := secret.Data["keys"]
 	if !ok {
@@ -464,6 +568,7 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		return nil, err
 	}
 	secret, err := v.logical.ReadWithDataWithContext(ctx, url, nil)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultReadSecretData, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
@@ -485,14 +590,39 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 }
 
 // GetSecret supports two types:
-// 1. get the full secret as json-encoded value
-//    by leaving the ref.Property empty.
-// 2. get a key from the secret.
-//    Nested values are supported by specifying a gjson expression
+//  1. get the full secret as json-encoded value
+//     by leaving the ref.Property empty.
+//  2. get a key from the secret.
+//     Nested values are supported by specifying a gjson expression
 func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	data, err := v.readSecret(ctx, ref.Key, ref.Version)
-	if err != nil {
-		return nil, err
+	var data map[string]interface{}
+	var err error
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		if v.store.Version == esv1beta1.VaultKVStoreV1 {
+			return nil, errors.New(errUnsupportedMetadataKvVersion)
+		}
+
+		metadata, err := v.readSecretMetadata(ctx, ref.Key)
+		if err != nil {
+			return nil, err
+		}
+		if len(metadata) == 0 {
+			return nil, nil
+		}
+		data = make(map[string]interface{}, len(metadata))
+		for k, v := range metadata {
+			data[k] = v
+		}
+	} else {
+		data, err = v.readSecret(ctx, ref.Key, ref.Version)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Return nil if secret value is null
+	if data == nil {
+		return nil, nil
 	}
 	jsonStr, err := json.Marshal(data)
 	if err != nil {
@@ -507,7 +637,7 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	// actual keys to take precedence over gjson syntax
 	// (2): extract key from secret with property
 	if _, ok := data[ref.Property]; ok {
-		return getTypedKey(data, ref.Property)
+		return GetTypedKey(data, ref.Property)
 	}
 
 	// (3): extract key from secret using gjson
@@ -534,7 +664,7 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	}
 	byteMap := make(map[string][]byte, len(secretData))
 	for k := range secretData {
-		byteMap[k], err = getTypedKey(secretData, k)
+		byteMap[k], err = GetTypedKey(secretData, k)
 		if err != nil {
 			return nil, err
 		}
@@ -543,7 +673,7 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	return byteMap, nil
 }
 
-func getTypedKey(data map[string]interface{}, key string) ([]byte, error) {
+func GetTypedKey(data map[string]interface{}, key string) ([]byte, error) {
 	v, ok := data[key]
 	if !ok {
 		return nil, fmt.Errorf(errUnexpectedKey, key)
@@ -553,33 +683,33 @@ func getTypedKey(data map[string]interface{}, key string) ([]byte, error) {
 		return []byte(t), nil
 	case map[string]interface{}:
 		return json.Marshal(t)
+	case []string:
+		return []byte(strings.Join(t, "\n")), nil
 	case []byte:
 		return t, nil
 	// also covers int and float32 due to json.Marshal
 	case float64:
 		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
+	case json.Number:
+		return []byte(t.String()), nil
+	case []interface{}:
+		return json.Marshal(t)
 	case bool:
 		return []byte(strconv.FormatBool(t)), nil
 	case nil:
 		return []byte(nil), nil
 	default:
-		return nil, errors.New(errSecretFormat)
+		return nil, fmt.Errorf(errSecretFormat, key, reflect.TypeOf(t))
 	}
 }
 
 func (v *client) Close(ctx context.Context) error {
-	// Revoke the token if we have one set and it wasn't sourced from a TokenSecretRef
-	if v.client.Token() != "" && v.store.Auth.TokenSecretRef == nil {
-		revoke, err := checkToken(ctx, v)
+	// Revoke the token if we have one set, it wasn't sourced from a TokenSecretRef,
+	// and token caching isn't enabled
+	if !enableCache && v.client.Token() != "" && v.store.Auth.TokenSecretRef == nil {
+		err := revokeTokenIfValid(ctx, v.client)
 		if err != nil {
-			return fmt.Errorf(errVaultRevokeToken, err)
-		}
-		if revoke {
-			err = v.token.RevokeSelfWithContext(ctx, v.client.Token())
-			if err != nil {
-				return fmt.Errorf(errVaultRevokeToken, err)
-			}
-			v.client.ClearToken()
+			return err
 		}
 	}
 	return nil
@@ -620,7 +750,7 @@ func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 	if v.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(v.store) {
 		return esv1beta1.ValidationResultUnknown, nil
 	}
-	_, err := checkToken(context.Background(), v)
+	_, err := checkToken(context.Background(), v.token)
 	if err != nil {
 		return esv1beta1.ValidationResultError, fmt.Errorf(errInvalidCredentials, err)
 	}
@@ -640,31 +770,79 @@ func (v *client) buildMetadataPath(path string) (string, error) {
 	}
 	return url, nil
 }
+
+/*
+	 buildPath is a helper method to build the vault equivalent path
+		 from ExternalSecrets and SecretStore manifests. the path build logic
+		 varies depending on the SecretStore KV version:
+		 Example inputs/outputs:
+		 # simple build:
+		 kv version == "v2":
+			provider_path: "secret/path"
+			input: "foo"
+			output: "secret/path/data/foo" # provider_path and data are prepended
+		 kv version == "v1":
+			provider_path: "secret/path"
+			input: "foo"
+			output: "secret/path/foo" # provider_path is prepended
+		 # inheriting paths:
+		 kv version == "v2":
+			provider_path: "secret/path"
+			input: "secret/path/foo"
+			output: "secret/path/data/foo" #data is prepended
+		 kv version == "v2":
+			provider_path: "secret/path"
+			input: "secret/path/data/foo"
+			output: "secret/path/data/foo" #noop
+		 kv version == "v1":
+			provider_path: "secret/path"
+			input: "secret/path/foo"
+			output: "secret/path/foo" #noop
+		 # provider path not defined:
+		 kv version == "v2":
+			provider_path: nil
+			input: "secret/path/foo"
+			output: "secret/data/path/foo" # data is prepended to secret/
+		 kv version == "v2":
+			provider_path: nil
+			input: "secret/path/data/foo"
+			output: "secret/path/data/foo" #noop
+		 kv version == "v1":
+			provider_path: nil
+			input: "secret/path/foo"
+			output: "secret/path/foo" #noop
+*/
 func (v *client) buildPath(path string) string {
 	optionalMount := v.store.Path
-	origPath := strings.Split(path, "/")
-	newPath := make([]string, 0)
-	cursor := 0
-
-	if optionalMount != nil && origPath[0] != *optionalMount {
-		// Default case before path was optional
-		// Ensure that the requested path includes the SecretStores paths as prefix
-		newPath = append(newPath, *optionalMount)
-	} else {
-		newPath = append(newPath, origPath[cursor])
-		cursor++
-	}
-
-	if v.store.Version == esv1beta1.VaultKVStoreV2 {
-		// Add the required `data` part of the URL for the v2 API
-		if len(origPath) < 2 || origPath[1] != "data" {
-			newPath = append(newPath, "data")
+	out := path
+	// if optionalMount is Set, remove it from path if its there
+	if optionalMount != nil {
+		cut := *optionalMount + "/"
+		if strings.HasPrefix(out, cut) {
+			// This current logic induces a bug when the actual secret resides on same path names as the mount path.
+			_, out, _ = strings.Cut(out, cut)
+			// if data succeeds optionalMount on v2 store, we should remove it as well
+			if strings.HasPrefix(out, "data/") && v.store.Version == esv1beta1.VaultKVStoreV2 {
+				_, out, _ = strings.Cut(out, "data/")
+			}
 		}
+		buildPath := strings.Split(out, "/")
+		buildMount := strings.Split(*optionalMount, "/")
+		if v.store.Version == esv1beta1.VaultKVStoreV2 {
+			buildMount = append(buildMount, "data")
+		}
+		buildMount = append(buildMount, buildPath...)
+		out = strings.Join(buildMount, "/")
+		return out
 	}
-	newPath = append(newPath, origPath[cursor:]...)
-	returnPath := strings.Join(newPath, "/")
-
-	return returnPath
+	if !strings.Contains(out, "/data/") && v.store.Version == esv1beta1.VaultKVStoreV2 {
+		buildPath := strings.Split(out, "/")
+		buildMount := []string{buildPath[0], "data"}
+		buildMount = append(buildMount, buildPath[1:]...)
+		out = strings.Join(buildMount, "/")
+		return out
+	}
+	return out
 }
 
 func (v *client) readSecret(ctx context.Context, path, version string) (map[string]interface{}, error) {
@@ -679,20 +857,23 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		params["version"] = []string{version}
 	}
 	vaultSecret, err := v.logical.ReadWithDataWithContext(ctx, dataPath, params)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultReadSecretData, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
 	if vaultSecret == nil {
-		return nil, errors.New(errNotFound)
+		return nil, esv1beta1.NoSecretError{}
 	}
 	secretData := vaultSecret.Data
 	if v.store.Version == esv1beta1.VaultKVStoreV2 {
 		// Vault KV2 has data embedded within sub-field
 		// reference - https://www.vaultproject.io/api/secret/kv/kv-v2#read-secret-version
 		dataInt, ok := vaultSecret.Data["data"]
-
 		if !ok {
 			return nil, errors.New(errDataField)
+		}
+		if dataInt == nil {
+			return nil, esv1beta1.NoSecretError{}
 		}
 		secretData, ok = dataInt.(map[string]interface{})
 		if !ok {
@@ -802,41 +983,61 @@ func getCertFromConfigMap(v *client) ([]byte, error) {
 	return []byte(val), nil
 }
 
+/*
+setAuth gets a new token using the configured mechanism.
+If there's already a valid token, does nothing.
+*/
 func (v *client) setAuth(ctx context.Context, cfg *vault.Config) error {
-	tokenExists, err := setSecretKeyToken(ctx, v)
+	tokenExists := false
+	var err error
+	if v.client.Token() != "" {
+		tokenExists, err = checkToken(ctx, v.token)
+	}
 	if tokenExists {
+		v.log.V(1).Info("Re-using existing token")
+		return err
+	}
+
+	tokenExists, err = setSecretKeyToken(ctx, v)
+	if tokenExists {
+		v.log.V(1).Info("Set token from secret")
 		return err
 	}
 
 	tokenExists, err = setAppRoleToken(ctx, v)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using AppRole auth")
 		return err
 	}
 
 	tokenExists, err = setKubernetesAuthToken(ctx, v)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using Kubernetes auth")
 		return err
 	}
 
 	tokenExists, err = setLdapAuthToken(ctx, v)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using LDAP auth")
 		return err
 	}
 
 	tokenExists, err = setJwtAuthToken(ctx, v)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using JWT auth")
 		return err
 	}
 
 	tokenExists, err = setCertAuthToken(ctx, v, cfg)
 	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using certificate auth")
 		return err
 	}
 
 	return errors.New(errAuthFormat)
 }
 
-func setAppRoleToken(ctx context.Context, v *client) (bool, error) {
+func setSecretKeyToken(ctx context.Context, v *client) (bool, error) {
 	tokenRef := v.store.Auth.TokenSecretRef
 	if tokenRef != nil {
 		token, err := v.secretKeyRef(ctx, tokenRef)
@@ -849,7 +1050,7 @@ func setAppRoleToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func setSecretKeyToken(ctx context.Context, v *client) (bool, error) {
+func setAppRoleToken(ctx context.Context, v *client) (bool, error) {
 	appRole := v.store.Auth.AppRole
 	if appRole != nil {
 		err := v.requestTokenWithAppRoleRef(ctx, appRole)
@@ -967,7 +1168,11 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	return valueStr, nil
 }
 
-func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, audiences []string, expirationSeconds int64) (string, error) {
+func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
+	audiences := serviceAccountRef.Audiences
+	if len(additionalAud) > 0 {
+		audiences = append(audiences, additionalAud...)
+	}
 	tokenRequest := &authenticationv1.TokenRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: v.namespace,
@@ -989,9 +1194,10 @@ func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esme
 }
 
 // checkToken does a lookup and checks if the provided token exists.
-func checkToken(ctx context.Context, vStore *client) (bool, error) {
+func checkToken(ctx context.Context, token util.Token) (bool, error) {
 	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
-	resp, err := vStore.token.LookupSelfWithContext(ctx)
+	resp, err := token.LookupSelfWithContext(ctx)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLookupSelf, err)
 	if err != nil {
 		return false, err
 	}
@@ -1004,6 +1210,22 @@ func checkToken(ctx context.Context, vStore *client) (bool, error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func revokeTokenIfValid(ctx context.Context, client util.Client) error {
+	valid, err := checkToken(ctx, client.AuthToken())
+	if err != nil {
+		return fmt.Errorf(errVaultRevokeToken, err)
+	}
+	if valid {
+		err = client.AuthToken().RevokeSelfWithContext(ctx, client.Token())
+		metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultRevokeSelf, err)
+		if err != nil {
+			return fmt.Errorf(errVaultRevokeToken, err)
+		}
+		client.ClearToken()
+	}
+	return nil
 }
 
 func (v *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1beta1.VaultAppRole) error {
@@ -1019,6 +1241,7 @@ func (v *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1be
 		return err
 	}
 	_, err = v.auth.Login(ctx, appRoleClient)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
@@ -1035,6 +1258,7 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 		return err
 	}
 	_, err = v.auth.Login(ctx, k)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
@@ -1043,7 +1267,19 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 
 func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
+		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
+		// this behavior was removed in v1.24 and we must use TokenRequest API (see below)
 		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		if jwt != "" {
+			return jwt, err
+		}
+		if err != nil {
+			v.log.V(1).Info("unable to fetch jwt from service account secret, trying service account token next")
+		}
+		// Kubernetes >=v1.24: fetch token via TokenRequest API
+		// note: this is a massive change from vault perspective: the `iss` claim will very likely change.
+		// Vault 1.9 deprecated issuer validation by default, and authentication with Vault clusters <1.9 will likely fail.
+		jwt, err = v.serviceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
 		if err != nil {
 			return "", err
 		}
@@ -1087,6 +1323,7 @@ func (v *client) requestTokenWithLdapAuth(ctx context.Context, ldapAuth *esv1bet
 		return err
 	}
 	_, err = v.auth.Login(ctx, l)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
@@ -1123,6 +1360,7 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1beta1
 	}
 	url := strings.Join([]string{"auth", jwtAuth.Path, "login"}, "/")
 	vaultResult, err := v.logical.WriteWithContext(ctx, url, parameters)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultWriteSecretData, err)
 	if err != nil {
 		return err
 	}
@@ -1157,6 +1395,7 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1bet
 
 	url := strings.Join([]string{"auth", "cert", "login"}, "/")
 	vaultResult, err := v.logical.WriteWithContext(ctx, url, nil)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultWriteSecretData, err)
 	if err != nil {
 		return fmt.Errorf(errVaultRequest, err)
 	}
@@ -1166,4 +1405,31 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1bet
 	}
 	v.client.SetToken(token)
 	return nil
+}
+
+func init() {
+	var vaultTokenCacheSize int
+	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
+	fs.BoolVar(&enableCache, "experimental-enable-vault-token-cache", false, "Enable experimental Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.")
+	// max. 265k vault leases with 30bytes each ~= 7MB
+	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", 2<<17, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
+	lateInit := func() {
+		logger.Info("initializing vault cache", "size", vaultTokenCacheSize)
+		clientCache = cache.Must(vaultTokenCacheSize, func(client util.Client) {
+			err := revokeTokenIfValid(context.Background(), client)
+			if err != nil {
+				logger.Error(err, "unable to revoke cached token on eviction")
+			}
+		})
+	}
+	feature.Register(feature.Feature{
+		Flags:      fs,
+		Initialize: lateInit,
+	})
+
+	esv1beta1.Register(&Connector{
+		NewVaultClient: NewVaultClient,
+	}, &esv1beta1.SecretStoreProvider{
+		Vault: &esv1beta1.VaultProvider{},
+	})
 }

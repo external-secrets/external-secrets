@@ -97,6 +97,19 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>sessionTokenSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The SessionToken used for authentication
+This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a></p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AWSJWTAuth">AWSJWTAuth
@@ -251,6 +264,24 @@ AkeylessAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>Reference to a Secret that contains the details
+to authenticate with Akeyless.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetesAuth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AkeylessKubernetesAuth">
+AkeylessKubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubernetes authenticates with Akeyless by passing the ServiceAccount
+token stored in the named Secret resource.</p>
 </td>
 </tr>
 </tbody>
@@ -302,6 +333,77 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.AkeylessKubernetesAuth">AkeylessKubernetesAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AkeylessAuth">AkeylessAuth</a>)
+</p>
+<p>
+<p>Authenticate with Kubernetes ServiceAccount token stored.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>the Akeyless Kubernetes auth-method access-id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>k8sConfName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kubernetes-auth configuration name in Akeyless-Gateway</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional service account field containing the name of a kubernetes ServiceAccount.
+If the service account is specified, the service account secret token JWT will be used
+for authenticating with Akeyless. If the service account selector is not supplied,
+the secretRef will be used instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional secret field containing a Kubernetes ServiceAccount JWT used
+for authenticating with Akeyless. If a name is specified without a key,
+<code>token</code> is the default. If one is not specified, the one bound to
+the controller will be used.</p>
 </td>
 </tr>
 </tbody>
@@ -494,7 +596,7 @@ is ServicePrincipal.</p>
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;ManagedIdentity&#34;</p></td>
-<td><p>Using Managed Identity to authenticate. Used with aad-pod-identity installed in the clister.</p>
+<td><p>Using Managed Identity to authenticate. Used with aad-pod-identity installed in the cluster.</p>
 </td>
 </tr><tr><td><p>&#34;ServicePrincipal&#34;</p></td>
 <td><p>Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.</p>
@@ -502,6 +604,35 @@ is ServicePrincipal.</p>
 </tr><tr><td><p>&#34;WorkloadIdentity&#34;</p></td>
 <td><p>Using Workload Identity service accounts to authenticate.</p>
 </td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.AzureEnvironmentType">AzureEnvironmentType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>AzureEnvironmentType specifies the Azure cloud environment endpoints to use for
+connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ChinaCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;GermanCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;PublicCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;USGovernmentCloud&#34;</p></td>
+<td></td>
 </tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AzureKVAuth">AzureKVAuth
@@ -606,6 +737,22 @@ string
 </tr>
 <tr>
 <td>
+<code>environmentType</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AzureEnvironmentType">
+AzureEnvironmentType
+</a>
+</em>
+</td>
+<td>
+<p>EnvironmentType specifies the Azure cloud environment endpoints to use for
+connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>authSecretRef</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.AzureKVAuth">
@@ -653,7 +800,9 @@ string
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
-<p>Defines a location to fetch the cert for the vault provider from.</p>
+<p>Used to provide custom certificate authority (CA) certificates
+for a secret store. The CAProvider points to a Secret or ConfigMap resource
+that contains a PEM-encoded certificate.</p>
 </p>
 <table>
 <thead>
@@ -695,7 +844,7 @@ string
 </em>
 </td>
 <td>
-<p>The key the value inside of the provider type to use, only used with &ldquo;Secret&rdquo; type</p>
+<p>The key where the CA certificate can be found in the Secret or ConfigMap.</p>
 </td>
 </tr>
 <tr>
@@ -707,7 +856,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>The namespace the Provider type is in.</p>
+<p>The namespace the Provider type is in.
+Can only be defined when used in a ClusterSecretStore.</p>
 </td>
 </tr>
 </tbody>
@@ -1217,6 +1367,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1230,6 +1394,193 @@ SecretStoreStatus
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ClusterSecretStoreCondition">ClusterSecretStoreCondition
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
+</p>
+<p>
+<p>ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
+for a ClusterSecretStore instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>namespaceSelector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespace using a labelSelector</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Choose namespaces by name</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DopplerAuth">DopplerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.DopplerProvider">DopplerProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerAuthSecretRef">
+DopplerAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DopplerAuthSecretRef">DopplerAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.DopplerAuth">DopplerAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>dopplerToken</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The DopplerToken is used for authentication.
+See <a href="https://docs.doppler.com/reference/api#authentication">https://docs.doppler.com/reference/api#authentication</a> for auth token types.
+The Key attribute defaults to dopplerToken if not specified.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DopplerProvider">DopplerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>DopplerProvider configures a store to sync secrets using the Doppler provider.
+Project and Config are required if not using a Service Token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerAuth">
+DopplerAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the Operator authenticates with the Doppler API</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>project</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler project (required if not using a Service Token)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>config</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler config (required if not using a Service Token)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nameTransformer</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Environment variable compatible name transforms that change secret names to a different format</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>format</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Format enables the downloading of secrets as a file (string)</p>
 </td>
 </tr>
 </tbody>
@@ -1284,6 +1635,7 @@ SecretStoreRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -1459,6 +1811,8 @@ string
 </em>
 </td>
 <td>
+<p>SecretKey defines the key in which the controller stores
+the value. This is the key in the Kind=Secret</p>
 </td>
 </tr>
 <tr>
@@ -1471,6 +1825,22 @@ ExternalSecretDataRemoteRef
 </em>
 </td>
 <td>
+<p>RemoteRef points to the remote secret and defines
+which secret (version/property/..) to fetch.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sourceRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SourceRef">
+SourceRef
+</a>
+</em>
+</td>
+<td>
+<p>SourceRef allows you to override the source
+from which the value will pulled from.</p>
 </td>
 </tr>
 </tbody>
@@ -1502,7 +1872,8 @@ ExternalSecretDataRemoteRef
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to extract multiple key/value pairs from one secret</p>
+<p>Used to extract multiple key/value pairs from one secret
+Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.</p>
 </td>
 </tr>
 <tr>
@@ -1516,7 +1887,41 @@ ExternalSecretFind
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to find secrets based on tags or regular expressions</p>
+<p>Used to find secrets based on tags or regular expressions
+Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rewrite</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">
+[]ExternalSecretRewrite
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to rewrite secret Keys after getting them from the secret Provider
+Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sourceRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SourceRef">
+SourceRef
+</a>
+</em>
+</td>
+<td>
+<p>SourceRef points to a store or generator
+which contains secret values ready to use.
+Use this in combination with Extract or Find pull values out of
+a specific SecretStore.
+When sourceRef points to a generator Extract or Find is not supported.
+The generator returns a static map of values</p>
 </td>
 </tr>
 </tbody>
@@ -1602,7 +2007,47 @@ ExternalSecretConversionStrategy
 <p>Used to define a conversion Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>decodingStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecodingStrategy">
+ExternalSecretDecodingStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decoding Strategy</p>
+</td>
+</tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretDecodingStrategy">ExternalSecretDecodingStrategy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Auto&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Base64&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Base64URL&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;None&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretDeletionPolicy">ExternalSecretDeletionPolicy
 (<code>string</code> alias)</p></h3>
@@ -1707,6 +2152,20 @@ ExternalSecretConversionStrategy
 <p>Used to define a conversion Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>decodingStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecodingStrategy">
+ExternalSecretDecodingStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decoding Strategy</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretMetadataPolicy">ExternalSecretMetadataPolicy
@@ -1729,6 +2188,79 @@ ExternalSecretConversionStrategy
 </tr><tr><td><p>&#34;None&#34;</p></td>
 <td></td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewriteRegexp">
+ExternalSecretRewriteRegexp
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to rewrite with regular expressions.
+The resulting key will be the output of a regexp.ReplaceAll operation.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretRewriteRegexp">ExternalSecretRewriteRegexp
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>source</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Used to define the regular expression of a re.Compiler.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>target</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Used to define the target pattern of a ReplaceAll operation.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec
 </h3>
@@ -1758,6 +2290,7 @@ SecretStoreRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -2464,6 +2997,58 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GeneratorRef">GeneratorRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+</p>
+<p>
+<p>GeneratorRef points to a generator custom resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the apiVersion of the generator resource</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Specify the name of the generator resource</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.GenericStore">GenericStore
 </h3>
 <p>
@@ -2556,6 +3141,39 @@ string
 <p>ProjectID specifies a project where secrets are located.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>inheritFromGroups</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>InheritFromGroups specifies whether parent groups should be discovered and checked for secrets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groupIDs</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>GroupIDs specify, which gitlab groups to pull secrets from. Group secrets are read from left to right followed by the project variables.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Environment environment_scope of gitlab CI/CD variables (Please see <a href="https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment">https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment</a> on how to create environments)</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.GitlabSecretRef">GitlabSecretRef
@@ -2615,6 +3233,69 @@ IBMAuthSecretRef
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>containerAuth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.IBMAuthContainerAuth">
+IBMAuthContainerAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.IBMAuthContainerAuth">IBMAuthContainerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.IBMAuth">IBMAuth</a>)
+</p>
+<p>
+<p>IBM Container-based auth with IAM Trusted Profile.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>profile</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>the IBM Trusted Profile</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenLocation</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Location the token is mounted on the pod</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iamEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.IBMAuthSecretRef">IBMAuthSecretRef
@@ -2641,7 +3322,6 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<em>(Optional)</em>
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
@@ -3230,6 +3910,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -3273,7 +3967,7 @@ SecretStoreStatus
 <a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
 </p>
 <p>
-<p>SecretStoreProvider contains the provider-specific configration.</p>
+<p>SecretStoreProvider contains the provider-specific configuration.</p>
 </p>
 <table>
 <thead>
@@ -3507,13 +4201,28 @@ SenhaseguraProvider
 <p>Senhasegura configures this store to sync secrets using senhasegura provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>doppler</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DopplerProvider">
+DopplerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler configures this store to sync secrets using the Doppler provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreRef">SecretStoreRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>)
+<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
 </p>
 <p>
 <p>SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.</p>
@@ -3660,6 +4369,20 @@ int
 <p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreStatus">SecretStoreStatus
@@ -3784,8 +4507,7 @@ Kubernetes meta/v1.Time
 <a href="#external-secrets.io/v1beta1.SenhaseguraProvider">SenhaseguraProvider</a>)
 </p>
 <p>
-<pre><code>SenhaseguraAuth tells the controller how to do auth in senhasegura
-</code></pre>
+<p>SenhaseguraAuth tells the controller how to do auth in senhasegura.</p>
 </p>
 <table>
 <thead>
@@ -3824,8 +4546,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1beta1.SenhaseguraProvider">SenhaseguraProvider</a>)
 </p>
 <p>
-<pre><code>SenhaseguraModuleType enum defines senhasegura target module to fetch secrets
-</code></pre>
+<p>SenhaseguraModuleType enum defines senhasegura target module to fetch secrets</p>
 </p>
 <table>
 <thead>
@@ -3848,8 +4569,7 @@ see: https://senhasegura.com/devops
 <a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<pre><code>SenhaseguraProvider setup a store to sync secrets with senhasegura
-</code></pre>
+<p>SenhaseguraProvider setup a store to sync secrets with senhasegura.</p>
 </p>
 <table>
 <thead>
@@ -3905,6 +4625,55 @@ bool
 </td>
 <td>
 <p>IgnoreSslCertificate defines if SSL certificate must be ignored</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.SourceRef">SourceRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
+</p>
+<p>
+<p>SourceRef allows you to override the source
+from which the secret will be pulled from.
+You can define at maximum one property.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreRef">
+SecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>generatorRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorRef">
+GeneratorRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GeneratorRef points to a generator custom resource in</p>
 </td>
 </tr>
 </tbody>
@@ -3968,6 +4737,43 @@ TemplateRef
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>scope</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateScope">
+TemplateScope
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>target</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateTarget">
+TemplateTarget
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>literal</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -4040,6 +4846,52 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.TemplateScope">TemplateScope
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.TemplateFrom">TemplateFrom</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;KeysAndValues&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Values&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.TemplateTarget">TemplateTarget
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.TemplateFrom">TemplateFrom</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Annotations&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Data&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Labels&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;StringData&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.TokenAuth">TokenAuth
 </h3>
 <p>
@@ -4083,7 +4935,7 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td><p>Error indicates that there is a misconfiguration.</p>
 </td>
 </tr><tr><td><p>0</p></td>
-<td><p>Ready indicates that the client is confgured correctly
+<td><p>Ready indicates that the client is configured correctly
 and can be used.</p>
 </td>
 </tr><tr><td><p>1</p></td>
@@ -4512,7 +5364,8 @@ github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>Optional audiences field that will be used to request a temporary Kubernetes service
 account token for the service account referenced by <code>serviceAccountRef</code>.
-Defaults to a single audience <code>vault</code> it not specified.</p>
+Defaults to a single audience <code>vault</code> it not specified.
+Deprecated: use serviceAccountRef.Audiences instead</p>
 </td>
 </tr>
 <tr>
@@ -4527,6 +5380,7 @@ int64
 <p>Optional expiration time in seconds that will be used to request a temporary
 Kubernetes service account token for the service account referenced by
 <code>serviceAccountRef</code>.
+Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
 </td>
 </tr>

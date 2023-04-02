@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,12 +38,22 @@ var certcontrollerCmd = &cobra.Command{
 	For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var lvl zapcore.Level
-		err := lvl.UnmarshalText([]byte(loglevel))
-		if err != nil {
-			setupLog.Error(err, "error unmarshalling loglevel")
+		var enc zapcore.TimeEncoder
+		lvlErr := lvl.UnmarshalText([]byte(loglevel))
+		if lvlErr != nil {
+			setupLog.Error(lvlErr, "error unmarshalling loglevel")
 			os.Exit(1)
 		}
-		logger := zap.New(zap.Level(lvl))
+		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
+		if encErr != nil {
+			setupLog.Error(encErr, "error unmarshalling timeEncoding")
+			os.Exit(1)
+		}
+		opts := zap.Options{
+			Level:       lvl,
+			TimeEncoder: enc,
+		}
+		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -69,11 +79,7 @@ var certcontrollerCmd = &cobra.Command{
 		}
 		crdctrl := crds.New(mgr.GetClient(), mgr.GetScheme(),
 			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
-			crdRequeueInterval, serviceName, serviceNamespace, secretName, secretNamespace, []string{
-				"externalsecrets.external-secrets.io",
-				"clustersecretstores.external-secrets.io",
-				"secretstores.external-secrets.io",
-			})
+			crdRequeueInterval, serviceName, serviceNamespace, secretName, secretNamespace, crdNames)
 		if err := crdctrl.SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
@@ -120,9 +126,11 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
 	certcontrollerCmd.Flags().StringVar(&secretName, "secret-name", "external-secrets-webhook", "Secret to store certs for webhook")
 	certcontrollerCmd.Flags().StringVar(&secretNamespace, "secret-namespace", "default", "namespace of the secret to store certs")
+	certcontrollerCmd.Flags().StringSliceVar(&crdNames, "crd-names", []string{"externalsecrets.external-secrets.io", "clustersecretstores.external-secrets.io", "secretstores.external-secrets.io"}, "CRD names reconciled by the controller")
 	certcontrollerCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	certcontrollerCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
+	certcontrollerCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	certcontrollerCmd.Flags().DurationVar(&crdRequeueInterval, "crd-requeue-interval", time.Minute*5, "Time duration between reconciling CRDs for new certs")
 }

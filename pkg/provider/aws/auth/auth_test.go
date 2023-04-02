@@ -16,7 +16,6 @@ package auth
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -312,7 +311,7 @@ func TestNewSession(t *testing.T) {
 			expectedSecretKey: "2222",
 		},
 		{
-			name:      "namespace is mandatory when using ClusterStore with SecretKeySelector",
+			name:      "ClusterStore should use credentials from a ExternalSecret namespace (referentAuth)",
 			namespace: esNamespaceKey,
 			store: &esv1beta1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
@@ -338,7 +337,21 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			expectErr: "invalid ClusterSecretStore: missing AWS AccessKeyID Namespace",
+			secrets: []v1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "onesecret",
+						Namespace: esNamespaceKey,
+					},
+					Data: map[string][]byte{
+						"one": []byte("7777"),
+						"two": []byte("4444"),
+					},
+				},
+			},
+			expectProvider:    true,
+			expectedKeyID:     "7777",
+			expectedSecretKey: "4444",
 		},
 		{
 			name:      "jwt auth via cluster secret store",
@@ -352,7 +365,7 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			jwtProvider: func(name, namespace, roleArn, aud, region string) (credentials.Provider, error) {
+			jwtProvider: func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
 				assert.Equal(t, myServiceAccountKey, name)
 				assert.Equal(t, otherNsName, namespace)
 				assert.Equal(t, "my-sa-role", roleArn)
@@ -423,7 +436,7 @@ func testRow(t *testing.T, row TestSessionRow) {
 		assert.Nil(t, err)
 	}
 	for k, v := range row.env {
-		os.Setenv(k, v)
+		t.Setenv(k, v)
 	}
 	if row.sa != nil {
 		err := kc.Create(context.Background(), row.sa)
@@ -436,11 +449,6 @@ func testRow(t *testing.T, row TestSessionRow) {
 		},
 	})
 	assert.Nil(t, err)
-	defer func() {
-		for k := range row.env {
-			os.Unsetenv(k)
-		}
-	}()
 	s, err := New(context.Background(), row.store, kc, row.namespace, row.stsProvider, row.jwtProvider)
 	if !ErrorContains(err, row.expectErr) {
 		t.Errorf("expected error %s but found %s", row.expectErr, err.Error())
@@ -460,10 +468,8 @@ func testRow(t *testing.T, row TestSessionRow) {
 
 func TestSMEnvCredentials(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
-	os.Setenv("AWS_ACCESS_KEY_ID", "2222")
-	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
-	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
+	t.Setenv("AWS_ACCESS_KEY_ID", "2222")
 	s, err := New(context.Background(), &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
@@ -484,32 +490,59 @@ func TestSMAssumeRole(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	sts := &fakesess.AssumeRoler{
 		AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
-			// make sure the correct role is passed in
-			assert.Equal(t, *input.RoleArn, "my-awesome-role")
-			return &sts.AssumeRoleOutput{
-				AssumedRoleUser: &sts.AssumedRoleUser{
-					Arn:           aws.String("1123132"),
-					AssumedRoleId: aws.String("xxxxx"),
-				},
-				Credentials: &sts.Credentials{
-					AccessKeyId:     aws.String("3333"),
-					SecretAccessKey: aws.String("4444"),
-					Expiration:      aws.Time(time.Now().Add(time.Hour)),
-					SessionToken:    aws.String("6666"),
-				},
-			}, nil
+			if *input.RoleArn == "chained-role-1" {
+				return &sts.AssumeRoleOutput{
+					AssumedRoleUser: &sts.AssumedRoleUser{
+						Arn:           aws.String("1111111"),
+						AssumedRoleId: aws.String("yyyyy1"),
+					},
+					Credentials: &sts.Credentials{
+						AccessKeyId:     aws.String("77771"),
+						SecretAccessKey: aws.String("88881"),
+						Expiration:      aws.Time(time.Now().Add(time.Hour)),
+						SessionToken:    aws.String("99991"),
+					},
+				}, nil
+			} else if *input.RoleArn == "chained-role-2" {
+				return &sts.AssumeRoleOutput{
+					AssumedRoleUser: &sts.AssumedRoleUser{
+						Arn:           aws.String("2222222"),
+						AssumedRoleId: aws.String("yyyyy2"),
+					},
+					Credentials: &sts.Credentials{
+						AccessKeyId:     aws.String("77772"),
+						SecretAccessKey: aws.String("88882"),
+						Expiration:      aws.Time(time.Now().Add(time.Hour)),
+						SessionToken:    aws.String("99992"),
+					},
+				}, nil
+			} else {
+				// make sure the correct role is passed in
+				assert.Equal(t, *input.RoleArn, "my-awesome-role")
+				return &sts.AssumeRoleOutput{
+					AssumedRoleUser: &sts.AssumedRoleUser{
+						Arn:           aws.String("1123132"),
+						AssumedRoleId: aws.String("xxxxx"),
+					},
+					Credentials: &sts.Credentials{
+						AccessKeyId:     aws.String("3333"),
+						SecretAccessKey: aws.String("4444"),
+						Expiration:      aws.Time(time.Now().Add(time.Hour)),
+						SessionToken:    aws.String("6666"),
+					},
+				}, nil
+			}
 		},
 	}
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
-	os.Setenv("AWS_ACCESS_KEY_ID", "2222")
-	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
-	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
+	t.Setenv("AWS_ACCESS_KEY_ID", "2222")
 	s, err := New(context.Background(), &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				// do assume role!
 				AWS: &esv1beta1.AWSProvider{
-					Role: "my-awesome-role",
+					Role:            "my-awesome-role",
+					AdditionalRoles: []string{"chained-role-1", "chained-role-2"},
 				},
 			},
 		},
@@ -517,8 +550,19 @@ func TestSMAssumeRole(t *testing.T) {
 		// check if the correct temporary credentials were used
 		creds, err := se.Config.Credentials.Get()
 		assert.Nil(t, err)
-		assert.Equal(t, creds.AccessKeyID, "2222")
-		assert.Equal(t, creds.SecretAccessKey, "1111")
+		if creds.SessionToken == "" {
+			// called with credentials from envvars
+			assert.Equal(t, creds.AccessKeyID, "2222")
+			assert.Equal(t, creds.SecretAccessKey, "1111")
+		} else if creds.SessionToken == "99991" {
+			// called with chained role 1's credentials
+			assert.Equal(t, creds.AccessKeyID, "77771")
+			assert.Equal(t, creds.SecretAccessKey, "88881")
+		} else {
+			// called with chained role 2's credentials
+			assert.Equal(t, creds.AccessKeyID, "77772")
+			assert.Equal(t, creds.SecretAccessKey, "88882")
+		}
 		return sts
 	}, nil)
 	assert.Nil(t, err)

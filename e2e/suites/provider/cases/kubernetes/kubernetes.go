@@ -21,9 +21,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/e2e/framework"
-	"github.com/external-secrets/external-secrets/e2e/suites/provider/cases/common"
 )
 
 const referentAuth = "with referent auth"
@@ -41,6 +41,7 @@ var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
 		Entry(common.DataPropertyDockerconfigJSON(f)),
 		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry(common.JSONDataFromSync(f)),
+		Entry(common.JSONDataFromRewrite(f)),
 		Entry(FindByTag(f)),
 		Entry(FindByName(f)),
 

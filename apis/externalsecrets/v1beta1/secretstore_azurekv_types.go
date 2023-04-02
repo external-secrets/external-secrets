@@ -27,11 +27,25 @@ const (
 	// Using service principal to authenticate, which needs a tenantId, a clientId and a clientSecret.
 	AzureServicePrincipal AzureAuthType = "ServicePrincipal"
 
-	// Using Managed Identity to authenticate. Used with aad-pod-identity installed in the clister.
+	// Using Managed Identity to authenticate. Used with aad-pod-identity installed in the cluster.
 	AzureManagedIdentity AzureAuthType = "ManagedIdentity"
 
 	// Using Workload Identity service accounts to authenticate.
 	AzureWorkloadIdentity AzureAuthType = "WorkloadIdentity"
+)
+
+// AzureEnvironmentType specifies the Azure cloud environment endpoints to use for
+// connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+// The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
+// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+// +kubebuilder:validation:Enum=PublicCloud;USGovernmentCloud;ChinaCloud;GermanCloud
+type AzureEnvironmentType string
+
+const (
+	AzureEnvironmentPublicCloud       AzureEnvironmentType = "PublicCloud"
+	AzureEnvironmentUSGovernmentCloud AzureEnvironmentType = "USGovernmentCloud"
+	AzureEnvironmentChinaCloud        AzureEnvironmentType = "ChinaCloud"
+	AzureEnvironmentGermanCloud       AzureEnvironmentType = "GermanCloud"
 )
 
 // Configures an store to sync secrets using Azure KV.
@@ -50,6 +64,13 @@ type AzureKVProvider struct {
 	// TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
 	// +optional
 	TenantID *string `json:"tenantId,omitempty"`
+
+	// EnvironmentType specifies the Azure cloud environment endpoints to use for
+	// connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+	// The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
+	// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+	// +kubebuilder:default=PublicCloud
+	EnvironmentType AzureEnvironmentType `json:"environmentType,omitempty"`
 
 	// Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
 	// +optional

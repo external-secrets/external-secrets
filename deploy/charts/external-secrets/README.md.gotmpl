@@ -1,4 +1,3 @@
-{{- $valuesYAML := "https://github.com/external-secrets/external-secrets/blob/master/deploy/charts/external-secrets/values.yaml" -}}
 {{- $chartRepo := "https://charts.external-secrets.io" -}}
 {{- $org := "external-secrets" -}}
 # External Secrets
@@ -14,7 +13,7 @@
 ## TL;DR
 ```bash
 helm repo add {{ $org }} {{ $chartRepo }}
-helm install {{ $org }}/{{ template "chart.name" . }}
+helm install external-secrets {{ $org }}/{{ template "chart.name" . }}
 ```
 
 ## Installing the Chart

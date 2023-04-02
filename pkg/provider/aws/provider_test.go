@@ -16,11 +16,15 @@ package aws
 
 import (
 	"context"
-	"os"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -38,10 +42,8 @@ func TestProvider(t *testing.T) {
 	// inject fake static credentials because we test
 	// if we are able to get credentials when constructing the client
 	// see #415
-	os.Setenv("AWS_ACCESS_KEY_ID", "1234")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "1234")
-	defer os.Unsetenv("AWS_ACCESS_KEY_ID")
-	defer os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+	t.Setenv("AWS_ACCESS_KEY_ID", "1234")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "1234")
 
 	tbl := []struct {
 		test    string
@@ -202,7 +204,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										AccessKeyID: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},
@@ -225,7 +227,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										SecretAccessKey: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},
@@ -236,8 +238,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid static creds auth / SecretAccessKey missing namespace",
-			wantErr: true,
+			name:    "referentAuth static creds / SecretAccessKey without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
@@ -261,8 +263,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid static creds auth / AccessKeyID missing namespace",
-			wantErr: true,
+			name:    "referentAuth static creds / AccessKeyID without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
@@ -286,8 +288,8 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid jwt auth: missing sa selector namespace",
-			wantErr: true,
+			name:    "referentAuth jwt: sa selector without namespace",
+			wantErr: false,
 			args: args{
 				store: &esv1beta1.ClusterSecretStore{
 					TypeMeta: v1.TypeMeta{
@@ -323,7 +325,7 @@ func TestValidateStore(t *testing.T) {
 									JWTAuth: &esv1beta1.AWSJWTAuth{
 										ServiceAccountRef: &esmeta.ServiceAccountSelector{
 											Name:      "foobar",
-											Namespace: pointer.StringPtr("unacceptable"),
+											Namespace: pointer.String("unacceptable"),
 										},
 									},
 								},
@@ -342,4 +344,64 @@ func TestValidateStore(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidRetryInput(t *testing.T) {
+	invalid := "Invalid"
+	spec := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				AWS: &esv1beta1.AWSProvider{
+					Service: "ParameterStore",
+					Region:  validRegion,
+					Auth: esv1beta1.AWSAuth{
+						SecretRef: &esv1beta1.AWSAuthSecretRef{
+							SecretAccessKey: esmeta.SecretKeySelector{
+								Name: "creds",
+								Key:  "sak",
+							},
+							AccessKeyID: esmeta.SecretKeySelector{
+								Name: "creds",
+								Key:  "ak",
+							},
+						},
+					},
+				},
+			},
+			RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+				RetryInterval: &invalid,
+			},
+		},
+	}
+
+	expected := fmt.Sprintf("unable to initialize aws provider: time: invalid duration %q", invalid)
+	ctx := context.TODO()
+
+	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "creds",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"sak": []byte("OK"),
+			"ak":  []byte("OK"),
+		},
+	}).Build()
+	provider := func(*session.Session) stsiface.STSAPI { return nil }
+
+	_, err := newClient(ctx, spec, kube, "default", provider)
+
+	if !ErrorContains(err, expected) {
+		t.Errorf("CheckValidRetryInput unexpected error: %s, expected: '%s'", err.Error(), expected)
+	}
+}
+
+func ErrorContains(out error, want string) bool {
+	if out == nil {
+		return want == ""
+	}
+	if want == "" {
+		return false
+	}
+	return strings.Contains(out.Error(), want)
 }

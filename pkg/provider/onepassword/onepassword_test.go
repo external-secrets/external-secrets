@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -172,7 +172,7 @@ func TestFindItem(t *testing.T) {
 				{
 					checkNote:    "two vaults",
 					findItemName: myItem,
-					expectedErr:  fmt.Errorf(errExpectedOneVault, fmt.Errorf("'my-vault', got 2")),
+					expectedErr:  fmt.Errorf("key not found in 1Password Vaults: my-item in: map[my-shared-vault:2 my-vault:1]"),
 				},
 			},
 		},
@@ -421,7 +421,7 @@ func TestValidateStore(t *testing.T) {
 								SecretRef: &esv1beta1.OnePasswordAuthSecretRef{
 									ConnectToken: esmeta.SecretKeySelector{
 										Name:      mySecret,
-										Namespace: pointer.StringPtr("my-namespace"),
+										Namespace: pointer.String("my-namespace"),
 										Key:       token,
 									},
 								},
@@ -478,7 +478,7 @@ func TestValidateStore(t *testing.T) {
 								SecretRef: &esv1beta1.OnePasswordAuthSecretRef{
 									ConnectToken: esmeta.SecretKeySelector{
 										Name:      mySecret,
-										Namespace: pointer.StringPtr("my-namespace"),
+										Namespace: pointer.String("my-namespace"),
 										Key:       token,
 									},
 								},
@@ -654,9 +654,10 @@ func TestValidateStore(t *testing.T) {
 }
 
 // most functionality is tested in TestFindItem
-//   here we just check that an empty Property defaults to "password",
-//   files are loaded, and
-//   the data or errors are properly returned
+//
+//	here we just check that an empty Property defaults to "password",
+//	files are loaded, and
+//	the data or errors are properly returned
 func TestGetSecret(t *testing.T) {
 	type check struct {
 		checkNote     string
@@ -814,8 +815,9 @@ func TestGetSecret(t *testing.T) {
 }
 
 // most functionality is tested in TestFindItem. here we just check:
-//   all keys are fetched and the map is compiled correctly,
-//   files are loaded, and the data or errors are properly returned.
+//
+//	all keys are fetched and the map is compiled correctly,
+//	files are loaded, and the data or errors are properly returned.
 func TestGetSecretMap(t *testing.T) {
 	type check struct {
 		checkNote   string
@@ -1020,7 +1022,7 @@ func TestGetAllSecrets(t *testing.T) {
 				{
 					checkNote: "find some with path only",
 					ref: esv1beta1.ExternalSecretFind{
-						Path: pointer.StringPtr(myItem),
+						Path: pointer.String(myItem),
 					},
 					expectedMap: map[string][]byte{
 						key1: []byte(value1),
@@ -1049,7 +1051,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1beta1.FindName{
 							RegExp: "key*",
 						},
-						Path: pointer.StringPtr(myOtherItem),
+						Path: pointer.String(myOtherItem),
 					},
 					expectedMap: map[string][]byte{
 						key3: []byte(value3),
@@ -1073,7 +1075,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1beta1.FindName{
 							RegExp: "key*",
 						},
-						Path: pointer.StringPtr("no-exist"),
+						Path: pointer.String("no-exist"),
 					},
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,
@@ -1183,7 +1185,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1beta1.FindName{
 							RegExp: "^my-*",
 						},
-						Path: pointer.StringPtr(myOtherItem),
+						Path: pointer.String(myOtherItem),
 					},
 					expectedMap: map[string][]byte{
 						myOtherFilePNG: []byte(myOtherContents),
@@ -1206,7 +1208,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1beta1.FindName{
 							RegExp: "^my-*",
 						},
-						Path: pointer.StringPtr("no-exist"),
+						Path: pointer.String("no-exist"),
 					},
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,

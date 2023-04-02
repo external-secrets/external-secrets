@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -244,11 +244,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k := &ProviderKubernetes{
-				Client:       tt.fields.Client,
-				ReviewClient: tt.fields.ReviewClient,
-				Namespace:    tt.fields.Namespace,
-			}
+			k := &Provider{}
 			if err := k.ValidateStore(tt.store); (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -273,6 +269,17 @@ func TestValidate(t *testing.T) {
 				{
 					Verbs:     []string{"update"},
 					Resources: []string{"secrets"},
+				},
+			},
+		},
+	}
+	successWildcardReview := authv1.SelfSubjectRulesReview{
+		Status: authv1.SubjectRulesReviewStatus{
+			ResourceRules: []authv1.ResourceRule{
+				{
+					Verbs:     []string{"*"},
+					Resources: []string{"*"},
+					APIGroups: []string{"*"},
 				},
 			},
 		},
@@ -312,6 +319,7 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				Namespace:    "default",
 				ReviewClient: fakeReviewClient{},
+				store:        &esv1beta1.KubernetesProvider{},
 			},
 			want:    esv1beta1.ValidationResultUnknown,
 			wantErr: true,
@@ -321,6 +329,7 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				Namespace:    "default",
 				ReviewClient: fakeReviewClient{authReview: &failReview},
+				store:        &esv1beta1.KubernetesProvider{},
 			},
 			want:    esv1beta1.ValidationResultError,
 			wantErr: true,
@@ -330,6 +339,17 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				Namespace:    "default",
 				ReviewClient: fakeReviewClient{authReview: &successReview},
+				store:        &esv1beta1.KubernetesProvider{},
+			},
+			want:    esv1beta1.ValidationResultReady,
+			wantErr: false,
+		},
+		{
+			name: "allowed results in no error",
+			fields: fields{
+				Namespace:    "default",
+				ReviewClient: fakeReviewClient{authReview: &successWildcardReview},
+				store:        &esv1beta1.KubernetesProvider{},
 			},
 			want:    esv1beta1.ValidationResultReady,
 			wantErr: false,
@@ -337,12 +357,12 @@ func TestValidate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k := &ProviderKubernetes{
-				Client:       tt.fields.Client,
-				ReviewClient: tt.fields.ReviewClient,
-				Namespace:    tt.fields.Namespace,
-				store:        tt.fields.store,
-				storeKind:    tt.fields.storeKind,
+			k := &Client{
+				userSecretClient: tt.fields.Client,
+				userReviewClient: tt.fields.ReviewClient,
+				namespace:        tt.fields.Namespace,
+				store:            tt.fields.store,
+				storeKind:        tt.fields.storeKind,
 			}
 			got, err := k.Validate()
 			if (err != nil) != tt.wantErr {

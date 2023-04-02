@@ -2,7 +2,9 @@
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -72,8 +74,8 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 
 func makeValidAPIInput() *secrets.GetSecretBundleByNameRequest {
 	return &secrets.GetSecretBundleByNameRequest{
-		SecretName: utilpointer.StringPtr("test-secret"),
-		VaultId:    utilpointer.StringPtr("test-vault"),
+		SecretName: utilpointer.String("test-secret"),
+		VaultId:    utilpointer.String("test-vault"),
 	}
 }
 
@@ -111,10 +113,10 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	setSecretString := func(smtc *vaultTestCase) {
 		smtc.apiOutput = &secrets.GetSecretBundleByNameResponse{
 			SecretBundle: secrets.SecretBundle{
-				SecretId:      utilpointer.StringPtr("test-id"),
+				SecretId:      utilpointer.String("test-id"),
 				VersionNumber: utilpointer.Int64(1),
 				SecretBundleContent: secrets.Base64SecretBundleContentDetails{
-					Content: utilpointer.StringPtr(base64.StdEncoding.EncodeToString([]byte(secretValue))),
+					Content: utilpointer.String(base64.StdEncoding.EncodeToString([]byte(secretValue))),
 				},
 			},
 		}
@@ -145,7 +147,7 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: utilpointer.StringPtr(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
+			Content: utilpointer.String(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
 		}
 		smtc.expectedData["foo"] = []byte("bar")
 	}
@@ -153,7 +155,7 @@ func TestGetSecretMap(t *testing.T) {
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: utilpointer.StringPtr(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
+			Content: utilpointer.String(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
 		}
 		smtc.expectError = "unable to unmarshal secret"
 	}

@@ -68,6 +68,9 @@ func GetProviderByName(name string) (Provider, bool) {
 
 // GetProvider returns the provider from the generic store.
 func GetProvider(s GenericStore) (Provider, error) {
+	if s == nil {
+		return nil, nil
+	}
 	spec := s.GetSpec()
 	if spec == nil {
 		return nil, fmt.Errorf("no spec found in %#v", s)

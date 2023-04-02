@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -236,27 +236,27 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 		Webhooks: []admissionregistration.ValidatingWebhook{
 			{
 				Name:                    "secretstores.external-secrets.io",
-				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.StringPtr(string(admissionregistration.SideEffectClassNone))),
+				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.String(string(admissionregistration.SideEffectClassNone))),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionregistration.WebhookClientConfig{
 					CABundle: []byte("Cg=="),
 					Service: &admissionregistration.ServiceReference{
 						Name:      "noop",
 						Namespace: "noop",
-						Path:      pointer.StringPtr("/validate-secretstore"),
+						Path:      pointer.String("/validate-secretstore"),
 					},
 				},
 			},
 			{
 				Name:                    "clustersecretstores.external-secrets.io",
-				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.StringPtr(string(admissionregistration.SideEffectClassNone))),
+				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.String(string(admissionregistration.SideEffectClassNone))),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionregistration.WebhookClientConfig{
 					CABundle: []byte("Cg=="),
 					Service: &admissionregistration.ServiceReference{
 						Name:      "noop",
 						Namespace: "noop",
-						Path:      pointer.StringPtr("/validate-clustersecretstore"),
+						Path:      pointer.String("/validate-clustersecretstore"),
 					},
 				},
 			},

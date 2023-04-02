@@ -23,10 +23,11 @@ import (
 )
 
 const (
-	ExternalSecretSubsystem          = "externalsecret"
-	SyncCallsKey                     = "sync_calls_total"
-	SyncCallsErrorKey                = "sync_calls_error"
-	externalSecretStatusConditionKey = "status_condition"
+	ExternalSecretSubsystem            = "externalsecret"
+	SyncCallsKey                       = "sync_calls_total"
+	SyncCallsErrorKey                  = "sync_calls_error"
+	externalSecretStatusConditionKey   = "status_condition"
+	externalSecretReconcileDurationKey = "reconcile_duration"
 )
 
 var (
@@ -47,6 +48,12 @@ var (
 		Name:      externalSecretStatusConditionKey,
 		Help:      "The status condition of a specific External Secret",
 	}, []string{"name", "namespace", "condition", "status"})
+
+	externalSecretReconcileDuration = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: ExternalSecretSubsystem,
+		Name:      externalSecretReconcileDurationKey,
+		Help:      "The duration time to reconcile the External Secret",
+	}, []string{"name", "namespace"})
 )
 
 // updateExternalSecretCondition updates the ExternalSecret conditions.
@@ -116,5 +123,5 @@ func updateExternalSecretCondition(es *esv1beta1.ExternalSecret, condition *esv1
 }
 
 func init() {
-	metrics.Registry.MustRegister(syncCallsTotal, syncCallsError, externalSecretCondition)
+	metrics.Registry.MustRegister(syncCallsTotal, syncCallsError, externalSecretCondition, externalSecretReconcileDuration)
 }

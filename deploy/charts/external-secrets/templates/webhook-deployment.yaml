@@ -12,6 +12,7 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.webhook.replicaCount }}
+  revisionHistoryLimit: {{ .Values.webhook.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
@@ -33,6 +34,7 @@ spec:
       {{- end }}
       hostNetwork: {{ .Values.webhook.hostNetwork}}
       serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.webhook.serviceAccount.automount }}
       {{- with .Values.webhook.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -51,6 +53,11 @@ spec:
           - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
           - --cert-dir={{ .Values.webhook.certDir }}
           - --check-interval={{ .Values.webhook.certCheckInterval }}
+          - --metrics-addr=:{{ .Values.webhook.prometheus.service.port }}
+          - --healthz-addr={{ .Values.webhook.readinessProbe.address }}:{{ .Values.webhook.readinessProbe.port }}
+          {{- if .Values.webhook.lookaheadInterval }}
+          - --lookahead-interval={{ .Values.webhook.lookaheadInterval }}
+          {{- end }}
           {{- range $key, $value := .Values.webhook.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}
@@ -67,7 +74,7 @@ spec:
               name: webhook
           readinessProbe:
             httpGet:
-              port: 8081
+              port: {{ .Values.webhook.readinessProbe.port }}
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
@@ -80,16 +87,16 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-          - name: certs
-            mountPath: {{ .Values.webhook.certDir }}
-            readOnly: true
+            - name: certs
+              mountPath: {{ .Values.webhook.certDir }}
+              readOnly: true
           {{- if .Values.webhook.extraVolumeMounts }}
           {{- toYaml .Values.webhook.extraVolumeMounts | nindent 12 }}
           {{- end }}
       volumes:
-      - name: certs
-        secret:
-          secretName: {{ include "external-secrets.fullname" . }}-webhook
+        - name: certs
+          secret:
+            secretName: {{ include "external-secrets.fullname" . }}-webhook
       {{- if .Values.webhook.extraVolumes }}
       {{- toYaml .Values.webhook.extraVolumes | nindent 8 }}
       {{- end }}

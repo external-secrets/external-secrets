@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,7 +26,28 @@ var _ esv1beta1.SecretsClient = &yandexCloudSecretsClient{}
 // Implementation of v1beta1.SecretsClient.
 type yandexCloudSecretsClient struct {
 	secretGetter SecretGetter
+	secretSetter SecretSetter
 	iamToken     string
+}
+
+func (c *yandexCloudSecretsClient) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	return c.secretGetter.GetSecret(ctx, c.iamToken, ref.Key, ref.Version, ref.Property)
+}
+
+func (c *yandexCloudSecretsClient) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (c *yandexCloudSecretsClient) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (c *yandexCloudSecretsClient) Validate() (esv1beta1.ValidationResult, error) {
+	return esv1beta1.ValidationResultReady, nil
+}
+
+func (c *yandexCloudSecretsClient) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	return c.secretGetter.GetSecretMap(ctx, c.iamToken, ref.Key, ref.Version)
 }
 
 func (c *yandexCloudSecretsClient) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -34,18 +55,6 @@ func (c *yandexCloudSecretsClient) GetAllSecrets(ctx context.Context, ref esv1be
 	return nil, fmt.Errorf("GetAllSecrets not supported")
 }
 
-func (c *yandexCloudSecretsClient) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return c.secretGetter.GetSecret(ctx, c.iamToken, ref.Key, ref.Version, ref.Property)
-}
-
-func (c *yandexCloudSecretsClient) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return c.secretGetter.GetSecretMap(ctx, c.iamToken, ref.Key, ref.Version)
-}
-
 func (c *yandexCloudSecretsClient) Close(ctx context.Context) error {
 	return nil
-}
-
-func (c *yandexCloudSecretsClient) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
 }

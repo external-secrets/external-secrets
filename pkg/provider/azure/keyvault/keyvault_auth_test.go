@@ -32,7 +32,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	awsauthfake "github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake"
+	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 )
 
 var vaultURL = "https://local.vault.url"
@@ -101,8 +101,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 		name       string
 		provider   *esv1beta1.AzureKVProvider
 		k8sObjects []client.Object
-		prep       func()
-		cleanup    func()
+		prep       func(*testing.T)
 		expErr     string
 	}
 
@@ -120,30 +119,20 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 		{
 			name:     "missing workload identity token file",
 			provider: &esv1beta1.AzureKVProvider{},
-			prep: func() {
-				os.Setenv("AZURE_CLIENT_ID", clientID)
-				os.Setenv("AZURE_TENANT_ID", tenantID)
-				os.Setenv("AZURE_FEDERATED_TOKEN_FILE", "invalid file")
-			},
-			cleanup: func() {
-				os.Unsetenv("AZURE_CLIENT_ID")
-				os.Unsetenv("AZURE_TENANT_ID")
-				os.Unsetenv("AZURE_FEDERATED_TOKEN_FILE")
+			prep: func(t *testing.T) {
+				t.Setenv("AZURE_CLIENT_ID", clientID)
+				t.Setenv("AZURE_TENANT_ID", tenantID)
+				t.Setenv("AZURE_FEDERATED_TOKEN_FILE", "invalid file")
 			},
 			expErr: "unable to read token file invalid file: open invalid file: no such file or directory",
 		},
 		{
 			name:     "correct workload identity",
 			provider: &esv1beta1.AzureKVProvider{},
-			prep: func() {
-				os.Setenv("AZURE_CLIENT_ID", clientID)
-				os.Setenv("AZURE_TENANT_ID", tenantID)
-				os.Setenv("AZURE_FEDERATED_TOKEN_FILE", tokenFile)
-			},
-			cleanup: func() {
-				os.Unsetenv("AZURE_CLIENT_ID")
-				os.Unsetenv("AZURE_TENANT_ID")
-				os.Unsetenv("AZURE_FEDERATED_TOKEN_FILE")
+			prep: func(t *testing.T) {
+				t.Setenv("AZURE_CLIENT_ID", clientID)
+				t.Setenv("AZURE_TENANT_ID", tenantID)
+				t.Setenv("AZURE_FEDERATED_TOKEN_FILE", tokenFile)
 			},
 		},
 		{
@@ -169,8 +158,8 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 						Name:      saName,
 						Namespace: namespace,
 						Annotations: map[string]string{
-							annotationClientID: clientID,
-							annotationTenantID: tenantID,
+							AnnotationClientID: clientID,
+							AnnotationTenantID: tenantID,
 						},
 					},
 				},
@@ -190,20 +179,17 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 				store:      &store,
 				namespace:  namespace,
 				crClient:   k8sClient,
-				kubeClient: awsauthfake.NewCreateTokenMock(saToken),
+				kubeClient: utilfake.NewCreateTokenMock().WithToken(saToken),
 				provider:   store.Spec.Provider.AzureKV,
 			}
-			tokenProvider := func(ctx context.Context, token, clientID, tenantID string) (adal.OAuthTokenProvider, error) {
+			tokenProvider := func(ctx context.Context, token, clientID, tenantID, aadEndpoint, kvResource string) (adal.OAuthTokenProvider, error) {
 				tassert.Equal(t, token, saToken)
 				tassert.Equal(t, clientID, clientID)
 				tassert.Equal(t, tenantID, tenantID)
 				return &tokenProvider{accessToken: azAccessToken}, nil
 			}
 			if row.prep != nil {
-				row.prep()
-			}
-			if row.cleanup != nil {
-				defer row.cleanup()
+				row.prep(t)
 			}
 			authorizer, err := az.authorizerForWorkloadIdentity(context.Background(), tokenProvider)
 			if row.expErr == "" {
@@ -242,7 +228,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.StringPtr("mytenant"),
+				TenantID: pointer.String("mytenant"),
 			},
 		},
 		{
@@ -252,7 +238,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType:      &authType,
 				VaultURL:      &vaultURL,
-				TenantID:      pointer.StringPtr("mytenant"),
+				TenantID:      pointer.String("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{},
 			},
 		},
@@ -263,7 +249,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.StringPtr("mytenant"),
+				TenantID: pointer.String("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
 					ClientSecret: &v1.SecretKeySelector{Name: "password"},
 					ClientID:     &v1.SecretKeySelector{Name: "password"},
@@ -282,10 +268,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.StringPtr("mytenant"),
+				TenantID: pointer.String("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.StringPtr("foo")},
-					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.StringPtr("foo")},
+					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo")},
+					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo")},
 				},
 			},
 		},
@@ -310,10 +296,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.StringPtr("mytenant"),
+				TenantID: pointer.String("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.StringPtr("foo"), Key: "secret"},
-					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.StringPtr("foo"), Key: "id"},
+					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo"), Key: "secret"},
+					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo"), Key: "id"},
 				},
 			},
 		},
