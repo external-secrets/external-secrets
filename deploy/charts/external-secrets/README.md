@@ -177,6 +177,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | webhook.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
 | webhook.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
+| webhook.serviceMonitor.namespace | string | default - Namespace where you are installing this helm chart | Specifies in which namespace you want create ServiceMonitors for collecting Prometheus metrics |
 | webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | webhook.tolerations | list | `[]` |  |
