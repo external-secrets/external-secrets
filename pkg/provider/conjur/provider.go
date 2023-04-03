@@ -1,3 +1,4 @@
+// Package conjur provides a Conjur provider for External Secrets.
 /*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,14 +32,17 @@ var (
 	errMissingConjurProvider = fmt.Errorf("missing store provider Conjur")
 )
 
+// Provider is a provider for Conjur.
 type Provider struct {
 	ConjurClient Client
 }
 
+// Client is an interface for the Conjur client.
 type Client interface {
 	RetrieveSecret(secret string) (result []byte, err error)
 }
 
+// NewClient creates a new Conjur client.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	cfg, err := getProvider(store)
 	if err != nil {
@@ -47,6 +51,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	config := conjurapi.Config{
 		Account:      *cfg.ServiceAccount,
 		ApplianceURL: *cfg.ServiceURL,
+		SSLCert:      *cfg.ServiceCertificate,
 	}
 	conjur, err := conjurapi.NewClientFromKey(config,
 		authn.LoginPair{
@@ -73,7 +78,8 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.ConjurProvider, error
 	return spc.Provider.Conjur, nil
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets returns all secrets from the provider.
+// NOT IMPLEMENTED
 func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
@@ -112,14 +118,17 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	return secretData, nil
 }
 
+// Close closes the provider.
 func (p *Provider) Close(ctx context.Context) error {
 	return nil
 }
 
+// Validate validates the provider.
 func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
+// ValidateStore validates the store.
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	conjurSpec := storeSpec.Provider.Conjur
@@ -137,7 +146,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	}
 
 	if *conjurSpec.ServiceAccount == "" {
-		return fmt.Errorf("SeviceAccount cannot be empty")
+		return fmt.Errorf("ServiceAccount cannot be empty")
 	}
 
 	return nil

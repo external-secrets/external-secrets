@@ -14,10 +14,11 @@ limitations under the License.
 
 package v1beta1
 
-// // Configures an store to sync secrets using a Conjur backend.
+// ConjurProvider configures an store to sync secrets using a Conjur backend.
 type ConjurProvider struct {
-	ServiceURL     *string `json:"serviceUrl,omitempty"`
-	ServiceUser    *string `json:"serviceUser,omitempty"`
-	ServiceAPIKey  *string `json:"serviceApiKey,omitempty"`
-	ServiceAccount *string `json:"serviceAccount,omitempty"`
+	ServiceURL         *string `json:"serviceUrl,omitempty"`
+	ServiceUser        *string `json:"serviceUser,omitempty"`
+	ServiceAPIKey      *string `json:"serviceApiKey,omitempty"`
+	ServiceAccount     *string `json:"serviceAccount,omitempty"`
+	ServiceCertificate *string `json:"serviceCertificate,omitempty"`
 }
