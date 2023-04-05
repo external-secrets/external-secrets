@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmetrics "github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 )
 
 // NewExternalSecretCondition a set of default options for creating an External Secret Condition.
@@ -49,7 +50,7 @@ func SetExternalSecretCondition(es *esv1beta1.ExternalSecret, condition esv1beta
 
 	if currentCond != nil && currentCond.Status == condition.Status &&
 		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
-		updateExternalSecretCondition(es, &condition, 1.0)
+		esmetrics.UpdateExternalSecretCondition(es, &condition, 1.0)
 		return
 	}
 
@@ -61,10 +62,10 @@ func SetExternalSecretCondition(es *esv1beta1.ExternalSecret, condition esv1beta
 	es.Status.Conditions = append(filterOutCondition(es.Status.Conditions, condition.Type), condition)
 
 	if currentCond != nil {
-		updateExternalSecretCondition(es, currentCond, 0.0)
+		esmetrics.UpdateExternalSecretCondition(es, currentCond, 0.0)
 	}
 
-	updateExternalSecretCondition(es, &condition, 1.0)
+	esmetrics.UpdateExternalSecretCondition(es, &condition, 1.0)
 }
 
 // filterOutCondition returns an empty set of conditions with the provided type.

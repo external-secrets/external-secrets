@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +37,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	// Metrics.
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	// Loading registered providers.
@@ -95,27 +96,46 @@ type Reconciler struct {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
-	resourceLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
+	resourceLabels := esmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
 	start := time.Now()
-	defer externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
-	defer syncCallsTotal.With(resourceLabels).Inc()
+
+	externalSecretReconcileDuration := esmetrics.GetGaugeVec(esmetrics.ExternalSecretReconcileDurationKey)
+	syncCallsTotal := esmetrics.GetCounterVec(esmetrics.SyncCallsKey)
+	syncCallsError := esmetrics.GetCounterVec(esmetrics.SyncCallsErrorKey)
 
 	var externalSecret esv1beta1.ExternalSecret
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
-	if apierrors.IsNotFound(err) {
-		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretDeleted, v1.ConditionFalse, esv1beta1.ConditionReasonSecretDeleted, "Secret was deleted")
-		SetExternalSecretCondition(&esv1beta1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      req.Name,
-				Namespace: req.Namespace,
-			},
-		}, *conditionSynced)
-		return ctrl.Result{}, nil
-	} else if err != nil {
+
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretDeleted, v1.ConditionFalse, esv1beta1.ConditionReasonSecretDeleted, "Secret was deleted")
+			SetExternalSecretCondition(&esv1beta1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      req.Name,
+					Namespace: req.Namespace,
+				},
+			}, *conditionSynced)
+
+			externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
+			syncCallsTotal.With(resourceLabels).Inc()
+
+			return ctrl.Result{}, nil
+		}
+
 		log.Error(err, errGetES)
 		syncCallsError.With(resourceLabels).Inc()
+
+		externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
+		syncCallsTotal.With(resourceLabels).Inc()
+
 		return ctrl.Result{}, nil
 	}
+
+	// if extended metrics is enabled, refine the time series vector
+	resourceLabels = esmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
+
+	defer externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
+	defer syncCallsTotal.With(resourceLabels).Inc()
 
 	if shouldSkipClusterSecretStore(r, externalSecret) {
 		log.Info("skipping cluster secret store as it is disabled")
