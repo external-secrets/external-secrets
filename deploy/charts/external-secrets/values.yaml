@@ -130,6 +130,9 @@ serviceMonitor:
   # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
   enabled: false
 
+  # -- namespace where you want to install ServiceMonitors
+  namespace: ""
+
   # -- Additional labels
   additionalLabels: {}
 
