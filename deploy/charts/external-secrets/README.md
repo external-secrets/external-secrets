@@ -128,6 +128,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceMonitor.honorLabels | bool | `false` | Let prometheus add an exported_ prefix to conflicting labels |
 | serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | serviceMonitor.metricRelabelings | list | `[]` | Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs) |
+| serviceMonitor.namespace | string | `""` | namespace where you want to install ServiceMonitors |
 | serviceMonitor.relabelings | list | `[]` | Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) |
 | serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | tolerations | list | `[]` |  |
@@ -177,7 +178,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | webhook.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
 | webhook.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
-| webhook.serviceMonitor.namespace | string | default - Namespace where you are installing this helm chart | Specifies in which namespace you want create ServiceMonitors for collecting Prometheus metrics |
 | webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | webhook.tolerations | list | `[]` |  |
