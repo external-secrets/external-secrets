@@ -38,6 +38,10 @@ leaderElect: false
 # Secret Stores with the appropriate controller values.
 controllerClass: ""
 
+# -- If true external secrets will use recommended kubernetes
+# annotations as prometheus metric labels.
+extendedMetricLabels: false
+
 # -- If set external secrets are only reconciled in the
 # provided namespace
 scopedNamespace: ""

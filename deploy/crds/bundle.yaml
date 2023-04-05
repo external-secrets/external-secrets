@@ -1909,6 +1909,9 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        externalID:
+                          description: AWS External ID set on assumed IAM roles
+                          type: string
                         region:
                           description: AWS Region to be used for the provider
                           type: string
@@ -5337,6 +5340,9 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        externalID:
+                          description: AWS External ID set on assumed IAM roles
+                          type: string
                         region:
                           description: AWS Region to be used for the provider
                           type: string

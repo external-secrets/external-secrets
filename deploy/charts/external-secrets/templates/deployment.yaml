@@ -68,6 +68,9 @@ spec:
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}
           {{- end }}
+          {{- if .Values.extendedMetricLabels }}
+          - --enable-extended-metric-labels={{ .Values.extendedMetricLabels }}
+          {{- end }}
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
