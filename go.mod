@@ -77,6 +77,9 @@ require (
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
+	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6 // indirect
+	github.com/hashicorp/go-uuid v1.0.2 // indirect
+	github.com/hashicorp/vault/api/auth/aws v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 )
 

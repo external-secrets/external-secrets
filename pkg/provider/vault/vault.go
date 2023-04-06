@@ -28,9 +28,21 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/cache"
+	"github.com/external-secrets/external-secrets/pkg/feature"
+	"github.com/external-secrets/external-secrets/pkg/find"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
 	approle "github.com/hashicorp/vault/api/auth/approle"
+	authaws "github.com/hashicorp/vault/api/auth/aws"
 	authkubernetes "github.com/hashicorp/vault/api/auth/kubernetes"
 	authldap "github.com/hashicorp/vault/api/auth/ldap"
 	"github.com/spf13/pflag"
@@ -44,15 +56,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
-
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/cache"
-	"github.com/external-secrets/external-secrets/pkg/feature"
-	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
@@ -1034,6 +1037,12 @@ func (v *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 		return err
 	}
 
+	tokenExists, err = setIamAuthToken(ctx, v, cfg, vaultiamauth.DefaultJWTProvider)
+	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using IAM auth")
+		return err
+	}
+
 	return errors.New(errAuthFormat)
 }
 
@@ -1102,6 +1111,19 @@ func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, 
 	certAuth := v.store.Auth.Cert
 	if certAuth != nil {
 		err := v.requestTokenWithCertAuth(ctx, certAuth, cfg)
+		if err != nil {
+			return true, err
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func setIamAuthToken(ctx context.Context, v *client, cfg *vault.Config, jwtProvider util.JwtProviderFactory) (bool, error) {
+	iamAuth := v.store.Auth.Iam
+	isClusterKind := v.storeKind == esv1beta1.ClusterSecretStoreKind
+	if iamAuth != nil {
+		err := v.requestTokenWithIamAuth(ctx, iamAuth, isClusterKind, v.kube, v.namespace, jwtProvider)
 		if err != nil {
 			return true, err
 		}
@@ -1404,6 +1426,59 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1bet
 		return fmt.Errorf(errVaultToken, err)
 	}
 	v.client.SetToken(token)
+	return nil
+}
+
+func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1.VaultIamAuth, ick bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory) error {
+	jwtAuth := iamAuth.JWTAuth
+	secretRefAuth := iamAuth.SecretRef
+	regionAWS := iamAuth.Region
+	var creds *credentials.Credentials
+	var err error
+	if jwtAuth != nil {
+		creds, err = vaultiamauth.CredsFromServiceAccount(ctx, *iamAuth, regionAWS, ick, k, n, jwtProvider)
+		if err != nil {
+			return err
+		}
+	}
+
+	//use credentials from secretRef
+	if secretRefAuth != nil {
+		logger.V(1).Info("using credentials from secretRef")
+		creds, err = vaultiamauth.CredsFromSecretRef(ctx, *iamAuth, ick, k, n)
+		if err != nil {
+			return err
+		}
+	}
+
+	config := aws.NewConfig().WithEndpointResolver(vaultiamauth.ResolveEndpoint())
+	if creds != nil {
+		config.WithCredentials(creds)
+	}
+	if iamAuth.Region != "" {
+		config.WithRegion(iamAuth.Region)
+	}
+
+	getCreds, err := config.Credentials.Get()
+	if err != nil {
+		return err
+	}
+
+	awsAuthClient, err := authaws.NewAWSAuth(authaws.WithRegion(iamAuth.Region), authaws.WithIAMAuth(), authaws.WithRole(iamAuth.Role), authaws.WithMountPath(iamAuth.Path))
+	if err != nil {
+		return err
+	}
+
+	//Set environment variables. They would be fetched by Login
+	os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
+	os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
+	os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
+
+	_, err = v.auth.Login(ctx, awsAuthClient)
+	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

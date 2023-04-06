@@ -112,6 +112,9 @@ type VaultAuth struct {
 	// Cert authentication method
 	// +optional
 	Cert *VaultCertAuth `json:"cert,omitempty"`
+
+	// IAM auth
+	Iam *VaultIamAuth `json:"iam,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -236,4 +239,21 @@ type VaultCertAuth struct {
 	// SecretRef to a key in a Secret resource containing client private key to
 	// authenticate with Vault using the Cert authentication method
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// VaultIamAuth authenticates with Vault using the IAM authentication method
+type VaultIamAuth struct {
+
+	// Path where the AWS auth method is enabled in Vault, e.g: "aws"
+	Path string `json:"path"`
+	// AWS region
+	Region string `json:"region"`
+	//Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+	Role string `json:"vaultRole"`
+	// Specify credentials in a Secret object
+	// +optional
+	SecretRef *AWSAuthSecretRef `json:"secretRef,omitempty"`
+	// Specify a service account with IRSA enabled
+	// +optional
+	JWTAuth *AWSJWTAuth `json:"jwt,omitempty"`
 }

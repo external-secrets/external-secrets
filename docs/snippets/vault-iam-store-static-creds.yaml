@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: vault-backend-aws-iam
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      path: secret
+      version: v2
+      namespace: <vault_namespace>
+      auth:
+        secretRef:
+          accessKeyIDSecretRef:
+            name: vault-iam-creds-secret
+            key: access-key
+          secretAccessKeySecretRef:
+            name: vault-iam-creds-secret
+            key: secret-access-key
+          sessionTokenSecretRef:
+            name: vault-iam-creds-secret
+            key: secret-session-token

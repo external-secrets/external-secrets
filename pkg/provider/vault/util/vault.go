@@ -17,8 +17,11 @@ package util
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	vault "github.com/hashicorp/vault/api"
 )
+
+type JwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error)
 
 type Auth interface {
 	Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
