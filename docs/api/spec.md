@@ -61,7 +61,8 @@ AWSJWTAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.AWSAuth">AWSAuth</a>)
+<a href="#external-secrets.io/v1beta1.AWSAuth">AWSAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
 <p>AWSAuthSecretRef holds secret references for AWS credentials
@@ -122,7 +123,8 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.AWSAuth">AWSAuth</a>)
+<a href="#external-secrets.io/v1beta1.AWSAuth">AWSAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
 <p>Authenticate against AWS using service account tokens.</p>
@@ -5481,6 +5483,19 @@ VaultCertAuth
 Cert authentication method</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>iam</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">
+VaultIamAuth
+</a>
+</em>
+</td>
+<td>
+<p>IAM auth</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.VaultCertAuth">VaultCertAuth
@@ -5528,6 +5543,86 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <p>SecretRef to a key in a Secret resource containing client private key to
 authenticate with Vault using the Cert authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultIamAuth authenticates with Vault using the IAM authentication method</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the AWS auth method is enabled in Vault, e.g: &ldquo;aws&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS region</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AWSAuthSecretRef">
+AWSAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify credentials in a Secret object</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AWSJWTAuth">
+AWSJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify a service account with IRSA enabled</p>
 </td>
 </tr>
 </tbody>
