@@ -55,3 +55,7 @@ Emin writes about integration between External Secrets Operator and HashiCorp Va
 ## [Reversing the Workflow with External Secrets Operator’s Push Secret Feature](https://medium.com/@eminalemdar/reversing-the-workflow-with-external-secrets-operators-push-secret-feature-f2a64f3db748)
 
 Emin writes about the Push Secret feature of ESO and how this new feature reverse the workflow of ESO by pushing Kubernetes secrets to external secret management providers.
+
+## [GCP Secret Manager with self-hosted Kubernetes](https://medium.com/@jjlakis/gcp-secret-manager-with-self-hosted-kubernetes-db35d01d65f0)
+
+Jacek writes about bringing GCP secrets to on-premises cluster through External Secrets Operator intergration with workload identity.
