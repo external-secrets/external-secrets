@@ -2631,7 +2631,7 @@ spec:
                                   type: object
                               type: object
                             iam:
-                              description: IAM auth
+                              description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
                               properties:
                                 jwt:
                                   description: Specify a service account with IRSA enabled
@@ -6144,7 +6144,7 @@ spec:
                                   type: object
                               type: object
                             iam:
-                              description: IAM auth
+                              description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
                               properties:
                                 jwt:
                                   description: Specify a service account with IRSA enabled
@@ -7267,7 +7267,7 @@ spec:
                               type: object
                           type: object
                         iam:
-                          description: IAM auth
+                          description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
                           properties:
                             jwt:
                               description: Specify a service account with IRSA enabled

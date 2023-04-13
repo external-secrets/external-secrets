@@ -12,6 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Mostly sourced from ~/external-secrets/pkg/provider/aws/auth
 package iamauth
 
 import (

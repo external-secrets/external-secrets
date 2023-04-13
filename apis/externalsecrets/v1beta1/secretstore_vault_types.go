@@ -113,7 +113,9 @@ type VaultAuth struct {
 	// +optional
 	Cert *VaultCertAuth `json:"cert,omitempty"`
 
-	// IAM auth
+	// Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials
+	// AWS IAM authentication method
+	// +optional
 	Iam *VaultIamAuth `json:"iam,omitempty"`
 }
 
@@ -181,9 +183,9 @@ type VaultLdapAuth struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// AWSAuth tells the controller how to do authentication with aws.
+// VaultAwsAuth tells the controller how to do authentication with aws.
 // Only one of secretRef or jwt can be specified.
-// if none is specified the controller will load credentials using the aws sdk defaults.
+// if none is specified the controller will try to load credentials from its own service account assuming it is IRSA enabled
 type VaultAwsAuth struct {
 	// +optional
 	SecretRef *VaultAwsAuthSecretRef `json:"secretRef,omitempty"`
@@ -191,7 +193,7 @@ type VaultAwsAuth struct {
 	JWTAuth *VaultAwsJWTAuth `json:"jwt,omitempty"`
 }
 
-// AWSAuthSecretRef holds secret references for AWS credentials
+// VaultAWSAuthSecretRef holds secret references for AWS credentials
 // both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
 type VaultAwsAuthSecretRef struct {
 	// The AccessKeyID is used for authentication
@@ -272,7 +274,7 @@ type VaultCertAuth struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// VaultIamAuth authenticates with Vault using the IAM authentication method.
+// VaultIamAuth authenticates with Vault using the Vault's AWS IAM authentication method. Refer: https://developer.hashicorp.com/vault/docs/auth/aws
 type VaultIamAuth struct {
 
 	// Path where the AWS auth method is enabled in Vault, e.g: "aws"

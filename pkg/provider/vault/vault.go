@@ -55,7 +55,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
 	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -1484,12 +1483,12 @@ func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 	}
 	var creds *credentials.Credentials
 	var err error
-	if jwtAuth != nil { // use credentials from a sa explicitly defined and referenced
+	if jwtAuth != nil { // use credentials from a sa explicitly defined and referenced. Highest preference is given to this method/configuration.
 		creds, err = vaultiamauth.CredsFromServiceAccount(ctx, *iamAuth, regionAWS, ick, k, n, jwtProvider)
 		if err != nil {
 			return err
 		}
-	} else if secretRefAuth != nil { // use credentials from secretRef
+	} else if secretRefAuth != nil { // if jwtAuth is not defined, check if secretRef is defined. Second preference.
 		logger.V(1).Info("using credentials from secretRef")
 		creds, err = vaultiamauth.CredsFromSecretRef(ctx, *iamAuth, ick, k, n)
 		if err != nil {
@@ -1497,13 +1496,13 @@ func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 		}
 	}
 
-	// Neither of jwtAuth or secretRefAuth defined
+	// Neither of jwtAuth or secretRefAuth defined. Last preference.
 	// Default to controller pod's identity
 	if jwtAuth == nil && secretRefAuth == nil {
 		// Checking if controller pod's service account is IRSA enabled and Web Identity token is available on pod
-		tknFile, tknFileEnvVarPresent := os.LookupEnv(iamauth.AWSWebIdentityTokenFileEnvVar)
+		tknFile, tknFileEnvVarPresent := os.LookupEnv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
 		if !tknFileEnvVarPresent {
-			return fmt.Errorf(errIrsaTokenEnvVarNotFoundOnPod, iamauth.AWSWebIdentityTokenFileEnvVar) // No Web Identity(IRSA) token found on pod
+			return fmt.Errorf(errIrsaTokenEnvVarNotFoundOnPod, vaultiamauth.AWSWebIdentityTokenFileEnvVar) // No Web Identity(IRSA) token found on pod
 		}
 
 		// IRSA enabled service account, let's check that the jwt token filemount and file exists
