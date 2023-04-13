@@ -19,13 +19,3 @@ spec:
           vaultRole: vault-role-for-aws-iam-auth
           # Optional. Placeholder to supply header X-Vault-AWS-IAM-Server-ID. It is an additional (optional) header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
           vaultAwsIamServerID: example-vaultAwsIamServerID
-          secretRef: #Use this method when you have static AWS creds.
-            accessKeyIDSecretRef:
-              name: vault-iam-creds-secret
-              key: access-key
-            secretAccessKeySecretRef:
-              name: vault-iam-creds-secret
-              key: secret-access-key
-            sessionTokenSecretRef:
-              name: vault-iam-creds-secret
-              key: secret-session-token

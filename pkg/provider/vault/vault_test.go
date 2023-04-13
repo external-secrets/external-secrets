@@ -161,6 +161,45 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 	}
 }
 
+func makeValidSecretStoreWithIamAuthSecret() *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vault-store",
+			Namespace: "default",
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Vault: &esv1beta1.VaultProvider{
+					Server:  "https://vault.example.com:8200",
+					Path:    &secretStorePath,
+					Version: esv1beta1.VaultKVStoreV2,
+					Auth: esv1beta1.VaultAuth{
+						Iam: &esv1beta1.VaultIamAuth{
+							Path:   "aws",
+							Region: "us-east-1",
+							Role:   "vault-role",
+							SecretRef: &esv1beta1.VaultAwsAuthSecretRef{
+								AccessKeyID: esmeta.SecretKeySelector{
+									Name: "vault-iam-creds-secret",
+									Key:  "access-key",
+								},
+								SecretAccessKey: esmeta.SecretKeySelector{
+									Name: "vault-iam-creds-secret",
+									Key:  "secret-access-key",
+								},
+								SessionToken: &esmeta.SecretKeySelector{
+									Name: "vault-iam-creds-secret",
+									Key:  "secret-session-token",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 type secretStoreTweakFn func(s *esv1beta1.SecretStore)
 
 func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.SecretStore {
@@ -333,6 +372,29 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 			want: want{
 				err: fmt.Errorf(errVaultCert, errors.New(`cannot find secret data for key: "cert"`)),
+			},
+		},
+		"SuccessfulVaultStoreWithIamAuthSecret": {
+			reason: "Should return a Vault provider successfully",
+			args: args{
+				store: makeValidSecretStoreWithIamAuthSecret(),
+				ns:    "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "vault-iam-creds-secret",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"access-key":           []byte("TESTING"),
+						"secret-access-key":    []byte("ABCDEF"),
+						"secret-session-token": []byte("c2VjcmV0LXNlc3Npb24tdG9rZW4K"),
+					},
+				}).Build(),
+				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				newClientFunc: fake.ClientWithLoginMock,
+			},
+			want: want{
+				err: nil,
 			},
 		},
 		"SuccessfulVaultStoreWithK8sCertConfigMap": {

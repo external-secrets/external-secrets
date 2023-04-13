@@ -65,7 +65,9 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.4.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.2
 	github.com/akeylesslabs/akeyless-go/v3 v3.3.0
+	github.com/golang-jwt/jwt/v5 v5.0.0-rc.2
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/hashicorp/vault/api/auth/aws v0.4.0
 	github.com/keeper-security/secrets-manager-go/core v1.5.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.15
@@ -79,7 +81,6 @@ require (
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
-	github.com/hashicorp/vault/api/auth/aws v0.4.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 )
 

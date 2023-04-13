@@ -365,6 +365,15 @@ Reference the service account from above in the Secret Store:
 ```yaml
 {% include 'vault-iam-store.yaml' %}
 ```
+### Controller's Pod Identity
+
+This is basicially a zero-configuration authentication approach that inherits the credentials from the controller's pod identity
+
+This approach assumes that appropriate IRSA setup is done controller's pod (i.e. IRSA enabled IAM role is created appropriately and controller's service account is annotated appropriately with the annotation "eks.amazonaws.com/role-arn" to enable IRSA)
+
+```yaml
+{% include 'vault-iam-store-controller-pod-identity.yaml' %}
+```
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
 

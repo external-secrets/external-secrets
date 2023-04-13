@@ -30,16 +30,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/cache"
-	"github.com/external-secrets/external-secrets/pkg/feature"
-	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
-	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/go-logr/logr"
+	"github.com/golang-jwt/jwt/v5"
 	vault "github.com/hashicorp/vault/api"
 	approle "github.com/hashicorp/vault/api/auth/approle"
 	authaws "github.com/hashicorp/vault/api/auth/aws"
@@ -56,6 +48,17 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/cache"
+	"github.com/external-secrets/external-secrets/pkg/feature"
+	"github.com/external-secrets/external-secrets/pkg/find"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
+	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
@@ -67,7 +70,9 @@ var (
 )
 
 const (
-	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	serviceAccTokenPath     = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	defaultAWSRegion        = "us-east-1"
+	defaultAWSAuthMountPath = "aws"
 
 	errVaultStore                   = "received invalid Vault SecretStore resource: %w"
 	errVaultCacheCreate             = "cannot create Vault client cache: %s"
@@ -90,6 +95,11 @@ const (
 	errUnsupportedKvVersion         = "cannot perform find operations with kv version v1"
 	errUnsupportedMetadataKvVersion = "cannot perform metadata fetch operations with kv version v1"
 	errNotFound                     = "secret not found"
+	errIrsaTokenEnvVarNotFoundOnPod = "expected env variable: %s not found on controller's pod"
+	errIrsaTokenFileNotFoundOnPod   = "web ddentity token file not found at %s location: %w"
+	errIrsaTokenFileNotReadable     = "could not read the web identity token from the file %s: %w"
+	errIrsaTokenNotValidJWT         = "could not parse web identity token available at %s. not a valid jwt?: %w"
+	errPodInfoNotFoundOnToken       = "could not find pod identity info on token %s: %w"
 
 	errGetKubeSA             = "cannot get Kubernetes service account %q: %w"
 	errGetKubeSASecrets      = "cannot find secrets bound to service account: %q"
@@ -353,6 +363,29 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 	if p.Auth.TokenSecretRef != nil {
 		if err := utils.ValidateReferentSecretSelector(store, *p.Auth.TokenSecretRef); err != nil {
 			return fmt.Errorf(errInvalidTokenRef, err)
+		}
+	}
+	if p.Auth.Iam != nil {
+		if p.Auth.Iam.JWTAuth != nil {
+			if p.Auth.Iam.JWTAuth.ServiceAccountRef != nil {
+				if err := utils.ValidateReferentServiceAccountSelector(store, *p.Auth.Iam.JWTAuth.ServiceAccountRef); err != nil {
+					return fmt.Errorf(errInvalidTokenRef, err)
+				}
+			}
+		}
+
+		if p.Auth.Iam.SecretRef != nil {
+			if err := utils.ValidateReferentSecretSelector(store, p.Auth.Iam.SecretRef.AccessKeyID); err != nil {
+				return fmt.Errorf(errInvalidTokenRef, err)
+			}
+			if err := utils.ValidateReferentSecretSelector(store, p.Auth.Iam.SecretRef.SecretAccessKey); err != nil {
+				return fmt.Errorf(errInvalidTokenRef, err)
+			}
+			if p.Auth.Iam.SecretRef.SessionToken != nil {
+				if err := utils.ValidateReferentSecretSelector(store, *p.Auth.Iam.SecretRef.SessionToken); err != nil {
+					return fmt.Errorf(errInvalidTokenRef, err)
+				}
+			}
 		}
 	}
 	return nil
@@ -741,6 +774,15 @@ func isReferentSpec(prov *esv1beta1.VaultProvider) bool {
 		return true
 	}
 	if prov.Auth.Cert != nil && prov.Auth.Cert.SecretRef.Namespace == nil {
+		return true
+	}
+	if prov.Auth.Iam != nil && prov.Auth.Iam.JWTAuth != nil && prov.Auth.Iam.JWTAuth.ServiceAccountRef != nil && prov.Auth.Iam.JWTAuth.ServiceAccountRef.Namespace == nil {
+		return true
+	}
+	if prov.Auth.Iam != nil && prov.Auth.Iam.SecretRef != nil &&
+		(prov.Auth.Iam.SecretRef.AccessKeyID.Namespace == nil ||
+			prov.Auth.Iam.SecretRef.SecretAccessKey.Namespace == nil ||
+			(prov.Auth.Iam.SecretRef.SessionToken != nil && prov.Auth.Iam.SecretRef.SessionToken.Namespace == nil)) {
 		return true
 	}
 	return false
@@ -1432,20 +1474,69 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1bet
 func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1.VaultIamAuth, ick bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory) error {
 	jwtAuth := iamAuth.JWTAuth
 	secretRefAuth := iamAuth.SecretRef
-	regionAWS := iamAuth.Region
+	regionAWS := defaultAWSRegion
+	awsAuthMountPath := defaultAWSAuthMountPath
+	if iamAuth.Region != "" {
+		regionAWS = iamAuth.Region
+	}
+	if iamAuth.Path != "" {
+		awsAuthMountPath = iamAuth.Path
+	}
 	var creds *credentials.Credentials
 	var err error
-	if jwtAuth != nil {
+	if jwtAuth != nil { // use credentials from a sa explicitly defined and referenced
 		creds, err = vaultiamauth.CredsFromServiceAccount(ctx, *iamAuth, regionAWS, ick, k, n, jwtProvider)
+		if err != nil {
+			return err
+		}
+	} else if secretRefAuth != nil { // use credentials from secretRef
+		logger.V(1).Info("using credentials from secretRef")
+		creds, err = vaultiamauth.CredsFromSecretRef(ctx, *iamAuth, ick, k, n)
 		if err != nil {
 			return err
 		}
 	}
 
-	//use credentials from secretRef
-	if secretRefAuth != nil {
-		logger.V(1).Info("using credentials from secretRef")
-		creds, err = vaultiamauth.CredsFromSecretRef(ctx, *iamAuth, ick, k, n)
+	// Neither of jwtAuth or secretRefAuth defined
+	// Default to controller pod's identity
+	if jwtAuth == nil && secretRefAuth == nil {
+		// Checking if controller pod's service account is IRSA enabled and Web Identity token is available on pod
+		tknFile, tknFileEnvVarPresent := os.LookupEnv(iamauth.AWSWebIdentityTokenFileEnvVar)
+		if !tknFileEnvVarPresent {
+			return fmt.Errorf(errIrsaTokenEnvVarNotFoundOnPod, iamauth.AWSWebIdentityTokenFileEnvVar) // No Web Identity(IRSA) token found on pod
+		}
+
+		// IRSA enabled service account, let's check that the jwt token filemount and file exists
+		if _, err := os.Stat(tknFile); err != nil {
+			return fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tknFile, err)
+		}
+
+		// everything looks good so far, let's fetch the jwt token from AWS_WEB_IDENTITY_TOKEN_FILE
+		jwtByte, err := os.ReadFile(tknFile)
+		if err != nil {
+			return fmt.Errorf(errIrsaTokenFileNotReadable, tknFile, err)
+		}
+
+		// let's parse the jwt token
+		parser := jwt.NewParser(jwt.WithoutClaimsValidation())
+
+		token, _, err := parser.ParseUnverified(string(jwtByte), jwt.MapClaims{})
+		if err != nil {
+			return fmt.Errorf(errIrsaTokenNotValidJWT, tknFile, err) // JWT token parser error
+		}
+
+		var ns string
+		var sa string
+
+		// let's fetch the namespace and serviceaccount from parsed jwt token
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			ns = claims["kubernetes.io"].(map[string]interface{})["namespace"].(string)
+			sa = claims["kubernetes.io"].(map[string]interface{})["serviceaccount"].(map[string]interface{})["name"].(string)
+		} else {
+			return fmt.Errorf(errPodInfoNotFoundOnToken, tknFile, err)
+		}
+
+		creds, err = vaultiamauth.CredsFromControllerServiceAccount(ctx, sa, ns, regionAWS, k, jwtProvider)
 		if err != nil {
 			return err
 		}
@@ -1455,8 +1546,9 @@ func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 	if creds != nil {
 		config.WithCredentials(creds)
 	}
-	if iamAuth.Region != "" {
-		config.WithRegion(iamAuth.Region)
+
+	if regionAWS != "" {
+		config.WithRegion(regionAWS)
 	}
 
 	getCreds, err := config.Credentials.Get()
@@ -1464,15 +1556,24 @@ func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 		return err
 	}
 
-	awsAuthClient, err := authaws.NewAWSAuth(authaws.WithRegion(iamAuth.Region), authaws.WithIAMAuth(), authaws.WithRole(iamAuth.Role), authaws.WithMountPath(iamAuth.Path))
-	if err != nil {
-		return err
-	}
-
-	//Set environment variables. They would be fetched by Login
+	// Set environment variables. These would be fetched by Login
 	os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
 	os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
 	os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
+
+	var awsAuthClient *authaws.AWSAuth
+
+	if iamAuth.VaultAWSIAMServerID != "" {
+		awsAuthClient, err = authaws.NewAWSAuth(authaws.WithRegion(regionAWS), authaws.WithIAMAuth(), authaws.WithRole(iamAuth.Role), authaws.WithMountPath(awsAuthMountPath), authaws.WithIAMServerIDHeader(iamAuth.VaultAWSIAMServerID))
+		if err != nil {
+			return err
+		}
+	} else {
+		awsAuthClient, err = authaws.NewAWSAuth(authaws.WithRegion(regionAWS), authaws.WithIAMAuth(), authaws.WithRole(iamAuth.Role), authaws.WithMountPath(awsAuthMountPath))
+		if err != nil {
+			return err
+		}
+	}
 
 	_, err = v.auth.Login(ctx, awsAuthClient)
 	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)

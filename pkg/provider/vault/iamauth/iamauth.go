@@ -27,8 +27,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,6 +36,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
 var (
@@ -49,7 +50,8 @@ const (
 	audienceAnnotation   = "eks.amazonaws.com/audience"
 	defaultTokenAudience = "sts.amazonaws.com"
 
-	STSEndpointEnv = "AWS_STS_ENDPOINT"
+	STSEndpointEnv                = "AWS_STS_ENDPOINT"
+	AWSWebIdentityTokenFileEnvVar = "AWS_WEB_IDENTITY_TOKEN_FILE"
 
 	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterSecretStore: missing AWS AccessKeyID Namespace"
 	errInvalidClusterStoreMissingSAKNamespace  = "invalid ClusterSecretStore: missing AWS SecretAccessKey Namespace"
@@ -182,6 +184,40 @@ func CredsFromServiceAccount(ctx context.Context, auth esv1beta1.VaultIamAuth, r
 	}
 
 	jwtProv, err := jwtProvider(name, namespace, roleArn, audiences, region)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.V(1).Info("using credentials via service account", "role", roleArn, "region", region)
+	return credentials.NewCredentials(jwtProv), nil
+}
+
+func CredsFromControllerServiceAccount(ctx context.Context, saname string, ns string, region string, kube kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
+	name := saname
+	nmspc := ns
+
+	sa := v1.ServiceAccount{}
+	err := kube.Get(ctx, types.NamespacedName{
+		Name:      name,
+		Namespace: nmspc,
+	}, &sa)
+	if err != nil {
+		return nil, err
+	}
+	// the service account is expected to have a well-known annotation
+	// this is used as input to assumeRoleWithWebIdentity
+	roleArn := sa.Annotations[roleARNAnnotation]
+	if roleArn == "" {
+		return nil, fmt.Errorf("an IAM role must be associated with service account %s (namespace: %s)", name, nmspc)
+	}
+
+	tokenAud := sa.Annotations[audienceAnnotation]
+	if tokenAud == "" {
+		tokenAud = defaultTokenAudience
+	}
+	audiences := []string{tokenAud}
+
+	jwtProv, err := jwtProvider(name, nmspc, roleArn, audiences, region)
 	if err != nil {
 		return nil, err
 	}
