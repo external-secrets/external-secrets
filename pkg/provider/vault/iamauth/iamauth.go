@@ -193,7 +193,7 @@ func CredsFromServiceAccount(ctx context.Context, auth esv1beta1.VaultIamAuth, r
 	return credentials.NewCredentials(jwtProv), nil
 }
 
-func CredsFromControllerServiceAccount(ctx context.Context, saname string, ns string, region string, kube kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
+func CredsFromControllerServiceAccount(ctx context.Context, saname, ns, region string, kube kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
 	name := saname
 	nmspc := ns
 

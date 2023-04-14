@@ -1078,7 +1078,7 @@ func (v *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 		return err
 	}
 
-	tokenExists, err = setIamAuthToken(ctx, v, cfg, vaultiamauth.DefaultJWTProvider)
+	tokenExists, err = setIamAuthToken(ctx, v, vaultiamauth.DefaultJWTProvider)
 	if tokenExists {
 		v.log.V(1).Info("Retrieved new token using IAM auth")
 		return err
@@ -1160,7 +1160,7 @@ func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, 
 	return false, nil
 }
 
-func setIamAuthToken(ctx context.Context, v *client, cfg *vault.Config, jwtProvider util.JwtProviderFactory) (bool, error) {
+func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory) (bool, error) {
 	iamAuth := v.store.Auth.Iam
 	isClusterKind := v.storeKind == esv1beta1.ClusterSecretStoreKind
 	if iamAuth != nil {

@@ -185,7 +185,7 @@ type VaultLdapAuth struct {
 
 // VaultAwsAuth tells the controller how to do authentication with aws.
 // Only one of secretRef or jwt can be specified.
-// if none is specified the controller will try to load credentials from its own service account assuming it is IRSA enabled
+// if none is specified the controller will try to load credentials from its own service account assuming it is IRSA enabled.
 type VaultAwsAuth struct {
 	// +optional
 	SecretRef *VaultAwsAuthSecretRef `json:"secretRef,omitempty"`
