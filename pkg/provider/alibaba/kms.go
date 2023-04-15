@@ -255,8 +255,8 @@ func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.
 		objectKey.Namespace = *alibabaSpec.Auth.SecretRef.AccessKeySecret.Namespace
 	}
 
-	accessKeyId := credentialsSecret.Data[alibabaSpec.Auth.SecretRef.AccessKeyID.Key]
-	if (accessKeyId == nil) || (len(accessKeyId) == 0) {
+	accessKeyID := credentialsSecret.Data[alibabaSpec.Auth.SecretRef.AccessKeyID.Key]
+	if (accessKeyID == nil) || (len(accessKeyID) == 0) {
 		return nil, fmt.Errorf(errMissingAKID)
 	}
 
@@ -266,7 +266,7 @@ func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.
 	}
 
 	credentialConfig := &credential.Config{
-		AccessKeyId:     utils.Ptr(string(accessKeyId)),
+		AccessKeyId:     utils.Ptr(string(accessKeyID)),
 		AccessKeySecret: utils.Ptr(string(accessKeySecret)),
 		Type:            utils.Ptr("access_key"),
 		ConnectTimeout:  utils.Ptr(30),

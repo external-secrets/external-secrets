@@ -14,10 +14,11 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
+	"time"
 )
 
 const (
-	kmsApiVersion = "2016-01-20"
+	kmsAPIVersion = "2016-01-20"
 )
 
 type SecretsManagerClient interface {
@@ -52,22 +53,33 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 		return nil, fmt.Errorf("error KMS endpoint is missing")
 	}
 
-	client := retryablehttp.NewClient()
+	const (
+		connectTimeoutSec   = 30
+		readWriteTimeoutSec = 60
+	)
+
+	retryClient := retryablehttp.NewClient()
+	retryClient.CheckRetry = retryablehttp.ErrorPropagatedRetryPolicy
+	retryClient.Backoff = retryablehttp.DefaultBackoff
+	retryClient.Logger = log
+	retryClient.HTTPClient = &http.Client{
+		Timeout: time.Second * time.Duration(readWriteTimeoutSec),
+	}
+
 	const defaultRetryAttempts = 3
 	if utils.Deref(options.Autoretry) {
 		if options.MaxAttempts != nil {
-			client.RetryMax = utils.Deref(options.MaxAttempts)
+			retryClient.RetryMax = utils.Deref(options.MaxAttempts)
 		} else {
-			client.RetryMax = defaultRetryAttempts
+			retryClient.RetryMax = defaultRetryAttempts
 		}
 	}
 
-	client.Logger = log
 	return &secretsManagerClient{
 		config:   config,
 		options:  options,
 		endpoint: utils.Deref(endpoint),
-		client:   client.StandardClient(),
+		client:   retryClient.StandardClient(),
 	}, nil
 }
 
@@ -79,7 +91,7 @@ func (s *secretsManagerClient) GetSecretValue(
 	ctx context.Context,
 	request *kms.GetSecretValueRequest,
 ) (*kms.GetSecretValueResponseBody, error) {
-	resp, err := s.doApiCall(ctx, "GetSecretValue", request)
+	resp, err := s.doAPICall(ctx, "GetSecretValue", request)
 	if err != nil {
 		return nil, fmt.Errorf("error getting secret [%s] latest value: %w", utils.Deref(request.SecretName), err)
 	}
@@ -92,10 +104,9 @@ func (s *secretsManagerClient) GetSecretValue(
 	return &body, nil
 }
 
-func (s *secretsManagerClient) doApiCall(ctx context.Context,
+func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	action string,
-	request interface{}) (interface{}, error) {
-
+	request any) (any, error) {
 	accessKeyID, err := s.config.Credential.GetAccessKeyId()
 	if err != nil {
 		return nil, fmt.Errorf("error getting AccessKeyId: %w", err)
@@ -120,7 +131,7 @@ func (s *secretsManagerClient) doApiCall(ctx context.Context,
 
 	apiRequest.query["Signature"] = openapiutil.GetRPCSignature(apiRequest.query, utils.Ptr(apiRequest.method.String()), accessKeySecret)
 
-	httpReq, err := newHttpRequestWithContext(ctx, apiRequest)
+	httpReq, err := newHTTPRequestWithContext(ctx, apiRequest)
 	if err != nil {
 		return nil, fmt.Errorf("error creating http request: %w", err)
 	}
@@ -186,7 +197,6 @@ func (m methodType) String() string {
 
 type openAPIRequest struct {
 	endpoint string
-	action   string
 	method   methodType
 	headers  map[string]*string
 	query    map[string]*string
@@ -202,14 +212,14 @@ func newOpenAPIRequest(endpoint string,
 		method:   method,
 		headers: map[string]*string{
 			"host":          &endpoint,
-			"x-acs-version": utils.Ptr(kmsApiVersion),
+			"x-acs-version": utils.Ptr(kmsAPIVersion),
 			"x-acs-action":  &action,
 			"user-agent":    utils.Ptr(fmt.Sprintf("AlibabaCloud (%s; %s) Golang/%s Core/%s TeaDSL/1", runtime.GOOS, runtime.GOARCH, strings.Trim(runtime.Version(), "go"), "0.01")),
 		},
 		query: map[string]*string{
 			"Action":           &action,
 			"Format":           utils.Ptr("json"),
-			"Version":          utils.Ptr(kmsApiVersion),
+			"Version":          utils.Ptr(kmsAPIVersion),
 			"Timestamp":        openapiutil.GetTimestamp(),
 			"SignatureNonce":   util.GetNonce(),
 			"SignatureMethod":  utils.Ptr("HMAC-SHA1"),
@@ -221,14 +231,14 @@ func newOpenAPIRequest(endpoint string,
 	return req
 }
 
-func newHttpRequestWithContext(ctx context.Context,
+func newHTTPRequestWithContext(ctx context.Context,
 	req *openAPIRequest) (*http.Request, error) {
 	query := url.Values{}
 	for k, v := range req.query {
 		query.Add(k, utils.Deref(v))
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, req.method.String(), fmt.Sprintf("https://%s/?%s", url.PathEscape(req.endpoint), query.Encode()), nil)
+	httpReq, err := http.NewRequestWithContext(ctx, req.method.String(), fmt.Sprintf("https://%s/?%s", url.PathEscape(req.endpoint), query.Encode()), http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error converting OpenAPI request to http request: %w", err)
 	}
@@ -240,7 +250,7 @@ func newHttpRequestWithContext(ctx context.Context,
 	return httpReq, nil
 }
 
-func defaultAny(inputValue interface{}, defaultValue interface{}) interface{} {
+func defaultAny(inputValue, defaultValue any) any {
 	if utils.Deref(util.IsUnset(inputValue)) {
 		return defaultValue
 	}
