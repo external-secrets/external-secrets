@@ -5491,7 +5491,9 @@ VaultIamAuth
 </em>
 </td>
 <td>
-<p>IAM auth</p>
+<em>(Optional)</em>
+<p>Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials
+AWS IAM authentication method</p>
 </td>
 </tr>
 </tbody>
@@ -5499,9 +5501,9 @@ VaultIamAuth
 <h3 id="external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth
 </h3>
 <p>
-<p>AWSAuth tells the controller how to do authentication with aws.
+<p>VaultAwsAuth tells the controller how to do authentication with aws.
 Only one of secretRef or jwt can be specified.
-if none is specified the controller will load credentials using the aws sdk defaults.</p>
+if none is specified the controller will try to load credentials from its own service account assuming it is IRSA enabled.</p>
 </p>
 <table>
 <thead>
@@ -5547,7 +5549,7 @@ VaultAwsJWTAuth
 <a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
-<p>AWSAuthSecretRef holds secret references for AWS credentials
+<p>VaultAWSAuthSecretRef holds secret references for AWS credentials
 both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.</p>
 </p>
 <table>
@@ -5689,7 +5691,7 @@ authenticate with Vault using the Cert authentication method</p>
 <a href="#external-secrets.io/v1beta1.VaultAuth">VaultAuth</a>)
 </p>
 <p>
-<p>VaultIamAuth authenticates with Vault using the IAM authentication method.</p>
+<p>VaultIamAuth authenticates with Vault using the Vault&rsquo;s AWS IAM authentication method. Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/aws">https://developer.hashicorp.com/vault/docs/auth/aws</a></p>
 </p>
 <table>
 <thead>
