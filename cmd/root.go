@@ -37,6 +37,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/feature"
@@ -64,6 +65,7 @@ var (
 	enableClusterExternalSecretReconciler bool
 	enablePushSecretReconciler            bool
 	enableFloodGate                       bool
+	enableExtendedMetricLabels            bool
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
 	secretName, secretNamespace           string
@@ -123,6 +125,7 @@ var rootCmd = &cobra.Command{
 		}
 		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
+		esmetrics.SetUpMetrics(enableExtendedMetricLabels)
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
@@ -240,6 +243,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable secrets caching for external-secrets pod.")
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
+	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)

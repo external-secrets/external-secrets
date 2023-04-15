@@ -85,6 +85,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | dnsConfig | object | `{}` | Specifies `dnsOptions` to deployment |
+| extendedMetricLabels | bool | `false` | If true external secrets will use recommended kubernetes annotations as prometheus metric labels. |
 | extraArgs | object | `{}` |  |
 | extraContainers | list | `[]` |  |
 | extraEnv | list | `[]` |  |
@@ -128,6 +129,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceMonitor.honorLabels | bool | `false` | Let prometheus add an exported_ prefix to conflicting labels |
 | serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | serviceMonitor.metricRelabelings | list | `[]` | Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs) |
+| serviceMonitor.namespace | string | `""` | namespace where you want to install ServiceMonitors |
 | serviceMonitor.relabelings | list | `[]` | Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) |
 | serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | tolerations | list | `[]` |  |

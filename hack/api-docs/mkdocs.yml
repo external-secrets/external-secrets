@@ -83,7 +83,7 @@ nav:
     - AWS Secrets Manager: provider/aws-secrets-manager.md
     - AWS Parameter Store: provider/aws-parameter-store.md
     - Azure Key Vault: provider/azure-key-vault.md
-    - Google Secret Manager: provider/google-secrets-manager.md
+    - Google Cloud Secret Manager: provider/google-secrets-manager.md
     - IBM Secrets Manager: provider/ibm-secrets-manager.md
     - Akeyless: provider/akeyless.md
     - HashiCorp Vault: provider/hashicorp-vault.md
