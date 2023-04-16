@@ -61,7 +61,7 @@ require (
 require github.com/1Password/connect-sdk-go v1.5.0
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.4.0
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.5.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.2.2
 	github.com/akeylesslabs/akeyless-go/v3 v3.3.0
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.4
