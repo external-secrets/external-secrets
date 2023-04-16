@@ -2107,8 +2107,8 @@ and manages Kubernetes secret resources with ExternalSecret resources.</p>
 to a supported version before installing external-secrets.</p>
 </blockquote>
 <h2 id="installing-with-helm">Installing with Helm</h2>
-<p>To automatically install and manage the CRDs as part of your Helm release, you must add the --set installCRDs=true flag to your Helm installation command.</p>
-<p>Uncomment the relevant line in the next steps to enable this.</p>
+<p>The default install options will automatically install and manage the CRDs as part of your helm release. If you do not want the CRDs to be automatically upgraded and managed, you must set the <code>installCRDs</code> option to <code>false</code>. (e.g. <code>--set installCRDS=false</code>)</p>
+<p>Uncomment the relevant line in the next steps to disable the automatic install of CRDs.</p>
 <h3 id="option-1-install-from-chart-repository">Option 1: Install from chart repository</h3>
 <div class="highlight"><pre><span></span><code>helm repo add external-secrets https://charts.external-secrets.io
 
@@ -2116,7 +2116,7 @@ helm install external-secrets <span class="se">\</span>
    external-secrets/external-secrets <span class="se">\</span>
     -n external-secrets <span class="se">\</span>
     --create-namespace <span class="se">\</span>
-  <span class="c1"># --set installCRDs=true</span>
+  <span class="c1"># --set installCRDs=false</span>
 </code></pre></div>
 <h3 id="option-2-install-chart-from-local-build">Option 2: Install chart from local build</h3>
 <p>Build and install the Helm chart locally after cloning the repository.</p>
@@ -2126,7 +2126,7 @@ helm install external-secrets <span class="se">\</span>
     ./bin/chart/external-secrets.tgz <span class="se">\</span>
     -n external-secrets <span class="se">\</span>
     --create-namespace <span class="se">\</span>
-  <span class="c1"># --set installCRDs=true</span>
+  <span class="c1"># --set installCRDs=false</span>
 </code></pre></div>
 <h3 id="create-a-secret-containing-your-aws-credentials">Create a secret containing your AWS credentials</h3>
 <div class="highlight"><pre><span></span><code><span class="nb">echo</span> -n <span class="s1">&#39;KEYID&#39;</span> &gt; ./access-key
