@@ -1236,6 +1236,8 @@
         
           
         
+          
+        
       
       
         <label class="md-nav__link" for="__nav_4">
@@ -1370,6 +1372,20 @@
     <li class="md-nav__item">
       <a href="../../provider/yandex-lockbox/" class="md-nav__link">
         Yandex Lockbox
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/alibaba/" class="md-nav__link">
+        Alibaba Cloud
       </a>
     </li>
   
@@ -2428,6 +2444,20 @@ AlibabaAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>rrsa</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AlibabaRRSAAuth">
+AlibabaRRSAAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -2508,17 +2538,6 @@ AlibabaAuth
 </tr>
 <tr>
 <td>
-<code>endpoint</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-<tr>
-<td>
 <code>regionID</code></br>
 <em>
 string
@@ -2526,6 +2545,65 @@ string
 </td>
 <td>
 <p>Alibaba Region to be used for the provider</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.AlibabaRRSAAuth">AlibabaRRSAAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AlibabaAuth">AlibabaAuth</a>)
+</p>
+<p>
+<p>Authenticate against Alibaba using RRSA.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>oidcProviderArn</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcTokenFilePath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleArn</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
