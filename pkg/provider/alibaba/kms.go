@@ -3,7 +3,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,17 +18,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	credential "github.com/aliyun/credentials-go/credentials"
 	"github.com/avast/retry-go/v4"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (

@@ -1,20 +1,36 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package alibaba
 
 import (
 	"context"
 	"fmt"
-	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
-	kms "github.com/alibabacloud-go/kms-20160120/v3/client"
-	openapiutil "github.com/alibabacloud-go/openapi-util/service"
-	util "github.com/alibabacloud-go/tea-utils/v2/service"
-	"github.com/alibabacloud-go/tea/tea"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
 	"net/url"
 	"runtime"
 	"strings"
 	"time"
+
+	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
+	kms "github.com/alibabacloud-go/kms-20160120/v3/client"
+	openapiutil "github.com/alibabacloud-go/openapi-util/service"
+	util "github.com/alibabacloud-go/tea-utils/v2/service"
+	"github.com/alibabacloud-go/tea/tea"
+	"github.com/hashicorp/go-retryablehttp"
+
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -140,6 +156,7 @@ func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("error invoking http request: %w", err)
 	}
+	defer resp.Body.Close()
 
 	return s.parseResponse(resp)
 }
