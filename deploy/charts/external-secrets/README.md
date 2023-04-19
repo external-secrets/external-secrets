@@ -75,6 +75,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | certController.tolerations | list | `[]` |  |
+| certController.topologySpreadConstraints | list | `[]` |  |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
 | crds.annotations | object | `{}` |  |
@@ -182,3 +183,4 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | webhook.tolerations | list | `[]` |  |
+| webhook.topologySpreadConstraints | list | `[]` |  |
