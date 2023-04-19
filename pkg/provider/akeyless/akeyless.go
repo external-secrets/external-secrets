@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/akeylesslabs/akeyless-go/v3"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -256,7 +257,27 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	if err != nil {
 		return nil, err
 	}
-	return []byte(value), nil
+
+	if ref.Property == "" {
+		if value != "" {
+			return []byte(value), nil
+		}
+		return nil, fmt.Errorf("invalid value received, found no value string : %s", ref.Key)
+	}
+	// We need to search if a given key with a . exists before using gjson operations.
+	idx := strings.Index(ref.Property, ".")
+	if idx > -1 {
+		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+		val := gjson.Get(value, refProperty)
+		if val.Exists() {
+			return []byte(val.String()), nil
+		}
+	}
+	val := gjson.Get(value, ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf("key %s does not exist in value %s", ref.Property, ref.Key)
+	}
+	return []byte(val.String()), nil
 }
 
 // Implements store.Client.GetAllSecrets Interface.

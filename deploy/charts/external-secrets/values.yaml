@@ -38,6 +38,10 @@ leaderElect: false
 # Secret Stores with the appropriate controller values.
 controllerClass: ""
 
+# -- If true external secrets will use recommended kubernetes
+# annotations as prometheus metric labels.
+extendedMetricLabels: false
+
 # -- If set external secrets are only reconciled in the
 # provided namespace
 scopedNamespace: ""
@@ -125,6 +129,9 @@ prometheus:
 serviceMonitor:
   # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
   enabled: false
+
+  # -- namespace where you want to install ServiceMonitors
+  namespace: ""
 
   # -- Additional labels
   additionalLabels: {}
