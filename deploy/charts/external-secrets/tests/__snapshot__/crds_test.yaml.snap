@@ -194,6 +194,23 @@ should match snapshot of default values:
                             auth:
                               description: AlibabaAuth contains a secretRef for credentials.
                               properties:
+                                rrsa:
+                                  description: Authenticate against Alibaba using RRSA.
+                                  properties:
+                                    oidcProviderArn:
+                                      type: string
+                                    oidcTokenFilePath:
+                                      type: string
+                                    roleArn:
+                                      type: string
+                                    sessionName:
+                                      type: string
+                                  required:
+                                  - oidcProviderArn
+                                  - oidcTokenFilePath
+                                  - roleArn
+                                  - sessionName
+                                  type: object
                                 secretRef:
                                   description: AlibabaAuthSecretRef holds secret references for Alibaba credentials.
                                   properties:
