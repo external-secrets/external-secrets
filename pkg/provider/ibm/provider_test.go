@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/IBM/go-sdk-core/v5/core"
-	sm "github.com/IBM/secrets-manager-go-sdk/secretsmanagerv2"
+	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
