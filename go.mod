@@ -90,7 +90,6 @@ require (
 	github.com/clbanning/mxj/v2 v2.5.7 // indirect
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
 	github.com/google/s2a-go v0.1.1 // indirect
-  github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20220614131811-bce91dc210ca // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 )
 

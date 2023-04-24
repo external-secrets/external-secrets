@@ -24,8 +24,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	aesdecrypt "github.com/Onboardbase/go-cryptojs-aes-decrypt/decrypt"
 )
 
 type OnboardbaseClient struct {
@@ -90,11 +88,20 @@ type secretResponseBodyObject struct {
 	Id string `json:"id,omitempty"`
 }
 
+type secretResponseSecrets struct {
+	Id string `json:"id"`
+	Key string `json:"key"`
+	Value string `json:"value"`
+} 
+
 type secretResponseBodyData struct {
 	Project secretResponseBodyObject `json:"project,omitempty"`
 	Environment secretResponseBodyObject `json:"environment,omitempty"`
 	Team secretResponseBodyObject `json:"team,omitempty"`
-	Secrets []string `json:"secrets,omitempty"`
+	Secrets []secretResponseSecrets `json:"secrets,omitempty"`
+	Status string `json:"status"`
+	Message string `json:"string"`
+	
 }
 
 type secretResponseBody struct {
@@ -175,15 +182,15 @@ func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (
 	kv := make(map[string]string)
 	for _, secret := range data.Secrets {
 		passphrase := c.OnboardbasePassCode
-		decrypted, err := aesdecrypt.Run(secret, passphrase)
+		key, err := DecryptAES(secret.Key, passphrase)
 		if err != nil {
-			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret}
+			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Key}
 		}
-		var decryptedJSON RawSecret
-		if err := json.Unmarshal([]byte(decrypted), &decryptedJSON); err != nil {
-		    return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: decrypted}
-	    }
-		kv[decryptedJSON.Key] = decryptedJSON.Value
+		value, err := DecryptAES(secret.Value, passphrase)
+		if err != nil {
+			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Value}
+		}
+		kv[key] = value
 	}
 	return kv, nil
 }
