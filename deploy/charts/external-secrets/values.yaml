@@ -237,6 +237,8 @@ webhook:
 
   tolerations: []
 
+  topologySpreadConstraints: []
+
   affinity: {}
 
     # -- Pod priority class name.
@@ -359,6 +361,8 @@ certController:
   nodeSelector: {}
 
   tolerations: []
+
+  topologySpreadConstraints: []
 
   affinity: {}
 
