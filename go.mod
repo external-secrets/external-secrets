@@ -37,7 +37,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.2
 	github.com/tidwall/gjson v1.14.4
-	github.com/xanzy/go-gitlab v0.82.0
+	github.com/xanzy/go-gitlab v0.83.0
 	github.com/yandex-cloud/go-genproto v0.0.0-20230410092700-15216dc82345
 	github.com/yandex-cloud/go-sdk v0.0.0-20230410093012-aaa9c33a87fb
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
