@@ -7,9 +7,11 @@ on:
       - release-*
     paths:
       - 'deploy/charts/**'
+      - 'deploy/crds'
   pull_request:
     paths:
       - 'deploy/charts/**'
+      - 'deploy/crds'
   workflow_dispatch: {}
 
 jobs:
