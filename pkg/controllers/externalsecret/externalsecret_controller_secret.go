@@ -113,7 +113,7 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 	if err != nil {
 		return nil, err
 	}
-	secretMap, err := gen.Generate(ctx, genDef, r.Client, namespace)
+	secretMap, err := gen.Generate(ctx, genDef, r.Client, namespace, r.ControllerClass)
 	if err != nil {
 		return nil, fmt.Errorf(errGenerate, i, err)
 	}

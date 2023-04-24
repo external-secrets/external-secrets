@@ -7081,6 +7081,9 @@ spec:
               type: object
             spec:
               properties:
+                controller:
+                  description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters VDS based on this property'
+                  type: string
                 method:
                   description: Vault API method to use (GET/POST/other)
                   type: string

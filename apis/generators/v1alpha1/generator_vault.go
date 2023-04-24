@@ -22,6 +22,11 @@ import (
 )
 
 type VaultDynamicSecretSpec struct {
+	// Used to select the correct KES controller (think: ingress.ingressClassName)
+	// The KES controller is instantiated with a specific controller name and filters VDS based on this property
+	// +optional
+	Controller string `json:"controller"`
+
 	// Vault API method to use (GET/POST/other)
 	Method string `json:"method,omitempty"`
 
