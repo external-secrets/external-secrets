@@ -44,7 +44,7 @@ require (
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.8.0
 	golang.org/x/oauth2 v0.7.0
-	google.golang.org/api v0.118.0
+	google.golang.org/api v0.119.0
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	google.golang.org/grpc v1.54.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -89,7 +89,7 @@ require (
 	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
 	github.com/clbanning/mxj/v2 v2.5.7 // indirect
 	github.com/go-playground/validator/v10 v10.12.0 // indirect
-	github.com/google/s2a-go v0.1.1 // indirect
+	github.com/google/s2a-go v0.1.2 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 )
 
