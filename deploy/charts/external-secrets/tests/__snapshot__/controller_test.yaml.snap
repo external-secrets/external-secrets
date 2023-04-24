@@ -35,4 +35,14 @@ should match snapshot of default values:
                 - containerPort: 8080
                   name: metrics
                   protocol: TCP
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000
+                seccompProfile:
+                  type: RuntimeDefault
           serviceAccountName: RELEASE-NAME-external-secrets
