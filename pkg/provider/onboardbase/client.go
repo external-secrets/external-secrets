@@ -40,6 +40,7 @@ const (
 	errInvalidClusterStoreMissingOnboardbaseAPIKeyNamespace = "missing auth.secretRef.onboardbaseAPIKey.namespace"
 	errFetchOnboardbaseAPIKeySecret                         = "unable to find find OnboardbaseAPIKey secret: %w"
 	errMissingOnboardbaseAPIKey                             = "auth.secretRef.onboardbaseAPIKey.key '%s' not found in secret '%s'"
+	errMissingOnboardbasePasscode                             = "auth.secretRef.onboardbasePasscode.key '%s' not found in secret '%s'"
 )
 
 type Client struct {
@@ -95,7 +96,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 
 	onboardbasePasscode := credentialsSecret.Data[c.store.Auth.OnboardbasePasscode.Key]
 	if (onboardbasePasscode == nil) || (len(onboardbasePasscode) == 0) {
-		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.OnboardbasePasscode.Key, credentialsSecretName)
+		return fmt.Errorf(errMissingOnboardbasePasscode, c.store.Auth.OnboardbasePasscode.Key, credentialsSecretName)
 	}
 
 	c.onboardbasePasscode = string(onboardbasePasscode)
