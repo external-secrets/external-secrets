@@ -68,16 +68,6 @@ type GroupVariablesClient interface {
 	ListVariables(gid interface{}, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
-// Gitlab Provider struct with gitlab auth, environment, projectID and groupIDs.
-type Gitlab struct {
-	url               string
-	credentials       []byte
-	projectID         string
-	inheritFromGroups bool
-	groupIDs          []string
-	environment       string
-}
-
 type ProjectGroupPathSorter []*gitlab.ProjectGroup
 
 func (a ProjectGroupPathSorter) Len() int           { return len(a) }
@@ -115,11 +105,6 @@ func (c *gitlabBase) getAuth(ctx context.Context) ([]byte, error) {
 		return nil, fmt.Errorf(errMissingSAK)
 	}
 	return credentials, nil
-}
-
-// Function newGitlabProvider returns a reference to a new instance of a 'Gitlab' struct.
-func NewGitlabProvider() *Gitlab {
-	return &Gitlab{}
 }
 
 func (g *gitlabBase) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
