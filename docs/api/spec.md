@@ -2543,6 +2543,19 @@ string
 </tr>
 <tr>
 <td>
+<code>createdSecretReference</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.NamespacedReference">
+NamespacedReference
+</a>
+</em>
+</td>
+<td>
+<p>CreatedSecretReference keeps track to the actual created reference</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conditions</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.ExternalSecretStatusCondition">
@@ -3749,6 +3762,44 @@ CAProvider
 <td>
 <em>(Optional)</em>
 <p>see: <a href="https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.NamespacedReference">NamespacedReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatus">ExternalSecretStatus</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
