@@ -18,5 +18,6 @@
 - [Radio France](https://www.radiofrance.fr/)
 - [Made People](https://madepeople.se/)
 - [Voiceflow](https://www.voiceflow.com/)
+- [VMware Tanzu](https://tanzu.vmware.com/)
 
 Countless others that can't disclose that information! :)
