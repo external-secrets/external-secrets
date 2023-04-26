@@ -2064,7 +2064,7 @@
 <span class="w">  </span><span class="nt">noUpper</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"></span>
 <span class="w">  </span><span class="nt">allowRepeat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
 </code></pre></div>
-<p>The above <code>Password</code> can be used with this <code>ExternalSecret</code></p>
+<p>Example <code>ExternalSecret</code> that references the Password generator:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"></span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span><span class="w"></span>
 <span class="nt">metadata</span><span class="p">:</span><span class="w"></span>
@@ -2079,8 +2079,8 @@
 <span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span><span class="w"></span>
 <span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span><span class="w"></span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-password&quot;</span><span class="w"></span>
-</code></pre></div>
-<p>Which will generate a <code>Secret</code> with a password key that may look like:</p>
+</code></pre></div></p>
+<p>Which will generate a <code>Kind=Secret</code> with a key called 'password' that may look like:</p>
 <div class="highlight"><pre><span></span><code>RMngCHKtZ@@h@3aja$WZDuDVhkCkN48JBa9OF8jH$R
 VB$pX8SSUMIlk9K8g@XxJAhGz$0$ktbJ1ArMukg-bD
 Hi$-aK_3Rrrw1Pj9-sIpPZuk5abvEDJlabUYUcS$9L
