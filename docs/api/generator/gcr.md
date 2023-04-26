@@ -28,3 +28,8 @@ For details see [GCP Secret Manager](../../provider/google-secrets-manager.md#au
 ```yaml
 {% include 'generator-gcr.yaml' %}
 ```
+
+Example `ExternalSecret` that references the GCR generator:
+```yaml
+{% include 'generator-gcr-example.yaml' %}
+```
