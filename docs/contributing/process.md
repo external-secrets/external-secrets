@@ -58,7 +58,7 @@ make test.e2e GINKGO_LABELS='gcp&&!managed'
 
 #### Managed Kubernetes e2e tests
 
-There's another suite of e2e tests that integrate with managed Kuberentes offerings.
+There's another suite of e2e tests that integrate with managed Kubernetes offerings.
 They create real infrastructure at a cloud provider and deploy the controller
 into that environment.
 This is necessary to test the authentication integration

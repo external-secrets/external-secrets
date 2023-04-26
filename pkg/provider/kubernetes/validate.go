@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -79,11 +80,14 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 		},
 	}
 	authReview, err := c.userReviewClient.Create(ctx, &t, metav1.CreateOptions{})
+	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesCreateSelfSubjectRulesReview, err)
 	if err != nil {
 		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}
 	for _, rev := range authReview.Status.ResourceRules {
-		if contains("secrets", rev.Resources) && contains("get", rev.Verbs) {
+		if (contains("secrets", rev.Resources) || contains("*", rev.Resources)) &&
+			(contains("get", rev.Verbs) || contains("*", rev.Verbs)) &&
+			(len(rev.APIGroups) == 0 || (contains("", rev.APIGroups) || contains("*", rev.APIGroups))) {
 			return esv1beta1.ValidationResultReady, nil
 		}
 	}

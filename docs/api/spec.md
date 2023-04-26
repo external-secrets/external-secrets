@@ -230,6 +230,17 @@ string
 <p>AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AWSServiceType">AWSServiceType
@@ -479,6 +490,34 @@ AkeylessAuth
 <p>Auth configures how the operator authenticates with Akeyless.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used
+if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates
+are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Akeyless Gateway certificate.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AlibabaAuth">AlibabaAuth
@@ -508,6 +547,20 @@ AlibabaAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>rrsa</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AlibabaRRSAAuth">
+AlibabaRRSAAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -588,17 +641,6 @@ AlibabaAuth
 </tr>
 <tr>
 <td>
-<code>endpoint</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-<tr>
-<td>
 <code>regionID</code></br>
 <em>
 string
@@ -606,6 +648,65 @@ string
 </td>
 <td>
 <p>Alibaba Region to be used for the provider</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.AlibabaRRSAAuth">AlibabaRRSAAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AlibabaAuth">AlibabaAuth</a>)
+</p>
+<p>
+<p>Authenticate against Alibaba using RRSA.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>oidcProviderArn</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcTokenFilePath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleArn</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -836,6 +937,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
 <a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
@@ -2679,6 +2781,18 @@ ExternalSecretTemplateMetadata
 </tr>
 <tr>
 <td>
+<code>mergePolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TemplateMergePolicy">
+TemplateMergePolicy
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
 <code>data</code></br>
 <em>
 map[string]string
@@ -3425,6 +3539,47 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.KeeperSecurityProvider">KeeperSecurityProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>KeeperSecurityProvider Configures a store to sync secrets using Keeper Security.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>folderID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.KubernetesAuth">KubernetesAuth
 </h3>
 <p>
@@ -3885,6 +4040,128 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 <p>This interface is to allow using v1alpha1 content in Provider registered in v1beta1.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.ScalewayProvider">ScalewayProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIURL is the url of the api to use. Defaults to <a href="https://api.scaleway.com">https://api.scaleway.com</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region where your secrets are located: <a href="https://developers.scaleway.com/en/quickstart/#region-and-zone">https://developers.scaleway.com/en/quickstart/#region-and-zone</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID is the id of your project, which you can find in the console: <a href="https://console.scaleway.com/project/settings">https://console.scaleway.com/project/settings</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProviderSecretRef">
+ScalewayProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>AccessKey is the non-secret part of the api key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProviderSecretRef">
+ScalewayProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretKey is the non-secret part of the api key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ScalewayProviderSecretRef">ScalewayProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ScalewayProvider">ScalewayProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.SecretStore">SecretStore
 </h3>
 <p>
@@ -4294,6 +4571,20 @@ SenhaseguraProvider
 </tr>
 <tr>
 <td>
+<code>scaleway</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ScalewayProvider">
+ScalewayProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Scaleway</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>doppler</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.DopplerProvider">
@@ -4304,6 +4595,20 @@ DopplerProvider
 <td>
 <em>(Optional)</em>
 <p>Doppler configures this store to sync secrets using the Doppler provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keepersecurity</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.KeeperSecurityProvider">
+KeeperSecurityProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider</p>
 </td>
 </tr>
 </tbody>
@@ -4871,6 +5176,27 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.TemplateMergePolicy">TemplateMergePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretTemplate">ExternalSecretTemplate</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Merge&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Replace&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.TemplateRef">TemplateRef
 </h3>
 <p>
@@ -5040,7 +5366,7 @@ External Secrets meta/v1.SecretKeySelector
 <td><p>Error indicates that there is a misconfiguration.</p>
 </td>
 </tr><tr><td><p>0</p></td>
-<td><p>Ready indicates that the client is confgured correctly
+<td><p>Ready indicates that the client is configured correctly
 and can be used.</p>
 </td>
 </tr><tr><td><p>1</p></td>

@@ -10,7 +10,7 @@ permissions:
 env:
   # Common versions
   GO_VERSION: '1.19'
-  GINKGO_VERSION: 'v2.1.6'
+  GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run

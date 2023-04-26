@@ -18,6 +18,8 @@ import (
 	"context"
 
 	vault "github.com/hashicorp/vault/api"
+
+	util "github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
 type LoginFn func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
@@ -59,6 +61,20 @@ func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithData
 		}
 		vault := &vault.Secret{
 			Data: secret,
+		}
+		return vault, err
+	}
+}
+
+func NewReadMetadataWithContextFn(secret map[string]interface{}, err error) ReadWithDataWithContextFn {
+	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+		if secret == nil {
+			return nil, err
+		}
+		metadata := make(map[string]interface{})
+		metadata["custom_metadata"] = secret
+		vault := &vault.Secret{
+			Data: metadata,
 		}
 		return vault, err
 	}
@@ -220,4 +236,28 @@ func (c *VaultClient) SetNamespace(namespace string) {
 
 func (c *VaultClient) AddHeader(key, value string) {
 	c.MockAddHeader(key, value)
+}
+
+func ClientWithLoginMock(c *vault.Config) (util.Client, error) {
+	cl := VaultClient{
+		MockAuthToken: NewAuthTokenFn(),
+		MockSetToken:  NewSetTokenFn(),
+		MockToken:     NewTokenFn(""),
+		MockAuth:      NewVaultAuth(),
+		MockLogical:   NewVaultLogical(),
+	}
+	auth := cl.Auth()
+	token := cl.AuthToken()
+	logical := cl.Logical()
+	out := util.VClient{
+		SetTokenFunc:     cl.SetToken,
+		TokenFunc:        cl.Token,
+		ClearTokenFunc:   cl.ClearToken,
+		AuthField:        auth,
+		AuthTokenField:   token,
+		LogicalField:     logical,
+		SetNamespaceFunc: cl.SetNamespace,
+		AddHeaderFunc:    cl.AddHeader,
+	}
+	return out, nil
 }

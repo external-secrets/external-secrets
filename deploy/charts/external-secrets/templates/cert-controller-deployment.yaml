@@ -12,6 +12,7 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.certController.replicaCount }}
+  revisionHistoryLimit: {{ .Values.certController.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
@@ -99,6 +100,10 @@ spec:
       {{- end }}
       {{- with .Values.certController.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.certController.priorityClassName }}

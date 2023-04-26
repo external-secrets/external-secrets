@@ -1,5 +1,5 @@
 External Secrets Operator provides different modes of operation to fulfill
-ogranizational needs. This guide outlines the flexibility of ESO and should give
+organizational needs. This guide outlines the flexibility of ESO and should give
 you a first impression of how you can employ this operator in your organization.
 
 For a multi-tenant deployment you should first examine your organizational

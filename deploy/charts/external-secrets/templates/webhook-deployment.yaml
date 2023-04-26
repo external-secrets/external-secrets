@@ -12,6 +12,7 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.webhook.replicaCount }}
+  revisionHistoryLimit: {{ .Values.webhook.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
@@ -109,6 +110,10 @@ spec:
       {{- end }}
       {{- with .Values.webhook.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.webhook.priorityClassName }}

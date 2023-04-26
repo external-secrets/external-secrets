@@ -30,6 +30,27 @@ spec:
     remoteRef:
       key: database-credentials
       property: password
+
+  # metadataPolicy to fetch all the labels and annotations in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: database-credentials
+
+  # metadataPolicy to fetch all the labels in JSON format
+  - secretKey: labels
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: database-credentials
+	  property: labels
+
+  # metadataPolicy to fetch a specific label (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: database-credentials
+	  property: labels.dev
+
 ```
 
 #### find by tag & name

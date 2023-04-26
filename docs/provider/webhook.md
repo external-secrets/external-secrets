@@ -71,6 +71,9 @@ data:
 
 Webhook does not support authorization, other than what can be sent by generating http headers
 
+!!! note
+      If a webhook endpoint for a given `ExternalSecret` returns a 404 status code, the secret is considered to have been deleted.  This will trigger the `deletionPolicy` set on the `ExternalSecret`.
+
 ### Templating
 
 Generic WebHook provider uses the templating engine to generate the API call.  It can be used in the url, headers, body and result.jsonPath fields.

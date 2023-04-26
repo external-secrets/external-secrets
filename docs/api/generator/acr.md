@@ -47,3 +47,7 @@ repository:my-repository:pull
 {% include 'generator-acr.yaml' %}
 ```
 
+Example ExternalSecret that references the ACR generator:
+```yaml
+{% include 'generator-acr-example.yaml' %}
+```

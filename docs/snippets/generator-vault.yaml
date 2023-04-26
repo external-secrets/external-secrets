@@ -1,0 +1,38 @@
+{% raw %}
+
+---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
+metadata:
+  name: "pki-example"
+spec:
+  path: "/pki/issue/example-dot-com"
+  method: "POST"
+  parameters:
+    common_name: "localhost"
+    ip_sans: "127.0.0.1,127.0.0.11"
+  provider:
+    server: "http://vault.default.svc.cluster.local:8200"
+    auth:
+      kubernetes:
+        mountPath: "kubernetes"
+        role: "external-secrets-operator"
+        serviceAccountRef:
+          name: "default"
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: "pki-example-com"
+spec:
+  refreshInterval: "768h"
+  target:
+    name: pki-example-com
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: VaultDynamicSecret
+        name: "pki-example"
+
+{% endraw %}

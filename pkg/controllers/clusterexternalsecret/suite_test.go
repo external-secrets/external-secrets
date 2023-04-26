@@ -16,7 +16,6 @@ package clusterexternalsecret
 
 import (
 	"context"
-	"math/rand"
 	"path/filepath"
 	"testing"
 	"time"
@@ -50,7 +49,6 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	rand.Seed(time.Now().UnixNano())
 	log := zap.New(zap.WriteTo(GinkgoWriter), zap.Level(zapcore.DebugLevel))
 
 	logf.SetLogger(log)

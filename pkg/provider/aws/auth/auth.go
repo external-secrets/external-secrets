@@ -126,11 +126,19 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, aRole))
 	}
 
+	sessExtID := prov.ExternalID
 	if prov.Role != "" {
 		stsclient := assumeRoler(sess)
-		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role))
+		if sessExtID != "" {
+			var setExternalID = func(p *stscreds.AssumeRoleProvider) {
+				p.ExternalID = aws.String(sessExtID)
+			}
+			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role, setExternalID))
+		} else {
+			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role))
+		}
 	}
-	log.Info("using aws session", "region", *sess.Config.Region, "credentials", creds)
+	log.Info("using aws session", "region", *sess.Config.Region, "external id", sessExtID, "credentials", creds)
 	return sess, nil
 }
 

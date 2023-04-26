@@ -31,6 +31,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
+	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -243,6 +244,7 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		for groupPage := 1; ; groupPage++ {
 			gopts.Page = groupPage
 			groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
+			metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabGroupListVariables, err)
 			if err != nil {
 				return nil, err
 			}
@@ -263,6 +265,7 @@ func (g *Gitlab) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	for projectPage := 1; ; projectPage++ {
 		popts.Page = projectPage
 		projectData, response, err := g.projectVariablesClient.ListVariables(g.projectID, popts)
+		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabProjectListVariables, err)
 		if err != nil {
 			return nil, err
 		}
@@ -320,9 +323,11 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	data, resp, err := g.projectVariablesClient.GetVariable(g.projectID, ref.Key, vopts)
+	metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabProjectVariableGet, err)
 	if !isEmptyOrWildcard(g.environment) && resp.StatusCode == http.StatusNotFound {
 		vopts.Filter.EnvironmentScope = "*"
 		data, resp, err = g.projectVariablesClient.GetVariable(g.projectID, ref.Key, vopts)
+		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabProjectVariableGet, err)
 	}
 
 	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
@@ -346,6 +351,7 @@ func (g *Gitlab) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		}
 
 		groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, nil)
+		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabGroupGetVariable, err)
 		if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
 			return nil, err
 		}
@@ -430,6 +436,7 @@ func (g *Gitlab) Close(ctx context.Context) error {
 func (g *Gitlab) Validate() (esv1beta1.ValidationResult, error) {
 	if g.projectID != "" {
 		_, resp, err := g.projectVariablesClient.ListVariables(g.projectID, nil)
+		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabProjectListVariables, err)
 		if err != nil {
 			return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
 		} else if resp == nil || resp.StatusCode != http.StatusOK {
@@ -446,6 +453,7 @@ func (g *Gitlab) Validate() (esv1beta1.ValidationResult, error) {
 	if len(g.groupIDs) > 0 {
 		for _, groupID := range g.groupIDs {
 			_, resp, err := g.groupVariablesClient.ListVariables(groupID, nil)
+			metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabGroupListVariables, err)
 			if err != nil {
 				return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
 			} else if resp == nil || resp.StatusCode != http.StatusOK {
@@ -460,6 +468,7 @@ func (g *Gitlab) Validate() (esv1beta1.ValidationResult, error) {
 func (g *Gitlab) ResolveGroupIds() error {
 	if g.inheritFromGroups {
 		projectGroups, resp, err := g.projectsClient.ListProjectsGroups(g.projectID, nil)
+		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabListProjectsGroups, err)
 		if resp.StatusCode >= 400 && err != nil {
 			return err
 		}

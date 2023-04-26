@@ -12,6 +12,7 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "external-secrets.selectorLabels" . | nindent 6 }}
@@ -67,6 +68,9 @@ spec:
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}
           {{- end }}
+          {{- if .Values.extendedMetricLabels }}
+          - --enable-extended-metric-labels={{ .Values.extendedMetricLabels }}
+          {{- end }}
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
@@ -94,6 +98,9 @@ spec:
           volumeMounts:
           {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
           {{- end }}
+        {{- if .Values.extraContainers }}
+          {{ toYaml .Values.extraContainers | nindent 8}}
+        {{- end }}
       {{- if .Values.dnsConfig }}
       dnsConfig:
           {{- toYaml .Values.dnsConfig | nindent 8 }}
@@ -112,6 +119,10 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.priorityClassName }}

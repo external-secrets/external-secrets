@@ -29,17 +29,17 @@ func FindByTag(f *framework.Framework) (string, func(*framework.TestCase)) {
 		secretKeyTwo := fmt.Sprintf(namePrefix, f.Namespace.Name, "two")
 		secretKeyThree := fmt.Sprintf(namePrefix, f.Namespace.Name, "three")
 		tc.Secrets = map[string]framework.SecretEntry{
-			secretKeyOne: {
+			f.MakeRemoteRefKey(secretKeyOne): {
 				Value: secretValue1,
 				Tags: map[string]string{
 					"test": f.Namespace.Name,
 				}},
-			secretKeyTwo: {
+			f.MakeRemoteRefKey(secretKeyTwo): {
 				Value: secretValue1,
 				Tags: map[string]string{
 					"test": f.Namespace.Name,
 				}},
-			secretKeyThree: {
+			f.MakeRemoteRefKey(secretKeyThree): {
 				Value: secretValue1,
 				Tags: map[string]string{
 					"test": f.Namespace.Name,

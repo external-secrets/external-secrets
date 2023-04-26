@@ -27,7 +27,7 @@ kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 
 ## Features
 
-Individual features are described in the [Guides section](../guides/):
+Individual features are described in the [Guides section](../guides/introduction.md):
 
 * [Find many secrets / Extract from structured data](../guides/getallsecrets.md)
 * [Templating](../guides/templating.md)

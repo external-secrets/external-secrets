@@ -193,6 +193,207 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	}
 }
 
+func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
+	tests := []struct {
+		name                string
+		ref                 esv1beta1.ExternalSecretDataRemoteRef
+		getSecretMockReturn fakesm.GetSecretMockReturn
+		expectedSecret      string
+		expectedErr         string
+	}{
+		{
+			name: "annotation is specified",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "annotations.managed-by",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Annotations: map[string]string{
+						"managed-by": "external-secrets",
+					},
+				},
+				Err: nil,
+			},
+			expectedSecret: "external-secrets",
+		},
+		{
+			name: "label is specified",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "labels.managed-by",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Labels: map[string]string{
+						"managed-by": "external-secrets",
+					},
+				},
+				Err: nil,
+			},
+			expectedSecret: "external-secrets",
+		},
+		{
+			name: "annotations is specified",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "annotations",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Annotations: map[string]string{
+						"annotationKey1": "annotationValue1",
+						"annotationKey2": "annotationValue2",
+					},
+					Labels: map[string]string{
+						"labelKey1": "labelValue1",
+						"labelKey2": "labelValue2",
+					},
+				},
+				Err: nil,
+			},
+			expectedSecret: `{"annotationKey1":"annotationValue1","annotationKey2":"annotationValue2"}`,
+		},
+		{
+			name: "labels is specified",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "labels",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Annotations: map[string]string{
+						"annotationKey1": "annotationValue1",
+						"annotationKey2": "annotationValue2",
+					},
+					Labels: map[string]string{
+						"labelKey1": "labelValue1",
+						"labelKey2": "labelValue2",
+					},
+				},
+				Err: nil,
+			},
+			expectedSecret: `{"labelKey1":"labelValue1","labelKey2":"labelValue2"}`,
+		},
+		{
+			name: "no property is specified",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Labels: map[string]string{
+						"label-key": "label-value",
+					},
+					Annotations: map[string]string{
+						"annotation-key": "annotation-value",
+					},
+				},
+				Err: nil,
+			},
+			expectedSecret: `{"annotations":{"annotation-key":"annotation-value"},"labels":{"label-key":"label-value"}}`,
+		},
+		{
+			name: "annotation does not exist",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "annotations.unknown",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Annotations: map[string]string{
+						"managed-by": "external-secrets",
+					},
+				},
+				Err: nil,
+			},
+			expectedErr: "annotation with key unknown does not exist in secret bar",
+		},
+		{
+			name: "label does not exist",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "labels.unknown",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Labels: map[string]string{
+						"managed-by": "external-secrets",
+					},
+				},
+				Err: nil,
+			},
+			expectedErr: "label with key unknown does not exist in secret bar",
+		},
+		{
+			name: "invalid property",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:            "bar",
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Property:       "invalid.managed-by",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+					Labels: map[string]string{
+						"managed-by": "external-secrets",
+					},
+				},
+				Err: nil,
+			},
+			expectedErr: "invalid property invalid.managed-by",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			smClient := fakesm.MockSMClient{}
+			smClient.NewGetSecretFn(tc.getSecretMockReturn)
+
+			client := Client{
+				smClient: &smClient,
+				store: &esv1beta1.GCPSMProvider{
+					ProjectID: "foo",
+				},
+			}
+			got, err := client.GetSecret(context.TODO(), tc.ref)
+			if tc.expectedErr != "" {
+				if err == nil {
+					t.Fatalf("expected to receive an error but got nit")
+				}
+
+				if !ErrorContains(err, tc.expectedErr) {
+					t.Fatalf("unexpected error: %s, expected: '%s'", err.Error(), tc.expectedErr)
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if gotStr := string(got); gotStr != tc.expectedSecret {
+				t.Fatalf("unexpected secret: expected %s, got %s", tc.expectedSecret, gotStr)
+			}
+		})
+	}
+}
+
 type fakeRef struct {
 	key string
 }
@@ -309,6 +510,7 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
+
 func TestSetSecret(t *testing.T) {
 	ref := fakeRef{key: "/baz"}
 
