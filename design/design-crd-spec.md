@@ -207,6 +207,9 @@ status:
     reason: "SecretSynced"
     message: "Secret was synced"
     lastTransitionTime: "2019-08-12T12:33:02Z"
+  # servicebinding.io Provisioned Service reference to the secret
+  binding:
+    name: my-secret
 
 ```
 

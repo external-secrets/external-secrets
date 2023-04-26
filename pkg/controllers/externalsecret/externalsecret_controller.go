@@ -287,11 +287,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
+		if err == nil {
+			externalSecret.Status.Binding = v1.LocalObjectReference{Name: secret.Name}
+		}
 	case esv1beta1.CreatePolicyNone:
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
 		err = createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
+		if err == nil {
+			externalSecret.Status.Binding = v1.LocalObjectReference{Name: secret.Name}
+		}
 	}
 
 	if err != nil {
