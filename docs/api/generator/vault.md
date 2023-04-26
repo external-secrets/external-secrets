@@ -17,3 +17,8 @@ are stored into the resulting Secret in JSON format.
 ```yaml
 {% include 'generator-vault.yaml' %}
 ```
+
+Example `ExternalSecret` that references the Vault generator:
+```yaml
+{% include 'generator-vault-example.yaml' %}
+```

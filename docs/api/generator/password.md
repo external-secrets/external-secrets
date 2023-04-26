@@ -28,13 +28,12 @@ You can influence the behavior of the generator by providing the following args
 {% include 'generator-password.yaml' %}
 ```
 
-The above `Password` can be used with this `ExternalSecret`
-
+Example `ExternalSecret` that references the Password generator:
 ```yaml
-{% include 'generator-password-external-secret.yaml' %}
+{% include 'generator-password-example.yaml' %}
 ```
 
-Which will generate a `Secret` with a password key that may look like:
+Which will generate a `Kind=Secret` with a key called 'password' that may look like:
 
 ```
 RMngCHKtZ@@h@3aja$WZDuDVhkCkN48JBa9OF8jH$R

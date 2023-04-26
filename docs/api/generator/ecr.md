@@ -24,3 +24,8 @@ You can choose from three authentication mechanisms:
 ```yaml
 {% include 'generator-ecr.yaml' %}
 ```
+
+Example `ExternalSecret` that references the ECR generator:
+```yaml
+{% include 'generator-ecr-example.yaml' %}
+```
