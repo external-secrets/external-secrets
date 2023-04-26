@@ -57,8 +57,8 @@ func (g *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return gl, nil
 }
 
-func (gl *gitlabBase) getClient(ctx context.Context, provider *esv1beta1.GitlabProvider) (*gitlab.Client, error) {
-	credentials, err := gl.getAuth(ctx)
+func (g *gitlabBase) getClient(ctx context.Context, provider *esv1beta1.GitlabProvider) (*gitlab.Client, error) {
+	credentials, err := g.getAuth(ctx)
 	if err != nil {
 		return nil, err
 	}

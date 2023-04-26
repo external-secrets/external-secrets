@@ -77,31 +77,31 @@ func (a ProjectGroupPathSorter) Less(i, j int) bool { return len(a[i].FullPath) 
 var log = ctrl.Log.WithName("provider").WithName("gitlab")
 
 // Set gitlabBase credentials to Access Token.
-func (c *gitlabBase) getAuth(ctx context.Context) ([]byte, error) {
+func (g *gitlabBase) getAuth(ctx context.Context) ([]byte, error) {
 	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.AccessToken.Name
+	credentialsSecretName := g.store.Auth.SecretRef.AccessToken.Name
 	if credentialsSecretName == "" {
 		return nil, fmt.Errorf(errGitlabCredSecretName)
 	}
 	objectKey := types.NamespacedName{
 		Name:      credentialsSecretName,
-		Namespace: c.namespace,
+		Namespace: g.namespace,
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.AccessToken.Namespace == nil {
+	if g.storeKind == esv1beta1.ClusterSecretStoreKind {
+		if g.store.Auth.SecretRef.AccessToken.Namespace == nil {
 			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
 		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.AccessToken.Namespace
+		objectKey.Namespace = *g.store.Auth.SecretRef.AccessToken.Namespace
 	}
 
-	err := c.kube.Get(ctx, objectKey, credentialsSecret)
+	err := g.kube.Get(ctx, objectKey, credentialsSecret)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchSAKSecret, err)
 	}
 
-	credentials := credentialsSecret.Data[c.store.Auth.SecretRef.AccessToken.Key]
-	if credentials == nil || len(credentials) == 0 {
+	credentials := credentialsSecret.Data[g.store.Auth.SecretRef.AccessToken.Key]
+	if len(credentials) == 0 {
 		return nil, fmt.Errorf(errMissingSAK)
 	}
 	return credentials, nil
