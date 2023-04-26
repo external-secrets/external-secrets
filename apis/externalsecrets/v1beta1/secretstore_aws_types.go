@@ -26,6 +26,8 @@ type AWSAuth struct {
 	SecretRef *AWSAuthSecretRef `json:"secretRef,omitempty"`
 	// +optional
 	JWTAuth *AWSJWTAuth `json:"jwt,omitempty"`
+	// +optional
+	IAMAnywhere *AWSIAMAnywhere `json:"iamAnywhere,omitempty"`
 }
 
 // AWSAuthSecretRef holds secret references for AWS credentials
@@ -47,6 +49,18 @@ type AWSAuthSecretRef struct {
 // Authenticate against AWS using service account tokens.
 type AWSJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+}
+
+type AWSIAMAnywhere struct {
+	PrivateKey     esmeta.SecretKeySelector `json:"privateKeyRef"`
+	Certificate    esmeta.SecretKeySelector `json:"certificateRef"`
+	RoleARN        string                   `json:"roleArn"`
+	ProfileARN     string                   `json:"profileArn"`
+	TrustAnchorArn string                   `json:"trustAnchorArn"`
+	// +optional
+	Region string `json:"region,omitempty"`
+	// +optional
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 // AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.

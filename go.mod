@@ -77,6 +77,7 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
 	github.com/aliyun/credentials-go v1.4.3
 	github.com/avast/retry-go/v4 v4.6.0
+	github.com/aws/rolesanywhere-credential-helper v1.4.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cyberark/conjur-api-go v0.12.7
 	github.com/fortanix/sdkms-client-go v0.4.0
