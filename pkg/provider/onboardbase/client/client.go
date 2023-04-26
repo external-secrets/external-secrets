@@ -27,12 +27,12 @@ import (
 )
 
 type OnboardbaseClient struct {
-	baseURL      *url.URL
-	OnboardbaseAPIKey string
-	VerifyTLS    bool
-	UserAgent    string
+	baseURL             *url.URL
+	OnboardbaseAPIKey   string
+	VerifyTLS           bool
+	UserAgent           string
 	OnboardbasePassCode string
-	httpClient *http.Client
+	httpClient          *http.Client
 }
 
 type queryParams map[string]string
@@ -44,7 +44,7 @@ type httpRequestBody []byte
 type Secrets map[string]string
 
 type RawSecret struct {
-	Key string `json:"key,omitempty"`
+	Key   string `json:"key,omitempty"`
 	Value string `json:"value,omitempty"`
 }
 
@@ -67,14 +67,14 @@ type apiErrorResponse struct {
 }
 
 type SecretRequest struct {
-	Environment    string
-	Project string
-	Name    string
+	Environment string
+	Project     string
+	Name        string
 }
 
 type SecretsRequest struct {
-	Environment    string
-	Project string
+	Environment string
+	Project     string
 }
 
 type UpdateSecretsRequest struct {
@@ -85,29 +85,28 @@ type UpdateSecretsRequest struct {
 
 type secretResponseBodyObject struct {
 	Title string `json:"title,omitempty"`
-	Id string `json:"id,omitempty"`
+	Id    string `json:"id,omitempty"`
 }
 
 type secretResponseSecrets struct {
-	Id string `json:"id"`
-	Key string `json:"key"`
+	Id    string `json:"id"`
+	Key   string `json:"key"`
 	Value string `json:"value"`
-} 
+}
 
 type secretResponseBodyData struct {
-	Project secretResponseBodyObject `json:"project,omitempty"`
+	Project     secretResponseBodyObject `json:"project,omitempty"`
 	Environment secretResponseBodyObject `json:"environment,omitempty"`
-	Team secretResponseBodyObject `json:"team,omitempty"`
-	Secrets []secretResponseSecrets `json:"secrets,omitempty"`
-	Status string `json:"status"`
-	Message string `json:"string"`
-	
+	Team        secretResponseBodyObject `json:"team,omitempty"`
+	Secrets     []secretResponseSecrets  `json:"secrets,omitempty"`
+	Status      string                   `json:"status"`
+	Message     string                   `json:"string"`
 }
 
 type secretResponseBody struct {
-	Data secretResponseBodyData `json:"data,omitempty"`
-	Message string `json:"message,omitempty"`
-	Status string `json:"status,omitempty"`
+	Data    secretResponseBodyData `json:"data,omitempty"`
+	Message string                 `json:"message,omitempty"`
+	Status  string                 `json:"status,omitempty"`
 }
 
 type SecretResponse struct {
@@ -116,12 +115,11 @@ type SecretResponse struct {
 }
 
 type SecretsResponse struct {
-	Secrets  Secrets
-	Body     []byte
+	Secrets Secrets
+	Body    []byte
 }
 
 func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*OnboardbaseClient, error) {
-
 
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -131,16 +129,15 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*Onboa
 		TLSClientConfig:   tlsConfig,
 	}
 	client := &OnboardbaseClient{
-		OnboardbaseAPIKey: onboardbaseAPIKey,
+		OnboardbaseAPIKey:   onboardbaseAPIKey,
 		OnboardbasePassCode: onboardbasePasscode,
-		VerifyTLS:    true,
-		UserAgent:    "onboardbase-external-secrets",
+		VerifyTLS:           true,
+		UserAgent:           "onboardbase-external-secrets",
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout:   10 * time.Second,
 			Transport: httpTransport,
 		},
 	}
-
 
 	if err := client.SetBaseURL("https://public.onboardbase.com/api/v1/"); err != nil {
 		return nil, &APIError{Err: err, Message: "setting base URL failed"}
@@ -171,7 +168,7 @@ func (c *OnboardbaseClient) SetBaseURL(urlStr string) error {
 
 func (c *OnboardbaseClient) Authenticate() error {
 
-	if _, err := c.performRequest("/team/members", "GET", headers{}, queryParams{	}, httpRequestBody{}); err != nil {
+	if _, err := c.performRequest("/team/members", "GET", headers{}, queryParams{}, httpRequestBody{}); err != nil {
 		return err
 	}
 
@@ -227,14 +224,13 @@ func (c *OnboardbaseClient) GetSecrets(request SecretsRequest) (*SecretsResponse
 		return nil, apiErr
 	}
 
-
 	var data secretResponseBody
 	if err := json.Unmarshal(response.Body, &data); err != nil {
 		return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: string(response.Body)}
 	}
 
 	secrets, _ := c.getSecretsFromPayload(data.Data)
-	return &SecretsResponse{ Secrets: secrets, Body: response.Body}, nil
+	return &SecretsResponse{Secrets: secrets, Body: response.Body}, nil
 }
 
 func (r *SecretsRequest) buildQueryParams() queryParams {
@@ -244,7 +240,6 @@ func (r *SecretsRequest) buildQueryParams() queryParams {
 		params["project"] = r.Project
 	}
 
-
 	if r.Environment != "" {
 		params["environment"] = r.Environment
 	}
@@ -252,14 +247,12 @@ func (r *SecretsRequest) buildQueryParams() queryParams {
 	return params
 }
 
-
 func (r *SecretRequest) buildQueryParams() queryParams {
 	params := queryParams{}
 
 	if r.Project != "" {
 		params["project"] = r.Project
 	}
-
 
 	if r.Environment != "" {
 		params["environment"] = r.Environment

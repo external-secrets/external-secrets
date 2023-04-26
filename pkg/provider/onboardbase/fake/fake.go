@@ -26,7 +26,6 @@ func (obbc *OnboardbaseClient) GetSecret(request client.SecretRequest) (*client.
 }
 
 func (obbc *OnboardbaseClient) GetSecrets(request client.SecretsRequest) (*client.SecretsResponse, error) {
-	// Not implemented
 	return &client.SecretsResponse{}, nil
 }
 

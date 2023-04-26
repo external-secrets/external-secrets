@@ -33,22 +33,22 @@ import (
 )
 
 const (
-	errGetSecret                                       = "could not get secret %s: %s"
-	errGetSecrets                                      = "could not get secrets %s"
-	errUnmarshalSecretMap                              = "unable to unmarshal secret %s: %w"
+	errGetSecret                                            = "could not get secret %s: %s"
+	errGetSecrets                                           = "could not get secrets %s"
+	errUnmarshalSecretMap                                   = "unable to unmarshal secret %s: %w"
 	errOnboardbaseAPIKeySecretName                          = "missing auth.secretRef.onboardbaseAPIKey.name"
 	errInvalidClusterStoreMissingOnboardbaseAPIKeyNamespace = "missing auth.secretRef.onboardbaseAPIKey.namespace"
 	errFetchOnboardbaseAPIKeySecret                         = "unable to find find OnboardbaseAPIKey secret: %w"
 	errMissingOnboardbaseAPIKey                             = "auth.secretRef.onboardbaseAPIKey.key '%s' not found in secret '%s'"
-	errMissingOnboardbasePasscode                             = "auth.secretRef.onboardbasePasscode.key '%s' not found in secret '%s'"
+	errMissingOnboardbasePasscode                           = "auth.secretRef.onboardbasePasscode.key '%s' not found in secret '%s'"
 )
 
 type Client struct {
 	onboardbase         SecretsClientInterface
-	onboardbaseAPIKey    string
-	onboardbasePasscode    string
-	project         string
-	environment		string
+	onboardbaseAPIKey   string
+	onboardbasePasscode string
+	project             string
+	environment         string
 
 	kube      kclient.Client
 	store     *esv1beta1.OnboardbaseProvider
@@ -93,7 +93,6 @@ func (c *Client) setAuth(ctx context.Context) error {
 	}
 	c.onboardbaseAPIKey = string(onboardbaseAPIKey)
 
-
 	onboardbasePasscode := credentialsSecret.Data[c.store.Auth.OnboardbasePasscode.Key]
 	if (onboardbasePasscode == nil) || (len(onboardbasePasscode) == 0) {
 		return fmt.Errorf(errMissingOnboardbasePasscode, c.store.Auth.OnboardbasePasscode.Key, credentialsSecretName)
@@ -129,16 +128,15 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 
 func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	request := dClient.SecretRequest{
-		Project: c.project,
+		Project:     c.project,
 		Environment: c.environment,
-		Name: ref.Key,
+		Name:        ref.Key,
 	}
 
 	secret, err := c.onboardbase.GetSecret(request)
 	if err != nil {
 		return nil, fmt.Errorf(errGetSecret, ref.Key, err)
 	}
-
 
 	return []byte(secret.Value), nil
 }
@@ -205,7 +203,7 @@ func (c *Client) Close(_ context.Context) error {
 
 func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
 	request := dClient.SecretsRequest{
-		Project:         c.project,
+		Project:     c.project,
 		Environment: c.environment,
 	}
 
@@ -213,7 +211,6 @@ func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf(errGetSecrets, err)
 	}
-
 
 	return externalSecretsFormat(response.Secrets), nil
 }

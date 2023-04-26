@@ -40,7 +40,7 @@ func bytesToKey(data []byte, salt []byte, output int32) (finalOutput []byte) {
 		finalKey = []byte(string(finalKey) + string(key))
 	}
 	finalOutput = finalKey[0:output]
-	return 
+	return
 }
 
 func parseSecrets(ciphertext string, passcode string) (string, error) {
