@@ -106,13 +106,16 @@ podLabels: {}
 podSecurityContext: {}
   # fsGroup: 2000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
 
 resources: {}
   # requests:
@@ -237,6 +240,8 @@ webhook:
 
   tolerations: []
 
+  topologySpreadConstraints: []
+
   affinity: {}
 
     # -- Pod priority class name.
@@ -312,13 +317,16 @@ webhook:
   podSecurityContext: {}
       # fsGroup: 2000
 
-  securityContext: {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
 
   resources: {}
       # requests:
@@ -359,6 +367,8 @@ certController:
   nodeSelector: {}
 
   tolerations: []
+
+  topologySpreadConstraints: []
 
   affinity: {}
 
@@ -426,13 +436,16 @@ certController:
   podSecurityContext: {}
       # fsGroup: 2000
 
-  securityContext: {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
 
   resources: {}
       # requests:

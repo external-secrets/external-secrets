@@ -64,7 +64,12 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.requeueInterval | string | `"5m"` |  |
 | certController.resources | object | `{}` |  |
 | certController.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
-| certController.securityContext | object | `{}` |  |
+| certController.securityContext.allowPrivilegeEscalation | bool | `false` |  |
+| certController.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
+| certController.securityContext.readOnlyRootFilesystem | bool | `true` |  |
+| certController.securityContext.runAsNonRoot | bool | `true` |  |
+| certController.securityContext.runAsUser | int | `1000` |  |
+| certController.securityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | certController.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the pod |
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
@@ -75,6 +80,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | certController.tolerations | list | `[]` |  |
+| certController.topologySpreadConstraints | list | `[]` |  |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
 | crds.annotations | object | `{}` |  |
@@ -118,7 +124,12 @@ The command removes all the Kubernetes components associated with the chart and 
 | revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
 | scopedRBAC | bool | `false` | Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace and implicitly disable cluster stores and cluster external secrets |
-| securityContext | object | `{}` |  |
+| securityContext.allowPrivilegeEscalation | bool | `false` |  |
+| securityContext.capabilities.drop[0] | string | `"ALL"` |  |
+| securityContext.readOnlyRootFilesystem | bool | `true` |  |
+| securityContext.runAsNonRoot | bool | `true` |  |
+| securityContext.runAsUser | int | `1000` |  |
+| securityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the pod |
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
@@ -171,7 +182,12 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.resources | object | `{}` |  |
 | webhook.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | webhook.secretAnnotations | object | `{}` | Annotations to add to Secret |
-| webhook.securityContext | object | `{}` |  |
+| webhook.securityContext.allowPrivilegeEscalation | bool | `false` |  |
+| webhook.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
+| webhook.securityContext.readOnlyRootFilesystem | bool | `true` |  |
+| webhook.securityContext.runAsNonRoot | bool | `true` |  |
+| webhook.securityContext.runAsUser | int | `1000` |  |
+| webhook.securityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | webhook.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the pod |
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
@@ -182,3 +198,4 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | webhook.tolerations | list | `[]` |  |
+| webhook.topologySpreadConstraints | list | `[]` |  |
