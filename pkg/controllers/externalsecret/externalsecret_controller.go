@@ -291,16 +291,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 	default:
-		op, opErr := createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
-		err = opErr
-
+		op, err := createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
 		if op == true && isOrphanSecret(externalSecret, secret) {
-			err = r.Delete(ctx, &v1.Secret{
+			opErr := r.Delete(ctx, &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      externalSecret.Status.CreatedSecretReference.Name,
 					Namespace: externalSecret.Status.CreatedSecretReference.Namespace,
 				},
 			})
+			if opErr != nil {
+				msg := fmt.Sprintf("failed to delete orphaned secret '%v/'%v'", externalSecret.Status.CreatedSecretReference.Namespace, externalSecret.Status.CreatedSecretReference.Name)
+				log.Error(err, msg)
+				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
+				SetExternalSecretCondition(&externalSecret, *conditionSynced)
+				syncCallsError.With(resourceLabels).Inc()
+				return ctrl.Result{}, opErr
+			}
+
 		}
 	}
 

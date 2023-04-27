@@ -487,6 +487,24 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	deleteOrhpanedSecrets := func(tc *testCase) {
+		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
+			cleanEs := es.DeepCopy()
+			es.Spec.Target.Name = "new-foo"
+			Expect(k8sClient.Patch(context.Background(), es, client.MergeFrom(cleanEs))).To(Succeed())
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			oldSecret := v1.Secret{}
+			secretName := types.NamespacedName{
+				Name:      "target-secret",
+				Namespace: secret.Namespace,
+			}
+			err := k8sClient.Get(context.Background(), secretName, &oldSecret)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		}
+	}
+
 	syncWithMultipleSecretStores := func(tc *testCase) {
 		Expect(k8sClient.Create(context.Background(), &esv1beta1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1803,7 +1821,6 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 		}
 	}
-
 	// Secret is created when ClusterSecretStore has a multiple string conditions, one matching
 	secretCreatedWhenNamespaceMatchesMultipleStringConditions := func(tc *testCase) {
 		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
@@ -1960,6 +1977,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		},
 		Entry("should recreate deleted secret", checkDeletion),
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
+		Entry("es deletes orphaned secrets", deleteOrhpanedSecrets),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
 		Entry("should use external secret name if target secret name isn't defined", syncWithoutTargetName),
 		Entry("should set the condition eventually", syncLabelsAnnotations),
