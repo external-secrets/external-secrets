@@ -6,10 +6,10 @@ should match snapshot of default values:
       labels:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/name: external-secrets-webhook
         app.kubernetes.io/version: v0.8.1
         helm.sh/chart: external-secrets-0.8.1
-      name: RELEASE-NAME-external-secrets
+      name: RELEASE-NAME-external-secrets-webhook
       namespace: NAMESPACE
     spec:
       replicas: 1
@@ -17,24 +17,39 @@ should match snapshot of default values:
       selector:
         matchLabels:
           app.kubernetes.io/instance: RELEASE-NAME
-          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/name: external-secrets-webhook
       template:
         metadata:
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/name: external-secrets
+            app.kubernetes.io/name: external-secrets-webhook
         spec:
           automountServiceAccountToken: true
           containers:
             - args:
-                - --concurrent=1
+                - webhook
+                - --port=10250
+                - --dns-name=RELEASE-NAME-external-secrets-webhook.NAMESPACE.svc
+                - --cert-dir=/tmp/certs
+                - --check-interval=5m
+                - --metrics-addr=:8080
+                - --healthz-addr=:8081
               image: ghcr.io/external-secrets/external-secrets:v0.8.1
               imagePullPolicy: IfNotPresent
-              name: external-secrets
+              name: webhook
               ports:
                 - containerPort: 8080
                   name: metrics
                   protocol: TCP
+                - containerPort: 10250
+                  name: webhook
+                  protocol: TCP
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8081
+                initialDelaySeconds: 20
+                periodSeconds: 5
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities:
@@ -45,5 +60,13 @@ should match snapshot of default values:
                 runAsUser: 1000
                 seccompProfile:
                   type: RuntimeDefault
+              volumeMounts:
+                - mountPath: /tmp/certs
+                  name: certs
+                  readOnly: true
           hostNetwork: false
-          serviceAccountName: RELEASE-NAME-external-secrets
+          serviceAccountName: external-secrets-webhook
+          volumes:
+            - name: certs
+              secret:
+                secretName: RELEASE-NAME-external-secrets-webhook
