@@ -291,8 +291,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 	default:
-		op, err := createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
-		if op == true && isOrphanSecret(externalSecret, secret) {
+		created, err := createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
+		if created == true && isOrphanSecret(externalSecret, secret) {
 			opErr := r.Delete(ctx, &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      externalSecret.Status.CreatedSecretReference.Name,
@@ -345,7 +345,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func isOrphanSecret(externalSecret esv1beta1.ExternalSecret, newSecret *v1.Secret) bool {
 	secretRef := externalSecret.Status.CreatedSecretReference
 	if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner ||
-		externalSecret.Status.CreatedSecretReference == nil ||
+		secretRef == nil ||
 		newSecret == nil {
 		return false
 	}
