@@ -511,19 +511,13 @@ var _ = Describe("ExternalSecret controller", func() {
 			}
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), oldSecretName, &oldSecret)
-				if err != nil {
-					return false
-				}
-				return true
+				return err == nil
 			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
 			es.Spec.Target.Name = "new-foo"
 			Expect(k8sClient.Patch(context.Background(), es, client.MergeFrom(cleanEs))).To(Succeed())
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), secretName, &newSecret)
-				if err != nil {
-					return false
-				}
-				return true
+				return err == nil
 			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), oldSecretName, &oldSecret)
