@@ -292,23 +292,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 	default:
 		created, err := createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
-		if created == true && isOrphanSecret(externalSecret, secret) {
-			opErr := r.Delete(ctx, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      externalSecret.Status.CreatedSecretReference.Name,
-					Namespace: externalSecret.Status.CreatedSecretReference.Namespace,
-				},
-			})
-			if opErr != nil {
-				msg := fmt.Sprintf("failed to delete orphaned secret '%v/'%v'", externalSecret.Status.CreatedSecretReference.Namespace, externalSecret.Status.CreatedSecretReference.Name)
+		// cleanup orphaned secrets
+		if created {
+			delErr := deleteOrphanedSecrets(ctx, r.Client, &externalSecret)
+			if delErr != nil {
+				msg := fmt.Sprintf("failed to clean up orphaned secrets: %v", delErr)
 				log.Error(err, msg)
 				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
 				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
 				SetExternalSecretCondition(&externalSecret, *conditionSynced)
 				syncCallsError.With(resourceLabels).Inc()
-				return ctrl.Result{}, opErr
+				return ctrl.Result{}, err
 			}
-
 		}
 	}
 
@@ -327,10 +322,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
 	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
-	externalSecret.Status.CreatedSecretReference = &esv1beta1.NamespacedReference{
-		Namespace: secret.Namespace,
-		Name:      secret.Name,
-	}
 	if currCond == nil || currCond.Status != conditionSynced.Status {
 		log.Info("reconciled secret") // Log once if on success in any verbosity
 	} else {
@@ -342,17 +333,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, nil
 }
 
-func isOrphanSecret(externalSecret esv1beta1.ExternalSecret, newSecret *v1.Secret) bool {
-	secretRef := externalSecret.Status.CreatedSecretReference
-	if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner ||
-		secretRef == nil ||
-		newSecret == nil {
-		return false
+func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret *esv1beta1.ExternalSecret) error {
+	secretList := v1.SecretList{}
+	label := fmt.Sprintf("%v_%v", externalSecret.ObjectMeta.Namespace, externalSecret.ObjectMeta.Name)
+	ls := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			esv1beta1.LabelOwner: label,
+		},
 	}
-
-	return secretRef.Name != newSecret.Name ||
-		secretRef.Namespace != newSecret.Namespace
+	labelSelector, err := metav1.LabelSelectorAsSelector(ls)
+	if err != nil {
+		return err
+	}
+	err = cl.List(ctx, &secretList, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return err
+	}
+	for _, secret := range secretList.Items {
+		if secret.Name != externalSecret.Spec.Target.Name {
+			err = cl.Delete(ctx, &secret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
+
 func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f func() error, fieldOwner string) (bool, error) {
 	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	key := client.ObjectKeyFromObject(obj)
