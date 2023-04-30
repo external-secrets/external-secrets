@@ -117,7 +117,6 @@ type SecretsResponse struct {
 }
 
 func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*OnboardbaseClient, error) {
-
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
@@ -164,7 +163,6 @@ func (c *OnboardbaseClient) SetBaseURL(urlStr string) error {
 }
 
 func (c *OnboardbaseClient) Authenticate() error {
-
 	if _, err := c.performRequest("/team/members", "GET", headers{}, queryParams{}, httpRequestBody{}); err != nil {
 		return err
 	}
@@ -244,19 +242,18 @@ func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 		return nil
 	}
 
-	fmt.Println(secrets)
-	// params := request.buildQueryParams()
-	// deleteSecretDto := &DeleteSecretsRequest{
-	// 	SecretId: secret.Id,
-	// }
-	// body, jsonErr := json.Marshal(deleteSecretDto)
-	// if jsonErr != nil {
-	// 	return &APIError{Err: jsonErr, Message: "unable to unmarshal delete secrets payload"}
-	// }
-	// _, err = c.performRequest("/secrets", "DELETE", headers{}, params, body)
-	// if err != nil {
-	// 	return err
-	// }
+	params := request.buildQueryParams()
+	deleteSecretDto := &DeleteSecretsRequest{
+		SecretId: secret.Id,
+	}
+	body, jsonErr := json.Marshal(deleteSecretDto)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "unable to unmarshal delete secrets payload"}
+	}
+	_, err = c.performRequest("/secrets", "DELETE", headers{}, params, body)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -278,7 +275,6 @@ func (c *OnboardbaseClient) makeGetSecretsRequest(request SecretsRequest) (*secr
 }
 
 func (c *OnboardbaseClient) GetSecrets(request SecretsRequest) (*SecretsResponse, error) {
-
 	data, response, err := c.makeGetSecretsRequest(request)
 	if err != nil {
 		return nil, err

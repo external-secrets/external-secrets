@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,7 +31,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	onboardbaseClient "github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/tidwall/gjson"
 )
 
 const (
@@ -183,8 +183,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-
-	if len(ref.Tags) > 0  {
+	if len(ref.Tags) > 0 {
 		return nil, fmt.Errorf("find by tags not supported")
 	}
 
