@@ -192,7 +192,6 @@ func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (
 	return kv, nil
 }
 
-
 func (c *OnboardbaseClient) mapSecretsByPlainKey(data secretResponseBodyData) (map[string]secretResponseSecrets, error) {
 	kv := make(map[string]secretResponseSecrets)
 	for _, secret := range data.Secrets {
@@ -229,8 +228,7 @@ func (c *OnboardbaseClient) GetSecret(request SecretRequest) (*SecretResponse, e
 	return &SecretResponse{Name: request.Name, Value: secrets[request.Name]}, nil
 }
 
-
-func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) (error) {
+func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 	secretsrequest := SecretsRequest{
 		Project:     request.Project,
 		Environment: request.Environment,

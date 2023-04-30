@@ -61,7 +61,7 @@ type pushRemoteRef struct {
 	secretKey string
 }
 
-func (pRef pushRemoteRef) GetRemoteKey () string {
+func (pRef pushRemoteRef) GetRemoteKey() string {
 	return pRef.secretKey
 }
 
@@ -149,8 +149,6 @@ func TestGetSecret(t *testing.T) {
 	}
 }
 
-
-
 func TestDeleteSecret(t *testing.T) {
 	setMissingSecret := func(pstc *onboardbaseTestCase) {
 		pstc.label = "invalid missing secret"
@@ -171,7 +169,6 @@ func TestDeleteSecret(t *testing.T) {
 		pstc.expectError = missingSecretErr
 		pstc.apiErr = fmt.Errorf("")
 	}
-
 
 	deleteSecret := func(pstc *onboardbaseTestCase) {
 		pstc.label = "delete secret successfully"

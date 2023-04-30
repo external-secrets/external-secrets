@@ -29,8 +29,7 @@ func (obbc *OnboardbaseClient) GetSecrets(request client.SecretsRequest) (*clien
 	return &client.SecretsResponse{}, nil
 }
 
-
-func (obbc *OnboardbaseClient) DeleteSecret(request client.SecretRequest) ( error) {
+func (obbc *OnboardbaseClient) DeleteSecret(request client.SecretRequest) error {
 	return nil
 }
 

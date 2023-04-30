@@ -42,8 +42,7 @@ const (
 	errFetchOnboardbaseAPIKeySecret                         = "unable to find find OnboardbaseAPIKey secret: %w"
 	errMissingOnboardbaseAPIKey                             = "auth.secretRef.onboardbaseAPIKey.key '%s' not found in secret '%s'"
 	errMissingOnboardbasePasscode                           = "auth.secretRef.onboardbasePasscode.key '%s' not found in secret '%s'"
-	errSecretKeyFmt                 = "cannot find property %s in secret data for key: %q"
-
+	errSecretKeyFmt                                         = "cannot find property %s in secret data for key: %q"
 )
 
 type Client struct {
@@ -64,7 +63,7 @@ type SecretsClientInterface interface {
 	BaseURL() *url.URL
 	Authenticate() error
 	GetSecret(request onboardbaseClient.SecretRequest) (*onboardbaseClient.SecretResponse, error)
-	DeleteSecret(request onboardbaseClient.SecretRequest) (error)
+	DeleteSecret(request onboardbaseClient.SecretRequest) error
 	GetSecrets(request onboardbaseClient.SecretsRequest) (*onboardbaseClient.SecretsResponse, error)
 }
 
@@ -122,7 +121,7 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) (error) {
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
 	key := remoteRef.GetRemoteKey()
 	// fmt.Println(key)
 	request := onboardbaseClient.SecretRequest{
