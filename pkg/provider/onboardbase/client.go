@@ -200,6 +200,11 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+
+	if len(ref.Tags) > 0  {
+		return nil, fmt.Errorf("find by tags not supported")
+	}
+	
 	secrets, err := c.getSecrets(ctx)
 	selected := map[string][]byte{}
 
