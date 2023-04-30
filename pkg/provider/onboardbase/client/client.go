@@ -24,6 +24,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	aesdecrypt "github.com/Onboardbase/go-cryptojs-aes-decrypt/decrypt"
 )
 
 type OnboardbaseClient struct {
@@ -174,11 +176,11 @@ func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (
 	kv := make(map[string]string)
 	for _, secret := range data.Secrets {
 		passphrase := c.OnboardbasePassCode
-		key, err := DecryptAES(secret.Key, passphrase)
+		key, err := aesdecrypt.Run(secret.Key, passphrase)
 		if err != nil {
 			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Key}
 		}
-		value, err := DecryptAES(secret.Value, passphrase)
+		value, err := aesdecrypt.Run(secret.Value, passphrase)
 		if err != nil {
 			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Value}
 		}
@@ -191,7 +193,7 @@ func (c *OnboardbaseClient) mapSecretsByPlainKey(data secretResponseBodyData) (m
 	kv := make(map[string]secretResponseSecrets)
 	for _, secret := range data.Secrets {
 		passphrase := c.OnboardbasePassCode
-		key, err := DecryptAES(secret.Key, passphrase)
+		key, err := aesdecrypt.Run(secret.Key, passphrase)
 		if err != nil {
 			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Key}
 		}
