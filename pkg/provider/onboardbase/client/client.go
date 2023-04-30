@@ -38,6 +38,9 @@ type OnboardbaseClient struct {
 type queryParams map[string]string
 
 type headers map[string]string
+type DeleteSecretsRequest struct {
+	SecretId string `json:"secretId,omitempty"`
+}
 
 type httpRequestBody []byte
 
@@ -75,12 +78,6 @@ type SecretRequest struct {
 type SecretsRequest struct {
 	Environment string
 	Project     string
-}
-
-type UpdateSecretsRequest struct {
-	Secrets RawSecrets `json:"secrets,omitempty"`
-	Project string     `json:"project,omitempty"`
-	Config  string     `json:"config,omitempty"`
 }
 
 type secretResponseBodyObject struct {
@@ -248,8 +245,14 @@ func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 	}
 
 	params := request.buildQueryParams()
-
-	_, err = c.performRequest("/secrets", "DELETE", headers{}, params, httpRequestBody{})
+	deleteSecretDto := &DeleteSecretsRequest{
+		SecretId: secret.Id,
+	}
+	body, jsonErr := json.Marshal(deleteSecretDto)
+	if jsonErr != nil {
+		return &APIError{Err: jsonErr, Message: "unable to unmarshal delete secrets payload"}
+	}
+	_, err = c.performRequest("/secrets", "DELETE", headers{}, params, body)
 	if err != nil {
 		return err
 	}
