@@ -122,24 +122,7 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	key := remoteRef.GetRemoteKey()
-	// fmt.Println(key)
-	request := onboardbaseClient.SecretRequest{
-		Project:     c.project,
-		Environment: c.environment,
-		Name:        key,
-	}
-
-	_, err := c.onboardbase.GetSecret(request)
-
-	if err != nil {
-		return fmt.Errorf(errGetSecret, key, err)
-	}
-
-	err = c.onboardbase.DeleteSecret(request)
-	if err != nil {
-		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
-	}
+	// not implemented
 	return nil
 }
 
@@ -152,7 +135,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 	request := onboardbaseClient.SecretRequest{
 		Project:     c.project,
 		Environment: c.environment,
-		Name:        ref.Key,
+		Name:        strings.ToLower(ref.Key),
 	}
 
 	secret, err := c.onboardbase.GetSecret(request)
@@ -204,7 +187,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	if len(ref.Tags) > 0  {
 		return nil, fmt.Errorf("find by tags not supported")
 	}
-	
+
 	secrets, err := c.getSecrets(ctx)
 	selected := map[string][]byte{}
 

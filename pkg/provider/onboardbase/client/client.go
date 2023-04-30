@@ -184,7 +184,7 @@ func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (
 		if err != nil {
 			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Value}
 		}
-		kv[key] = value
+		kv[strings.ToLower(key)] = value
 	}
 	return kv, nil
 }
@@ -244,18 +244,19 @@ func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 		return nil
 	}
 
-	params := request.buildQueryParams()
-	deleteSecretDto := &DeleteSecretsRequest{
-		SecretId: secret.Id,
-	}
-	body, jsonErr := json.Marshal(deleteSecretDto)
-	if jsonErr != nil {
-		return &APIError{Err: jsonErr, Message: "unable to unmarshal delete secrets payload"}
-	}
-	_, err = c.performRequest("/secrets", "DELETE", headers{}, params, body)
-	if err != nil {
-		return err
-	}
+	fmt.Println(secrets)
+	// params := request.buildQueryParams()
+	// deleteSecretDto := &DeleteSecretsRequest{
+	// 	SecretId: secret.Id,
+	// }
+	// body, jsonErr := json.Marshal(deleteSecretDto)
+	// if jsonErr != nil {
+	// 	return &APIError{Err: jsonErr, Message: "unable to unmarshal delete secrets payload"}
+	// }
+	// _, err = c.performRequest("/secrets", "DELETE", headers{}, params, body)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
