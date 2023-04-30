@@ -54,12 +54,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	onboardbase, err := oClient.NewOnboardbaseClient(client.onboardbaseAPIKey, client.onboardbasePasscode)
+	onboardbaseClient, err := oClient.NewOnboardbaseClient(client.onboardbaseAPIKey, client.onboardbasePasscode)
 	if err != nil {
 		return nil, fmt.Errorf(errNewClient, err)
 	}
 
-	client.onboardbase = onboardbase
+	client.onboardbase = onboardbaseClient
 	client.project = client.store.Project
 	client.environment = client.store.Environment
 

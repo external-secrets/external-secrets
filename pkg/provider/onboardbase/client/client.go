@@ -192,6 +192,20 @@ func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (
 	return kv, nil
 }
 
+
+func (c *OnboardbaseClient) mapSecretsByPlainKey(data secretResponseBodyData) (map[string]secretResponseSecrets, error) {
+	kv := make(map[string]secretResponseSecrets)
+	for _, secret := range data.Secrets {
+		passphrase := c.OnboardbasePassCode
+		key, err := DecryptAES(secret.Key, passphrase)
+		if err != nil {
+			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Key}
+		}
+		kv[key] = secret
+	}
+	return kv, nil
+}
+
 func (c *OnboardbaseClient) GetSecret(request SecretRequest) (*SecretResponse, error) {
 	params := request.buildQueryParams()
 
@@ -215,18 +229,57 @@ func (c *OnboardbaseClient) GetSecret(request SecretRequest) (*SecretResponse, e
 	return &SecretResponse{Name: request.Name, Value: secrets[request.Name]}, nil
 }
 
-func (c *OnboardbaseClient) GetSecrets(request SecretsRequest) (*SecretsResponse, error) {
+
+func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) (error) {
+	secretsrequest := SecretsRequest{
+		Project:     request.Project,
+		Environment: request.Environment,
+	}
+
+	secretsData, _, err := c.makeGetSecretsRequest(secretsrequest)
+	if err != nil {
+		return err
+	}
+	secrets, err := c.mapSecretsByPlainKey(secretsData.Data)
+	if err != nil {
+		return err
+	}
+	secret, ok := secrets[request.Name]
+	if !ok || secret.Id == "" {
+		return nil
+	}
+
+	params := request.buildQueryParams()
+
+	_, err = c.performRequest("/secrets", "DELETE", headers{}, params, httpRequestBody{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *OnboardbaseClient) makeGetSecretsRequest(request SecretsRequest) (*secretResponseBody, *apiResponse, error) {
 	headers := headers{}
 
 	params := request.buildQueryParams()
 	response, apiErr := c.performRequest("/secrets", "GET", headers, params, httpRequestBody{})
 	if apiErr != nil {
-		return nil, apiErr
+		return nil, nil, apiErr
 	}
 
-	var data secretResponseBody
+	var data *secretResponseBody
 	if err := json.Unmarshal(response.Body, &data); err != nil {
-		return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: string(response.Body)}
+		return nil, nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: string(response.Body)}
+	}
+	return data, response, nil
+}
+
+func (c *OnboardbaseClient) GetSecrets(request SecretsRequest) (*SecretsResponse, error) {
+
+	data, response, err := c.makeGetSecretsRequest(request)
+	if err != nil {
+		return nil, err
 	}
 
 	secrets, _ := c.getSecretsFromPayload(data.Data)

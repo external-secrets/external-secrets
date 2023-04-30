@@ -17,7 +17,7 @@ import (
 const (
 	validSecretName        = "API_KEY"
 	validSecretValue       = "3a3ea4f5"
-	onboardbaseProject     = "DOPPLER_PROJECT"
+	onboardbaseProject     = "ONBOARDBASE_PROJECT"
 	onboardbaseEnvironment = "development"
 	onboardbaseProjectVal  = "payments-service"
 	missingSecret          = "INVALID_NAME"
@@ -31,6 +31,7 @@ type onboardbaseTestCase struct {
 	request        client.SecretRequest
 	response       *client.SecretResponse
 	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
+	pushRemoteRef  esv1beta1.PushRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -56,12 +57,27 @@ func makeValidRemoteRef() *esv1beta1.ExternalSecretDataRemoteRef {
 	}
 }
 
+type pushRemoteRef struct {
+	secretKey string
+}
+
+func (pRef pushRemoteRef) GetRemoteKey () string {
+	return pRef.secretKey
+}
+
+func makeValidPushRemoteRef(key string) esv1beta1.PushRemoteRef {
+	return pushRemoteRef{
+		secretKey: key,
+	}
+}
+
 func makeValidOnboardbaseTestCase() *onboardbaseTestCase {
 	return &onboardbaseTestCase{
 		fakeClient:     &fake.OnboardbaseClient{},
 		request:        makeValidAPIRequest(),
 		response:       makeValidAPIOutput(),
 		remoteRef:      makeValidRemoteRef(),
+		pushRemoteRef:  makeValidPushRemoteRef(validSecretName),
 		apiErr:         nil,
 		expectError:    "",
 		expectedSecret: "",
@@ -129,6 +145,55 @@ func TestGetSecret(t *testing.T) {
 		}
 		if err == nil && !cmp.Equal(string(out), tc.expectedSecret) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, tc.expectedSecret, string(out))
+		}
+	}
+}
+
+
+
+func TestDeleteSecret(t *testing.T) {
+	setMissingSecret := func(pstc *onboardbaseTestCase) {
+		pstc.label = "invalid missing secret"
+		pstc.remoteRef.Key = missingSecret
+		pstc.pushRemoteRef = makeValidPushRemoteRef(missingSecret)
+		pstc.request.Name = missingSecret
+		pstc.response = nil
+		pstc.expectError = missingSecretErr
+		pstc.apiErr = fmt.Errorf("")
+	}
+
+	setInvalidSecret := func(pstc *onboardbaseTestCase) {
+		pstc.label = "invalid secret name format"
+		pstc.remoteRef.Key = invalidSecret
+		pstc.pushRemoteRef = makeValidPushRemoteRef(invalidSecret)
+		pstc.request.Name = invalidSecret
+		pstc.response = nil
+		pstc.expectError = missingSecretErr
+		pstc.apiErr = fmt.Errorf("")
+	}
+
+
+	deleteSecret := func(pstc *onboardbaseTestCase) {
+		pstc.label = "delete secret successfully"
+		pstc.remoteRef.Key = validSecretName
+		pstc.pushRemoteRef = makeValidPushRemoteRef(validSecretName)
+		pstc.request.Name = validSecretName
+		pstc.response = nil
+		pstc.apiErr = nil
+	}
+
+	testCases := []*onboardbaseTestCase{
+		makeValidOnboardbaseTestCaseCustom(setMissingSecret),
+		makeValidOnboardbaseTestCaseCustom(setInvalidSecret),
+		makeValidOnboardbaseTestCaseCustom(deleteSecret),
+	}
+
+	c := Client{}
+	for k, tc := range testCases {
+		c.onboardbase = tc.fakeClient
+		err := c.DeleteSecret(context.Background(), tc.pushRemoteRef)
+		if err != nil && !ErrorContains(err, tc.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), tc.expectError)
 		}
 	}
 }

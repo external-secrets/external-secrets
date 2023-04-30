@@ -28,8 +28,9 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	dClient "github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
+	onboardbaseClient "github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/tidwall/gjson"
 )
 
 const (
@@ -41,6 +42,8 @@ const (
 	errFetchOnboardbaseAPIKeySecret                         = "unable to find find OnboardbaseAPIKey secret: %w"
 	errMissingOnboardbaseAPIKey                             = "auth.secretRef.onboardbaseAPIKey.key '%s' not found in secret '%s'"
 	errMissingOnboardbasePasscode                           = "auth.secretRef.onboardbasePasscode.key '%s' not found in secret '%s'"
+	errSecretKeyFmt                 = "cannot find property %s in secret data for key: %q"
+
 )
 
 type Client struct {
@@ -60,8 +63,9 @@ type Client struct {
 type SecretsClientInterface interface {
 	BaseURL() *url.URL
 	Authenticate() error
-	GetSecret(request dClient.SecretRequest) (*dClient.SecretResponse, error)
-	GetSecrets(request dClient.SecretsRequest) (*dClient.SecretsResponse, error)
+	GetSecret(request onboardbaseClient.SecretRequest) (*onboardbaseClient.SecretResponse, error)
+	DeleteSecret(request onboardbaseClient.SecretRequest) (error)
+	GetSecrets(request onboardbaseClient.SecretsRequest) (*onboardbaseClient.SecretsResponse, error)
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
@@ -118,16 +122,35 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) (error) {
+	key := remoteRef.GetRemoteKey()
+	// fmt.Println(key)
+	request := onboardbaseClient.SecretRequest{
+		Project:     c.project,
+		Environment: c.environment,
+		Name:        key,
+	}
+
+	_, err := c.onboardbase.GetSecret(request)
+
+	if err != nil {
+		return fmt.Errorf(errGetSecret, key, err)
+	}
+
+	err = c.onboardbase.DeleteSecret(request)
+	if err != nil {
+		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
+	}
+	return nil
 }
 
 func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	// not implemented
+	return nil
 }
 
 func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	request := dClient.SecretRequest{
+	request := onboardbaseClient.SecretRequest{
 		Project:     c.project,
 		Environment: c.environment,
 		Name:        ref.Key,
@@ -136,6 +159,17 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 	secret, err := c.onboardbase.GetSecret(request)
 	if err != nil {
 		return nil, fmt.Errorf(errGetSecret, ref.Key, err)
+	}
+
+	// (1): return raw json if no property is defined
+	if ref.Property == "" {
+		return []byte(secret.Value), nil
+	}
+
+	// (2): extract key from secret using gjson
+	val := gjson.Get(secret.Value, ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property, ref.Key)
 	}
 
 	return []byte(secret.Value), nil
@@ -202,7 +236,7 @@ func (c *Client) Close(_ context.Context) error {
 }
 
 func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
-	request := dClient.SecretsRequest{
+	request := onboardbaseClient.SecretsRequest{
 		Project:     c.project,
 		Environment: c.environment,
 	}
@@ -215,7 +249,7 @@ func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
 	return externalSecretsFormat(response.Secrets), nil
 }
 
-func externalSecretsFormat(secrets dClient.Secrets) map[string][]byte {
+func externalSecretsFormat(secrets onboardbaseClient.Secrets) map[string][]byte {
 	converted := make(map[string][]byte, len(secrets))
 	for key, value := range secrets {
 		converted[key] = []byte(value)
