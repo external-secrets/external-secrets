@@ -127,13 +127,47 @@ spec:
 				err: fmt.Errorf("unable to get dynamic secret: empty response from Vault"),
 			},
 		},
+		"UnmanagedControllerClass": {
+			reason: "Ignore if conteroller class does not match.",
+			args: args{
+				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
+spec:
+  provider:
+    auth:
+      kubernetes:
+        role: test
+        serviceAccountRef:
+          name: "testing"
+  method: GET
+  path: "github/token/example"
+  controller: test`),
+				},
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "testing",
+						Namespace: "testing",
+					},
+					Secrets: []corev1.ObjectReference{
+						{
+							Name: "test",
+						},
+					},
+				}).Build(),
+			},
+			want: want{
+				err: fmt.Errorf("skipping Vault Dynamic Secret as it points to a unmanaged controllerClass"),
+			},
+		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			c := &provider.Connector{NewVaultClient: fake.ClientWithLoginMock}
 			gen := &Generator{}
-			val, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, tc.args.corev1, "testing")
+			val, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, tc.args.corev1, "testing", "")
 			if diff := cmp.Diff(tc.want.err.Error(), err.Error()); diff != "" {
 				t.Errorf("\n%s\nvault.GetSecret(...): -want error, +got error:\n%s", tc.reason, diff)
 			}
