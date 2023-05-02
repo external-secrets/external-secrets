@@ -10,7 +10,7 @@ spec:
         generatorRef:
           apiVersion: generators.external-secrets.io/v1alpha1
           kind: ACRAccessToken
-          name: myregistry.azurecr.io
+          name: my-azurecr
   refreshInterval: 12h
   target:
     name: azurecr-credentials

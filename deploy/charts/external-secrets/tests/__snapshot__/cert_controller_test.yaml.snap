@@ -6,10 +6,10 @@ should match snapshot of default values:
       labels:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/name: external-secrets
+        app.kubernetes.io/name: external-secrets-cert-controller
         app.kubernetes.io/version: v0.8.1
         helm.sh/chart: external-secrets-0.8.1
-      name: RELEASE-NAME-external-secrets
+      name: RELEASE-NAME-external-secrets-cert-controller
       namespace: NAMESPACE
     spec:
       replicas: 1
@@ -17,24 +17,35 @@ should match snapshot of default values:
       selector:
         matchLabels:
           app.kubernetes.io/instance: RELEASE-NAME
-          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/name: external-secrets-cert-controller
       template:
         metadata:
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
-            app.kubernetes.io/name: external-secrets
+            app.kubernetes.io/name: external-secrets-cert-controller
         spec:
           automountServiceAccountToken: true
           containers:
             - args:
-                - --concurrent=1
+                - certcontroller
+                - --crd-requeue-interval=5m
+                - --service-name=RELEASE-NAME-external-secrets-webhook
+                - --service-namespace=NAMESPACE
+                - --secret-name=RELEASE-NAME-external-secrets-webhook
+                - --secret-namespace=NAMESPACE
               image: ghcr.io/external-secrets/external-secrets:v0.8.1
               imagePullPolicy: IfNotPresent
-              name: external-secrets
+              name: cert-controller
               ports:
                 - containerPort: 8080
                   name: metrics
                   protocol: TCP
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8081
+                initialDelaySeconds: 20
+                periodSeconds: 5
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities:
@@ -46,4 +57,4 @@ should match snapshot of default values:
                 seccompProfile:
                   type: RuntimeDefault
           hostNetwork: false
-          serviceAccountName: RELEASE-NAME-external-secrets
+          serviceAccountName: external-secrets-cert-controller

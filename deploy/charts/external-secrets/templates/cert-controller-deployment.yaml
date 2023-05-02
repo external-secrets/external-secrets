@@ -38,6 +38,7 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      hostNetwork: {{ .Values.certController.hostNetwork }}
       containers:
         - name: cert-controller
           {{- with .Values.certController.securityContext }}
@@ -100,6 +101,10 @@ spec:
       {{- end }}
       {{- with .Values.certController.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.certController.priorityClassName }}
