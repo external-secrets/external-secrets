@@ -103,9 +103,6 @@ docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=
 #For building in ARM
 #docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=arm --build-arg TARGETOS=linux
 
-#Make image available to kind nodes
-kind load docker-image $IMAGE:$TAG --name external-secrets
-
 make helm.generate
 helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
 ```

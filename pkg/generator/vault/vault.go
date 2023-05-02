@@ -71,8 +71,8 @@ func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpe
 	}
 
 	class := res.Spec.Controller
-	if controllerClass != "" && controllerClass != class {
-		return nil, fmt.Errorf("i cannot touch this!")
+	if class != "" && class != controllerClass {
+		return nil, fmt.Errorf("skipping Vault Dynamic Secret as it points to a unmanaged controllerClass")
 	}
 
 	cl, err := c.NewGeneratorClient(ctx, kube, corev1, res.Spec.Provider, namespace)
