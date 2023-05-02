@@ -108,6 +108,8 @@ const (
 	errInvalidStoreSpec  = "invalid store spec"
 	errInvalidStoreProv  = "invalid store provider"
 	errInvalidVaultProv  = "invalid vault provider"
+	errInvalidAppRoleID  = "invalid Auth.AppRole: neither `roleId` nor `roleRef` was supplied"
+	errInvalidAppRoleRef = "invalid Auth.AppRole.RoleRef: %w"
 	errInvalidAppRoleSec = "invalid Auth.AppRole.SecretRef: %w"
 	errInvalidClientCert = "invalid Auth.Cert.ClientCert: %w"
 	errInvalidCertSec    = "invalid Auth.Cert.SecretRef: %w"
@@ -311,14 +313,13 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 		}
 
 		// prefer .auth.appRole.roleId, fallback to .auth.appRole.roleRef, give up after that.
-		var emptySecretKeySelector esmeta.SecretKeySelector // used to detect empty configuration
-		if p.Auth.AppRole.RoleID == "" {                    // prevents further RoleID tests if .auth.appRole.roleId is given
-			if p.Auth.AppRole.RoleRef != emptySecretKeySelector { // check RoleRef for valid configuration
-				if err := utils.ValidateReferentSecretSelector(store, p.Auth.AppRole.RoleRef); err != nil {
-					return fmt.Errorf(errInvalidAppRoleSec, err)
+		if p.Auth.AppRole.RoleID == "" { // prevents further RoleID tests if .auth.appRole.roleId is given
+			if p.Auth.AppRole.RoleRef != nil { // check RoleRef for valid configuration
+				if err := utils.ValidateReferentSecretSelector(store, *p.Auth.AppRole.RoleRef); err != nil {
+					return fmt.Errorf(errInvalidAppRoleRef, err)
 				}
 			} else { // we ran out of ways to get RoleID. return an appropriate error
-				return errors.New("one of RoleID or RoleRef are required")
+				return fmt.Errorf(errInvalidAppRoleID)
 			}
 		}
 	}
@@ -1243,19 +1244,18 @@ func revokeTokenIfValid(ctx context.Context, client util.Client) error {
 
 func (v *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1beta1.VaultAppRole) error {
 	var err error
-	var roleID string                                   // becomes the RoleID used to authenticate with HashiCorp Vault
-	var emptySecretKeySelector esmeta.SecretKeySelector // used to detect empty configuration
+	var roleID string // becomes the RoleID used to authenticate with HashiCorp Vault
 
 	// prefer .auth.appRole.roleId, fallback to .auth.appRole.roleRef, give up after that.
 	if appRole.RoleID != "" { // use roleId from CRD, if configured
 		roleID = strings.TrimSpace(appRole.RoleID)
-	} else if appRole.RoleRef != emptySecretKeySelector { // use RoleID from Secret, if configured
-		roleID, err = v.secretKeyRef(ctx, &appRole.RoleRef)
+	} else if appRole.RoleRef != nil { // use RoleID from Secret, if configured
+		roleID, err = v.secretKeyRef(ctx, appRole.RoleRef)
 		if err != nil {
 			return err
 		}
 	} else { // we ran out of ways to get RoleID. return an appropriate error
-		return errors.New("one of RoleID or RoleRef are required")
+		return fmt.Errorf(errInvalidAppRoleID)
 	}
 
 	secretID, err := v.secretKeyRef(ctx, &appRole.SecretRef)
