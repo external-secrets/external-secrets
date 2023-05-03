@@ -2,6 +2,7 @@
 
 <!-- Add yourself here if you are using ESO in your company or your project! -->
 
+- [PITS Global Data Recovery Services](https://www.pitsdatarecovery.net/)
 - [Amadeus](https://amadeus.com/)
 - [Container Solutions](http://container-solutions.com/)
 - [DaangnPay](https://www.daangnpay.com/)
