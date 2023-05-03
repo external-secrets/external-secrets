@@ -2,7 +2,7 @@
 
 ## Cloak
 
-Sync secrets from the [Cloak Encrypted Secrets Platform](https:/cloak.software) to Kubernetes using the External Secrets Operator.
+Sync secrets from the [Cloak Encrypted Secrets Platform](https://cloak.software) to Kubernetes using the External Secrets Operator.
 
 Cloak uses the webhook provider built into the External Secrets Operator but also required a proxy service to handle decrypting secrets when they arrive into your cluster.
 
