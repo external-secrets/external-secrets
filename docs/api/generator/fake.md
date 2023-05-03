@@ -6,3 +6,8 @@ The key/value pairs defined in `spec.data` is returned as-is.
 ```yaml
 {% include 'generator-fake.yaml' %}
 ```
+
+Example `ExternalSecret` that references the Fake generator:
+```yaml
+{% include 'generator-fake-example.yaml' %}
+```
