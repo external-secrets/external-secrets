@@ -30,6 +30,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/go-logr/logr"
 	"github.com/golang-jwt/jwt/v5"
 	vault "github.com/hashicorp/vault/api"
@@ -1078,7 +1079,7 @@ func (v *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 		return err
 	}
 
-	tokenExists, err = setIamAuthToken(ctx, v, vaultiamauth.DefaultJWTProvider)
+	tokenExists, err = setIamAuthToken(ctx, v, vaultiamauth.DefaultJWTProvider, vaultiamauth.DefaultSTSProvider)
 	if tokenExists {
 		v.log.V(1).Info("Retrieved new token using IAM auth")
 		return err
@@ -1160,11 +1161,11 @@ func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, 
 	return false, nil
 }
 
-func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory) (bool, error) {
+func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
 	iamAuth := v.store.Auth.Iam
 	isClusterKind := v.storeKind == esv1beta1.ClusterSecretStoreKind
 	if iamAuth != nil {
-		err := v.requestTokenWithIamAuth(ctx, iamAuth, isClusterKind, v.kube, v.namespace, jwtProvider)
+		err := v.requestTokenWithIamAuth(ctx, iamAuth, isClusterKind, v.kube, v.namespace, jwtProvider, assumeRoler)
 		if err != nil {
 			return true, err
 		}
@@ -1470,7 +1471,7 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1bet
 	return nil
 }
 
-func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1.VaultIamAuth, ick bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory) error {
+func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1.VaultIamAuth, ick bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
 	jwtAuth := iamAuth.JWTAuth
 	secretRefAuth := iamAuth.SecretRef
 	regionAWS := defaultAWSRegion
@@ -1550,11 +1551,26 @@ func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 		config.WithRegion(regionAWS)
 	}
 
-	getCreds, err := config.Credentials.Get()
+	sess, err := vaultiamauth.GetAWSSession(config)
 	if err != nil {
 		return err
 	}
+	if iamAuth.AWSIAMRole != "" {
+		stsclient := assumeRoler(sess)
+		if iamAuth.ExternalID != "" {
+			var setExternalID = func(p *stscreds.AssumeRoleProvider) {
+				p.ExternalID = aws.String(iamAuth.ExternalID)
+			}
+			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, iamAuth.AWSIAMRole, setExternalID))
+		} else {
+			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, iamAuth.AWSIAMRole))
+		}
+	}
 
+	getCreds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		return err
+	}
 	// Set environment variables. These would be fetched by Login
 	os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
 	os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)

@@ -5725,6 +5725,17 @@ string
 </tr>
 <tr>
 <td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>This is the AWS role to be assumed before talking to vault</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vaultRole</code></br>
 <em>
 string
@@ -5732,6 +5743,17 @@ string
 </td>
 <td>
 <p>Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
 </td>
 </tr>
 <tr>

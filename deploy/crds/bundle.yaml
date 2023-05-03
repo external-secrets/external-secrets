@@ -2633,6 +2633,9 @@ spec:
                             iam:
                               description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
                               properties:
+                                externalID:
+                                  description: AWS External ID set on assumed IAM roles
+                                  type: string
                                 jwt:
                                   description: Specify a service account with IRSA enabled
                                   properties:
@@ -2659,6 +2662,9 @@ spec:
                                   type: string
                                 region:
                                   description: AWS region
+                                  type: string
+                                role:
+                                  description: This is the AWS role to be assumed before talking to vault
                                   type: string
                                 secretRef:
                                   description: Specify credentials in a Secret object
@@ -6146,6 +6152,9 @@ spec:
                             iam:
                               description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
                               properties:
+                                externalID:
+                                  description: AWS External ID set on assumed IAM roles
+                                  type: string
                                 jwt:
                                   description: Specify a service account with IRSA enabled
                                   properties:
@@ -6172,6 +6181,9 @@ spec:
                                   type: string
                                 region:
                                   description: AWS region
+                                  type: string
+                                role:
+                                  description: This is the AWS role to be assumed before talking to vault
                                   type: string
                                 secretRef:
                                   description: Specify credentials in a Secret object
@@ -7269,6 +7281,9 @@ spec:
                         iam:
                           description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
                           properties:
+                            externalID:
+                              description: AWS External ID set on assumed IAM roles
+                              type: string
                             jwt:
                               description: Specify a service account with IRSA enabled
                               properties:
@@ -7295,6 +7310,9 @@ spec:
                               type: string
                             region:
                               description: AWS region
+                              type: string
+                            role:
+                              description: This is the AWS role to be assumed before talking to vault
                               type: string
                             secretRef:
                               description: Specify credentials in a Secret object

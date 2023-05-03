@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -283,4 +284,26 @@ func CredsFromSecretRef(ctx context.Context, auth esv1beta1.VaultIamAuth, isClus
 	}
 
 	return credentials.NewStaticCredentials(aks, sak, sessionToken), err
+}
+
+type STSProvider func(*session.Session) stsiface.STSAPI
+
+func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
+	return sts.New(sess)
+}
+
+// getAWSSession returns the aws session or an error.
+func GetAWSSession(config *aws.Config) (*session.Session, error) {
+	handlers := defaults.Handlers()
+	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config:            *config,
+		Handlers:          handlers,
+		SharedConfigState: session.SharedConfigDisable,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
 }

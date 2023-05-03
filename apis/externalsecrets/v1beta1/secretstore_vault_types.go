@@ -281,8 +281,12 @@ type VaultIamAuth struct {
 	Path string `json:"path,omitempty"`
 	// AWS region
 	Region string `json:"region,omitempty"`
+	// This is the AWS role to be assumed before talking to vault
+	AWSIAMRole string `json:"role,omitempty"`
 	// Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
 	Role string `json:"vaultRole"`
+	// AWS External ID set on assumed IAM roles
+	ExternalID string `json:"externalID,omitempty"`
 	// X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
 	VaultAWSIAMServerID string `json:"vaultAwsIamServerID,omitempty"`
 	// Specify credentials in a Secret object
