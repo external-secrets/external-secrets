@@ -42,7 +42,7 @@ const (
 	errGetToken   = "unable to get authorization token: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string, controllerClass string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace, controllerClass string) (map[string][]byte, error) {
 	return g.generate(ctx, jsonSpec, kube, namespace, ecrFactory)
 }
 
