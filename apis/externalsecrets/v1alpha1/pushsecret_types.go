@@ -91,7 +91,7 @@ func (r PushSecretRemoteRef) GetProperty() string {
 
 type PushSecretMatch struct {
 	// Secret Key to be pushed
-	SecretKey string `json:"secretKey"`
+	SecretKey string `json:"secretKey,omitempty"`
 	// Remote Refs to push to providers.
 	RemoteRef PushSecretRemoteRef `json:"remoteRef"`
 }

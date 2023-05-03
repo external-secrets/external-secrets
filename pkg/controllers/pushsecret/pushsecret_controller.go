@@ -16,6 +16,7 @@ package pushsecret
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -280,9 +281,18 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 			return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
 		}
 		for _, data := range ps.Spec.Data {
-			secretValue, ok := secret.Data[data.Match.SecretKey]
-			if !ok {
-				return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
+			var secretValue []byte
+			if data.Match.SecretKey != "" {
+				var ok bool
+				secretValue, ok = secret.Data[data.Match.SecretKey]
+				if !ok {
+					return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
+				}
+			} else {
+				secretValue, err = json.Marshal(secret.Data)
+				if err != nil {
+					return out, fmt.Errorf("error marshaling vault secret: %w", err)
+				}
 			}
 
 			err := client.PushSecret(ctx, secretValue, secret.Type, data.Metadata, data.Match.RemoteRef)
