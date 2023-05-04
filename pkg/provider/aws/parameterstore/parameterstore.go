@@ -31,7 +31,8 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/constants"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -80,7 +81,7 @@ func (pm *ParameterStore) getTagsByName(ctx aws.Context, ref *ssm.GetParameterOu
 	}
 
 	data, err := pm.client.ListTagsForResourceWithContext(ctx, &parameterTags)
-	metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSListTagsForResource, err)
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSListTagsForResource, err)
 	if err != nil {
 		return nil, fmt.Errorf("error listing tags %w", err)
 	}
@@ -94,7 +95,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		Name: &secretName,
 	}
 	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
-	metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSGetParameter, err)
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
 	var awsError awserr.Error
 	ok := errors.As(err, &awsError)
 	if err != nil && (!ok || awsError.Code() != ssm.ErrCodeParameterNotFound) {
@@ -117,7 +118,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 			Name: &secretName,
 		}
 		_, err = pm.client.DeleteParameterWithContext(ctx, deleteInput)
-		metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSDeleteParameter, err)
+		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSDeleteParameter, err)
 		if err != nil {
 			return fmt.Errorf("could not delete parameter %v: %w", secretName, err)
 		}
@@ -144,7 +145,7 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, remoteRe
 	}
 
 	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
-	metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSGetParameter, err)
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
 	var awsError awserr.Error
 	ok := errors.As(err, &awsError)
 	if err != nil && (!ok || awsError.Code() != ssm.ErrCodeParameterNotFound) {
@@ -200,7 +201,7 @@ func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretR
 	}
 
 	_, err := pm.client.PutParameterWithContext(ctx, &secretRequest)
-	metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSPutParameter, err)
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSPutParameter, err)
 	if err != nil {
 		return fmt.Errorf("unexpected error pushing parameter %v: %w", secretRequest.Name, err)
 	}
@@ -240,7 +241,7 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 				NextToken:        nextToken,
 				ParameterFilters: pathFilter,
 			})
-		metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSDescribeParameter, err)
+		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSDescribeParameter, err)
 		if err != nil {
 			return nil, err
 		}
@@ -289,7 +290,7 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 				ParameterFilters: filters,
 				NextToken:        nextToken,
 			})
-		metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSDescribeParameter, err)
+		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSDescribeParameter, err)
 		if err != nil {
 			return nil, err
 		}
@@ -313,7 +314,7 @@ func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byt
 		Name:           utilpointer.String(name),
 		WithDecryption: aws.Bool(true),
 	})
-	metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSGetParameter, err)
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
 	if err != nil {
 		return util.SanitizeErr(err)
 	}
@@ -331,7 +332,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	} else {
 		out, err = pm.getParameterValue(ctx, ref)
 	}
-	metrics.ObserveAPICall(metrics.ProviderAWSPS, metrics.CallAWSPSGetParameter, err)
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
 	nsf := esv1beta1.NoSecretError{}
 	var nf *ssm.ParameterNotFound
 	if errors.As(err, &nf) || errors.As(err, &nsf) {

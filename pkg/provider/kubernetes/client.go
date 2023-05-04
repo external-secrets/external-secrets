@@ -28,7 +28,8 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -113,7 +114,7 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.userSecretClient.Get(ctx, ref.Key, metav1.GetOptions{})
-	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesGetSecret, err)
+	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
 	if apierrors.IsNotFound(err) {
 		return nil, esv1beta1.NoSecretError{}
 	}
@@ -227,7 +228,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 		return nil, fmt.Errorf("unable to validate selector tags: %w", err)
 	}
 	secrets, err := c.userSecretClient.List(ctx, metav1.ListOptions{LabelSelector: sel.String()})
-	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesListSecrets, err)
+	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesListSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf("unable to list secrets: %w", err)
 	}
@@ -244,7 +245,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 
 func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	secrets, err := c.userSecretClient.List(ctx, metav1.ListOptions{})
-	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesListSecrets, err)
+	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesListSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf("unable to list secrets: %w", err)
 	}

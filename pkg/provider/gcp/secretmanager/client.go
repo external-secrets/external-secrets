@@ -34,7 +34,8 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -92,7 +93,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	gcpSecret, err = c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMGetSecret, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGetSecret, err)
 	var gErr *apierror.APIError
 
 	if errors.As(err, &gErr) {
@@ -114,7 +115,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	}
 	err = c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMDeleteSecret, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMDeleteSecret, err)
 	return err
 }
 
@@ -149,14 +150,14 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	gcpSecret, err = c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMGetSecret, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGetSecret, err)
 
 	var gErr *apierror.APIError
 
 	if err != nil && errors.As(err, &gErr) {
 		if gErr.GRPCStatus().Code() == codes.NotFound {
 			gcpSecret, err = c.smClient.CreateSecret(ctx, createSecretReq)
-			metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMCreateSecret, err)
+			metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMCreateSecret, err)
 			if err != nil {
 				return err
 			}
@@ -174,7 +175,7 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	gcpVersion, err := c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMAccessSecretVersion, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
 
 	if errors.As(err, &gErr) {
 		if err != nil && gErr.GRPCStatus().Code() != codes.NotFound {
@@ -196,7 +197,7 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	}
 
 	_, err = c.smClient.AddSecretVersion(ctx, addSecretVersionReq)
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMAddSecretVersion, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAddSecretVersion, err)
 	if err != nil {
 		return err
 	}
@@ -232,7 +233,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	it := c.smClient.ListSecrets(ctx, req)
 	secretMap := make(map[string][]byte)
 	var resp *secretmanagerpb.Secret
-	defer metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMListSecrets, err)
+	defer metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMListSecrets, err)
 	for {
 		resp, err = it.Next()
 		if errors.Is(err, iterator.Done) {
@@ -291,7 +292,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	it := c.smClient.ListSecrets(ctx, req)
 	var resp *secretmanagerpb.Secret
 	var err error
-	defer metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMListSecrets, err)
+	defer metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMListSecrets, err)
 	secretMap := make(map[string][]byte)
 	for {
 		resp, err = it.Next()
@@ -349,7 +350,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/%s", c.store.ProjectID, ref.Key, version),
 	}
 	result, err := c.smClient.AccessSecretVersion(ctx, req)
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMAccessSecretVersion, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
 	err = parseError(err)
 	if err != nil {
 		return nil, fmt.Errorf(errClientGetSecretAccess, err)

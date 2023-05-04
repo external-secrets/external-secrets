@@ -41,7 +41,8 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/constants"
 )
 
 const (
@@ -128,13 +129,13 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1beta1.GCPSM
 	gcpSA := sa.Annotations[gcpSAAnnotation]
 
 	resp, err := w.saTokenGenerator.Generate(ctx, audiences, saKey.Name, saKey.Namespace)
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMGenerateSAToken, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateSAToken, err)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchPodToken, err)
 	}
 
 	idBindToken, err := w.idBindTokenGenerator.Generate(ctx, http.DefaultClient, resp.Status.Token, idPool, idProvider)
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMGenerateIDBindToken, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateIDBindToken, err)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchIBToken, err)
 	}
@@ -149,7 +150,7 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1beta1.GCPSM
 		Name:  fmt.Sprintf("projects/-/serviceAccounts/%s", gcpSA),
 		Scope: secretmanager.DefaultAuthScopes(),
 	}, gax.WithGRPCOptions(grpc.PerRPCCredentials(oauth.TokenSource{TokenSource: oauth2.StaticTokenSource(idBindToken)})))
-	metrics.ObserveAPICall(metrics.ProviderGCPSM, metrics.CallGCPSMGenerateAccessToken, err)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateAccessToken, err)
 	if err != nil {
 		return nil, fmt.Errorf(errGenAccessToken, err)
 	}
