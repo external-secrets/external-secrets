@@ -15,6 +15,7 @@
 - [Pento](https://www.pento.io/)
 - [Petco Health and Wellness Company, Inc](https://www.petco.com/)
 - [Pier Insurance](https://www.pier.digital/)
+- [PITS Global Data Recovery Services](https://www.pitsdatarecovery.net/)
 - [Polarpoint](https://www.polarpoint.io/)
 - [Radio France](https://www.radiofrance.fr/)
 - [Made People](https://madepeople.se/)
