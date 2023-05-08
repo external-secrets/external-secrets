@@ -112,8 +112,8 @@ github.com/ahmetb/gen-crd-api-reference-docs v0.3.0/go.mod h1:TdjdkYhlOifCQWPs1U
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4 h1:vTckjyBhHOBiOWSC/oaEU2Oo4OH5eAlQiwKu2RMxsFg=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4/go.mod h1:As/RomC2w/fa3y+yHRlVHPmkbP+zrKBFRow41y5dk+E=
-github.com/akeylesslabs/akeyless-go/v3 v3.3.0 h1:prmWbmCmGEgwfcePZoYuQC58TBv7KgA92ikuXu8Y1Hs=
-github.com/akeylesslabs/akeyless-go/v3 v3.3.0/go.mod h1:XtPdOYw+rrG9bxyBzuQ5zAGCUTd364R2grs7GsZ5nos=
+github.com/akeylesslabs/akeyless-go/v3 v3.3.2 h1:SuVwBIhpn4OWxl1moz2DPN2xlp5kkw9+jlbfvPibNGI=
+github.com/akeylesslabs/akeyless-go/v3 v3.3.2/go.mod h1:XtPdOYw+rrG9bxyBzuQ5zAGCUTd364R2grs7GsZ5nos=
 github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 h1:iC9YFYKDGEy3n/FtqJnOkZsene9olVspKmkX5A2YBEo=
 github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4/go.mod h1:sCavSAvdzOjul4cEqeVtvlSaSScfNsTQ+46HwlTL1hc=
 github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.2/go.mod h1:5JHVmnHvGzR2wNdgaW1zDLQG8kOC4Uec8ubkMogW7OQ=
