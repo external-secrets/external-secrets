@@ -106,13 +106,16 @@ podLabels: {}
 podSecurityContext: {}
   # fsGroup: 2000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
 
 resources: {}
   # requests:
@@ -190,6 +193,9 @@ podDisruptionBudget:
   enabled: false
   minAvailable: 1
   # maxUnavailable: 1
+
+# -- Run the controller on the host network
+hostNetwork: false
 
 webhook:
   # -- Specifies whether a webhook deployment be created.
@@ -314,13 +320,16 @@ webhook:
   podSecurityContext: {}
       # fsGroup: 2000
 
-  securityContext: {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
 
   resources: {}
       # requests:
@@ -365,6 +374,9 @@ certController:
   topologySpreadConstraints: []
 
   affinity: {}
+
+  # -- Run the certController on the host network
+  hostNetwork: false
 
     # -- Pod priority class name.
   priorityClassName: ""
@@ -430,13 +442,16 @@ certController:
   podSecurityContext: {}
       # fsGroup: 2000
 
-  securityContext: {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
 
   resources: {}
       # requests:

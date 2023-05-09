@@ -1,13 +1,13 @@
-suite: test controller deployment
+suite: test cert controller deployment
 templates:
-  - deployment.yaml
+  - cert-controller-deployment.yaml
 tests:
   - it: should match snapshot of default values
     asserts:
       - matchSnapshot: {}
   - it: should set imagePullPolicy to Always
     set:
-      image.pullPolicy: Always
+      certController.image.pullPolicy: Always
     asserts:
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
@@ -19,9 +19,9 @@ tests:
           value: IfNotPresent
   - it: should override securityContext
     set:
-      podSecurityContext:
+      certController.podSecurityContext:
         runAsUser: 2000
-      securityContext:
+      certController.securityContext:
         runAsUser: 3000
     asserts:
       - equal:
@@ -42,7 +42,7 @@ tests:
               type: RuntimeDefault
   - it: should override hostNetwork
     set:
-      hostNetwork: true
+      certController.hostNetwork: true
     asserts:
       - equal:
           path: spec.template.spec.hostNetwork
