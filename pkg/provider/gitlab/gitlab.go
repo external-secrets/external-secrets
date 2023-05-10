@@ -46,7 +46,7 @@ const (
 	errNameNotDefined                         = "'find.name' is mandatory"
 	errEnvironmentIsConstricted               = "'find.tags' is constrained by 'environment_scope' of the store"
 	errTagsOnlyEnvironmentSupported           = "'find.tags' only supports 'environment_scope'"
-	errPathNotImplemented                     = "'find.path' is not implemented in the Gitlab provider"
+	errPathNotImplemented                     = "'find.path' is not implemented in the GitLab provider"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
 
@@ -220,7 +220,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDa
 		return nil, fmt.Errorf(errUninitializedGitlabProvider)
 	}
 
-	// Need to replace hyphens with underscores to work with Gitlab API
+	// Need to replace hyphens with underscores to work with GitLab API
 	ref.Key = strings.ReplaceAll(ref.Key, "-", "_")
 	// Retrieves a gitlab variable in the form
 	// {

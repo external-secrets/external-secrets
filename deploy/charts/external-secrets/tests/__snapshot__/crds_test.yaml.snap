@@ -477,7 +477,7 @@ should match snapshot of default values:
                               type: string
                           type: object
                         gitlab:
-                          description: Gitlab configures this store to sync secrets using Gitlab Variables provider
+                          description: GitLab configures this store to sync secrets using GitLab Variables provider
                           properties:
                             auth:
                               description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -1723,7 +1723,7 @@ should match snapshot of default values:
                               type: string
                           type: object
                         gitlab:
-                          description: Gitlab configures this store to sync secrets using Gitlab Variables provider
+                          description: GitLab configures this store to sync secrets using GitLab Variables provider
                           properties:
                             auth:
                               description: Auth configures how secret-manager authenticates with a GitLab instance.
