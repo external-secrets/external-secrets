@@ -58,16 +58,16 @@ type SMInterface interface {
 	Endpoint() string
 }
 
-func (kms *KeyManagementService) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (kms *KeyManagementService) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (kms *KeyManagementService) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
-func (kms *KeyManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (kms *KeyManagementService) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
@@ -278,7 +278,7 @@ func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.
 	return credential.NewCredential(credentialConfig)
 }
 
-func (kms *KeyManagementService) Close(ctx context.Context) error {
+func (kms *KeyManagementService) Close(_ context.Context) error {
 	return nil
 }
 

@@ -166,6 +166,6 @@ func isReferentSpec(prov *esv1beta1.KubernetesProvider) bool {
 	return false
 }
 
-func (p *Provider) Close(ctx context.Context) error {
+func (p *Provider) Close(_ context.Context) error {
 	return nil
 }

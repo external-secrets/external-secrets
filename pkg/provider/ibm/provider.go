@@ -102,22 +102,22 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-func (ibm *providerIBM) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (ibm *providerIBM) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (ibm *providerIBM) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
-func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (ibm *providerIBM) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-func (ibm *providerIBM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
@@ -374,7 +374,7 @@ func getSecretByType(ibm *providerIBM, secretName *string, secretType string) (*
 	return secret, nil
 }
 
-func (ibm *providerIBM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
@@ -560,7 +560,7 @@ func getTypedKey(v interface{}) ([]byte, error) {
 	}
 }
 
-func (ibm *providerIBM) Close(ctx context.Context) error {
+func (ibm *providerIBM) Close(_ context.Context) error {
 	return nil
 }
 

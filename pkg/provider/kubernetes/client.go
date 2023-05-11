@@ -102,12 +102,12 @@ func getSecretValues(secretMap map[string][]byte, policy esv1beta1.ExternalSecre
 	return byteArr, nil
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -266,7 +266,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	return utils.ConvertKeys(ref.ConversionStrategy, data)
 }
 
-func (c Client) Close(ctx context.Context) error {
+func (c Client) Close(_ context.Context) error {
 	return nil
 }
 

@@ -212,7 +212,7 @@ func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Clie
 	return &Akeyless{Client: akl, url: akeylessGwAPIURL}, nil
 }
 
-func (a *Akeyless) Close(ctx context.Context) error {
+func (a *Akeyless) Close(_ context.Context) error {
 	return nil
 }
 
@@ -227,11 +227,11 @@ func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (a *Akeyless) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (a *Akeyless) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (a *Akeyless) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (a *Akeyless) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

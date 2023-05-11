@@ -55,57 +55,57 @@ type CreateSecretMockReturn struct {
 	Err    error
 }
 
-func (mc *MockSMClient) DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error {
+func (mc *MockSMClient) DeleteSecret(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, _ ...gax.CallOption) error {
 	return mc.DeleteSecretFn(ctx, req)
 }
 func (mc *MockSMClient) NewDeleteSecretFn(err error) {
-	mc.DeleteSecretFn = func(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error {
+	mc.DeleteSecretFn = func(_ context.Context, _ *secretmanagerpb.DeleteSecretRequest, _ ...gax.CallOption) error {
 		return err
 	}
 }
-func (mc *MockSMClient) GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+func (mc *MockSMClient) GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 	return mc.GetSecretFn(ctx, req)
 }
 
 func (mc *MockSMClient) NewGetSecretFn(mock GetSecretMockReturn) {
-	mc.GetSecretFn = func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+	mc.GetSecretFn = func(_ context.Context, _ *secretmanagerpb.GetSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 		return mock.Secret, mock.Err
 	}
 }
 
-func (mc *MockSMClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+func (mc *MockSMClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 	return mc.accessSecretFn(ctx, req)
 }
 
 func (mc *MockSMClient) NewAccessSecretVersionFn(mock AccessSecretVersionMockReturn) {
-	mc.accessSecretFn = func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+	mc.accessSecretFn = func(_ context.Context, _ *secretmanagerpb.AccessSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 		return mock.Res, mock.Err
 	}
 }
 
-func (mc *MockSMClient) ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator {
+func (mc *MockSMClient) ListSecrets(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, _ ...gax.CallOption) *secretmanager.SecretIterator {
 	return mc.ListSecretsFn(ctx, req)
 }
 func (mc *MockSMClient) Close() error {
 	return mc.closeFn()
 }
 
-func (mc *MockSMClient) AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+func (mc *MockSMClient) AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
 	return mc.addSecretFn(ctx, req)
 }
 
 func (mc *MockSMClient) NewAddSecretVersionFn(mock AddSecretVersionMockReturn) {
-	mc.addSecretFn = func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+	mc.addSecretFn = func(_ context.Context, _ *secretmanagerpb.AddSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
 		return mock.SecretVersion, mock.Err
 	}
 }
 
-func (mc *MockSMClient) CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+func (mc *MockSMClient) CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 	return mc.createSecretFn(ctx, req)
 }
 
 func (mc *MockSMClient) NewCreateSecretFn(mock CreateSecretMockReturn) {
-	mc.createSecretFn = func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+	mc.createSecretFn = func(_ context.Context, _ *secretmanagerpb.CreateSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
 		return mock.Secret, mock.Err
 	}
 }
@@ -177,7 +177,7 @@ func (mc *MockSMClient) AccessSecretVersionWithError(err error) {
 	}
 }
 
-func (mc *MockSMClient) WithValue(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
+func (mc *MockSMClient) WithValue(_ context.Context, req *secretmanagerpb.AccessSecretVersionRequest, val *secretmanagerpb.AccessSecretVersionResponse, err error) {
 	if mc != nil {
 		mc.accessSecretFn = func(paramCtx context.Context, paramReq *secretmanagerpb.AccessSecretVersionRequest, paramOpts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields

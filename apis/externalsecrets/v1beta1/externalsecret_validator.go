@@ -22,15 +22,15 @@ import (
 
 type ExternalSecretValidator struct{}
 
-func (esv *ExternalSecretValidator) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (esv *ExternalSecretValidator) ValidateCreate(_ context.Context, obj runtime.Object) error {
 	return validateExternalSecret(obj)
 }
 
-func (esv *ExternalSecretValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (esv *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) error {
 	return validateExternalSecret(newObj)
 }
 
-func (esv *ExternalSecretValidator) ValidateDelete(ctx context.Context, obj runtime.Object) error {
+func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ runtime.Object) error {
 	return nil
 }
 

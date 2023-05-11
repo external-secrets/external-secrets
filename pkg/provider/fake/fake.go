@@ -55,7 +55,7 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, _ client.Client, _ string) (esv1beta1.SecretsClient, error) {
 	if p.database == nil {
 		p.database = make(map[string]Config)
 	}
@@ -102,11 +102,11 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 	return spc.Provider.Fake, nil
 }
 
-func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return nil
 }
 
-func (p *Provider) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (p *Provider) PushSecret(_ context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	currentData, ok := p.config[remoteRef.GetRemoteKey()]
 	if !ok {
 		p.config[remoteRef.GetRemoteKey()] = &Data{
@@ -123,13 +123,13 @@ func (p *Provider) PushSecret(ctx context.Context, value []byte, remoteRef esv1b
 }
 
 // Empty GetAllSecrets.
-func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	mapKey := fmt.Sprintf("%v%v", ref.Key, ref.Version)
 	data, ok := p.config[mapKey]
 	if !ok || data.Version != ref.Version {
@@ -149,7 +149,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Provider) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	mapKey := fmt.Sprintf("%v%v", ref.Key, ref.Version)
 	data, ok := p.config[mapKey]
 	if !ok || data.Version != ref.Version || data.ValueMap == nil {
@@ -166,7 +166,7 @@ func convertMap(in map[string]string) map[string][]byte {
 	return m
 }
 
-func (p *Provider) Close(ctx context.Context) error {
+func (p *Provider) Close(_ context.Context) error {
 	return nil
 }
 
