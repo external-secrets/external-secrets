@@ -1581,8 +1581,36 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#aws-iam-authentication" class="md-nav__link">
+    AWS IAM authentication
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-key-id-secret-access-key" class="md-nav__link">
+    Access Key ID &amp; Secret Access Key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eks-service-account-credentials" class="md-nav__link">
+    EKS Service Account credentials
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllers-pod-identity" class="md-nav__link">
+    Controller's Pod Identity
+  </a>
   
 </li>
         
@@ -2302,8 +2330,36 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#aws-iam-authentication" class="md-nav__link">
+    AWS IAM authentication
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-key-id-secret-access-key" class="md-nav__link">
+    Access Key ID &amp; Secret Access Key
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eks-service-account-credentials" class="md-nav__link">
+    EKS Service Account credentials
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controllers-pod-identity" class="md-nav__link">
+    Controller's Pod Identity
+  </a>
   
 </li>
         
@@ -2601,8 +2657,9 @@ Will generate a secret with:
 <a href="https://www.vaultproject.io/docs/auth/token">token-based</a>,
 <a href="https://www.vaultproject.io/docs/auth/approle">appRole</a>,
 <a href="https://www.vaultproject.io/docs/auth/kubernetes">kubernetes-native</a>,
-<a href="https://www.vaultproject.io/docs/auth/ldap">ldap</a> and
-<a href="https://www.vaultproject.io/docs/auth/jwt">jwt/oidc</a>, each one comes with it's own
+<a href="https://www.vaultproject.io/docs/auth/ldap">ldap</a>,
+<a href="https://www.vaultproject.io/docs/auth/jwt">jwt/oidc</a> and
+<a href="https://developer.hashicorp.com/vault/docs/auth/aws">awsAuth</a>, each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.</p>
 <h4 id="token-based-authentication">Token-based authentication</h4>
 <p>A static token is stored in a <code>Kind=Secret</code> and is used to authenticate with vault.</p>
@@ -2728,6 +2785,147 @@ in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
 <a href="https://jwt.io/">JWT</a> token stored in a <code>Kind=Secret</code> and referenced by the
 <code>secretRef</code> or a temporary Kubernetes service account token retrieved via the <code>TokenRequest</code> API. Optionally a <code>role</code> field can be defined in a <code>Kind=SecretStore</code>
 or <code>Kind=ClusterSecretStore</code> resource.</p>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># VaultJwt authenticates with Vault using the JWT/OIDC auth mechanism</span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/jwt</span>
+<span class="w">        </span><span class="nt">jwt</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># Path where the JWT authentication backend is mounted</span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;jwt&quot;</span>
+<span class="w">          </span><span class="c1"># JWT role configured in a Vault server, optional.</span>
+<span class="w">          </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-jwt-role&quot;</span>
+
+<span class="w">          </span><span class="c1"># Retrieve JWT token from a Kubernetes secret</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;jwt-token&quot;</span>
+
+<span class="w">          </span><span class="c1"># ... or retrieve a Kubernetes service account token via the `TokenRequest` API</span>
+<span class="w">          </span><span class="nt">kubernetesServiceAccountToken</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-sa&quot;</span>
+<span class="w">            </span><span class="c1"># `audiences` defaults to `[&quot;vault&quot;]` it not supplied</span>
+<span class="w">            </span><span class="nt">audiences</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault</span>
+<span class="w">            </span><span class="c1"># `expirationSeconds` defaults to 10 minutes if not supplied</span>
+<span class="w">            </span><span class="nt">expirationSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">600</span>
+</code></pre></div>
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
+<h4 id="aws-iam-authentication">AWS IAM authentication</h4>
+<p><a href="https://developer.hashicorp.com/vault/docs/auth/aws">AWS IAM</a> uses either a
+set of AWS Programmatic access credentials stored in a <code>Kind=Secret</code> and referenced by the
+<code>secretRef</code> or by getting the authentication token from an <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a> enabled service account</p>
+<h3 id="access-key-id-secret-access-key">Access Key ID &amp; Secret Access Key</h3>
+<p>You can store Access Key ID &amp; Secret Access Key in a <code>Kind=Secret</code> and reference it from a SecretStore.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend-aws-iam</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://my.vault.server:8200&quot;</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;vault_namespace&gt;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">iam</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># Path where the AWS auth method is enabled in Vault, e.g: &quot;aws/&quot;. Defaults to aws</span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws</span>
+<span class="w">          </span><span class="c1"># AWS Region. Defaults to us-east-1</span>
+<span class="w">          </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="w">          </span><span class="c1"># optional: assume role before fetching secrets</span>
+<span class="w">          </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::1234567890:role/role-a</span>
+<span class="w">          </span><span class="c1"># Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine</span>
+<span class="w">          </span><span class="nt">vaultRole</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-role-for-aws-iam-auth</span>
+<span class="w">          </span><span class="c1"># Optional. Placeholder to supply header X-Vault-AWS-IAM-Server-ID. It is an additional (optional) header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws</span>
+<span class="w">          </span><span class="nt">vaultAwsIamServerID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-vaultAwsIamServerID</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"> </span><span class="c1">#Use this method when you have static AWS creds.</span>
+<span class="w">            </span><span class="nt">accessKeyIDSecretRef</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-iam-creds-secret</span>
+<span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">access-key</span>
+<span class="w">            </span><span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-iam-creds-secret</span>
+<span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
+<span class="w">            </span><span class="nt">sessionTokenSecretRef</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-iam-creds-secret</span>
+<span class="w">              </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-session-token</span>
+</code></pre></div>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessKeyIDSecretRef</code>, <code>secretAccessKeySecretRef</code> with the namespaces where the secrets reside.</p>
+<h3 id="eks-service-account-credentials">EKS Service Account credentials</h3>
+<p>This feature lets you use short-lived service account tokens to authenticate with AWS.
+You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection">Service Account Volume Projection</a> enabled - it is by default on EKS. See <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts-technical-overview.html">EKS guide</a> on how to set up IAM roles for service accounts.</p>
+<p>The big advantage of this approach is that ESO runs without any credentials.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">eks.amazonaws.com/role-arn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::123456789012:role/my-irsa-enabled-role</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-serviceaccount</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+</code></pre></div>
+<p>Reference the service account from above in the Secret Store:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend-aws-iam</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://my.vault.server:8200&quot;</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;vault_namespace&gt;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">iam</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># Path where the AWS auth method is enabled in Vault, e.g: &quot;aws/&quot;. Defaults to aws</span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws</span>
+<span class="w">          </span><span class="c1"># AWS Region. Defaults to us-east-1</span>
+<span class="w">          </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="w">          </span><span class="c1"># Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine</span>
+<span class="w">          </span><span class="nt">vaultRole</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-role-for-aws-iam-auth</span>
+<span class="w">          </span><span class="c1"># Optional. Placeholder to supply header X-Vault-AWS-IAM-Server-ID. It is an additional (optional) header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws</span>
+<span class="w">          </span><span class="nt">vaultAwsIamServerID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-vaultAwsIamServerID</span>
+<span class="w">          </span><span class="nt">jwt</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-serviceaccount</span><span class="w"> </span><span class="c1">#Provide service account with IRSA enabled</span>
+</code></pre></div>
+<h3 id="controllers-pod-identity">Controller's Pod Identity</h3>
+<p>This is basicially a zero-configuration authentication approach that inherits the credentials from the controller's pod identity</p>
+<p>This approach assumes that appropriate IRSA setup is done controller's pod (i.e. IRSA enabled IAM role is created appropriately and controller's service account is annotated appropriately with the annotation "eks.amazonaws.com/role-arn" to enable IRSA)</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend-aws-iam</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://my.vault.server:8200&quot;</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;vault_namespace&gt;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">iam</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># Path where the AWS auth method is enabled in Vault, e.g: &quot;aws/&quot;. Defaults to aws</span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws</span>
+<span class="w">          </span><span class="c1"># AWS Region. Defaults to us-east-1</span>
+<span class="w">          </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="w">          </span><span class="c1"># Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine</span>
+<span class="w">          </span><span class="nt">vaultRole</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-role-for-aws-iam-auth</span>
+<span class="w">          </span><span class="c1"># Optional. Placeholder to supply header X-Vault-AWS-IAM-Server-ID. It is an additional (optional) header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws</span>
+<span class="w">          </span><span class="nt">vaultAwsIamServerID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-vaultAwsIamServerID</span>
+</code></pre></div>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> with the namespace where the service account resides.</p>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
