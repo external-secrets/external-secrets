@@ -22,5 +22,5 @@ RUN apk add -U --no-cache \
     git-fast-import \
     bash \
     gcc \
-    diffutils \
-  && pip3 install -r /requirements.txt
+    diffutils
+RUN pip3 install -r /requirements.txt

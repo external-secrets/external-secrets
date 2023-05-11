@@ -112,6 +112,11 @@ type VaultAuth struct {
 	// Cert authentication method
 	// +optional
 	Cert *VaultCertAuth `json:"cert,omitempty"`
+
+	// Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials
+	// AWS IAM authentication method
+	// +optional
+	Iam *VaultIamAuth `json:"iam,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -178,6 +183,37 @@ type VaultLdapAuth struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
+// VaultAwsAuth tells the controller how to do authentication with aws.
+// Only one of secretRef or jwt can be specified.
+// if none is specified the controller will try to load credentials from its own service account assuming it is IRSA enabled.
+type VaultAwsAuth struct {
+	// +optional
+	SecretRef *VaultAwsAuthSecretRef `json:"secretRef,omitempty"`
+	// +optional
+	JWTAuth *VaultAwsJWTAuth `json:"jwt,omitempty"`
+}
+
+// VaultAWSAuthSecretRef holds secret references for AWS credentials
+// both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+type VaultAwsAuthSecretRef struct {
+	// The AccessKeyID is used for authentication
+	AccessKeyID esmeta.SecretKeySelector `json:"accessKeyIDSecretRef,omitempty"`
+
+	// The SecretAccessKey is used for authentication
+	SecretAccessKey esmeta.SecretKeySelector `json:"secretAccessKeySecretRef,omitempty"`
+
+	// The SessionToken used for authentication
+	// This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+	// see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+	// +Optional
+	SessionToken *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
+}
+
+// Authenticate against AWS using service account tokens.
+type VaultAwsJWTAuth struct {
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+}
+
 // VaultKubernetesServiceAccountTokenAuth authenticates with Vault using a temporary
 // Kubernetes service account token retrieved by the `TokenRequest` API.
 type VaultKubernetesServiceAccountTokenAuth struct {
@@ -236,4 +272,27 @@ type VaultCertAuth struct {
 	// SecretRef to a key in a Secret resource containing client private key to
 	// authenticate with Vault using the Cert authentication method
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// VaultIamAuth authenticates with Vault using the Vault's AWS IAM authentication method. Refer: https://developer.hashicorp.com/vault/docs/auth/aws
+type VaultIamAuth struct {
+
+	// Path where the AWS auth method is enabled in Vault, e.g: "aws"
+	Path string `json:"path,omitempty"`
+	// AWS region
+	Region string `json:"region,omitempty"`
+	// This is the AWS role to be assumed before talking to vault
+	AWSIAMRole string `json:"role,omitempty"`
+	// Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+	Role string `json:"vaultRole"`
+	// AWS External ID set on assumed IAM roles
+	ExternalID string `json:"externalID,omitempty"`
+	// X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
+	VaultAWSIAMServerID string `json:"vaultAwsIamServerID,omitempty"`
+	// Specify credentials in a Secret object
+	// +optional
+	SecretRef *VaultAwsAuthSecretRef `json:"secretRef,omitempty"`
+	// Specify a service account with IRSA enabled
+	// +optional
+	JWTAuth *VaultAwsJWTAuth `json:"jwt,omitempty"`
 }

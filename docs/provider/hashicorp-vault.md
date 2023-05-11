@@ -271,8 +271,9 @@ We support five different modes for authentication:
 [token-based](https://www.vaultproject.io/docs/auth/token),
 [appRole](https://www.vaultproject.io/docs/auth/approle),
 [kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
-[ldap](https://www.vaultproject.io/docs/auth/ldap) and
-[jwt/oidc](https://www.vaultproject.io/docs/auth/jwt), each one comes with it's own
+[ldap](https://www.vaultproject.io/docs/auth/ldap),
+[jwt/oidc](https://www.vaultproject.io/docs/auth/jwt) and
+[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
 #### Token-based authentication
@@ -327,6 +328,54 @@ in a `Kind=Secret` referenced by the `secretRef`.
 [JWT](https://jwt.io/) token stored in a `Kind=Secret` and referenced by the
 `secretRef` or a temporary Kubernetes service account token retrieved via the `TokenRequest` API. Optionally a `role` field can be defined in a `Kind=SecretStore`
 or `Kind=ClusterSecretStore` resource.
+
+```yaml
+{% include 'vault-jwt-store.yaml' %}
+```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
+
+#### AWS IAM authentication
+
+[AWS IAM](https://developer.hashicorp.com/vault/docs/auth/aws) uses either a
+set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
+`secretRef` or by getting the authentication token from an [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) enabled service account
+
+### Access Key ID & Secret Access Key
+You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
+
+```yaml
+{% include 'vault-iam-store-static-creds.yaml' %}
+```
+
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef`, `secretAccessKeySecretRef` with the namespaces where the secrets reside.
+
+### EKS Service Account credentials
+
+This feature lets you use short-lived service account tokens to authenticate with AWS.
+You must have [Service Account Volume Projection](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection) enabled - it is by default on EKS. See [EKS guide](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts-technical-overview.html) on how to set up IAM roles for service accounts.
+
+The big advantage of this approach is that ESO runs without any credentials.
+
+```yaml
+{% include 'vault-iam-store-sa.yaml' %}
+```
+
+Reference the service account from above in the Secret Store:
+
+```yaml
+{% include 'vault-iam-store.yaml' %}
+```
+### Controller's Pod Identity
+
+This is basicially a zero-configuration authentication approach that inherits the credentials from the controller's pod identity
+
+This approach assumes that appropriate IRSA setup is done controller's pod (i.e. IRSA enabled IAM role is created appropriately and controller's service account is annotated appropriately with the annotation "eks.amazonaws.com/role-arn" to enable IRSA)
+
+```yaml
+{% include 'vault-iam-store-controller-pod-identity.yaml' %}
+```
+
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
 
 ```yaml
 {% include 'vault-jwt-store.yaml' %}
