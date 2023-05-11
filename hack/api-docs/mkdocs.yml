@@ -13,6 +13,7 @@ theme:
     - navigation.expand
   custom_dir: ../../overrides
 markdown_extensions:
+  - attr_list
   - pymdownx.highlight
   - pymdownx.superfences
   - admonition
@@ -79,6 +80,7 @@ nav:
     - Operations:
       - Multi Tenancy: guides/multi-tenancy.md
       - Security Best Practices: guides/security-best-practices.md
+      - Threat Model: guides/threat-model.md
       - Upgrading to v1beta1: guides/v1beta1.md
       - Using Latest Image: guides/using-latest-image.md
       - Disable Cluster Features: guides/disable-cluster-features.md
