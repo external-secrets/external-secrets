@@ -69,7 +69,6 @@ func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpe
 	if res == nil || res.Spec.Provider == nil {
 		return nil, fmt.Errorf("no Vault provider config in spec")
 	}
-
 	cl, err := c.NewGeneratorClient(ctx, kube, corev1, res.Spec.Provider, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
