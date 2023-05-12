@@ -5543,6 +5543,158 @@ VaultCertAuth
 Cert authentication method</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>iam</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">
+VaultIamAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials
+AWS IAM authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth
+</h3>
+<p>
+<p>VaultAwsAuth tells the controller how to do authentication with aws.
+Only one of secretRef or jwt can be specified.
+if none is specified the controller will try to load credentials from its own service account assuming it is IRSA enabled.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultAwsAuthSecretRef">
+VaultAwsAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultAwsJWTAuth">
+VaultAwsJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultAwsAuthSecretRef">VaultAwsAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
+</p>
+<p>
+<p>VaultAWSAuthSecretRef holds secret references for AWS credentials
+both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessKeyIDSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The AccessKeyID is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretAccessKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The SecretAccessKey is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The SessionToken used for authentication
+This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultAwsJWTAuth">VaultAwsJWTAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
+</p>
+<p>
+<p>Authenticate against AWS using service account tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.VaultCertAuth">VaultCertAuth
@@ -5590,6 +5742,119 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <p>SecretRef to a key in a Secret resource containing client private key to
 authenticate with Vault using the Cert authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultIamAuth authenticates with Vault using the Vault&rsquo;s AWS IAM authentication method. Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/aws">https://developer.hashicorp.com/vault/docs/auth/aws</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the AWS auth method is enabled in Vault, e.g: &ldquo;aws&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS region</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>This is the AWS role to be assumed before talking to vault</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultAwsIamServerID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: <a href="https://developer.hashicorp.com/vault/docs/auth/aws">https://developer.hashicorp.com/vault/docs/auth/aws</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultAwsAuthSecretRef">
+VaultAwsAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify credentials in a Secret object</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultAwsJWTAuth">
+VaultAwsJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify a service account with IRSA enabled</p>
 </td>
 </tr>
 </tbody>

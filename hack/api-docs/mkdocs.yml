@@ -64,21 +64,24 @@ nav:
       - Metrics: api/metrics.md
   - Guides:
     - Introduction: guides/introduction.md
-    - Advanced Templating:
-        v2: guides/templating.md
-        v1: guides/templating-v1.md
+    - External Secrets:
+      - Extract structured data: guides/all-keys-one-secret.md
+      - Find Secrets by Name or Metadata: guides/getallsecrets.md
+      - Rewriting Keys: guides/datafrom-rewrite.md
+      - Advanced Templating:
+          v2: guides/templating.md
+          v1: guides/templating-v1.md
+      - Kubernetes Secret Types: guides/common-k8s-secret-types.md
+      - "Lifecycle: ownership & deletion": guides/ownership-deletion-policy.md
+      - Decoding Strategies: guides/decoding-strategy.md
+      - Controller Classes: guides/controller-class.md
     - Generators: guides/generator.md
-    - All keys, One secret: guides/all-keys-one-secret.md
-    - Common K8S Secret Types: guides/common-k8s-secret-types.md
-    - Controller Classes: guides/controller-class.md
-    - "Lifecycle: ownership & deletion": guides/ownership-deletion-policy.md
-    - Decoding Strategies: guides/decoding-strategy.md
-    - Getting Multiple Secrets: guides/getallsecrets.md
-    - Multi Tenancy: guides/multi-tenancy.md
-    - Rewriting Keys: guides/datafrom-rewrite.md
-    - Upgrading to v1beta1: guides/v1beta1.md
-    - Using Latest Image: guides/using-latest-image.md
-    - Disable Cluster Features: guides/disable-cluster-features.md
+    - Operations:
+      - Multi Tenancy: guides/multi-tenancy.md
+      - Security Best Practices: guides/security-best-practices.md
+      - Upgrading to v1beta1: guides/v1beta1.md
+      - Using Latest Image: guides/using-latest-image.md
+      - Disable Cluster Features: guides/disable-cluster-features.md
   - Provider:
     - AWS Secrets Manager: provider/aws-secrets-manager.md
     - AWS Parameter Store: provider/aws-parameter-store.md
