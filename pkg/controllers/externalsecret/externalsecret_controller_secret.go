@@ -16,6 +16,7 @@ package externalsecret
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -29,6 +30,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+
 	// Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	// Loading registered generators.
@@ -109,11 +111,18 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 	if err != nil {
 		return nil, err
 	}
+	skipGenerator, err := shouldSkipGenerator(r, genDef)
+	if err != nil {
+		return nil, err
+	}
+	if skipGenerator {
+		return nil, errors.New(errGenCtrlNotMatched)
+	}
 	gen, err := genv1alpha1.GetGenerator(genDef)
 	if err != nil {
 		return nil, err
 	}
-	secretMap, err := gen.Generate(ctx, genDef, r.Client, namespace, r.ControllerClass)
+	secretMap, err := gen.Generate(ctx, genDef, r.Client, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errGenerate, i, err)
 	}
@@ -228,4 +237,14 @@ func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *e
 		return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
 	}
 	return secretMap, err
+}
+
+func shouldSkipGenerator(r *Reconciler, generatorDef *apiextensions.JSON) (bool, error) {
+	var genControllerClass genv1alpha1.ControllerClassResource
+	err := json.Unmarshal(generatorDef.Raw, &genControllerClass)
+	if err != nil {
+		return false, err
+	}
+	var controllerClass = genControllerClass.Spec.ControllerClass
+	return controllerClass != "" && controllerClass != r.ControllerClass, nil
 }

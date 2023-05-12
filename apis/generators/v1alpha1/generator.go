@@ -31,6 +31,5 @@ type Generator interface {
 		obj *apiextensions.JSON,
 		kube client.Client,
 		namespace string,
-		controllerClass string,
 	) (map[string][]byte, error)
 }

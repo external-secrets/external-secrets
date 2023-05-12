@@ -40,7 +40,7 @@ const (
 	errGetSecret   = "unable to get dynamic secret: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace, controllerClass string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
 	c := &provider.Connector{NewVaultClient: provider.NewVaultClient}
 
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
@@ -55,10 +55,10 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		return nil, err
 	}
 
-	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), namespace, controllerClass)
+	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), namespace)
 }
 
-func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace, controllerClass string) (map[string][]byte, error) {
+func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, error) {
 	if jsonSpec == nil {
 		return nil, fmt.Errorf(errNoSpec)
 	}
@@ -68,11 +68,6 @@ func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpe
 	}
 	if res == nil || res.Spec.Provider == nil {
 		return nil, fmt.Errorf("no Vault provider config in spec")
-	}
-
-	class := res.Spec.Controller
-	if class != "" && class != controllerClass {
-		return nil, fmt.Errorf("skipping Vault Dynamic Secret as it points to a unmanaged controllerClass")
 	}
 
 	cl, err := c.NewGeneratorClient(ctx, kube, corev1, res.Spec.Provider, namespace)

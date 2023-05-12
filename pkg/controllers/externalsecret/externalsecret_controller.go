@@ -75,6 +75,7 @@ const (
 	errPolicyMergePatch     = "unable to patch secret %s: %w"
 	errTplCMMissingKey      = "error in configmap %s: missing key %s"
 	errTplSecMissingKey     = "error in secret %s: missing key %s"
+	errGenCtrlNotMatched    = "could not match controller class for generator"
 )
 
 // Reconciler reconciles a ExternalSecret object.

@@ -16,6 +16,7 @@ package externalsecret
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -26,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -485,6 +487,33 @@ var _ = Describe("ExternalSecret controller", func() {
 			// check values
 			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
 		}
+	}
+
+	ignoreMismatchControllerForGeneratorRef := func(tc *testCase) {
+		const secretKey = "somekey"
+		const secretVal = "someValue"
+
+		fakeGenerator := &genv1alpha1.Fake{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mytestfake2",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: genv1alpha1.FakeSpec{
+				Data: map[string]string{
+					secretKey: secretVal,
+				},
+				Controller: "fakeControllerClass",
+			},
+		}
+
+		fakeGeneratorJSON, _ := json.Marshal(fakeGenerator)
+
+		Expect(shouldSkipGenerator(
+			&Reconciler{
+				ControllerClass: "default",
+			},
+			&apiextensions.JSON{Raw: fakeGeneratorJSON},
+		)).To(BeTrue())
 	}
 
 	syncWithMultipleSecretStores := func(tc *testCase) {
@@ -1970,6 +1999,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
 		Entry("should sync with generatorRef", syncWithGeneratorRef),
+		Entry("should not process generatorRef with mismatching controller field", ignoreMismatchControllerForGeneratorRef),
 		Entry("should sync with multiple secret stores via sourceRef", syncWithMultipleSecretStores),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync with template engine v2", syncWithTemplateV2),
