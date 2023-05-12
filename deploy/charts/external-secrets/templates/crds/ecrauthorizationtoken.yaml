@@ -1,0 +1,134 @@
+{{- if .Values.installCRDs }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    {{- with .Values.crds.annotations }}
+    {{- toYaml . | nindent 4}}
+    {{- end }}
+    controller-gen.kubebuilder.io/version: v0.11.3
+  creationTimestamp: null
+  name: ecrauthorizationtokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - ecrauthorizationtoken
+    kind: ECRAuthorizationToken
+    listKind: ECRAuthorizationTokenList
+    plural: ecrauthorizationtokens
+    shortNames:
+      - ecrauthorizationtoken
+    singular: ecrauthorizationtoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: ECRAuthorizationTokenSpec uses the GetAuthorizationToken API to retrieve an authorization token. The authorization token is valid for 12 hours. The authorizationToken returned is a base64 encoded string that can be decoded and used in a docker login command to authenticate to a registry. For more information, see Registry authentication (https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html#registry_auth) in the Amazon Elastic Container Registry User Guide.
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                auth:
+                  description: Auth defines how to authenticate with AWS
+                  properties:
+                    jwt:
+                      description: Authenticate against AWS using service account tokens.
+                      properties:
+                        serviceAccountRef:
+                          description: A reference to a ServiceAccount resource.
+                          properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      type: object
+                    secretRef:
+                      description: AWSAuthSecretRef holds secret references for AWS credentials both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+                      properties:
+                        accessKeyIDSecretRef:
+                          description: The AccessKeyID is used for authentication
+                          properties:
+                            key:
+                              description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          type: object
+                        secretAccessKeySecretRef:
+                          description: The SecretAccessKey is used for authentication
+                          properties:
+                            key:
+                              description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          type: object
+                        sessionTokenSecretRef:
+                          description: 'The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html'
+                          properties:
+                            key:
+                              description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          type: object
+                      type: object
+                  type: object
+                region:
+                  description: Region specifies the region to operate in.
+                  type: string
+                role:
+                  description: You can assume a role before making calls to the desired AWS service.
+                  type: string
+              required:
+                - region
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+{{- if .Values.crds.conversion.enabled }}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: {{ include "external-secrets.fullname" . }}-webhook
+          namespace: {{ .Release.Namespace | quote }}
+          path: /convert
+{{- end }}
+{{- end }}

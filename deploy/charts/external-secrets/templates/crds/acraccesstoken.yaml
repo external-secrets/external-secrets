@@ -1,0 +1,147 @@
+{{- if .Values.installCRDs }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    {{- with .Values.crds.annotations }}
+    {{- toYaml . | nindent 4}}
+    {{- end }}
+    controller-gen.kubebuilder.io/version: v0.11.3
+  creationTimestamp: null
+  name: acraccesstokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - acraccesstoken
+    kind: ACRAccessToken
+    listKind: ACRAccessTokenList
+    plural: acraccesstokens
+    shortNames:
+      - acraccesstoken
+    singular: acraccesstoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: "ACRAccessToken returns a Azure Container Registry token that can be used for pushing/pulling images. Note: by default it will return an ACR Refresh Token with full access (depending on the identity). This can be scoped down to the repository level using .spec.scope. In case scope is defined it will return an ACR Access Token. \n See docs: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md"
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: 'ACRAccessTokenSpec defines how to generate the access token e.g. how to authenticate and which registry to use. see: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview'
+              properties:
+                auth:
+                  properties:
+                    managedIdentity:
+                      description: ManagedIdentity uses Azure Managed Identity to authenticate with Azure.
+                      properties:
+                        identityId:
+                          description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
+                          type: string
+                      type: object
+                    servicePrincipal:
+                      description: ServicePrincipal uses Azure Service Principal credentials to authenticate with Azure.
+                      properties:
+                        secretRef:
+                          description: Configuration used to authenticate with Azure using static credentials stored in a Kind=Secret.
+                          properties:
+                            clientId:
+                              description: The Azure clientId of the service principle used for authentication.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                            clientSecret:
+                              description: The Azure ClientSecret of the service principle used for authentication.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                      required:
+                        - secretRef
+                      type: object
+                    workloadIdentity:
+                      description: WorkloadIdentity uses Azure Workload Identity to authenticate with Azure.
+                      properties:
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      type: object
+                  type: object
+                environmentType:
+                  default: PublicCloud
+                  description: 'EnvironmentType specifies the Azure cloud environment endpoints to use for connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint. The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152 PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud'
+                  enum:
+                    - PublicCloud
+                    - USGovernmentCloud
+                    - ChinaCloud
+                    - GermanCloud
+                  type: string
+                registry:
+                  description: the domain name of the ACR registry e.g. foobarexample.azurecr.io
+                  type: string
+                scope:
+                  description: "Define the scope for the access token, e.g. pull/push access for a repository. if not provided it will return a refresh token that has full scope. Note: you need to pin it down to the repository level, there is no wildcard available. \n examples: repository:my-repository:pull,push repository:my-repository:pull \n see docs for details: https://docs.docker.com/registry/spec/auth/scope/"
+                  type: string
+                tenantId:
+                  description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
+                  type: string
+              required:
+                - auth
+                - registry
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+{{- if .Values.crds.conversion.enabled }}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: {{ include "external-secrets.fullname" . }}-webhook
+          namespace: {{ .Release.Namespace | quote }}
+          path: /convert
+{{- end }}
+{{- end }}
