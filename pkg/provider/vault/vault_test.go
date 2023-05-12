@@ -1423,6 +1423,42 @@ func TestValidateStore(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid approle with roleId and no roleRef",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					AppRole: &esv1beta1.VaultAppRole{
+						RoleID:  "",
+						RoleRef: nil,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid approle with roleId and no roleRef",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					AppRole: &esv1beta1.VaultAppRole{
+						RoleID: "fake-value",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid approle with roleId and no roleRef",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					AppRole: &esv1beta1.VaultAppRole{
+						RoleRef: &esmeta.SecretKeySelector{
+							Name: "fake-value",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "invalid clientcert",
 			args: args{
 				auth: esv1beta1.VaultAuth{
