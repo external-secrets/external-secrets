@@ -43,6 +43,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.extraVolumeMounts | list | `[]` |  |
 | certController.extraVolumes | list | `[]` |  |
 | certController.fullnameOverride | string | `""` |  |
+| certController.hostNetwork | bool | `false` | Run the certController on the host network |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
 | certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
@@ -98,6 +99,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `""` |  |
+| hostNetwork | bool | `false` | Run the controller on the host network |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | image.tag | string | `""` | The image tag to use. The default is the chart appVersion. There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default the distroless image is used. |

@@ -447,7 +447,7 @@ func (sm *SecretsManager) GetSecretMap(ctx context.Context, ref esv1beta1.Extern
 	return secretData, nil
 }
 
-func (sm *SecretsManager) Close(ctx context.Context) error {
+func (sm *SecretsManager) Close(_ context.Context) error {
 	return nil
 }
 

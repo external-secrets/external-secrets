@@ -100,7 +100,7 @@ func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1beta
 	return nil
 }
 
-func (p *Parser) MergeLiteral(ctx context.Context, tpl esv1beta1.TemplateFrom) error {
+func (p *Parser) MergeLiteral(_ context.Context, tpl esv1beta1.TemplateFrom) error {
 	if tpl.Literal == nil {
 		return nil
 	}

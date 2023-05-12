@@ -42,7 +42,7 @@ func NewGrpcCertificateManagerClient(ctx context.Context, apiEndpoint string, au
 	return &grpcCertificateManagerClient{api.NewCertificateContentServiceClient(conn)}, nil
 }
 
-func (c *grpcCertificateManagerClient) GetCertificateContent(ctx context.Context, iamToken, certificateID, versionID string) (*api.GetCertificateContentResponse, error) {
+func (c *grpcCertificateManagerClient) GetCertificateContent(ctx context.Context, iamToken, certificateID, _ string) (*api.GetCertificateContentResponse, error) {
 	response, err := c.certificateContentServiceClient.Get(
 		ctx,
 		&api.GetCertificateContentRequest{

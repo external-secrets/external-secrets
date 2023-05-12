@@ -45,4 +45,5 @@ should match snapshot of default values:
                 runAsUser: 1000
                 seccompProfile:
                   type: RuntimeDefault
+          hostNetwork: false
           serviceAccountName: RELEASE-NAME-external-secrets

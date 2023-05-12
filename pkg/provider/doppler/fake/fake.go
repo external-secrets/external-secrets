@@ -38,7 +38,7 @@ func (dc *DopplerClient) GetSecret(request client.SecretRequest) (*client.Secret
 	return dc.getSecret(request)
 }
 
-func (dc *DopplerClient) GetSecrets(request client.SecretsRequest) (*client.SecretsResponse, error) {
+func (dc *DopplerClient) GetSecrets(_ client.SecretsRequest) (*client.SecretsResponse, error) {
 	// Not implemented
 	return &client.SecretsResponse{}, nil
 }

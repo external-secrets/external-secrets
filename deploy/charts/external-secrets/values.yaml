@@ -194,6 +194,9 @@ podDisruptionBudget:
   minAvailable: 1
   # maxUnavailable: 1
 
+# -- Run the controller on the host network
+hostNetwork: false
+
 webhook:
   # -- Specifies whether a webhook deployment be created.
   create: true
@@ -371,6 +374,9 @@ certController:
   topologySpreadConstraints: []
 
   affinity: {}
+
+  # -- Run the certController on the host network
+  hostNetwork: false
 
     # -- Pod priority class name.
   priorityClassName: ""

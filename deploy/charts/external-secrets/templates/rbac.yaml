@@ -138,6 +138,19 @@ rules:
       - "get"
       - "watch"
       - "list"
+  - apiGroups:
+    - "generators.external-secrets.io"
+    resources:
+    - "acraccesstokens"
+    - "ecrauthorizationtokens"
+    - "fakes"
+    - "gcraccesstokens"
+    - "passwords"
+    - "vaultdynamicsecrets"
+    verbs:
+      - "get"
+      - "watch"
+      - "list"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
@@ -162,6 +175,21 @@ rules:
       - "secretstores"
       - "clustersecretstores"
       - "pushsecrets"
+    verbs:
+      - "create"
+      - "delete"
+      - "deletecollection"
+      - "patch"
+      - "update"
+  - apiGroups:
+    - "generators.external-secrets.io"
+    resources:
+    - "acraccesstokens"
+    - "ecrauthorizationtokens"
+    - "fakes"
+    - "gcraccesstokens"
+    - "passwords"
+    - "vaultdynamicsecrets"
     verbs:
       - "create"
       - "delete"

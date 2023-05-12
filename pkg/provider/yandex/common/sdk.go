@@ -129,7 +129,7 @@ type PerRPCCredentials struct {
 	IamToken string
 }
 
-func (t PerRPCCredentials) GetRequestMetadata(ctx context.Context, in ...string) (map[string]string, error) {
+func (t PerRPCCredentials) GetRequestMetadata(_ context.Context, _ ...string) (map[string]string, error) {
 	return map[string]string{"Authorization": "Bearer " + t.IamToken}, nil
 }
 
