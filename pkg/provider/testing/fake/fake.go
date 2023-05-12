@@ -79,7 +79,7 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 }
 
 // Not Implemented PushSecret.
-func (v *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *Client) PushSecret(_ context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	v.SetSecretArgs[remoteRef.GetRemoteKey()] = SetSecretCallArgs{
 		Value:     value,
 		RemoteRef: remoteRef,
@@ -87,7 +87,7 @@ func (v *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	return v.SetSecretFn()
 }
 
-func (v *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return v.DeleteSecretFn()
 }
 
@@ -109,7 +109,7 @@ func (v *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	return v.GetSecretMapFn(ctx, ref)
 }
 
-func (v *Client) Close(ctx context.Context) error {
+func (v *Client) Close(_ context.Context) error {
 	return nil
 }
 
@@ -117,7 +117,7 @@ func (v *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (v *Client) ValidateStore(store esv1beta1.GenericStore) error {
+func (v *Client) ValidateStore(_ esv1beta1.GenericStore) error {
 	return nil
 }
 

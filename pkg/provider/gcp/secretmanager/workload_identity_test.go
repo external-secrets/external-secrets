@@ -420,7 +420,7 @@ type fakeK8sV1 struct {
 	k8sv1.CoreV1Interface
 }
 
-func (m *fakeK8sV1) ServiceAccounts(namespace string) k8sv1.ServiceAccountInterface {
+func (m *fakeK8sV1) ServiceAccounts(_ string) k8sv1.ServiceAccountInterface {
 	return &fakeK8sV1SA{v1mock: m}
 }
 
@@ -431,10 +431,10 @@ type fakeK8sV1SA struct {
 }
 
 func (ma *fakeK8sV1SA) CreateToken(
-	ctx context.Context,
-	serviceAccountName string,
+	_ context.Context,
+	_ string,
 	tokenRequest *authv1.TokenRequest,
-	opts metav1.CreateOptions,
+	_ metav1.CreateOptions,
 ) (*authv1.TokenRequest, error) {
 	tokenRequest.Status.Token = defaultSAToken
 	return tokenRequest, nil

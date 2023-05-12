@@ -21,7 +21,7 @@ type AkeylessMockClient struct {
 	getSecret func(secretName, token string, version int32) (string, error)
 }
 
-func (mc *AkeylessMockClient) TokenFromSecretRef(ctx context.Context) (string, error) {
+func (mc *AkeylessMockClient) TokenFromSecretRef(_ context.Context) (string, error) {
 	return "newToken", nil
 }
 
@@ -29,11 +29,11 @@ func (mc *AkeylessMockClient) GetSecretByType(_ context.Context, secretName, tok
 	return mc.getSecret(secretName, token, version)
 }
 
-func (mc *AkeylessMockClient) ListSecrets(ctx context.Context, path, tag, token string) ([]string, error) {
+func (mc *AkeylessMockClient) ListSecrets(_ context.Context, _, _, _ string) ([]string, error) {
 	return nil, nil
 }
 
-func (mc *AkeylessMockClient) WithValue(in *Input, out *Output) {
+func (mc *AkeylessMockClient) WithValue(_ *Input, out *Output) {
 	if mc != nil {
 		mc.getSecret = func(secretName, token string, version int32) (string, error) {
 			return out.Value, out.Err

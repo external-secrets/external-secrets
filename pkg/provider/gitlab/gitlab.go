@@ -107,16 +107,16 @@ func (g *gitlabBase) getAuth(ctx context.Context) ([]byte, error) {
 	return credentials, nil
 }
 
-func (g *gitlabBase) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (g *gitlabBase) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (g *gitlabBase) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
-func (g *gitlabBase) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) {
 		return nil, fmt.Errorf(errUninitializedGitlabProvider)
 	}
@@ -215,7 +215,7 @@ func ExtractTag(tags map[string]string) (string, error) {
 	return environmentScope, nil
 }
 
-func (g *gitlabBase) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) || utils.IsNil(g.groupVariablesClient) {
 		return nil, fmt.Errorf(errUninitializedGitlabProvider)
 	}
@@ -342,7 +342,7 @@ func matchesFilter(environment, varEnvironment, key string, matcher *find.Matche
 	return true, key, isWildcard
 }
 
-func (g *gitlabBase) Close(ctx context.Context) error {
+func (g *gitlabBase) Close(_ context.Context) error {
 	return nil
 }
 

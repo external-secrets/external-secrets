@@ -39,7 +39,7 @@ type fakeClient struct {
 	err                 error
 }
 
-func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error) {
+func (fk fakeClient) Get(_ context.Context, name string, _ metav1.GetOptions) (*corev1.Secret, error) {
 	secret, ok := fk.secretMap[name]
 
 	if !ok {
@@ -48,7 +48,7 @@ func (fk fakeClient) Get(ctx context.Context, name string, opts metav1.GetOption
 	return &secret, fk.err
 }
 
-func (fk fakeClient) List(ctx context.Context, opts metav1.ListOptions) (*corev1.SecretList, error) {
+func (fk fakeClient) List(_ context.Context, opts metav1.ListOptions) (*corev1.SecretList, error) {
 	assert.Equal(fk.t, fk.expectedListOptions, opts)
 	list := &corev1.SecretList{}
 	for _, v := range fk.secretMap {

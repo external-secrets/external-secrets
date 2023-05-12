@@ -487,7 +487,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	return secretData, nil
 }
 
-func (c *Client) Close(ctx context.Context) error {
+func (c *Client) Close(_ context.Context) error {
 	var err error
 	if c.smClient != nil {
 		err = c.smClient.Close()

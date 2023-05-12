@@ -31,7 +31,7 @@ const (
 type GenericStoreValidator struct{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (r *GenericStoreValidator) ValidateCreate(_ context.Context, obj runtime.Object) error {
 	st, ok := obj.(GenericStore)
 	if !ok {
 		return fmt.Errorf(errInvalidStore)
@@ -40,7 +40,7 @@ func (r *GenericStoreValidator) ValidateCreate(ctx context.Context, obj runtime.
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (r *GenericStoreValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) error {
 	st, ok := newObj.(GenericStore)
 	if !ok {
 		return fmt.Errorf(errInvalidStore)
@@ -49,7 +49,7 @@ func (r *GenericStoreValidator) ValidateUpdate(ctx context.Context, oldObj, newO
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *GenericStoreValidator) ValidateDelete(ctx context.Context, obj runtime.Object) error {
+func (r *GenericStoreValidator) ValidateDelete(_ context.Context, _ runtime.Object) error {
 	return nil
 }
 

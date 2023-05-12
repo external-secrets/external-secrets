@@ -495,7 +495,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 	}
 }
 
-func vaultTest(t *testing.T, name string, tc testCase) {
+func vaultTest(t *testing.T, _ string, tc testCase) {
 	conn := &Connector{
 		NewVaultClient: tc.args.newClientFunc,
 	}

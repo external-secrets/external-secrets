@@ -152,17 +152,17 @@ func validateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (provider *ProviderOnePassword) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (provider *ProviderOnePassword) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (provider *ProviderOnePassword) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // GetSecret returns a single secret from the provider.
-func (provider *ProviderOnePassword) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
 		return nil, fmt.Errorf(errVersionNotImplemented)
 	}
@@ -196,7 +196,7 @@ func (provider *ProviderOnePassword) Validate() (esv1beta1.ValidationResult, err
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
-func (provider *ProviderOnePassword) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if ref.Version != "" {
 		return nil, fmt.Errorf(errVersionNotImplemented)
 	}
@@ -216,7 +216,7 @@ func (provider *ProviderOnePassword) GetSecretMap(ctx context.Context, ref esv1b
 }
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
-func (provider *ProviderOnePassword) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return nil, fmt.Errorf(errTagsNotImplemented)
 	}
@@ -239,7 +239,7 @@ func (provider *ProviderOnePassword) GetAllSecrets(ctx context.Context, ref esv1
 }
 
 // Close closes the client connection.
-func (provider *ProviderOnePassword) Close(ctx context.Context) error {
+func (provider *ProviderOnePassword) Close(_ context.Context) error {
 	return nil
 }
 

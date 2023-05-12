@@ -72,7 +72,7 @@ const (
 )
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error {
+func Execute(tpl, data map[string][]byte, _ esapi.TemplateScope, _ esapi.TemplateTarget, secret *corev1.Secret) error {
 	if tpl == nil {
 		return nil
 	}
