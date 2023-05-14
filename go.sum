@@ -89,8 +89,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob0t8PQPMybUNFM=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
-github.com/IBM/go-sdk-core/v5 v5.13.1 h1:zD6p3t1whAlRJo/VBmE69c8RcH9LCHL1n0/sO1MWlpw=
-github.com/IBM/go-sdk-core/v5 v5.13.1/go.mod h1:pVkN7IGmsSdmR1ZCU4E/cLcCclqRKMYgg7ya+O2Mk6g=
+github.com/IBM/go-sdk-core/v5 v5.13.2 h1:C/JWnEadKzonoHFZdMX8DaSxGVqKRFhcpDXFS5bPDiA=
+github.com/IBM/go-sdk-core/v5 v5.13.2/go.mod h1:gKRSB+YyKsGlRQW7v5frlLbue5afulSvrRa4O26o4MM=
 github.com/IBM/secrets-manager-go-sdk/v2 v2.0.0 h1:Lx4Bvim/MfoHEYR+n312bty5DirAJypBGGS9YZo3zCw=
 github.com/IBM/secrets-manager-go-sdk/v2 v2.0.0/go.mod h1:jagqWmjZ0zUEqh5jdGB42ApSQS40fu2LWw6pdg8JJko=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
