@@ -110,6 +110,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	}
 
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
+	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesGetSecret, getErr)
 	if getErr != nil {
 		if apierrors.IsNotFound(getErr) {
 			// return gracefully if no secret exists
@@ -134,7 +135,7 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		return fmt.Errorf("requires property in RemoteRef to push secret value")
 	}
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
-	// TODO: potentially add metrics call here
+	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesGetSecret, getErr)
 	if getErr != nil {
 		// create if it not exists
 		if apierrors.IsNotFound(getErr) {
@@ -327,24 +328,28 @@ func (c *Client) createSecret(ctx context.Context, value []byte, remoteRef esv1b
 		Data: map[string][]byte{remoteRef.GetProperty(): value},
 		Type: "Opaque",
 	}
-	if _, cErr := c.userSecretClient.Create(ctx, &s, metav1.CreateOptions{}); cErr != nil {
-		return cErr
-	}
-	return nil
+	_, err := c.userSecretClient.Create(ctx, &s, metav1.CreateOptions{})
+	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesCreateSecret, err)
+	return err
 }
 
 // fullDelete removes remote secret completely
 func (c *Client) fullDelete(ctx context.Context, secretName string) error {
-	if err := c.userSecretClient.Delete(ctx, secretName, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
-		return err
+	err := c.userSecretClient.Delete(ctx, secretName, metav1.DeleteOptions{})
+	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesDeleteSecret, err)
+
+	// gracefully return on not found
+	if apierrors.IsNotFound(err) {
+		return nil
 	}
-	return nil
+	return err
 }
 
 // removeProperty removes single data property from remote secret
 func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushRemoteRef) error {
 	delete(extSecret.Data, remoteRef.GetProperty())
 	_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
+	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesUpdateSecret, err)
 	return err
 }
 
@@ -352,5 +357,6 @@ func (c *Client) updateProperty(ctx context.Context, extSecret *v1.Secret, remot
 	// otherwise update remote secret
 	extSecret.Data[remoteRef.GetProperty()] = value
 	_, uErr := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
+	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesUpdateSecret, uErr)
 	return uErr
 }
