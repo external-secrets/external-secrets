@@ -550,7 +550,7 @@ func TestDeleteSecret(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name: "gracefully ignore not found during delete",
+			name: "gracefully ignore not found secret",
 			fields: fields{
 				Client: &fakeClient{
 					t:         t,
@@ -559,9 +559,37 @@ func TestDeleteSecret(t *testing.T) {
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
+				Property:  "token",
 			},
 			wantErr:       false,
 			wantSecretMap: map[string]*corev1.Secret{},
+		},
+		{
+			name: "gracefully ignore not found property",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
+						},
+					},
+				},
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+				Property:  "secret",
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*corev1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`foobar`),
+					},
+				},
+			},
 		},
 		{
 			name: "unexpected lookup error",
@@ -591,7 +619,7 @@ func TestDeleteSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "successful delete whole secret",
+			name: "single property, delete whole secret",
 			fields: fields{
 				Client: &fakeClient{
 					t: t,
@@ -606,66 +634,13 @@ func TestDeleteSecret(t *testing.T) {
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
+				Property:  "token",
 			},
 			wantErr:       false,
 			wantSecretMap: map[string]*corev1.Secret{},
 		},
 		{
-			name: "not found while trying to remove property",
-			fields: fields{
-				Client: &fakeClient{
-					t: t,
-					secretMap: map[string]*corev1.Secret{
-						"mysec": {
-							Data: map[string][]byte{
-								"token": []byte(`foobar`),
-							},
-						},
-					},
-				},
-			},
-			ref: v1alpha1.PushSecretRemoteRef{
-				RemoteKey: "yoursec",
-				Property:  "token",
-			},
-			wantErr: false,
-			wantSecretMap: map[string]*corev1.Secret{
-				"mysec": {
-					Data: map[string][]byte{
-						"token": []byte(`foobar`),
-					},
-				},
-			},
-		},
-		{
-			name: "missing property, ignore gracefully",
-			fields: fields{
-				Client: &fakeClient{
-					t: t,
-					secretMap: map[string]*corev1.Secret{
-						"mysec": {
-							Data: map[string][]byte{
-								"token": []byte(`foobar`),
-							},
-						},
-					},
-				},
-			},
-			ref: v1alpha1.PushSecretRemoteRef{
-				RemoteKey: "mysec",
-				Property:  "nottoken",
-			},
-			wantErr: false,
-			wantSecretMap: map[string]*corev1.Secret{
-				"mysec": {
-					Data: map[string][]byte{
-						"token": []byte(`foobar`),
-					},
-				},
-			},
-		},
-		{
-			name: "existing property, just remove that one",
+			name: "multiple properties, just remove that one",
 			fields: fields{
 				Client: &fakeClient{
 					t: t,

@@ -105,14 +105,27 @@ func getSecretValues(secretMap map[string][]byte, policy esv1beta1.ExternalSecre
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	if remoteRef.GetProperty() == "" {
-		return c.fullDelete(ctx, remoteRef.GetRemoteKey())
-	} else {
-		return c.removeProperty(ctx, remoteRef.GetRemoteKey(), remoteRef.GetProperty())
+	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
+	if getErr != nil {
+		if apierrors.IsNotFound(getErr) {
+			// return gracefully if no secret exists
+			return nil
+		}
+		return getErr
 	}
+	if _, ok := extSecret.Data[remoteRef.GetProperty()]; !ok {
+		// return gracefully if specified secret does not contain the given property
+		return nil
+	}
+
+	if len(extSecret.Data) > 1 {
+		return c.removeProperty(ctx, extSecret, remoteRef)
+	} else {
+		return c.fullDelete(ctx, remoteRef.GetRemoteKey())
+	}
+
 }
 
-// Not Implemented PushSecret.
 func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	if remoteRef.GetProperty() == "" {
 		return fmt.Errorf("requires property in RemoteRef to push secret value")
@@ -321,6 +334,7 @@ func (c *Client) createSecret(ctx context.Context, value []byte, remoteRef esv1b
 	return nil
 }
 
+// fullDelete removes remote secret completely
 func (c *Client) fullDelete(ctx context.Context, secretName string) error {
 	if err := c.userSecretClient.Delete(ctx, secretName, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
 		return err
@@ -328,20 +342,9 @@ func (c *Client) fullDelete(ctx context.Context, secretName string) error {
 	return nil
 }
 
-func (c *Client) removeProperty(ctx context.Context, secretName string, property string) error {
-	extSecret, getErr := c.userSecretClient.Get(ctx, secretName, metav1.GetOptions{})
-	if getErr != nil {
-		if apierrors.IsNotFound(getErr) {
-			return nil
-		}
-		return getErr
-	}
-
-	_, ok := extSecret.Data[property]
-	if ok {
-		delete(extSecret.Data, property)
-		_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
-		return err
-	}
-	return nil
+// removeProperty removes single data property from remote secret
+func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushRemoteRef) error {
+	delete(extSecret.Data, remoteRef.GetProperty())
+	_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
+	return err
 }
