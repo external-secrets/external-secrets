@@ -331,10 +331,7 @@ func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f f
 			return err
 		}
 		// Setting Field Owner even for CreationPolicy==Create
-		if err := c.Create(ctx, obj, client.FieldOwner(fqdn)); err != nil {
-			return err
-		}
-		return nil
+		return c.Create(ctx, obj, client.FieldOwner(fqdn))
 	}
 
 	existing := obj.DeepCopyObject()
@@ -346,10 +343,7 @@ func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f f
 		return nil
 	}
 
-	if err := c.Update(ctx, obj, client.FieldOwner(fqdn)); err != nil {
-		return err
-	}
-	return nil
+	return c.Update(ctx, obj, client.FieldOwner(fqdn))
 }
 
 func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, secret *v1.Secret, mutationFunc func() error, fieldOwner string) error {

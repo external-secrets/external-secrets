@@ -72,25 +72,25 @@ func (mc *AzureMockClient) DeleteCertificate(ctx context.Context, vaultBaseURL, 
 	return mc.deleteCertificate(ctx, vaultBaseURL, certificateName)
 }
 
-func (mc *AzureMockClient) WithValue(serviceURL, secretName, secretVersion string, apiOutput keyvault.SecretBundle, err error) {
+func (mc *AzureMockClient) WithValue(_, _, _ string, apiOutput keyvault.SecretBundle, err error) {
 	if mc != nil {
-		mc.getSecret = func(ctx context.Context, serviceURL, secretName, secretVersion string) (result keyvault.SecretBundle, retErr error) {
+		mc.getSecret = func(_ context.Context, _, _, _ string) (result keyvault.SecretBundle, retErr error) {
 			return apiOutput, err
 		}
 	}
 }
 
-func (mc *AzureMockClient) WithKey(serviceURL, secretName, secretVersion string, apiOutput keyvault.KeyBundle, err error) {
+func (mc *AzureMockClient) WithKey(_, _, _ string, apiOutput keyvault.KeyBundle, err error) {
 	if mc != nil {
-		mc.getKey = func(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.KeyBundle, retErr error) {
+		mc.getKey = func(_ context.Context, _, _, _ string) (result keyvault.KeyBundle, retErr error) {
 			return apiOutput, err
 		}
 	}
 }
 
-func (mc *AzureMockClient) WithCertificate(serviceURL, secretName, secretVersion string, apiOutput keyvault.CertificateBundle, err error) {
+func (mc *AzureMockClient) WithCertificate(_, _, _ string, apiOutput keyvault.CertificateBundle, err error) {
 	if mc != nil {
-		mc.getCertificate = func(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.CertificateBundle, retErr error) {
+		mc.getCertificate = func(_ context.Context, _, _, _ string) (result keyvault.CertificateBundle, retErr error) {
 			return apiOutput, err
 		}
 	}
@@ -98,7 +98,7 @@ func (mc *AzureMockClient) WithCertificate(serviceURL, secretName, secretVersion
 
 func (mc *AzureMockClient) WithImportCertificate(apiOutput keyvault.CertificateBundle, err error) {
 	if mc != nil {
-		mc.importCertificate = func(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (keyvault.CertificateBundle, error) {
+		mc.importCertificate = func(_ context.Context, _ string, _ string, _ keyvault.CertificateImportParameters) (keyvault.CertificateBundle, error) {
 			return apiOutput, err
 		}
 	}
@@ -106,7 +106,7 @@ func (mc *AzureMockClient) WithImportCertificate(apiOutput keyvault.CertificateB
 
 func (mc *AzureMockClient) WithImportKey(output keyvault.KeyBundle, err error) {
 	if mc != nil {
-		mc.importKey = func(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (keyvault.KeyBundle, error) {
+		mc.importKey = func(_ context.Context, _ string, _ string, _ keyvault.KeyImportParameters) (keyvault.KeyBundle, error) {
 			return output, err
 		}
 	}
@@ -114,7 +114,7 @@ func (mc *AzureMockClient) WithImportKey(output keyvault.KeyBundle, err error) {
 
 func (mc *AzureMockClient) WithSetSecret(output keyvault.SecretBundle, err error) {
 	if mc != nil {
-		mc.setSecret = func(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (keyvault.SecretBundle, error) {
+		mc.setSecret = func(_ context.Context, _, _ string, _ keyvault.SecretSetParameters) (keyvault.SecretBundle, error) {
 			return output, err
 		}
 	}
@@ -122,7 +122,7 @@ func (mc *AzureMockClient) WithSetSecret(output keyvault.SecretBundle, err error
 
 func (mc *AzureMockClient) WithDeleteSecret(output keyvault.DeletedSecretBundle, err error) {
 	if mc != nil {
-		mc.deleteSecret = func(ctx context.Context, vaultBaseURL string, secretName string) (keyvault.DeletedSecretBundle, error) {
+		mc.deleteSecret = func(_ context.Context, _, _ string) (keyvault.DeletedSecretBundle, error) {
 			return output, err
 		}
 	}
@@ -130,7 +130,7 @@ func (mc *AzureMockClient) WithDeleteSecret(output keyvault.DeletedSecretBundle,
 
 func (mc *AzureMockClient) WithDeleteCertificate(output keyvault.DeletedCertificateBundle, err error) {
 	if mc != nil {
-		mc.deleteCertificate = func(ctx context.Context, vaultBaseURL string, certificateName string) (keyvault.DeletedCertificateBundle, error) {
+		mc.deleteCertificate = func(_ context.Context, _, _ string) (keyvault.DeletedCertificateBundle, error) {
 			return output, err
 		}
 	}
@@ -138,15 +138,15 @@ func (mc *AzureMockClient) WithDeleteCertificate(output keyvault.DeletedCertific
 
 func (mc *AzureMockClient) WithDeleteKey(output keyvault.DeletedKeyBundle, err error) {
 	if mc != nil {
-		mc.deleteKey = func(ctx context.Context, vaultBaseURL string, keyName string) (keyvault.DeletedKeyBundle, error) {
+		mc.deleteKey = func(_ context.Context, _, _ string) (keyvault.DeletedKeyBundle, error) {
 			return output, err
 		}
 	}
 }
 
-func (mc *AzureMockClient) WithList(serviceURL string, apiOutput keyvault.SecretListResultIterator, err error) {
+func (mc *AzureMockClient) WithList(_ string, apiOutput keyvault.SecretListResultIterator, err error) {
 	if mc != nil {
-		mc.getSecretsComplete = func(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error) {
+		mc.getSecretsComplete = func(_ context.Context, _ string, _ *int32) (keyvault.SecretListResultIterator, error) {
 			return apiOutput, err
 		}
 	}

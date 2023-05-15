@@ -495,7 +495,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 	}
 }
 
-func vaultTest(t *testing.T, name string, tc testCase) {
+func vaultTest(t *testing.T, _ string, tc testCase) {
 	conn := &Connector{
 		NewVaultClient: tc.args.newClientFunc,
 	}
@@ -1421,6 +1421,42 @@ func TestValidateStore(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "invalid approle with roleId and no roleRef",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					AppRole: &esv1beta1.VaultAppRole{
+						RoleID:  "",
+						RoleRef: nil,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid approle with roleId and no roleRef",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					AppRole: &esv1beta1.VaultAppRole{
+						RoleID: "fake-value",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid approle with roleId and no roleRef",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					AppRole: &esv1beta1.VaultAppRole{
+						RoleRef: &esmeta.SecretKeySelector{
+							Name: "fake-value",
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "invalid clientcert",

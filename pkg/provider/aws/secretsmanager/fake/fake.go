@@ -54,7 +54,7 @@ func (sm Client) DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSec
 }
 
 func NewDeleteSecretWithContextFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretWithContextFn {
-	return func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (output *awssm.DeleteSecretOutput, err error) {
+	return func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
 		return output, err
 	}
 }

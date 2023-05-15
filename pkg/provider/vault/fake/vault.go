@@ -238,7 +238,7 @@ func (c *VaultClient) AddHeader(key, value string) {
 	c.MockAddHeader(key, value)
 }
 
-func ClientWithLoginMock(c *vault.Config) (util.Client, error) {
+func ClientWithLoginMock(_ *vault.Config) (util.Client, error) {
 	cl := VaultClient{
 		MockAuthToken: NewAuthTokenFn(),
 		MockSetToken:  NewSetTokenFn(),

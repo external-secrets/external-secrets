@@ -213,6 +213,6 @@ type FakeTokenGetter struct {
 	err   error
 }
 
-func (f *FakeTokenGetter) GetToken(ctx context.Context, opts policy.TokenRequestOptions) (azcore.AccessToken, error) {
+func (f *FakeTokenGetter) GetToken(_ context.Context, _ policy.TokenRequestOptions) (azcore.AccessToken, error) {
 	return f.token, f.err
 }

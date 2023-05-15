@@ -44,7 +44,7 @@ type GitlabMockProjectsClient struct {
 	listProjectsGroups func(pid interface{}, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error)
 }
 
-func (mc *GitlabMockProjectsClient) ListProjectsGroups(pid interface{}, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error) {
+func (mc *GitlabMockProjectsClient) ListProjectsGroups(pid interface{}, opt *gitlab.ListProjectGroupOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error) {
 	return mc.listProjectsGroups(pid, opt, nil)
 }
 
@@ -61,11 +61,11 @@ type GitlabMockProjectVariablesClient struct {
 	listVariables func(pid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
-func (mc *GitlabMockProjectVariablesClient) GetVariable(pid interface{}, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
+func (mc *GitlabMockProjectVariablesClient) GetVariable(pid interface{}, key string, _ *gitlab.GetProjectVariableOptions, _ ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
 	return mc.getVariable(pid, key, nil)
 }
 
-func (mc *GitlabMockProjectVariablesClient) ListVariables(pid interface{}, opt *gitlab.ListProjectVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
+func (mc *GitlabMockProjectVariablesClient) ListVariables(pid interface{}, _ *gitlab.ListProjectVariablesOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
 	return mc.listVariables(pid)
 }
 
@@ -134,11 +134,11 @@ type GitlabMockGroupVariablesClient struct {
 	listVariables func(gid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
-func (mc *GitlabMockGroupVariablesClient) GetVariable(gid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
+func (mc *GitlabMockGroupVariablesClient) GetVariable(gid interface{}, key string, _ ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
 	return mc.getVariable(gid, key, nil)
 }
 
-func (mc *GitlabMockGroupVariablesClient) ListVariables(gid interface{}, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error) {
+func (mc *GitlabMockGroupVariablesClient) ListVariables(gid interface{}, _ *gitlab.ListGroupVariablesOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error) {
 	return mc.listVariables(gid)
 }
 

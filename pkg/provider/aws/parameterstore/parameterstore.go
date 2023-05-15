@@ -417,7 +417,7 @@ func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1beta1.Extern
 	return secretData, nil
 }
 
-func (pm *ParameterStore) Close(ctx context.Context) error {
+func (pm *ParameterStore) Close(_ context.Context) error {
 	return nil
 }
 
