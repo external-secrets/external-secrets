@@ -135,7 +135,6 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
 	// TODO: potentially add metrics call here
-	// TODO: split into two methods
 	if getErr != nil {
 		// create if it not exists
 		if apierrors.IsNotFound(getErr) {
@@ -143,16 +142,13 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		}
 		return getErr
 	}
-	// update if property is not present yet
-	if v, ok := extSecret.Data[remoteRef.GetProperty()]; !ok || !bytes.Equal(v, value) {
-		extSecret.Data[remoteRef.GetProperty()] = value
-		_, uErr := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
-		if uErr != nil {
-			return uErr
-		}
+	// return gracefully if data is already in sync
+	if v, ok := extSecret.Data[remoteRef.GetProperty()]; ok && bytes.Equal(v, value) {
+		return nil
 	}
-	// otherwise just return gracefully
-	return nil
+
+	// otherwise update remote property
+	return c.updateProperty(ctx, extSecret, remoteRef, value)
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -350,4 +346,11 @@ func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remot
 	delete(extSecret.Data, remoteRef.GetProperty())
 	_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
 	return err
+}
+
+func (c *Client) updateProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushRemoteRef, value []byte) error {
+	// otherwise update remote secret
+	extSecret.Data[remoteRef.GetProperty()] = value
+	_, uErr := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
+	return uErr
 }
