@@ -550,6 +550,32 @@ func TestDeleteSecret(t *testing.T) {
 		wantErr       bool
 	}{
 		{
+			name: "refuse to delete without property",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
+						},
+					},
+				},
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+			},
+			wantErr: true,
+			wantSecretMap: map[string]*corev1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`foobar`),
+					},
+				},
+			},
+		},
+		{
 			name: "gracefully ignore not found secret",
 			fields: fields{
 				Client: &fakeClient{

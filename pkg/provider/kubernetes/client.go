@@ -105,6 +105,10 @@ func getSecretValues(secretMap map[string][]byte, policy esv1beta1.ExternalSecre
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	if remoteRef.GetProperty() == "" {
+		return fmt.Errorf("requires property in RemoteRef to delete secret value")
+	}
+
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
 	if getErr != nil {
 		if apierrors.IsNotFound(getErr) {
@@ -123,7 +127,6 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	} else {
 		return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 	}
-
 }
 
 func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
