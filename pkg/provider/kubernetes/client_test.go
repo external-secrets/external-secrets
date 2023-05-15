@@ -82,7 +82,11 @@ func (fk *fakeClient) Delete(ctx context.Context, name string, opts metav1.Delet
 }
 
 func (fk *fakeClient) Create(ctx context.Context, secret *v1.Secret, opts metav1.CreateOptions) (*v1.Secret, error) {
-	return nil, nil
+	s := &corev1.Secret{
+		Data: secret.Data,
+	}
+	fk.secretMap[secret.Name] = s
+	return s, nil
 }
 
 func (fk *fakeClient) Update(ctx context.Context, secret *v1.Secret, opts metav1.UpdateOptions) (*v1.Secret, error) {
@@ -535,8 +539,7 @@ func TestGetAllSecrets(t *testing.T) {
 
 func TestDeleteSecret(t *testing.T) {
 	type fields struct {
-		Client    KClient
-		Namespace string
+		Client KClient
 	}
 	tests := []struct {
 		name   string
@@ -553,7 +556,6 @@ func TestDeleteSecret(t *testing.T) {
 					t:         t,
 					secretMap: map[string]*v1.Secret{},
 				},
-				Namespace: "default",
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
@@ -575,7 +577,6 @@ func TestDeleteSecret(t *testing.T) {
 					},
 					err: errors.New(errSomethingWentWrong),
 				},
-				Namespace: "default",
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
@@ -602,7 +603,6 @@ func TestDeleteSecret(t *testing.T) {
 						},
 					},
 				},
-				Namespace: "default",
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
@@ -623,7 +623,6 @@ func TestDeleteSecret(t *testing.T) {
 						},
 					},
 				},
-				Namespace: "default",
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "yoursec",
@@ -651,7 +650,6 @@ func TestDeleteSecret(t *testing.T) {
 						},
 					},
 				},
-				Namespace: "default",
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
@@ -680,7 +678,6 @@ func TestDeleteSecret(t *testing.T) {
 						},
 					},
 				},
-				Namespace: "default",
 			},
 			ref: v1alpha1.PushSecretRemoteRef{
 				RemoteKey: "mysec",
@@ -700,9 +697,104 @@ func TestDeleteSecret(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Client{
 				userSecretClient: tt.fields.Client,
-				namespace:        tt.fields.Namespace,
 			}
 			err := p.DeleteSecret(context.Background(), tt.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProviderKubernetes.DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			fClient := tt.fields.Client.(*fakeClient)
+			if diff := cmp.Diff(tt.wantSecretMap, fClient.secretMap); diff != "" {
+				t.Errorf("Unexpected resulting secrets map:  -want, +got :\n%s\n", diff)
+			}
+		})
+	}
+}
+
+func TestPushSecret(t *testing.T) {
+	type fields struct {
+		Client    KClient
+		PushValue string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		ref    esv1beta1.PushRemoteRef
+
+		wantSecretMap map[string]*corev1.Secret
+		wantErr       bool
+	}{
+		{
+			name: "add missing property to existing secret",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+				PushValue: "bar",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+				Property:  "secret",
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*corev1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token":  []byte(`foo`),
+						"secret": []byte(`bar`),
+					},
+				},
+			},
+		},
+		{
+			name: "create new secret for one property",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"yoursec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+				PushValue: "bar",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+				Property:  "secret",
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*corev1.Secret{
+				"yoursec": {
+					Data: map[string][]byte{
+						"token": []byte(`foo`),
+					},
+				},
+				"mysec": {
+					Data: map[string][]byte{
+						"secret": []byte(`bar`),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &Client{
+				userSecretClient: tt.fields.Client,
+				store:            &esv1beta1.KubernetesProvider{},
+			}
+			err := p.PushSecret(context.Background(), []byte(tt.fields.PushValue), tt.ref)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return
