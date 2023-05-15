@@ -114,9 +114,12 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 
 // Not Implemented PushSecret.
 func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	if remoteRef.GetProperty() == "" {
+		return fmt.Errorf("requires property in RemoteRef to push secret value")
+	}
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
-	//TODO: potentially add metrics call here
-	//TODO: split into two methods
+	// TODO: potentially add metrics call here
+	// TODO: split into two methods
 	if getErr != nil {
 		// create if it not exists
 		if apierrors.IsNotFound(getErr) {
@@ -124,8 +127,6 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		}
 		return getErr
 	}
-	//TODO: add pushing whole secret as a use case
-
 	// update if property is not present yet
 	if v, ok := extSecret.Data[remoteRef.GetProperty()]; !ok || !bytes.Equal(v, value) {
 		extSecret.Data[remoteRef.GetProperty()] = value
