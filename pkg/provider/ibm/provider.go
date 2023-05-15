@@ -30,7 +30,8 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -353,7 +354,7 @@ func getSecretData(ibm *providerIBM, secretName *string) (sm.SecretIntf, error) 
 		&sm.GetSecretOptions{
 			ID: secretName,
 		})
-	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMGetSecret, err)
+	metrics.ObserveAPICall(constants.ProviderIBMSM, constants.CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}
