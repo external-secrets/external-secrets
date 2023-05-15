@@ -110,13 +110,6 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 	if err != nil {
 		return nil, err
 	}
-	skipGenerator, err := shouldSkipGenerator(r, genDef)
-	if err != nil {
-		return nil, err
-	}
-	if skipGenerator {
-		return nil, errors.New(errGenCtrlNotMatched)
-	}
 	gen, err := genv1alpha1.GetGenerator(genDef)
 	if err != nil {
 		return nil, err

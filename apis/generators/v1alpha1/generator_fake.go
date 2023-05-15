@@ -20,8 +20,8 @@ import (
 
 // FakeSpec contains the static data.
 type FakeSpec struct {
-	// Used to select the correct KES controller (think: ingress.ingressClassName)
-	// The KES controller is instantiated with a specific controller name and filters VDS based on this property
+	// Used to select the correct ESO controller (think: ingress.ingressClassName)
+	// The ESO controller is instantiated with a specific controller name and filters VDS based on this property
 	// +optional
 	Controller string `json:"controller"`
 

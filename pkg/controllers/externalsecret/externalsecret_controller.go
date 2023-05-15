@@ -75,7 +75,6 @@ const (
 	errPolicyMergePatch     = "unable to patch secret %s: %w"
 	errTplCMMissingKey      = "error in configmap %s: missing key %s"
 	errTplSecMissingKey     = "error in secret %s: missing key %s"
-	errGenCtrlNotMatched    = "could not match controller class for generator"
 )
 
 // Reconciler reconciles a ExternalSecret object.
@@ -464,6 +463,21 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 	for _, ref := range es.Spec.DataFrom {
 		if ref.SourceRef != nil && ref.SourceRef.SecretStoreRef != nil {
 			storeList = append(storeList, *ref.SourceRef.SecretStoreRef)
+		}
+
+		// verify that generator's controllerClass matches
+		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
+			genDef, err := r.getGeneratorDefinition(ctx, namespace, ref.SourceRef)
+			if err != nil {
+				return false, err
+			}
+			skipGenerator, err := shouldSkipGenerator(r, genDef)
+			if err != nil {
+				return false, err
+			}
+			if skipGenerator {
+				return true, nil
+			}
 		}
 	}
 
