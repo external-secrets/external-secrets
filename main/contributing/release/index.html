@@ -2126,11 +2126,13 @@
 <p>The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release.</p>
 <h2 id="release-eso">Release ESO</h2>
 <ol>
-<li>Run <code>Create Release</code> Action to create a new release, pass in the desired version number to release.</li>
+<li>Run <code>Create Release</code> Action to create a new release, pass in the desired version number to release.<ol>
+<li>note: choose the right <code>branch</code> to execute the action: use <code>main</code> when creating a new release. Use <code>release-x.y</code> when you want to bump a LTS release.</li>
+</ol>
+</li>
 <li>GitHub Release, Changelog will be created by the <code>release.yml</code> workflow which also promotes the container image.</li>
 <li>update Helm Chart, see below</li>
 <li>update OLM bundle, see <a href="https://github.com/external-secrets/external-secrets-helm-operator/blob/main/docs/release.md#operatorhubio">helm-operator docs</a></li>
-<li>Announce the new release in the <code>#external-secrets</code> Kubernetes Slack</li>
 </ol>
 <h2 id="release-helm-chart">Release Helm Chart</h2>
 <ol>
@@ -2140,6 +2142,11 @@
 <li>run <code>/ok-to-test-managed</code> commands for all cloud providers</li>
 <li>merge PR if everyhing is green</li>
 <li>CI picks up the new chart version and creates a new GitHub Release for it</li>
+<li>create/merge into release branch<ol>
+<li>on a <code>minor</code> release: create a new branch <code>release-x.y</code></li>
+<li>on a <code>patch</code> release: merge main into <code>release-x.y</code></li>
+</ol>
+</li>
 </ol>
 <h2 id="release-olm-bundle">Release OLM Bundle</h2>
 <p>In order to make the latest release available to <a href="https://operatorhub.io/">OperatorHub.io</a> we need to create a bundle and open a PR in the <a href="https://github.com/k8s-operatorhub/community-operators/">community-operators</a> repository.</p>
