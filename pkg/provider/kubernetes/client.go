@@ -14,6 +14,7 @@ limitations under the License.
 package kubernetes
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -115,6 +116,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
 	//TODO: potentially add metrics call here
+	//TODO: split into two methods
 	if getErr != nil {
 		// create if it not exists
 		if apierrors.IsNotFound(getErr) {
@@ -125,7 +127,7 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	//TODO: add pushing whole secret as a use case
 
 	// update if property is not present yet
-	if _, ok := extSecret.Data[remoteRef.GetProperty()]; !ok {
+	if v, ok := extSecret.Data[remoteRef.GetProperty()]; !ok || !bytes.Equal(v, value) {
 		extSecret.Data[remoteRef.GetProperty()] = value
 		_, uErr := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
 		if uErr != nil {

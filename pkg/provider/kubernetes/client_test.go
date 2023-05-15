@@ -755,6 +755,34 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		{
+			name: "replace existing property in existing secret",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+				PushValue: "bar",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+				Property:  "token",
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*corev1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`bar`),
+					},
+				},
+			},
+		},
+		{
 			name: "create new secret for one property",
 			fields: fields{
 				Client: &fakeClient{
