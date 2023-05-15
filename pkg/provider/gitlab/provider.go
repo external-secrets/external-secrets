@@ -44,7 +44,7 @@ func (g *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-// Method on Gitlab Provider to set up projectVariablesClient with credentials, populate projectID and environment.
+// Method on GitLab Provider to set up projectVariablesClient with credentials, populate projectID and environment.
 func (g *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
@@ -85,7 +85,7 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1beta1.GitlabPr
 	// ClientOptionFunc from the gitlab package can be mapped with the CRD
 	// in a similar way to extend functionality of the provider
 
-	// Create a new Gitlab Client using credentials and options
+	// Create a new GitLab Client using credentials and options
 	client, err := gitlab.NewClient(string(credentials), opts...)
 	if err != nil {
 		return nil, err

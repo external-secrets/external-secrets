@@ -477,7 +477,7 @@ func TestGetAllSecrets(t *testing.T) {
 	setUnsupportedFindPath := func(smtc *secretManagerTestCase) {
 		path := "path"
 		smtc.refFind.Path = &path
-		smtc.expectError = "'find.path' is not implemented in the Gitlab provider"
+		smtc.expectError = "'find.path' is not implemented in the GitLab provider"
 	}
 	setUnsupportedFindTag := func(smtc *secretManagerTestCase) {
 		smtc.expectError = "'find.tags' only supports 'environment_scope"

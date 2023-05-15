@@ -4482,7 +4482,7 @@ GitlabProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Gitlab configures this store to sync secrets using Gitlab Variables provider</p>
+<p>GitLab configures this store to sync secrets using GitLab Variables provider</p>
 </td>
 </tr>
 <tr>
