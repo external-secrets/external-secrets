@@ -645,7 +645,7 @@ func TestDeleteSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "single property, delete whole secret",
+			name: "delete whole secret if only property should be removed",
 			fields: fields{
 				Client: &fakeClient{
 					t: t,
@@ -726,6 +726,33 @@ func TestPushSecret(t *testing.T) {
 		wantSecretMap map[string]*corev1.Secret
 		wantErr       bool
 	}{
+		{
+			name: "refuse to work without property",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+				PushValue: "bar",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+			},
+			wantErr: true,
+			wantSecretMap: map[string]*corev1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`foo`),
+					},
+				},
+			},
+		},
 		{
 			name: "add missing property to existing secret",
 			fields: fields{
@@ -812,33 +839,6 @@ func TestPushSecret(t *testing.T) {
 				"mysec": {
 					Data: map[string][]byte{
 						"secret": []byte(`bar`),
-					},
-				},
-			},
-		},
-		{
-			name: "refuse to work without property",
-			fields: fields{
-				Client: &fakeClient{
-					t: t,
-					secretMap: map[string]*v1.Secret{
-						"mysec": {
-							Data: map[string][]byte{
-								"token": []byte(`foo`),
-							},
-						},
-					},
-				},
-				PushValue: "bar",
-			},
-			ref: v1alpha1.PushSecretRemoteRef{
-				RemoteKey: "mysec",
-			},
-			wantErr: true,
-			wantSecretMap: map[string]*corev1.Secret{
-				"mysec": {
-					Data: map[string][]byte{
-						"token": []byte(`foo`),
 					},
 				},
 			},
