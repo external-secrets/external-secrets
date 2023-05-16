@@ -333,7 +333,7 @@ func (c *Client) createSecret(ctx context.Context, value []byte, remoteRef esv1b
 	return err
 }
 
-// fullDelete removes remote secret completely
+// fullDelete removes remote secret completely.
 func (c *Client) fullDelete(ctx context.Context, secretName string) error {
 	err := c.userSecretClient.Delete(ctx, secretName, metav1.DeleteOptions{})
 	metrics.ObserveAPICall(metrics.ProviderKubernetes, metrics.CallKubernetesDeleteSecret, err)
@@ -345,7 +345,7 @@ func (c *Client) fullDelete(ctx context.Context, secretName string) error {
 	return err
 }
 
-// removeProperty removes single data property from remote secret
+// removeProperty removes single data property from remote secret.
 func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushRemoteRef) error {
 	delete(extSecret.Data, remoteRef.GetProperty())
 	_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
