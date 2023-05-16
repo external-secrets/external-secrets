@@ -1577,6 +1577,10 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
+func (f fakeRef) GetProperty() string {
+	return ""
+}
+
 func TestSetSecret(t *testing.T) {
 	noPermission := errors.New("no permission")
 
