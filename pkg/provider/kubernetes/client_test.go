@@ -41,7 +41,7 @@ type fakeClient struct {
 	err                 error
 }
 
-func (fk *fakeClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Secret, error) {
+func (fk *fakeClient) Get(_ context.Context, name string, _ metav1.GetOptions) (*v1.Secret, error) {
 	if fk.err != nil {
 		return nil, fk.err
 	}
@@ -67,7 +67,7 @@ func (fk *fakeClient) List(_ context.Context, opts metav1.ListOptions) (*v1.Secr
 	return list, nil
 }
 
-func (fk *fakeClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+func (fk *fakeClient) Delete(_ context.Context, name string, _ metav1.DeleteOptions) error {
 	if fk.err != nil {
 		return fk.err
 	}
@@ -81,7 +81,7 @@ func (fk *fakeClient) Delete(ctx context.Context, name string, opts metav1.Delet
 	return nil
 }
 
-func (fk *fakeClient) Create(ctx context.Context, secret *v1.Secret, opts metav1.CreateOptions) (*v1.Secret, error) {
+func (fk *fakeClient) Create(_ context.Context, secret *v1.Secret, _ metav1.CreateOptions) (*v1.Secret, error) {
 	s := &v1.Secret{
 		Data: secret.Data,
 	}
@@ -89,7 +89,7 @@ func (fk *fakeClient) Create(ctx context.Context, secret *v1.Secret, opts metav1
 	return s, nil
 }
 
-func (fk *fakeClient) Update(ctx context.Context, secret *v1.Secret, opts metav1.UpdateOptions) (*v1.Secret, error) {
+func (fk *fakeClient) Update(_ context.Context, secret *v1.Secret, _ metav1.UpdateOptions) (*v1.Secret, error) {
 	s, ok := fk.secretMap[secret.Name]
 	if !ok {
 		return nil, errors.New("error while updating secret")

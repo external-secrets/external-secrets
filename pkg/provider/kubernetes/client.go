@@ -125,9 +125,8 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 
 	if len(extSecret.Data) > 1 {
 		return c.removeProperty(ctx, extSecret, remoteRef)
-	} else {
-		return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 	}
+	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
 func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {

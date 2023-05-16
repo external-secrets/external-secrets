@@ -400,7 +400,6 @@ func GetPushSecretCondition(status esapi.PushSecretStatus, condType esapi.PushSe
 func statusRef(ref v1beta1.PushRemoteRef) string {
 	if ref.GetProperty() != "" {
 		return ref.GetRemoteKey() + "/" + ref.GetProperty()
-	} else {
-		return ref.GetRemoteKey()
 	}
+	return ref.GetRemoteKey()
 }
