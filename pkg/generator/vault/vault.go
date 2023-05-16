@@ -83,9 +83,11 @@ func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpe
 		result, err = cl.Logical().DeleteWithContext(ctx, res.Spec.Path)
 	} else {
 		params := make(map[string]interface{})
-		err = json.Unmarshal(res.Spec.Parameters.Raw, &params)
-		if err != nil {
-			return nil, err
+		if res.Spec.Parameters != nil {
+			err = json.Unmarshal(res.Spec.Parameters.Raw, &params)
+			if err != nil {
+				return nil, err
+			}
 		}
 		result, err = cl.Logical().WriteWithContext(ctx, res.Spec.Path, params)
 	}
