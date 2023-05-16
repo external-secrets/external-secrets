@@ -433,7 +433,8 @@ type ExternalSecret struct {
 const (
 	// AnnotationDataHash is used to ensure consistency.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
-	// AnnotationDataHash is used to ensure consistency.
+	// LabelOwner points to the owning ExternalSecret resource
+	//  and is used to manage the lifecycle of a Secret
 	LabelOwner = "reconcile.external-secrets.io/created-by"
 )
 
