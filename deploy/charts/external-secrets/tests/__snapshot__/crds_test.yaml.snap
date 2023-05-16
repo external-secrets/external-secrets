@@ -54,7 +54,7 @@ should match snapshot of default values:
                   description: SecretStoreSpec defines the desired state of SecretStore.
                   properties:
                     controller:
-                      description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
+                      description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property'
                       type: string
                     provider:
                       description: Used to configure the provider. Only one provider may be set
@@ -1216,7 +1216,7 @@ should match snapshot of default values:
                         type: object
                       type: array
                     controller:
-                      description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
+                      description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property'
                       type: string
                     provider:
                       description: Used to configure the provider. Only one provider may be set

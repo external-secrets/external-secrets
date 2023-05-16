@@ -1470,8 +1470,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
@@ -4211,8 +4211,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
@@ -4722,8 +4722,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
