@@ -103,13 +103,37 @@ func getSecretValues(secretMap map[string][]byte, policy esv1beta1.ExternalSecre
 	return byteArr, nil
 }
 
-func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+	if remoteRef.GetProperty() == "" {
+		return c.fullDelete(ctx, remoteRef.GetRemoteKey())
+	} else {
+		return c.removeProperty(ctx, remoteRef.GetRemoteKey(), remoteRef.GetProperty())
+	}
 }
 
 // Not Implemented PushSecret.
-func (c *Client) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
-	return fmt.Errorf("not implemented")
+func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
+	//TODO: potentially add metrics call here
+	if getErr != nil {
+		// create if it not exists
+		if apierrors.IsNotFound(getErr) {
+			return c.createSecret(ctx, value, remoteRef)
+		}
+		return getErr
+	}
+	//TODO: add pushing whole secret as a use case
+
+	// update if property is not present yet
+	if _, ok := extSecret.Data[remoteRef.GetProperty()]; !ok {
+		extSecret.Data[remoteRef.GetProperty()] = value
+		_, uErr := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
+		if uErr != nil {
+			return uErr
+		}
+	}
+	// otherwise just return gracefully
+	return nil
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -277,4 +301,44 @@ func convertMap(in map[string][]byte) map[string]string {
 		out[k] = string(v)
 	}
 	return out
+}
+
+func (c *Client) createSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+	s := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      remoteRef.GetRemoteKey(),
+			Namespace: c.store.RemoteNamespace,
+		},
+		Data: map[string][]byte{remoteRef.GetProperty(): value},
+		Type: "Opaque",
+	}
+	if _, cErr := c.userSecretClient.Create(ctx, &s, metav1.CreateOptions{}); cErr != nil {
+		return cErr
+	}
+	return nil
+}
+
+func (c *Client) fullDelete(ctx context.Context, secretName string) error {
+	if err := c.userSecretClient.Delete(ctx, secretName, metav1.DeleteOptions{}); !apierrors.IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) removeProperty(ctx context.Context, secretName string, property string) error {
+	extSecret, getErr := c.userSecretClient.Get(ctx, secretName, metav1.GetOptions{})
+	if getErr != nil {
+		if apierrors.IsNotFound(getErr) {
+			return nil
+		}
+		return getErr
+	}
+
+	_, ok := extSecret.Data[property]
+	if ok {
+		delete(extSecret.Data, property)
+		_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
+		return err
+	}
+	return nil
 }

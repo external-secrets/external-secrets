@@ -19,13 +19,15 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -34,27 +36,62 @@ const (
 
 type fakeClient struct {
 	t                   *testing.T
-	secretMap           map[string]corev1.Secret
+	secretMap           map[string]*corev1.Secret
 	expectedListOptions metav1.ListOptions
 	err                 error
 }
 
-func (fk fakeClient) Get(_ context.Context, name string, _ metav1.GetOptions) (*corev1.Secret, error) {
+func (fk *fakeClient) Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error) {
+	if fk.err != nil {
+		return nil, fk.err
+	}
+
 	secret, ok := fk.secretMap[name]
 
 	if !ok {
-		return nil, errors.New(errSomethingWentWrong)
+		return nil, apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, "secret")
 	}
-	return &secret, fk.err
+	// return inmutable to simulate external system and avoid accidental side effects
+	sCopy := secret.DeepCopy()
+	// update operation requires to relate names
+	sCopy.Name = name
+	return sCopy, nil
 }
 
-func (fk fakeClient) List(_ context.Context, opts metav1.ListOptions) (*corev1.SecretList, error) {
+func (fk *fakeClient) List(_ context.Context, opts metav1.ListOptions) (*corev1.SecretList, error) {
 	assert.Equal(fk.t, fk.expectedListOptions, opts)
 	list := &corev1.SecretList{}
 	for _, v := range fk.secretMap {
-		list.Items = append(list.Items, v)
+		list.Items = append(list.Items, *v)
 	}
 	return list, nil
+}
+
+func (fk *fakeClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	if fk.err != nil {
+		return fk.err
+	}
+
+	_, ok := fk.secretMap[name]
+
+	if !ok {
+		return apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, "secret")
+	}
+	delete(fk.secretMap, name)
+	return nil
+}
+
+func (fk *fakeClient) Create(ctx context.Context, secret *v1.Secret, opts metav1.CreateOptions) (*v1.Secret, error) {
+	return nil, nil
+}
+
+func (fk *fakeClient) Update(ctx context.Context, secret *v1.Secret, opts metav1.UpdateOptions) (*v1.Secret, error) {
+	s, ok := fk.secretMap[secret.Name]
+	if !ok {
+		return nil, errors.New("error while updating secret")
+	}
+	s.Data = secret.Data
+	return s, nil
 }
 
 func TestGetSecret(t *testing.T) {
@@ -74,9 +111,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "secretNotFound",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							Data: map[string][]byte{
 								"token": []byte(`foobar`),
@@ -96,9 +133,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "err GetSecretMap",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t:         t,
-					secretMap: map[string]corev1.Secret{},
+					secretMap: map[string]*corev1.Secret{},
 				},
 				Namespace: "default",
 			},
@@ -111,9 +148,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "wrong property",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							Data: map[string][]byte{
 								"token": []byte(`foobar`),
@@ -132,9 +169,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "successful case",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							Data: map[string][]byte{
 								"token": []byte(`foobar`),
@@ -153,9 +190,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "successful case without property",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							Data: map[string][]byte{
 								"token": []byte(`foobar`),
@@ -173,9 +210,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "successful case metadata without property",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Annotations: map[string]string{"date": "today"},
@@ -195,9 +232,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "successful case metadata with single property",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Annotations: map[string]string{"date": "today"},
@@ -218,9 +255,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "successful case metadata with multiple properties",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Annotations: map[string]string{"date": "today"},
@@ -241,9 +278,9 @@ func TestGetSecret(t *testing.T) {
 		{
 			name: "error case metadata with wrong property",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Annotations: map[string]string{"date": "today"},
@@ -298,9 +335,9 @@ func TestGetSecretMap(t *testing.T) {
 		{
 			name: "successful case metadata without property",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Annotations: map[string]string{"date": "today"},
@@ -320,9 +357,9 @@ func TestGetSecretMap(t *testing.T) {
 		{
 			name: "successful case metadata with single property",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Annotations: map[string]string{"date": "today"},
@@ -343,9 +380,9 @@ func TestGetSecretMap(t *testing.T) {
 		{
 			name: "error case metadata with wrong property",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Annotations: map[string]string{"date": "today"},
@@ -403,9 +440,9 @@ func TestGetAllSecrets(t *testing.T) {
 		{
 			name: "use regex",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "mysec",
@@ -439,12 +476,12 @@ func TestGetAllSecrets(t *testing.T) {
 		{
 			name: "use tags/labels",
 			fields: fields{
-				Client: fakeClient{
+				Client: &fakeClient{
 					t: t,
 					expectedListOptions: metav1.ListOptions{
 						LabelSelector: "app=foobar",
 					},
-					secretMap: map[string]corev1.Secret{
+					secretMap: map[string]*corev1.Secret{
 						"mysec": {
 							ObjectMeta: metav1.ObjectMeta{
 								Name: "mysec",
@@ -491,6 +528,189 @@ func TestGetAllSecrets(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ProviderKubernetes.GetAllSecrets() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDeleteSecret(t *testing.T) {
+	type fields struct {
+		Client    KClient
+		Namespace string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		ref    esv1beta1.PushRemoteRef
+
+		wantSecretMap map[string]*corev1.Secret
+		wantErr       bool
+	}{
+		{
+			name: "gracefully ignore not found during delete",
+			fields: fields{
+				Client: &fakeClient{
+					t:         t,
+					secretMap: map[string]*v1.Secret{},
+				},
+				Namespace: "default",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+			},
+			wantErr:       false,
+			wantSecretMap: map[string]*corev1.Secret{},
+		},
+		{
+			name: "unexpected lookup error",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
+						},
+					},
+					err: errors.New(errSomethingWentWrong),
+				},
+				Namespace: "default",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+			},
+			wantErr: true,
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`foobar`),
+					},
+				},
+			},
+		},
+		{
+			name: "successful delete whole secret",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+			},
+			wantErr:       false,
+			wantSecretMap: map[string]*corev1.Secret{},
+		},
+		{
+			name: "not found while trying to remove property",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "yoursec",
+				Property:  "token",
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*corev1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`foobar`),
+					},
+				},
+			},
+		},
+		{
+			name: "missing property, ignore gracefully",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foobar`),
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+				Property:  "nottoken",
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*corev1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`foobar`),
+					},
+				},
+			},
+		},
+		{
+			name: "existing property, just remove that one",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*corev1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token":  []byte(`foo`),
+								"secret": []byte(`bar`),
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+				Property:  "token",
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*corev1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"secret": []byte(`bar`),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &Client{
+				userSecretClient: tt.fields.Client,
+				namespace:        tt.fields.Namespace,
+			}
+			err := p.DeleteSecret(context.Background(), tt.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProviderKubernetes.DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			fClient := tt.fields.Client.(*fakeClient)
+			if diff := cmp.Diff(tt.wantSecretMap, fClient.secretMap); diff != "" {
+				t.Errorf("Unexpected resulting secrets map:  -want, +got :\n%s\n", diff)
 			}
 		})
 	}
