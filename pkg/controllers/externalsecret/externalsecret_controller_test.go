@@ -269,11 +269,31 @@ var _ = Describe("ExternalSecret controller", func() {
 	syncWithoutTargetName := func(tc *testCase) {
 		tc.externalSecret.Spec.Target.Name = ""
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-
 			// check secret name
 			Expect(secret.ObjectMeta.Name).To(Equal(ExternalSecretName))
+
+			// check binding secret on external secret
+			Expect(es.Status.Binding.Name).To(Equal(secret.ObjectMeta.Name))
 		}
 	}
+
+	// the secret name is reflected on the external secret's status as the binding secret
+	syncBindingSecret := func(tc *testCase) {
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check binding secret on external secret
+			Expect(es.Status.Binding.Name).To(Equal(secret.ObjectMeta.Name))
+		}
+	}
+
+	// their is no binding secret when a secret is not synced
+	skipBindingSecret := func(tc *testCase) {
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyNone
+		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
+			// check binding secret is not set
+			Expect(es.Status.Binding.Name).To(BeEmpty())
+		}
+	}
+
 	// labels and annotations from the Kind=ExternalSecret
 	// should be copied over to the Kind=Secret
 	syncLabelsAnnotations := func(tc *testCase) {
@@ -1991,6 +2011,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
 		Entry("should use external secret name if target secret name isn't defined", syncWithoutTargetName),
+		Entry("should expose the secret as a provisioned service binding secret", syncBindingSecret),
+		Entry("should not expose a provisioned service when no secret is synced", skipBindingSecret),
 		Entry("should set the condition eventually", syncLabelsAnnotations),
 		Entry("should set prometheus counters", checkPrometheusCounters),
 		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),

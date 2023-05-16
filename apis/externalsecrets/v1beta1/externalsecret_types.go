@@ -411,6 +411,9 @@ type ExternalSecretStatus struct {
 
 	// +optional
 	Conditions []ExternalSecretStatusCondition `json:"conditions,omitempty"`
+
+	// Binding represents a servicebinding.io Provisioned Service reference to the secret
+	Binding corev1.LocalObjectReference `json:"binding,omitempty"`
 }
 
 // +kubebuilder:object:root=true
