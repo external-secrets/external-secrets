@@ -24,17 +24,25 @@ import (
 )
 
 type IBMMockClient struct {
-	getSecretWithContext func(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+	getSecretWithContext   func(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+	listSecretsWithContext func(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error)
 }
 
 type IBMMockClientParams struct {
-	GetSecretOptions *sm.GetSecretOptions
-	GetSecretOutput  sm.SecretIntf
-	GetSecretErr     error
+	GetSecretOptions   *sm.GetSecretOptions
+	GetSecretOutput    sm.SecretIntf
+	GetSecretErr       error
+	ListSecretsOptions *sm.ListSecretsOptions
+	ListSecretsOutput  *sm.SecretMetadataPaginatedCollection
+	ListSecretsErr     error
 }
 
 func (mc *IBMMockClient) GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
 	return mc.getSecretWithContext(ctx, getSecretOptions)
+}
+
+func (mc *IBMMockClient) ListSecretsWithContext(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error) {
+	return mc.listSecretsWithContext(ctx, listSecretsOptions)
 }
 
 func (mc *IBMMockClient) WithValue(params IBMMockClientParams) {
@@ -46,6 +54,14 @@ func (mc *IBMMockClient) WithValue(params IBMMockClientParams) {
 				return nil, nil, fmt.Errorf("unexpected test argument for GetSecret: %s, %s", *paramReq.ID, *params.GetSecretOptions.ID)
 			}
 			return params.GetSecretOutput, nil, params.GetSecretErr
+		}
+		mc.listSecretsWithContext = func(ctx context.Context, paramReq *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error) {
+			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
+			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
+			if !cmp.Equal(paramReq, params.ListSecretsOptions, cmpopts.IgnoreUnexported(sm.SecretMetadataPaginatedCollection{})) {
+				return nil, nil, fmt.Errorf("unexpected test argument for ListSecrets: %s, %s", *paramReq.Search, *params.ListSecretsOptions.Search)
+			}
+			return params.ListSecretsOutput, nil, params.ListSecretsErr
 		}
 	}
 }
