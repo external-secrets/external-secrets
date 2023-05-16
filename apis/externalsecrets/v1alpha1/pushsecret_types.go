@@ -75,7 +75,8 @@ type PushSecretRemoteRef struct {
 	RemoteKey string `json:"remoteKey"`
 
 	// Name of the property in the resulting secret
-	Property string `json:"property"`
+	// +optional
+	Property string `json:"property,omitempty"`
 }
 
 func (r PushSecretRemoteRef) GetRemoteKey() string {

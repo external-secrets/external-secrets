@@ -3851,7 +3851,6 @@ spec:
                                 description: Name of the resulting provider secret.
                                 type: string
                             required:
-                              - property
                               - remoteKey
                             type: object
                           secretKey:
@@ -3980,7 +3979,6 @@ spec:
                                   description: Name of the resulting provider secret.
                                   type: string
                               required:
-                                - property
                                 - remoteKey
                               type: object
                             secretKey:
