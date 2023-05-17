@@ -80,6 +80,10 @@ rbac:
   # -- Specifies whether role and rolebinding resources should be created.
   create: true
 
+  servicebindings:
+    # -- Specifies whether a clusterrole to give servicebindings read access should be created.
+    create: true
+
 ## -- Extra environment variables to add to container.
 extraEnv: []
 

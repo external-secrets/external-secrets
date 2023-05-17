@@ -64,6 +64,8 @@ kubectl describe externalsecret example
 # [...]
 Name:  example
 Status:
+  Binding:
+    Name:                  secret-to-be-created
   Conditions:
     Last Transition Time:  2021-02-24T16:45:23Z
     Message:               Secret was synced

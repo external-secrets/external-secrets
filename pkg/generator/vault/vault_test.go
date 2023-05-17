@@ -127,6 +127,41 @@ spec:
 				err: fmt.Errorf("unable to get dynamic secret: empty response from Vault"),
 			},
 		},
+		"EmptyVaultPOST": {
+			reason: "Fail on empty response from Vault.",
+			args: args{
+				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
+spec:
+  provider:
+    auth:
+      kubernetes:
+        role: test
+        serviceAccountRef:
+          name: "testing"
+  method: POST
+  parameters:
+    foo: "bar"
+  path: "github/token/example"`),
+				},
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "testing",
+						Namespace: "testing",
+					},
+					Secrets: []corev1.ObjectReference{
+						{
+							Name: "test",
+						},
+					},
+				}).Build(),
+			},
+			want: want{
+				err: fmt.Errorf("unable to get dynamic secret: empty response from Vault"),
+			},
+		},
 	}
 
 	for name, tc := range cases {

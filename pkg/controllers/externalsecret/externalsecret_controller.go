@@ -287,11 +287,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
+		if err == nil {
+			externalSecret.Status.Binding = v1.LocalObjectReference{Name: secret.Name}
+		}
 	case esv1beta1.CreatePolicyNone:
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
 		err = createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
+		if err == nil {
+			externalSecret.Status.Binding = v1.LocalObjectReference{Name: secret.Name}
+		}
 	}
 
 	if err != nil {
@@ -457,6 +463,21 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 	for _, ref := range es.Spec.DataFrom {
 		if ref.SourceRef != nil && ref.SourceRef.SecretStoreRef != nil {
 			storeList = append(storeList, *ref.SourceRef.SecretStoreRef)
+		}
+
+		// verify that generator's controllerClass matches
+		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
+			genDef, err := r.getGeneratorDefinition(ctx, namespace, ref.SourceRef)
+			if err != nil {
+				return false, err
+			}
+			skipGenerator, err := shouldSkipGenerator(r, genDef)
+			if err != nil {
+				return false, err
+			}
+			if skipGenerator {
+				return true, nil
+			}
 		}
 	}
 

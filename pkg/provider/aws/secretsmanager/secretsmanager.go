@@ -32,9 +32,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -136,7 +137,7 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 			}
 		}
 		secretOut, err = sm.client.GetSecretValue(getSecretValueInput)
-		metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMGetSecretValue, err)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 		var nf *awssm.ResourceNotFoundException
 		if errors.As(err, &nf) {
 			return nil, esv1beta1.NoSecretErr
@@ -159,7 +160,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		SecretId: &secretName,
 	}
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
-	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMGetSecretValue, err)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 	var aerr awserr.Error
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
@@ -171,7 +172,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		return err
 	}
 	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
-	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMDescribeSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
 	}
@@ -182,7 +183,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		SecretId: awsSecret.ARN,
 	}
 	_, err = sm.client.DeleteSecretWithContext(ctx, deleteInput)
-	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMDeleteSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteSecret, err)
 	return err
 }
 
@@ -211,7 +212,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 	}
 
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
-	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMGetSecretValue, err)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 	var aerr awserr.Error
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
@@ -219,13 +220,13 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 		}
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
 			_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
-			metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMCreateSecret, err)
+			metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
 			return err
 		}
 		return err
 	}
 	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
-	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMDescribeSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
 	}
@@ -240,7 +241,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 		SecretBinary: value,
 	}
 	_, err = sm.client.PutSecretValueWithContext(ctx, input)
-	metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMPutSecretValue, err)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
 	return err
 }
 
@@ -290,7 +291,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 			Filters:   filters,
 			NextToken: nextToken,
 		})
-		metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMListSecrets, err)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMListSecrets, err)
 		if err != nil {
 			return nil, err
 		}
@@ -346,7 +347,7 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 			Filters:   filters,
 			NextToken: nextToken,
 		})
-		metrics.ObserveAPICall(metrics.ProviderAWSSM, metrics.CallAWSSMListSecrets, err)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMListSecrets, err)
 		if err != nil {
 			return nil, err
 		}

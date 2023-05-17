@@ -121,6 +121,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead. |
 | prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead. |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
+| rbac.servicebindings.create | bool | `true` | Specifies whether a clusterrole to give servicebindings read access should be created. |
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
 | revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |

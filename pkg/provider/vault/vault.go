@@ -53,9 +53,10 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
+	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -429,12 +430,12 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 		return nil
 	}
 	_, err = v.logical.DeleteWithContext(ctx, path)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultDeleteSecret, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
 	}
 	_, err = v.logical.DeleteWithContext(ctx, metaPath)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultDeleteSecret, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
 	}
@@ -486,13 +487,13 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		return nil
 	}
 	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultWriteSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
 	if err != nil {
 		return err
 	}
 	// Otherwise, create or update the version.
 	_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultWriteSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
 	return err
 }
 
@@ -579,7 +580,7 @@ func (v *client) listSecrets(ctx context.Context, path string) ([]string, error)
 		return nil, err
 	}
 	secret, err := v.logical.ListWithContext(ctx, url)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultListSecrets, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultListSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
@@ -618,7 +619,7 @@ func (v *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		return nil, err
 	}
 	secret, err := v.logical.ReadWithDataWithContext(ctx, url, nil)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultReadSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultReadSecretData, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
@@ -916,7 +917,7 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 		params["version"] = []string{version}
 	}
 	vaultSecret, err := v.logical.ReadWithDataWithContext(ctx, dataPath, params)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultReadSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultReadSecretData, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
@@ -1275,7 +1276,7 @@ func (v *client) serviceAccountToken(ctx context.Context, serviceAccountRef esme
 func checkToken(ctx context.Context, token util.Token) (bool, error) {
 	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
 	resp, err := token.LookupSelfWithContext(ctx)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLookupSelf, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLookupSelf, err)
 	if err != nil {
 		return false, err
 	}
@@ -1297,7 +1298,7 @@ func revokeTokenIfValid(ctx context.Context, client util.Client) error {
 	}
 	if valid {
 		err = client.AuthToken().RevokeSelfWithContext(ctx, client.Token())
-		metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultRevokeSelf, err)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultRevokeSelf, err)
 		if err != nil {
 			return fmt.Errorf(errVaultRevokeToken, err)
 		}
@@ -1332,7 +1333,7 @@ func (v *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1be
 		return err
 	}
 	_, err = v.auth.Login(ctx, appRoleClient)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
@@ -1349,7 +1350,7 @@ func (v *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 		return err
 	}
 	_, err = v.auth.Login(ctx, k)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
@@ -1414,7 +1415,7 @@ func (v *client) requestTokenWithLdapAuth(ctx context.Context, ldapAuth *esv1bet
 		return err
 	}
 	_, err = v.auth.Login(ctx, l)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
@@ -1451,7 +1452,7 @@ func (v *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1beta1
 	}
 	url := strings.Join([]string{"auth", jwtAuth.Path, "login"}, "/")
 	vaultResult, err := v.logical.WriteWithContext(ctx, url, parameters)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultWriteSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
 	if err != nil {
 		return err
 	}
@@ -1486,7 +1487,7 @@ func (v *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1bet
 
 	url := strings.Join([]string{"auth", "cert", "login"}, "/")
 	vaultResult, err := v.logical.WriteWithContext(ctx, url, nil)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultWriteSecretData, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
 	if err != nil {
 		return fmt.Errorf(errVaultRequest, err)
 	}
@@ -1618,7 +1619,7 @@ func (v *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 	}
 
 	_, err = v.auth.Login(ctx, awsAuthClient)
-	metrics.ObserveAPICall(metrics.ProviderHCVault, metrics.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}

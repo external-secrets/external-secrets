@@ -1470,8 +1470,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
@@ -2552,6 +2552,19 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>binding</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>Binding represents a servicebinding.io Provisioned Service reference to the secret</p>
 </td>
 </tr>
 </tbody>
@@ -4211,8 +4224,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
@@ -4482,7 +4495,7 @@ GitlabProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Gitlab configures this store to sync secrets using Gitlab Variables provider</p>
+<p>GitLab configures this store to sync secrets using GitLab Variables provider</p>
 </td>
 </tr>
 <tr>
@@ -4722,8 +4735,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
