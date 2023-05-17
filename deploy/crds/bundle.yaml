@@ -3860,6 +3860,9 @@ spec:
                           remoteRef:
                             description: Remote Refs to push to providers.
                             properties:
+                              property:
+                                description: Name of the property in the resulting secret
+                                type: string
                               remoteKey:
                                 description: Name of the resulting provider secret.
                                 type: string
@@ -3985,6 +3988,9 @@ spec:
                             remoteRef:
                               description: Remote Refs to push to providers.
                               properties:
+                                property:
+                                  description: Name of the property in the resulting secret
+                                  type: string
                                 remoteKey:
                                   description: Name of the resulting provider secret.
                                   type: string

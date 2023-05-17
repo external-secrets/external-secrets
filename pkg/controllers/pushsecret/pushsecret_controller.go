@@ -254,7 +254,7 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 			if err != nil {
 				return out, fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
 			}
-			out[storeKey][ref.Match.RemoteRef.RemoteKey] = ref
+			out[storeKey][statusRef(ref.Match.RemoteRef)] = ref
 		}
 	}
 	return out, nil
@@ -395,4 +395,11 @@ func GetPushSecretCondition(status esapi.PushSecretStatus, condType esapi.PushSe
 		}
 	}
 	return nil
+}
+
+func statusRef(ref v1beta1.PushRemoteRef) string {
+	if ref.GetProperty() != "" {
+		return ref.GetRemoteKey() + "/" + ref.GetProperty()
+	}
+	return ref.GetRemoteKey()
 }

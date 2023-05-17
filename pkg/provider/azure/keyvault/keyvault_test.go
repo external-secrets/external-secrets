@@ -158,6 +158,10 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
+func (f fakeRef) GetProperty() string {
+	return ""
+}
+
 func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 	unsupportedType := func(smtc *secretManagerTestCase) {
 		smtc.pushRef = fakeRef{
