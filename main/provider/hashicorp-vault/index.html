@@ -2964,7 +2964,7 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h3 id="pushsecret">PushSecret</h3>
 <p>Vault supports PushSecret features which allow you to sync a given kubernetes secret key into a hashicorp vault secret. In order to do so, it is expected that the secret key is a valid JSON object.</p>
-<p>In order to use PushSecret, you need to give <code>create</code>, <code>read</code> and <code>update</code> permissions to the path where you want to push secrets to. Use it with care!</p>
+<p>In order to use PushSecret, you need to give <code>create</code>, <code>read</code> and <code>update</code> permissions to the path where you want to push secrets to for both <code>data</code> and <code>metadata</code> of the secret. Use it with care!</p>
 <p>Here is an example on how to set it up:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
