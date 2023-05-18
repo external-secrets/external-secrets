@@ -402,6 +402,10 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
+func (f fakeRef) GetProperty() string {
+	return ""
+}
+
 func TestDeleteSecret(t *testing.T) {
 	fErr := status.Error(codes.NotFound, "failed")
 	notFoundError, _ := apierror.FromError(fErr)

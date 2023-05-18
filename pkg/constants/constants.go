@@ -62,6 +62,9 @@ const (
 	ProviderKubernetes                         = "Kubernetes"
 	CallKubernetesGetSecret                    = "GetSecret"
 	CallKubernetesListSecrets                  = "ListSecrets"
+	CallKubernetesCreateSecret                 = "CreateSecret"
+	CallKubernetesDeleteSecret                 = "DeleteSecret"
+	CallKubernetesUpdateSecret                 = "UpdateSecret"
 	CallKubernetesCreateSelfSubjectRulesReview = "CreateSelfSubjectRulesReview"
 
 	ProviderIBMSM        = "IBM/SecretsManager"

@@ -73,10 +73,18 @@ type PushSecretSelector struct {
 type PushSecretRemoteRef struct {
 	// Name of the resulting provider secret.
 	RemoteKey string `json:"remoteKey"`
+
+	// Name of the property in the resulting secret
+	// +optional
+	Property string `json:"property,omitempty"`
 }
 
 func (r PushSecretRemoteRef) GetRemoteKey() string {
 	return r.RemoteKey
+}
+
+func (r PushSecretRemoteRef) GetProperty() string {
+	return r.Property
 }
 
 type PushSecretMatch struct {

@@ -40,6 +40,10 @@ func (fake *PushRemoteRef) GetRemoteKey() string {
 	return fakeReturns.result1
 }
 
+func (fake *PushRemoteRef) GetProperty() string {
+	return ""
+}
+
 func (fake *PushRemoteRef) GetRemoteKeyCallCount() int {
 	fake.getRemoteKeyMutex.RLock()
 	defer fake.getRemoteKeyMutex.RUnlock()
