@@ -191,12 +191,17 @@ data:
 ### Creating external secret
 
 To create a kubernetes secret from the IBM Secrets Manager, a `Kind=ExternalSecret` is needed.
+Below example creates a kubernetes secret based on ID of the secret in Secrets Manager.
 
 ```yaml
 {% include 'ibm-external-secret.yaml' %}
 ```
 
-Currently we can only get the secret by its id and not its name, so something like `565287ce-578f-8d96-a746-9409d531fe2a`.
+Alternatively, secret name can be specified instead of secret ID.
+
+```yaml
+{% include 'ibm-external-secret-by-name.yaml' %}
+```
 
 ### Getting the Kubernetes secret
 The operator will fetch the IBM Secret Manager secret and inject it as a `Kind=Secret`

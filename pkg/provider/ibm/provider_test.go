@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
@@ -44,6 +45,9 @@ type secretManagerTestCase struct {
 	mockClient     *fakesm.IBMMockClient
 	apiInput       *sm.GetSecretOptions
 	apiOutput      sm.SecretIntf
+	listInput      *sm.ListSecretsOptions
+	listOutput     *sm.SecretMetadataPaginatedCollection
+	listError      error
 	ref            *esv1beta1.ExternalSecretDataRemoteRef
 	serviceURL     *string
 	apiErr         error
@@ -59,6 +63,9 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		apiInput:       makeValidAPIInput(),
 		ref:            makeValidRef(),
 		apiOutput:      makeValidAPIOutput(),
+		listInput:      makeValidListInput(),
+		listOutput:     makeValidListSecretsOutput(),
+		listError:      nil,
 		serviceURL:     nil,
 		apiErr:         nil,
 		expectError:    "",
@@ -66,9 +73,12 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		expectedData:   map[string][]byte{},
 	}
 	mcParams := fakesm.IBMMockClientParams{
-		GetSecretOptions: smtc.apiInput,
-		GetSecretOutput:  smtc.apiOutput,
-		GetSecretErr:     smtc.apiErr,
+		GetSecretOptions:   smtc.apiInput,
+		GetSecretOutput:    smtc.apiOutput,
+		GetSecretErr:       smtc.apiErr,
+		ListSecretsOptions: smtc.listInput,
+		ListSecretsOutput:  smtc.listOutput,
+		ListSecretsErr:     smtc.listError,
 	}
 	smtc.mockClient.WithValue(mcParams)
 	return &smtc
@@ -97,15 +107,28 @@ func makeValidAPIOutput() sm.SecretIntf {
 	return i
 }
 
+func makeValidListSecretsOutput() *sm.SecretMetadataPaginatedCollection {
+	list := sm.SecretMetadataPaginatedCollection{}
+	return &list
+}
+
+func makeValidListInput() *sm.ListSecretsOptions {
+	listOpt := sm.ListSecretsOptions{}
+	return &listOpt
+}
+
 func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
 	smtc := makeValidSecretManagerTestCase()
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
 	mcParams := fakesm.IBMMockClientParams{
-		GetSecretOptions: smtc.apiInput,
-		GetSecretOutput:  smtc.apiOutput,
-		GetSecretErr:     smtc.apiErr,
+		GetSecretOptions:   smtc.apiInput,
+		GetSecretOutput:    smtc.apiOutput,
+		GetSecretErr:       smtc.apiErr,
+		ListSecretsOptions: smtc.listInput,
+		ListSecretsOutput:  smtc.listOutput,
+		ListSecretsErr:     smtc.listError,
 	}
 	smtc.mockClient.WithValue(mcParams)
 	return smtc
@@ -229,36 +252,64 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	}
 
 	// good case: username_password type with property
-	setSecretUserPass := func(smtc *secretManagerTestCase) {
-		secret := &sm.UsernamePasswordSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_UsernamePassword),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
-			Username:   &secretUsername,
-			Password:   &secretPassword,
+	funcSetUserPass := func(secretName, property, name string) func(smtc *secretManagerTestCase) {
+		return func(smtc *secretManagerTestCase) {
+			secret := &sm.UsernamePasswordSecret{
+				SecretType: utilpointer.String(sm.Secret_SecretType_UsernamePassword),
+				Name:       utilpointer.String("testyname"),
+				ID:         utilpointer.String(secretUUID),
+				Username:   &secretUsername,
+				Password:   &secretPassword,
+			}
+			secretMetadata := &sm.UsernamePasswordSecretMetadata{
+				Name: utilpointer.String("testyname"),
+				ID:   utilpointer.String(secretUUID),
+			}
+			smtc.name = name
+			smtc.apiInput.ID = utilpointer.String(secretUUID)
+			smtc.apiOutput = secret
+			smtc.listInput.Search = utilpointer.String("testyname")
+			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
+			smtc.listOutput.Secrets[0] = secretMetadata
+			smtc.ref.Key = "username_password/" + secretName
+			smtc.ref.Property = property
+			if property == "username" {
+				smtc.expectedSecret = secretUsername
+			} else {
+				smtc.expectedSecret = secretPassword
+			}
 		}
-		smtc.name = "good case: username_password type with property"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
-		smtc.apiOutput = secret
-		smtc.ref.Key = secretUserPass
-		smtc.ref.Property = "password"
-		smtc.expectedSecret = secretPassword
+	}
+	setSecretUserPassByID := funcSetUserPass(secretUUID, "username", "good case: username_password type - get username by ID")
+	setSecretUserPassUsername := funcSetUserPass("testyname", "username", "good case: username_password type - get username by secret name")
+	setSecretUserPassPassword := funcSetUserPass("testyname", "password", "good case: username_password type - get password by secret name")
+
+	// good case: iam_credentials type
+	funcSetSecretIam := func(secretName, name string) func(*secretManagerTestCase) {
+		return func(smtc *secretManagerTestCase) {
+			secret := &sm.IAMCredentialsSecret{
+				SecretType: utilpointer.String(sm.Secret_SecretType_IamCredentials),
+				Name:       utilpointer.String("testyname"),
+				ID:         utilpointer.String(secretUUID),
+				ApiKey:     utilpointer.String(secretAPIKey),
+			}
+			secretMetadata := &sm.IAMCredentialsSecretMetadata{
+				Name: utilpointer.String("testyname"),
+				ID:   utilpointer.String(secretUUID),
+			}
+			smtc.apiInput.ID = utilpointer.String(secretUUID)
+			smtc.name = name
+			smtc.apiOutput = secret
+			smtc.listInput.Search = utilpointer.String("testyname")
+			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
+			smtc.listOutput.Secrets[0] = secretMetadata
+			smtc.ref.Key = "iam_credentials/" + secretName
+			smtc.expectedSecret = secretAPIKey
+		}
 	}
 
-	// good case: iam_credenatials type
-	setSecretIam := func(smtc *secretManagerTestCase) {
-		secret := &sm.IAMCredentialsSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_IamCredentials),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
-			ApiKey:     utilpointer.String(secretAPIKey),
-		}
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
-		smtc.name = "good case: iam_credenatials type"
-		smtc.apiOutput = secret
-		smtc.ref.Key = "iam_credentials/" + secretUUID
-		smtc.expectedSecret = secretAPIKey
-	}
+	setSecretIamByID := funcSetSecretIam(secretUUID, "good case: iam_credenatials type - get API Key by ID")
+	setSecretIamByName := funcSetSecretIam("testyname", "good case: iam_credenatials type - get API Key by name")
 
 	funcSetCertSecretTest := func(secret sm.SecretIntf, name, certType string, good bool) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
@@ -426,8 +477,11 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(badSecretUserPass),
-		makeValidSecretManagerTestCaseCustom(setSecretUserPass),
-		makeValidSecretManagerTestCaseCustom(setSecretIam),
+		makeValidSecretManagerTestCaseCustom(setSecretUserPassByID),
+		makeValidSecretManagerTestCaseCustom(setSecretUserPassUsername),
+		makeValidSecretManagerTestCaseCustom(setSecretUserPassPassword),
+		makeValidSecretManagerTestCaseCustom(setSecretIamByID),
+		makeValidSecretManagerTestCaseCustom(setSecretIamByName),
 		makeValidSecretManagerTestCaseCustom(setSecretCert),
 		makeValidSecretManagerTestCaseCustom(setSecretKV),
 		makeValidSecretManagerTestCaseCustom(setSecretKVWithKey),
@@ -446,6 +500,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	for k, v := range successCases {
 		t.Run(v.name, func(t *testing.T) {
 			sm.IBMClient = v.mockClient
+			sm.cache = NewCache(10, 1*time.Minute)
 			out, err := sm.GetSecret(context.Background(), *v.ref)
 			if !ErrorContains(err, v.expectError) {
 				t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)

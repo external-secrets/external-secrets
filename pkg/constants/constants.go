@@ -67,8 +67,9 @@ const (
 	CallKubernetesUpdateSecret                 = "UpdateSecret"
 	CallKubernetesCreateSelfSubjectRulesReview = "CreateSelfSubjectRulesReview"
 
-	ProviderIBMSM      = "IBM/SecretsManager"
-	CallIBMSMGetSecret = "GetSecret"
+	ProviderIBMSM        = "IBM/SecretsManager"
+	CallIBMSMGetSecret   = "GetSecret"
+	CallIBMSMListSecrets = "ListSecrets"
 
 	ProviderWebhook    = "Webhook"
 	CallWebhookHTTPReq = "HTTPRequest"
