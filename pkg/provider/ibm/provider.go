@@ -397,7 +397,7 @@ func findSecretByName(ibm *providerIBM, secretName *string, secretType string) (
 		&sm.ListSecretsOptions{
 			Search: secretName,
 		})
-	metrics.ObserveAPICall(metrics.ProviderIBMSM, metrics.CallIBMSMListSecrets, err)
+	metrics.ObserveAPICall(constants.ProviderIBMSM, constants.CallIBMSMListSecrets, err)
 	if err != nil {
 		return nil, err
 	}
