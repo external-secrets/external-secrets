@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	// Loading registered generators.
@@ -96,7 +97,7 @@ type Reconciler struct {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
-	resourceLabels := esmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
+	resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
 	start := time.Now()
 
 	externalSecretReconcileDuration := esmetrics.GetGaugeVec(esmetrics.ExternalSecretReconcileDurationKey)
@@ -132,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// if extended metrics is enabled, refine the time series vector
-	resourceLabels = esmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
+	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 
 	defer externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
 	defer syncCallsTotal.With(resourceLabels).Inc()

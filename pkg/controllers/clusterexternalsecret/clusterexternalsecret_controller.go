@@ -32,6 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
 // ClusterExternalSecretReconciler reconciles a ClusterExternalSecret object.
@@ -57,6 +59,12 @@ const (
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterExternalSecret", req.NamespacedName)
+
+	resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
+	start := time.Now()
+
+	externalSecretReconcileDuration := cesmetrics.GetGaugeVec(cesmetrics.ClusterExternalSecretReconcileDurationKey)
+	defer func() { externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start))) }()
 
 	var clusterExternalSecret esv1beta1.ClusterExternalSecret
 
