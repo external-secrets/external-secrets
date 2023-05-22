@@ -2160,7 +2160,7 @@ git<span class="w"> </span>clone<span class="w"> </span>https://github.com/exter
 sed<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;s/^VERSION ?= .*/VERSION ?= </span><span class="si">${</span><span class="nv">VERSION</span><span class="si">}</span><span class="s2">/&quot;</span><span class="w"> </span>Makefile
 
 <span class="c1"># prep release</span>
-make<span class="w"> </span>prepare-stable-release
+make<span class="w"> </span>prepare-stable-release<span class="w"> </span><span class="nv">ATTACH_IMAGE_DIGESTS</span><span class="o">=</span><span class="m">0</span>
 </code></pre></div>
 <p>Check the generated files in the <code>bundle/</code> directory. If they look good add &amp; commit them, open a PR against this repository. You can always use the <a href="https://operatorhub.io/preview">OperatorHub.io/preview</a> page to preview the generated CSV.</p>
 <div class="highlight"><pre><span></span><code>git<span class="w"> </span>status
@@ -2168,8 +2168,9 @@ git<span class="w"> </span>add<span class="w"> </span>.
 git<span class="w"> </span>commit<span class="w"> </span>-s<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;chore: bump version xyz&quot;</span>
 git<span class="w"> </span>push
 </code></pre></div>
-<p>Once the PR is merged we need create a pull request against both community-operators repositories. There's a make target that does the heavy lifting for you:
-<div class="highlight"><pre><span></span><code>make<span class="w"> </span>bundle-operatorhub
+<p>Once the PR is merged and the image build job on <code>main</code> has completed, we need create a pull request against both community-operators repositories. There's a make target that does the heavy lifting for you:
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>attach-image-digests
+make<span class="w"> </span>bundle-operatorhub
 </code></pre></div></p>
 <p>This command will add/commit/push and open pull requests in the respective repositories.</p>
 
