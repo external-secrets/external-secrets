@@ -28,7 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
 var (
@@ -378,4 +380,9 @@ func sliceContainsString(toFind string, collection []string) bool {
 	}
 
 	return false
+}
+
+func init() {
+	ctrlmetrics.SetUpLabelNames(false)
+	cesmetrics.SetUpMetrics()
 }

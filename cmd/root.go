@@ -36,8 +36,10 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/feature"
@@ -125,7 +127,8 @@ var rootCmd = &cobra.Command{
 		}
 		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
-		esmetrics.SetUpMetrics(enableExtendedMetricLabels)
+		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
+		esmetrics.SetUpMetrics()
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
@@ -192,6 +195,8 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		if enableClusterExternalSecretReconciler {
+			cesmetrics.SetUpMetrics()
+
 			if err = (&clusterexternalsecret.Reconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecret"),

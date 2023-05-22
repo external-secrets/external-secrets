@@ -37,6 +37,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
@@ -2308,7 +2309,8 @@ func init() {
 		},
 	})
 
-	esmetrics.SetUpMetrics(false)
+	ctrlmetrics.SetUpLabelNames(false)
+	esmetrics.SetUpMetrics()
 	testSyncCallsTotal = esmetrics.GetCounterVec(esmetrics.SyncCallsKey)
 	testSyncCallsError = esmetrics.GetCounterVec(esmetrics.SyncCallsErrorKey)
 	testExternalSecretCondition = esmetrics.GetGaugeVec(esmetrics.ExternalSecretStatusConditionKey)
