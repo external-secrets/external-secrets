@@ -132,7 +132,11 @@ jobs:
         run: make docker.promote
 
       - name: Build release manifests
-        run: make manifests
+        run: |
+          # temporarily patch the version so we generate manifests with the new version
+          yq e -i '.version = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i '.appVersion = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
+          make manifests
 
       - name: Sign promoted image
         id: sign
