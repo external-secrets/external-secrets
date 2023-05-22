@@ -1,0 +1,34 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ECRAuthorizationToken
+metadata:
+  name: ecr-gen
+spec:
+
+  # specify aws region (mandatory)
+  region: eu-west-1
+
+  # assume role with the given authentication credentials
+  role: "my-role"
+
+  # choose an authentication strategy
+  # if no auth strategy is defined it falls back to using
+  # credentials from the environment of the controller.
+  auth:
+
+    # 1: static credentials
+    # point to a secret that contains static credentials
+    # like AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+    secretRef:
+      accessKeyIDSecretRef:
+        name: "my-aws-creds"
+        key: "key-id"
+      secretAccessKeySecretRef:
+        name: "my-aws-creds"
+        key: "access-secret"
+
+    # option 2: IAM Roles for Service Accounts
+    # point to a service account that should be used
+    # that is configured for IAM Roles for Service Accounts (IRSA)
+    jwt:
+      serviceAccountRef:
+        name: "oci-token-sync"
