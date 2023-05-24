@@ -365,7 +365,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 func (pm *ParameterStore) getParameterTags(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*ssm.GetParameterOutput, error) {
 	param := ssm.GetParameterOutput{
 		Parameter: &ssm.Parameter{
-			Name: &ref.Key,
+			Name: parameterNameWithVersion(ref),
 		},
 	}
 	tags, err := pm.getTagsByName(ctx, &param)
@@ -386,7 +386,7 @@ func (pm *ParameterStore) getParameterTags(ctx context.Context, ref esv1beta1.Ex
 
 func (pm *ParameterStore) getParameterValue(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*ssm.GetParameterOutput, error) {
 	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
-		Name:           &ref.Key,
+		Name:           parameterNameWithVersion(ref),
 		WithDecryption: aws.Bool(true),
 	})
 
@@ -415,6 +415,15 @@ func (pm *ParameterStore) GetSecretMap(ctx context.Context, ref esv1beta1.Extern
 		}
 	}
 	return secretData, nil
+}
+
+func parameterNameWithVersion(ref esv1beta1.ExternalSecretDataRemoteRef) *string {
+	name := ref.Key
+	if ref.Version != "" {
+		// see docs: https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-versions.html#reference-parameter-version
+		name += ":" + ref.Version
+	}
+	return &name
 }
 
 func (pm *ParameterStore) Close(_ context.Context) error {
