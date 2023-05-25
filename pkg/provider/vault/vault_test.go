@@ -1714,7 +1714,7 @@ func TestDeleteSecret(t *testing.T) {
 		},
 		"DeleteSecretIfNoOtherProperties": {
 			reason: "Secret should only be deleted if no other properties are set",
-			ref:    &fakeRef{key: "secret", property: "fake-key"},
+			ref:    &fakeRef{key: "secret", property: "foo"},
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
