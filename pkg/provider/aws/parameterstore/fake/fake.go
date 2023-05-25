@@ -26,6 +26,7 @@ import (
 // Client implements the aws parameterstore interface.
 type Client struct {
 	GetParameterWithContextFn        GetParameterWithContextFn
+	GetParametersByPathWithContextFn GetParametersByPathWithContextFn
 	PutParameterWithContextFn        PutParameterWithContextFn
 	DeleteParameterWithContextFn     DeleteParameterWithContextFn
 	DescribeParametersWithContextFn  DescribeParametersWithContextFn
@@ -33,6 +34,7 @@ type Client struct {
 }
 
 type GetParameterWithContextFn func(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
+type GetParametersByPathWithContextFn func(aws.Context, *ssm.GetParametersByPathInput, ...request.Option) (*ssm.GetParametersByPathOutput, error)
 type PutParameterWithContextFn func(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
 type DescribeParametersWithContextFn func(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
 type ListTagsForResourceWithContextFn func(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
@@ -60,6 +62,10 @@ func NewDeleteParameterWithContextFn(output *ssm.DeleteParameterOutput, err erro
 
 func (sm *Client) GetParameterWithContext(ctx aws.Context, input *ssm.GetParameterInput, options ...request.Option) (*ssm.GetParameterOutput, error) {
 	return sm.GetParameterWithContextFn(ctx, input, options...)
+}
+
+func (sm *Client) GetParametersByPathWithContext(ctx aws.Context, input *ssm.GetParametersByPathInput, options ...request.Option) (*ssm.GetParametersByPathOutput, error) {
+	return sm.GetParametersByPathWithContextFn(ctx, input, options...)
 }
 
 func NewGetParameterWithContextFn(output *ssm.GetParameterOutput, err error) GetParameterWithContextFn {

@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
 	utilpointer "k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -40,6 +41,7 @@ var (
 	_               esv1beta1.SecretsClient = &ParameterStore{}
 	managedBy                               = "managed-by"
 	externalSecrets                         = "external-secrets"
+	logger                                  = ctrl.Log.WithName("provider").WithName("parameterstore")
 )
 
 // ParameterStore is a provider for AWS ParameterStore.
@@ -53,6 +55,7 @@ type ParameterStore struct {
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/ssm/ssmiface/
 type PMInterface interface {
 	GetParameterWithContext(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
+	GetParametersByPathWithContext(aws.Context, *ssm.GetParametersByPathInput, ...request.Option) (*ssm.GetParametersByPathOutput, error)
 	PutParameterWithContext(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
 	DescribeParametersWithContext(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
 	ListTagsForResourceWithContext(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
@@ -61,6 +64,7 @@ type PMInterface interface {
 
 const (
 	errUnexpectedFindOperator = "unexpected find operator"
+	errAccessDeniedException  = "AccessDeniedException"
 )
 
 // New constructs a ParameterStore Provider that is specific to a store.
@@ -219,7 +223,60 @@ func (pm *ParameterStore) GetAllSecrets(ctx context.Context, ref esv1beta1.Exter
 	return nil, errors.New(errUnexpectedFindOperator)
 }
 
+// findByName requires `ssm:GetParametersByPath` IAM permission, but the `Resource` scope can be limited.
 func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
+	}
+	if ref.Path == nil {
+		ref.Path = aws.String("/")
+	}
+	data := make(map[string][]byte)
+	var nextToken *string
+	for {
+		it, err := pm.client.GetParametersByPathWithContext(
+			ctx,
+			&ssm.GetParametersByPathInput{
+				NextToken:      nextToken,
+				Path:           ref.Path,
+				Recursive:      aws.Bool(true),
+				WithDecryption: aws.Bool(true),
+			})
+		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParametersByPath, err)
+		if err != nil {
+			/*
+				Check for AccessDeniedException when calling `GetParametersByPathWithContext`. If so,
+				use fallbackFindByName and `DescribeParametersWithContext`.
+				https://github.com/external-secrets/external-secrets/issues/1839#issuecomment-1489023522
+			*/
+			var awsError awserr.Error
+			if errors.As(err, &awsError) && awsError.Code() == errAccessDeniedException {
+				logger.Info("GetParametersByPath: access denied. using fallback to describe parameters. It is recommended to add ssm:GetParametersByPath permissions", "path", ref.Path)
+				return pm.fallbackFindByName(ctx, ref)
+			}
+			return nil, err
+		}
+		for _, param := range it.Parameters {
+			if !matcher.MatchName(*param.Name) {
+				continue
+			}
+			err = pm.fetchAndSet(ctx, data, *param.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		nextToken = it.NextToken
+		if nextToken == nil {
+			break
+		}
+	}
+
+	return data, nil
+}
+
+// fallbackFindByName requires `ssm:DescribeParameters` IAM permission on `"Resource": "*"`.
+func (pm *ParameterStore) fallbackFindByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
 		return nil, err
@@ -259,10 +316,10 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 			break
 		}
 	}
-
 	return data, nil
 }
 
+// findByTags requires ssm:DescribeParameters,tag:GetResources IAM permission on `"Resource": "*"`.
 func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	filters := make([]*ssm.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
