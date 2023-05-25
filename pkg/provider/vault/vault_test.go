@@ -1583,7 +1583,6 @@ func (f fakeRef) GetProperty() string {
 }
 
 func TestDeleteSecret(t *testing.T) {
-
 	type args struct {
 		store    *esv1beta1.VaultProvider
 		vLogical util.Logical
@@ -1618,13 +1617,13 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("boom!")),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("failed to read")),
 					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
 				},
 			},
 			want: want{
-				err: fmt.Errorf("boom!"),
+				err: fmt.Errorf("failed to read"),
 			},
 		},
 		"DeleteSecretNotManaged": {
@@ -1761,7 +1760,6 @@ func TestDeleteSecret(t *testing.T) {
 			}
 		})
 	}
-
 }
 func TestSetSecret(t *testing.T) {
 	noPermission := errors.New("no permission")

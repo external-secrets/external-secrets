@@ -105,14 +105,12 @@ func ExpectWriteWithContextNoCall() WriteWithContextFn {
 	return func(_ context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
 		return nil, fmt.Errorf("fail")
 	}
-
 }
 
 func ExpectDeleteWithContextNoCall() DeleteWithContextFn {
 	return func(ctx context.Context, path string) (*vault.Secret, error) {
 		return nil, fmt.Errorf("fail")
 	}
-
 }
 func WriteChangingReadContext(secret map[string]interface{}, l Logical) WriteWithContextFn {
 	v := &vault.Secret{
