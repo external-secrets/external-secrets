@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
 	utilpointer "k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -40,6 +41,7 @@ var (
 	_               esv1beta1.SecretsClient = &ParameterStore{}
 	managedBy                               = "managed-by"
 	externalSecrets                         = "external-secrets"
+	logger                                  = ctrl.Log.WithName("provider").WithName("parameterstore")
 )
 
 // ParameterStore is a provider for AWS ParameterStore.
@@ -248,6 +250,7 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 			*/
 			var awsError awserr.Error
 			if errors.As(err, &awsError) && awsError.Code() == errAccessDeniedException {
+				logger.Info("GetParametersByPath: access denied. using fallback to describe parameters. It is recommended to add ssm:GetParametersByPath permissions", "path", ref.Path)
 				return pm.fallbackFindByName(ctx, ref)
 			}
 			return nil, err
