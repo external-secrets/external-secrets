@@ -238,8 +238,10 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 		it, err := pm.client.GetParametersByPathWithContext(
 			ctx,
 			&ssm.GetParametersByPathInput{
-				NextToken: nextToken,
-				Path:      ref.Path,
+				NextToken:      nextToken,
+				Path:           ref.Path,
+				Recursive:      aws.Bool(true),
+				WithDecryption: aws.Bool(true),
 			})
 		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParametersByPath, err)
 		if err != nil {
