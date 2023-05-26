@@ -63,7 +63,7 @@ The following table show the support for features across different providers.
 | GCP Secret Manager        |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| IBM Cloud Secrets Manager |              |              |                      |                         |        x         |             |                             |
+| IBM Cloud Secrets Manager |      x       |              |                      |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
