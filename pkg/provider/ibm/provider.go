@@ -65,15 +65,15 @@ const (
 var contextTimeout = time.Minute * 2
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &providerIBM{}
-var _ esv1beta1.Provider = &providerIBM{}
+var _ esv1beta1.SecretsClient = &Provider{}
+var _ esv1beta1.Provider = &Provider{}
 
 type SecretManagerClient interface {
 	GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
 	ListSecretsWithContext(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error)
 }
 
-type providerIBM struct {
+type Provider struct {
 	IBMClient SecretManagerClient
 	cache     cacheIntf
 }
@@ -117,22 +117,22 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (ibm *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (ibm *providerIBM) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (ibm *Provider) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
-func (ibm *providerIBM) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (ibm *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (ibm *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
@@ -194,7 +194,7 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 	}
 }
 
-func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, error) {
+func getArbitrarySecret(ibm *Provider, secretName *string) ([]byte, error) {
 	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_Arbitrary)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, error) {
 	return []byte(*secret.Payload), nil
 }
 
-func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getImportCertSecret(ibm *Provider, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_ImportedCert)
 	if err != nil {
 		return nil, err
@@ -228,7 +228,7 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	}
 }
 
-func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getPublicCertSecret(ibm *Provider, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_PublicCert)
 	if err != nil {
 		return nil, err
@@ -250,7 +250,7 @@ func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	}
 }
 
-func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getPrivateCertSecret(ibm *Provider, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_PrivateCert)
 	if err != nil {
 		return nil, err
@@ -269,7 +269,7 @@ func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ex
 	}
 }
 
-func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, error) {
+func getIamCredentialsSecret(ibm *Provider, secretName *string) ([]byte, error) {
 	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_IamCredentials)
 	if err != nil {
 		return nil, err
@@ -281,7 +281,7 @@ func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, erro
 	return []byte(*secret.ApiKey), nil
 }
 
-func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getUsernamePasswordSecret(ibm *Provider, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_UsernamePassword)
 	if err != nil {
 		return nil, err
@@ -301,7 +301,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 }
 
 // Returns a secret of type kv and supports json path.
-func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func getKVSecret(ibm *Provider, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_Kv)
 	if err != nil {
 		return nil, err
@@ -352,7 +352,7 @@ func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSec
 	return nil, fmt.Errorf("no property provided for secret %s", ref.Key)
 }
 
-func getSecretData(ibm *providerIBM, secretName *string, secretType string) (sm.SecretIntf, error) {
+func getSecretData(ibm *Provider, secretName *string, secretType string) (sm.SecretIntf, error) {
 	var givenName *string
 	var cachedKey string
 
@@ -389,7 +389,7 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType string) (sm.
 	return response, nil
 }
 
-func findSecretByName(ibm *providerIBM, secretName *string, secretType string) (*string, error) {
+func findSecretByName(ibm *Provider, secretName *string, secretType string) (*string, error) {
 	var secretID *string
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
@@ -421,7 +421,7 @@ func findSecretByName(ibm *providerIBM, secretName *string, secretType string) (
 	return secretID, nil
 }
 
-func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (ibm *Provider) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
 		return nil, fmt.Errorf(errUninitalizedIBMProvider)
 	}
@@ -556,15 +556,15 @@ func getTypedKey(v interface{}) ([]byte, error) {
 	}
 }
 
-func (ibm *providerIBM) Close(_ context.Context) error {
+func (ibm *Provider) Close(_ context.Context) error {
 	return nil
 }
 
-func (ibm *providerIBM) Validate() (esv1beta1.ValidationResult, error) {
+func (ibm *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
+func (ibm *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	ibmSpec := storeSpec.Provider.IBM
 	if ibmSpec.ServiceURL == nil {
@@ -598,11 +598,11 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (ibm *providerIBM) Capabilities() esv1beta1.SecretStoreCapabilities {
+func (ibm *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (ibm *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	ibmSpec := storeSpec.Provider.IBM
 
@@ -691,7 +691,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericSt
 }
 
 func init() {
-	esv1beta1.Register(&providerIBM{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		IBM: &esv1beta1.IBMProvider{},
 	})
 }

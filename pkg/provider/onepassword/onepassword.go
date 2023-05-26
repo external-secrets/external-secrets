@@ -58,23 +58,23 @@ const (
 	incorrectCountFormat  = "'%s', got %d"
 )
 
-// ProviderOnePassword is a provider for 1Password.
-type ProviderOnePassword struct {
+// Provider is a provider for 1Password.
+type Provider struct {
 	vaults map[string]int
 	client connect.Client
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &ProviderOnePassword{}
-var _ esv1beta1.Provider = &ProviderOnePassword{}
+var _ esv1beta1.SecretsClient = &Provider{}
+var _ esv1beta1.Provider = &Provider{}
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (provider *ProviderOnePassword) Capabilities() esv1beta1.SecretStoreCapabilities {
+func (provider *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
 // NewClient constructs a 1Password Provider.
-func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (provider *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.OnePassword
 
 	credentialsSecret := &corev1.Secret{}
@@ -103,7 +103,7 @@ func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1be
 }
 
 // ValidateStore checks if the provided store is valid.
-func (provider *ProviderOnePassword) ValidateStore(store esv1beta1.GenericStore) error {
+func (provider *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	return validateStore(store)
 }
 
@@ -152,17 +152,17 @@ func validateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (provider *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (provider *ProviderOnePassword) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (provider *Provider) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // GetSecret returns a single secret from the provider.
-func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (provider *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
 		return nil, fmt.Errorf(errVersionNotImplemented)
 	}
@@ -184,7 +184,7 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.
 
 // Validate checks if the client is configured correctly
 // to be able to retrieve secrets from the provider.
-func (provider *ProviderOnePassword) Validate() (esv1beta1.ValidationResult, error) {
+func (provider *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	for vaultName := range provider.vaults {
 		_, err := provider.client.GetVaultByTitle(vaultName)
 		if err != nil {
@@ -196,7 +196,7 @@ func (provider *ProviderOnePassword) Validate() (esv1beta1.ValidationResult, err
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
-func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (provider *Provider) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if ref.Version != "" {
 		return nil, fmt.Errorf(errVersionNotImplemented)
 	}
@@ -216,7 +216,7 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 }
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
-func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (provider *Provider) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return nil, fmt.Errorf(errTagsNotImplemented)
 	}
@@ -239,11 +239,11 @@ func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1be
 }
 
 // Close closes the client connection.
-func (provider *ProviderOnePassword) Close(_ context.Context) error {
+func (provider *Provider) Close(_ context.Context) error {
 	return nil
 }
 
-func (provider *ProviderOnePassword) findItem(name string) (*onepassword.Item, error) {
+func (provider *Provider) findItem(name string) (*onepassword.Item, error) {
 	sortedVaults := sortVaults(provider.vaults)
 	for _, vaultName := range sortedVaults {
 		vault, err := provider.client.GetVaultByTitle(vaultName)
@@ -267,7 +267,7 @@ func (provider *ProviderOnePassword) findItem(name string) (*onepassword.Item, e
 	return nil, fmt.Errorf(errKeyNotFound, fmt.Errorf("%s in: %v", name, provider.vaults))
 }
 
-func (provider *ProviderOnePassword) getField(item *onepassword.Item, property string) ([]byte, error) {
+func (provider *Provider) getField(item *onepassword.Item, property string) ([]byte, error) {
 	// default to a field labeled "password"
 	fieldLabel := "password"
 	if property != "" {
@@ -290,7 +290,7 @@ func (provider *ProviderOnePassword) getField(item *onepassword.Item, property s
 	return []byte(value), nil
 }
 
-func (provider *ProviderOnePassword) getFields(item *onepassword.Item, property string) (map[string][]byte, error) {
+func (provider *Provider) getFields(item *onepassword.Item, property string) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	for _, field := range item.Fields {
 		if property != "" && field.Label != property {
@@ -307,7 +307,7 @@ func (provider *ProviderOnePassword) getFields(item *onepassword.Item, property 
 	return secretData, nil
 }
 
-func (provider *ProviderOnePassword) getAllFields(item onepassword.Item, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {
+func (provider *Provider) getAllFields(item onepassword.Item, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {
 	i, err := provider.client.GetItemByUUID(item.ID, item.Vault.ID)
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
@@ -334,7 +334,7 @@ func (provider *ProviderOnePassword) getAllFields(item onepassword.Item, ref esv
 	return nil
 }
 
-func (provider *ProviderOnePassword) getFile(item *onepassword.Item, property string) ([]byte, error) {
+func (provider *Provider) getFile(item *onepassword.Item, property string) ([]byte, error) {
 	for _, file := range item.Files {
 		// default to the first file when ref.Property is empty
 		if file.Name == property || property == "" {
@@ -350,7 +350,7 @@ func (provider *ProviderOnePassword) getFile(item *onepassword.Item, property st
 	return nil, fmt.Errorf(errDocumentNotFound, fmt.Errorf("'%s', '%s'", item.Title, property))
 }
 
-func (provider *ProviderOnePassword) getFiles(item *onepassword.Item, property string) (map[string][]byte, error) {
+func (provider *Provider) getFiles(item *onepassword.Item, property string) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	for _, file := range item.Files {
 		if property != "" && file.Name != property {
@@ -366,7 +366,7 @@ func (provider *ProviderOnePassword) getFiles(item *onepassword.Item, property s
 	return secretData, nil
 }
 
-func (provider *ProviderOnePassword) getAllFiles(item onepassword.Item, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {
+func (provider *Provider) getAllFiles(item onepassword.Item, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {
 	for _, file := range item.Files {
 		if ref.Name != nil {
 			matcher, err := find.New(*ref.Name)
@@ -389,7 +389,7 @@ func (provider *ProviderOnePassword) getAllFiles(item onepassword.Item, ref esv1
 	return nil
 }
 
-func (provider *ProviderOnePassword) getAllForVault(vaultID string, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {
+func (provider *Provider) getAllForVault(vaultID string, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {
 	items, err := provider.client.GetItems(vaultID)
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
@@ -472,7 +472,7 @@ func hasUniqueVaultNumbers(vaults map[string]int) bool {
 }
 
 func init() {
-	esv1beta1.Register(&ProviderOnePassword{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		OnePassword: &esv1beta1.OnePasswordProvider{},
 	})
 }

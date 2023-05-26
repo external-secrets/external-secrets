@@ -111,11 +111,21 @@ test.e2e.managed: generate ## Run e2e tests managed
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
 
+.PHONY: build-provider
+build-provider: $(addprefix build-provider-,$(ARCH)) ## Build binary
+
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
 	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
+	@$(OK) go build $*
+
+.PHONY: build-provider-%
+build-provider-%: generate ## Build binary for the specified arch
+	@$(INFO) go build $*
+	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
+		./hack/build-provider.sh
 	@$(OK) go build $*
 
 lint.check: ## Check install of golanci-lint
@@ -145,6 +155,11 @@ fmt: lint.check ## Ensure consistent code style
 	@$(OK) Ensured consistent code style
 
 generate: ## Generate code and crds
+	protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		./pkg/plugin/grpc/plugin.proto
+	./cmd/provider/generate.sh
+	go generate ./cmd/provider/provider.go.tmpl
 	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 

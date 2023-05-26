@@ -26,11 +26,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	awsauth "github.com/external-secrets/external-secrets-provider-aws/auth"
+	"github.com/external-secrets/external-secrets-provider-aws/parameterstore"
+	"github.com/external-secrets/external-secrets-provider-aws/secretsmanager"
+	"github.com/external-secrets/external-secrets-provider-aws/util"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 

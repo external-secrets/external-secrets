@@ -24,8 +24,8 @@ import (
 	"net/http"
 	"net/url"
 
+	senhaseguraAuth "github.com/external-secrets/external-secrets-provider-senhasegura/auth"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
 )
 
 type clientDSMInterface interface {

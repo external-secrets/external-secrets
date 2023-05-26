@@ -19,7 +19,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
+	"github.com/external-secrets/external-secrets-provider-doppler/client"
 )
 
 type DopplerClient struct {

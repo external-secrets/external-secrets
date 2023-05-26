@@ -27,9 +27,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	fakesm "github.com/external-secrets/external-secrets-provider-aws/secretsmanager/fake"
+	"github.com/external-secrets/external-secrets-provider-aws/util"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
 type secretsManagerTestCase struct {

@@ -2,31 +2,73 @@ module github.com/external-secrets/external-secrets
 
 go 1.19
 
+replace (
+	github.com/external-secrets/external-secrets-provider-akeyless => ./pkg/provider/akeyless
+	github.com/external-secrets/external-secrets-provider-alibaba => ./pkg/provider/alibaba
+	github.com/external-secrets/external-secrets-provider-aws => ./pkg/provider/aws
+	github.com/external-secrets/external-secrets-provider-azure => ./pkg/provider/azure
+	github.com/external-secrets/external-secrets-provider-doppler => ./pkg/provider/doppler
+	github.com/external-secrets/external-secrets-provider-fake => ./pkg/provider/fake
+	github.com/external-secrets/external-secrets-provider-gcp => ./pkg/provider/gcp
+	github.com/external-secrets/external-secrets-provider-gitlab => ./pkg/provider/gitlab
+	github.com/external-secrets/external-secrets-provider-ibm => ./pkg/provider/ibm
+	github.com/external-secrets/external-secrets-provider-keepersecurity => ./pkg/provider/keepersecurity
+	github.com/external-secrets/external-secrets-provider-kubernetes => ./pkg/provider/kubernetes
+	github.com/external-secrets/external-secrets-provider-onepassword => ./pkg/provider/onepassword
+	github.com/external-secrets/external-secrets-provider-oracle => ./pkg/provider/oracle
+	github.com/external-secrets/external-secrets-provider-scaleway => ./pkg/provider/scaleway
+	github.com/external-secrets/external-secrets-provider-senhasegura => ./pkg/provider/senhasegura
+	github.com/external-secrets/external-secrets-provider-vault => ./pkg/provider/vault
+	github.com/external-secrets/external-secrets-provider-webhook => ./pkg/provider/webhook
+	github.com/external-secrets/external-secrets-provider-yandex => ./pkg/provider/yandex
+)
+
 require (
-	cloud.google.com/go/iam v1.0.1
-	cloud.google.com/go/secretmanager v1.10.1
-	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
+	github.com/external-secrets/external-secrets-provider-akeyless v0.8.3
+	github.com/external-secrets/external-secrets-provider-alibaba v0.8.3
+	github.com/external-secrets/external-secrets-provider-aws v0.8.3
+	github.com/external-secrets/external-secrets-provider-azure v0.8.3
+	github.com/external-secrets/external-secrets-provider-doppler v0.8.3
+	github.com/external-secrets/external-secrets-provider-fake v0.8.3
+	github.com/external-secrets/external-secrets-provider-gcp v0.8.3
+	github.com/external-secrets/external-secrets-provider-gitlab v0.8.3
+	github.com/external-secrets/external-secrets-provider-ibm v0.8.3
+	github.com/external-secrets/external-secrets-provider-keepersecurity v0.8.3
+	github.com/external-secrets/external-secrets-provider-kubernetes v0.8.3
+	github.com/external-secrets/external-secrets-provider-onepassword v0.8.3
+	github.com/external-secrets/external-secrets-provider-oracle v0.8.3
+	github.com/external-secrets/external-secrets-provider-scaleway v0.8.3
+	github.com/external-secrets/external-secrets-provider-senhasegura v0.8.3
+	github.com/external-secrets/external-secrets-provider-vault v0.8.3
+	github.com/external-secrets/external-secrets-provider-webhook v0.8.3
+	github.com/external-secrets/external-secrets-provider-yandex v0.8.3
+)
+
+require (
+	cloud.google.com/go/iam v1.0.1 // indirect
+	cloud.google.com/go/secretmanager v1.10.1 // indirect
+	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.29
-	github.com/Azure/go-autorest/autorest/adal v0.9.23
-	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0
-	github.com/IBM/go-sdk-core/v5 v5.13.4
-	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.0
+	github.com/Azure/go-autorest/autorest/adal v0.9.23 // indirect
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12 // indirect
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0 // indirect
+	github.com/IBM/go-sdk-core/v5 v5.13.4 // indirect
+	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/PaesslerAG/jsonpath v0.1.1
+	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
-	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/aws/aws-sdk-go v1.44.268
+	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4 // indirect
+	github.com/aws/aws-sdk-go v1.44.270
 	github.com/go-logr/logr v1.2.4
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
-	github.com/google/uuid v1.3.0
-	github.com/googleapis/gax-go/v2 v2.9.1
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.9.1 // indirect
 	github.com/hashicorp/vault/api v1.9.1
-	github.com/hashicorp/vault/api/auth/approle v0.4.0
-	github.com/hashicorp/vault/api/auth/kubernetes v0.4.0
-	github.com/hashicorp/vault/api/auth/ldap v0.4.0
+	github.com/hashicorp/vault/api/auth/approle v0.4.0 // indirect
+	github.com/hashicorp/vault/api/auth/kubernetes v0.4.0 // indirect
+	github.com/hashicorp/vault/api/auth/ldap v0.4.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/lestrrat-go/jwx v1.2.25
 	github.com/onsi/ginkgo/v2 v2.9.5
@@ -35,20 +77,20 @@ require (
 	github.com/prometheus/client_golang v1.15.1
 	github.com/prometheus/client_model v0.4.0
 	github.com/spf13/cobra v1.7.0
-	github.com/stretchr/testify v1.8.2
-	github.com/tidwall/gjson v1.14.4
-	github.com/xanzy/go-gitlab v0.83.0
-	github.com/yandex-cloud/go-genproto v0.0.0-20230522103833-ab10b75fbd52
-	github.com/yandex-cloud/go-sdk v0.0.0-20230515104003-a4cf880c2959
+	github.com/stretchr/testify v1.8.3
+	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/xanzy/go-gitlab v0.83.0 // indirect
+	github.com/yandex-cloud/go-genproto v0.0.0-20230522103833-ab10b75fbd52 // indirect
+	github.com/yandex-cloud/go-sdk v0.0.0-20230515104003-a4cf880c2959 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.9.0
 	golang.org/x/oauth2 v0.8.0
-	google.golang.org/api v0.124.0
+	google.golang.org/api v0.124.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
-	google.golang.org/grpc v1.55.0
-	gopkg.in/yaml.v3 v3.0.1
-	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
+	google.golang.org/grpc v1.55.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919 // indirect
 	k8s.io/api v0.27.2
 	k8s.io/apiextensions-apiserver v0.27.2
 	k8s.io/apimachinery v0.27.2
@@ -58,25 +100,13 @@ require (
 	sigs.k8s.io/controller-tools v0.12.0
 )
 
-require github.com/1Password/connect-sdk-go v1.5.0
+require github.com/1Password/connect-sdk-go v1.5.0 // indirect
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.6.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
-	github.com/akeylesslabs/akeyless-go/v3 v3.3.5
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.4
-	github.com/alibabacloud-go/kms-20160120/v3 v3.0.1
-	github.com/alibabacloud-go/openapi-util v0.1.0
-	github.com/alibabacloud-go/tea v1.2.0
-	github.com/alibabacloud-go/tea-utils/v2 v2.0.1
-	github.com/aliyun/credentials-go v1.2.7
-	github.com/avast/retry-go/v4 v4.3.4
-	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/hashicorp/vault/api/auth/aws v0.4.0
-	github.com/keeper-security/secrets-manager-go/core v1.5.2
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1
-	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.16
 	github.com/sethvargo/go-password v0.2.0
 	github.com/spf13/pflag v1.0.5
 	sigs.k8s.io/yaml v1.3.0
@@ -84,17 +114,32 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	github.com/akeylesslabs/akeyless-go/v3 v3.3.5 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.4 // indirect
 	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.1 // indirect
+	github.com/alibabacloud-go/kms-20160120/v3 v3.0.1 // indirect
+	github.com/alibabacloud-go/openapi-util v0.1.0 // indirect
+	github.com/alibabacloud-go/tea v1.2.0 // indirect
 	github.com/alibabacloud-go/tea-utils v1.4.5 // indirect
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.1 // indirect
 	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
+	github.com/aliyun/credentials-go v1.2.7 // indirect
+	github.com/avast/retry-go/v4 v4.3.4 // indirect
 	github.com/clbanning/mxj/v2 v2.5.7 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-playground/validator/v10 v10.14.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
+	github.com/hashicorp/go-plugin v1.4.9 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.2.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
+	github.com/hashicorp/vault/api/auth/aws v0.4.0 // indirect
+	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb // indirect
+	github.com/keeper-security/secrets-manager-go/core v1.5.2 // indirect
+	github.com/oklog/run v1.0.0 // indirect
+	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.17 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 )
 
@@ -136,7 +181,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -147,7 +192,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.2
+	github.com/hashicorp/go-retryablehttp v0.7.2 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect

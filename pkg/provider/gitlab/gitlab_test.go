@@ -31,9 +31,9 @@ import (
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	fakegitlab "github.com/external-secrets/external-secrets-provider-gitlab/fake"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
 )
 
 const (

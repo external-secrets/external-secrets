@@ -21,9 +21,9 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	senhaseguraAuth "github.com/external-secrets/external-secrets-provider-senhasegura/auth"
+	"github.com/external-secrets/external-secrets-provider-senhasegura/dsm"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
-	"github.com/external-secrets/external-secrets/pkg/provider/senhasegura/dsm"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644

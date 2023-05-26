@@ -22,10 +22,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/external-secrets/external-secrets-provider-doppler/client"
+	"github.com/external-secrets/external-secrets-provider-doppler/fake"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
-	"github.com/external-secrets/external-secrets/pkg/provider/doppler/fake"
 )
 
 const (

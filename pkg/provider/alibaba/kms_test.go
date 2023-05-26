@@ -23,9 +23,9 @@ import (
 
 	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
 
+	fakesm "github.com/external-secrets/external-secrets-provider-alibaba/fake"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 

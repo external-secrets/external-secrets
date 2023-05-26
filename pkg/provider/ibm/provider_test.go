@@ -29,9 +29,9 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	fakesm "github.com/external-secrets/external-secrets-provider-ibm/fake"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fakesm "github.com/external-secrets/external-secrets/pkg/provider/ibm/fake"
 )
 
 const (

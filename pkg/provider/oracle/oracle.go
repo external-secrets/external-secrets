@@ -28,9 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/external-secrets/external-secrets-provider-aws/util"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -56,10 +56,10 @@ const (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &VaultManagementService{}
-var _ esv1beta1.Provider = &VaultManagementService{}
+var _ esv1beta1.SecretsClient = &Provider{}
+var _ esv1beta1.Provider = &Provider{}
 
-type VaultManagementService struct {
+type Provider struct {
 	Client         VMInterface
 	KmsVaultClient KmsVCInterface
 	vault          string
@@ -74,21 +74,21 @@ type KmsVCInterface interface {
 }
 
 // Not Implemented PushSecret.
-func (vms *VaultManagementService) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (vms *Provider) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (vms *VaultManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (vms *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
-func (vms *VaultManagementService) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (vms *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (vms *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(vms.Client) {
 		return nil, fmt.Errorf(errUninitalizedOracleProvider)
 	}
@@ -125,7 +125,7 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.
 	return []byte(val.String()), nil
 }
 
-func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (vms *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := vms.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -143,12 +143,12 @@ func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1bet
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (vms *VaultManagementService) Capabilities() esv1beta1.SecretStoreCapabilities {
+func (vms *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (vms *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
@@ -187,7 +187,7 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 
 	kmsVaultClient.SetRegion(oracleSpec.Region)
 
-	return &VaultManagementService{
+	return &Provider{
 		Client:         secretManagementService,
 		KmsVaultClient: kmsVaultClient,
 		vault:          oracleSpec.Vault,
@@ -249,11 +249,11 @@ func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, 
 	return common.NewRawConfigurationProvider(store.Auth.Tenancy, store.Auth.User, region, fingerprint, privateKey, nil), nil
 }
 
-func (vms *VaultManagementService) Close(_ context.Context) error {
+func (vms *Provider) Close(_ context.Context) error {
 	return nil
 }
 
-func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error) {
+func (vms *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	_, err := vms.KmsVaultClient.GetVault(
 		context.Background(), keymanagement.GetVaultRequest{
 			VaultId: &vms.vault,
@@ -288,7 +288,7 @@ func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+func (vms *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
@@ -350,7 +350,7 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) e
 }
 
 func init() {
-	esv1beta1.Register(&VaultManagementService{}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Oracle: &esv1beta1.OracleProvider{},
 	})
 }

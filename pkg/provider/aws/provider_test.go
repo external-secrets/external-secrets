@@ -29,10 +29,10 @@ import (
 	"k8s.io/utils/pointer"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/external-secrets/external-secrets-provider-aws/parameterstore"
+	"github.com/external-secrets/external-secrets-provider-aws/secretsmanager"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
 )
 
 func TestProvider(t *testing.T) {

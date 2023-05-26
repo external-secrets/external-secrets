@@ -21,11 +21,11 @@ import (
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/external-secrets/external-secrets-provider-yandex/common"
+	"github.com/external-secrets/external-secrets-provider-yandex/common/clock"
+	"github.com/external-secrets/external-secrets-provider-yandex/lockbox/client"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
 )
 
 var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox")

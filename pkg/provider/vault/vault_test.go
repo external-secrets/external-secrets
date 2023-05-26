@@ -32,11 +32,11 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/external-secrets/external-secrets-provider-vault/fake"
+	"github.com/external-secrets/external-secrets-provider-vault/util"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
 const (

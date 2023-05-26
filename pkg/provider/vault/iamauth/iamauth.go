@@ -39,8 +39,8 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
+	"github.com/external-secrets/external-secrets-provider-vault/util"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
 var (

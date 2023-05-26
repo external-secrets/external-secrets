@@ -50,6 +50,8 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
+	vaultiamauth "github.com/external-secrets/external-secrets-provider-vault/iamauth"
+	"github.com/external-secrets/external-secrets-provider-vault/util"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
@@ -57,13 +59,11 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
-	_           esv1beta1.Provider      = &Connector{}
+	_           esv1beta1.Provider      = &Provider{}
 	_           esv1beta1.SecretsClient = &client{}
 	enableCache bool
 	logger      = ctrl.Log.WithName("provider").WithName("vault")
@@ -137,7 +137,7 @@ const (
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &client{}
-var _ esv1beta1.Provider = &Connector{}
+var _ esv1beta1.Provider = &Provider{}
 
 type client struct {
 	kube      kclient.Client
@@ -173,7 +173,7 @@ func NewVaultClient(c *vault.Config) (util.Client, error) {
 	return &out, nil
 }
 
-func getVaultClient(c *Connector, store esv1beta1.GenericStore, cfg *vault.Config) (util.Client, error) {
+func getVaultClient(c *Provider, store esv1beta1.GenericStore, cfg *vault.Config) (util.Client, error) {
 	isStaticToken := store.GetSpec().Provider.Vault.Auth.TokenSecretRef != nil
 	useCache := enableCache && !isStaticToken
 
@@ -200,15 +200,15 @@ func getVaultClient(c *Connector, store esv1beta1.GenericStore, cfg *vault.Confi
 	return client, nil
 }
 
-type Connector struct {
+type Provider struct {
 	NewVaultClient func(c *vault.Config) (util.Client, error)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (c *Connector) Capabilities() esv1beta1.SecretStoreCapabilities {
+func (c *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
 }
-func (c *Connector) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (c *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to fetch tokens
 	// (for Kubernetes service account token auth)
@@ -224,7 +224,7 @@ func (c *Connector) NewClient(ctx context.Context, store esv1beta1.GenericStore,
 	return c.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
-func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
+func (c *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {
 		return nil, errors.New(errVaultStore)
@@ -244,7 +244,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 	return c.initClient(ctx, vStore, client, cfg, vaultSpec)
 }
 
-func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
+func (c *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
 	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, "Generator")
 	if err != nil {
 		return nil, err
@@ -263,7 +263,7 @@ func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client,
 	return client, nil
 }
 
-func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace, storeKind string) (*client, *vault.Config, error) {
+func (c *Provider) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace, storeKind string) (*client, *vault.Config, error) {
 	vStore := &client{
 		kube:      kube,
 		corev1:    corev1,
@@ -280,7 +280,7 @@ func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1
 	return vStore, cfg, nil
 }
 
-func (c *Connector) initClient(ctx context.Context, vStore *client, client util.Client, cfg *vault.Config, vaultSpec *esv1beta1.VaultProvider) (esv1beta1.SecretsClient, error) {
+func (c *Provider) initClient(ctx context.Context, vStore *client, client util.Client, cfg *vault.Config, vaultSpec *esv1beta1.VaultProvider) (esv1beta1.SecretsClient, error) {
 	if vaultSpec.Namespace != nil {
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
@@ -305,7 +305,7 @@ func (c *Connector) initClient(ctx context.Context, vStore *client, client util.
 	return vStore, nil
 }
 
-func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
+func (c *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	if store == nil {
 		return fmt.Errorf(errInvalidStore)
 	}
@@ -1680,7 +1680,7 @@ func init() {
 		Initialize: lateInit,
 	})
 
-	esv1beta1.Register(&Connector{
+	esv1beta1.Register(&Provider{
 		NewVaultClient: NewVaultClient,
 	}, &esv1beta1.SecretStoreProvider{
 		Vault: &esv1beta1.VaultProvider{},

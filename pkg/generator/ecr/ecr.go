@@ -28,9 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
+	awsauth "github.com/external-secrets/external-secrets-provider-aws/auth"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 )
 
 type Generator struct{}

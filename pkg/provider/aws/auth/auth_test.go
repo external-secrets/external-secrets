@@ -31,9 +31,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	fakesess "github.com/external-secrets/external-secrets-provider-aws/auth/fake"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fakesess "github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake"
 )
 
 const (

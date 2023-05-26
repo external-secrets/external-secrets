@@ -26,9 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	dClient "github.com/external-secrets/external-secrets-provider-doppler/client"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 

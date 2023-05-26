@@ -34,10 +34,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
+	"github.com/external-secrets/external-secrets-provider-aws/util"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 )
 
 // Config contains configuration to create a new AWS provider.

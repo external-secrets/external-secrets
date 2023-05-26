@@ -27,9 +27,9 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"k8s.io/utils/pointer"
 
+	fake "github.com/external-secrets/external-secrets-provider-azure/keyvault/fake"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fake "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	utils "github.com/external-secrets/external-secrets/pkg/utils"
 )
 

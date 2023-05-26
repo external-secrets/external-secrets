@@ -22,7 +22,7 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 
-	util "github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	util "github.com/external-secrets/external-secrets-provider-vault/util"
 )
 
 type LoginFn func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)

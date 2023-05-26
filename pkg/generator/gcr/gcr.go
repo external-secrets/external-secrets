@@ -24,9 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
+	"github.com/external-secrets/external-secrets-provider-gcp/secretmanager"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	"github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 )
 
 type Generator struct{}

@@ -30,11 +30,11 @@ import (
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/external-secrets/external-secrets-provider-yandex/certificatemanager/client"
+	"github.com/external-secrets/external-secrets-provider-yandex/common"
+	"github.com/external-secrets/external-secrets-provider-yandex/common/clock"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
 )
 
 const (

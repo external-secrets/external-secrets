@@ -24,8 +24,8 @@ import (
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
+	"github.com/external-secrets/external-secrets-provider-yandex/common"
+	"github.com/external-secrets/external-secrets-provider-yandex/common/clock"
 )
 
 // Fake implementation of LockboxClient.

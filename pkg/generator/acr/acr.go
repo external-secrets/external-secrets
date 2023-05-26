@@ -38,10 +38,10 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 
+	"github.com/external-secrets/external-secrets-provider-azure/keyvault"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
 )
 
 type Generator struct {

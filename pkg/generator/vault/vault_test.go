@@ -28,9 +28,9 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	provider "github.com/external-secrets/external-secrets-provider-vault"
+	"github.com/external-secrets/external-secrets-provider-vault/fake"
 	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
-	provider "github.com/external-secrets/external-secrets/pkg/provider/vault"
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 )
 
 type args struct {
@@ -166,7 +166,7 @@ spec:
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			c := &provider.Connector{NewVaultClient: fake.ClientWithLoginMock}
+			c := &provider.Provider{NewVaultClient: fake.ClientWithLoginMock}
 			gen := &Generator{}
 			val, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, tc.args.corev1, "testing")
 			if diff := cmp.Diff(tc.want.err.Error(), err.Error()); diff != "" {

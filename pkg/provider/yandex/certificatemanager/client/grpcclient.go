@@ -20,7 +20,7 @@ import (
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	"google.golang.org/grpc"
 
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
+	"github.com/external-secrets/external-secrets-provider-yandex/common"
 )
 
 // Real/gRPC implementation of CertificateManagerClient.

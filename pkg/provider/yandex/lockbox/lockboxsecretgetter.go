@@ -20,8 +20,8 @@ import (
 
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
-	"github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client"
+	"github.com/external-secrets/external-secrets-provider-yandex/common"
+	"github.com/external-secrets/external-secrets-provider-yandex/lockbox/client"
 )
 
 // Implementation of common.SecretGetter.

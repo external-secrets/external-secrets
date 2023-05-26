@@ -23,9 +23,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
+	fake "github.com/external-secrets/external-secrets-provider-onepassword/fake"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fake "github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
 )
 
 const (
