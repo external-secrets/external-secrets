@@ -15,7 +15,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/aws/aws-sdk-go/service/sts"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -63,6 +62,11 @@ const (
 	AWSServiceParameterStore AWSServiceType = "ParameterStore"
 )
 
+type Tag struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 // AWSProvider configures a store to sync secrets with AWS.
 type AWSProvider struct {
 	// Service defines which service should be used to fetch the secrets
@@ -90,7 +94,7 @@ type AWSProvider struct {
 
 	// AWS STS assume role session tags
 	// +optional
-	SessionTags []*sts.Tag `json:"sessionTags,omitempty"`
+	SessionTags []*Tag `json:"sessionTags,omitempty"`
 
 	// AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
 	// +optional

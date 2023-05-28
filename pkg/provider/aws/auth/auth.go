@@ -127,8 +127,15 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	}
 
 	sessExtID := prov.ExternalID
-	sessTags := prov.SessionTags
+	// sessTags := prov.SessionTags
 	sessTransitiveTagKeys := prov.TransitiveTagKeys
+	sessTags := make([]*sts.Tag, len(prov.SessionTags))
+	for i, tag := range prov.SessionTags {
+		sessTags[i] = &sts.Tag{
+			Key:   aws.String(tag.Key),
+			Value: aws.String(tag.Value),
+		}
+	}
 	if prov.Role != "" {
 		stsclient := assumeRoler(sess)
 		if sessExtID != "" || sessTags != nil || len(sessTransitiveTagKeys) > 0 {
