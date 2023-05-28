@@ -15,6 +15,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"github.com/aws/aws-sdk-go/service/sts"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -86,4 +87,12 @@ type AWSProvider struct {
 
 	// AWS External ID set on assumed IAM roles
 	ExternalID string `json:"externalID,omitempty"`
+
+	// AWS STS assume role session tags
+	// +optional
+	SessionTags []*sts.Tag `json:"sessionTags,omitempty"`
+
+	// AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+	// +optional
+	TransitiveTagKeys []*string `json:"transitiveTagKeys,omitempty"`
 }

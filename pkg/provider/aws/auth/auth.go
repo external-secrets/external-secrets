@@ -127,13 +127,23 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	}
 
 	sessExtID := prov.ExternalID
+	sessTags := prov.SessionTags
+	sessTransitiveTagKeys := prov.TransitiveTagKeys
 	if prov.Role != "" {
 		stsclient := assumeRoler(sess)
-		if sessExtID != "" {
-			var setExternalID = func(p *stscreds.AssumeRoleProvider) {
-				p.ExternalID = aws.String(sessExtID)
+		if sessExtID != "" || sessTags != nil || len(sessTransitiveTagKeys) > 0 {
+			var setAssumeRoleOptions = func(p *stscreds.AssumeRoleProvider) {
+				if sessExtID != "" {
+					p.ExternalID = aws.String(sessExtID)
+				}
+				if sessTags != nil {
+					p.Tags = sessTags
+				}
+				if len(sessTransitiveTagKeys) > 0 {
+					p.TransitiveTagKeys = sessTransitiveTagKeys
+				}
 			}
-			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role, setExternalID))
+			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role, setAssumeRoleOptions))
 		} else {
 			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role))
 		}
