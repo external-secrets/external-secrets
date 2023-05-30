@@ -127,7 +127,6 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	}
 
 	sessExtID := prov.ExternalID
-	// sessTags := prov.SessionTags
 	sessTransitiveTagKeys := prov.TransitiveTagKeys
 	sessTags := make([]*sts.Tag, len(prov.SessionTags))
 	for i, tag := range prov.SessionTags {
