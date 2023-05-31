@@ -16,6 +16,9 @@ package fake
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+	"strings"
 
 	vault "github.com/hashicorp/vault/api"
 
@@ -82,13 +85,33 @@ func NewReadMetadataWithContextFn(secret map[string]interface{}, err error) Read
 
 func NewWriteWithContextFn(secret map[string]interface{}, err error) WriteWithContextFn {
 	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
-		vault := &vault.Secret{
-			Data: secret,
-		}
-		return vault, err
+		return &vault.Secret{Data: secret}, err
 	}
 }
 
+func ExpectWriteWithContextValue(expected map[string]interface{}) WriteWithContextFn {
+	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		if strings.Contains(path, "metadata") {
+			return &vault.Secret{Data: data}, nil
+		}
+		if !reflect.DeepEqual(expected, data) {
+			return nil, fmt.Errorf("expected: %v, got: %v", expected, data)
+		}
+		return &vault.Secret{Data: data}, nil
+	}
+}
+
+func ExpectWriteWithContextNoCall() WriteWithContextFn {
+	return func(_ context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		return nil, fmt.Errorf("fail")
+	}
+}
+
+func ExpectDeleteWithContextNoCall() DeleteWithContextFn {
+	return func(ctx context.Context, path string) (*vault.Secret, error) {
+		return nil, fmt.Errorf("fail")
+	}
+}
 func WriteChangingReadContext(secret map[string]interface{}, l Logical) WriteWithContextFn {
 	v := &vault.Secret{
 		Data: secret,
