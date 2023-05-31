@@ -143,7 +143,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 		})
 	}
 })
-var _ = Describe("ExternalSecret controller", func() {
+var _ = Describe("ExternalSecret controller", Serial, func() {
 
 	const (
 		ExternalSecretName             = "test-es"

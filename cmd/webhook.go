@@ -117,14 +117,14 @@ var webhookCmd = &cobra.Command{
 			Scheme:                 scheme,
 			MetricsBindAddress:     metricsAddr,
 			HealthProbeBindAddress: healthzAddr,
-			WebhookServer: &webhook.Server{
+			WebhookServer: webhook.NewServer(webhook.Options{
 				CertDir:       certDir,
 				Port:          port,
 				TLSMinVersion: tlsMinVersion,
 				TLSOpts: []func(*tls.Config){
 					mgrTLSOptions,
 				},
-			},
+			}),
 		})
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
