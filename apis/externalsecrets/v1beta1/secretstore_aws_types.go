@@ -62,6 +62,11 @@ const (
 	AWSServiceParameterStore AWSServiceType = "ParameterStore"
 )
 
+type Tag struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 // AWSProvider configures a store to sync secrets with AWS.
 type AWSProvider struct {
 	// Service defines which service should be used to fetch the secrets
@@ -86,4 +91,12 @@ type AWSProvider struct {
 
 	// AWS External ID set on assumed IAM roles
 	ExternalID string `json:"externalID,omitempty"`
+
+	// AWS STS assume role session tags
+	// +optional
+	SessionTags []*Tag `json:"sessionTags,omitempty"`
+
+	// AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+	// +optional
+	TransitiveTagKeys []*string `json:"transitiveTagKeys,omitempty"`
 }

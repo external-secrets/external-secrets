@@ -241,6 +241,32 @@ string
 <p>AWS External ID set on assumed IAM roles</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>sessionTags</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.Tag
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role session tags</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transitiveTagKeys</code></br>
+<em>
+[]*string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AWSServiceType">AWSServiceType
@@ -5098,6 +5124,40 @@ GeneratorRef
 <td>
 <em>(Optional)</em>
 <p>GeneratorRef points to a generator custom resource in</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.Tag">Tag
+</h3>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
