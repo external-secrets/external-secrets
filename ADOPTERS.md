@@ -5,6 +5,7 @@
 - [Amadeus](https://amadeus.com/)
 - [Container Solutions](http://container-solutions.com/)
 - [DaangnPay](https://www.daangnpay.com/)
+- [Elastic](https://www.elastic.co/)
 - [Epidemic Sound](https://www.epidemicsound.com/)
 - [Form3](https://www.form3.tech/)
 - [Heureka Group](https://heureka.group)
