@@ -82,6 +82,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | certController.tolerations | list | `[]` |  |
 | certController.topologySpreadConstraints | list | `[]` |  |
+| commonLabels | object | `{}` | Additional labels added to all helm chart resources. |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
 | crds.annotations | object | `{}` |  |

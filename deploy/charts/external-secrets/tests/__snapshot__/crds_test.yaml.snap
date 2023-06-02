@@ -4,7 +4,7 @@ should match snapshot of default values:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.11.4
+        controller-gen.kubebuilder.io/version: v0.12.0
       name: secretstores.external-secrets.io
     spec:
       conversion:
@@ -1504,6 +1504,24 @@ should match snapshot of default values:
                                 - SecretsManager
                                 - ParameterStore
                               type: string
+                            sessionTags:
+                              description: AWS STS assume role session tags
+                              items:
+                                properties:
+                                  key:
+                                    type: string
+                                  value:
+                                    type: string
+                                required:
+                                  - key
+                                  - value
+                                type: object
+                              type: array
+                            transitiveTagKeys:
+                              description: AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+                              items:
+                                type: string
+                              type: array
                           required:
                             - region
                             - service
