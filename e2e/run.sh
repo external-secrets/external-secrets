@@ -45,6 +45,7 @@ kubectl run --rm \
   --restart=Never \
   --pod-running-timeout=5m \
   --labels="app=eso-e2e" \
+  --env="ACK_GINKGO_DEPRECATIONS=2.9.5" \
   --env="GINKGO_LABELS=${GINKGO_LABELS:-.*}" \
   --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON:-}" \
   --env="GCP_PROJECT_ID=${GCP_PROJECT_ID:-}" \

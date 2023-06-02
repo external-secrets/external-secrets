@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	// Loading registered providers.
@@ -55,10 +56,11 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
-func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("secret-store")
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&esapi.SecretStore{}).
 		Complete(r)
 }
