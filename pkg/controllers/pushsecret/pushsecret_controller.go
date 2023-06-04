@@ -32,7 +32,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 )
 
@@ -60,6 +62,13 @@ type Reconciler struct {
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("pushsecret", req.NamespacedName)
+
+	resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
+	start := time.Now()
+
+	pushSecretReconcileDuration := psmetrics.GetGaugeVec(psmetrics.PushSecretReconcileDurationKey)
+	defer func() { pushSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start))) }()
+
 	var ps esapi.PushSecret
 	err := r.Get(ctx, req.NamespacedName, &ps)
 	mgr := secretstore.NewManager(r.Client, r.ControllerClass, false)

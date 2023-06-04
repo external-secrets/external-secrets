@@ -41,7 +41,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 )
 
@@ -145,6 +148,8 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
 		}
+
+		ssmetrics.SetUpMetrics()
 		if err = (&secretstore.StoreReconciler{
 			Client:          mgr.GetClient(),
 			Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
@@ -156,6 +161,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if enableClusterStoreReconciler {
+			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
@@ -183,6 +189,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if enablePushSecretReconciler {
+			psmetrics.SetUpMetrics()
 			if err = (&pushsecret.Reconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
