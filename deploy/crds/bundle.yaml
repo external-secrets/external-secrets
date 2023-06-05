@@ -2031,6 +2031,25 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    conjur:
+                      description: Conjur configures this store to sync secrets using conjur provider
+                      properties:
+                        serviceAccount:
+                          type: string
+                        serviceApiKey:
+                          type: string
+                        serviceCertificate:
+                          type: string
+                        serviceUrl:
+                          type: string
+                        serviceUser:
+                          type: string
+                      required:
+                        - serviceAccount
+                        - serviceApiKey
+                        - serviceUrl
+                        - serviceUser
+                      type: object
                     doppler:
                       description: Doppler configures this store to sync secrets using the Doppler provider
                       properties:
@@ -5606,6 +5625,25 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    conjur:
+                      description: Conjur configures this store to sync secrets using conjur provider
+                      properties:
+                        serviceAccount:
+                          type: string
+                        serviceApiKey:
+                          type: string
+                        serviceCertificate:
+                          type: string
+                        serviceUrl:
+                          type: string
+                        serviceUser:
+                          type: string
+                      required:
+                        - serviceAccount
+                        - serviceApiKey
+                        - serviceUrl
+                        - serviceUser
                       type: object
                     doppler:
                       description: Doppler configures this store to sync secrets using the Doppler provider
