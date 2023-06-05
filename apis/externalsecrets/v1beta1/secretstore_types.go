@@ -132,6 +132,10 @@ type SecretStoreProvider struct {
 	// KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider
 	// +optional
 	KeeperSecurity *KeeperSecurityProvider `json:"keepersecurity,omitempty"`
+
+	// Conjur configures this store to sync secrets using conjur provider
+	// +optional
+	Conjur *ConjurProvider `json:"conjur,omitempty"`
 }
 
 type CAProviderType string

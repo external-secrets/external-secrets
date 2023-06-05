@@ -98,7 +98,9 @@ var webhookCmd = &cobra.Command{
 					setupLog.Info("validating certs")
 					err = crds.CheckCerts(c, dnsName, time.Now().Add(certLookaheadInterval))
 					if err != nil {
+						setupLog.Error(err, "certs are not valid at now + lookahead, triggering shutdown", "certLookahead", certLookaheadInterval.String())
 						cancel()
+						return
 					}
 					setupLog.Info("certs are valid")
 				}

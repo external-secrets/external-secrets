@@ -221,19 +221,29 @@ docs.serve: ## Serve docs
 # ====================================================================================
 # Build Artifacts
 
+.PHONY: build.all
 build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
-docker.image:
+.PHONY: docker.image
+docker.image:  ## Emit IMAGE_NAME:IMAGE_TAG
 	@echo $(IMAGE_NAME):$(IMAGE_TAG)
 
-docker.tag:
+.PHONY: docker.imagename
+docker.imagename:  ## Emit IMAGE_NAME
+	@echo $(IMAGE_NAME)
+
+.PHONY: docker.tag
+docker.tag:  ## Emit IMAGE_TAG
 	@echo $(IMAGE_TAG)
 
+.PHONY: docker.build
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	@docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	echo docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
+.PHONY: docker.push
 docker.push: ## Push the docker image to the registry
 	@$(INFO) docker push
 	@docker push $(IMAGE_NAME):$(IMAGE_TAG)
@@ -244,6 +254,7 @@ docker.push: ## Push the docker image to the registry
 RELEASE_TAG ?= $(IMAGE_TAG)
 SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
+.PHONY: docker.promote
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
 	docker manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
@@ -282,6 +293,14 @@ tf.show.%: ## Runs terrform show for a provider and outputs to a file
 # ====================================================================================
 # Help
 
+.PHONY: help
 # only comments after make target name are shown as help text
 help: ## Displays this help message
-	@echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s : | sort)"
+	@echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sed -e 's/:.*##\s*/|/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s'|' | sort)"
+
+
+.PHONY: clean
+clean:  ## Clean bins
+	@$(INFO) clean
+	@rm -f $(OUTPUT_DIR)/external-secrets-linux-*
+	@$(OK) go build $*
