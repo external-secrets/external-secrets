@@ -30,6 +30,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 )
 
 var cfg *rest.Config
@@ -100,3 +103,9 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func init() {
+	ctrlmetrics.SetUpLabelNames(false)
+	cssmetrics.SetUpMetrics()
+	ssmetrics.SetUpMetrics()
+}
