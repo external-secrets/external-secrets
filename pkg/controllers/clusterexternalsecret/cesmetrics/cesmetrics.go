@@ -46,7 +46,7 @@ func SetUpMetrics() {
 		Help:      "The status condition of a specific Cluster External Secret",
 	}, ctrlmetrics.ConditionMetricLabelNames)
 
-	metrics.Registry.MustRegister(clusterExternalSecretReconcileDuration)
+	metrics.Registry.MustRegister(clusterExternalSecretReconcileDuration, clusterExternalSecretCondition)
 
 	gaugeVecMetrics = map[string]*prometheus.GaugeVec{
 		ClusterExternalSecretStatusConditionKey:   clusterExternalSecretCondition,
