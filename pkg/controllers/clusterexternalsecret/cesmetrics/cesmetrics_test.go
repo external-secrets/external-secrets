@@ -34,7 +34,6 @@ func TestUpdateClusterExternalSecretCondition(t *testing.T) {
 	}()
 	metrics.ConditionMetricLabels = map[string]string{"name": "", "namespace": "", "condition": "", "status": ""}
 
-	namespace := "test-namespace"
 	name := "test"
 
 	tests := []struct {
@@ -58,7 +57,7 @@ func TestUpdateClusterExternalSecretCondition(t *testing.T) {
 			}{
 				{
 					labels: prometheus.Labels{
-						"namespace": namespace,
+						"namespace": "",
 						"name":      name,
 						"condition": "Ready",
 						"status":    "True",
@@ -67,7 +66,7 @@ func TestUpdateClusterExternalSecretCondition(t *testing.T) {
 				},
 				{
 					labels: prometheus.Labels{
-						"namespace": namespace,
+						"namespace": "",
 						"name":      name,
 						"condition": "Ready",
 						"status":    "False",
@@ -89,8 +88,7 @@ func TestUpdateClusterExternalSecretCondition(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			ces := &esv1beta1.ClusterExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespace,
-					Name:      name,
+					Name: name,
 				},
 			}
 

@@ -66,7 +66,6 @@ func UpdateClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, 
 
 	cesInfo := make(map[string]string)
 	cesInfo["name"] = ces.Name
-	cesInfo["namespace"] = ces.Namespace
 	for k, v := range ces.Labels {
 		cesInfo[k] = v
 	}
