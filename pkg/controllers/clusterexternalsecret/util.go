@@ -18,16 +18,24 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 )
 
-func NewClusterExternalSecretCondition(condType esv1beta1.ClusterExternalSecretConditionType, status v1.ConditionStatus) *esv1beta1.ClusterExternalSecretStatusCondition {
-	return &esv1beta1.ClusterExternalSecretStatusCondition{
-		Type:   condType,
-		Status: status,
+func NewClusterExternalSecretCondition(failedNamespaces map[string]string, namespaceList *v1.NamespaceList) *esv1beta1.ClusterExternalSecretStatusCondition {
+	conditionType := getConditionType(failedNamespaces, namespaceList)
+	condition := &esv1beta1.ClusterExternalSecretStatusCondition{
+		Type:   conditionType,
+		Status: v1.ConditionTrue,
 	}
+
+	if conditionType != esv1beta1.ClusterExternalSecretReady {
+		condition.Message = errNamespacesFailed
+	}
+
+	return condition
 }
 
-// GetExternalSecretCondition returns the condition with the provided type.
+// GetClusterExternalSecretCondition returns the condition with the provided type.
 func GetClusterExternalSecretCondition(status esv1beta1.ClusterExternalSecretStatus, condType esv1beta1.ClusterExternalSecretConditionType) *esv1beta1.ClusterExternalSecretStatusCondition {
 	for i := range status.Conditions {
 		c := status.Conditions[i]
@@ -40,6 +48,7 @@ func GetClusterExternalSecretCondition(status esv1beta1.ClusterExternalSecretSta
 
 func SetClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, condition esv1beta1.ClusterExternalSecretStatusCondition) {
 	ces.Status.Conditions = append(filterOutCondition(ces.Status.Conditions, condition.Type), condition)
+	cesmetrics.UpdateClusterExternalSecretCondition(ces, &condition)
 }
 
 // filterOutCondition returns an empty set of conditions with the provided type.
@@ -62,4 +71,16 @@ func ContainsNamespace(namespaces v1.NamespaceList, namespace string) bool {
 	}
 
 	return false
+}
+
+func getConditionType(failedNamespaces map[string]string, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
+	if len(failedNamespaces) == 0 {
+		return esv1beta1.ClusterExternalSecretReady
+	}
+
+	if len(failedNamespaces) < len(namespaceList.Items) {
+		return esv1beta1.ClusterExternalSecretPartiallyReady
+	}
+
+	return esv1beta1.ClusterExternalSecretNotReady
 }

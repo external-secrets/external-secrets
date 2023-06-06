@@ -127,14 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		provisionedNamespaces = append(provisionedNamespaces, namespace.ObjectMeta.Name)
 	}
 
-	conditionType := getCondition(failedNamespaces, &namespaceList)
-
-	condition := NewClusterExternalSecretCondition(conditionType, v1.ConditionTrue)
-
-	if conditionType != esv1beta1.ClusterExternalSecretReady {
-		condition.Message = errNamespacesFailed
-	}
-
+	condition := NewClusterExternalSecretCondition(failedNamespaces, &namespaceList)
 	SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
 	setFailedNamespaces(&clusterExternalSecret, failedNamespaces)
 
@@ -235,18 +228,6 @@ func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string 
 	}
 
 	return ""
-}
-
-func getCondition(namespaces map[string]string, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
-	if len(namespaces) == 0 {
-		return esv1beta1.ClusterExternalSecretReady
-	}
-
-	if len(namespaces) < len(namespaceList.Items) {
-		return esv1beta1.ClusterExternalSecretPartiallyReady
-	}
-
-	return esv1beta1.ClusterExternalSecretNotReady
 }
 
 func getRemovedNamespaces(nsList v1.NamespaceList, provisionedNs []string) []string {
