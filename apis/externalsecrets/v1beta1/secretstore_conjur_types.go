@@ -14,11 +14,20 @@ limitations under the License.
 
 package v1beta1
 
-// ConjurProvider configures an store to sync secrets using a Conjur backend.
+import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+
 type ConjurProvider struct {
-	ServiceURL         string `json:"serviceUrl"`
-	ServiceUser        string `json:"serviceUser"`
-	ServiceAPIKey      string `json:"serviceApiKey"`
-	ServiceAccount     string `json:"serviceAccount"`
-	ServiceCertificate string `json:"serviceCertificate,omitempty"`
+	URL      string     `json:"url"`
+	CABundle string     `json:"caBundle,omitempty"`
+	Auth     ConjurAuth `json:"auth"`
+}
+
+type ConjurAuth struct {
+	Apikey *ConjurApikey `json:"apikey"`
+}
+
+type ConjurApikey struct {
+	Account   string                    `json:"account"`
+	UserRef   *esmeta.SecretKeySelector `json:"userRef"`
+	ApiKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`
 }

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeconjur "github.com/external-secrets/external-secrets/pkg/provider/conjur/fake"
 )
 
@@ -83,19 +84,19 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeSecretStore("", svcUser, svcApikey, svcAccount),
-			err:   fmt.Errorf("ServiceURL cannot be empty"),
+			err:   fmt.Errorf("Conjur URL cannot be empty"),
 		},
 		{
 			store: makeSecretStore(svcURL, "", svcApikey, svcAccount),
-			err:   fmt.Errorf("ServiceUser cannot be empty"),
+			err:   fmt.Errorf("missing Auth.Apikey.UserRef"),
 		},
 		{
 			store: makeSecretStore(svcURL, svcUser, "", svcAccount),
-			err:   fmt.Errorf("ServiceAPIKey cannot be empty"),
+			err:   fmt.Errorf("missing Auth.Apikey.ApiKeyRef"),
 		},
 		{
 			store: makeSecretStore(svcURL, svcUser, svcApikey, ""),
-			err:   fmt.Errorf("SeviceAccount cannot be empty"),
+			err:   fmt.Errorf("missing Auth.ApiKey.Account"),
 		},
 	}
 	p := Provider{}
@@ -112,14 +113,32 @@ func TestValidateStore(t *testing.T) {
 }
 
 func makeSecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.SecretStore {
+	uref := &esmeta.SecretKeySelector{
+		Name: "user",
+		Key:  "conjur-hostid",
+	}
+	if svcUser == "" {
+		uref = nil
+	}
+	aref := &esmeta.SecretKeySelector{
+		Name: "apikey",
+		Key:  "conjur-apikey",
+	}
+	if svcApikey == "" {
+		aref = nil
+	}
 	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Conjur: &esv1beta1.ConjurProvider{
-					ServiceURL:     &svcURL,
-					ServiceUser:    &svcUser,
-					ServiceAPIKey:  &svcApikey,
-					ServiceAccount: &svcAccount,
+					URL: svcURL,
+					Auth: esv1beta1.ConjurAuth{
+						Apikey: &esv1beta1.ConjurApikey{
+							Account:   svcAccount,
+							UserRef:   uref,
+							ApiKeyRef: aref,
+						},
+					},
 				},
 			},
 		},
