@@ -15,7 +15,6 @@ limitations under the License.
 package argocd
 
 import (
-	"fmt"
 	"os"
 
 	// nolint
@@ -65,15 +64,10 @@ func installESO(cfg *addon.Config) {
 		HelmChart:            "external-secrets",
 		HelmRepo:             "http://e2e-helmserver.default.svc.cluster.local",
 		HelmRevision:         helmChartRevision,
-		HelmValues: fmt.Sprintf(`
-installCRDs: true
-image:
-  tag: %s
-webhook:
-  image:
-    tag: %s
-certController:
-  image:
-    tag: %s`, tag, tag, tag),
+		HelmParameters: []string{
+			"image.tag=" + tag,
+			"webhook.image.tag=" + tag,
+			"certController.image.tag=" + tag,
+		},
 	}, cfg)
 }

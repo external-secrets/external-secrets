@@ -26,6 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 )
@@ -42,6 +44,13 @@ type StoreReconciler struct {
 
 func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("secretstore", req.NamespacedName)
+
+	resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
+	start := time.Now()
+
+	secretStoreReconcileDuration := ssmetrics.GetGaugeVec(ssmetrics.SecretStoreReconcileDurationKey)
+	defer func() { secretStoreReconcileDuration.With(resourceLabels).Set(float64(time.Since(start))) }()
+
 	var ss esapi.SecretStore
 	err := r.Get(ctx, req.NamespacedName, &ss)
 	if apierrors.IsNotFound(err) {

@@ -60,10 +60,10 @@ The following table show the support for features across different providers.
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| GCP Secret Manager        |      x       |      x       |                      |            x            |        x         |      x      |              x              |
+| GCP Secret Manager        |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| IBM Cloud Secrets Manager |              |              |                      |                         |        x         |             |                             |
+| IBM Cloud Secrets Manager |      x       |              |                      |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |

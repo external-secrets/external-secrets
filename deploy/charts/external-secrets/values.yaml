@@ -30,6 +30,9 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# -- Additional labels added to all helm chart resources.
+commonLabels: {}
+
 # -- If true, external-secrets will perform leader election between instances to ensure no more
 # than one instance of external-secrets operates at a time.
 leaderElect: false

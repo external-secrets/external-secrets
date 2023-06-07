@@ -101,12 +101,19 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 			Value: aws.String(v),
 		})
 	}
+	// tags and overwrite can't be used together
+	// overwrite is needed for the version test
+	overwrite := false
+	if len(val.Tags) == 0 {
+		overwrite = true
+	}
 	_, err := s.client.PutParameter(&ssm.PutParameterInput{
-		Name:     aws.String(key),
-		Value:    aws.String(val.Value),
-		DataType: aws.String("text"),
-		Type:     aws.String("String"),
-		Tags:     pmTags,
+		Name:      aws.String(key),
+		Value:     aws.String(val.Value),
+		DataType:  aws.String("text"),
+		Type:      aws.String("String"),
+		Overwrite: aws.Bool(overwrite),
+		Tags:      pmTags,
 	})
 	Expect(err).ToNot(HaveOccurred())
 }

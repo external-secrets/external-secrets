@@ -100,9 +100,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
 	start := time.Now()
 
-	externalSecretReconcileDuration := esmetrics.GetGaugeVec(esmetrics.ExternalSecretReconcileDurationKey)
-	syncCallsTotal := esmetrics.GetCounterVec(esmetrics.SyncCallsKey)
 	syncCallsError := esmetrics.GetCounterVec(esmetrics.SyncCallsErrorKey)
+
+	// use closures to dynamically update resourceLabels
+	defer func() {
+		esmetrics.GetGaugeVec(esmetrics.ExternalSecretReconcileDurationKey).With(resourceLabels).Set(float64(time.Since(start)))
+		esmetrics.GetCounterVec(esmetrics.SyncCallsKey).With(resourceLabels).Inc()
+	}()
 
 	var externalSecret esv1beta1.ExternalSecret
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
@@ -117,26 +121,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				},
 			}, *conditionSynced)
 
-			externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
-			syncCallsTotal.With(resourceLabels).Inc()
-
 			return ctrl.Result{}, nil
 		}
 
 		log.Error(err, errGetES)
 		syncCallsError.With(resourceLabels).Inc()
 
-		externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
-		syncCallsTotal.With(resourceLabels).Inc()
-
 		return ctrl.Result{}, nil
 	}
 
 	// if extended metrics is enabled, refine the time series vector
 	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
-
-	defer externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
-	defer syncCallsTotal.With(resourceLabels).Inc()
 
 	if shouldSkipClusterSecretStore(r, externalSecret) {
 		log.Info("skipping cluster secret store as it is disabled")
@@ -284,8 +279,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	}
 
-	//nolint
-	switch externalSecret.Spec.Target.CreationPolicy {
+	switch externalSecret.Spec.Target.CreationPolicy { //nolint
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 		if err == nil {
