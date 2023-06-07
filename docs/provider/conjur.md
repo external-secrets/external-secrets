@@ -4,14 +4,15 @@ The following sections outline what is needed to get your external-secrets Conju
 
 ### Pre-requirements
 
-This section describes the pre-requirements before installing the Conjur Provider
+This section contains the list of the pre-requirements before installing the Conjur Provider.
 
-* Running Conjur Server
-  * Conjur endpoint - include the scheme but no trailing '/', ex: https://myapi.example.com
-  * Conjur credentials (hostid, apikey)
-  * Cert for conjur server is OPTIONAL, unless using a **self-signed cert**, then this **field** is **required**
-* Kubernetes cluster
-  * External Secrets Operator is installed
+*   Running Conjur Server
+    -   These items will be needed in order to configure the secret-store
+        +   Conjur endpoint - include the scheme but no trailing '/', ex: https://myapi.example.com
+        +   Conjur credentials (hostid, apikey)
+        +   Certificate for Conjur server is OPTIONAL -- But, **when using a self-signed cert add to caBundle is required**
+*   Kubernetes cluster
+    -   External Secrets Operator is installed
 
 ### Create External Secret Store Definition
 
@@ -71,4 +72,3 @@ kubectl apply -n external-secrets -f conjur-external-secret.yaml
 kubectl get secret -n external-secrets conjur -o jsonpath="{.data.secret00}"  | base64 --decode && echo
 ```
 
-### Document License
