@@ -24,6 +24,8 @@ Recommend to save as filename: `conjur-secret-store.yaml`
 
 ### Create External Secret Definition
 
+Creds must live in the same namespace as a SecretStore  - the secret store may only reference secrets from the same namespace.  When using a ClusterSecretStore this limitation is lifted and the creds can live in any namespace.
+
 Recommend to save as filename: `conjur-external-secret.yaml`
 
 ```yaml
