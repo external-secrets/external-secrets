@@ -39,6 +39,7 @@ require (
 	cloud.google.com/go/secretmanager v1.11.1
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
+	github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v3 v3.3.12
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.271

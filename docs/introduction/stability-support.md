@@ -52,6 +52,7 @@ The following table describes the stability level of each provider and who's res
 | [Keeper Security](https://www.keepersecurity.com/)                                                         |   alpha   |                                                                                                                                              [@ppodevlab](https://github.com/ppodevlab) |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
 | [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   alpha   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) |
+| [Delinea](https://external-secrets.io/latest/provider/delinea)                                           |   alpha   |                                                                                                                                                   [@michaelsauter](https://github.com/michaelsauter/) |
 
 ## Provider Feature Support
 
@@ -77,7 +78,11 @@ The following table show the support for features across different providers.
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
+<<<<<<< HEAD
 | Conjur                    |              |              |                      |                         |        x         |             |                             |
+=======
+| Delinea                  |      x       |              |                      |                         |        x         |             |                             |
+>>>>>>> 4667f9ba (Add support for Delinea DevOps Secrets Vault)
 
 ## Support Policy
 
