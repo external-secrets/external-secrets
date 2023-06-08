@@ -121,3 +121,7 @@ Please note that ESO does not provide pre-packaged policies, and it is the user'
 #### C04: Provider Access Policy
 
 Configure fine-grained access control on the HTTP endpoint of the secret provider to prevent data exfiltration across accounts or organizations. Consult the documentation of your specific provider (e.g.: [AWS Secrets Manager VPC Endpoint Policies](https://docs.aws.amazon.com/secretsmanager/latest/userguide/vpc-endpoint-overview.html), [GCP Private Service Connect](https://cloud.google.com/vpc/docs/private-service-connect), or [Azure Private Link](https://learn.microsoft.com/en-us/azure/key-vault/general/private-link-service)) for guidance on setting up access policies.
+
+#### C05: Entirely disable CRDs
+
+You should disable unused CRDs to narrow down your attack surface. Not all users require the use of `PushSecret`, `ClusterSecretStore` or `ClusterExternalSecret` resources.
