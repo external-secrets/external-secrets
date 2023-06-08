@@ -104,7 +104,7 @@ Please note that ESO does not provide pre-packaged network policies, and it is t
 
 #### C02: Least Privilege RBAC
 
-Adhere to the principle of least privilege by configuring Role-Based Access Control (RBAC) permissions not only for the ESO workload but also for all users interacting with it. Ensure that RBAC permissions are set up to grant access to ESO resources only where necessary. For example, allowing write access to `ClusterSecretStore`/`ExternalSecret` may be sufficient for a threat to become a reality.
+Adhere to the principle of least privilege by configuring Role-Based Access Control (RBAC) permissions not only for the ESO workload but also for all users interacting with it. Ensure that RBAC permissions on provider side are appropriate according to your setup, by for example limiting which sensitive information a given credential can have access to. Ensure that  kubernetes RBAC are set up to grant access to ESO resources only where necessary. For example, allowing write access to `ClusterSecretStore`/`ExternalSecret` may be sufficient for a threat to become a reality.
 
 #### C03: Policy Enforcement
 
