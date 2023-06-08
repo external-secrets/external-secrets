@@ -233,7 +233,7 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 	if !strings.HasSuffix(acrRegistry, "/") {
 		acrRegistry += "/"
 	}
-	acrResource := fmt.Sprintf("https://%s/.default", acrRegistry)
+	acrResource := fmt.Sprintf("https://%s.default", acrRegistry)
 	// if no serviceAccountRef was provided
 	// we expect certain env vars to be present.
 	// They are set by the azure workload identity webhook.
