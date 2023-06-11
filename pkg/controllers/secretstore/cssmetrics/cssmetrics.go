@@ -19,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	commonmetrics "github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
 )
 
 const (
@@ -37,10 +38,17 @@ func SetUpMetrics() {
 		Help:      "The duration time to reconcile the Cluster Secret Store",
 	}, ctrlmetrics.NonConditionMetricLabelNames)
 
-	metrics.Registry.MustRegister(clusterSecretStoreReconcileDuration)
+	clusterSecretStoreCondition := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: ClusterSecretStoreSubsystem,
+		Name:      commonmetrics.StatusConditionKey,
+		Help:      "The status condition of a specific Cluster Secret Store",
+	}, ctrlmetrics.ConditionMetricLabelNames)
+
+	metrics.Registry.MustRegister(clusterSecretStoreReconcileDuration, clusterSecretStoreCondition)
 
 	gaugeVecMetrics = map[string]*prometheus.GaugeVec{
 		ClusterSecretStoreReconcileDurationKey: clusterSecretStoreReconcileDuration,
+		commonmetrics.StatusConditionKey:       clusterSecretStoreCondition,
 	}
 }
 

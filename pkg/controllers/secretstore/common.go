@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
 )
 
 const (
@@ -39,8 +40,8 @@ const (
 	msgStoreValidated = "store validated"
 )
 
-func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client,
-	log logr.Logger, controllerClass string, recorder record.EventRecorder, requeueInterval time.Duration) (ctrl.Result, error) {
+func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, log logr.Logger,
+	controllerClass string, gaugeVecGetter metrics.GaugeVevGetter, recorder record.EventRecorder, requeueInterval time.Duration) (ctrl.Result, error) {
 	if !ShouldProcessStore(ss, controllerClass) {
 		log.V(1).Info("skip store")
 		return ctrl.Result{}, nil
@@ -62,7 +63,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	// validateStore modifies the store conditions
 	// we have to patch the status
 	log.V(1).Info("validating")
-	err := validateStore(ctx, req.Namespace, controllerClass, ss, cl, recorder)
+	err := validateStore(ctx, req.Namespace, controllerClass, ss, cl, gaugeVecGetter, recorder)
 	if err != nil {
 		log.Error(err, "unable to validate store")
 		return ctrl.Result{}, err
@@ -79,7 +80,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 
 	recorder.Event(ss, v1.EventTypeNormal, esapi.ReasonStoreValid, msgStoreValidated)
 	cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonStoreValid, msgStoreValidated)
-	SetExternalSecretCondition(ss, *cond)
+	SetExternalSecretCondition(ss, *cond, gaugeVecGetter)
 
 	return ctrl.Result{
 		RequeueAfter: requeueInterval,
@@ -89,20 +90,20 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 // validateStore tries to construct a new client
 // if it fails sets a condition and writes events.
 func validateStore(ctx context.Context, namespace, controllerClass string, store esapi.GenericStore,
-	client client.Client, recorder record.EventRecorder) error {
+	client client.Client, gaugeVecGetter metrics.GaugeVevGetter, recorder record.EventRecorder) error {
 	mgr := NewManager(client, controllerClass, false)
 	defer mgr.Close(ctx)
 	cl, err := mgr.GetFromStore(ctx, store, namespace)
 	if err != nil {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
-		SetExternalSecretCondition(store, *cond)
+		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
 		return fmt.Errorf(errStoreClient, err)
 	}
 	validationResult, err := cl.Validate()
 	if err != nil && validationResult != esapi.ValidationResultUnknown {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, errUnableValidateStore)
-		SetExternalSecretCondition(store, *cond)
+		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())
 		return fmt.Errorf(errValidationFailed, err)
 	}
