@@ -1,0 +1,114 @@
+/*
+Copyright © 2022 ESO Maintainer Team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+syntax = "proto3";
+
+option go_package = "github.com/external-secrets/external-secrets/pkg/plugin/grpc/plugin.proto";
+option java_multiple_files = true;
+option java_package = "io.external-secrets.provider.plugin";
+option java_outer_classname = "ProviderPluginProto";
+
+package plugin;
+
+service SecretsClient {
+  // GetSecret returns a single secret from the provider
+  // if GetSecret returns an error with type NoSecretError
+  // then the secret entry will be deleted depending on the deletionPolicy.
+  rpc GetSecret(GetSecretRequest) returns (GetSecretReply) {}
+
+  // PushSecret will write a single secret into the provider
+  rpc PushSecret(PushSecretRequest) returns (PushSecretReply) {}
+
+  // DeleteSecret will delete the secret from a provider
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretReply) {}
+
+  // GetSecretMap returns multiple k/v pairs from the provider
+  rpc GetSecretMap(GetSecretMapRequest) returns (GetSecretMapReply) {}
+
+  // GetAllSecrets returns multiple k/v pairs from the provider
+  rpc GetAllSecrets(GetAllSecretsRequest) returns (GetAllSecretsReply) {}
+}
+
+message GetSecretRequest {
+  bytes store = 1;
+  string namespace = 2;
+  RemoteRef remoteRef = 3;
+}
+
+message GetSecretReply {
+  bytes secret = 1;
+  string error = 2;
+}
+
+message PushSecretRequest {
+  bytes store = 1;
+  string namespace = 2;
+  bytes secret = 3;
+  PushRemoteRef remoteRef = 4;
+}
+
+message PushSecretReply { string error = 1; }
+
+message DeleteSecretRequest {
+  bytes store = 1;
+  string namespace = 2;
+  PushRemoteRef remoteRef = 3;
+}
+
+message DeleteSecretReply { string error = 1; }
+
+message GetSecretMapRequest {
+  bytes store = 1;
+  string namespace = 2;
+  RemoteRef remoteRef = 3;
+}
+
+message GetSecretMapReply {
+  map<string, bytes> data = 9;
+  string error = 2;
+}
+
+message GetAllSecretsRequest {
+  bytes store = 1;
+  string namespace = 2;
+  ExternalSecretFind remoteRef = 3;
+}
+
+message GetAllSecretsReply {
+  map<string, bytes> data = 1;
+  string error = 2;
+}
+
+message RemoteRef {
+  string key = 1;
+  string metadataPolicy = 2;
+  string property = 3;
+  string version = 4;
+  string conversionStrategy = 5;
+  string decodingStrategy = 6;
+}
+
+message PushRemoteRef {
+  string remoteKey = 1;
+  string property = 2;
+}
+
+message ExternalSecretFind {
+  string path = 1;
+  string findNameRegexp = 2;
+  map<string, string> tags = 3;
+  string conversionStrategy = 4;
+  string decodingStrategy = 5;
+}

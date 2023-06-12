@@ -1,13 +1,15 @@
 package main
 
 import (
-	"fmt"
-
 	provider "github.com/external-secrets/external-secrets-provider-vault"
+	"github.com/external-secrets/external-secrets/pkg/remote/shell"
 )
 
 //go:generate ./generate.sh $GOFILE
 func main() {
-	p := provider.Provider{}
-	fmt.Printf("provider cap: %#v\n", p.Capabilities())
+	p := &provider.Provider{}
+	err := shell.RunServer(p)
+	if err != nil {
+		panic(err)
+	}
 }

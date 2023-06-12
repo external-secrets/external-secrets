@@ -157,7 +157,7 @@ fmt: lint.check ## Ensure consistent code style
 generate: ## Generate code and crds
 	protoc --go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		./pkg/plugin/grpc/plugin.proto
+		./pkg/plugin/grpc/provider.proto
 	./cmd/provider/generate.sh
 	go generate ./cmd/provider/provider.go.tmpl
 	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
@@ -241,7 +241,7 @@ docker.image:
 docker.tag:
 	@echo $(IMAGE_TAG)
 
-docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
+docker.build: $(addprefix build-,$(ARCH)) $(addprefix build-provider-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
 	@docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build

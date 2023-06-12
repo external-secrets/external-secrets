@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sync"
 )
 
@@ -30,7 +31,7 @@ func init() {
 // Register a store backend type. Register panics if a
 // backend with the same store is already registered.
 func Register(s Provider, storeSpec *SecretStoreProvider) {
-	storeName, err := getProviderName(storeSpec)
+	storeName, err := GetProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
 	}
@@ -48,7 +49,7 @@ func Register(s Provider, storeSpec *SecretStoreProvider) {
 // ForceRegister adds to store schema, overwriting a store if
 // already registered. Should only be used for testing.
 func ForceRegister(s Provider, storeSpec *SecretStoreProvider) {
-	storeName, err := getProviderName(storeSpec)
+	storeName, err := GetProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
 	}
@@ -66,6 +67,18 @@ func GetProviderByName(name string) (Provider, bool) {
 	return f, ok
 }
 
+// Returns the provider name for a registerd provider
+func GetProviderNameByType(p Provider) (string, bool) {
+	buildlock.RLock()
+	for name, v := range builder {
+		if reflect.TypeOf(v) == reflect.TypeOf(p) {
+			return name, true
+		}
+	}
+	buildlock.RUnlock()
+	return "", false
+}
+
 // GetProvider returns the provider from the generic store.
 func GetProvider(s GenericStore) (Provider, error) {
 	if s == nil {
@@ -75,7 +88,7 @@ func GetProvider(s GenericStore) (Provider, error) {
 	if spec == nil {
 		return nil, fmt.Errorf("no spec found in %#v", s)
 	}
-	storeName, err := getProviderName(spec.Provider)
+	storeName, err := GetProviderName(spec.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("store error for %s: %w", s.GetName(), err)
 	}
@@ -91,9 +104,9 @@ func GetProvider(s GenericStore) (Provider, error) {
 	return f, nil
 }
 
-// getProviderName returns the name of the configured provider
+// GetProviderName returns the name of the configured provider
 // or an error if the provider is not configured.
-func getProviderName(storeSpec *SecretStoreProvider) (string, error) {
+func GetProviderName(storeSpec *SecretStoreProvider) (string, error) {
 	storeBytes, err := json.Marshal(storeSpec)
 	if err != nil || storeBytes == nil {
 		return "", fmt.Errorf("failed to marshal store spec: %w", err)

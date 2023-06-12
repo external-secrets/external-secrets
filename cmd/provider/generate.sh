@@ -19,6 +19,11 @@ for providerdir in $(find $DIR/../../pkg/provider -maxdepth 1 -mindepth 1 | grep
         continue;
     fi
 
+    # grpc should not be generated
+    if [ "${provider}" == "grpc" ]; then
+        continue;
+    fi
+
     pkgname=$provider
     # override import path, because provider directory structure is not standardised
     if [ "${provider}" == "gcp" ]; then

@@ -2210,6 +2210,15 @@ spec:
                       required:
                         - auth
                       type: object
+                    grpc:
+                      description: experimental GRPC provider
+                      properties:
+                        url:
+                          description: GRPC server URL
+                          type: string
+                      required:
+                        - url
+                      type: object
                     ibm:
                       description: IBM configures this store to sync secrets using IBM Cloud provider
                       properties:
@@ -5785,6 +5794,15 @@ spec:
                           type: string
                       required:
                         - auth
+                      type: object
+                    grpc:
+                      description: experimental GRPC provider
+                      properties:
+                        url:
+                          description: GRPC server URL
+                          type: string
+                      required:
+                        - url
                       type: object
                     ibm:
                       description: IBM configures this store to sync secrets using IBM Cloud provider

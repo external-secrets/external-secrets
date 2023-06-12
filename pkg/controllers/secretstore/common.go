@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/remote"
 )
 
 const (
@@ -67,7 +68,11 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		log.Error(err, "unable to validate store")
 		return ctrl.Result{}, err
 	}
-	storeProvider, err := esapi.GetProvider(ss)
+	getProvider := esapi.GetProvider
+	if true {
+		getProvider = remote.GetProvider
+	}
+	storeProvider, err := getProvider(ss)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -90,7 +95,12 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 // if it fails sets a condition and writes events.
 func validateStore(ctx context.Context, namespace, controllerClass string, store esapi.GenericStore,
 	client client.Client, recorder record.EventRecorder) error {
-	mgr := NewManager(client, controllerClass, false)
+
+	getProvider := esapi.GetProvider
+	if true {
+		getProvider = remote.GetProvider
+	}
+	mgr := NewManager(client, controllerClass, false, getProvider)
 	defer mgr.Close(ctx)
 	cl, err := mgr.GetFromStore(ctx, store, namespace)
 	if err != nil {

@@ -47,6 +47,7 @@ type Manager struct {
 	client          client.Client
 	controllerClass string
 	enableFloodgate bool
+	getProvider     getProviderFunc
 
 	// store clients by provider type
 	clientMap map[clientKey]*clientVal
@@ -61,12 +62,15 @@ type clientVal struct {
 	store  esv1beta1.GenericStore
 }
 
+type getProviderFunc func(store esv1beta1.GenericStore) (esv1beta1.Provider, error)
+
 // New constructs a new manager with defaults.
-func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgate bool) *Manager {
+func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgate bool, getProvider getProviderFunc) *Manager {
 	log := ctrl.Log.WithName("clientmanager")
 	return &Manager{
 		log:             log,
 		client:          ctrlClient,
+		getProvider:     getProvider,
 		controllerClass: controllerClass,
 		enableFloodgate: enableFloodgate,
 		clientMap:       make(map[clientKey]*clientVal),
@@ -74,7 +78,7 @@ func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgat
 }
 
 func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore, namespace string) (esv1beta1.SecretsClient, error) {
-	storeProvider, err := esv1beta1.GetProvider(store)
+	storeProvider, err := m.getProvider(store)
 	if err != nil {
 		return nil, err
 	}

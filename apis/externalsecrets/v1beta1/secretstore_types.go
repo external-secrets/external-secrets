@@ -109,6 +109,9 @@ type SecretStoreProvider struct {
 	// +optional
 	Webhook *WebhookProvider `json:"webhook,omitempty"`
 
+	// experimental GRPC provider
+	GRPC *GRPCProvider `json:"grpc,omitempty"`
+
 	// Kubernetes configures this store to sync secrets using a Kubernetes cluster provider
 	// +optional
 	Kubernetes *KubernetesProvider `json:"kubernetes,omitempty"`

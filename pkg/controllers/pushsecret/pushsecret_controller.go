@@ -34,6 +34,7 @@ import (
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/pkg/remote"
 )
 
 const (
@@ -62,7 +63,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log := r.Log.WithValues("pushsecret", req.NamespacedName)
 	var ps esapi.PushSecret
 	err := r.Get(ctx, req.NamespacedName, &ps)
-	mgr := secretstore.NewManager(r.Client, r.ControllerClass, false)
+
+	getProvider := v1beta1.GetProvider
+	if true {
+		getProvider = remote.GetProvider
+	}
+	mgr := secretstore.NewManager(r.Client, r.ControllerClass, false, getProvider)
 	defer mgr.Close(ctx)
 	if apierrors.IsNotFound(err) {
 		return ctrl.Result{}, nil

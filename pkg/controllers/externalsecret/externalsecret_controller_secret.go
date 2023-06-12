@@ -30,8 +30,11 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+
 	// Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/pkg/remote"
+
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
@@ -40,11 +43,16 @@ import (
 
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
 func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
+	// TODO: make this switchable via flag
+	getProvider := esv1beta1.GetProvider
+	if true {
+		getProvider = remote.GetProvider
+	}
 	// We MUST NOT create multiple instances of a provider client (mostly due to limitations with GCP)
 	// Clientmanager keeps track of the client instances
 	// that are created during the fetching process and closes clients
 	// if needed.
-	mgr := secretstore.NewManager(r.Client, r.ControllerClass, r.EnableFloodGate)
+	mgr := secretstore.NewManager(r.Client, r.ControllerClass, r.EnableFloodGate, getProvider)
 	defer mgr.Close(ctx)
 
 	providerData := make(map[string][]byte)
