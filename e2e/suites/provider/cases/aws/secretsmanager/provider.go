@@ -70,6 +70,8 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 
 	BeforeEach(func() {
 		awscommon.SetupStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
+		awscommon.SetupExternalIDStore(f, kid, sak, st, region, awscommon.IAMRoleExternalID, awscommon.IAMTrustedExternalID, nil, esv1beta1.AWSServiceSecretsManager)
+		awscommon.SetupSessionTagsStore(f, kid, sak, st, region, awscommon.IAMRoleSessionTags, nil, esv1beta1.AWSServiceSecretsManager)
 		awscommon.CreateReferentStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
 		prov.SetupReferencedIRSAStore()
 		prov.SetupMountedIRSAStore()
@@ -78,7 +80,6 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 	AfterEach(func() {
 		prov.TeardownReferencedIRSAStore()
 		prov.TeardownMountedIRSAStore()
-
 	})
 
 	return prov
