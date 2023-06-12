@@ -27,6 +27,8 @@ import (
 
 const (
 	withStaticAuth         = "with static auth"
+	withExtID              = "with externalID"
+	withSessionTags        = "with session tags"
 	withReferentStaticAuth = "with static referent auth"
 )
 
@@ -58,6 +60,10 @@ var _ = Describe("[aws] ", Label("aws", "secretsmanager"), func() {
 
 		// referent auth
 		framework.Compose(withStaticAuth, f, common.SimpleDataSync, useReferentStaticAuth),
+
+		// test assume role with external-id and session tags
+		framework.Compose(withExtID, f, SimpleSyncWithNamespaceTags(prov), useExtIDAuth),
+		framework.Compose(withSessionTags, f, SimpleSyncWithNamespaceTags(prov), useSessionTagsAuth),
 	)
 })
 
@@ -65,6 +71,20 @@ func useStaticAuth(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.StaticStoreName
 	if tc.ExternalSecretV1Alpha1 != nil {
 		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = awscommon.StaticStoreName
+	}
+}
+
+func useExtIDAuth(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.ExternalIDStoreName
+	if tc.ExternalSecretV1Alpha1 != nil {
+		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = awscommon.ExternalIDStoreName
+	}
+}
+
+func useSessionTagsAuth(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.SessionTagsStoreName
+	if tc.ExternalSecretV1Alpha1 != nil {
+		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = awscommon.SessionTagsStoreName
 	}
 }
 
