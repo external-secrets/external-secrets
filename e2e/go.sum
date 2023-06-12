@@ -457,8 +457,6 @@ github.com/google/cel-spec v0.6.0/go.mod h1:Nwjgxy5CbjlPrtCWjeDjUyKMl8w41YBYGjsy
 github.com/google/gnostic v0.5.7-v3refs/go.mod h1:73MKFl6jIHelAJNaBGFzt3SPtZULs9dYrGFt8OiIsHQ=
 github.com/google/gnostic v0.6.9 h1:ZK/5VhkoX835RikCHpSUJV9a+S3e1zLh59YnyWeBW+0=
 github.com/google/gnostic v0.6.9/go.mod h1:Nm8234We1lq6iB9OmlgNv3nH91XLLVZHCDayfA3xq+E=
-github.com/google/gnostic-models v0.6.8 h1:yo/ABAfM5IMRsS1VnXjTBvUb61tFIHozhlYvRgGre9I=
-github.com/google/gnostic-models v0.6.8/go.mod h1:5n7qKqH0f5wFt+aWF8CW6pZLLNOfYuF5OpfBSENuI8U=
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
@@ -1650,8 +1648,8 @@ k8s.io/kube-aggregator v0.24.2/go.mod h1:Ju2jNDixn+vqeeKEBfjfpc204bO1pbdXX0N9knC
 k8s.io/kube-controller-manager v0.24.2/go.mod h1:KDE0yqiEvxYiO0WRpPA4rVx8AcK1vsWydUF37AJ9lTI=
 k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e/go.mod h1:vHXdDvt9+2spS2Rx9ql3I8tycm3H9FDfdUoIuKCefvw=
 k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42/go.mod h1:Z/45zLw8lUo4wdiUkI+v/ImEGAvu3WatcZl3lPMR4Rk=
-k8s.io/kube-openapi v0.0.0-20230606174411-725288a7abf1 h1:+cCtos65A2ydaMUSnO+IXcIYvhn1H+VxclLQuXYp63g=
-k8s.io/kube-openapi v0.0.0-20230606174411-725288a7abf1/go.mod h1:l8HTwL5fqnlns4jOveW1L75eo7R9KFHxiE0bsPGy428=
+k8s.io/kube-openapi v0.0.0-20230523194449-df37dd07aa00 h1:Sb9XaC5itZdDOVp7CTFhW8cxWIuRryoU4Oq6U8eEeOk=
+k8s.io/kube-openapi v0.0.0-20230523194449-df37dd07aa00/go.mod h1:kzo02I3kQ4BTtEfVLaPbjvCkX97YqGve33wzlb3fofQ=
 k8s.io/kube-proxy v0.24.2/go.mod h1:bozS2ufl/Ns6s40Ue34eV7rqyLVygi5usSmCgW7rFU8=
 k8s.io/kube-scheduler v0.24.2/go.mod h1:DRa+aeXKSYUUOHHIc/9EcaO9+FW5FydaOfPSvaSW5Ko=
 k8s.io/kubectl v0.24.2 h1:+RfQVhth8akUmIc2Ge8krMl/pt66V7210ka3RE/p0J4=
