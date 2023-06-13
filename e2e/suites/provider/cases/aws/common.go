@@ -31,6 +31,11 @@ const (
 	WithMountedIRSA                     = "with mounted IRSA"
 	StaticCredentialsSecretName         = "provider-secret"
 	StaticReferentCredentialsSecretName = "referent-provider-secret"
+
+	IAMRoleExternalID  = "arn:aws:iam::783882199045:role/eso-e2e-external-id"
+	IAMRoleSessionTags = "arn:aws:iam::783882199045:role/eso-e2e-session-tags"
+
+	IAMTrustedExternalID = "eso-e2e-ext-id"
 )
 
 func ReferencedIRSAStoreName(f *framework.Framework) string {
@@ -53,34 +58,101 @@ func UseMountedIRSAStore(tc *framework.TestCase) {
 
 const (
 	StaticStoreName       = "aws-static-creds"
+	ExternalIDStoreName   = "aws-ext-id"
+	SessionTagsStoreName  = "aws-sess-tags"
 	staticKeyID           = "kid"
 	staticSecretAccessKey = "sak"
 	staticySessionToken   = "st"
 )
 
-func newStaticStoreProvider(serviceType esv1beta1.AWSServiceType, region, secretName string) *esv1beta1.SecretStoreProvider {
+func newStaticStoreProvider(serviceType esv1beta1.AWSServiceType, region, secretName, role, externalID string, sessionTags []*esv1beta1.Tag) *esv1beta1.SecretStoreProvider {
 	return &esv1beta1.SecretStoreProvider{
 		AWS: &esv1beta1.AWSProvider{
-			Service: serviceType,
-			Region:  region,
+			Service:     serviceType,
+			Region:      region,
+			Role:        role,
+			ExternalID:  externalID,
+			SessionTags: sessionTags,
 			Auth: esv1beta1.AWSAuth{
 				SecretRef: &esv1beta1.AWSAuthSecretRef{
 					AccessKeyID: esmetav1.SecretKeySelector{
-						Name: StaticReferentCredentialsSecretName,
+						Name: secretName,
 						Key:  staticKeyID,
 					},
 					SecretAccessKey: esmetav1.SecretKeySelector{
-						Name: StaticReferentCredentialsSecretName,
+						Name: secretName,
 						Key:  staticSecretAccessKey,
 					},
 					SessionToken: &esmetav1.SecretKeySelector{
-						Name: StaticReferentCredentialsSecretName,
+						Name: secretName,
 						Key:  staticySessionToken,
 					},
 				},
 			},
 		},
 	}
+}
+
+// SessionTagsStore is namespaced and references
+// static credentials from a secret. It assumes a role and specifies session tags
+func SetupSessionTagsStore(f *framework.Framework, kid, sak, st, region, role string, sessionTags []*esv1beta1.Tag, serviceType esv1beta1.AWSServiceType) {
+	credsName := "provider-secret-sess-tags"
+	awsCreds := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      credsName,
+			Namespace: f.Namespace.Name,
+		},
+		StringData: map[string]string{
+			staticKeyID:           kid,
+			staticSecretAccessKey: sak,
+			staticySessionToken:   st,
+		},
+	}
+	err := f.CRClient.Create(context.Background(), awsCreds)
+	Expect(err).ToNot(HaveOccurred())
+
+	secretStore := &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      SessionTagsStoreName,
+			Namespace: f.Namespace.Name,
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: newStaticStoreProvider(serviceType, region, credsName, role, "", sessionTags),
+		},
+	}
+	err = f.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+// ExternalIDStore is namespaced and references
+// static credentials from a secret. It assumes a role and specifies an externalID
+func SetupExternalIDStore(f *framework.Framework, kid, sak, st, region, role, externalID string, sessionTags []*esv1beta1.Tag, serviceType esv1beta1.AWSServiceType) {
+	credsName := "provider-secret-ext-id"
+	awsCreds := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      credsName,
+			Namespace: f.Namespace.Name,
+		},
+		StringData: map[string]string{
+			staticKeyID:           kid,
+			staticSecretAccessKey: sak,
+			staticySessionToken:   st,
+		},
+	}
+	err := f.CRClient.Create(context.Background(), awsCreds)
+	Expect(err).ToNot(HaveOccurred())
+
+	secretStore := &esv1beta1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ExternalIDStoreName,
+			Namespace: f.Namespace.Name,
+		},
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: newStaticStoreProvider(serviceType, region, credsName, role, externalID, sessionTags),
+		},
+	}
+	err = f.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 // StaticStore is namespaced and references
@@ -106,7 +178,7 @@ func SetupStaticStore(f *framework.Framework, kid, sak, st, region string, servi
 			Namespace: f.Namespace.Name,
 		},
 		Spec: esv1beta1.SecretStoreSpec{
-			Provider: newStaticStoreProvider(serviceType, region, StaticCredentialsSecretName),
+			Provider: newStaticStoreProvider(serviceType, region, StaticCredentialsSecretName, "", "", nil),
 		},
 	}
 	err = f.CRClient.Create(context.Background(), secretStore)
@@ -137,7 +209,7 @@ func CreateReferentStaticStore(f *framework.Framework, kid, sak, st, region stri
 			Name: ReferentSecretStoreName(f),
 		},
 		Spec: esv1beta1.SecretStoreSpec{
-			Provider: newStaticStoreProvider(serviceType, region, StaticReferentCredentialsSecretName),
+			Provider: newStaticStoreProvider(serviceType, region, StaticReferentCredentialsSecretName, "", "", nil),
 		},
 	}
 	err = f.CRClient.Create(context.Background(), secretStore)
