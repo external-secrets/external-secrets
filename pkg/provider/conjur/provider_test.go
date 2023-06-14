@@ -84,7 +84,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeSecretStore("", svcUser, svcApikey, svcAccount),
-			err:   fmt.Errorf("Conjur URL cannot be empty"),
+			err:   fmt.Errorf("conjur URL cannot be empty"),
 		},
 		{
 			store: makeSecretStore(svcURL, "", svcApikey, svcAccount),
