@@ -1,3 +1,6 @@
+//go:build !providerless
+// +build !providerless
+
 /*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,24 +19,25 @@ limitations under the License.
 package register
 
 // packages imported here are registered to the controller schema.
-
-// _ "github.com/external-secrets/external-secrets-provider-akeyless"
-// _ "github.com/external-secrets/external-secrets-provider-alibaba"
-// _ "github.com/external-secrets/external-secrets-provider-aws"
-// _ "github.com/external-secrets/external-secrets-provider-azure/keyvault"
-// _ "github.com/external-secrets/external-secrets-provider-doppler"
-// _ "github.com/external-secrets/external-secrets-provider-fake"
-// _ "github.com/external-secrets/external-secrets-provider-gcp/secretmanager"
-// _ "github.com/external-secrets/external-secrets-provider-gitlab"
-// _ "github.com/external-secrets/external-secrets-provider-grpc"
-// _ "github.com/external-secrets/external-secrets-provider-ibm"
-// _ "github.com/external-secrets/external-secrets-provider-keepersecurity"
-// _ "github.com/external-secrets/external-secrets-provider-kubernetes"
-// _ "github.com/external-secrets/external-secrets-provider-onepassword"
-// _ "github.com/external-secrets/external-secrets-provider-oracle"
-// _ "github.com/external-secrets/external-secrets-provider-scaleway"
-// _ "github.com/external-secrets/external-secrets-provider-senhasegura"
-// _ "github.com/external-secrets/external-secrets-provider-vault"
-// _ "github.com/external-secrets/external-secrets-provider-webhook"
-// _ "github.com/external-secrets/external-secrets-provider-yandex/certificatemanager"
-// _ "github.com/external-secrets/external-secrets-provider-yandex/lockbox"
+import (
+	_ "github.com/external-secrets/external-secrets-provider-akeyless"
+	_ "github.com/external-secrets/external-secrets-provider-alibaba"
+	_ "github.com/external-secrets/external-secrets-provider-aws"
+	_ "github.com/external-secrets/external-secrets-provider-azure/keyvault"
+	_ "github.com/external-secrets/external-secrets-provider-doppler"
+	_ "github.com/external-secrets/external-secrets-provider-fake"
+	_ "github.com/external-secrets/external-secrets-provider-gcp/secretmanager"
+	_ "github.com/external-secrets/external-secrets-provider-gitlab"
+	_ "github.com/external-secrets/external-secrets-provider-grpc"
+	_ "github.com/external-secrets/external-secrets-provider-ibm"
+	_ "github.com/external-secrets/external-secrets-provider-keepersecurity"
+	_ "github.com/external-secrets/external-secrets-provider-kubernetes"
+	_ "github.com/external-secrets/external-secrets-provider-onepassword"
+	_ "github.com/external-secrets/external-secrets-provider-oracle"
+	_ "github.com/external-secrets/external-secrets-provider-scaleway"
+	_ "github.com/external-secrets/external-secrets-provider-senhasegura"
+	_ "github.com/external-secrets/external-secrets-provider-vault"
+	_ "github.com/external-secrets/external-secrets-provider-webhook"
+	_ "github.com/external-secrets/external-secrets-provider-yandex/certificatemanager"
+	_ "github.com/external-secrets/external-secrets-provider-yandex/lockbox"
+)

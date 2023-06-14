@@ -44,7 +44,8 @@ service SecretsClient {
 message GetSecretRequest {
   bytes store = 1;
   string namespace = 2;
-  RemoteRef remoteRef = 3;
+  bytes objects = 3;
+  RemoteRef remoteRef = 4;
 }
 
 message GetSecretReply {
@@ -55,8 +56,9 @@ message GetSecretReply {
 message PushSecretRequest {
   bytes store = 1;
   string namespace = 2;
-  bytes secret = 3;
-  PushRemoteRef remoteRef = 4;
+  bytes objects = 3;
+  bytes secret = 4;
+  PushRemoteRef remoteRef = 5;
 }
 
 message PushSecretReply { string error = 1; }
@@ -64,7 +66,8 @@ message PushSecretReply { string error = 1; }
 message DeleteSecretRequest {
   bytes store = 1;
   string namespace = 2;
-  PushRemoteRef remoteRef = 3;
+  bytes objects = 3;
+  PushRemoteRef remoteRef = 4;
 }
 
 message DeleteSecretReply { string error = 1; }
@@ -72,7 +75,8 @@ message DeleteSecretReply { string error = 1; }
 message GetSecretMapRequest {
   bytes store = 1;
   string namespace = 2;
-  RemoteRef remoteRef = 3;
+  bytes objects = 3;
+  RemoteRef remoteRef = 4;
 }
 
 message GetSecretMapReply {
@@ -83,7 +87,8 @@ message GetSecretMapReply {
 message GetAllSecretsRequest {
   bytes store = 1;
   string namespace = 2;
-  ExternalSecretFind remoteRef = 3;
+  bytes objects = 3;
+  ExternalSecretFind remoteRef = 4;
 }
 
 message GetAllSecretsReply {

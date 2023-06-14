@@ -39,7 +39,7 @@ func (p *Provider) NewClient(ctx context.Context, store esapi.GenericStore, kube
 
 	log.Printf("remote provider found providerName=%s\n", providerName)
 
-	addr := fmt.Sprintf("unix:///tmp/eso-%s.sock", providerName)
+	addr := fmt.Sprintf("unix:///var/run/eso/provider/sockets/%s.sock", providerName)
 
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -51,6 +51,7 @@ func (p *Provider) NewClient(ctx context.Context, store esapi.GenericStore, kube
 	return &Client{
 		store:      store,
 		namespace:  namespace,
+		kube:       kube,
 		conn:       conn,
 		grpcClient: grpcClient,
 	}, nil

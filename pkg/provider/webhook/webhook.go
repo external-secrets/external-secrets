@@ -112,7 +112,7 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 	}
 	secret := &corev1.Secret{}
 	if err := w.kube.Get(ctx, ke, secret); err != nil {
-		return nil, fmt.Errorf("failed to get clustersecretstore webhook secret %s: %w", ref.Name, err)
+		return nil, fmt.Errorf("failed to get clustersecretstore webhook secret %s: %w", ke.String(), err)
 	}
 	return secret, nil
 }

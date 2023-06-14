@@ -43,7 +43,6 @@ func main() {
 }
 
 func reflector() {
-
 	ns := "bar"
 	prov := &v1beta1.SecretStoreProvider{
 		Kubernetes: &v1beta1.KubernetesProvider{

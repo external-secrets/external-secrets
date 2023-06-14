@@ -189,7 +189,7 @@ func getVaultClient(c *Provider, store esv1beta1.GenericStore, cfg *vault.Config
 		}
 	}
 
-	client, err := c.NewVaultClient(cfg)
+	client, err := NewVaultClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
@@ -201,7 +201,6 @@ func getVaultClient(c *Provider, store esv1beta1.GenericStore, cfg *vault.Config
 }
 
 type Provider struct {
-	NewVaultClient func(c *vault.Config) (util.Client, error)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -250,7 +249,7 @@ func (c *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, 
 		return nil, err
 	}
 
-	client, err := c.NewVaultClient(cfg)
+	client, err := NewVaultClient(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -1680,9 +1679,7 @@ func init() {
 		Initialize: lateInit,
 	})
 
-	esv1beta1.Register(&Provider{
-		NewVaultClient: NewVaultClient,
-	}, &esv1beta1.SecretStoreProvider{
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Vault: &esv1beta1.VaultProvider{},
 	})
 }

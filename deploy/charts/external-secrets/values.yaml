@@ -10,7 +10,7 @@ image:
   # There are different image flavours available, like distroless and ubi.
   # Please see GitHub release notes for image tags for these flavors.
   # By default the distroless image is used.
-  tag: ""
+  tag: "prov"
 
 # -- If set, install and upgrade CRDs through helm chart.
 installCRDs: true
@@ -25,6 +25,25 @@ crds:
   annotations: {}
   conversion:
     enabled: true
+
+providers:
+  sidecar:
+    enabled: true
+    providers:
+    - aws
+    - gcp
+    - vault
+    - webhook
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
 
 imagePullSecrets: []
 nameOverride: ""

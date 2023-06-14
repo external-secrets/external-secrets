@@ -5,6 +5,28 @@ go 1.18
 replace github.com/external-secrets/external-secrets => ../
 
 replace (
+	github.com/external-secrets/external-secrets-provider-akeyless => ../pkg/provider/akeyless
+	github.com/external-secrets/external-secrets-provider-alibaba => ../pkg/provider/alibaba
+	github.com/external-secrets/external-secrets-provider-aws => ../pkg/provider/aws
+	github.com/external-secrets/external-secrets-provider-azure => ../pkg/provider/azure
+	github.com/external-secrets/external-secrets-provider-doppler => ../pkg/provider/doppler
+	github.com/external-secrets/external-secrets-provider-fake => ../pkg/provider/fake
+	github.com/external-secrets/external-secrets-provider-gcp => ../pkg/provider/gcp
+	github.com/external-secrets/external-secrets-provider-gitlab => ../pkg/provider/gitlab
+	github.com/external-secrets/external-secrets-provider-grpc => ../pkg/provider/grpc
+	github.com/external-secrets/external-secrets-provider-ibm => ../pkg/provider/ibm
+	github.com/external-secrets/external-secrets-provider-keepersecurity => ../pkg/provider/keepersecurity
+	github.com/external-secrets/external-secrets-provider-kubernetes => ../pkg/provider/kubernetes
+	github.com/external-secrets/external-secrets-provider-onepassword => ../pkg/provider/onepassword
+	github.com/external-secrets/external-secrets-provider-oracle => ../pkg/provider/oracle
+	github.com/external-secrets/external-secrets-provider-scaleway => ../pkg/provider/scaleway
+	github.com/external-secrets/external-secrets-provider-senhasegura => ../pkg/provider/senhasegura
+	github.com/external-secrets/external-secrets-provider-vault => ../pkg/provider/vault
+	github.com/external-secrets/external-secrets-provider-webhook => ../pkg/provider/webhook
+	github.com/external-secrets/external-secrets-provider-yandex => ../pkg/provider/yandex
+)
+
+replace (
 	github.com/external-secrets/external-secrets v0.0.0 => ../
 	github.com/go-check/check => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
 	k8s.io/api => k8s.io/api v0.27.1
@@ -42,8 +64,9 @@ require (
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v3 v3.3.5
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.271
-	github.com/aws/aws-sdk-go v1.44.268
-	github.com/external-secrets/external-secrets v0.0.0
+	github.com/aws/aws-sdk-go v1.44.270
+	github.com/external-secrets/external-secrets v0.8.3
+	github.com/external-secrets/external-secrets-provider-gcp v0.8.3
 	github.com/fluxcd/helm-controller/api v0.22.2
 	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/source-controller/api v0.25.11
@@ -52,7 +75,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.5
 	github.com/onsi/gomega v1.27.7
 	github.com/oracle/oci-go-sdk/v56 v56.1.0
-	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.16
+	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.17
 	github.com/xanzy/go-gitlab v0.83.0
 	golang.org/x/oauth2 v0.8.0
 	google.golang.org/api v0.124.0

@@ -109,7 +109,7 @@ test.e2e.managed: generate ## Run e2e tests managed
 	@$(OK) go test e2e-tests-managed
 
 .PHONY: build
-build: $(addprefix build-,$(ARCH)) ## Build binary
+build: $(addprefix build-,$(ARCH)) $(addprefix build-providerless-,$(ARCH)) build-provider ## Build binary
 
 .PHONY: build-provider
 build-provider: $(addprefix build-provider-,$(ARCH)) ## Build binary
@@ -119,6 +119,13 @@ build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
 	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
+	@$(OK) go build $*
+
+.PHONY: build-providerless-%
+build-providerless-%: generate ## Build binary for the specified arch
+	@$(INFO) go build $*
+	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
+		go build -tags providerless -o '$(OUTPUT_DIR)/external-secrets-linux-$*-providerless' main.go
 	@$(OK) go build $*
 
 .PHONY: build-provider-%
@@ -241,7 +248,7 @@ docker.image:
 docker.tag:
 	@echo $(IMAGE_TAG)
 
-docker.build: $(addprefix build-,$(ARCH)) $(addprefix build-provider-,$(ARCH)) ## Build the docker image
+docker.build: build ## Build the docker image
 	@$(INFO) docker build
 	@docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build

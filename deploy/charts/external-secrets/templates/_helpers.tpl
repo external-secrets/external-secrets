@@ -118,3 +118,19 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+{{/*
+template for provider sidecar
+*/}}
+{{- define "external-secrets.provider-sidecar" -}}
+- name: "provider-{{ .Name }}"
+  image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+  command: ["/bin/provider-{{ .Name }}"]
+  args: []
+  {{- with .Values.providers.sidecar.securityContext }}
+  securityContext:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  volumeMounts:
+    - name: provider-uds
+      mountPath: /var/run/eso/provider/sockets
+{{- end }}
