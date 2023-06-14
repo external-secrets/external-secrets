@@ -22,28 +22,25 @@ import (
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
-	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
-	errConjurClient          = "cannot setup new Conjur client: %w"
-	errMissingStore          = fmt.Errorf("missing store provider")
-	errMissingConjurProvider = fmt.Errorf("missing store provider Conjur")
-	errBadCertBundle         = "caBundle failed to base64 decode: %w"
-	errBadServiceUser        = "could not get Auth.Apikey.UserRef: %w"
-	errBadServiceApiKey      = "could not get Auth.Apikey.ApiKeyRef: %w"
+	errConjurClient     = "cannot setup new Conjur client: %w"
+	errBadCertBundle    = "caBundle failed to base64 decode: %w"
+	errBadServiceUser   = "could not get Auth.Apikey.UserRef: %w"
+	errBadServiceAPIKey = "could not get Auth.Apikey.ApiKeyRef: %w"
 )
 
 // Provider is a provider for Conjur.
 type Provider struct {
 	ConjurClient Client
-	store        esv1beta1.GenericStore
 	StoreKind    string
 	kube         client.Client
 	namespace    string
@@ -80,15 +77,15 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if secErr != nil {
 		return nil, fmt.Errorf(errBadServiceUser, secErr)
 	}
-	conjApiKey, secErr := p.secretKeyRef(ctx, prov.Auth.Apikey.ApiKeyRef)
+	conjAPIKey, secErr := p.secretKeyRef(ctx, prov.Auth.Apikey.APIKeyRef)
 	if secErr != nil {
-		return nil, fmt.Errorf(errBadServiceApiKey, secErr)
+		return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
 	}
 
 	conjur, err := conjurapi.NewClientFromKey(config,
 		authn.LoginPair{
 			Login:  conjUser,
-			APIKey: conjApiKey,
+			APIKey: conjAPIKey,
 		},
 	)
 
@@ -100,14 +97,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 }
 
 // GetAllSecrets returns all secrets from the provider.
-// NOT IMPLEMENTED
-func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+// NOT IMPLEMENTED.
+func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secretValue, err := p.ConjurClient.RetrieveSecret(ref.Key)
 	if err != nil {
 		return nil, err
@@ -116,13 +113,13 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	return secretValue, nil
 }
 
-// PushSecret will write a single secret into the provider
-func (p *Provider) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+// PushSecret will write a single secret into the provider.
+func (p *Provider) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
 }
 
-func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
 }
@@ -151,7 +148,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 }
 
 // Close closes the provider.
-func (p *Provider) Close(ctx context.Context) error {
+func (p *Provider) Close(_ context.Context) error {
 	return nil
 }
 
@@ -168,7 +165,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	}
 
 	if prov.URL == "" {
-		return fmt.Errorf("Conjur URL cannot be empty")
+		return fmt.Errorf("conjur URL cannot be empty")
 	}
 	if prov.Auth.Apikey != nil {
 		if prov.Auth.Apikey.Account == "" {
@@ -177,13 +174,13 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		if prov.Auth.Apikey.UserRef == nil {
 			return fmt.Errorf("missing Auth.Apikey.UserRef")
 		}
-		if prov.Auth.Apikey.ApiKeyRef == nil {
+		if prov.Auth.Apikey.APIKeyRef == nil {
 			return fmt.Errorf("missing Auth.Apikey.ApiKeyRef")
 		}
 		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.Apikey.UserRef); err != nil {
 			return fmt.Errorf("invalid Auth.Apikey.UserRef: %w", err)
 		}
-		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.Apikey.ApiKeyRef); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.Apikey.APIKeyRef); err != nil {
 			return fmt.Errorf("invalid Auth.Apikey.ApiKeyRef: %w", err)
 		}
 	}
@@ -196,7 +193,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-// Capabilities returns the provider Capabilities (Read, Write, ReadWrite)
+// Capabilities returns the provider Capabilities (Read, Write, ReadWrite).
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }

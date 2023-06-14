@@ -647,8 +647,8 @@ func (in *ConjurApikey) DeepCopyInto(out *ConjurApikey) {
 		*out = new(metav1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.ApiKeyRef != nil {
-		in, out := &in.ApiKeyRef, &out.ApiKeyRef
+	if in.APIKeyRef != nil {
+		in, out := &in.APIKeyRef, &out.APIKeyRef
 		*out = new(metav1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}

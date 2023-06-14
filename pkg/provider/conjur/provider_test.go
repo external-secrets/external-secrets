@@ -136,7 +136,7 @@ func makeSecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.S
 						Apikey: &esv1beta1.ConjurApikey{
 							Account:   svcAccount,
 							UserRef:   uref,
-							ApiKeyRef: aref,
+							APIKeyRef: aref,
 						},
 					},
 				},

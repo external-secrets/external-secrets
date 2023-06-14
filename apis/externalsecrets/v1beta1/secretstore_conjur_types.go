@@ -29,5 +29,5 @@ type ConjurAuth struct {
 type ConjurApikey struct {
 	Account   string                    `json:"account"`
 	UserRef   *esmeta.SecretKeySelector `json:"userRef"`
-	ApiKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`
+	APIKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`
 }

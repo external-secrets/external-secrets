@@ -93,8 +93,6 @@ require (
 	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/clbanning/mxj/v2 v2.5.7 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
@@ -105,8 +103,6 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	github.com/zalando/go-keyring v0.2.2 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
