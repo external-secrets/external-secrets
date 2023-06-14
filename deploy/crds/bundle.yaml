@@ -46,6 +46,18 @@ spec:
             spec:
               description: ClusterExternalSecretSpec defines the desired state of ClusterExternalSecret.
               properties:
+                externalSecretMetadata:
+                  description: The metadata of the external secrets to be created
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
                 externalSecretName:
                   description: The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
                   type: string
