@@ -2108,6 +2108,7 @@ spec:
                             - lower-snake
                             - tf-var
                             - dotnet-env
+                            - lower-kebab
                           type: string
                         project:
                           description: Doppler project (required if not using a Service Token)
@@ -5702,6 +5703,7 @@ spec:
                             - lower-snake
                             - tf-var
                             - dotnet-env
+                            - lower-kebab
                           type: string
                         project:
                           description: Doppler project (required if not using a Service Token)
