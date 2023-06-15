@@ -56,6 +56,7 @@ const (
 	errFetchSAKSecret                        = "could not fetch SecretAccessKey secret: %w"
 	errMissingSAK                            = "missing SecretAccessKey"
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
+	errJSONSecretMarshal                     = "unable to marshal secret: %w"
 	errExtractingSecret                      = "unable to extract the fetched secret %s of type %s while performing %s"
 
 	defaultCacheSize   = 100
@@ -440,6 +441,11 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	if err != nil {
 		return nil, err
 	}
+	if ref.IncludeSecretMetadata {
+		if err := populateSecretMap(secretMap, response); err != nil {
+			return nil, err
+		}
+	}
 
 	switch secretType {
 	case sm.Secret_SecretType_Arbitrary:
@@ -514,6 +520,11 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 
 		secretMap := byteArrayMap(m)
 
+		if ref.IncludeSecretMetadata {
+			if err := populateSecretMap(secretMap, response); err != nil {
+				return nil, err
+			}
+		}
 		return secretMap, nil
 
 	default:
@@ -694,4 +705,20 @@ func init() {
 	esv1beta1.Register(&providerIBM{}, &esv1beta1.SecretStoreProvider{
 		IBM: &esv1beta1.IBMProvider{},
 	})
+}
+
+// populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider
+func populateSecretMap(secretMap map[string][]byte, secretData interface{}) error {
+	secretDataMap := make(map[string]interface{})
+	data, err := json.Marshal(secretData)
+	if err != nil {
+		return fmt.Errorf(errJSONSecretMarshal, err)
+	}
+	if err := json.Unmarshal(data, &secretDataMap); err != nil {
+		return fmt.Errorf(errJSONSecretUnmarshal, err)
+	}
+	for key, value := range secretDataMap {
+		secretMap[key] = []byte(fmt.Sprintf("%v", value))
+	}
+	return nil
 }

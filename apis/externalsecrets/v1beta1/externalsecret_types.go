@@ -223,6 +223,11 @@ type ExternalSecretDataRemoteRef struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Used to determine if metadata that is pulled from the provider needs to be added to the secret as labels or annotations.
+	// Defaults to false
+	IncludeSecretMetadata bool `json:"includeSecretMetadata,omitempty"`
 }
 
 type ExternalSecretMetadataPolicy string
