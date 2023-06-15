@@ -37,9 +37,10 @@ import (
 )
 
 const (
-	errExpectedErr = "wanted error got nil"
-	secretKey      = "test-secret"
-	secretUUID     = "d5deb37a-7883-4fe2-a5e7-3c15420adc76"
+	errExpectedErr       = "wanted error got nil"
+	secretKey            = "test-secret"
+	secretUUID           = "d5deb37a-7883-4fe2-a5e7-3c15420adc76"
+	iamCredentialsSecret = "iam_credentials/"
 )
 
 type secretManagerTestCase struct {
@@ -305,7 +306,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 			smtc.listInput.Search = utilpointer.String("testyname")
 			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
 			smtc.listOutput.Secrets[0] = secretMetadata
-			smtc.ref.Key = "iam_credentials/" + secretName
+			smtc.ref.Key = iamCredentialsSecret + secretName
 			smtc.expectedSecret = secretAPIKey
 		}
 	}
@@ -522,6 +523,7 @@ func TestGetSecretMap(t *testing.T) {
 	secretCertificate := "certificate_value"
 	secretPrivateKey := "private_key_value"
 	secretIntermediate := "intermediate_value"
+	timeValue := "0001-01-01T00:00:00.000Z"
 
 	secretComplex := map[string]interface{}{
 		"key1": "val1",
@@ -578,7 +580,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.name = "good case: iam_credentials"
 		smtc.apiInput.ID = utilpointer.String(secretUUID)
 		smtc.apiOutput = secret
-		smtc.ref.Key = "iam_credentials/" + secretUUID
+		smtc.ref.Key = iamCredentialsSecret + secretUUID
 		smtc.expectedData["apikey"] = []byte(secretAPIKey)
 	}
 
@@ -650,7 +652,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.ref.Key = secretUUID
 		smtc.ref.IncludeSecretMetadata = true
 		smtc.expectedData = map[string][]byte{"arbitrary": []byte(payload),
-			"created_at":      []byte("0001-01-01T00:00:00.000Z"),
+			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
 			"crn":             []byte(nilValue),
 			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
@@ -678,11 +680,11 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.name = "good case: iam_credentials with metadata"
 		smtc.apiInput.ID = utilpointer.String(secretUUID)
 		smtc.apiOutput = secret
-		smtc.ref.Key = "iam_credentials/" + secretUUID
+		smtc.ref.Key = iamCredentialsSecret + secretUUID
 		smtc.ref.IncludeSecretMetadata = true
 		smtc.expectedData = map[string][]byte{"api_key": []byte(secretAPIKey),
 			"apikey":          []byte(secretAPIKey),
-			"created_at":      []byte("0001-01-01T00:00:00.000Z"),
+			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
 			"crn":             []byte(nilValue),
 			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
@@ -717,7 +719,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectedData["password"] = []byte(secretPassword)
 		smtc.ref.IncludeSecretMetadata = true
 		smtc.expectedData = map[string][]byte{
-			"created_at":      []byte("0001-01-01T00:00:00.000Z"),
+			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
 			"crn":             []byte(nilValue),
 			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
@@ -754,7 +756,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.ref.IncludeSecretMetadata = true
 		smtc.expectedData = map[string][]byte{
 			"certificate":           []byte(secretCertificate),
-			"created_at":            []byte("0001-01-01T00:00:00.000Z"),
+			"created_at":            []byte(timeValue),
 			"created_by":            []byte(*secret.CreatedBy),
 			"crn":                   []byte(nilValue),
 			"downloaded":            []byte(strconv.FormatBool(*secret.Downloaded)),
@@ -798,7 +800,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectedData = map[string][]byte{
 			"certificate":     []byte(secretCertificate),
 			"common_name":     []byte(nilValue),
-			"created_at":      []byte("0001-01-01T00:00:00.000Z"),
+			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
 			"crn":             []byte(nilValue),
 			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
@@ -836,7 +838,7 @@ func TestGetSecretMap(t *testing.T) {
 			"certificate":          []byte(secretCertificate),
 			"certificate_template": []byte(nilValue),
 			"common_name":          []byte(nilValue),
-			"created_at":           []byte("0001-01-01T00:00:00.000Z"),
+			"created_at":           []byte(timeValue),
 			"created_by":           []byte(*secret.CreatedBy),
 			"crn":                  []byte(nilValue),
 			"downloaded":           []byte(strconv.FormatBool(*secret.Downloaded)),
@@ -872,7 +874,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.ref.Key = "kv/" + secretUUID
 		smtc.ref.IncludeSecretMetadata = true
 		smtc.expectedData = map[string][]byte{
-			"created_at":      []byte("0001-01-01T00:00:00.000Z"),
+			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
 			"crn":             []byte(nilValue),
 			"data":            []byte("map[key1:val1 key2:val2 keyC:map[keyC1:map[keyA:valA keyB:valB]]]"),
@@ -903,7 +905,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.name = "good case: iam_credentials without metadata"
 		smtc.apiInput.ID = utilpointer.String(secretUUID)
 		smtc.apiOutput = secret
-		smtc.ref.Key = "iam_credentials/" + secretUUID
+		smtc.ref.Key = iamCredentialsSecret + secretUUID
 		smtc.ref.IncludeSecretMetadata = false
 		smtc.expectedData = map[string][]byte{
 			"apikey": []byte(secretAPIKey),
