@@ -95,6 +95,7 @@ Name transformers format keys from Doppler's UPPER_SNAKE_CASE to one of the foll
 - lower-snake
 - tf-var
 - dotnet-env
+- lower-kebab
 
 Name transformers require a specifically configured `SecretStore`:
 
