@@ -52,6 +52,7 @@ build: image generate $(SOURCES)
 		--sig-proxy=true \
 		--rm \
 		--user $(UID):$(GID) \
+		-v $(HOME)/.gitconfig:/.gitconfig \
 		$(MKDOCS_IMAGE) \
 		/bin/bash -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish
