@@ -86,22 +86,19 @@ To remove the CRDs run:
 make crds.uninstall
 ```
 
-If you need to test some other k8s integrations and need the operator to be deployed to the actual cluster while developing, you can use the following workflow:
+If you need to test some other k8s integrations and need the operator to be deployed to the actual cluster while developing, you can use [kind](https://kind.sigs.k8s.io/) as follows:
 
 ```
-kind create cluster --name external-secrets
+make build
 
+export CLUSTER=external-secrets
 export TAG=v2
 export IMAGE=eso-local
 
-#For building in linux
+kind create cluster --name $CLUSTER
 docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux
 
-#For building in MacOS (OSX)
-#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=darwin
-
-#For building in ARM
-#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=arm --build-arg TARGETOS=linux
+kind load docker-image $IMAGE:$TAG --name $CLUSTER
 
 make helm.generate
 helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
