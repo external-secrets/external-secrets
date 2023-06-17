@@ -382,7 +382,7 @@ func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, 
 	}
 
 	if enableCache {
-		sessionCache.Add(resourceVersion, key, sess)
+		sessionCache.Add(resourceVersion, key, sess.Copy())
 	}
 	return sess, nil
 }

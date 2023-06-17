@@ -144,7 +144,7 @@ fmt: lint.check ## Ensure consistent code style
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@go fmt ./...
-	@golangci-lint run --fix > /dev/null 2>&1 || true
+	@golangci-lint run --fix
 	@$(OK) Ensured consistent code style
 
 generate: ## Generate code and crds

@@ -46,6 +46,18 @@ spec:
             spec:
               description: ClusterExternalSecretSpec defines the desired state of ClusterExternalSecret.
               properties:
+                externalSecretMetadata:
+                  description: The metadata of the external secrets to be created
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
                 externalSecretName:
                   description: The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
                   type: string
@@ -2096,6 +2108,7 @@ spec:
                             - lower-snake
                             - tf-var
                             - dotnet-env
+                            - lower-kebab
                           type: string
                         project:
                           description: Doppler project (required if not using a Service Token)
@@ -5690,6 +5703,7 @@ spec:
                             - lower-snake
                             - tf-var
                             - dotnet-env
+                            - lower-kebab
                           type: string
                         project:
                           description: Doppler project (required if not using a Service Token)
