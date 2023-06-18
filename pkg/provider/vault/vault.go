@@ -993,7 +993,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 	if len(v.store.CABundle) > 0 {
 		ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
 		if !ok {
-			return nil, errors.New(errVaultCert)
+			return nil, fmt.Errorf(errVaultCert, "failed to parse certificates from CertPool")
 		}
 	}
 
@@ -1020,7 +1020,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 
 		ok := caCertPool.AppendCertsFromPEM(cert)
 		if !ok {
-			return nil, errors.New(errVaultCert)
+			return nil, fmt.Errorf(errVaultCert, "failed to parse certificates from CertPool")
 		}
 	}
 
