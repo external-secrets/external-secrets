@@ -650,7 +650,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiInput.ID = utilpointer.String(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretUUID
-		smtc.ref.IncludeSecretMetadata = true
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{"arbitrary": []byte(payload),
 			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
@@ -681,7 +681,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiInput.ID = utilpointer.String(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = iamCredentialsSecret + secretUUID
-		smtc.ref.IncludeSecretMetadata = true
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{"api_key": []byte(secretAPIKey),
 			"apikey":          []byte(secretAPIKey),
 			"created_at":      []byte(timeValue),
@@ -717,7 +717,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.ref.Key = "username_password/" + secretUUID
 		smtc.expectedData["username"] = []byte(secretUsername)
 		smtc.expectedData["password"] = []byte(secretPassword)
-		smtc.ref.IncludeSecretMetadata = true
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{
 			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
@@ -753,7 +753,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = "imported_cert" + "/" + secretUUID
 
-		smtc.ref.IncludeSecretMetadata = true
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{
 			"certificate":           []byte(secretCertificate),
 			"created_at":            []byte(timeValue),
@@ -796,7 +796,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = "public_cert" + "/" + secretUUID
 
-		smtc.ref.IncludeSecretMetadata = true
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{
 			"certificate":     []byte(secretCertificate),
 			"common_name":     []byte(nilValue),
@@ -833,7 +833,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiInput.ID = utilpointer.String(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = "private_cert" + "/" + secretUUID
-		smtc.ref.IncludeSecretMetadata = true
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{
 			"certificate":          []byte(secretCertificate),
 			"certificate_template": []byte(nilValue),
@@ -872,7 +872,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiInput.ID = core.StringPtr(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = "kv/" + secretUUID
-		smtc.ref.IncludeSecretMetadata = true
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{
 			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
@@ -906,7 +906,7 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiInput.ID = utilpointer.String(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = iamCredentialsSecret + secretUUID
-		smtc.ref.IncludeSecretMetadata = false
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyNone
 		smtc.expectedData = map[string][]byte{
 			"apikey": []byte(secretAPIKey),
 		}

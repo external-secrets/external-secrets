@@ -80,9 +80,6 @@ spec:
                                 default: None
                                 description: Used to define a decoding Strategy
                                 type: string
-                              includeSecretMetadata:
-                                description: Used to determine if metadata that is pulled from the provider needs to be added to the secret as labels or annotations. Defaults to false
-                                type: boolean
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
@@ -155,9 +152,6 @@ spec:
                                 default: None
                                 description: Used to define a decoding Strategy
                                 type: string
-                              includeSecretMetadata:
-                                description: Used to determine if metadata that is pulled from the provider needs to be added to the secret as labels or annotations. Defaults to false
-                                type: boolean
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
@@ -3500,9 +3494,6 @@ spec:
                             default: None
                             description: Used to define a decoding Strategy
                             type: string
-                          includeSecretMetadata:
-                            description: Used to determine if metadata that is pulled from the provider needs to be added to the secret as labels or annotations. Defaults to false
-                            type: boolean
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -3575,9 +3566,6 @@ spec:
                             default: None
                             description: Used to define a decoding Strategy
                             type: string
-                          includeSecretMetadata:
-                            description: Used to determine if metadata that is pulled from the provider needs to be added to the secret as labels or annotations. Defaults to false
-                            type: boolean
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string

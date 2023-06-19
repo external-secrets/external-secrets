@@ -441,7 +441,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	if err != nil {
 		return nil, err
 	}
-	if ref.IncludeSecretMetadata {
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 		if err := populateSecretMap(secretMap, response); err != nil {
 			return nil, err
 		}
@@ -520,7 +520,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 
 		secretMap := byteArrayMap(m)
 
-		if ref.IncludeSecretMetadata {
+		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 			if err := populateSecretMap(secretMap, response); err != nil {
 				return nil, err
 			}
