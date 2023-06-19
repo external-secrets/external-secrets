@@ -30,6 +30,9 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# -- Additional labels added to all helm chart resources.
+commonLabels: {}
+
 # -- If true, external-secrets will perform leader election between instances to ensure no more
 # than one instance of external-secrets operates at a time.
 leaderElect: false
@@ -79,6 +82,10 @@ serviceAccount:
 rbac:
   # -- Specifies whether role and rolebinding resources should be created.
   create: true
+
+  servicebindings:
+    # -- Specifies whether a clusterrole to give servicebindings read access should be created.
+    create: true
 
 ## -- Extra environment variables to add to container.
 extraEnv: []

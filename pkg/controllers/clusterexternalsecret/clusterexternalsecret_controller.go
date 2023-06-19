@@ -32,6 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
 // ClusterExternalSecretReconciler reconciles a ClusterExternalSecret object.
@@ -57,6 +59,12 @@ const (
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterExternalSecret", req.NamespacedName)
+
+	resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
+	start := time.Now()
+
+	externalSecretReconcileDuration := cesmetrics.GetGaugeVec(cesmetrics.ClusterExternalSecretReconcileDurationKey)
+	defer func() { externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start))) }()
 
 	var clusterExternalSecret esv1beta1.ClusterExternalSecret
 
@@ -110,7 +118,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			continue
 		}
 
-		if result, err := r.resolveExternalSecret(ctx, &clusterExternalSecret, &existingES, namespace, esName); err != nil {
+		if result, err := r.resolveExternalSecret(ctx, &clusterExternalSecret, &existingES, namespace, esName, clusterExternalSecret.Spec.ExternalSecretMetadata); err != nil {
 			log.Error(err, result)
 			failedNamespaces[namespace.Name] = result
 			continue
@@ -119,14 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		provisionedNamespaces = append(provisionedNamespaces, namespace.ObjectMeta.Name)
 	}
 
-	conditionType := getCondition(failedNamespaces, &namespaceList)
-
-	condition := NewClusterExternalSecretCondition(conditionType, v1.ConditionTrue)
-
-	if conditionType != esv1beta1.ClusterExternalSecretReady {
-		condition.Message = errNamespacesFailed
-	}
-
+	condition := NewClusterExternalSecretCondition(failedNamespaces, &namespaceList)
 	SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
 	setFailedNamespaces(&clusterExternalSecret, failedNamespaces)
 
@@ -138,7 +139,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) (string, error) {
+func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1beta1.ExternalSecretMetadata) (string, error) {
 	// this means the existing ES does not belong to us
 	if err := controllerutil.SetControllerReference(clusterExternalSecret, existingES, r.Scheme); err != nil {
 		return errSetCtrlReference, err
@@ -146,8 +147,10 @@ func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalS
 
 	externalSecret := esv1beta1.ExternalSecret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      esName,
-			Namespace: namespace.Name,
+			Name:        esName,
+			Namespace:   namespace.Name,
+			Labels:      esMetadata.Labels,
+			Annotations: esMetadata.Annotations,
 		},
 		Spec: clusterExternalSecret.Spec.ExternalSecretSpec,
 	}
@@ -227,18 +230,6 @@ func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string 
 	}
 
 	return ""
-}
-
-func getCondition(namespaces map[string]string, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
-	if len(namespaces) == 0 {
-		return esv1beta1.ClusterExternalSecretReady
-	}
-
-	if len(namespaces) < len(namespaceList.Items) {
-		return esv1beta1.ClusterExternalSecretPartiallyReady
-	}
-
-	return esv1beta1.ClusterExternalSecretNotReady
 }
 
 func getRemovedNamespaces(nsList v1.NamespaceList, provisionedNs []string) []string {

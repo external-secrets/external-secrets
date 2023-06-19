@@ -413,13 +413,25 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 		return err
 	}
 	// Retrieve the secret map from vault and convert the secret value in string form.
-	_, err = v.readSecret(ctx, path, "")
+	secretVal, err := v.readSecret(ctx, path, "")
 	// If error is not of type secret not found, we should error
 	if err != nil && errors.Is(err, esv1beta1.NoSecretError{}) {
 		return nil
 	}
 	if err != nil {
 		return err
+	}
+	// If Push for a Property, we need to delete the property and update the secret
+	if remoteRef.GetProperty() != "" {
+		delete(secretVal, remoteRef.GetProperty())
+		if len(secretVal) > 0 {
+			secretToPush := map[string]interface{}{
+				"data": secretVal,
+			}
+			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
+			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+			return err
+		}
 	}
 	metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
 	if err != nil {
@@ -449,13 +461,6 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		},
 	}
 	secretVal := make(map[string]interface{})
-	err := json.Unmarshal(value, &secretVal)
-	if err != nil {
-		return fmt.Errorf("failed to convert value to a valid JSON: %w", err)
-	}
-	secretToPush := map[string]interface{}{
-		"data": secretVal,
-	}
 	path := v.buildPath(remoteRef.GetRemoteKey())
 	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
 	if err != nil {
@@ -485,6 +490,35 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 	if bytes.Equal(vaultSecretValue, value) {
 		return nil
+	}
+	// If a Push of a property only, we should merge and add/update the property
+	if remoteRef.GetProperty() != "" {
+		if _, ok := vaultSecret[remoteRef.GetProperty()]; ok {
+			d := vaultSecret[remoteRef.GetProperty()].(string)
+			if err != nil {
+				return fmt.Errorf("error marshaling vault secret: %w", err)
+			}
+			// If the property has the same value, don't update the secret
+			if bytes.Equal([]byte(d), value) {
+				return nil
+			}
+		}
+		for k, v := range vaultSecret {
+			secretVal[k] = v
+		}
+		// Secret got from vault is already on map[string]string format
+		secretVal[remoteRef.GetProperty()] = string(value)
+	} else {
+		err = json.Unmarshal(value, &secretVal)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling vault secret: %w", err)
+		}
+	}
+	secretToPush := map[string]interface{}{
+		"data": secretVal,
+	}
+	if err != nil {
+		return fmt.Errorf("failed to convert value to a valid JSON: %w", err)
 	}
 	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)

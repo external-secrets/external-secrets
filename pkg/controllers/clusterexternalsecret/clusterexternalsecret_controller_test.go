@@ -28,7 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
 var (
@@ -92,10 +94,6 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		ExternalSecretName             = "test-es"
 		ExternalSecretStore            = "test-store"
 		ExternalSecretTargetSecretName = "test-secret"
-		ClusterSecretStoreNamespace    = "css-test-ns"
-		FakeManager                    = "fake.manager"
-		FooValue                       = "map-foo-value"
-		BarValue                       = "map-bar-value"
 	)
 
 	var ExternalSecretNamespaceTargets = []testNamespace{
@@ -198,6 +196,17 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		tc.clusterExternalSecret.Spec.ExternalSecretName = ""
 		tc.checkExternalSecret = func(ces *esv1beta1.ClusterExternalSecret, es *esv1beta1.ExternalSecret) {
 			Expect(es.ObjectMeta.Name).To(Equal(ces.ObjectMeta.Name))
+		}
+	}
+
+	syncWithESMetadata := func(tc *testCase) {
+		tc.clusterExternalSecret.Spec.ExternalSecretMetadata = esv1beta1.ExternalSecretMetadata{
+			Labels:      map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"},
+			Annotations: map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"},
+		}
+		tc.checkExternalSecret = func(ces *esv1beta1.ClusterExternalSecret, es *esv1beta1.ExternalSecret) {
+			Expect(es.ObjectMeta.Labels).To(Equal(map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"}))
+			Expect(es.ObjectMeta.Annotations).To(Equal(map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"}))
 		}
 	}
 
@@ -364,6 +373,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		},
 
 		Entry("Should use cluster external secret name if external secret name isn't defined", syncWithoutESName),
+		Entry("Should set external secret metadata if the field is set", syncWithESMetadata),
 		Entry("Should not overwrite existing external secrets and error out if one is present", doNotOverwriteExistingES),
 		Entry("Should have list of all provisioned namespaces", populatedProvisionedNamespaces),
 		Entry("Should delete external secrets when namespaces no longer match", deleteESInNonMatchingNS),
@@ -378,4 +388,9 @@ func sliceContainsString(toFind string, collection []string) bool {
 	}
 
 	return false
+}
+
+func init() {
+	ctrlmetrics.SetUpLabelNames(false)
+	cesmetrics.SetUpMetrics()
 }

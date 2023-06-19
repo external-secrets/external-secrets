@@ -35,6 +35,8 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+KUBERNETES_VERSION := '1.24.x'
+
 # check if there are any existing `git tag` values
 ifeq ($(shell git tag),)
 # no tags found - default to initial tag `v0.0.0`
@@ -91,6 +93,7 @@ update-deps:
 # Golang
 
 .PHONY: test
+test: export KUBEBUILDER_ASSETS := $(shell setup-envtest use $(KUBERNETES_VERSION) -p path --os $(shell go env GOOS) --arch $(shell go env GOARCH))
 test: generate ## Run tests
 	@$(INFO) go test unit-tests
 	go test -race -v $(shell go list ./... | grep -v e2e) -coverprofile cover.out
@@ -141,7 +144,7 @@ fmt: lint.check ## Ensure consistent code style
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@go fmt ./...
-	@golangci-lint run --fix > /dev/null 2>&1 || true
+	@golangci-lint run --fix
 	@$(OK) Ensured consistent code style
 
 generate: ## Generate code and crds

@@ -22,11 +22,24 @@ import (
 )
 
 type VaultDynamicSecretSpec struct {
+	// Used to select the correct ESO controller (think: ingress.ingressClassName)
+	// The ESO controller is instantiated with a specific controller name and filters VDS based on this property
+	// +optional
+	Controller string `json:"controller"`
+
 	// Vault API method to use (GET/POST/other)
 	Method string `json:"method,omitempty"`
 
 	// Parameters to pass to Vault write (for non-GET methods)
 	Parameters *apiextensions.JSON `json:"parameters,omitempty"`
+
+	// Result type defines which data is returned from the generator.
+	// By default it is the "data" section of the Vault API response.
+	// When using e.g. /auth/token/create the "data" section is empty but
+	// the "auth" section contains the generated token.
+	// Please refer to the vault docs regarding the result data structure.
+	// +kubebuilder:default=Data
+	ResultType VaultDynamicSecretResultType `json:"resultType,omitempty"`
 
 	// Vault provider common spec
 	Provider *esv1beta1.VaultProvider `json:"provider"`
@@ -34,6 +47,13 @@ type VaultDynamicSecretSpec struct {
 	// Vault path to obtain the dynamic secret from
 	Path string `json:"path"`
 }
+
+type VaultDynamicSecretResultType string
+
+const (
+	VaultDynamicSecretResultTypeData VaultDynamicSecretResultType = "Data"
+	VaultDynamicSecretResultTypeAuth VaultDynamicSecretResultType = "Auth"
+)
 
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion

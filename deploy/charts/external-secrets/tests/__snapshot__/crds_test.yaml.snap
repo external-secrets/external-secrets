@@ -4,8 +4,7 @@ should match snapshot of default values:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.11.3
-      creationTimestamp: null
+        controller-gen.kubebuilder.io/version: v0.12.0
       name: secretstores.external-secrets.io
     spec:
       conversion:
@@ -55,7 +54,7 @@ should match snapshot of default values:
                   description: SecretStoreSpec defines the desired state of SecretStore.
                   properties:
                     controller:
-                      description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
+                      description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property'
                       type: string
                     provider:
                       description: Used to configure the provider. Only one provider may be set
@@ -477,7 +476,7 @@ should match snapshot of default values:
                               type: string
                           type: object
                         gitlab:
-                          description: Gitlab configures this store to sync secrets using Gitlab Variables provider
+                          description: GitLab configures this store to sync secrets using GitLab Variables provider
                           properties:
                             auth:
                               description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -1217,7 +1216,7 @@ should match snapshot of default values:
                         type: object
                       type: array
                     controller:
-                      description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
+                      description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property'
                       type: string
                     provider:
                       description: Used to configure the provider. Only one provider may be set
@@ -1505,6 +1504,24 @@ should match snapshot of default values:
                                 - SecretsManager
                                 - ParameterStore
                               type: string
+                            sessionTags:
+                              description: AWS STS assume role session tags
+                              items:
+                                properties:
+                                  key:
+                                    type: string
+                                  value:
+                                    type: string
+                                required:
+                                  - key
+                                  - value
+                                type: object
+                              type: array
+                            transitiveTagKeys:
+                              description: AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+                              items:
+                                type: string
+                              type: array
                           required:
                             - region
                             - service
@@ -1635,6 +1652,7 @@ should match snapshot of default values:
                                 - lower-snake
                                 - tf-var
                                 - dotnet-env
+                                - lower-kebab
                               type: string
                             project:
                               description: Doppler project (required if not using a Service Token)
@@ -1723,7 +1741,7 @@ should match snapshot of default values:
                               type: string
                           type: object
                         gitlab:
-                          description: Gitlab configures this store to sync secrets using Gitlab Variables provider
+                          description: GitLab configures this store to sync secrets using GitLab Variables provider
                           properties:
                             auth:
                               description: Auth configures how secret-manager authenticates with a GitLab instance.

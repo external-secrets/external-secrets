@@ -32,6 +32,8 @@ linters-settings:
     min-complexity: 16
   goheader:
     template-path: ./hack/boilerplate.go.txt
+  dupl:
+    threshold: 200
   govet:
     check-shadowing: false
   lll:

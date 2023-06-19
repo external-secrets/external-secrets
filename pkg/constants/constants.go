@@ -14,13 +14,14 @@ limitations under the License.
 package constants
 
 const (
-	ProviderAWSSM           = "AWS/SecretsManager"
-	CallAWSSMGetSecretValue = "GetSecretValue"
-	CallAWSSMDescribeSecret = "DescribeSecret"
-	CallAWSSMDeleteSecret   = "DeleteSecret"
-	CallAWSSMCreateSecret   = "CreateSecret"
-	CallAWSSMPutSecretValue = "PutSecretValue"
-	CallAWSSMListSecrets    = "ListSecrets"
+	ProviderAWSSM                = "AWS/SecretsManager"
+	CallAWSSMGetSecretValue      = "GetSecretValue"
+	CallAWSPSGetParametersByPath = "GetParametersByPath"
+	CallAWSSMDescribeSecret      = "DescribeSecret"
+	CallAWSSMDeleteSecret        = "DeleteSecret"
+	CallAWSSMCreateSecret        = "CreateSecret"
+	CallAWSSMPutSecretValue      = "PutSecretValue"
+	CallAWSSMListSecrets         = "ListSecrets"
 
 	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"
@@ -62,10 +63,14 @@ const (
 	ProviderKubernetes                         = "Kubernetes"
 	CallKubernetesGetSecret                    = "GetSecret"
 	CallKubernetesListSecrets                  = "ListSecrets"
+	CallKubernetesCreateSecret                 = "CreateSecret"
+	CallKubernetesDeleteSecret                 = "DeleteSecret"
+	CallKubernetesUpdateSecret                 = "UpdateSecret"
 	CallKubernetesCreateSelfSubjectRulesReview = "CreateSelfSubjectRulesReview"
 
-	ProviderIBMSM      = "IBM/SecretsManager"
-	CallIBMSMGetSecret = "GetSecret"
+	ProviderIBMSM        = "IBM/SecretsManager"
+	CallIBMSMGetSecret   = "GetSecret"
+	CallIBMSMListSecrets = "ListSecrets"
 
 	ProviderWebhook    = "Webhook"
 	CallWebhookHTTPReq = "HTTPRequest"

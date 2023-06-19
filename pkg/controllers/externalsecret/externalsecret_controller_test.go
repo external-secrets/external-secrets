@@ -16,6 +16,7 @@ package externalsecret
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -26,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,6 +37,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
@@ -140,7 +143,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 		})
 	}
 })
-var _ = Describe("ExternalSecret controller", func() {
+var _ = Describe("ExternalSecret controller", Serial, func() {
 
 	const (
 		ExternalSecretName             = "test-es"
@@ -267,11 +270,31 @@ var _ = Describe("ExternalSecret controller", func() {
 	syncWithoutTargetName := func(tc *testCase) {
 		tc.externalSecret.Spec.Target.Name = ""
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-
 			// check secret name
 			Expect(secret.ObjectMeta.Name).To(Equal(ExternalSecretName))
+
+			// check binding secret on external secret
+			Expect(es.Status.Binding.Name).To(Equal(secret.ObjectMeta.Name))
 		}
 	}
+
+	// the secret name is reflected on the external secret's status as the binding secret
+	syncBindingSecret := func(tc *testCase) {
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check binding secret on external secret
+			Expect(es.Status.Binding.Name).To(Equal(secret.ObjectMeta.Name))
+		}
+	}
+
+	// their is no binding secret when a secret is not synced
+	skipBindingSecret := func(tc *testCase) {
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyNone
+		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
+			// check binding secret is not set
+			Expect(es.Status.Binding.Name).To(BeEmpty())
+		}
+	}
+
 	// labels and annotations from the Kind=ExternalSecret
 	// should be copied over to the Kind=Secret
 	syncLabelsAnnotations := func(tc *testCase) {
@@ -485,6 +508,33 @@ var _ = Describe("ExternalSecret controller", func() {
 			// check values
 			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
 		}
+	}
+
+	ignoreMismatchControllerForGeneratorRef := func(tc *testCase) {
+		const secretKey = "somekey"
+		const secretVal = "someValue"
+
+		fakeGenerator := &genv1alpha1.Fake{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mytestfake2",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: genv1alpha1.FakeSpec{
+				Data: map[string]string{
+					secretKey: secretVal,
+				},
+				Controller: "fakeControllerClass",
+			},
+		}
+
+		fakeGeneratorJSON, _ := json.Marshal(fakeGenerator)
+
+		Expect(shouldSkipGenerator(
+			&Reconciler{
+				ControllerClass: "default",
+			},
+			&apiextensions.JSON{Raw: fakeGeneratorJSON},
+		)).To(BeTrue())
 	}
 
 	syncWithMultipleSecretStores := func(tc *testCase) {
@@ -1962,6 +2012,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
 		Entry("should use external secret name if target secret name isn't defined", syncWithoutTargetName),
+		Entry("should expose the secret as a provisioned service binding secret", syncBindingSecret),
+		Entry("should not expose a provisioned service when no secret is synced", skipBindingSecret),
 		Entry("should set the condition eventually", syncLabelsAnnotations),
 		Entry("should set prometheus counters", checkPrometheusCounters),
 		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),
@@ -1970,6 +2022,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
 		Entry("should sync with generatorRef", syncWithGeneratorRef),
+		Entry("should not process generatorRef with mismatching controller field", ignoreMismatchControllerForGeneratorRef),
 		Entry("should sync with multiple secret stores via sourceRef", syncWithMultipleSecretStores),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync with template engine v2", syncWithTemplateV2),
@@ -2256,7 +2309,8 @@ func init() {
 		},
 	})
 
-	esmetrics.SetUpMetrics(false)
+	ctrlmetrics.SetUpLabelNames(false)
+	esmetrics.SetUpMetrics()
 	testSyncCallsTotal = esmetrics.GetCounterVec(esmetrics.SyncCallsKey)
 	testSyncCallsError = esmetrics.GetCounterVec(esmetrics.SyncCallsErrorKey)
 	testExternalSecretCondition = esmetrics.GetGaugeVec(esmetrics.ExternalSecretStatusConditionKey)
