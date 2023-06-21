@@ -1372,6 +1372,8 @@
         
           
         
+          
+        
       
       
         <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
@@ -1422,6 +1424,20 @@
     <li class="md-nav__item">
       <a href="../../provider/azure-key-vault/" class="md-nav__link">
         Azure Key Vault
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/conjur/" class="md-nav__link">
+        CyberArk Conjur
       </a>
     </li>
   
@@ -2206,22 +2222,32 @@ make<span class="w"> </span>run
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>crds.uninstall
 </code></pre></div>
 <p>If you need to test some other k8s integrations and need the operator to be deployed to the actual cluster while developing, you can use the following workflow:</p>
-<div class="highlight"><pre><span></span><code>kind create cluster --name external-secrets
+<div class="highlight"><pre><span></span><code><span class="c1"># Start a local K8S cluster with KinD</span>
+kind<span class="w"> </span>create<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>external-secrets
 
-export TAG=v2
-export IMAGE=eso-local
+<span class="nb">export</span><span class="w"> </span><span class="nv">TAG</span><span class="o">=</span><span class="k">$(</span>make<span class="w"> </span>docker.tag<span class="k">)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">IMAGE</span><span class="o">=</span><span class="k">$(</span>make<span class="w"> </span>docker.imagename<span class="k">)</span>
 
-#For building in linux
-docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux
+<span class="c1"># Build docker image</span>
+make<span class="w"> </span>docker.build
 
-#For building in MacOS (OSX)
-#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=darwin
+<span class="c1"># Load docker image into local kind cluster</span>
+kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span><span class="nv">$IMAGE</span>:<span class="nv">$TAG</span><span class="w"> </span>-n<span class="w"> </span>external-secrets
 
-#For building in ARM
-#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=arm --build-arg TARGETOS=linux
+<span class="c1"># (Optional) Pull the image from GitHub Repo to copy into kind</span>
+<span class="c1">#docker pull ghcr.io/external-secrets/external-secrets:v0.8.2</span>
+<span class="c1">#kind load docker-image ghcr.io/external-secrets/external-secrets:v0.8.2 -n external-secrets</span>
 
-make helm.generate
-helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
+<span class="c1"># Update helm charts and install to KinD cluster</span>
+make<span class="w"> </span>helm.generate
+helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>external-secrets<span class="w"> </span>./deploy/charts/external-secrets/<span class="w"> </span><span class="se">\</span>
+--set<span class="w"> </span>image.repository<span class="o">=</span><span class="nv">$IMAGE</span><span class="w"> </span>--set<span class="w"> </span>image.tag<span class="o">=</span><span class="nv">$TAG</span><span class="w"> </span><span class="se">\</span>
+--set<span class="w"> </span>webhook.image.repository<span class="o">=</span><span class="nv">$IMAGE</span><span class="w"> </span>--set<span class="w"> </span>webhook.image.tag<span class="o">=</span><span class="nv">$TAG</span><span class="w"> </span><span class="se">\</span>
+--set<span class="w"> </span>certController.image.repository<span class="o">=</span><span class="nv">$IMAGE</span><span class="w"> </span>--set<span class="w"> </span>certController.image.tag<span class="o">=</span><span class="nv">$TAG</span>
+
+
+<span class="c1"># Command to delete the cluster when done</span>
+<span class="c1"># kind delete cluster -n external-secrets</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Contributing Flow</p>
