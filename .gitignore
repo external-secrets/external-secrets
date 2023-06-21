@@ -63,3 +63,5 @@ override.tf.json
 terraform.rc
 **/secrets/**
 .terraform.lock.hcl
+
+tmp/
