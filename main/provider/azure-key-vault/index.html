@@ -2416,7 +2416,7 @@ az<span class="w"> </span>keyvault<span class="w"> </span>set-policy<span class=
 </code></pre></div>
 <p>With these prerequisites met you can configure <code>ESO</code> to use that Service Account. You have two options:</p>
 <h5 id="mounted-service-account">Mounted Service Account</h5>
-<p>You run the controller and mount that particular service account into the pod. That grants <em>everyone</em> who is able to create a secret store or reference a correctly configured one the ability to read secrets. <strong>This approach is usually not recommended</strong>. But may make sense when you want to share an identity with multiple namespaces. Also see our <a href="../../guides/multi-tenancy/">Multi-Tenancy Guide</a> for design considerations.</p>
+<p>You run the controller and mount that particular service account into the pod by adding the label <code>azure.workload.identity/use: "true"</code>to the pod. That grants <em>everyone</em> who is able to create a secret store or reference a correctly configured one the ability to read secrets. <strong>This approach is usually not recommended</strong>. But may make sense when you want to share an identity with multiple namespaces. Also see our <a href="../../guides/multi-tenancy/">Multi-Tenancy Guide</a> for design considerations.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
 <span class="nt">metadata</span><span class="p">:</span>
