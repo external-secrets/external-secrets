@@ -25,36 +25,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.inputs.source_ref }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.inputs.version }}
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Build Changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v4
-        with:
-          configuration: "changelog.json"
-          toTag: ${{ github.event.inputs.version }}
-          commitMode: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: create changelog file
-        run: |
-          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}\`" >> .changelog
-          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi\`" >> .changelog
-          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl\`" >> .changelog
-          echo "${{ steps.build_changelog.outputs.changelog }}" >> .changelog
-
-      - name: Update Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.event.inputs.version }}
-          body_path: .changelog
+          target_commitish: ${{ github.event.inputs.source_ref }}
+          generate_release_notes: true
+          body: |
+            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
+            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
+            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
