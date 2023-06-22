@@ -86,7 +86,9 @@ jobs:
           make helm.generate
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.5.0
-        if: github.ref == 'refs/heads/main'
+        if: |
+          github.ref == 'refs/heads/main' ||
+          startsWith(github.ref, 'refs/heads/release-')
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
