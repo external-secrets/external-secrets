@@ -18,14 +18,11 @@ spec:
   scope: Cluster
   versions:
     - additionalPrinterColumns:
-        - jsonPath: .spec.secretStoreRef.name
+        - jsonPath: .spec.externalSecretSpec.secretStoreRef.name
           name: Store
           type: string
-        - jsonPath: .spec.refreshInterval
+        - jsonPath: .spec.refreshTime
           name: Refresh Interval
-          type: string
-        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
-          name: Status
           type: string
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
