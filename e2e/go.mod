@@ -42,7 +42,7 @@ require (
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
 	github.com/akeylesslabs/akeyless-go/v3 v3.3.9
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.271
-	github.com/aws/aws-sdk-go v1.44.286
+	github.com/aws/aws-sdk-go v1.44.289
 	github.com/external-secrets/external-secrets v0.0.0
 	github.com/fluxcd/helm-controller/api v0.22.2
 	github.com/fluxcd/pkg/apis/meta v0.14.2
@@ -153,7 +153,7 @@ require (
 	google.golang.org/genproto v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
-	google.golang.org/grpc v1.56.0 // indirect
+	google.golang.org/grpc v1.56.1 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
