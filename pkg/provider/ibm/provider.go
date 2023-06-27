@@ -188,7 +188,15 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 
 	case sm.Secret_SecretType_Kv:
 
-		return getKVSecret(ibm, &secretName, ref)
+		response, err := getSecretData(ibm, &secretName, sm.Secret_SecretType_Kv)
+		if err != nil {
+			return nil, err
+		}
+		secret, ok := response.(*sm.KVSecret)
+		if !ok {
+			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecret")
+		}
+		return getKVSecret(ibm, &secretName, ref, *secret)
 
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
@@ -302,15 +310,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 }
 
 // Returns a secret of type kv and supports json path.
-func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_Kv)
-	if err != nil {
-		return nil, err
-	}
-	secret, ok := response.(*sm.KVSecret)
-	if !ok {
-		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_Kv, "getKVSecret")
-	}
+func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef, secret sm.KVSecret) ([]byte, error) {
 	payloadJSONByte, err := json.Marshal(secret.Data)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload from secret failed. %w", err)
@@ -508,7 +508,11 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		return secretMap, nil
 
 	case sm.Secret_SecretType_Kv:
-		secret, err := getKVSecret(ibm, &secretName, ref)
+		secretData, ok := response.(*sm.KVSecret)
+		if !ok {
+			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecretMap")
+		}
+		secret, err := getKVSecret(ibm, &secretName, ref, *secretData)
 		if err != nil {
 			return nil, err
 		}
@@ -517,14 +521,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		if err != nil {
 			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
 		}
-
-		secretMap := byteArrayMap(m)
-
-		if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-			if err := populateSecretMap(secretMap, response); err != nil {
-				return nil, err
-			}
-		}
+		secretMap = byteArrayMap(m, secretMap)
 		return secretMap, nil
 
 	default:
@@ -532,9 +529,8 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	}
 }
 
-func byteArrayMap(secretData map[string]interface{}) map[string][]byte {
+func byteArrayMap(secretData map[string]interface{}, secretMap map[string][]byte) map[string][]byte {
 	var err error
-	secretMap := make(map[string][]byte)
 	for k, v := range secretData {
 		secretMap[k], err = getTypedKey(v)
 		if err != nil {
