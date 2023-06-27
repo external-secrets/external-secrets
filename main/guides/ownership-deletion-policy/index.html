@@ -2287,9 +2287,7 @@
 <p>The operator does not create or update the secret, this is basically a no-op.</p>
 <h2 id="deletion-policy">Deletion Policy</h2>
 <p>DeletionPolicy defines what should happen if a given secret gets deleted <strong>from the provider</strong>.</p>
-<p>DeletionPolicy is only supported on the following providers. Please feel free to contribute more:
-* AWS Secrets Manager
-* AWS Parameter Store</p>
+<p>DeletionPolicy is only supported on the specific providers, please refer to our <a href="../../introduction/stability-support/">stability/support table</a>.</p>
 <h3 id="retain-default">Retain (default)</h3>
 <p>Retain will retain the secret if all provider secrets have been deleted.
 If a provider secret does not exist the ExternalSecret gets into the
