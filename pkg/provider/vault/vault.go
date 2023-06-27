@@ -707,7 +707,7 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 	// Return nil if secret value is null
 	if data == nil {
-		return nil, nil
+		return nil, esv1beta1.NoSecretError{}
 	}
 	jsonStr, err := json.Marshal(data)
 	if err != nil {
