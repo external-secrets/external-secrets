@@ -196,7 +196,7 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 		if !ok {
 			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecret")
 		}
-		return getKVSecret(ibm, &secretName, ref, *secret)
+		return getKVSecret(ref, secret)
 
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
@@ -310,7 +310,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 }
 
 // Returns a secret of type kv and supports json path.
-func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef, secret sm.KVSecret) ([]byte, error) {
+func getKVSecret(ref esv1beta1.ExternalSecretDataRemoteRef, secret *sm.KVSecret) ([]byte, error) {
 	payloadJSONByte, err := json.Marshal(secret.Data)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload from secret failed. %w", err)
@@ -512,7 +512,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		if !ok {
 			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecretMap")
 		}
-		secret, err := getKVSecret(ibm, &secretName, ref, *secretData)
+		secret, err := getKVSecret(ref, secretData)
 		if err != nil {
 			return nil, err
 		}
