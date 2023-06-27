@@ -9,17 +9,17 @@
       
       
       
-        <link rel="prev" href="../1password-automation/">
+        <link rel="prev" href="../azure-key-vault/">
       
       
-        <link rel="next" href="../fake/">
+        <link rel="next" href="../google-secrets-manager/">
       
       <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.9">
     
     
       
-        <title>Webhook - External Secrets Operator</title>
+        <title>CyberArk Conjur - External Secrets Operator</title>
       
     
     
@@ -73,7 +73,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#generic-webhook" class="md-skip">
+        <a href="#conjur-provider" class="md-skip">
           Skip to content
         </a>
       
@@ -122,7 +122,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Webhook
+              CyberArk Conjur
             
           </span>
         </div>
@@ -1434,11 +1434,110 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../conjur/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          CyberArk Conjur
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         CyberArk Conjur
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#conjur-provider" class="md-nav__link">
+    Conjur Provider
+  </a>
+  
+    <nav class="md-nav" aria-label="Conjur Provider">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pre-requirements" class="md-nav__link">
+    Pre-requirements
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-external-secret-store-definition" class="md-nav__link">
+    Create External Secret Store Definition
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-external-secret-definition" class="md-nav__link">
+    Create External Secret Definition
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-kubernetes-secrets" class="md-nav__link">
+    Create Kubernetes Secrets
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-the-external-secrets-store" class="md-nav__link">
+    Create the External Secrets Store
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-the-external-secret" class="md-nav__link">
+    Create the External Secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-k8s-secret" class="md-nav__link">
+    Getting the K8S Secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#support" class="md-nav__link">
+    Support
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1602,88 +1701,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Webhook
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../webhook/" class="md-nav__link">
         Webhook
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#generic-webhook" class="md-nav__link">
-    Generic Webhook
-  </a>
-  
-    <nav class="md-nav" aria-label="Generic Webhook">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
-  </a>
-  
-    <nav class="md-nav" aria-label="Example">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#limitations" class="md-nav__link">
-    Limitations
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#templating" class="md-nav__link">
-    Templating
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#all-parameters" class="md-nav__link">
-    All Parameters
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2140,43 +2162,65 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#generic-webhook" class="md-nav__link">
-    Generic Webhook
+  <a href="#conjur-provider" class="md-nav__link">
+    Conjur Provider
   </a>
   
-    <nav class="md-nav" aria-label="Generic Webhook">
+    <nav class="md-nav" aria-label="Conjur Provider">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
-    Example
-  </a>
-  
-    <nav class="md-nav" aria-label="Example">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#limitations" class="md-nav__link">
-    Limitations
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#templating" class="md-nav__link">
-    Templating
+  <a href="#pre-requirements" class="md-nav__link">
+    Pre-requirements
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#all-parameters" class="md-nav__link">
-    All Parameters
+  <a href="#create-external-secret-store-definition" class="md-nav__link">
+    Create External Secret Store Definition
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-external-secret-definition" class="md-nav__link">
+    Create External Secret Definition
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-kubernetes-secrets" class="md-nav__link">
+    Create Kubernetes Secrets
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-the-external-secrets-store" class="md-nav__link">
+    Create the External Secrets Store
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-the-external-secret" class="md-nav__link">
+    Create the External Secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-the-k8s-secret" class="md-nav__link">
+    Getting the K8S Secret
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#support" class="md-nav__link">
+    Support
   </a>
   
 </li>
@@ -2204,112 +2248,119 @@
   
 
 
-  <h1>Webhook</h1>
+  <h1>CyberArk Conjur</h1>
 
-<h2 id="generic-webhook">Generic Webhook</h2>
-<p>External Secrets Operator can integrate with simple web apis by specifying the endpoint</p>
-<h3 id="example">Example</h3>
-<p>First, create a SecretStore with a webhook backend.  We'll use a static user/password <code>root</code>:</p>
+<h2 id="conjur-provider">Conjur Provider</h2>
+<p>The following sections outline what is needed to get your external-secrets Conjur provider setup.</p>
+<h3 id="pre-requirements">Pre-requirements</h3>
+<p>This section contains the list of the pre-requirements before installing the Conjur Provider.</p>
+<ul>
+<li>Running Conjur Server<ul>
+<li>These items will be needed in order to configure the secret-store<ul>
+<li>Conjur endpoint - include the scheme but no trailing '/', ex: https://myapi.example.com</li>
+<li>Conjur credentials (hostid, apikey)</li>
+<li>Certificate for Conjur server is OPTIONAL -- But, <strong>when using a self-signed cert when setting up your Conjur server, it is strongly recommended to populate "caBundle" with self-signed cert in the secret-store definition</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Kubernetes cluster<ul>
+<li>External Secrets Operator is installed</li>
+</ul>
+</li>
+</ul>
+<h3 id="create-external-secret-store-definition">Create External Secret Store Definition</h3>
+<p>Recommend to save as filename: <code>conjur-secret-store.yaml</code></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-backend</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://httpbin.org/get?parameter={{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
-<span class="w">      </span><span class="nt">result</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.args.parameter&quot;</span>
-<span class="w">      </span><span class="nt">headers</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
-<span class="w">        </span><span class="nt">Authorization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Basic {{ print .auth.username &quot;:&quot; .auth.password | b64enc }}</span>
-<span class="w">      </span><span class="nt">secrets</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth</span>
-<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span>
-<span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span>
-<span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span><span class="w"> </span><span class="c1"># &quot;test&quot;</span>
-<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span><span class="w"> </span><span class="c1"># &quot;test&quot;</span>
+<span class="w">    </span><span class="nt">conjur</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># Service URL</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://myapi.conjur.org</span>
+<span class="w">      </span><span class="c1"># [OPTIONAL] base64 encoded string of certificate</span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPTIONALxFIELDxxxBase64xCertxString==</span><span class="w">  </span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apikey</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># conjur account</span>
+<span class="w">          </span><span class="nt">account</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="w">          </span><span class="nt">userRef</span><span class="p">:</span><span class="w"> </span><span class="c1"># Get this from K8S secret</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur-creds</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hostid</span>
+<span class="w">          </span><span class="nt">apiKeyRef</span><span class="p">:</span><span class="w"> </span><span class="c1"># Get this from K8S secret</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur-creds</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apikey</span>
 </code></pre></div>
-<p>NB: This is obviously not practical because it just returns the key as the result, but it shows how it works</p>
-<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in all <code>secrets</code> references with the namespaces where the secrets reside.</p>
-<p>Now create an ExternalSecret that uses the above SecretStore:</p>
+<h3 id="create-external-secret-definition">Create External Secret Definition</h3>
+<p>Important note: <strong>Creds must live in the same namespace as a SecretStore  - the secret store may only reference secrets from the same namespace.</strong>  When using a ClusterSecretStore this limitation is lifted and the creds can live in any namespace.</p>
+<p>Recommend to save as filename: <code>conjur-external-secret.yaml</code></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-example</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15s&quot;</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-backend</span>
+<span class="w">    </span><span class="c1"># This name must match the metadata.name in the `SecretStore`</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foobar</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret00</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
-<span class="nn">---</span>
-<span class="c1"># will create a secret with:</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span>
-<span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">foobar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">c2VjcmV0</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/app1/secret00}</span>
 </code></pre></div>
-<h4 id="limitations">Limitations</h4>
-<p>Webhook does not support authorization, other than what can be sent by generating http headers</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>If a webhook endpoint for a given <code>ExternalSecret</code> returns a 404 status code, the secret is considered to have been deleted.  This will trigger the <code>deletionPolicy</code> set on the <code>ExternalSecret</code>.</p>
-</div>
-<h3 id="templating">Templating</h3>
-<p>Generic WebHook provider uses the templating engine to generate the API call.  It can be used in the url, headers, body and result.jsonPath fields.</p>
-<p>The provider inserts the secret to be retrieved in the object named <code>remoteRef</code>.</p>
-<p>In addition, secrets can be added as named objects, for example to use in authorization headers.
-Each secret has a <code>name</code> property which determines the name of the object in the templating engine.</p>
-<h3 id="all-parameters">All Parameters</h3>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">statervault</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
-<span class="w">      </span><span class="c1"># Url to call.  Use templating engine to fill in the request parameters</span>
-<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;url&gt;</span>
-<span class="w">      </span><span class="c1"># http method, defaults to GET</span>
-<span class="w">      </span><span class="nt">method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;method&gt;</span>
-<span class="w">      </span><span class="c1"># Timeout in duration (1s, 1m, etc)</span>
-<span class="w">      </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1s</span>
-<span class="w">      </span><span class="nt">result</span><span class="p">:</span>
-<span class="w">        </span><span class="c1"># [jsonPath](https://jsonpath.com) syntax, which also can be templated</span>
-<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;jsonPath&gt;</span>
-<span class="w">      </span><span class="c1"># Map of headers, can be templated</span>
-<span class="w">      </span><span class="nt">headers</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">&lt;Header-Name&gt;</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;header contents&gt;</span>
-<span class="w">      </span><span class="c1"># Body to sent as request, can be templated (optional)</span>
-<span class="w">      </span><span class="nt">body</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;body&gt;</span>
-<span class="w">      </span><span class="c1"># List of secrets to expose to the templating engine</span>
-<span class="w">      </span><span class="nt">secrets</span><span class="p">:</span>
-<span class="w">      </span><span class="c1"># Use this name to refer to this secret in templating, above</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span>
-<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span><span class="w"> </span><span class="c1"># Only used in ClusterSecretStores</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;name&gt;</span>
-<span class="w">      </span><span class="c1"># Add CAs here for the TLS handshake</span>
-<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;base64 encoded cabundle&gt;</span>
-<span class="w">      </span><span class="nt">caProvider</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret or COnfigMap</span>
-<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;name of secret or configmap&gt;</span>
-<span class="w">        </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span><span class="w"> </span><span class="c1"># Only used in ClusterSecretStores</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;key inside secret&gt;</span>
+<h3 id="create-kubernetes-secrets">Create Kubernetes Secrets</h3>
+<p>In order for the ESO <strong>Conjur</strong> provider to connect to the Conjur server, the creds should be stored as k8s secrets.  Please refer to <a href="https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret">https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret</a> for various methods to create secrets.  Here is one way to do it using <code>kubectl</code></p>
+<p><strong><em>NOTE</em></strong>: "conjur-creds" is the "name" used in "userRef" and "apikeyRef" in the conjur-secret-store definition</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># This is all one line</span>
+kubectl<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>conjur-creds<span class="w"> </span>--from-literal<span class="o">=</span><span class="nv">hostid</span><span class="o">=</span>MYCONJURHOSTID<span class="w"> </span>--from-literal<span class="o">=</span><span class="nv">apikey</span><span class="o">=</span>MYAPIKEY
+
+<span class="c1"># Example:</span>
+<span class="c1"># kubectl -n external-secrets create secret generic conjur-creds --from-literal=hostid=host/data/app1/host001 --from-literal=apikey=321blahblah</span>
 </code></pre></div>
+<h3 id="create-the-external-secrets-store">Create the External Secrets Store</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># WARNING: this will create the store configuration in the &quot;external-secrets&quot; namespace, adjust this to your own situation</span>
+<span class="c1">#</span>
+kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>-f<span class="w"> </span>conjur-secret-store.yaml
+
+<span class="c1"># WARNING: running the delete command will delete the secret store configuration</span>
+<span class="c1">#</span>
+<span class="c1"># If there is a need to delete the external secretstore</span>
+<span class="c1"># kubectl delete secretstore -n external-secrets conjur</span>
+</code></pre></div>
+<h3 id="create-the-external-secret">Create the External Secret</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># WARNING: this will create the external-secret configuration in the &quot;external-secrets&quot; namespace, adjust this to your own situation</span>
+<span class="c1">#</span>
+kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>-f<span class="w"> </span>conjur-external-secret.yaml
+
+<span class="c1"># WARNING: running the delete command will delete the external-secrets configuration</span>
+<span class="c1">#</span>
+<span class="c1"># If there is a need to delete the external secret</span>
+<span class="c1"># kubectl delete externalsecret -n external-secrets conjur</span>
+</code></pre></div>
+<h3 id="getting-the-k8s-secret">Getting the K8S Secret</h3>
+<ul>
+<li>Login to your Conjur server and verify that your secret exists</li>
+<li>Review the value of your kubernetes secret to see that it contains the same value from Conjur</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="c1"># WARNING: this command will reveal the stored secret in plain text</span>
+<span class="c1">#</span>
+<span class="c1"># Assuming the secret name is &quot;secret00&quot;, this will show the value</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>conjur<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.secret00}&quot;</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>--decode<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
+</code></pre></div>
+<h3 id="support">Support</h3>
+<p>Copyright (c) 2023 CyberArk Software Ltd. All rights reserved.</p>
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+<p><a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p>
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
 
 
   
