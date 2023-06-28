@@ -6,7 +6,7 @@ livereload==2.6.3
 Markdown==3.3.6
 MarkupSafe==2.0.1
 mkdocs==1.4.3
-mike==1.1.2
+mike @ git+https://github.com/jimporter/mike@300593c
 mkdocs-material==9.1.9
 mkdocs-minify-plugin==0.5.0
 pep562==1.1

@@ -12,23 +12,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+package v1beta1
 
-import (
-	"errors"
-	"regexp"
-)
+import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
-var regexReqIDs = []*regexp.Regexp{
-	regexp.MustCompile(`request id: (\S+)`),
-	regexp.MustCompile(` Credential=.+`),
+type ConjurProvider struct {
+	URL      string     `json:"url"`
+	CABundle string     `json:"caBundle,omitempty"`
+	Auth     ConjurAuth `json:"auth"`
 }
 
-// SanitizeErr sanitizes the error string.
-func SanitizeErr(err error) error {
-	msg := err.Error()
-	for _, regex := range regexReqIDs {
-		msg = string(regex.ReplaceAll([]byte(msg), nil))
-	}
-	return errors.New(msg)
+type ConjurAuth struct {
+	Apikey *ConjurApikey `json:"apikey"`
+}
+
+type ConjurApikey struct {
+	Account   string                    `json:"account"`
+	UserRef   *esmeta.SecretKeySelector `json:"userRef"`
+	APIKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`
 }

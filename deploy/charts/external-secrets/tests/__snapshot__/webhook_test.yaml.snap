@@ -7,8 +7,8 @@ should match snapshot of default values:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets-webhook
-        app.kubernetes.io/version: v0.8.3
-        helm.sh/chart: external-secrets-0.8.3
+        app.kubernetes.io/version: v0.9.0
+        helm.sh/chart: external-secrets-0.9.0
       name: RELEASE-NAME-external-secrets-webhook
       namespace: NAMESPACE
     spec:
@@ -34,7 +34,7 @@ should match snapshot of default values:
                 - --check-interval=5m
                 - --metrics-addr=:8080
                 - --healthz-addr=:8081
-              image: ghcr.io/external-secrets/external-secrets:v0.8.3
+              image: ghcr.io/external-secrets/external-secrets:v0.9.0
               imagePullPolicy: IfNotPresent
               name: webhook
               ports:
@@ -70,3 +70,16 @@ should match snapshot of default values:
             - name: certs
               secret:
                 secretName: RELEASE-NAME-external-secrets-webhook
+  2: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets-webhook
+        app.kubernetes.io/version: v0.9.0
+        external-secrets.io/component: webhook
+        helm.sh/chart: external-secrets-0.9.0
+      name: RELEASE-NAME-external-secrets-webhook
+      namespace: NAMESPACE

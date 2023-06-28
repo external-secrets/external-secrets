@@ -88,6 +88,7 @@ nav:
     - AWS Secrets Manager: provider/aws-secrets-manager.md
     - AWS Parameter Store: provider/aws-parameter-store.md
     - Azure Key Vault: provider/azure-key-vault.md
+    - CyberArk Conjur: provider/conjur.md
     - Google Cloud Secret Manager: provider/google-secrets-manager.md
     - HashiCorp Vault: provider/hashicorp-vault.md
     - Kubernetes: provider/kubernetes.md
