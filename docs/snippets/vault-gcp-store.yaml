@@ -1,0 +1,37 @@
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: vault-backend-gcp
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      path: secret
+      version: v2
+      namespace: <vault_namespace>
+      auth:
+        gcp:
+          # Role to assume when authenticating.
+          # See https://developer.hashicorp.com/vault/docs/auth/gcp#configuration
+          role: gcp-role
+          # GCP Service Account to generate JWTs for. The identity of the
+          # authencating principal will need to be granted
+          # roles/iam.serviceAccountTokenCreator on this service account.
+          subject: subject@project.iam.gserviceacount.com
+
+          workloadIdentity:
+            clusterLocation: europe-west1
+            clusterName: cluster
+            clusterProjectID: my-project
+
+            # Alternatively, if you are using fleet workload identity, specify
+            # clusterMembershipName instead of clusterLocation and clusterName.
+            # clusterProjectID will be assumed to be the project where the
+            # cluster fleet pool is located.
+            clusterMembershipName: cluster-membership
+
+            # The Kubernetes service account to use for token exchange. If the
+            # target is annotated with iam.gke.io/gcp-service-account, service
+            # account impersonation will be performed.
+            serviceAccountRef:
+              name: vault-gcp-sa

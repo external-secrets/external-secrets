@@ -24,6 +24,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/provider/gcp/workloadidentity"
 )
 
 func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID string, isClusterKind bool, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
@@ -31,16 +32,38 @@ func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID str
 	if ts != nil || err != nil {
 		return ts, err
 	}
-	wi, err := newWorkloadIdentity(ctx, projectID)
+
+	if auth.WorkloadIdentity == nil {
+		return google.DefaultTokenSource(ctx, CloudPlatformRole)
+	}
+
+	saKey := types.NamespacedName{
+		Name:      auth.WorkloadIdentity.ServiceAccountRef.Name,
+		Namespace: namespace,
+	}
+
+	// only ClusterStore is allowed to set namespace (and then it's required)
+	if isClusterKind && auth.WorkloadIdentity.ServiceAccountRef.Namespace != nil {
+		saKey.Namespace = *auth.WorkloadIdentity.ServiceAccountRef.Namespace
+	}
+
+	idp := workloadidentity.ClusterIdentityProvider(auth.WorkloadIdentity.ClusterName, auth.WorkloadIdentity.ClusterLocation)
+	if auth.WorkloadIdentity.ClusterMembershipName != "" {
+		idp = workloadidentity.FleetIdentityProvider(auth.WorkloadIdentity.ClusterMembershipName)
+	}
+
+	wip, err := workloadidentity.NewProvider(ctx, projectID, idp)
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize workload identity")
+		return nil, fmt.Errorf("unable to initialize workload identity: %w", err)
 	}
-	defer wi.Close()
-	ts, err = wi.TokenSource(ctx, auth, isClusterKind, kube, namespace)
-	if ts != nil || err != nil {
-		return ts, err
+	defer wip.Close()
+
+	ts, err = wip.TokenSource(ctx, kube, saKey, auth.WorkloadIdentity.ServiceAccountRef.Audiences...)
+	if err != nil {
+		return nil, err
 	}
-	return google.DefaultTokenSource(ctx, CloudPlatformRole)
+
+	return ts, nil
 }
 
 func serviceAccountTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, isClusterKind bool, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
