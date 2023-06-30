@@ -51,6 +51,13 @@ const (
 	CallGCPSMGenerateIDBindToken = "GenerateIDBindToken"
 	CallGCPSMGenerateAccessToken = "GenerateAccessToken"
 
+	ProviderBarbican          = "Barbican/SecretManager"
+	CallBarbicanGetSecret     = "GetSecret"
+	CallBarbicanGetAllSecrets = "GetAllSecrets"
+	CallBarbicanDeleteSecret  = "DeleteSecret"
+	CallBarbicanCreateSecret  = "CreateSecret"
+	CallBarbicanListSecrets   = "ListSecrets"
+
 	ProviderHCVault            = "HashiCorp/Vault"
 	CallHCVaultLogin           = "Login"
 	CallHCVaultRevokeSelf      = "RevokeSelf"

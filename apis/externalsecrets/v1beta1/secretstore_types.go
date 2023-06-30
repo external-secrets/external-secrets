@@ -136,6 +136,10 @@ type SecretStoreProvider struct {
 	// Conjur configures this store to sync secrets using conjur provider
 	// +optional
 	Conjur *ConjurProvider `json:"conjur,omitempty"`
+
+	// Barbican configures this store to sync secrets using OpenStack Barbican provider
+	// +optional
+	Barbican *BarbicanProvider `json:"barbican,omitempty"`
 }
 
 type CAProviderType string
