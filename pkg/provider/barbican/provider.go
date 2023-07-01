@@ -35,6 +35,14 @@ type Provider struct{}
 
 var _ esv1beta1.Provider = &Provider{}
 
+const (
+	errInitProvider        = "unable to initialize barbican provider: %s"
+	errNilStore            = "found nil store"
+	errMissingStoreSpec    = "store is missing spec"
+	errMissingProvider     = "storeSpec is missing provider"
+	errInvalidProviderSpec = "invalid provider spec. Missing Barbican field in store %s"
+)
+
 func init() {
 	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Barbican: &esv1beta1.BarbicanProvider{},
@@ -48,6 +56,13 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	return newClient(ctx, store, kube, namespace)
+}
+
+func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	if store == nil {
+		return nil, fmt.Errorf(errInitProvider, "nil store")
+	}
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Barbican == nil {
 		return nil, fmt.Errorf(errBarbicanStore)
@@ -125,8 +140,11 @@ func getConfigFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube
 
 	var config xhttp.Config
 
-	err = json.Unmarshal(credentials, &config)
-	return &config, err
+	if err := json.Unmarshal(credentials, &config); err != nil {
+		return nil, fmt.Errorf("invalid barbican config, couldn't parse")
+	}
+
+	return &config, nil
 }
 
 func isReferentSpec(prov *esv1beta1.BarbicanProvider) bool {
@@ -135,4 +153,27 @@ func isReferentSpec(prov *esv1beta1.BarbicanProvider) bool {
 		return true
 	}
 	return false
+}
+
+func StringPtr(s string) *string {
+	return &s
+}
+
+// it returns the barbican provider or an error.
+func GetBarbicanProvider(store esv1beta1.GenericStore) (*esv1beta1.BarbicanProvider, error) {
+	if store == nil {
+		return nil, fmt.Errorf(errNilStore)
+	}
+	spc := store.GetSpec()
+	if spc == nil {
+		return nil, fmt.Errorf(errMissingStoreSpec)
+	}
+	if spc.Provider == nil {
+		return nil, fmt.Errorf(errMissingProvider)
+	}
+	prov := spc.Provider.Barbican
+	if prov == nil {
+		return nil, fmt.Errorf(errInvalidProviderSpec, store.GetObjectMeta().String())
+	}
+	return prov, nil
 }
