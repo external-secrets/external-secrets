@@ -258,7 +258,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				}),
 			},
 			want: want{
-				err: errors.New(errVaultCert),
+				err: fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool")),
 			},
 		},
 		"VaultAuthFormatError": {
