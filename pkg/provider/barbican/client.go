@@ -41,7 +41,7 @@ const (
 
 type Client struct {
 	config    *xhttp.Config
-	client    *client.Connection
+	client    client.Conn
 	kube      kclient.Client
 	store     *esv1beta1.BarbicanProvider
 	storeKind string

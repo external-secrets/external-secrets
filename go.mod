@@ -70,7 +70,7 @@ require (
 	github.com/alibabacloud-go/tea v1.2.0
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.2
 	github.com/aliyun/credentials-go v1.3.0
-	github.com/artashesbalabekyan/barbican-sdk-go v1.1.1
+	github.com/artashesbalabekyan/barbican-sdk-go v1.2.0
 	github.com/avast/retry-go/v4 v4.3.4
 	github.com/cyberark/conjur-api-go v0.11.1
 	github.com/golang-jwt/jwt/v5 v5.0.0

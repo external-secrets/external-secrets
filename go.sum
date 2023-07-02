@@ -155,6 +155,8 @@ github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kd
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/artashesbalabekyan/barbican-sdk-go v1.1.1 h1:XPVit1Je3hDhiaZBHl7HKGwsOSm3WQjvZnrDfdQCv4o=
 github.com/artashesbalabekyan/barbican-sdk-go v1.1.1/go.mod h1:QFj+EIVXJkXLhhwoJLb10LnPO1VasRRVyjwDW/eMLXI=
+github.com/artashesbalabekyan/barbican-sdk-go v1.2.0 h1:5nmQMAof+dFUgvg/Ud4XLBkO2fABAsJECNxzdL2I0+g=
+github.com/artashesbalabekyan/barbican-sdk-go v1.2.0/go.mod h1:QFj+EIVXJkXLhhwoJLb10LnPO1VasRRVyjwDW/eMLXI=
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3dyBCFEj5IhUbnKptjxatkF07cF2ak3yi77so=
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/avast/retry-go/v4 v4.3.4 h1:pHLkL7jvCvP317I8Ge+Km2Yhntv3SdkJm7uekkqbKhM=
