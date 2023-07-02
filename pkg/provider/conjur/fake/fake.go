@@ -12,23 +12,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util
+package fake
 
 import (
 	"errors"
-	"regexp"
 )
 
-var regexReqIDs = []*regexp.Regexp{
-	regexp.MustCompile(`request id: (\S+)`),
-	regexp.MustCompile(` Credential=.+`),
+type ConjurMockClient struct {
 }
 
-// SanitizeErr sanitizes the error string.
-func SanitizeErr(err error) error {
-	msg := err.Error()
-	for _, regex := range regexReqIDs {
-		msg = string(regex.ReplaceAll([]byte(msg), nil))
+func (mc *ConjurMockClient) RetrieveSecret(secret string) (result []byte, err error) {
+	if secret == "error" {
+		err = errors.New("error")
+		return nil, err
 	}
-	return errors.New(msg)
+	return []byte("secret"), nil
 }

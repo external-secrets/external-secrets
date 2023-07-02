@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
 )
 
 // NewSecretStoreCondition a set of default options for creating an External Secret Condition.
@@ -45,7 +46,9 @@ func GetSecretStoreCondition(status esapi.SecretStoreStatus, condType esapi.Secr
 
 // SetExternalSecretCondition updates the external secret to include the provided
 // condition.
-func SetExternalSecretCondition(gs esapi.GenericStore, condition esapi.SecretStoreStatusCondition) {
+func SetExternalSecretCondition(gs esapi.GenericStore, condition esapi.SecretStoreStatusCondition, gaugeVecGetter metrics.GaugeVevGetter) {
+	metrics.UpdateStatusCondition(gs, condition, gaugeVecGetter)
+
 	status := gs.GetStatus()
 	currentCond := GetSecretStoreCondition(status, condition.Type)
 	if currentCond != nil && currentCond.Status == condition.Status &&

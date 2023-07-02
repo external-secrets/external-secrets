@@ -248,6 +248,40 @@ webhook:
     name: ""
   nodeSelector: {}
 
+  certManager:
+    # -- Enabling cert-manager support will disable the built in secret and
+    # switch to using cert-manager (installed separately) to automatically issue
+    # and renew the webhook certificate. This chart does not install
+    # cert-manager for you, See https://cert-manager.io/docs/
+    enabled: false
+    # -- Automatically add the cert-manager.io/inject-ca-from annotation to the
+    # webhooks and CRDs. As long as you have the cert-manager CA Injector
+    # enabled, this will automatically setup your webhook's CA to the one used
+    # by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector
+    addInjectorAnnotations: true
+    cert:
+      # -- Create a certificate resource within this chart. See
+      # https://cert-manager.io/docs/usage/certificate/
+      create: true
+      # -- For the Certificate created by this chart, setup the issuer. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
+      issuerRef:
+        group: cert-manager.io
+        kind: "Issuer"
+        name: "my-issuer"
+      # -- Set the requested duration (i.e. lifetime) of the Certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      duration: ""
+      # -- How long before the currently issued certificate’s expiry
+      # cert-manager should renew the certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      # Note that renewBefore should be greater than .webhook.lookaheadInterval
+      # since the webhook will check this far in advance that the certificate is
+      # valid.
+      renewBefore: ""
+      # -- Add extra annotations to the Certificate resource.
+      annotations: {}
+
   tolerations: []
 
   topologySpreadConstraints: []

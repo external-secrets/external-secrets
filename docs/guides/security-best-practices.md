@@ -172,7 +172,7 @@ By leveraging a policy engine, you can implement these recommendations and enfor
 To maintain a secure environment, it is crucial to regularly patch and update all software components of External Secrets Operator and the underlying cluster. By doing so, known vulnerabilities can be addressed, and the overall system's security can be improved. Here are some recommended practices for ensuring timely updates:
 
 1. **Automated Patching and Updating**: Utilize automated patching and updating tools to streamline the process of keeping software components up-to-date
-2. **Regular Update ESO**: Stay informed about the latest updates and releases provided for ESO. The development team regularly releases updates to improve stability, performance, and security. Please refer to the [Stability and Support](../../introduction/stability-support.md) documentation for more information on the available updates
+2. **Regular Update ESO**: Stay informed about the latest updates and releases provided for ESO. The development team regularly releases updates to improve stability, performance, and security. Please refer to the [Stability and Support](../introduction/stability-support.md) documentation for more information on the available updates
 3. **Cluster-wide Updates**: Apart from ESO, ensure that all other software components within your cluster, such as the operating system, container runtime, and Kubernetes itself, are regularly patched and updated.
 
 By adhering to a regular patching and updating schedule, you can proactively mitigate security risks associated with known vulnerabilities and ensure the overall stability and security of your ESO deployment.
