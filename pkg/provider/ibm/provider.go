@@ -703,7 +703,7 @@ func init() {
 	})
 }
 
-// populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider
+// populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider.
 func populateSecretMap(secretMap map[string][]byte, secretData interface{}) error {
 	secretDataMap := make(map[string]interface{})
 	data, err := json.Marshal(secretData)
