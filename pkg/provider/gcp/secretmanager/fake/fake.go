@@ -28,7 +28,7 @@ import (
 type MockSMClient struct {
 	accessSecretFn func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	ListSecretsFn  func(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
-	addSecretFn    func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
+	AddSecretFn    func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
 	createSecretFn func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	closeFn        func() error
 	GetSecretFn    func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
@@ -91,11 +91,11 @@ func (mc *MockSMClient) Close() error {
 }
 
 func (mc *MockSMClient) AddSecretVersion(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
-	return mc.addSecretFn(ctx, req)
+	return mc.AddSecretFn(ctx, req)
 }
 
 func (mc *MockSMClient) NewAddSecretVersionFn(mock AddSecretVersionMockReturn) {
-	mc.addSecretFn = func(_ context.Context, _ *secretmanagerpb.AddSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+	mc.AddSecretFn = func(_ context.Context, _ *secretmanagerpb.AddSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
 		return mock.SecretVersion, mock.Err
 	}
 }
@@ -146,7 +146,7 @@ func (mc *MockSMClient) DefaultCreateSecret(wantedSecretID, wantedParent string)
 }
 
 func (mc *MockSMClient) DefaultAddSecretVersion(wantedData, wantedParent, versionName string) {
-	mc.addSecretFn = func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+	mc.AddSecretFn = func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
 		if string(req.Payload.Data) != wantedData {
 			return nil, fmt.Errorf("add version req wrong data got: %v want %v ", req.Payload.Data, wantedData)
 		}

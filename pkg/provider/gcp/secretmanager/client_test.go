@@ -22,11 +22,13 @@ import (
 	"testing"
 
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	"github.com/googleapis/gax-go/v2"
 	"github.com/googleapis/gax-go/v2/apierror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/utils/pointer"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
@@ -515,7 +517,143 @@ func TestDeleteSecret(t *testing.T) {
 	}
 }
 
-func TestSetSecret(t *testing.T) {
+func TestDeleteSecret_Property(t *testing.T) {
+	defaultAddSecretVersionMockReturn := func(gotPayload, expectedPayload string) (*secretmanagerpb.SecretVersion, error) {
+		if gotPayload != expectedPayload {
+			t.Fatalf("payload does not match: got %s, expected: %s", gotPayload, expectedPayload)
+		}
+
+		return nil, nil
+	}
+
+	tests := []struct {
+		desc                          string
+		ref                           esv1beta1.PushRemoteRef
+		getSecretMockReturn           fakesm.GetSecretMockReturn
+		accessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
+		addSecretVersionMockReturn    func(gotPayload, expectedPayload string) (*secretmanagerpb.SecretVersion, error)
+		expectedPayload               string
+		expectedErr                   string
+	}{
+		{
+			desc: "Delete existing key",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1.testKey2",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte(`{"testKey1":{"testKey2":"testValue2","testKey3":"testValue3"}}`),
+					},
+				},
+			},
+			addSecretVersionMockReturn: defaultAddSecretVersionMockReturn,
+			expectedPayload:            `{"testKey1":{"testKey3":"testValue3"}}`,
+		},
+		{
+			desc: "Delete the root element",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte(`{"testKey1":{"testKey2":"testValue2"}}`),
+					},
+				},
+			},
+			addSecretVersionMockReturn: defaultAddSecretVersionMockReturn,
+			expectedPayload:            `{}`,
+		},
+		{
+			desc: "Secret version not found",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Err: status.Error(codes.NotFound, "Secret version not found"),
+			},
+		},
+		{
+			desc: "Failed to find secret version",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Err: errors.New("failed to find a secret version"),
+			},
+			expectedErr: "failed to find a secret version",
+		},
+		{
+			desc: "Failed to add secret version",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte(`{"testKey1":"testValue1"}`),
+					},
+				},
+			},
+			addSecretVersionMockReturn: func(_, _ string) (*secretmanagerpb.SecretVersion, error) {
+				return nil, errors.New("failed to add secret version")
+			},
+			expectedErr: "failed to add secret version",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			smClient := &fakesm.MockSMClient{
+				AddSecretFn: func(_ context.Context, req *secretmanagerpb.AddSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+					return tc.addSecretVersionMockReturn(string(req.Payload.Data), tc.expectedPayload)
+				},
+			}
+			smClient.NewGetSecretFn(tc.getSecretMockReturn)
+			smClient.NewAccessSecretVersionFn(tc.accessSecretVersionMockReturn)
+
+			client := Client{
+				smClient: smClient,
+				store:    &esv1beta1.GCPSMProvider{},
+			}
+
+			err := client.DeleteSecret(context.Background(), tc.ref)
+			if err != nil {
+				if tc.expectedErr == "" {
+					t.Fatalf("DeleteSecret returns unexpected error: %v", err)
+				}
+
+				if !strings.Contains(err.Error(), tc.expectedErr) {
+					t.Fatalf("DeleteSecret returns unexpected error: %q is supposed to contain %q", err, tc.expectedErr)
+				}
+
+				return
+			}
+
+			if tc.expectedErr != "" {
+				t.Fatal("DeleteSecret is expected to return error but got nil")
+			}
+		})
+	}
+}
+
+func TestPushSecret(t *testing.T) {
 	ref := fakeRef{key: "/baz"}
 
 	notFoundError := status.Error(codes.NotFound, "failed")
@@ -723,6 +861,146 @@ func TestSetSecret(t *testing.T) {
 				if !strings.Contains(err.Error(), tc.want.err.Error()) {
 					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
 				}
+			}
+		})
+	}
+}
+
+func TestPushSecret_Property(t *testing.T) {
+	defaultAddSecretVersionMockReturn := func(gotPayload, expectedPayload string) (*secretmanagerpb.SecretVersion, error) {
+		if gotPayload != expectedPayload {
+			t.Fatalf("payload does not match: got %s, expected: %s", gotPayload, expectedPayload)
+		}
+
+		return nil, nil
+	}
+
+	tests := []struct {
+		desc                          string
+		payload                       string
+		ref                           esv1beta1.PushRemoteRef
+		getSecretMockReturn           fakesm.GetSecretMockReturn
+		accessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
+		addSecretVersionMockReturn    func(gotPayload, expectedPayload string) (*secretmanagerpb.SecretVersion, error)
+		expectedPayload               string
+		expectedErr                   string
+	}{
+		{
+			desc:    "Add new key value paris",
+			payload: "testValue2",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey2",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte(`{"testKey1":"testValue1"}`),
+					},
+				},
+			},
+			addSecretVersionMockReturn: defaultAddSecretVersionMockReturn,
+			expectedPayload:            `{"testKey1":"testValue1","testKey2":"testValue2"}`,
+		},
+		{
+			desc:    "Update existing value",
+			payload: "testValue2",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1.testKey2",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte(`{"testKey1":{"testKey2":"testValue1"}}`),
+					},
+				},
+			},
+			addSecretVersionMockReturn: defaultAddSecretVersionMockReturn,
+			expectedPayload:            `{"testKey1":{"testKey2":"testValue2"}}`,
+		},
+		{
+			desc:    "Secret not found",
+			payload: "testValue2",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1.testKey2",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+				Err:    status.Error(codes.NotFound, "failed to find a Secret"),
+			},
+			expectedErr: "failed to find a Secret",
+		},
+		{
+			desc:    "Secret version not found",
+			payload: "testValue2",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1.testKey2",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Err: status.Error(codes.NotFound, "failed to find a Secret Version"),
+			},
+			expectedErr: "failed to find a Secret Version",
+		},
+		{
+			desc:    "Payload is the same with the existing one",
+			payload: "testValue1",
+			ref: esv1alpha1.PushSecretRemoteRef{
+				Property: "testKey1.testKey2",
+			},
+			getSecretMockReturn: fakesm.GetSecretMockReturn{
+				Secret: &secretmanagerpb.Secret{},
+			},
+			accessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{
+				Res: &secretmanagerpb.AccessSecretVersionResponse{
+					Payload: &secretmanagerpb.SecretPayload{
+						Data: []byte(`{"testKey1":{"testKey2":"testValue1"}}`),
+					},
+				},
+			},
+			addSecretVersionMockReturn: func(gotPayload, expectedPayload string) (*secretmanagerpb.SecretVersion, error) {
+				return nil, errors.New("should not be called")
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			smClient := &fakesm.MockSMClient{
+				AddSecretFn: func(_ context.Context, req *secretmanagerpb.AddSecretVersionRequest, _ ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
+					return tc.addSecretVersionMockReturn(string(req.Payload.Data), tc.expectedPayload)
+				},
+			}
+			smClient.NewGetSecretFn(tc.getSecretMockReturn)
+			smClient.NewAccessSecretVersionFn(tc.accessSecretVersionMockReturn)
+
+			client := Client{
+				smClient: smClient,
+				store:    &esv1beta1.GCPSMProvider{},
+			}
+
+			err := client.PushSecret(context.Background(), []byte(tc.payload), tc.ref)
+			if err != nil {
+				if tc.expectedErr == "" {
+					t.Fatalf("PushSecret returns unexpected error: %v", err)
+				}
+
+				if !strings.Contains(err.Error(), tc.expectedErr) {
+					t.Fatalf("PushSecret returns unexpected error: %q is supposed to contain %q", err, tc.expectedErr)
+				}
+
+				return
+			}
+
+			if tc.expectedErr != "" {
+				t.Fatal("PushSecret is expected to return error but got nil")
 			}
 		})
 	}
