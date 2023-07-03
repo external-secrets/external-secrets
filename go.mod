@@ -72,6 +72,7 @@ require (
 	github.com/aliyun/credentials-go v1.3.0
 	github.com/avast/retry-go/v4 v4.3.4
 	github.com/cyberark/conjur-api-go v0.11.1
+	github.com/go-openapi/strfmt v0.21.5
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/vault/api/auth/aws v0.4.1
@@ -136,8 +137,7 @@ require (
 	github.com/go-logr/zapr v1.2.4 // indirect
 	github.com/go-openapi/errors v0.20.4 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
-	github.com/go-openapi/jsonreference v0.20.2 // indirect
-	github.com/go-openapi/strfmt v0.21.7 // indirect
+	github.com/go-openapi/jsonreference v0.20.2 // indirect; indirectgithub.com/go-openapi/strfmt v0.21.7 // indirect
 	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
