@@ -76,10 +76,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | certController.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
-| certController.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
-| certController.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
-| certController.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
-| certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | certController.tolerations | list | `[]` |  |
 | certController.topologySpreadConstraints | list | `[]` |  |
 | commonLabels | object | `{}` | Additional labels added to all helm chart resources. |
@@ -204,9 +200,5 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | webhook.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
-| webhook.serviceMonitor.additionalLabels | object | `{}` | Additional labels |
-| webhook.serviceMonitor.enabled | bool | `false` | Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics |
-| webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
-| webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | webhook.tolerations | list | `[]` |  |
 | webhook.topologySpreadConstraints | list | `[]` |  |
