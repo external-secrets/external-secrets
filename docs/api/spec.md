@@ -1775,6 +1775,132 @@ ConjurAuth
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.DelineaProvider">DelineaProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>See <a href="https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go">https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go</a>.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DelineaProviderSecretRef">
+DelineaProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>ClientID is the non-secret part of the credential.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DelineaProviderSecretRef">
+DelineaProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>ClientSecret is the secret part of the credential.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenant</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Tenant is the chosen hostname / site name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>urlTemplate</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>URLTemplate
+If unset, defaults to &ldquo;https://%s.secretsvaultcloud.%s/v1/%s%s&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tld</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TLD is based on the server location that was chosen during provisioning.
+If unset, defaults to &ldquo;com&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DelineaProviderSecretRef">DelineaProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.DelineaProvider">DelineaProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.DopplerAuth">DopplerAuth
 </h3>
 <p>
@@ -4863,6 +4989,21 @@ ConjurProvider
 <td>
 <em>(Optional)</em>
 <p>Conjur configures this store to sync secrets using conjur provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>delinea</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DelineaProvider">
+DelineaProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Delinea DevOps Secrets Vault
+<a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">https://docs.delinea.com/online-help/products/devops-secrets-vault/current</a></p>
 </td>
 </tr>
 </tbody>
