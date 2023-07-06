@@ -303,19 +303,6 @@ webhook:
       # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
       port: 8080
 
-  serviceMonitor:
-    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
-    enabled: false
-
-    # -- Additional labels
-    additionalLabels: {}
-
-    # --  Interval to scrape metrics
-    interval: 30s
-
-    # -- Timeout if metrics can't be retrieved in given time interval
-    scrapeTimeout: 25s
-
   metrics:
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
@@ -434,19 +421,6 @@ certController:
     service:
       # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
       port: 8080
-
-  serviceMonitor:
-    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
-    enabled: false
-
-    # -- Additional labels
-    additionalLabels: {}
-
-    # --  Interval to scrape metrics
-    interval: 30s
-
-    # -- Timeout if metrics can't be retrieved in given time interval
-    scrapeTimeout: 25s
 
   metrics:
     service:
