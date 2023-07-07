@@ -7,8 +7,8 @@ should match snapshot of default values:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets-cert-controller
-        app.kubernetes.io/version: v0.9.0
-        helm.sh/chart: external-secrets-0.9.0
+        app.kubernetes.io/version: v0.9.1
+        helm.sh/chart: external-secrets-0.9.1
       name: RELEASE-NAME-external-secrets-cert-controller
       namespace: NAMESPACE
     spec:
@@ -33,7 +33,7 @@ should match snapshot of default values:
                 - --service-namespace=NAMESPACE
                 - --secret-name=RELEASE-NAME-external-secrets-webhook
                 - --secret-namespace=NAMESPACE
-              image: ghcr.io/external-secrets/external-secrets:v0.9.0
+              image: ghcr.io/external-secrets/external-secrets:v0.9.1
               imagePullPolicy: IfNotPresent
               name: cert-controller
               ports:
