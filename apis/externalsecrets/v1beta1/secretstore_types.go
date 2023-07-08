@@ -136,6 +136,11 @@ type SecretStoreProvider struct {
 	// Conjur configures this store to sync secrets using conjur provider
 	// +optional
 	Conjur *ConjurProvider `json:"conjur,omitempty"`
+
+	// Delinea DevOps Secrets Vault
+	// https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+	// +optional
+	Delinea *DelineaProvider `json:"delinea,omitempty"`
 }
 
 type CAProviderType string

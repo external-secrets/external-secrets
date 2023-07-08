@@ -512,7 +512,7 @@ func DockerJSONConfig(f *framework.Framework) (string, func(*framework.TestCase)
 	return "[common] should sync docker configurated json secrets with template simple", func(tc *framework.TestCase) {
 		cloudSecretName := fmt.Sprintf("%s-%s", f.Namespace.Name, dockerConfigExampleName)
 		cloudRemoteRefKey := f.MakeRemoteRefKey(cloudSecretName)
-		dockerconfig := `{"auths":{"https://index.docker.io/v1/": {"auth": "c3R...zE2"}}}`
+		dockerconfig := `{"auths":{"https://index.docker.io/v1/":{"auth":"c3R...zE2"}}}`
 		cloudSecretValue := fmt.Sprintf(`{"dockerconfig": %s}`, dockerconfig)
 		tc.Secrets = map[string]framework.SecretEntry{
 			cloudRemoteRefKey: {Value: cloudSecretValue},
