@@ -29,6 +29,7 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"google.golang.org/api/iterator"
+	"google.golang.org/genproto/protobuf/field_mask"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -87,6 +88,7 @@ type GoogleSecretManagerClient interface {
 	CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	Close() error
 	GetSecret(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
+	UpdateSecret(context.Context, *secretmanagerpb.UpdateSecretRequest, ...gax.CallOption) (*secretmanagerpb.Secret, error)
 }
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
@@ -103,52 +105,16 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 
 		return err
 	}
-	manager, ok := gcpSecret.Labels[managedByKey]
 
-	if remoteRef.GetProperty() == "" && (!ok || manager != managedByValue) {
+	if manager, ok := gcpSecret.Labels[managedByKey]; !ok || manager != managedByValue {
 		return nil
 	}
 
-	if remoteRef.GetProperty() == "" {
-		deleteSecretVersionReq := &secretmanagerpb.DeleteSecretRequest{
-			Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
-		}
-		err = c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
-		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMDeleteSecret, err)
-		return err
+	deleteSecretVersionReq := &secretmanagerpb.DeleteSecretRequest{
+		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	}
-
-	gcpVersion, err := c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", c.store.ProjectID, remoteRef.GetRemoteKey()),
-	})
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return nil
-		}
-
-		return err
-	}
-
-	val := getDataByProperty(gcpVersion, remoteRef.GetProperty())
-	if !val.Exists() {
-		return nil
-	}
-
-	data, err := sjson.DeleteBytes(gcpVersion.Payload.Data, remoteRef.GetProperty())
-	if err != nil {
-		return err
-	}
-
-	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
-		Parent: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
-		Payload: &secretmanagerpb.SecretPayload{
-			Data: data,
-		},
-	}
-
-	_, err = c.smClient.AddSecretVersion(ctx, addSecretVersionReq)
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAddSecretVersion, err)
+	err = c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
+	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMDeleteSecret, err)
 	return err
 }
 
@@ -168,7 +134,7 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGetSecret, err)
 
 	if err != nil {
-		if remoteRef.GetProperty() != "" || status.Code(err) != codes.NotFound {
+		if status.Code(err) != codes.NotFound {
 			return err
 		}
 
@@ -193,8 +159,29 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	}
 
 	manager, ok := gcpSecret.Labels[managedByKey]
-	if remoteRef.GetProperty() == "" && (!ok || manager != managedByValue) {
-		return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
+	if !ok || manager != managedByValue {
+		if remoteRef.GetProperty() == "" {
+			return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
+		}
+
+		labels := map[string]string{}
+		for k, v := range gcpSecret.Labels {
+			labels[k] = v
+		}
+		labels[managedByKey] = managedByValue
+		_, err = c.smClient.UpdateSecret(ctx, &secretmanagerpb.UpdateSecretRequest{
+			Secret: &secretmanagerpb.Secret{
+				Name:   gcpSecret.Name,
+				Labels: labels,
+			},
+			UpdateMask: &field_mask.FieldMask{
+				Paths: []string{"labels"},
+			},
+		})
+		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMUpdateSecret, err)
+		if err != nil {
+			return err
+		}
 	}
 
 	gcpVersion, err := c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
@@ -202,24 +189,31 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	})
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
 
-	if err != nil && (remoteRef.GetProperty() != "" || status.Code(err) != codes.NotFound) {
+	if err != nil && status.Code(err) != codes.NotFound {
 		return err
 	}
 
-	if remoteRef.GetProperty() == "" && gcpVersion != nil && gcpVersion.Payload != nil && bytes.Equal(payload, gcpVersion.Payload.Data) {
-		return nil
-	}
-
-	if remoteRef.GetProperty() != "" {
-		val := getDataByProperty(gcpVersion, remoteRef.GetProperty())
-		if val.Exists() && val.String() == string(payload) {
+	if gcpVersion != nil && gcpVersion.Payload != nil {
+		if remoteRef.GetProperty() == "" && bytes.Equal(payload, gcpVersion.Payload.Data) {
 			return nil
+		}
+
+		if remoteRef.GetProperty() != "" {
+			val := getDataByProperty(gcpVersion, remoteRef.GetProperty())
+			if val.Exists() && val.String() == string(payload) {
+				return nil
+			}
 		}
 	}
 
 	data := payload
 	if remoteRef.GetProperty() != "" {
-		data, err = sjson.SetBytes(gcpVersion.Payload.Data, remoteRef.GetProperty(), payload)
+		var base []byte
+		if gcpVersion != nil && gcpVersion.Payload != nil {
+			base = gcpVersion.Payload.Data
+		}
+
+		data, err = sjson.SetBytes(base, remoteRef.GetProperty(), payload)
 		if err != nil {
 			return err
 		}

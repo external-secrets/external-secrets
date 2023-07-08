@@ -44,6 +44,7 @@ const (
 	CallGCPSMGetSecret           = "GetSecret"
 	CallGCPSMDeleteSecret        = "DeleteSecret"
 	CallGCPSMCreateSecret        = "CreateSecret"
+	CallGCPSMUpdateSecret        = "UpdateSecret"
 	CallGCPSMAccessSecretVersion = "AccessSecretVersion"
 	CallGCPSMAddSecretVersion    = "AddSecretVersion"
 	CallGCPSMListSecrets         = "ListSecrets"
