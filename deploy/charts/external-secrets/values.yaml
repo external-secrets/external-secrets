@@ -59,6 +59,9 @@ processClusterExternalSecret: true
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
 
+# -- if true, the operator will process push secret. Else, it will ignore them.
+processPushSecret: true
+
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
 
