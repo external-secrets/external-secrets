@@ -81,16 +81,27 @@ type Client struct {
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	name := remoteRef.GetRemoteKey()
+	var (
+		name   = remoteRef.GetRemoteKey()
+		uuid   = getUUIDFromRemoteRef(name)
+		secret *secrets.Secret
+		err    error
+	)
 
-	secret, err := c.get(ctx, name)
-	if err != nil {
-		return err
+	if uuid == "" {
+		secret, err = c.getByName(ctx, name)
+		if err != nil {
+			return err
+		}
+		uuid = extractIdFromRef(secret.SecretRef)
+	} else {
+		_, err = c.getByUUID(ctx, uuid)
+		if err != nil {
+			return err
+		}
 	}
 
-	id := extractIdFromRef(secret.SecretRef)
-
-	err = secrets.Delete(c.client, id).Err
+	err = secrets.Delete(c.client, uuid).Err
 	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanDeleteSecret, err)
 	return err
 }
@@ -135,15 +146,22 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 // GetSecret returns a single secret from the provider.
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	name := ref.Key
-	secret, err := c.get(ctx, name)
-	if err != nil {
-		return nil, err
+	var (
+		name   = ref.Key
+		uuid   = getUUIDFromRemoteRef(name)
+		secret *secrets.Secret
+		err    error
+	)
+
+	if uuid == "" {
+		secret, err = c.getByName(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		uuid = extractIdFromRef(secret.SecretRef)
 	}
 
-	id := extractIdFromRef(secret.SecretRef)
-
-	return secrets.GetPayload(c.client, id, secrets.GetPayloadOpts{PayloadContentType: "*/*"}).Extract()
+	return secrets.GetPayload(c.client, uuid, secrets.GetPayloadOpts{PayloadContentType: "*/*"}).Extract()
 }
 
 func (c *Client) Close(_ context.Context) error {
@@ -189,9 +207,9 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
 	name := remoteRef.GetRemoteKey()
 
-	_, err := c.get(ctx, name)
+	_, err := c.getByName(ctx, name)
 	if err == nil {
-		return fmt.Errorf(errKeyNotFound, name)
+		return nil
 	}
 
 	createOpts := secrets.CreateOpts{
@@ -209,7 +227,7 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 	return err
 }
 
-func (s *Client) get(ctx context.Context, name string) (*secrets.Secret, error) {
+func (s *Client) getByName(ctx context.Context, name string) (*secrets.Secret, error) {
 	allPages, err := secrets.List(s.client, secrets.ListOpts{
 		Name: name,
 		Sort: "created:desc",
@@ -232,7 +250,19 @@ func (s *Client) get(ctx context.Context, name string) (*secrets.Secret, error) 
 	return secrets.Get(s.client, id).Extract()
 }
 
+func (s *Client) getByUUID(ctx context.Context, uuid string) (*secrets.Secret, error) {
+	return secrets.Get(s.client, uuid).Extract()
+}
+
 func extractIdFromRef(ref string) string {
 	splitedRef := strings.Split(ref, "/")
 	return splitedRef[len(splitedRef)-1]
+}
+
+func getUUIDFromRemoteRef(ref string) string {
+	splitedRef := strings.Split(ref, "/")
+	if len(splitedRef) == 2 && splitedRef[0] == "uuid" {
+		return splitedRef[1]
+	}
+	return ""
 }
