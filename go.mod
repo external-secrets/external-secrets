@@ -71,11 +71,11 @@ require (
 	github.com/alibabacloud-go/tea v1.2.1
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.3
 	github.com/aliyun/credentials-go v1.3.0
-	github.com/artashesbalabekyan/barbican-sdk-go v1.2.0
 	github.com/avast/retry-go/v4 v4.3.4
 	github.com/cyberark/conjur-api-go v0.11.1
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/golang-jwt/jwt/v5 v5.0.0
+	github.com/gophercloud/gophercloud v1.5.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/vault/api/auth/aws v0.4.1
 	github.com/keeper-security/secrets-manager-go/core v1.5.2
@@ -87,7 +87,6 @@ require (
 )
 
 require (
-	aead.dev/mem v0.2.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect

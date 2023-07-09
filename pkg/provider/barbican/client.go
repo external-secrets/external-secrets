@@ -17,20 +17,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/artashesbalabekyan/barbican-sdk-go/client"
-	"github.com/artashesbalabekyan/barbican-sdk-go/xhttp"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/keymanager/v1/secrets"
 )
 
 const (
 	errBarbicanStore        = "received invalid Barbican resource"
 	errFetchSAKSecret       = "could not fetch SecretAccessKey secret: %w"
 	errMissingSAK           = "missing SecretAccessKey"
+	errKeyNotFound          = "key '%s' does not exist"
+	errKeyAlreadyExists     = "key '%s' already exists"
 	errJSONSecretUnmarshal  = "unable to unmarshal secret: %w"
 	errInvalidStore         = "invalid store"
 	errInvalidStoreSpec     = "invalid store spec"
@@ -39,9 +42,36 @@ const (
 	errInvalidAuthSecretRef = "invalid auth secret ref: %w"
 )
 
+type config struct {
+	// OpenStack Auth Url
+	AuthUrl string `json:"auth_url"`
+
+	// The Domain of the user.
+	UserDomain string `json:"user_domain"`
+
+	// The user name. If you do not provide a user name and password, you must provide a token.
+	Username string `json:"username"`
+
+	// The password for the user.
+	Password string `json:"password"`
+
+	// The project name. Both the Project ID and Project Name are optional.
+	ProjectName string `json:"project_name"`
+
+	// ServiceName [optional] is the service name for the client (e.g., "nova") as it
+	// appears in the service catalog. Services can have the same Type but a
+	// different Name, which is why both Type and Name are sometimes needed.
+	ServiceName string `json:"service_name"`
+
+	// Region [required] is the geographic region in which the endpoint resides,
+	// generally specifying which datacenter should house your resources.
+	// Required only for services that span multiple regions.
+	Region string `json:"region"`
+}
+
 type Client struct {
-	config    *xhttp.Config
-	client    client.Conn
+	config    *config
+	client    *gophercloud.ServiceClient
 	kube      kclient.Client
 	store     *esv1beta1.BarbicanProvider
 	storeKind string
@@ -51,40 +81,53 @@ type Client struct {
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
-	err := c.client.DeleteSecret(ctx, remoteRef.GetRemoteKey())
+	name := remoteRef.GetRemoteKey()
+
+	secret, err := c.get(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	id := extractIdFromRef(secret.SecretRef)
+
+	err = secrets.Delete(c.client, id).Err
 	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanDeleteSecret, err)
 	return err
 }
 
 // GetAllSecrets syncs multiple secrets from barbican provider into a single Kubernetes Secret.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	iterator, err := c.client.ListSecrets(ctx)
+	allPages, err := secrets.List(c.client, secrets.ListOpts{
+		Sort: "created:desc",
+	}).AllPages()
 	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetAllSecrets, err)
 	if err != nil {
 		return nil, err
 	}
 
-	names := []string{}
-
-	defer iterator.Close()
-
-	for {
-		name, ok := iterator.Next()
-		if !ok {
-			break
-		}
-		names = append(names, name)
+	allSecrets, err := secrets.ExtractSecrets(allPages)
+	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetAllSecrets, err)
+	if err != nil {
+		return nil, err
 	}
 
-	result := make(map[string][]byte, len(names))
+	mapUUIDByUniqueNames := make(map[string]string, len(allSecrets))
+	for _, v := range allSecrets {
+		if _, ok := mapUUIDByUniqueNames[v.Name]; !ok {
+			mapUUIDByUniqueNames[v.Name] = extractIdFromRef(v.SecretRef)
+		}
+	}
 
-	for _, name := range names {
-		secret, err := c.client.GetSecretWithPayload(ctx, name)
+	result := make(map[string][]byte, len(mapUUIDByUniqueNames))
+
+	for name, id := range mapUUIDByUniqueNames {
+		payload, err := secrets.GetPayload(c.client, id, secrets.GetPayloadOpts{PayloadContentType: "*/*"}).Extract()
 		metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetAllSecrets, err)
 		if err != nil {
 			return nil, err
 		}
-		result[name] = secret.Payload
+
+		result[name] = payload
 	}
 
 	return result, nil
@@ -92,13 +135,15 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 // GetSecret returns a single secret from the provider.
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	secret, err := c.client.GetSecretWithPayload(ctx, ref.Key)
-	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetSecret, err)
+	name := ref.Key
+	secret, err := c.get(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	val := secret.Payload
-	return val, nil
+
+	id := extractIdFromRef(secret.SecretRef)
+
+	return secrets.GetPayload(c.client, id, secrets.GetPayloadOpts{PayloadContentType: "*/*"}).Extract()
 }
 
 func (c *Client) Close(_ context.Context) error {
@@ -142,7 +187,52 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 
 // PushSecret pushes a kubernetes secret key into barbican provider Secret.
 func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	err := c.client.Create(ctx, remoteRef.GetRemoteKey(), payload)
+	name := remoteRef.GetRemoteKey()
+
+	_, err := c.get(ctx, name)
+	if err == nil {
+		return fmt.Errorf(errKeyNotFound, name)
+	}
+
+	createOpts := secrets.CreateOpts{
+		Algorithm:          "aes",
+		BitLength:          256,
+		Mode:               "cbc",
+		Name:               name,
+		Payload:            string(payload),
+		PayloadContentType: "text/plain",
+		SecretType:         secrets.OpaqueSecret,
+	}
+
+	_, err = secrets.Create(c.client, createOpts).Extract()
 	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanCreateSecret, err)
 	return err
+}
+
+func (s *Client) get(ctx context.Context, name string) (*secrets.Secret, error) {
+	allPages, err := secrets.List(s.client, secrets.ListOpts{
+		Name: name,
+		Sort: "created:desc",
+	}).AllPages()
+	if err != nil {
+		return nil, err
+	}
+
+	allSecrets, err := secrets.ExtractSecrets(allPages)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(allSecrets) == 0 {
+		return nil, fmt.Errorf(errKeyNotFound, name)
+	}
+
+	id := extractIdFromRef(allSecrets[0].SecretRef)
+
+	return secrets.Get(s.client, id).Extract()
+}
+
+func extractIdFromRef(ref string) string {
+	splitedRef := strings.Split(ref, "/")
+	return splitedRef[len(splitedRef)-1]
 }

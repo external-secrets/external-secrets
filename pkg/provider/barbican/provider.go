@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"sync"
 
-	barbican "github.com/artashesbalabekyan/barbican-sdk-go"
-	"github.com/artashesbalabekyan/barbican-sdk-go/xhttp"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -74,9 +74,33 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 		return nil, err
 	}
 
-	useMu.Lock()
+	if config.ServiceName == "" {
+		config.ServiceName = "barbican"
+	}
 
-	c, err := barbican.NewConnection(ctx, config)
+	useMu.Lock()
+	defer useMu.Unlock()
+
+	authOpts := gophercloud.AuthOptions{
+		IdentityEndpoint: config.AuthUrl,
+		Username:         config.Username,
+		Password:         config.Password,
+		DomainID:         config.UserDomain,
+		TenantName:       config.ProjectName,
+	}
+
+	endpointOpts := gophercloud.EndpointOpts{
+		Type:   "key-manager",
+		Name:   config.ServiceName,
+		Region: config.Region,
+	}
+
+	provider, err := openstack.AuthenticatedClient(authOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := openstack.NewKeyManagerV1(provider, endpointOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +113,6 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 		storeKind: store.GetKind(),
 		namespace: namespace,
 	}
-
-	useMu.Unlock()
 
 	return client, nil
 }
@@ -118,7 +140,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func getConfigFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube kclient.Client, namespace string) (*xhttp.Config, error) {
+func getConfigFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube kclient.Client, namespace string) (*config, error) {
 	sr := auth.SecretRef
 	if sr == nil {
 		return nil, nil
@@ -138,13 +160,13 @@ func getConfigFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube
 		return nil, fmt.Errorf(errMissingSAK)
 	}
 
-	var config xhttp.Config
+	var conf config
 
-	if err := json.Unmarshal(credentials, &config); err != nil {
+	if err := json.Unmarshal(credentials, &conf); err != nil {
 		return nil, fmt.Errorf("invalid barbican config, couldn't parse")
 	}
 
-	return &config, nil
+	return &conf, nil
 }
 
 func isReferentSpec(prov *esv1beta1.BarbicanProvider) bool {
