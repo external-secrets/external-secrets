@@ -258,7 +258,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				}),
 			},
 			want: want{
-				err: errors.New(errVaultCert),
+				err: fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool")),
 			},
 		},
 		"VaultAuthFormatError": {
@@ -630,6 +630,22 @@ func TestGetSecret(t *testing.T) {
 			want: want{
 				err: nil,
 				val: []byte("something different"),
+			},
+		},
+		"ReadSecretWithMissingValueFromData": {
+			reason: "Should return a NoSecretErr",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					Property: "not-relevant",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: esv1beta1.NoSecretErr,
+				val: nil,
 			},
 		},
 		"ReadSecretWithSliceValue": {

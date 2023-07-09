@@ -707,7 +707,7 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 	// Return nil if secret value is null
 	if data == nil {
-		return nil, nil
+		return nil, esv1beta1.NoSecretError{}
 	}
 	jsonStr, err := json.Marshal(data)
 	if err != nil {
@@ -993,7 +993,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 	if len(v.store.CABundle) > 0 {
 		ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
 		if !ok {
-			return nil, errors.New(errVaultCert)
+			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
 		}
 	}
 
@@ -1020,7 +1020,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 
 		ok := caCertPool.AppendCertsFromPEM(cert)
 		if !ok {
-			return nil, errors.New(errVaultCert)
+			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
 		}
 	}
 

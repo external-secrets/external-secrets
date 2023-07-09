@@ -140,6 +140,10 @@ type SecretStoreProvider struct {
 	// Barbican configures this store to sync secrets using OpenStack Barbican provider
 	// +optional
 	Barbican *BarbicanProvider `json:"barbican,omitempty"`
+	// Delinea DevOps Secrets Vault
+	// https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+	// +optional
+	Delinea *DelineaProvider `json:"delinea,omitempty"`
 }
 
 type CAProviderType string

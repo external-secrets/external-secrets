@@ -56,6 +56,7 @@ const (
 	errFetchSAKSecret                        = "could not fetch SecretAccessKey secret: %w"
 	errMissingSAK                            = "missing SecretAccessKey"
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
+	errJSONSecretMarshal                     = "unable to marshal secret: %w"
 	errExtractingSecret                      = "unable to extract the fetched secret %s of type %s while performing %s"
 
 	defaultCacheSize   = 100
@@ -187,7 +188,15 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 
 	case sm.Secret_SecretType_Kv:
 
-		return getKVSecret(ibm, &secretName, ref)
+		response, err := getSecretData(ibm, &secretName, sm.Secret_SecretType_Kv)
+		if err != nil {
+			return nil, err
+		}
+		secret, ok := response.(*sm.KVSecret)
+		if !ok {
+			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecret")
+		}
+		return getKVSecret(ref, secret)
 
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
@@ -301,15 +310,7 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 }
 
 // Returns a secret of type kv and supports json path.
-func getKVSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_Kv)
-	if err != nil {
-		return nil, err
-	}
-	secret, ok := response.(*sm.KVSecret)
-	if !ok {
-		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_Kv, "getKVSecret")
-	}
+func getKVSecret(ref esv1beta1.ExternalSecretDataRemoteRef, secret *sm.KVSecret) ([]byte, error) {
 	payloadJSONByte, err := json.Marshal(secret.Data)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload from secret failed. %w", err)
@@ -440,6 +441,11 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	if err != nil {
 		return nil, err
 	}
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		if err := populateSecretMap(secretMap, response); err != nil {
+			return nil, err
+		}
+	}
 
 	switch secretType {
 	case sm.Secret_SecretType_Arbitrary:
@@ -502,7 +508,11 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		return secretMap, nil
 
 	case sm.Secret_SecretType_Kv:
-		secret, err := getKVSecret(ibm, &secretName, ref)
+		secretData, ok := response.(*sm.KVSecret)
+		if !ok {
+			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecretMap")
+		}
+		secret, err := getKVSecret(ref, secretData)
 		if err != nil {
 			return nil, err
 		}
@@ -511,9 +521,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		if err != nil {
 			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
 		}
-
-		secretMap := byteArrayMap(m)
-
+		secretMap = byteArrayMap(m, secretMap)
 		return secretMap, nil
 
 	default:
@@ -521,9 +529,8 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	}
 }
 
-func byteArrayMap(secretData map[string]interface{}) map[string][]byte {
+func byteArrayMap(secretData map[string]interface{}, secretMap map[string][]byte) map[string][]byte {
 	var err error
-	secretMap := make(map[string][]byte)
 	for k, v := range secretData {
 		secretMap[k], err = getTypedKey(v)
 		if err != nil {
@@ -694,4 +701,20 @@ func init() {
 	esv1beta1.Register(&providerIBM{}, &esv1beta1.SecretStoreProvider{
 		IBM: &esv1beta1.IBMProvider{},
 	})
+}
+
+// populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider.
+func populateSecretMap(secretMap map[string][]byte, secretData interface{}) error {
+	secretDataMap := make(map[string]interface{})
+	data, err := json.Marshal(secretData)
+	if err != nil {
+		return fmt.Errorf(errJSONSecretMarshal, err)
+	}
+	if err := json.Unmarshal(data, &secretDataMap); err != nil {
+		return fmt.Errorf(errJSONSecretUnmarshal, err)
+	}
+	for key, value := range secretDataMap {
+		secretMap[key] = []byte(fmt.Sprintf("%v", value))
+	}
+	return nil
 }
