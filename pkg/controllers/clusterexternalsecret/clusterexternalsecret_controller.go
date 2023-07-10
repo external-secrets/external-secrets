@@ -16,6 +16,7 @@ package clusterexternalsecret
 
 import (
 	"context"
+	"reflect"
 	"sort"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,6 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
@@ -265,5 +271,73 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		WithOptions(opts).
 		For(&esv1beta1.ClusterExternalSecret{}).
 		Owns(&esv1beta1.ExternalSecret{}, builder.OnlyMetadata).
+		Watches(
+			&v1.Namespace{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForNamespace),
+			builder.WithPredicates(namespacePredicate()),
+		).
 		Complete(r)
+}
+
+func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace client.Object) []reconcile.Request {
+	namespaceLabels := labels.Set(namespace.GetLabels())
+
+	// Avoid consuming too much memory
+	const limit = 100
+	var requests []reconcile.Request
+	options := &client.ListOptions{Limit: limit}
+
+	for {
+		var clusterExternalSecrets esv1beta1.ClusterExternalSecretList
+		if err := r.List(ctx, &clusterExternalSecrets, options); err != nil {
+			r.Log.Error(err, errGetCES)
+			return []reconcile.Request{}
+		}
+
+		for i := range clusterExternalSecrets.Items {
+			clusterExternalSecret := &clusterExternalSecrets.Items[i]
+			labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
+			if err != nil {
+				r.Log.Error(err, errConvertLabelSelector)
+				return []reconcile.Request{}
+			}
+
+			if labelSelector.Matches(namespaceLabels) {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      clusterExternalSecret.GetName(),
+						Namespace: clusterExternalSecret.GetNamespace(),
+					},
+				})
+			}
+		}
+
+		if clusterExternalSecrets.Continue == "" {
+			break
+		}
+
+		options = &client.ListOptions{
+			Limit:    limit,
+			Continue: clusterExternalSecrets.Continue,
+		}
+	}
+
+	return requests
+}
+
+func namespacePredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectOld == nil || e.ObjectNew == nil {
+				return false
+			}
+			return !reflect.DeepEqual(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels())
+		},
+		DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
+			return true
+		},
+	}
 }
