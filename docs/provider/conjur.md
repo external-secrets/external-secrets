@@ -29,7 +29,7 @@ Important note: **Creds must live in the same namespace as a SecretStore  - the 
 Recommend to save as filename: `conjur-external-secret.yaml`
 
 ```yaml
-{% include 'conjur-external-secret.yaml' %}}
+{% include 'conjur-external-secret.yaml' %}
 ```
 
 ### Create Kubernetes Secrets
@@ -75,7 +75,7 @@ kubectl apply -n external-secrets -f conjur-external-secret.yaml
 ### Getting the K8S Secret
 
 * Login to your Conjur server and verify that your secret exists
-* Review the value of your kubernetes secret to see that it contains the same value from Conjur
+* Review the value of your Kubernetes secret to see that it contains the same value from Conjur
 
 ```shell
 # WARNING: this command will reveal the stored secret in plain text
