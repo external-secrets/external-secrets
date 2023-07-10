@@ -208,3 +208,71 @@ The operator will fetch the IBM Secret Manager secret and inject it as a `Kind=S
 ```
 kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.test}' | base64 -d
 ```
+
+### Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider
+ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager.
+
+In order for the user to opt-in to adding metadata to secret, an existing optional field can be leveraged under `spec.dataFrom.extract.metadataPolicy`. The required metadata can then be specified under `template.metadata.labels` or `template.metadata.annotations`. The required secret data can be specified under `template.data`. While the secret is being reconciled, it will have the secret data along with the required labels.
+
+The possible values of `metadataPolicy` are as below
+- If metadataPolicy is set to `Fetch`, metadata is populated in K8s secret labels or annotations as specified in `template.metadata.labels` or `template.metadata.annotations`.
+- If metadataPolicy is set to `None`, metadata is not populated in K8s secret labels or annotations and is set as <no_value> even if `template.metadata.labels` or `template.metadata.annotations` is specified in the External Secrets CRD.
+- If metadataPolicy is not set, it defaults to None and exhibits the same behavior.
+
+In the below example, `secret_id` and `updated_at` are the metadata of a secret in IBM Secrets Manager.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: database-credentials
+  namespace: external-secrets
+spec:
+  dataFrom:
+  - extract:
+      key: username_password/<SECRET_ID>
+      metadataPolicy: Fetch           # leveraging optional parameter, defaults to None
+    secretKey: username
+  secretStoreRef:
+    kind: SecretStore
+    name: ibm-store
+  target:
+    name: database-credentials
+    template:
+      engineVersion: v2
+      data:
+        secret: "{{ .password }}" 
+      metadata:
+        labels:
+          secret_id: "{{ .id }}"     # Adding metadata key whose value would be added to the secret as a label
+          updated_at: "{{ .updated_at }}"
+```
+
+Below is the example of the secret after reconciliation:
+
+```yaml
+apiVersion: v1
+data:
+  secret: OHE0MFV5MGhQb2FmRjZTOGVva3dPQjRMeVZXeXpWSDlrSWgyR1BiVDZTMyc=
+immutable: false
+kind: Secret
+metadata:
+  annotations:
+    reconcile.external-secrets.io/data-hash: 02217008d13ed228e75cf6d26fe74324
+  creationTimestamp: "2023-05-04T08:41:24Z"
+  labels:
+    secret_id: 1234
+    updated_at: 2023-05-04T08:57:19Z
+  name: database-credentials
+  namespace: external-secrets
+  ownerReferences:
+  - apiVersion: external-secrets.io/v1beta1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ExternalSecret
+    name: database-credentials
+    uid: c2a018e7-1ac3-421b-bd3b-d9497204f843
+  resourceVersion: "1803567"
+  uid: f5dff604-611b-4d41-9d65-b860c61a0b8d
+type: Opaque
+```
