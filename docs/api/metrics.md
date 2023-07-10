@@ -5,7 +5,7 @@ hide:
 
 # Metrics
 
-The External Secrets Operator exposes its Prometheus metrics in the `/metrics` path. To enable it, set the `serviceMonitor.enabled` Helm flag to `true`. In addition you can also set `webhook.serviceMonitor.enabled=true` and `certController.serviceMonitor.enabled=true` to create `ServiceMonitor` resources for the other components.
+The External Secrets Operator exposes its Prometheus metrics in the `/metrics` path. To enable it, set the `serviceMonitor.enabled` Helm flag to `true`.
 
 If you are using a different monitoring tool that also needs a `/metrics` endpoint, you can set the `metrics.service.enabled` Helm flag to `true`. In addition you can also set `webhook.metrics.service.enabled` and `certController.metrics.service.enabled` to scrape the other components.
 
