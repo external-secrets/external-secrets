@@ -131,10 +131,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
 	setFailedNamespaces(&clusterExternalSecret, failedNamespaces)
 
-	if len(provisionedNamespaces) > 0 {
-		sort.Strings(provisionedNamespaces)
-		clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
-	}
+	sort.Strings(provisionedNamespaces)
+	clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
@@ -233,10 +231,15 @@ func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string 
 }
 
 func getRemovedNamespaces(nsList v1.NamespaceList, provisionedNs []string) []string {
-	result := []string{}
+	var result []string
+
+	nsSet := map[string]struct{}{}
+	for i := range nsList.Items {
+		nsSet[nsList.Items[i].Name] = struct{}{}
+	}
 
 	for _, ns := range provisionedNs {
-		if !ContainsNamespace(nsList, ns) {
+		if _, ok := nsSet[ns]; ok {
 			result = append(result, ns)
 		}
 	}

@@ -63,16 +63,6 @@ func filterOutCondition(conditions []esv1beta1.ClusterExternalSecretStatusCondit
 	return newConditions
 }
 
-func ContainsNamespace(namespaces v1.NamespaceList, namespace string) bool {
-	for _, ns := range namespaces.Items {
-		if ns.ObjectMeta.Name == namespace {
-			return true
-		}
-	}
-
-	return false
-}
-
 func getConditionType(failedNamespaces map[string]string, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
 	if len(failedNamespaces) == 0 {
 		return esv1beta1.ClusterExternalSecretReady
