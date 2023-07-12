@@ -150,6 +150,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					NamespaceSelector:  metav1.LabelSelector{},
 					ExternalSecretName: ExternalSecretName,
 					ExternalSecretSpec: esv1beta1.ExternalSecretSpec{
+						RefreshInterval: &metav1.Duration{Duration: 100 * time.Millisecond},
 						SecretStoreRef: esv1beta1.SecretStoreRef{
 							Name: ExternalSecretStore,
 						},
@@ -262,6 +263,26 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		}
 	}
 
+	noMatchingNS := func(tc *testCase) {
+		tc.beforeCheck = func(tc *testCase) {
+			for i, ns := range tc.externalSecretNamespaces {
+				ns.namespace.ObjectMeta.Labels = map[string]string{}
+				tc.externalSecretNamespaces[i].deletedES = true
+				err := k8sClient.Update(context.Background(), &ns.namespace, &client.UpdateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+		}
+		tc.checkClusterExternalSecret = func(ces *esv1beta1.ClusterExternalSecret) {
+			Eventually(func() bool {
+				var latestCes esv1beta1.ClusterExternalSecret
+				err := k8sClient.Get(context.Background(), types.NamespacedName{Name: ces.Name, Namespace: ces.Namespace}, &latestCes)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				return len(latestCes.Status.FailedNamespaces) == 0 && len(latestCes.Status.ProvisionedNamespaces) == 0
+			}, timeout, interval).Should(BeTrue())
+		}
+	}
+
 	syncWithMatchExpressions := func(tc *testCase) {
 		tc.setup = func(tc *testCase) {
 			prefixes := []string{"foo", "bar", "baz"}
@@ -291,12 +312,19 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		}
 		tc.checkClusterExternalSecret = func(ces *esv1beta1.ClusterExternalSecret) {
 			for _, namespace := range tc.externalSecretNamespaces {
-				var es esv1beta1.ExternalSecret
-				err := k8sClient.Get(context.Background(), types.NamespacedName{
-					Namespace: namespace.namespace.Name,
-					Name:      ExternalSecretName,
-				}, &es)
-				Expect(err).ToNot(HaveOccurred())
+				Eventually(func() bool {
+					var es esv1beta1.ExternalSecret
+					err := k8sClient.Get(context.Background(), types.NamespacedName{
+						Namespace: namespace.namespace.Name,
+						Name:      ExternalSecretName,
+					}, &es)
+					if err != nil {
+						if apierrors.IsNotFound(err) {
+							return false
+						}
+					}
+					return true
+				}, timeout, interval).Should(BeTrue())
 				Expect(sliceContainsString(namespace.namespace.Name, ces.Status.ProvisionedNamespaces)).To(BeTrue())
 			}
 		}
@@ -377,6 +405,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 		Entry("Should not overwrite existing external secrets and error out if one is present", doNotOverwriteExistingES),
 		Entry("Should have list of all provisioned namespaces", populatedProvisionedNamespaces),
 		Entry("Should delete external secrets when namespaces no longer match", deleteESInNonMatchingNS),
+		Entry("Should empty provisioned namespaces when all the matching namespaces have gone", noMatchingNS),
 		Entry("Should sync with label selector", syncWithMatchExpressions))
 })
 
