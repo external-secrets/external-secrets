@@ -115,6 +115,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | priorityClassName | string | `""` | Pod priority class name. |
 | processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
+| processPushSecret | bool | `true` | if true, the operator will process push secret. Else, it will ignore them. |
 | prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead. |
 | prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead. |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
