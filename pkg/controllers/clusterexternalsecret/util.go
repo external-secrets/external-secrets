@@ -35,17 +35,6 @@ func NewClusterExternalSecretCondition(failedNamespaces map[string]string, names
 	return condition
 }
 
-// GetClusterExternalSecretCondition returns the condition with the provided type.
-func GetClusterExternalSecretCondition(status esv1beta1.ClusterExternalSecretStatus, condType esv1beta1.ClusterExternalSecretConditionType) *esv1beta1.ClusterExternalSecretStatusCondition {
-	for i := range status.Conditions {
-		c := status.Conditions[i]
-		if c.Type == condType {
-			return &c
-		}
-	}
-	return nil
-}
-
 func SetClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, condition esv1beta1.ClusterExternalSecretStatusCondition) {
 	ces.Status.Conditions = append(filterOutCondition(ces.Status.Conditions, condition.Type), condition)
 	cesmetrics.UpdateClusterExternalSecretCondition(ces, &condition)
