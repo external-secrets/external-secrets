@@ -77,7 +77,7 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 
 	err = (&StoreReconciler{
-		Client:          k8sClient,
+		Client:          k8sManager.GetClient(),
 		Scheme:          k8sManager.GetScheme(),
 		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 		ControllerClass: defaultControllerClass,

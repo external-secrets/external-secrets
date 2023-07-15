@@ -82,7 +82,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
-	reconciler = New(k8sClient, k8sManager.GetScheme(), ctrl.Log, ctrlSvcName, ctrlSvcNamespace, ctrlSecretName, ctrlSecretNamespace, time.Second)
+	reconciler = New(k8sManager.GetClient(), k8sManager.GetScheme(), ctrl.Log, ctrlSvcName, ctrlSvcNamespace, ctrlSecretName, ctrlSecretNamespace, time.Second)
 	reconciler.SetupWithManager(k8sManager, controller.Options{})
 	Expect(err).ToNot(HaveOccurred())
 

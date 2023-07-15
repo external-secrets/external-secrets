@@ -82,7 +82,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&Reconciler{
-		Client:          k8sClient,
+		Client:          k8sManager.GetClient(),
 		Scheme:          k8sManager.GetScheme(),
 		Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecrets"),
 		RequeueInterval: time.Second,

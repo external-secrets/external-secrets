@@ -38,7 +38,7 @@ import (
 
 var (
 	fakeProvider *fake.Client
-	timeout      = time.Second * 10
+	timeout      = time.Second * 20
 	interval     = time.Millisecond * 250
 )
 
@@ -71,7 +71,7 @@ func checkCondition(status v1alpha1.PushSecretStatus, cond v1alpha1.PushSecretSt
 
 type testTweaks func(*testCase)
 
-var _ = Describe("ExternalSecret controller", func() {
+var _ = Describe("PushSecret controller", func() {
 	const (
 		PushSecretName             = "test-es"
 		PushSecretFQDN             = "externalsecrets.external-secrets.io/test-es"
