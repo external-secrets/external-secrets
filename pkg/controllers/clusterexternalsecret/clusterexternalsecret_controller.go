@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -112,19 +113,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	provisionedNamespaces := []string{}
 
 	for _, namespace := range namespaceList.Items {
-		var existingES esv1beta1.ExternalSecret
-		err = r.Get(ctx, types.NamespacedName{
-			Name:      esName,
-			Namespace: namespace.Name,
-		}, &existingES)
+		existingES, err := r.getExternalSecret(ctx, namespace.Name, esName)
 
-		if result := checkForError(err, &existingES); result != "" {
+		if result := checkForError(err, existingES); result != "" {
 			log.Error(err, result)
 			failedNamespaces[namespace.Name] = result
 			continue
 		}
 
-		if result, err := r.resolveExternalSecret(ctx, &clusterExternalSecret, &existingES, namespace, esName, clusterExternalSecret.Spec.ExternalSecretMetadata); err != nil {
+		if result, err := r.resolveExternalSecret(ctx, &clusterExternalSecret, existingES, namespace, esName, clusterExternalSecret.Spec.ExternalSecretMetadata); err != nil {
 			log.Error(err, result)
 			failedNamespaces[namespace.Name] = result
 			continue
@@ -145,7 +142,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1beta1.ExternalSecretMetadata) (string, error) {
+func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *metav1.PartialObjectMetadata, namespace v1.Namespace, esName string, esMetadata esv1beta1.ExternalSecretMetadata) (string, error) {
 	// this means the existing ES does not belong to us
 	if err := controllerutil.SetControllerReference(clusterExternalSecret, existingES, r.Scheme); err != nil {
 		return errSetCtrlReference, err
@@ -179,22 +176,17 @@ func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalS
 }
 
 func (r *Reconciler) removeExternalSecret(ctx context.Context, esName, namespace string) (string, error) {
-	var existingES esv1beta1.ExternalSecret
-	err := r.Get(ctx, types.NamespacedName{
-		Name:      esName,
-		Namespace: namespace,
-	}, &existingES)
-
+	existingES, err := r.getExternalSecret(ctx, namespace, esName)
 	// If we can't find it then just leave
 	if err != nil && apierrors.IsNotFound(err) {
 		return "", nil
 	}
 
-	if result := checkForError(err, &existingES); result != "" {
+	if result := checkForError(err, existingES); result != "" {
 		return result, err
 	}
 
-	err = r.Delete(ctx, &existingES, &client.DeleteOptions{})
+	err = r.Delete(ctx, existingES, &client.DeleteOptions{})
 
 	if err != nil {
 		return errFailedToDelete, err
@@ -225,7 +217,19 @@ func (r *Reconciler) removeOldNamespaces(ctx context.Context, namespaceList v1.N
 	return failedNamespaces
 }
 
-func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string {
+func (r *Reconciler) getExternalSecret(ctx context.Context, namespace, name string) (*metav1.PartialObjectMetadata, error) {
+	// Should not use esv1beta1.ExternalSecret since we specify builder.OnlyMetadata and cache only metadata
+	metadata := metav1.PartialObjectMetadata{}
+	metadata.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   esv1beta1.Group,
+		Version: esv1beta1.Version,
+		Kind:    esv1beta1.ExtSecretKind,
+	})
+	err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, &metadata)
+	return &metadata, err
+}
+
+func checkForError(getError error, existingES *metav1.PartialObjectMetadata) string {
 	if getError != nil && !apierrors.IsNotFound(getError) {
 		return errGetExistingES
 	}
