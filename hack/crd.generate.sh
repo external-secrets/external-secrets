@@ -8,7 +8,7 @@ BUNDLE_YAML="${BUNDLE_DIR}/bundle.yaml"
 
 cd "${SCRIPT_DIR}"/../
 
-go run sigs.k8s.io/controller-tools/cmd/controller-gen object \
+go run sigs.k8s.io/controller-tools/cmd/controller-gen \
   object:headerFile="hack/boilerplate.go.txt" \
   paths="./apis/..."
 go run sigs.k8s.io/controller-tools/cmd/controller-gen crd \
