@@ -132,12 +132,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	condition := NewClusterExternalSecretCondition(failedNamespaces, &namespaceList)
 	SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
-	setFailedNamespaces(&clusterExternalSecret, failedNamespaces)
 
-	if len(provisionedNamespaces) > 0 {
-		sort.Strings(provisionedNamespaces)
-		clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
-	}
+	clusterExternalSecret.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
+	sort.Strings(provisionedNamespaces)
+	clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
@@ -243,30 +241,35 @@ func checkForError(getError error, existingES *metav1.PartialObjectMetadata) str
 }
 
 func getRemovedNamespaces(nsList v1.NamespaceList, provisionedNs []string) []string {
-	result := []string{}
+	var removedNamespaces []string
+
+	nsSet := map[string]struct{}{}
+	for i := range nsList.Items {
+		nsSet[nsList.Items[i].Name] = struct{}{}
+	}
 
 	for _, ns := range provisionedNs {
-		if !ContainsNamespace(nsList, ns) {
-			result = append(result, ns)
+		if _, ok := nsSet[ns]; !ok {
+			removedNamespaces = append(removedNamespaces, ns)
 		}
 	}
 
-	return result
+	return removedNamespaces
 }
 
-func setFailedNamespaces(ces *esv1beta1.ClusterExternalSecret, failedNamespaces map[string]string) {
-	if len(failedNamespaces) == 0 {
-		return
-	}
+func toNamespaceFailures(failedNamespaces map[string]string) []esv1beta1.ClusterExternalSecretNamespaceFailure {
+	namespaceFailures := make([]esv1beta1.ClusterExternalSecretNamespaceFailure, len(failedNamespaces))
 
-	ces.Status.FailedNamespaces = []esv1beta1.ClusterExternalSecretNamespaceFailure{}
-
+	i := 0
 	for namespace, message := range failedNamespaces {
-		ces.Status.FailedNamespaces = append(ces.Status.FailedNamespaces, esv1beta1.ClusterExternalSecretNamespaceFailure{
+		namespaceFailures[i] = esv1beta1.ClusterExternalSecretNamespaceFailure{
 			Namespace: namespace,
 			Reason:    message,
-		})
+		}
+		i++
 	}
+	sort.Slice(namespaceFailures, func(i, j int) bool { return namespaceFailures[i].Namespace < namespaceFailures[j].Namespace })
+	return namespaceFailures
 }
 
 // SetupWithManager sets up the controller with the Manager.
