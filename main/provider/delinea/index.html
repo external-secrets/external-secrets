@@ -2210,6 +2210,7 @@ Both client ID and client secret can be specified either directly in the config,
 <p>If required, the URL template (<code>urlTemplate</code>) can be customized as well.</p>
 <h3 id="referencing-secrets">Referencing Secrets</h3>
 <p>Secrets can be referenced by path. Getting a specific version of a secret is not yet supported.</p>
+<p>Note that because all DSV secrets are JSON objects, you must specify <code>remoteRef.property</code>. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -2223,6 +2224,7 @@ Both client ID and client secret can be specified either directly in the config,
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;SECRET_PATH&gt;</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;JSON_PROPERTY&gt;</span>
 </code></pre></div>
 
 
