@@ -39,6 +39,8 @@ If required, the URL template (`urlTemplate`) can be customized as well.
 
 Secrets can be referenced by path. Getting a specific version of a secret is not yet supported.
 
+Note that because all DSV secrets are JSON objects, you must specify `remoteRef.property`. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
+
 ```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -53,4 +55,5 @@ spec:
       - secretKey: <KEY_IN_KUBE_SECRET>
         remoteRef:
           key: <SECRET_PATH>
+          property: <JSON_PROPERTY>
 ```
