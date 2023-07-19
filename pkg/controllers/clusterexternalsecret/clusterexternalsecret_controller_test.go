@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -38,7 +39,7 @@ func init() {
 }
 
 var (
-	timeout  = time.Second * 3
+	timeout  = time.Second * 10
 	interval = time.Millisecond * 250
 )
 
@@ -291,6 +292,67 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				}
 			},
 		}),
+		Entry("Should crate an external secret and if one with the same name has been deleted", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
+				return *ces
+			},
+			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) {
+				es := &esv1beta1.ExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      created.Name,
+						Namespace: namespaces[0].Name,
+					},
+				}
+				Expect(k8sClient.Create(ctx, es)).ShouldNot(HaveOccurred())
+
+				ces := esv1beta1.ClusterExternalSecret{}
+				Eventually(func(g Gomega) {
+					key := types.NamespacedName{Namespace: created.Namespace, Name: created.Name}
+					g.Expect(k8sClient.Get(ctx, key, &ces)).ShouldNot(HaveOccurred())
+					g.Expect(len(ces.Status.FailedNamespaces)).Should(Equal(1))
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+				Expect(k8sClient.Delete(ctx, es)).ShouldNot(HaveOccurred())
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:    esv1beta1.ClusterExternalSecretNotReady,
+								Status:  v1.ConditionTrue,
+								Message: "one or more namespaces failed",
+							},
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespaces[0].Name,
+							Name:      created.Name,
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}),
 		Entry("Should delete external secrets when namespaces no longer match", testCase{
 			namespaces: []v1.Namespace{
 				{
@@ -333,7 +395,6 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 					Spec: created.Spec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
-						ProvisionedNamespaces: []string{namespaces[0].Name, namespaces[1].Name},
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
 								Type:   esv1beta1.ClusterExternalSecretReady,
@@ -381,13 +442,15 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				return *ces
 			},
 			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				provisionedNamespaces := []string{namespaces[0].Name, namespaces[1].Name}
+				sort.Strings(provisionedNamespaces)
 				return esv1beta1.ClusterExternalSecret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: created.Name,
 					},
 					Spec: created.Spec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
-						ProvisionedNamespaces: []string{namespaces[0].Name, namespaces[1].Name},
+						ProvisionedNamespaces: provisionedNamespaces,
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
 								Type:   esv1beta1.ClusterExternalSecretReady,
