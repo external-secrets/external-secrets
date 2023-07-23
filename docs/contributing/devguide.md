@@ -25,7 +25,7 @@ Building the operator binary and docker image:
 
 ```shell
 make build
-make docker.build IMG=external-secrets:latest
+make docker.build IMAGE_NAME=external-secrets IMAGE_TAG=latest
 ```
 
 Run tests and lint the code:
