@@ -275,7 +275,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			return fmt.Errorf(errApplyTemplate, err)
 		}
-		r.setDataHashAnnotation(&existingSecret, secret)
+
+		secret.Annotations[esv1beta1.AnnotationDataHash] = r.computeDataHashAnnotation(&existingSecret, secret)
 
 		return nil
 	}
@@ -436,10 +437,6 @@ func hashMeta(m metav1.ObjectMeta) string {
 	})
 }
 
-func hashData(data map[string][]byte) string {
-	return utils.ObjectHash(data)
-}
-
 func shouldSkipClusterSecretStore(r *Reconciler, es esv1beta1.ExternalSecret) bool {
 	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
 }
@@ -547,13 +544,14 @@ func isSecretValid(existingSecret v1.Secret) bool {
 	}
 
 	// if the calculated hash is different from the calculation, then it's invalid
-	if existingSecret.Annotations[esv1beta1.AnnotationDataHash] != hashData(existingSecret.Data) {
+	if existingSecret.Annotations[esv1beta1.AnnotationDataHash] != utils.ObjectHash(existingSecret.Data) {
 		return false
 	}
 	return true
 }
 
-func (r *Reconciler) setDataHashAnnotation(existing *v1.Secret, secret *v1.Secret) {
+// computeDataHashAnnotation generate a hash of the secret data combining the old key with the new keys to add or override
+func (r *Reconciler) computeDataHashAnnotation(existing *v1.Secret, secret *v1.Secret) string {
 	data := make(map[string][]byte)
 	for k, v := range existing.Data {
 		data[k] = v
@@ -561,7 +559,7 @@ func (r *Reconciler) setDataHashAnnotation(existing *v1.Secret, secret *v1.Secre
 	for k, v := range secret.Data {
 		data[k] = v
 	}
-	secret.Annotations[esv1beta1.AnnotationDataHash] = hashData(data)
+	return utils.ObjectHash(data)
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
