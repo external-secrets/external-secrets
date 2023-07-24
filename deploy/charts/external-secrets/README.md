@@ -61,6 +61,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.prometheus.enabled | bool | `false` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | certController.prometheus.service.port | int | `8080` | deprecated. will be removed with 0.7.0, use serviceMonitor instead |
 | certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
+| certController.readinessProbe.address | string | `""` | Address for readiness probe |
+| certController.readinessProbe.port | int | `8081` | ReadinessProbe port for kubelet |
 | certController.replicaCount | int | `1` |  |
 | certController.requeueInterval | string | `"5m"` |  |
 | certController.resources | object | `{}` |  |
