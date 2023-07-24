@@ -830,6 +830,10 @@ func TestGetSecretMap(t *testing.T) {
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
 	}
+	secretWithSpecialCharacter := map[string]interface{}{
+		"access_key":    "acc<ess_&ke.,y",
+		"access_secret": "acce&?ss_s>ecret",
+	}
 	secretWithNilVal := map[string]interface{}{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
@@ -903,6 +907,40 @@ func TestGetSecretMap(t *testing.T) {
 				val: map[string][]byte{
 					"access_key":    []byte("access_key"),
 					"access_secret": []byte("access_secret"),
+				},
+			},
+		},
+		"ReadSecretWithSpecialCharactersKV1": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretWithSpecialCharacter, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_key":    []byte("acc<ess_&ke.,y"),
+					"access_secret": []byte("acce&?ss_s>ecret"),
+				},
+			},
+		},
+		"ReadSecretWithSpecialCharactersKV2": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": secretWithSpecialCharacter,
+					}, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_key":    []byte("acc<ess_&ke.,y"),
+					"access_secret": []byte("acce&?ss_s>ecret"),
 				},
 			},
 		},
