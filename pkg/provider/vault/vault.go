@@ -484,7 +484,11 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
 	}
-	vaultSecretValue, err := json.Marshal(vaultSecret)
+	buf := &bytes.Buffer{}
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false)
+	enc.Encode(vaultSecret)
+	vaultSecretValue := bytes.TrimSpace(buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("error marshaling vault secret: %w", err)
 	}
