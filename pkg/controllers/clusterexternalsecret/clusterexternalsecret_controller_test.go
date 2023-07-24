@@ -233,6 +233,75 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				}
 			},
 		}),
+		Entry("Should update external secret if the fields change", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
+				return *ces
+			},
+			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) {
+				// Wait until the external secret is provisioned
+				var es esv1beta1.ExternalSecret
+				Eventually(func(g Gomega) {
+					key := types.NamespacedName{Namespace: namespaces[0].Name, Name: created.Name}
+					g.Expect(k8sClient.Get(ctx, key, &es)).ShouldNot(HaveOccurred())
+					g.Expect(len(es.Labels)).Should(Equal(0))
+					g.Expect(len(es.Annotations)).Should(Equal(0))
+					g.Expect(es.Spec).Should(Equal(created.Spec.ExternalSecretSpec))
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+				copied := created.DeepCopy()
+				copied.Spec.ExternalSecretMetadata = esv1beta1.ExternalSecretMetadata{
+					Labels:      map[string]string{"test-label-key": "test-label-value"},
+					Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+				}
+				copied.Spec.ExternalSecretSpec.SecretStoreRef.Name = "updated-test-store" //nolint:goconst
+				Expect(k8sClient.Patch(ctx, copied, crclient.MergeFrom(created.DeepCopy()))).ShouldNot(HaveOccurred())
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				updatedSpec := created.Spec.DeepCopy()
+				updatedSpec.ExternalSecretMetadata = esv1beta1.ExternalSecretMetadata{
+					Labels:      map[string]string{"test-label-key": "test-label-value"},
+					Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+				}
+				updatedSpec.ExternalSecretSpec.SecretStoreRef.Name = "updated-test-store"
+
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: *updatedSpec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				updatedSpec := created.Spec.ExternalSecretSpec.DeepCopy()
+				updatedSpec.SecretStoreRef.Name = "updated-test-store"
+
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace:   namespaces[0].Name,
+							Name:        created.Name,
+							Labels:      map[string]string{"test-label-key": "test-label-value"},
+							Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+						},
+						Spec: *updatedSpec,
+					},
+				}
+			},
+		}),
 		Entry("Should not overwrite existing external secrets and error out if one is present", testCase{
 			namespaces: []v1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
