@@ -106,11 +106,8 @@ jobs:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
-      # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
         run: |
-          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s ${{ env.GOLANGCI_VERSION }}
-          export PATH=$PATH:./bin
           make check-diff
 
   unit-tests:
@@ -148,16 +145,11 @@ jobs:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
-      - name: Add setup-envtest
-        run: |
-          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-          setup-envtest use ${{env.KUBERNETES_VERSION}} -p env --os $(go env GOOS) --arch $(go env GOARCH)
-
       - name: Cache envtest binaries
         uses: actions/cache@v3
         with:
-          path: /home/runner/.local/share/kubebuilder-envtest/
-          key: ${{ runner.os }}-kubebuilder-${{env.KUBERNETES_VERSION}}
+          path: bin/k8s
+          key: ${{ runner.os }}-envtest-${{env.KUBERNETES_VERSION}}
 
       - name: Run Unit Tests
         run: |
