@@ -551,7 +551,7 @@ func isSecretValid(existingSecret v1.Secret) bool {
 }
 
 // computeDataHashAnnotation generate a hash of the secret data combining the old key with the new keys to add or override
-func (r *Reconciler) computeDataHashAnnotation(existing *v1.Secret, secret *v1.Secret) string {
+func (r *Reconciler) computeDataHashAnnotation(existing, secret *v1.Secret) string {
 	data := make(map[string][]byte)
 	for k, v := range existing.Data {
 		data[k] = v
