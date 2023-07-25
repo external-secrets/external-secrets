@@ -487,7 +487,10 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(false)
-	enc.Encode(vaultSecret)
+	err = enc.Encode(vaultSecret)
+	if err != nil {
+		return fmt.Errorf("error encoding vault secret: %w", err)
+	}
 	vaultSecretValue := bytes.TrimSpace(buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("error marshaling vault secret: %w", err)
