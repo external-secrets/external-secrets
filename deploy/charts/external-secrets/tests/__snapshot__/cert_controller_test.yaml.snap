@@ -33,6 +33,8 @@ should match snapshot of default values:
                 - --service-namespace=NAMESPACE
                 - --secret-name=RELEASE-NAME-external-secrets-webhook
                 - --secret-namespace=NAMESPACE
+                - --metrics-addr=:8080
+                - --healthz-addr=:8081
               image: ghcr.io/external-secrets/external-secrets:v0.9.1
               imagePullPolicy: IfNotPresent
               name: cert-controller
