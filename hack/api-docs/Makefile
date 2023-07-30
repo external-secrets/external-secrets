@@ -42,7 +42,7 @@ all: build
 
 .PHONY: image
 image:
-	$(DOCKER) build -t $(MKDOCS_IMAGE) --build-arg USER_ID=$(UID) -f Dockerfile .
+	$(DOCKER) build -t $(MKDOCS_IMAGE) -f Dockerfile .
 
 .PHONY: build
 build: image generate $(SOURCES)
