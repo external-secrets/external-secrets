@@ -218,33 +218,10 @@ In order for the required metadata to be populated in the Kubernetes secret, com
 1. The required metadata should be specified under `template.metadata.labels` or `template.metadata.annotations`.
 2. The required secret data should be specified under `template.data`.
 3. The spec.dataFrom.extract should be specified with details of the Secrets Manager secret with `spec.dataFrom.extract.metadataPolicy` set to `Fetch`.
-Below is an example, where `secret_id` and `updated_at` are the metadata of a secret in IBM Secrets Manager.:
+Below is an example, where `secret_id` and `updated_at` are the metadata of a secret in IBM Secrets Manager:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: database-credentials
-  namespace: external-secrets
-spec:
-  dataFrom:
-  - extract:
-      key: username_password/<SECRET_ID>
-      metadataPolicy: Fetch           # leveraging optional parameter, defaults to None
-    secretKey: username
-  secretStoreRef:
-    kind: SecretStore
-    name: ibm-store
-  target:
-    name: database-credentials
-    template:
-      engineVersion: v2
-      data:
-        secret: "{{ .password }}" 
-      metadata:
-        annotations:
-          secret_id: "{{ .id }}"     # adding metadata key whose value would be added to the secret as a label
-          updated_at: "{{ .updated_at }}"
+{% include 'ibm-external-secret-with-metadata.yaml' %}
 ```
 
 While the secret is being reconciled, it will have the secret data along with the required annotations. Below is the example of the secret after reconciliation:

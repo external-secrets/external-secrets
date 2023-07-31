@@ -25,3 +25,6 @@ RUN apk add -U --no-cache \
     gcc \
     diffutils
 RUN pip3 install -r /requirements.txt
+# Disable the top-level directory owner check
+# https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
+RUN git config --system --add safe.directory '*'
