@@ -1581,6 +1581,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#userpass-authentication" class="md-nav__link">
+    UserPass authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#jwtoidc-authentication" class="md-nav__link">
     JWT/OIDC authentication
   </a>
@@ -2372,6 +2379,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#userpass-authentication" class="md-nav__link">
+    UserPass authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#jwtoidc-authentication" class="md-nav__link">
     JWT/OIDC authentication
   </a>
@@ -2706,6 +2720,7 @@ Will generate a secret with:
 <a href="https://www.vaultproject.io/docs/auth/approle">appRole</a>,
 <a href="https://www.vaultproject.io/docs/auth/kubernetes">kubernetes-native</a>,
 <a href="https://www.vaultproject.io/docs/auth/ldap">ldap</a>,
+<a href="https://www.vaultproject.io/docs/auth/userpass">userPass</a>,
 <a href="https://www.vaultproject.io/docs/auth/jwt">jwt/oidc</a> and
 <a href="https://developer.hashicorp.com/vault/docs/auth/aws">awsAuth</a>, each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.</p>
@@ -2826,6 +2841,34 @@ in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
 <span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ldap-password&quot;</span>
+</code></pre></div>
+<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
+<h4 id="userpass-authentication">UserPass authentication</h4>
+<p><a href="https://www.vaultproject.io/docs/auth/userpass">UserPass authentication</a> uses
+username/password pair to get an access token. Username is stored directly in
+a <code>Kind=SecretStore</code> or <code>Kind=ClusterSecretStore</code> resource, password is stored
+in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># VaultUserPass authenticates with Vault using the UserPass auth mechanism</span>
+<span class="w">        </span><span class="c1"># https://www.vaultproject.io/docs/auth/userpass</span>
+<span class="w">        </span><span class="nt">userPass</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># Path where the UserPass authentication backend is mounted</span>
+<span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;userpass&quot;</span>
+<span class="w">          </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;username&quot;</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;password&quot;</span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretRef</code> with the namespace where the secret resides.</p>
 <h4 id="jwtoidc-authentication">JWT/OIDC authentication</h4>
