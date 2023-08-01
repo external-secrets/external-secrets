@@ -44,8 +44,8 @@ require (
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.10.0
 	golang.org/x/oauth2 v0.9.0
-	google.golang.org/api v0.129.0
-	google.golang.org/genproto v0.0.0-20230629202037-9506855d4529 // indirect
+	google.golang.org/api v0.128.0
+	google.golang.org/genproto v0.0.0-20230530153820-e85fd2cbaebc
 	google.golang.org/grpc v1.56.1
 	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
@@ -83,6 +83,7 @@ require (
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.17
 	github.com/sethvargo/go-password v0.2.0
 	github.com/spf13/pflag v1.0.5
+	github.com/tidwall/sjson v1.2.5
 	sigs.k8s.io/yaml v1.3.0
 )
 
