@@ -77,6 +77,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/vault/api/auth/aws v0.4.1
+	github.com/hashicorp/vault/api/auth/userpass v0.4.1
 	github.com/keeper-security/secrets-manager-go/core v1.5.2
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.2
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.17

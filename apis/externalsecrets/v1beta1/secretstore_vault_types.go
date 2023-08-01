@@ -81,7 +81,7 @@ type VaultProvider struct {
 }
 
 // VaultAuth is the configuration used to authenticate with a Vault server.
-// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `jwt` or `cert`
+// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt` or `cert`
 // can be specified.
 type VaultAuth struct {
 	// TokenSecretRef authenticates with Vault by presenting a token.
@@ -117,6 +117,10 @@ type VaultAuth struct {
 	// AWS IAM authentication method
 	// +optional
 	Iam *VaultIamAuth `json:"iam,omitempty"`
+
+	// UserPass authenticates with Vault by passing username/password pair
+	// +optional
+	UserPass *VaultUserPassAuth `json:"userPass,omitempty"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,
@@ -303,4 +307,22 @@ type VaultIamAuth struct {
 	// Specify a service account with IRSA enabled
 	// +optional
 	JWTAuth *VaultAwsJWTAuth `json:"jwt,omitempty"`
+}
+
+// VaultUserPassAuth authenticates with Vault using UserPass authentication method,
+// with the username and password stored in a Kubernetes Secret resource.
+type VaultUserPassAuth struct {
+	// Path where the UserPassword authentication backend is mounted
+	// in Vault, e.g: "user"
+	// +kubebuilder:default=user
+	Path string `json:"path"`
+
+	// Username is a user name used to authenticate using the UserPass Vault
+	// authentication method
+	Username string `json:"username"`
+
+	// SecretRef to a key in a Secret resource containing password for the
+	// user used to authenticate with Vault using the UserPass authentication
+	// method
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }

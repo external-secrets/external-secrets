@@ -1591,6 +1591,19 @@ func TestValidateStore(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid userpass secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					UserPass: &esv1beta1.VaultUserPassAuth{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.String("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid token secret",
 			args: args{
 				auth: esv1beta1.VaultAuth{

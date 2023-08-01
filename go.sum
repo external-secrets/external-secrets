@@ -429,6 +429,8 @@ github.com/hashicorp/vault/api/auth/kubernetes v0.4.1 h1:amFWL1ZhwMWdmqvT51J9phX
 github.com/hashicorp/vault/api/auth/kubernetes v0.4.1/go.mod h1:ikWDT8Adnfvm+8DzKez50vvLD9GWD/unZfJxeqP09sU=
 github.com/hashicorp/vault/api/auth/ldap v0.4.1 h1:5I9K7Tn/b4Sdv/7/ZU5Dvqxce7SnFeMH099bGuipkR8=
 github.com/hashicorp/vault/api/auth/ldap v0.4.1/go.mod h1:BrrVM2IXUII33MKKzdMLJQA4da9TFQoXIO73MVaHM5Y=
+github.com/hashicorp/vault/api/auth/userpass v0.4.1 h1:k/OJOeFqPWdp3H4buyjRF2nPMdgk2qLnEqAAUkDQikU=
+github.com/hashicorp/vault/api/auth/userpass v0.4.1/go.mod h1:PJJd/rurbT65M1nNu9LesRyCb9HI3ywfE10hVeO7gEA=
 github.com/huandu/xstrings v1.3.3/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/huandu/xstrings v1.4.0 h1:D17IlohoQq4UcpqD7fDk80P7l+lwAmlFaBHgOipl2FU=
 github.com/huandu/xstrings v1.4.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
