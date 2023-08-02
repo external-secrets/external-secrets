@@ -21,7 +21,7 @@ import (
 
 	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -121,7 +121,7 @@ func TestValidateStore(t *testing.T) {
 									ClientCert: v1.SecretKeySelector{
 										Name:      "foobar",
 										Key:       "foobar",
-										Namespace: pointer.String("noop"),
+										Namespace: pointer.To("noop"),
 									},
 								},
 							},
@@ -190,7 +190,7 @@ func TestValidateStore(t *testing.T) {
 									BearerToken: v1.SecretKeySelector{
 										Name:      "foobar",
 										Key:       "foobar",
-										Namespace: pointer.String("nop"),
+										Namespace: pointer.To("nop"),
 									},
 								},
 							},
@@ -212,7 +212,7 @@ func TestValidateStore(t *testing.T) {
 							Auth: esv1beta1.KubernetesAuth{
 								ServiceAccount: &v1.ServiceAccountSelector{
 									Name:      "foobar",
-									Namespace: pointer.String("foobar"),
+									Namespace: pointer.To("foobar"),
 								},
 							},
 						},
