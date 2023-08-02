@@ -26,7 +26,7 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -228,7 +228,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.String("mytenant"),
+				TenantID: pointer.To("mytenant"),
 			},
 		},
 		{
@@ -238,7 +238,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType:      &authType,
 				VaultURL:      &vaultURL,
-				TenantID:      pointer.String("mytenant"),
+				TenantID:      pointer.To("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{},
 			},
 		},
@@ -249,7 +249,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.String("mytenant"),
+				TenantID: pointer.To("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
 					ClientSecret: &v1.SecretKeySelector{Name: "password"},
 					ClientID:     &v1.SecretKeySelector{Name: "password"},
@@ -268,10 +268,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.String("mytenant"),
+				TenantID: pointer.To("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo")},
-					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo")},
+					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo")},
+					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo")},
 				},
 			},
 		},
@@ -296,10 +296,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.String("mytenant"),
+				TenantID: pointer.To("mytenant"),
 				AuthSecretRef: &esv1beta1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo"), Key: "secret"},
-					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.String("foo"), Key: "id"},
+					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "secret"},
+					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "id"},
 				},
 			},
 		},
