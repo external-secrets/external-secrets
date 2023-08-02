@@ -26,7 +26,7 @@ import (
 	"github.com/googleapis/gax-go/v2/apierror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -1000,7 +1000,7 @@ func TestValidateStore(t *testing.T) {
 					SecretRef: &esv1beta1.GCPSMAuthSecretRef{
 						SecretAccessKey: v1.SecretKeySelector{
 							Name:      "foo",
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},
@@ -1014,7 +1014,7 @@ func TestValidateStore(t *testing.T) {
 					WorkloadIdentity: &esv1beta1.GCPWorkloadIdentity{
 						ServiceAccountRef: v1.ServiceAccountSelector{
 							Name:      "foo",
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},

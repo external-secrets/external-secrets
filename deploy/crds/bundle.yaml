@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: clusterexternalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -467,7 +467,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -3342,7 +3342,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: externalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -3978,7 +3978,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: pushsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -4197,7 +4197,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: secretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -7072,7 +7072,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7212,7 +7212,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7339,7 +7339,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: fakes.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7399,7 +7399,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: gcraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7506,7 +7506,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: passwords.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7583,7 +7583,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: vaultdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
