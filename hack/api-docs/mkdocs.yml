@@ -105,6 +105,7 @@ nav:
     - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
     - Doppler: provider/doppler.md
     - Keeper Security: provider/keeper-security.md
+    - Cloak End 2 End Encrypted Secrets: provider/cloak.md
     - Scaleway: provider/scaleway.md
     - Delinea: provider/delinea.md
   - Examples:
