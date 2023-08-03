@@ -52,6 +52,7 @@ The following table describes the stability level of each provider and who's res
 | [Keeper Security](https://www.keepersecurity.com/)                                                         |   alpha   |                                                                                                                                              [@ppodevlab](https://github.com/ppodevlab) |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
 | [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   alpha   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) |
+| [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
 
 ## Provider Feature Support
 
@@ -65,7 +66,7 @@ The following table show the support for features across different providers.
 | GCP Secret Manager        |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| IBM Cloud Secrets Manager |      x       |              |                      |                         |        x         |             |                             |
+| IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
@@ -78,6 +79,7 @@ The following table show the support for features across different providers.
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Conjur                    |              |              |                      |                         |        x         |             |                             |
+| Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 

@@ -11,11 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:3.11
+FROM alpine:3.18
 COPY requirements.txt /
 RUN apk add -U --no-cache \
     python3 \
     python3-dev \
+    py3-pip \
     musl-dev \
     git \
     openssh \
@@ -24,3 +25,6 @@ RUN apk add -U --no-cache \
     gcc \
     diffutils
 RUN pip3 install -r /requirements.txt
+# Disable the top-level directory owner check
+# https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
+RUN git config --system --add safe.directory '*'

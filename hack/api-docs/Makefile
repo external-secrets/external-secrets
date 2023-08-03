@@ -42,7 +42,7 @@ all: build
 
 .PHONY: image
 image:
-	$(DOCKER) build -t $(MKDOCS_IMAGE) --build-arg USER_ID=$(UID) -f Dockerfile .
+	$(DOCKER) build -t $(MKDOCS_IMAGE) -f Dockerfile .
 
 .PHONY: build
 build: image generate $(SOURCES)
@@ -52,8 +52,8 @@ build: image generate $(SOURCES)
 		--sig-proxy=true \
 		--rm \
 		--user $(UID):$(GID) \
-		--env GIT_COMMITTER_NAME=$(shell git config user.name) \
-		--env GIT_COMMITTER_EMAIL=$(shell git config user.email) \
+		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
+		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
 		$(MKDOCS_IMAGE) \
 		/bin/bash -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish

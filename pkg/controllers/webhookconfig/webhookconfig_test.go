@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 )
 
 const defaultCACert = `-----BEGIN CERTIFICATE-----
@@ -236,27 +236,27 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 		Webhooks: []admissionregistration.ValidatingWebhook{
 			{
 				Name:                    "secretstores.external-secrets.io",
-				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.String(string(admissionregistration.SideEffectClassNone))),
+				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.To(string(admissionregistration.SideEffectClassNone))),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionregistration.WebhookClientConfig{
 					CABundle: []byte("Cg=="),
 					Service: &admissionregistration.ServiceReference{
 						Name:      "noop",
 						Namespace: "noop",
-						Path:      pointer.String("/validate-secretstore"),
+						Path:      pointer.To("/validate-secretstore"),
 					},
 				},
 			},
 			{
 				Name:                    "clustersecretstores.external-secrets.io",
-				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.String(string(admissionregistration.SideEffectClassNone))),
+				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.To(string(admissionregistration.SideEffectClassNone))),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionregistration.WebhookClientConfig{
 					CABundle: []byte("Cg=="),
 					Service: &admissionregistration.ServiceReference{
 						Name:      "noop",
 						Namespace: "noop",
-						Path:      pointer.String("/validate-clustersecretstore"),
+						Path:      pointer.To("/validate-clustersecretstore"),
 					},
 				},
 			},

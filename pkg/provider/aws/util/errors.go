@@ -19,11 +19,16 @@ import (
 	"regexp"
 )
 
-var regexReqID = regexp.MustCompile(`request id: (\S+)`)
+var regexReqIDs = []*regexp.Regexp{
+	regexp.MustCompile(`request id: (\S+)`),
+	regexp.MustCompile(` Credential=.+`),
+}
 
-// SanitizeErr sanitizes the error string
-// because the requestID must not be included in the error.
-// otherwise the secrets keeps syncing.
+// SanitizeErr sanitizes the error string.
 func SanitizeErr(err error) error {
-	return errors.New(string(regexReqID.ReplaceAll([]byte(err.Error()), nil)))
+	msg := err.Error()
+	for _, regex := range regexReqIDs {
+		msg = string(regex.ReplaceAll([]byte(msg), nil))
+	}
+	return errors.New(msg)
 }

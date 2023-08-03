@@ -28,7 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -258,7 +258,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				}),
 			},
 			want: want{
-				err: errors.New(errVaultCert),
+				err: fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool")),
 			},
 		},
 		"VaultAuthFormatError": {
@@ -632,6 +632,22 @@ func TestGetSecret(t *testing.T) {
 				val: []byte("something different"),
 			},
 		},
+		"ReadSecretWithMissingValueFromData": {
+			reason: "Should return a NoSecretErr",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				data: esv1beta1.ExternalSecretDataRemoteRef{
+					Property: "not-relevant",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: esv1beta1.NoSecretErr,
+				val: nil,
+			},
+		},
 		"ReadSecretWithSliceValue": {
 			reason: "Should return property as a joined slice",
 			args: args{
@@ -814,6 +830,10 @@ func TestGetSecretMap(t *testing.T) {
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
 	}
+	secretWithSpecialCharacter := map[string]interface{}{
+		"access_key":    "acc<ess_&ke.,y",
+		"access_secret": "acce&?ss_s>ecret",
+	}
 	secretWithNilVal := map[string]interface{}{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
@@ -887,6 +907,40 @@ func TestGetSecretMap(t *testing.T) {
 				val: map[string][]byte{
 					"access_key":    []byte("access_key"),
 					"access_secret": []byte("access_secret"),
+				},
+			},
+		},
+		"ReadSecretWithSpecialCharactersKV1": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretWithSpecialCharacter, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_key":    []byte("acc<ess_&ke.,y"),
+					"access_secret": []byte("acce&?ss_s>ecret"),
+				},
+			},
+		},
+		"ReadSecretWithSpecialCharactersKV2": {
+			reason: "Should map the secret even if it has a nil value",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": secretWithSpecialCharacter,
+					}, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"access_key":    []byte("acc<ess_&ke.,y"),
+					"access_secret": []byte("acce&?ss_s>ecret"),
 				},
 			},
 		},
@@ -1415,7 +1469,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					AppRole: &esv1beta1.VaultAppRole{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},
@@ -1464,7 +1518,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Cert: &esv1beta1.VaultCertAuth{
 						ClientCert: esmeta.SecretKeySelector{
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},
@@ -1477,7 +1531,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Cert: &esv1beta1.VaultCertAuth{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},
@@ -1490,7 +1544,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Jwt: &esv1beta1.VaultJwtAuth{
 						SecretRef: &esmeta.SecretKeySelector{
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},
@@ -1503,7 +1557,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Kubernetes: &esv1beta1.VaultKubernetesAuth{
 						ServiceAccountRef: &esmeta.ServiceAccountSelector{
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},
@@ -1516,7 +1570,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Kubernetes: &esv1beta1.VaultKubernetesAuth{
 						SecretRef: &esmeta.SecretKeySelector{
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},
@@ -1529,7 +1583,20 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					Ldap: &esv1beta1.VaultLdapAuth{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.String("invalid"),
+							Namespace: pointer.To("invalid"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid userpass secret",
+			args: args{
+				auth: esv1beta1.VaultAuth{
+					UserPass: &esv1beta1.VaultUserPassAuth{
+						SecretRef: esmeta.SecretKeySelector{
+							Namespace: pointer.To("invalid"),
 						},
 					},
 				},
@@ -1541,7 +1608,7 @@ func TestValidateStore(t *testing.T) {
 			args: args{
 				auth: esv1beta1.VaultAuth{
 					TokenSecretRef: &esmeta.SecretKeySelector{
-						Namespace: pointer.String("invalid"),
+						Namespace: pointer.To("invalid"),
 					},
 				},
 			},

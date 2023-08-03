@@ -38,6 +38,7 @@ import (
 	authaws "github.com/hashicorp/vault/api/auth/aws"
 	authkubernetes "github.com/hashicorp/vault/api/auth/kubernetes"
 	authldap "github.com/hashicorp/vault/api/auth/ldap"
+	authuserpass "github.com/hashicorp/vault/api/auth/userpass"
 	"github.com/spf13/pflag"
 	"github.com/tidwall/gjson"
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -118,21 +119,22 @@ const (
 	errUnknownCAProvider = "unknown caProvider type given"
 	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
 
-	errInvalidStore      = "invalid store"
-	errInvalidStoreSpec  = "invalid store spec"
-	errInvalidStoreProv  = "invalid store provider"
-	errInvalidVaultProv  = "invalid vault provider"
-	errInvalidAppRoleID  = "invalid Auth.AppRole: neither `roleId` nor `roleRef` was supplied"
-	errInvalidAppRoleRef = "invalid Auth.AppRole.RoleRef: %w"
-	errInvalidAppRoleSec = "invalid Auth.AppRole.SecretRef: %w"
-	errInvalidClientCert = "invalid Auth.Cert.ClientCert: %w"
-	errInvalidCertSec    = "invalid Auth.Cert.SecretRef: %w"
-	errInvalidJwtSec     = "invalid Auth.Jwt.SecretRef: %w"
-	errInvalidJwtK8sSA   = "invalid Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef: %w"
-	errInvalidKubeSA     = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
-	errInvalidKubeSec    = "invalid Auth.Kubernetes.SecretRef: %w"
-	errInvalidLdapSec    = "invalid Auth.Ldap.SecretRef: %w"
-	errInvalidTokenRef   = "invalid Auth.TokenSecretRef: %w"
+	errInvalidStore       = "invalid store"
+	errInvalidStoreSpec   = "invalid store spec"
+	errInvalidStoreProv   = "invalid store provider"
+	errInvalidVaultProv   = "invalid vault provider"
+	errInvalidAppRoleID   = "invalid Auth.AppRole: neither `roleId` nor `roleRef` was supplied"
+	errInvalidAppRoleRef  = "invalid Auth.AppRole.RoleRef: %w"
+	errInvalidAppRoleSec  = "invalid Auth.AppRole.SecretRef: %w"
+	errInvalidClientCert  = "invalid Auth.Cert.ClientCert: %w"
+	errInvalidCertSec     = "invalid Auth.Cert.SecretRef: %w"
+	errInvalidJwtSec      = "invalid Auth.Jwt.SecretRef: %w"
+	errInvalidJwtK8sSA    = "invalid Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef: %w"
+	errInvalidKubeSA      = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
+	errInvalidKubeSec     = "invalid Auth.Kubernetes.SecretRef: %w"
+	errInvalidLdapSec     = "invalid Auth.Ldap.SecretRef: %w"
+	errInvalidTokenRef    = "invalid Auth.TokenSecretRef: %w"
+	errInvalidUserPassSec = "invalid Auth.UserPass.SecretRef: %w"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -375,6 +377,11 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 			return fmt.Errorf(errInvalidLdapSec, err)
 		}
 	}
+	if p.Auth.UserPass != nil {
+		if err := utils.ValidateReferentSecretSelector(store, p.Auth.UserPass.SecretRef); err != nil {
+			return fmt.Errorf(errInvalidUserPassSec, err)
+		}
+	}
 	if p.Auth.TokenSecretRef != nil {
 		if err := utils.ValidateReferentSecretSelector(store, *p.Auth.TokenSecretRef); err != nil {
 			return fmt.Errorf(errInvalidTokenRef, err)
@@ -484,7 +491,14 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
 	}
-	vaultSecretValue, err := json.Marshal(vaultSecret)
+	buf := &bytes.Buffer{}
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false)
+	err = enc.Encode(vaultSecret)
+	if err != nil {
+		return fmt.Errorf("error encoding vault secret: %w", err)
+	}
+	vaultSecretValue := bytes.TrimSpace(buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("error marshaling vault secret: %w", err)
 	}
@@ -707,7 +721,7 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 	// Return nil if secret value is null
 	if data == nil {
-		return nil, nil
+		return nil, esv1beta1.NoSecretError{}
 	}
 	jsonStr, err := json.Marshal(data)
 	if err != nil {
@@ -814,6 +828,9 @@ func isReferentSpec(prov *esv1beta1.VaultProvider) bool {
 		return true
 	}
 	if prov.Auth.Ldap != nil && prov.Auth.Ldap.SecretRef.Namespace == nil {
+		return true
+	}
+	if prov.Auth.UserPass != nil && prov.Auth.UserPass.SecretRef.Namespace == nil {
 		return true
 	}
 	if prov.Auth.Jwt != nil && prov.Auth.Jwt.SecretRef != nil && prov.Auth.Jwt.SecretRef.Namespace == nil {
@@ -993,7 +1010,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 	if len(v.store.CABundle) > 0 {
 		ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
 		if !ok {
-			return nil, errors.New(errVaultCert)
+			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
 		}
 	}
 
@@ -1020,7 +1037,7 @@ func (v *client) newConfig() (*vault.Config, error) {
 
 		ok := caCertPool.AppendCertsFromPEM(cert)
 		if !ok {
-			return nil, errors.New(errVaultCert)
+			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
 		}
 	}
 
@@ -1116,6 +1133,11 @@ func (v *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 		return err
 	}
 
+	tokenExists, err = setUserPassAuthToken(ctx, v)
+	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using userPass auth")
+		return err
+	}
 	tokenExists, err = setJwtAuthToken(ctx, v)
 	if tokenExists {
 		v.log.V(1).Info("Retrieved new token using JWT auth")
@@ -1178,6 +1200,18 @@ func setLdapAuthToken(ctx context.Context, v *client) (bool, error) {
 	ldapAuth := v.store.Auth.Ldap
 	if ldapAuth != nil {
 		err := v.requestTokenWithLdapAuth(ctx, ldapAuth)
+		if err != nil {
+			return true, err
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func setUserPassAuthToken(ctx context.Context, v *client) (bool, error) {
+	userPassAuth := v.store.Auth.UserPass
+	if userPassAuth != nil {
+		err := v.requestTokenWithUserPassAuth(ctx, userPassAuth)
 		if err != nil {
 			return true, err
 		}
@@ -1445,6 +1479,26 @@ func (v *client) requestTokenWithLdapAuth(ctx context.Context, ldapAuth *esv1bet
 	}
 	pass := authldap.Password{FromString: password}
 	l, err := authldap.NewLDAPAuth(username, &pass, authldap.WithMountPath(ldapAuth.Path))
+	if err != nil {
+		return err
+	}
+	_, err = v.auth.Login(ctx, l)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *client) requestTokenWithUserPassAuth(ctx context.Context, userPassAuth *esv1beta1.VaultUserPassAuth) error {
+	username := strings.TrimSpace(userPassAuth.Username)
+
+	password, err := v.secretKeyRef(ctx, &userPassAuth.SecretRef)
+	if err != nil {
+		return err
+	}
+	pass := authuserpass.Password{FromString: password}
+	l, err := authuserpass.NewUserpassAuth(username, &pass, authuserpass.WithMountPath(userPassAuth.Path))
 	if err != nil {
 		return err
 	}

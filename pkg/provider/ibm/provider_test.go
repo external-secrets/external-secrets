@@ -18,15 +18,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
+	"github.com/go-openapi/strfmt"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/pointer"
+	utilpointer "k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -35,9 +37,10 @@ import (
 )
 
 const (
-	errExpectedErr = "wanted error got nil"
-	secretKey      = "test-secret"
-	secretUUID     = "d5deb37a-7883-4fe2-a5e7-3c15420adc76"
+	errExpectedErr       = "wanted error got nil"
+	secretKey            = "test-secret"
+	secretUUID           = "d5deb37a-7883-4fe2-a5e7-3c15420adc76"
+	iamCredentialsSecret = "iam_credentials/"
 )
 
 type secretManagerTestCase struct {
@@ -93,15 +96,15 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 
 func makeValidAPIInput() *sm.GetSecretOptions {
 	return &sm.GetSecretOptions{
-		ID: utilpointer.String(secretUUID),
+		ID: utilpointer.To(secretUUID),
 	}
 }
 
 func makeValidAPIOutput() sm.SecretIntf {
 	secret := &sm.Secret{
-		SecretType: utilpointer.String(sm.Secret_SecretType_Arbitrary),
-		Name:       utilpointer.String("testyname"),
-		ID:         utilpointer.String(secretUUID),
+		SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+		Name:       utilpointer.To("testyname"),
+		ID:         utilpointer.To(secretUUID),
 	}
 	var i sm.SecretIntf = secret
 	return i
@@ -208,28 +211,28 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// key is passed in, output is sent back
 	setSecretString := func(smtc *secretManagerTestCase) {
 		secret := &sm.ArbitrarySecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_Arbitrary),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Payload:    &secretString,
 		}
 		smtc.name = "good case: default version is set"
 		smtc.apiOutput = secret
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.expectedSecret = secretString
 	}
 
 	// good case: custom version set
 	setCustomKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.ArbitrarySecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_Arbitrary),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Payload:    &secretString,
 		}
 		smtc.name = "good case: custom version set"
 		smtc.ref.Key = "arbitrary/" + secretUUID
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.expectedSecret = secretString
 	}
@@ -238,14 +241,14 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	secretUserPass := "username_password/" + secretUUID
 	badSecretUserPass := func(smtc *secretManagerTestCase) {
 		secret := &sm.UsernamePasswordSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_UsernamePassword),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_UsernamePassword),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Username:   &secretUsername,
 			Password:   &secretPassword,
 		}
 		smtc.name = "bad case: username_password type without property"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretUserPass
 		smtc.expectError = "remoteRef.property required for secret type username_password"
@@ -255,20 +258,20 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	funcSetUserPass := func(secretName, property, name string) func(smtc *secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			secret := &sm.UsernamePasswordSecret{
-				SecretType: utilpointer.String(sm.Secret_SecretType_UsernamePassword),
-				Name:       utilpointer.String("testyname"),
-				ID:         utilpointer.String(secretUUID),
+				SecretType: utilpointer.To(sm.Secret_SecretType_UsernamePassword),
+				Name:       utilpointer.To("testyname"),
+				ID:         utilpointer.To(secretUUID),
 				Username:   &secretUsername,
 				Password:   &secretPassword,
 			}
 			secretMetadata := &sm.UsernamePasswordSecretMetadata{
-				Name: utilpointer.String("testyname"),
-				ID:   utilpointer.String(secretUUID),
+				Name: utilpointer.To("testyname"),
+				ID:   utilpointer.To(secretUUID),
 			}
 			smtc.name = name
-			smtc.apiInput.ID = utilpointer.String(secretUUID)
+			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.apiOutput = secret
-			smtc.listInput.Search = utilpointer.String("testyname")
+			smtc.listInput.Search = utilpointer.To("testyname")
 			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
 			smtc.listOutput.Secrets[0] = secretMetadata
 			smtc.ref.Key = "username_password/" + secretName
@@ -288,22 +291,22 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	funcSetSecretIam := func(secretName, name string) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			secret := &sm.IAMCredentialsSecret{
-				SecretType: utilpointer.String(sm.Secret_SecretType_IamCredentials),
-				Name:       utilpointer.String("testyname"),
-				ID:         utilpointer.String(secretUUID),
-				ApiKey:     utilpointer.String(secretAPIKey),
+				SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+				Name:       utilpointer.To("testyname"),
+				ID:         utilpointer.To(secretUUID),
+				ApiKey:     utilpointer.To(secretAPIKey),
 			}
 			secretMetadata := &sm.IAMCredentialsSecretMetadata{
-				Name: utilpointer.String("testyname"),
-				ID:   utilpointer.String(secretUUID),
+				Name: utilpointer.To("testyname"),
+				ID:   utilpointer.To(secretUUID),
 			}
-			smtc.apiInput.ID = utilpointer.String(secretUUID)
+			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.name = name
 			smtc.apiOutput = secret
-			smtc.listInput.Search = utilpointer.String("testyname")
+			smtc.listInput.Search = utilpointer.To("testyname")
 			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
 			smtc.listOutput.Secrets[0] = secretMetadata
-			smtc.ref.Key = "iam_credentials/" + secretName
+			smtc.ref.Key = iamCredentialsSecret + secretName
 			smtc.expectedSecret = secretAPIKey
 		}
 	}
@@ -314,7 +317,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	funcSetCertSecretTest := func(secret sm.SecretIntf, name, certType string, good bool) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			smtc.name = name
-			smtc.apiInput.ID = utilpointer.String(secretUUID)
+			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.apiOutput = secret
 			smtc.ref.Key = certType + "/" + secretUUID
 			if good {
@@ -328,12 +331,12 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 	// good case: imported_cert type with property
 	importedCert := &sm.ImportedCertificate{
-		SecretType:   utilpointer.String(sm.Secret_SecretType_ImportedCert),
-		Name:         utilpointer.String("testyname"),
-		ID:           utilpointer.String(secretUUID),
-		Certificate:  utilpointer.String(secretCertificate),
-		Intermediate: utilpointer.String("intermediate"),
-		PrivateKey:   utilpointer.String("private_key"),
+		SecretType:   utilpointer.To(sm.Secret_SecretType_ImportedCert),
+		Name:         utilpointer.To("testyname"),
+		ID:           utilpointer.To(secretUUID),
+		Certificate:  utilpointer.To(secretCertificate),
+		Intermediate: utilpointer.To("intermediate"),
+		PrivateKey:   utilpointer.To("private_key"),
 	}
 	setSecretCert := funcSetCertSecretTest(importedCert, "good case: imported_cert type with property", sm.Secret_SecretType_ImportedCert, true)
 
@@ -342,12 +345,12 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 	// good case: public_cert type with property
 	publicCert := &sm.PublicCertificate{
-		SecretType:   utilpointer.String(sm.Secret_SecretType_PublicCert),
-		Name:         utilpointer.String("testyname"),
-		ID:           utilpointer.String(secretUUID),
-		Certificate:  utilpointer.String(secretCertificate),
-		Intermediate: utilpointer.String("intermediate"),
-		PrivateKey:   utilpointer.String("private_key"),
+		SecretType:   utilpointer.To(sm.Secret_SecretType_PublicCert),
+		Name:         utilpointer.To("testyname"),
+		ID:           utilpointer.To(secretUUID),
+		Certificate:  utilpointer.To(secretCertificate),
+		Intermediate: utilpointer.To("intermediate"),
+		PrivateKey:   utilpointer.To("private_key"),
 	}
 	setSecretPublicCert := funcSetCertSecretTest(publicCert, "good case: public_cert type with property", sm.Secret_SecretType_PublicCert, true)
 
@@ -356,11 +359,11 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 	// good case: private_cert type with property
 	privateCert := &sm.PrivateCertificate{
-		SecretType:  utilpointer.String(sm.Secret_SecretType_PublicCert),
-		Name:        utilpointer.String("testyname"),
-		ID:          utilpointer.String(secretUUID),
-		Certificate: utilpointer.String(secretCertificate),
-		PrivateKey:  utilpointer.String("private_key"),
+		SecretType:  utilpointer.To(sm.Secret_SecretType_PublicCert),
+		Name:        utilpointer.To("testyname"),
+		ID:          utilpointer.To(secretUUID),
+		Certificate: utilpointer.To(secretCertificate),
+		PrivateKey:  utilpointer.To("private_key"),
 	}
 	setSecretPrivateCert := funcSetCertSecretTest(privateCert, "good case: private_cert type with property", sm.Secret_SecretType_PrivateCert, true)
 
@@ -379,13 +382,13 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// bad case: kv type with key which is not in payload
 	badSecretKV := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Data:       secretDataKV,
 		}
 		smtc.name = "bad case: kv type with key which is not in payload"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretKV
 		smtc.ref.Property = "other-key"
@@ -395,13 +398,13 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type with property
 	setSecretKV := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Data:       secretDataKV,
 		}
 		smtc.name = "good case: kv type with property"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretKV
 		smtc.ref.Property = "key1"
@@ -411,13 +414,13 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type with property, returns specific value
 	setSecretKVWithKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Data:       secretDataKVComplex,
 		}
 		smtc.name = "good case: kv type with property, returns specific value"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretKV
 		smtc.ref.Property = "key2"
@@ -427,13 +430,13 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type with property and path, returns specific value
 	setSecretKVWithKeyPath := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Data:       secretDataKVComplex,
 		}
 		smtc.name = "good case: kv type with property and path, returns specific value"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretKV
 		smtc.ref.Property = "keyC.keyC2"
@@ -443,13 +446,13 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type with property and dot, returns specific value
 	setSecretKVWithKeyDot := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Data:       secretDataKVComplex,
 		}
 		smtc.name = "good case: kv type with property and dot, returns specific value"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretKV
 		smtc.ref.Property = "special.log"
@@ -459,13 +462,13 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type without property, returns all
 	setSecretKVWithOutKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
 			Data:       secretDataKVComplex,
 		}
 		smtc.name = "good case: kv type without property, returns all"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretKV
 		smtc.expectedSecret = secretKVComplex
@@ -516,9 +519,11 @@ func TestGetSecretMap(t *testing.T) {
 	secretUsername := "user1"
 	secretPassword := "P@ssw0rd"
 	secretAPIKey := "01234567890"
+	nilValue := "<nil>"
 	secretCertificate := "certificate_value"
 	secretPrivateKey := "private_key_value"
 	secretIntermediate := "intermediate_value"
+	timeValue := "0001-01-01T00:00:00.000Z"
 
 	secretComplex := map[string]interface{}{
 		"key1": "val1",
@@ -535,13 +540,13 @@ func TestGetSecretMap(t *testing.T) {
 	setArbitrary := func(smtc *secretManagerTestCase) {
 		payload := `{"foo":"bar"}`
 		secret := &sm.ArbitrarySecret{
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
-			SecretType: utilpointer.String(sm.Secret_SecretType_Arbitrary),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
 			Payload:    &payload,
 		}
 		smtc.name = "good case: arbitrary"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretUUID
 		smtc.expectedData["arbitrary"] = []byte(payload)
@@ -550,14 +555,14 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: username_password
 	setSecretUserPass := func(smtc *secretManagerTestCase) {
 		secret := &sm.UsernamePasswordSecret{
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
-			SecretType: utilpointer.String(sm.Secret_SecretType_UsernamePassword),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_UsernamePassword),
 			Username:   &secretUsername,
 			Password:   &secretPassword,
 		}
 		smtc.name = "good case: username_password"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = "username_password/" + secretUUID
 		smtc.expectedData["username"] = []byte(secretUsername)
@@ -567,22 +572,22 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: iam_credentials
 	setSecretIam := func(smtc *secretManagerTestCase) {
 		secret := &sm.IAMCredentialsSecret{
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
-			SecretType: utilpointer.String(sm.Secret_SecretType_IamCredentials),
-			ApiKey:     utilpointer.String(secretAPIKey),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+			ApiKey:     utilpointer.To(secretAPIKey),
 		}
 		smtc.name = "good case: iam_credentials"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
-		smtc.ref.Key = "iam_credentials/" + secretUUID
+		smtc.ref.Key = iamCredentialsSecret + secretUUID
 		smtc.expectedData["apikey"] = []byte(secretAPIKey)
 	}
 
 	funcCertTest := func(secret sm.SecretIntf, name, certType string) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			smtc.name = name
-			smtc.apiInput.ID = utilpointer.String(secretUUID)
+			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.apiOutput = secret
 			smtc.ref.Key = certType + "/" + secretUUID
 			smtc.expectedData["certificate"] = []byte(secretCertificate)
@@ -593,50 +598,327 @@ func TestGetSecretMap(t *testing.T) {
 
 	// good case: imported_cert
 	importedCert := &sm.ImportedCertificate{
-		SecretType:   utilpointer.String(sm.Secret_SecretType_ImportedCert),
-		Name:         utilpointer.String("testyname"),
-		ID:           utilpointer.String(secretUUID),
-		Certificate:  utilpointer.String(secretCertificate),
-		Intermediate: utilpointer.String(secretIntermediate),
-		PrivateKey:   utilpointer.String(secretPrivateKey),
+		SecretType:   utilpointer.To(sm.Secret_SecretType_ImportedCert),
+		Name:         utilpointer.To("testyname"),
+		ID:           utilpointer.To(secretUUID),
+		Certificate:  utilpointer.To(secretCertificate),
+		Intermediate: utilpointer.To(secretIntermediate),
+		PrivateKey:   utilpointer.To(secretPrivateKey),
 	}
 	setSecretCert := funcCertTest(importedCert, "good case: imported_cert", sm.Secret_SecretType_ImportedCert)
 
 	// good case: public_cert
 	publicCert := &sm.PublicCertificate{
-		SecretType:   utilpointer.String(sm.Secret_SecretType_PublicCert),
-		Name:         utilpointer.String("testyname"),
-		ID:           utilpointer.String(secretUUID),
-		Certificate:  utilpointer.String(secretCertificate),
-		Intermediate: utilpointer.String(secretIntermediate),
-		PrivateKey:   utilpointer.String(secretPrivateKey),
+		SecretType:   utilpointer.To(sm.Secret_SecretType_PublicCert),
+		Name:         utilpointer.To("testyname"),
+		ID:           utilpointer.To(secretUUID),
+		Certificate:  utilpointer.To(secretCertificate),
+		Intermediate: utilpointer.To(secretIntermediate),
+		PrivateKey:   utilpointer.To(secretPrivateKey),
 	}
 	setSecretPublicCert := funcCertTest(publicCert, "good case: public_cert", sm.Secret_SecretType_PublicCert)
 
 	// good case: private_cert
 	setSecretPrivateCert := func(smtc *secretManagerTestCase) {
 		secret := &sm.PrivateCertificate{
-			Name:        utilpointer.String("testyname"),
-			ID:          utilpointer.String(secretUUID),
-			SecretType:  utilpointer.String(sm.Secret_SecretType_PrivateCert),
+			Name:        utilpointer.To("testyname"),
+			ID:          utilpointer.To(secretUUID),
+			SecretType:  utilpointer.To(sm.Secret_SecretType_PrivateCert),
 			Certificate: &secretCertificate,
 			PrivateKey:  &secretPrivateKey,
 		}
 		smtc.name = "good case: private_cert"
-		smtc.apiInput.ID = utilpointer.String(secretUUID)
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
 		smtc.apiOutput = secret
 		smtc.ref.Key = "private_cert/" + secretUUID
 		smtc.expectedData["certificate"] = []byte(secretCertificate)
 		smtc.expectedData["private_key"] = []byte(secretPrivateKey)
 	}
 
+	// good case: arbitrary with metadata
+	setArbitraryWithMetadata := func(smtc *secretManagerTestCase) {
+		payload := `{"foo":"bar"}`
+		secret := &sm.ArbitrarySecret{
+			CreatedBy:  utilpointer.To("testCreatedBy"),
+			CreatedAt:  &strfmt.DateTime{},
+			Downloaded: utilpointer.To(false),
+			Labels:     []string{"abc", "def", "xyz"},
+			LocksTotal: utilpointer.To(int64(20)),
+			Payload:    &payload,
+		}
+		smtc.name = "good case: arbitrary with metadata"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretUUID
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedData = map[string][]byte{"arbitrary": []byte(payload),
+			"created_at":      []byte(timeValue),
+			"created_by":      []byte(*secret.CreatedBy),
+			"crn":             []byte(nilValue),
+			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
+			"id":              []byte(nilValue),
+			"labels":          []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":     []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"payload":         []byte(payload),
+			"secret_group_id": []byte(nilValue),
+			"secret_type":     []byte(nilValue),
+			"updated_at":      []byte(nilValue),
+			"versions_total":  []byte(nilValue),
+		}
+	}
+
+	// good case: iam_credentials with metadata
+	setSecretIamWithMetadata := func(smtc *secretManagerTestCase) {
+		secret := &sm.IAMCredentialsSecret{
+			CreatedBy:  utilpointer.To("testCreatedBy"),
+			CreatedAt:  &strfmt.DateTime{},
+			Downloaded: utilpointer.To(false),
+			Labels:     []string{"abc", "def", "xyz"},
+			LocksTotal: utilpointer.To(int64(20)),
+			ApiKey:     utilpointer.To(secretAPIKey),
+		}
+		smtc.name = "good case: iam_credentials with metadata"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = iamCredentialsSecret + secretUUID
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedData = map[string][]byte{"api_key": []byte(secretAPIKey),
+			"apikey":          []byte(secretAPIKey),
+			"created_at":      []byte(timeValue),
+			"created_by":      []byte(*secret.CreatedBy),
+			"crn":             []byte(nilValue),
+			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
+			"id":              []byte(nilValue),
+			"labels":          []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":     []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"reuse_api_key":   []byte(nilValue),
+			"secret_group_id": []byte(nilValue),
+			"secret_type":     []byte(nilValue),
+			"ttl":             []byte(nilValue),
+			"updated_at":      []byte(nilValue),
+			"versions_total":  []byte(nilValue),
+		}
+	}
+
+	// "good case: username_password with metadata
+	setSecretUserPassWithMetadata := func(smtc *secretManagerTestCase) {
+		secret := &sm.UsernamePasswordSecret{
+			CreatedBy:  utilpointer.To("testCreatedBy"),
+			CreatedAt:  &strfmt.DateTime{},
+			Downloaded: utilpointer.To(false),
+			Labels:     []string{"abc", "def", "xyz"},
+			LocksTotal: utilpointer.To(int64(20)),
+			Username:   &secretUsername,
+			Password:   &secretPassword,
+		}
+		smtc.name = "good case: username_password with metadata"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = "username_password/" + secretUUID
+		smtc.expectedData["username"] = []byte(secretUsername)
+		smtc.expectedData["password"] = []byte(secretPassword)
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedData = map[string][]byte{
+			"created_at":      []byte(timeValue),
+			"created_by":      []byte(*secret.CreatedBy),
+			"crn":             []byte(nilValue),
+			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
+			"id":              []byte(nilValue),
+			"labels":          []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":     []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"password":        []byte(secretPassword),
+			"rotation":        []byte(nilValue),
+			"secret_group_id": []byte(nilValue),
+			"secret_type":     []byte(nilValue),
+			"updated_at":      []byte(nilValue),
+			"username":        []byte(secretUsername),
+			"versions_total":  []byte(nilValue),
+		}
+	}
+
+	// good case: imported_cert with metadata
+	setimportedCertWithMetadata := func(smtc *secretManagerTestCase) {
+		secret := &sm.ImportedCertificate{
+			CreatedBy:    utilpointer.To("testCreatedBy"),
+			CreatedAt:    &strfmt.DateTime{},
+			Downloaded:   utilpointer.To(false),
+			Labels:       []string{"abc", "def", "xyz"},
+			LocksTotal:   utilpointer.To(int64(20)),
+			Certificate:  utilpointer.To(secretCertificate),
+			Intermediate: utilpointer.To(secretIntermediate),
+			PrivateKey:   utilpointer.To(secretPrivateKey),
+		}
+		smtc.name = "good case: imported_cert with metadata"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = "imported_cert" + "/" + secretUUID
+
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedData = map[string][]byte{
+			"certificate":           []byte(secretCertificate),
+			"created_at":            []byte(timeValue),
+			"created_by":            []byte(*secret.CreatedBy),
+			"crn":                   []byte(nilValue),
+			"downloaded":            []byte(strconv.FormatBool(*secret.Downloaded)),
+			"expiration_date":       []byte(nilValue),
+			"id":                    []byte(nilValue),
+			"intermediate":          []byte(secretIntermediate),
+			"intermediate_included": []byte(nilValue),
+			"issuer":                []byte(nilValue),
+			"labels":                []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":           []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"private_key":           []byte(secretPrivateKey),
+			"private_key_included":  []byte(nilValue),
+			"secret_group_id":       []byte(nilValue),
+			"secret_type":           []byte(nilValue),
+			"serial_number":         []byte(nilValue),
+			"signing_algorithm":     []byte(nilValue),
+			"updated_at":            []byte(nilValue),
+			"validity":              []byte(nilValue),
+			"versions_total":        []byte(nilValue),
+		}
+	}
+
+	// good case: public_cert with metadata
+	setPublicCertWithMetadata := func(smtc *secretManagerTestCase) {
+		secret := &sm.PublicCertificate{
+			CreatedBy:    utilpointer.To("testCreatedBy"),
+			CreatedAt:    &strfmt.DateTime{},
+			Downloaded:   utilpointer.To(false),
+			Labels:       []string{"abc", "def", "xyz"},
+			LocksTotal:   utilpointer.To(int64(20)),
+			Certificate:  utilpointer.To(secretCertificate),
+			Intermediate: utilpointer.To(secretIntermediate),
+			PrivateKey:   utilpointer.To(secretPrivateKey),
+		}
+		smtc.name = "good case: public_cert with metadata"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = "public_cert" + "/" + secretUUID
+
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedData = map[string][]byte{
+			"certificate":     []byte(secretCertificate),
+			"common_name":     []byte(nilValue),
+			"created_at":      []byte(timeValue),
+			"created_by":      []byte(*secret.CreatedBy),
+			"crn":             []byte(nilValue),
+			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
+			"id":              []byte(nilValue),
+			"intermediate":    []byte(secretIntermediate),
+			"key_algorithm":   []byte(nilValue),
+			"labels":          []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":     []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"private_key":     []byte(secretPrivateKey),
+			"rotation":        []byte(nilValue),
+			"secret_group_id": []byte(nilValue),
+			"secret_type":     []byte(nilValue),
+			"updated_at":      []byte(nilValue),
+			"versions_total":  []byte(nilValue),
+		}
+	}
+
+	// good case: private_cert with metadata
+	setPrivateCertWithMetadata := func(smtc *secretManagerTestCase) {
+		secret := &sm.PrivateCertificate{
+			CreatedBy:   utilpointer.To("testCreatedBy"),
+			CreatedAt:   &strfmt.DateTime{},
+			Downloaded:  utilpointer.To(false),
+			Labels:      []string{"abc", "def", "xyz"},
+			LocksTotal:  utilpointer.To(int64(20)),
+			Certificate: utilpointer.To(secretCertificate),
+			PrivateKey:  utilpointer.To(secretPrivateKey),
+		}
+		smtc.name = "good case: private_cert with metadata"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = "private_cert" + "/" + secretUUID
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedData = map[string][]byte{
+			"certificate":          []byte(secretCertificate),
+			"certificate_template": []byte(nilValue),
+			"common_name":          []byte(nilValue),
+			"created_at":           []byte(timeValue),
+			"created_by":           []byte(*secret.CreatedBy),
+			"crn":                  []byte(nilValue),
+			"downloaded":           []byte(strconv.FormatBool(*secret.Downloaded)),
+			"expiration_date":      []byte(nilValue),
+			"id":                   []byte(nilValue),
+			"issuer":               []byte(nilValue),
+			"labels":               []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":          []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"private_key":          []byte(secretPrivateKey),
+			"secret_group_id":      []byte(nilValue),
+			"secret_type":          []byte(nilValue),
+			"serial_number":        []byte(nilValue),
+			"signing_algorithm":    []byte(nilValue),
+			"updated_at":           []byte(nilValue),
+			"validity":             []byte(nilValue),
+			"versions_total":       []byte(nilValue),
+		}
+	}
+
+	// good case: kv with property and metadata
+	setSecretKVWithMetadata := func(smtc *secretManagerTestCase) {
+		secret := &sm.KVSecret{
+			CreatedBy:  utilpointer.To("testCreatedBy"),
+			CreatedAt:  &strfmt.DateTime{},
+			Downloaded: utilpointer.To(false),
+			Labels:     []string{"abc", "def", "xyz"},
+			LocksTotal: utilpointer.To(int64(20)),
+			Data:       secretComplex,
+		}
+		smtc.name = "good case: kv, with property and with metadata"
+		smtc.apiInput.ID = core.StringPtr(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = "kv/" + secretUUID
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedData = map[string][]byte{
+			"created_at":      []byte(timeValue),
+			"created_by":      []byte(*secret.CreatedBy),
+			"crn":             []byte(nilValue),
+			"data":            []byte("map[key1:val1 key2:val2 keyC:map[keyC1:map[keyA:valA keyB:valB]]]"),
+			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
+			"id":              []byte(nilValue),
+			"key1":            []byte("val1"),
+			"key2":            []byte("val2"),
+			"keyC":            []byte(`{"keyC1":{"keyA":"valA","keyB":"valB"}}`),
+			"labels":          []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":     []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"secret_group_id": []byte(nilValue),
+			"secret_type":     []byte(nilValue),
+			"updated_at":      []byte(nilValue),
+			"versions_total":  []byte(nilValue),
+		}
+	}
+
+	// good case: iam_credentials without metadata
+	setSecretIamWithoutMetadata := func(smtc *secretManagerTestCase) {
+		secret := &sm.IAMCredentialsSecret{
+			CreatedBy:  utilpointer.To("testCreatedBy"),
+			CreatedAt:  &strfmt.DateTime{},
+			Downloaded: utilpointer.To(false),
+			Labels:     []string{"abc", "def", "xyz"},
+			LocksTotal: utilpointer.To(int64(20)),
+			ApiKey:     utilpointer.To(secretAPIKey),
+		}
+		smtc.name = "good case: iam_credentials without metadata"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = iamCredentialsSecret + secretUUID
+		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyNone
+		smtc.expectedData = map[string][]byte{
+			"apikey": []byte(secretAPIKey),
+		}
+	}
+
 	secretKeyKV := "kv/" + secretUUID
 	// good case: kv, no property, return entire payload as key:value pairs
 	setSecretKV := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
 			Data:       secretComplex,
 		}
 		smtc.name = "good case: kv, no property, return entire payload as key:value pairs"
@@ -651,9 +933,9 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: kv, with property
 	setSecretKVWithProperty := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			Name:       utilpointer.String("d5deb37a-7883-4fe2-a5e7-3c15420adc76"),
-			ID:         utilpointer.String(secretUUID),
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("d5deb37a-7883-4fe2-a5e7-3c15420adc76"),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
 			Data:       secretComplex,
 		}
 		smtc.name = "good case: kv, with property"
@@ -667,9 +949,9 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: kv, with property and path
 	setSecretKVWithPathAndProperty := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			Name:       utilpointer.String(secretUUID),
-			ID:         utilpointer.String(secretUUID),
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To(secretUUID),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
 			Data:       secretComplex,
 		}
 		smtc.name = "good case: kv, with property and path"
@@ -684,9 +966,9 @@ func TestGetSecretMap(t *testing.T) {
 	// bad case: kv, with property and path
 	badSecretKVWithUnknownProperty := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			Name:       utilpointer.String("testyname"),
-			ID:         utilpointer.String(secretUUID),
-			SecretType: utilpointer.String(sm.Secret_SecretType_Kv),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
 			Data:       secretComplex,
 		}
 		smtc.name = "bad case: kv, with property and path"
@@ -710,6 +992,14 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badSecretKVWithUnknownProperty),
 		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
 		makeValidSecretManagerTestCaseCustom(setSecretPrivateCert),
+		makeValidSecretManagerTestCaseCustom(setSecretIamWithMetadata),
+		makeValidSecretManagerTestCaseCustom(setArbitraryWithMetadata),
+		makeValidSecretManagerTestCaseCustom(setSecretUserPassWithMetadata),
+		makeValidSecretManagerTestCaseCustom(setimportedCertWithMetadata),
+		makeValidSecretManagerTestCaseCustom(setPublicCertWithMetadata),
+		makeValidSecretManagerTestCaseCustom(setPrivateCertWithMetadata),
+		makeValidSecretManagerTestCaseCustom(setSecretKVWithMetadata),
+		makeValidSecretManagerTestCaseCustom(setSecretIamWithoutMetadata),
 	}
 
 	sm := providerIBM{}

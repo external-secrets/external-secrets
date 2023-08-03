@@ -79,6 +79,11 @@ kubectl run --rm \
   --env="SCALEWAY_PROJECT_ID=${SCALEWAY_PROJECT_ID:-}" \
   --env="SCALEWAY_ACCESS_KEY=${SCALEWAY_ACCESS_KEY:-}" \
   --env="SCALEWAY_SECRET_KEY=${SCALEWAY_SECRET_KEY:-}" \
+  --env="DELINEA_TLD=${DELINEA_TLD:-}" \
+  --env="DELINEA_URL_TEMPLATE=${DELINEA_URL_TEMPLATE:-}" \
+  --env="DELINEA_TENANT=${DELINEA_TENANT:-}" \
+  --env="DELINEA_CLIENT_ID=${DELINEA_CLIENT_ID:-}" \
+  --env="DELINEA_CLIENT_SECRET=${DELINEA_CLIENT_SECRET:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
