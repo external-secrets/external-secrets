@@ -4,7 +4,7 @@ should match snapshot of default values:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.12.0
+        controller-gen.kubebuilder.io/version: v0.12.1
       name: secretstores.external-secrets.io
     spec:
       conversion:
@@ -2578,6 +2578,33 @@ should match snapshot of default values:
                                     namespace:
                                       description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                       type: string
+                                  type: object
+                                userPass:
+                                  description: UserPass authenticates with Vault by passing username/password pair
+                                  properties:
+                                    path:
+                                      default: user
+                                      description: 'Path where the UserPassword authentication backend is mounted in Vault, e.g: "user"'
+                                      type: string
+                                    secretRef:
+                                      description: SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+                                      properties:
+                                        key:
+                                          description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                    username:
+                                      description: Username is a user name used to authenticate using the UserPass Vault authentication method
+                                      type: string
+                                  required:
+                                    - path
+                                    - username
                                   type: object
                               type: object
                             caBundle:
