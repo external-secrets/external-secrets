@@ -2189,6 +2189,9 @@
 <p>ESO and the ESO Helm Chart have two distinct lifecycles and can be released independently. Helm Chart releases are named <code>external-secrets-x.y.z</code>.</p>
 <p>The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release.</p>
 <h2 id="release-eso">Release ESO</h2>
+<p>When doing a release it's best to start with  with the <a href="https://github.com/external-secrets/external-secrets/issues/new?assignees=&amp;labels=area%2Frelease&amp;projects=&amp;template=create_release.md&amp;title=Release+x.y">"Create Release" issue template</a>, it has a checklist to go over.</p>
+<p>⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
+Otherwise the <code>latest</code> documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).</p>
 <ol>
 <li>Run <code>Create Release</code> Action to create a new release, pass in the desired version number to release.<ol>
 <li>choose the right <code>branch</code> to execute the action: use <code>main</code> when creating a new release. Use <code>release-x.y</code> when you want to bump a LTS release.</li>
