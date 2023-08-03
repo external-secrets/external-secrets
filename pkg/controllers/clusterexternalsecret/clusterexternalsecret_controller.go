@@ -74,6 +74,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	err := r.Get(ctx, req.NamespacedName, &clusterExternalSecret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			cesmetrics.RemoveMetrics(req.Namespace, req.Name)
 			return ctrl.Result{}, nil
 		}
 
