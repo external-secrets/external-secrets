@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
-    external-secrets.io/component : webhook
+    external-secrets.io/component: webhook
 spec:
   {{- if .Values.webhook.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.webhook.podDisruptionBudget.minAvailable }}

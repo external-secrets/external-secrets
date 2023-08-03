@@ -32,6 +32,12 @@ source <(setup-envtest use 1.20.2 -p env --os $(go env GOOS) --arch $(go env GOA
 
 for more information, please see [setup-envtest docs](https://github.com/kubernetes-sigs/controller-runtime/tree/master/tools/setup-envtest)
 
+Our helm chart is tested using `helm-unittest`. You will need it to run tests locally if you modify the helm chart. Install it with the following command:
+
+```
+$ helm plugin install https://github.com/helm-unittest/helm-unittest
+```
+
 ## Building & Testing
 
 The project uses the `make` build system. It'll run code generators, tests and
@@ -82,23 +88,33 @@ make crds.uninstall
 
 If you need to test some other k8s integrations and need the operator to be deployed to the actual cluster while developing, you can use the following workflow:
 
-```
+```shell
+# Start a local K8S cluster with KinD
 kind create cluster --name external-secrets
 
-export TAG=v2
-export IMAGE=eso-local
+export TAG=$(make docker.tag)
+export IMAGE=$(make docker.imagename)
 
-#For building in linux
-docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux
+# Build docker image
+make docker.build
 
-#For building in MacOS (OSX)
-#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=amd64 --build-arg TARGETOS=darwin
+# Load docker image into local kind cluster
+kind load docker-image $IMAGE:$TAG -n external-secrets
 
-#For building in ARM
-#docker build . -t $IMAGE:$TAG --build-arg TARGETARCH=arm --build-arg TARGETOS=linux
+# (Optional) Pull the image from GitHub Repo to copy into kind
+#docker pull ghcr.io/external-secrets/external-secrets:v0.8.2
+#kind load docker-image ghcr.io/external-secrets/external-secrets:v0.8.2 -n external-secrets
 
+# Update helm charts and install to KinD cluster
 make helm.generate
-helm upgrade --install external-secrets ./deploy/charts/external-secrets/ --set image.repository=$IMAGE --set image.tag=$TAG
+helm upgrade --install external-secrets ./deploy/charts/external-secrets/ \
+--set image.repository=$IMAGE --set image.tag=$TAG \
+--set webhook.image.repository=$IMAGE --set webhook.image.tag=$TAG \
+--set certController.image.repository=$IMAGE --set certController.image.tag=$TAG
+
+
+# Command to delete the cluster when done
+# kind delete cluster -n external-secrets
 ```
 
 !!! note "Contributing Flow"

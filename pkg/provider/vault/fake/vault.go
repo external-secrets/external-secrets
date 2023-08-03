@@ -16,8 +16,13 @@ package fake
 
 import (
 	"context"
+	"fmt"
+	"reflect"
+	"strings"
 
 	vault "github.com/hashicorp/vault/api"
+
+	util "github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
 type LoginFn func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
@@ -80,13 +85,33 @@ func NewReadMetadataWithContextFn(secret map[string]interface{}, err error) Read
 
 func NewWriteWithContextFn(secret map[string]interface{}, err error) WriteWithContextFn {
 	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
-		vault := &vault.Secret{
-			Data: secret,
-		}
-		return vault, err
+		return &vault.Secret{Data: secret}, err
 	}
 }
 
+func ExpectWriteWithContextValue(expected map[string]interface{}) WriteWithContextFn {
+	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		if strings.Contains(path, "metadata") {
+			return &vault.Secret{Data: data}, nil
+		}
+		if !reflect.DeepEqual(expected, data) {
+			return nil, fmt.Errorf("expected: %v, got: %v", expected, data)
+		}
+		return &vault.Secret{Data: data}, nil
+	}
+}
+
+func ExpectWriteWithContextNoCall() WriteWithContextFn {
+	return func(_ context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		return nil, fmt.Errorf("fail")
+	}
+}
+
+func ExpectDeleteWithContextNoCall() DeleteWithContextFn {
+	return func(ctx context.Context, path string) (*vault.Secret, error) {
+		return nil, fmt.Errorf("fail")
+	}
+}
 func WriteChangingReadContext(secret map[string]interface{}, l Logical) WriteWithContextFn {
 	v := &vault.Secret{
 		Data: secret,
@@ -234,4 +259,28 @@ func (c *VaultClient) SetNamespace(namespace string) {
 
 func (c *VaultClient) AddHeader(key, value string) {
 	c.MockAddHeader(key, value)
+}
+
+func ClientWithLoginMock(_ *vault.Config) (util.Client, error) {
+	cl := VaultClient{
+		MockAuthToken: NewAuthTokenFn(),
+		MockSetToken:  NewSetTokenFn(),
+		MockToken:     NewTokenFn(""),
+		MockAuth:      NewVaultAuth(),
+		MockLogical:   NewVaultLogical(),
+	}
+	auth := cl.Auth()
+	token := cl.AuthToken()
+	logical := cl.Logical()
+	out := util.VClient{
+		SetTokenFunc:     cl.SetToken,
+		TokenFunc:        cl.Token,
+		ClearTokenFunc:   cl.ClearToken,
+		AuthField:        auth,
+		AuthTokenField:   token,
+		LogicalField:     logical,
+		SetNamespaceFunc: cl.SetNamespace,
+		AddHeaderFunc:    cl.AddHeader,
+	}
+	return out, nil
 }

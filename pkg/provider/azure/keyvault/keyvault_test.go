@@ -25,7 +25,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	"github.com/Azure/go-autorest/autorest"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -158,6 +158,10 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
+func (f fakeRef) GetProperty() string {
+	return ""
+}
+
 func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 	unsupportedType := func(smtc *secretManagerTestCase) {
 		smtc.pushRef = fakeRef{
@@ -172,9 +176,9 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
-			Value: pointer.String("foo"),
+			Value: pointer.To("foo"),
 		}
 		smtc.deleteSecretOutput = keyvault.DeletedSecretBundle{}
 	}
@@ -192,7 +196,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 			key: secretName,
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
-			Value: pointer.String("foo"),
+			Value: pointer.To("foo"),
 		}
 		smtc.expectError = errNotManaged
 		smtc.deleteErr = autorest.DetailedError{StatusCode: 500, Method: "DELETE", Message: "Shouldnt happen"}
@@ -212,9 +216,9 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
-			Value: pointer.String("foo"),
+			Value: pointer.To("foo"),
 		}
 		smtc.expectError = errNoPermission
 		smtc.deleteErr = autorest.DetailedError{StatusCode: 403, Method: "DELETE", Message: errNoPermission}
@@ -234,7 +238,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 		smtc.deleteCertificateOutput = keyvault.DeletedCertificateBundle{}
@@ -270,7 +274,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 		smtc.expectError = "No certificate delete Permissions"
@@ -291,7 +295,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 		smtc.deleteKeyOutput = keyvault.DeletedKeyBundle{}
@@ -327,7 +331,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 		smtc.expectError = errNoPermission
@@ -365,7 +369,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.String(fakeURL)},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -396,7 +400,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 			Value: &goodSecret,
 		}
@@ -408,7 +412,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 			Value: &goodSecret,
 		}
@@ -420,7 +424,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("nope"),
+				"managed-by": pointer.To("nope"),
 			},
 			Value: &goodSecret,
 		}
@@ -476,7 +480,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String(managerLabel),
+				"managed-by": pointer.To(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -488,7 +492,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String(managerLabel),
+				"managed-by": pointer.To(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -500,7 +504,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String(managerLabel),
+				"managed-by": pointer.To(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -512,7 +516,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String(managerLabel),
+				"managed-by": pointer.To(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -524,7 +528,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String(managerLabel),
+				"managed-by": pointer.To(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -549,7 +553,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.String("internal-secrets"),
+				"managed-by": pointer.To("internal-secrets"),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -586,9 +590,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			key: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.String("123"),
+			X509Thumbprint: pointer.To("123"),
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 	}
@@ -599,9 +603,23 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			key: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.String("123"),
+			X509Thumbprint: pointer.To("123"),
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
+			},
+		}
+	}
+
+	certPEMWithGarbageSuccess := func(smtc *secretManagerTestCase) {
+		pemCert, _ := base64.StdEncoding.DecodeString("LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBNWNXTTdWYnd2dGtxWXVLd1lrVUhlSXRMQnd2eUd2ekhzODQwbDZpT00rZXZneEVXCmcydFAvb3NYeG1Rb1ZOdDJLUXRScEwweTh4K3JhWHhRRm5VTlJEc3pHSEkyWTdmWnVVRWd0M2FQQVhmUUlMNm0KazdJaWQ0VmZUdlpLTFhNbnB6dEduNVlaTVBxak0yU3k3ZWY5ZjJMNkxuamNwRkRNZFBqN25vd0pxcTdMb3kxcAo2aU1xeHNyRGY1RXloRHdGUVhiZHRQM0pPNmpjSDY4UUVsVkE0eVR5RHR4WXpxSS9mb0pIM2tGZStHSmJwS0FNCnlNQXRwVkphS2F6VGVnTCtWZnc1MFV2czFLT3A3L1ZxZXVCd2FpZDhtWkhYWDFRUE44RE9VUmJRbkhoVUp1Y3UKZlIyNVdlbHhqWUtOMGdGWFE1bHo5MXY1TmVlTnhQWkhRbkZ2NVFJREFRQUJBb0lCQUNQR2FuYlp2b280amR6dgpwcjdtT0krUVFKSk1UZG5kMmNvcEpROG44MXdwaXE1Qmp0dlBiWmtZVnc5UXNPYmxkTFJYU3RMM2ttTkFYeFFCCmd3YThHdUN3eHZmYmNKUitINncwYzcrYytnOGtkSWRrcDlML1BWYVdzWXc5MUxiVzR5bXFsUWhyK21naDNoODIKWXBXZ05Wd01NUi9qT1pkcjdTbVpTclFZNGJodFN6eFlDOE5Vc0hwL1JaR3FqejdILzRyR1B5dEpTMjFVYVMzegpabXBLdHcrRm81ZVF5UW5lUVUyL2dmNkxTV3JUZjI5Y3NXSEVlMUpRWHZzYlA1enAxbGEzRjBXczEvOUNyT0VNCnFsbUNWNFRXWXR1Nno1a2k2Y1c1enkybEVLSnpCYTVqT0ZqRGtqREFzRm1IZmNydXlMbVVqZUU2MWlPZjAycXQKV1Z5MkZZRUNnWUVBNmRRdFgxTDNmaVpKdFUzd0lkVytxVkZSeEFwMUd6RG5TaEJBQmg0SDA5eHFhMzc2RXovSgpYUmdrV0xLZTU0VUdnZi9ZTzJDTkRkSzVGZmw1MHNrN1hDeGJPRzZITTNSRytxZjQ0MXUzQWd6L0ppa3QyOFBMCmZ2dUJYRG91a1hQUUVvWHR1cHNHaFJLRUxleWhZTHNJSzZNWndJQnFBQThGV200cWc1b2RPazBDZ1lFQSs0N2sKaXNHMWRxaFdnUk1Fc1ZBVG9SeW9ITDBXYVFpbkhXUWQ4ZFBDZ1BDNzJqbmZQdmZ2THZnUEVEeEMxTk41VEJNUQpwOHliS2EvOEZOVzV0VkpQdXdsSGlveURKdHZVVFQ1UVZtVmtOa21LZllZR1h0dVlqQUVtaVJWL0JSRVZQSG0yCnYvTjBLRHA2YVRTQXAxdm10czZoQ0I0ZGNSeXkyNnNTdG5XcUova0NnWUEwRHlBMjYrTGNQQ3dHNko1QStqU2oKdjg0amhteUNMRVlpVURIZzZzaTFXNHA1K21BMDd1dW5CVnY2UDNKdmUwZHlwQUtCWGNLcHhET2U5OWN1bmN6UQpmYk9sZ2I0cUw0WXFBa0hBWk1mKzllUE1uRGh3aUV3RExuMmppZlNhUDUyZ3NoNjJnQk5ZaDBIVWM2Mk9PclhiCitVa2ZlYmVmNGJoQVpPeWtOaWl4dFFLQmdFNm1MRm9kbWlpUkZRcWg4Wk9tWDV5OW91bnBUSHBtVkNsaVJlSjMKdkpZbnJmUGFxQ3U5eExCQXFpVC9VajNNS0Y1YWo1aUc1ZlF3cTNXd0pMSEdIRnR6MlVRK0RqczErN2h5eFJkZAo5K2pwTVQxeGk4aFlpK2NwN094ckpoMWxhK2hPZlk2aUJTMFdxM0w5RVVSQi9XNG1TRDZMZTlVRGpnQVVDbk8xCmNnK3hBb0dCQU9YVktjTzFpS3UrZWNCZUxFMVV0M2JUcUFCL2tCcFRkdVZZbTh3Mld0b1BUQ2tqUTZNc2o5ZWcKRjJ0R0pwbUV0djZ6NnMzbmo1TmhSWlYyWDh0WjMxWHViVkdVQUt4aGprSnlPQnBuczk3bTlxZUMxRHlFcDlMaQp6RnFpQ1VMWVp1c1JObzVTWVRCcHBCbmFPN1ArODhFMnFmV3Fob0h6b1dYNWk1a2dpK0tXCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCi0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQpNSUlGcHpDQ0E0K2dBd0lCQWdJVU1IYVQ2bWRvL3dlK24rdDRQdkdCWWlHQ0lxNHdEUVlKS29aSWh2Y05BUUVMCkJRQXdZekVMTUFrR0ExVUVCaE1DUVZVeEV6QVJCZ05WQkFnTUNsTnZiV1V0VTNSaGRHVXhJVEFmQmdOVkJBb00KR0VsdWRHVnlibVYwSUZkcFpHZHBkSE1nVUhSNUlFeDBaREVjTUJvR0ExVUVBd3dUWVc1dmRHaGxjaTFtYjI4dApZbUZ5TG1OdmJUQWVGdzB5TWpBMk1Ea3hOelExTXpaYUZ3MHlNekEyTURreE56UTFNelphTUdNeEN6QUpCZ05WCkJBWVRBa0ZWTVJNd0VRWURWUVFJREFwVGIyMWxMVk4wWVhSbE1TRXdId1lEVlFRS0RCaEpiblJsY201bGRDQlgKYVdSbmFYUnpJRkIwZVNCTWRHUXhIREFhQmdOVkJBTU1FMkZ1YjNSb1pYSXRabTl2TFdKaGNpNWpiMjB3Z2dJaQpNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUNEd0F3Z2dJS0FvSUNBUUNaSE80bzZKbXlPWmRmQXQ3RFdqR2tHdzdECjVVSFNQR2V0Mk44NnJwRll3K2U4Zy93UngwZ2Qwc0ZPaXpQQURHY3J6ZnVhOWd2RXA0VnNXb2FHbmN3UXhqdnMKK2daK1pkNlJFTzR0Szc0VEZmMWlmYm5qMFBxNjhDZUJRaWhvMWwzcDNlMEMvMnplSTIzYnZWRHZlMm13VXE5aAo2OFExRVJnVjFNS2liR1NTWmpOQ0M3ZERhUFpqSms1YjBZVlRXcURFYnpkRFZ4dmVVTDVScUZnL0RKQTMzVnE2ClRUM0NlOUYwSHBKK294K2krOHFMZllOamRMUlA2ZWxLS01OZ2lYYTUxb3Z0OTIxeFJFRnZYRXYvTUtqWTlhNkoKaTZ3SEUrNDZnb2xWOFdqbitsTEZESlR4elhBRDdqdjc1c2h2NFhHM3RZWkNieHEzM2dibW96c0VQZ3lTRGtCMgpuc3NLSFBBYUlTT2lqYzQ4Ykl4cGw1aHBST1lGRW5SQ1p4Wm5YUDY3S2VRdVVmV0JKaFVnYWltc0JRK3p6cFB6CmY1VG40Z1RMZFpZdjVONVdVdnYySXVBeUJLYWtGYUdWWE8xaWdhQ3lUL1EzQXBBNmRseEo1VW44SzY4dS9KSGEKZllmeXp4MFZ1aGZOc25rYlpMVkhGbEdkcXdya1NLQlkrNXkvVlpaZHgvYUhzVlp3VTd2RGNlaGxlWlFNNGV2cgpubTFGN3ZOcUhwVCtwR0p6TVVlVDRmTFRaWm0wa2tWN2V5eURkTDAxRFl0V0JNUzNjRG9RdU5vWElBMCtDeFZPCjh3MXAvcG1xdlBUN3JqWndqcGJFTFJKdzFrOEd6M1NhSm9lamhQc1gvcTczRllnQXNPT0RwTXJuK3ZpU2U0ZnIKZkdFZmZRL2FyVFROaitQVG93SURBUUFCbzFNd1VUQWRCZ05WSFE0RUZnUVViT0JNeGsyeVJDZEdTeHhGRjMwVApGTkRYR0tzd0h3WURWUjBqQkJnd0ZvQVViT0JNeGsyeVJDZEdTeHhGRjMwVEZORFhHS3N3RHdZRFZSMFRBUUgvCkJBVXdBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQWdFQUF3bnVLcTk4TkNoVDJVM1NkUjRBVXptTE4xQlcKMDRyMDEwN045SnVvS28ycnI4aGdtZkZndDA4K3RTQ2M0eWo2UjUrcmNYbnV6anhGS2liVWJxZ3Bab3dKUkhhMgoxdDVCYnBMMXlnMmxmcmZ4SG92L0Y4dFZzU21BOHd5aDZVaVdSd0U5a3ZQV1JuS25UdWt2NXp6c3FTbE5TaWxtCjQ5elE3U1dObCtJQUZ5L3N3WnJ0SlExMFZUOXM0blBlRzNvV1FNb3RPUFArbGxTaXluS0xacVE0Z1NLUmkzZmUKUExpV3B0OVhmWG9HVUNFajdxNXBoYmxMUGdkS1VDcmhHUDFuMmpZbVhzY1dMTXlrQW5hMjBjaGxycVZZbkNhOApKVXA0TGZ0RkRwODlZVG9YT0ZIbkZtbk5DdmNJckRmRnlEZmhsNFVNRnBLME9VS3FUVHhXYUs5dXFPSXBhcklzCktZd3NwK2ZMZVdMYlE2a0dmbW5PNWlEUmQrb09ock5Zb29UWlZLOWZRUjVyRDJlNEIrZWEwcnpRRlhBQVVqSjUKT1hhYnhiRHJRK09NZWp3YzRIcXFzeHp0SmdEMmFQMmVLMi9MNVBXUHVnMEUrMWc4QUJaZlZib2gvTTNNSGdiegpQZ2FUcWd1ekdGZGtHM0VYdStPaEdiVTAvKzc3Vk1uWmkySVFabi9hd0dVYTdYK01QMEJEdmpWWTVrVnBNWjFoCmMyQ2xEamd4TnNMR3Rpa080Y1diNXNRUlIyR1lNM2RNazUwVlFjdEo1UnFzUnM2cE9DWERYRTNSZVZRajRoTkIKZVd2YURXUTJLbXlPYWk1NWRiRHJsSitudTgzT21DcDU5UnpQNWs1OFphRFhubEMzOFV3VHQwcTFENyt6RjB0cwoxRzkzMnVFQkhXWUh1T0E9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K")
+		smtc.setValue = pemCert
+		smtc.pushRef = fakeRef{
+			key: certName,
+		}
+		smtc.certOutput = keyvault.CertificateBundle{
+			X509Thumbprint: pointer.To("123"),
+			Tags: map[string]*string{
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 	}
@@ -613,9 +631,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			key: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.String("123"),
+			X509Thumbprint: pointer.To("123"),
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 	}
@@ -627,9 +645,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			key: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.String("123"),
+			X509Thumbprint: pointer.To("123"),
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 		smtc.expectError = "could not import certificate certname: error"
@@ -645,7 +663,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &cert,
 			Tags: map[string]*string{
-				"managed-by": pointer.String("external-secrets"),
+				"managed-by": pointer.To("external-secrets"),
 			},
 		}
 	}
@@ -656,9 +674,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			key: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.String("123"),
+			X509Thumbprint: pointer.To("123"),
 			Tags: map[string]*string{
-				"managed-by": pointer.String("foobar"),
+				"managed-by": pointer.To("foobar"),
 			},
 		}
 		smtc.expectError = "certificate certname: not managed by external-secrets"
@@ -670,7 +688,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			key: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.String("123"),
+			X509Thumbprint: pointer.To("123"),
 		}
 		smtc.expectError = "certificate certname: not managed by external-secrets"
 	}
@@ -681,9 +699,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			key: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.String("123"),
+			X509Thumbprint: pointer.To("123"),
 		}
-		smtc.expectError = "value from secret is not a valid certificate: x509: malformed certificate"
+		smtc.expectError = "value from secret is not a valid certificate: could not parse certificate value as PKCS#12, DER or PEM"
 	}
 
 	certNoPermissions := func(smtc *secretManagerTestCase) {
@@ -697,7 +715,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			key: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.String("123"),
+			X509Thumbprint: pointer.To("123"),
 		}
 		smtc.expectError = errAPI
 	}
@@ -705,6 +723,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(certP12Success),
 		makeValidSecretManagerTestCaseCustom(certPEMSuccess),
+		makeValidSecretManagerTestCaseCustom(certPEMWithGarbageSuccess),
 		makeValidSecretManagerTestCaseCustom(certDERSuccess),
 		makeValidSecretManagerTestCaseCustom(certImportCertificateError),
 		makeValidSecretManagerTestCaseCustom(certFingerprintMatches),
@@ -734,7 +753,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.String(fakeURL)},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1110,7 +1129,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.String(fakeURL)},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1269,7 +1288,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.String(fakeURL)},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1424,7 +1443,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.String(fakeURL)},
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1533,7 +1552,7 @@ func TestValidateStore(t *testing.T) {
 							AzureKV: &esv1beta1.AzureKVProvider{
 								AuthSecretRef: &esv1beta1.AzureKVAuth{
 									ClientID: &v1.SecretKeySelector{
-										Namespace: pointer.String("invalid"),
+										Namespace: pointer.To("invalid"),
 									},
 								},
 							},
@@ -1552,7 +1571,7 @@ func TestValidateStore(t *testing.T) {
 							AzureKV: &esv1beta1.AzureKVProvider{
 								AuthSecretRef: &esv1beta1.AzureKVAuth{
 									ClientSecret: &v1.SecretKeySelector{
-										Namespace: pointer.String("invalid"),
+										Namespace: pointer.To("invalid"),
 									},
 								},
 							},

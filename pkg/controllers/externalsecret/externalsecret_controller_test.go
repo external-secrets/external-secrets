@@ -16,6 +16,7 @@ package externalsecret
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -23,8 +24,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,6 +36,8 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
@@ -42,6 +47,14 @@ var (
 	metricDuration dto.Metric
 	timeout        = time.Second * 10
 	interval       = time.Millisecond * 250
+)
+
+var (
+	testSyncCallsTotal *prometheus.CounterVec
+	testSyncCallsError *prometheus.CounterVec
+
+	testExternalSecretCondition         *prometheus.GaugeVec
+	testExternalSecretReconcileDuration *prometheus.GaugeVec
 )
 
 type testCase struct {
@@ -130,7 +143,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 		})
 	}
 })
-var _ = Describe("ExternalSecret controller", func() {
+var _ = Describe("ExternalSecret controller", Serial, func() {
 
 	const (
 		ExternalSecretName             = "test-es"
@@ -160,10 +173,10 @@ var _ = Describe("ExternalSecret controller", func() {
 		ExternalSecretNamespace, err = ctest.CreateNamespaceWithLabels("test-ns", k8sClient, map[string]string{NamespaceLabelKey: NamespaceLabelValue})
 		Expect(err).ToNot(HaveOccurred())
 		metric.Reset()
-		syncCallsTotal.Reset()
-		syncCallsError.Reset()
-		externalSecretCondition.Reset()
-		externalSecretReconcileDuration.Reset()
+		testSyncCallsTotal.Reset()
+		testSyncCallsError.Reset()
+		testExternalSecretCondition.Reset()
+		testExternalSecretReconcileDuration.Reset()
 		fakeProvider.Reset()
 	})
 
@@ -257,11 +270,31 @@ var _ = Describe("ExternalSecret controller", func() {
 	syncWithoutTargetName := func(tc *testCase) {
 		tc.externalSecret.Spec.Target.Name = ""
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-
 			// check secret name
 			Expect(secret.ObjectMeta.Name).To(Equal(ExternalSecretName))
+
+			// check binding secret on external secret
+			Expect(es.Status.Binding.Name).To(Equal(secret.ObjectMeta.Name))
 		}
 	}
+
+	// the secret name is reflected on the external secret's status as the binding secret
+	syncBindingSecret := func(tc *testCase) {
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check binding secret on external secret
+			Expect(es.Status.Binding.Name).To(Equal(secret.ObjectMeta.Name))
+		}
+	}
+
+	// their is no binding secret when a secret is not synced
+	skipBindingSecret := func(tc *testCase) {
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyNone
+		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
+			// check binding secret is not set
+			Expect(es.Status.Binding.Name).To(BeEmpty())
+		}
+	}
+
 	// labels and annotations from the Kind=ExternalSecret
 	// should be copied over to the Kind=Secret
 	syncLabelsAnnotations := func(tc *testCase) {
@@ -294,8 +327,8 @@ var _ = Describe("ExternalSecret controller", func() {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 			Eventually(func() bool {
-				Expect(syncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(testSyncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				// three reconciliations: initial sync, status update, secret update
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
@@ -400,8 +433,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(testSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -475,6 +508,33 @@ var _ = Describe("ExternalSecret controller", func() {
 			// check values
 			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
 		}
+	}
+
+	ignoreMismatchControllerForGeneratorRef := func(tc *testCase) {
+		const secretKey = "somekey"
+		const secretVal = "someValue"
+
+		fakeGenerator := &genv1alpha1.Fake{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mytestfake2",
+				Namespace: ExternalSecretNamespace,
+			},
+			Spec: genv1alpha1.FakeSpec{
+				Data: map[string]string{
+					secretKey: secretVal,
+				},
+				Controller: "fakeControllerClass",
+			},
+		}
+
+		fakeGeneratorJSON, _ := json.Marshal(fakeGenerator)
+
+		Expect(shouldSkipGenerator(
+			&Reconciler{
+				ControllerClass: "default",
+			},
+			&apiextensions.JSON{Raw: fakeGeneratorJSON},
+		)).To(BeTrue())
 	}
 
 	syncWithMultipleSecretStores := func(tc *testCase) {
@@ -1286,8 +1346,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(testSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1334,8 +1394,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(testSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1466,8 +1526,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(testSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1504,8 +1564,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(testSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1530,8 +1590,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			Eventually(func() bool {
-				Expect(syncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
-				Expect(externalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
+				Expect(testSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
 				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
@@ -1550,12 +1610,12 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.checkExternalSecret = func(es *esv1beta1.ExternalSecret) {
 			// Condition True and False should be 0, since the Condition was not created
 			Eventually(func() float64 {
-				Expect(externalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1beta1.ExternalSecretReady), string(v1.ConditionTrue)).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1beta1.ExternalSecretReady), string(v1.ConditionTrue)).Write(&metric)).To(Succeed())
 				return metric.GetGauge().GetValue()
 			}, timeout, interval).Should(Equal(0.0))
 
 			Eventually(func() float64 {
-				Expect(externalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1beta1.ExternalSecretReady), string(v1.ConditionFalse)).Write(&metric)).To(Succeed())
+				Expect(testExternalSecretCondition.WithLabelValues(ExternalSecretName, ExternalSecretNamespace, string(esv1beta1.ExternalSecretReady), string(v1.ConditionFalse)).Write(&metric)).To(Succeed())
 				return metric.GetGauge().GetValue()
 			}, timeout, interval).Should(Equal(0.0))
 
@@ -1654,6 +1714,55 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	// When we update the template, remaining keys should not be preserved
+	templateShouldRewrite := func(tc *testCase) {
+		const secretVal = "someValue"
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Minute * 10}
+		tc.externalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+			Data: map[string]string{
+				"key": `{{.targetProperty}}-foo`,
+			},
+		}
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["key"]).To(Equal([]byte("someValue-foo")))
+			newEs := es.DeepCopy()
+			newEs.Spec.Target.Template.Data = map[string]string{
+				"new": "foo",
+			}
+			Expect(k8sClient.Patch(context.Background(), newEs, client.MergeFrom(es))).To(Succeed())
+
+			var refreshedSecret v1.Secret
+			secretLookupKey := types.NamespacedName{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			}
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), secretLookupKey, &refreshedSecret)
+				if err != nil {
+					return false
+				}
+				_, ok := refreshedSecret.Data["key"]
+				return !ok && bytes.Equal(refreshedSecret.Data["new"], []byte("foo"))
+			}, timeout, interval).Should(BeTrue())
+		}
+	}
+	// When we update the template, remaining keys should not be preserved
+	templateShouldMerge := func(tc *testCase) {
+		const secretVal = "someValue"
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Minute * 10}
+		tc.externalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+			MergePolicy: esv1beta1.MergePolicyMerge,
+			Data: map[string]string{
+				"key": `{{.targetProperty}}-foo`,
+			},
+		}
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["key"]).To(Equal([]byte("someValue-foo")))
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1beta1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1903,6 +2012,8 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
 		Entry("should use external secret name if target secret name isn't defined", syncWithoutTargetName),
+		Entry("should expose the secret as a provisioned service binding secret", syncBindingSecret),
+		Entry("should not expose a provisioned service when no secret is synced", skipBindingSecret),
 		Entry("should set the condition eventually", syncLabelsAnnotations),
 		Entry("should set prometheus counters", checkPrometheusCounters),
 		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),
@@ -1911,12 +2022,15 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
 		Entry("should sync with generatorRef", syncWithGeneratorRef),
+		Entry("should not process generatorRef with mismatching controller field", ignoreMismatchControllerForGeneratorRef),
 		Entry("should sync with multiple secret stores via sourceRef", syncWithMultipleSecretStores),
 		Entry("should sync with template", syncWithTemplate),
 		Entry("should sync with template engine v2", syncWithTemplateV2),
 		Entry("should sync template with correct value precedence", syncWithTemplatePrecedence),
 		Entry("should sync template from keys and values", syncTemplateFromKeysAndValues),
 		Entry("should sync template from literal", syncTemplateFromLiteral),
+		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
+		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),
 		Entry("should be able to use only metadata from template", onlyMetadataFromTemplate),
 		Entry("should refresh secret value when provider secret changes", refreshSecretValue),
@@ -2182,7 +2296,7 @@ var _ = Describe("Controller Reconcile logic", func() {
 
 func externalSecretConditionShouldBe(name, ns string, ct esv1beta1.ExternalSecretConditionType, cs v1.ConditionStatus, v float64) bool {
 	return Eventually(func() float64 {
-		Expect(externalSecretCondition.WithLabelValues(name, ns, string(ct), string(cs)).Write(&metric)).To(Succeed())
+		Expect(testExternalSecretCondition.WithLabelValues(name, ns, string(ct), string(cs)).Write(&metric)).To(Succeed())
 		return metric.GetGauge().GetValue()
 	}, timeout, interval).Should(Equal(v))
 }
@@ -2194,4 +2308,11 @@ func init() {
 			Service: esv1beta1.AWSServiceSecretsManager,
 		},
 	})
+
+	ctrlmetrics.SetUpLabelNames(false)
+	esmetrics.SetUpMetrics()
+	testSyncCallsTotal = esmetrics.GetCounterVec(esmetrics.SyncCallsKey)
+	testSyncCallsError = esmetrics.GetCounterVec(esmetrics.SyncCallsErrorKey)
+	testExternalSecretCondition = esmetrics.GetGaugeVec(esmetrics.ExternalSecretStatusConditionKey)
+	testExternalSecretReconcileDuration = esmetrics.GetGaugeVec(esmetrics.ExternalSecretReconcileDurationKey)
 }

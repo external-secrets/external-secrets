@@ -5,14 +5,14 @@ jsmin==3.0.1
 livereload==2.6.3
 Markdown==3.3.6
 MarkupSafe==2.0.1
-mkdocs==1.2.3
-mike==1.1.2
-mkdocs-material==8.1.10
+mkdocs==1.4.3
+mike @ git+https://github.com/jimporter/mike@300593c
+mkdocs-material==9.1.9
 mkdocs-minify-plugin==0.5.0
 pep562==1.1
-Pygments==2.11.2
-pymdown-extensions==9.1
-PyYAML==6.0
+Pygments==2.15.1
+pymdown-extensions==9.11
+PyYAML==5.3.1 # 6.0 is broken: https://github.com/yaml/pyyaml/issues/601
 six==1.16.0
 tornado==6.1
-mkdocs-macros-plugin==0.6.4
+mkdocs-macros-plugin==0.7.0

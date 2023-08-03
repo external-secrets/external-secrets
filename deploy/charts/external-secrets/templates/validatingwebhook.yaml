@@ -5,6 +5,13 @@ metadata:
   name: secretstore-validate
   labels:
     external-secrets.io/component: webhook
+    {{- with .Values.commonLabels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook
+  {{- end }}
 webhooks:
 - name: "validate.secretstore.external-secrets.io"
   rules:
@@ -44,6 +51,13 @@ metadata:
   name: externalsecret-validate
   labels:
     external-secrets.io/component: webhook
+    {{- with .Values.commonLabels }}
+    {{ toYaml . | nindent 4 }}
+    {{- end }}
+  {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook
+  {{- end }}
 webhooks:
 - name: "validate.externalsecret.external-secrets.io"
   rules:

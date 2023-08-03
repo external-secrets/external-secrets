@@ -30,6 +30,27 @@ spec:
     remoteRef:
       key: database-credentials
       property: password
+
+  # metadataPolicy to fetch all the labels and annotations in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch
+      key: database-credentials
+
+  # metadataPolicy to fetch all the labels in JSON format
+  - secretKey: labels
+    remoteRef:
+      metadataPolicy: Fetch
+      key: database-credentials
+	  property: labels
+
+  # metadataPolicy to fetch a specific label (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch
+      key: database-credentials
+	  property: labels.dev
+
 ```
 
 #### find by tag & name
@@ -211,3 +232,79 @@ spec:
             name: "tls-secret"
             key: "tls.key"
 ```
+
+
+### PushSecret
+
+The PushSecret functionality facilitates the replication of a Kubernetes Secret from one namespace or cluster to another. This feature proves useful in scenarios where you need to share sensitive information, such as credentials or configuration data, across different parts of your infrastructure.
+
+To configure the PushSecret resource, you need to specify the following parameters:
+
+* **Selector**: Specify the selector that identifies the source Secret to be replicated. This selector allows you to target the specific Secret you want to share.
+
+* **SecretKey**: Set the SecretKey parameter to indicate the key within the source Secret that you want to replicate. This ensures that only the relevant information is shared.
+
+* **RemoteRef.Property**: In addition to the above parameters, the Kubernetes provider requires you to set the `remoteRef.property` field. This field specifies the key of the remote Secret resource where the replicated value should be stored.
+
+
+Here's an example:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 10s
+  secretStoreRefs:
+    - name: k8s-store-remote-ns
+      kind: SecretStore
+  selector:
+    secret:
+      name: pokedex-credentials
+  data:
+    - match:
+        secretKey: best-pokemon
+        remoteRef:
+          remoteKey: remote-best-pokemon
+          property: best-pokemon
+```
+
+To utilize the PushSecret feature effectively, the referenced `SecretStore` requires specific permissions on the target cluster. In particular it requires `create`, `read`, `update` and `delete` permissions on the Secret resource:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: remote
+  name: eso-store-push-role
+rules:
+- apiGroups: [""]
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - selfsubjectrulesreviews
+  verbs:
+  - create
+```
+
+#### Implementation Considerations
+
+When utilizing the PushSecret feature and configuring the permissions for the SecretStore, consider the following:
+
+
+* **RBAC Configuration**: Ensure that the Role-Based Access Control (RBAC) configuration for the SecretStore grants the appropriate permissions for creating, reading, and updating resources in the target cluster.
+
+* **Least Privilege Principle**: Adhere to the principle of least privilege when assigning permissions to the SecretStore. Only provide the minimum required permissions to accomplish the desired synchronization between Secrets.
+
+* **Namespace or Cluster Scope**: Depending on your specific requirements, configure the SecretStore to operate at the desired scope, whether it is limited to a specific namespace or encompasses the entire cluster. Consider the security and access control implications of your chosen scope.

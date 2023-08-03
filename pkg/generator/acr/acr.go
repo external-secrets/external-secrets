@@ -162,7 +162,7 @@ func (g *Generator) generate(
 
 type accessTokenFetcher func(acrRefreshToken, tenantID, registryURL, scope string) (string, error)
 
-func fetchACRAccessToken(acrRefreshToken, tenantID, registryURL, scope string) (string, error) {
+func fetchACRAccessToken(acrRefreshToken, _, registryURL, scope string) (string, error) {
 	formData := url.Values{
 		"grant_type":    {"refresh_token"},
 		"service":       {registryURL},

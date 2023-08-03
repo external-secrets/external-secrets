@@ -1,5 +1,7 @@
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: ECRAuthorizationToken
+metadata:
+  name: ecr-gen
 spec:
 
   # specify aws region (mandatory)

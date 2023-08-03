@@ -21,7 +21,9 @@ way users of the `SecretStore` can only access the secrets necessary.
 
 ### IAM Policy
 
-Create a IAM Policy to pin down access to secrets matching `dev-*`, for further information see [AWS Documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html):
+The example policy below shows the minimum required permissions for fetching SSM parameters. This policy permits pinning down access to secrets with a path matching `dev-*`. Other operations may require additional permission. For example, finding parameters based on tags will also require `ssm:DescribeParameters` and `tag:GetResources` permission with `"Resource": "*"`. Generally, the specific permission required will be logged as an error if an operation fails.
+
+For further information see [AWS Documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html).
 
 ``` json
 {
@@ -30,15 +32,14 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`, for further 
     {
       "Effect": "Allow",
       "Action": [
-        "ssm:GetParameter",
-        "ssm:ListTagsForResource",
-        "ssm:DescribeParameters"
+        "ssm:GetParameter*",
       ],
       "Resource": "arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*"
     }
   ]
 }
 ```
+
 ### JSON Secret Values
 
 You can store JSON objects in a parameter. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):
@@ -73,6 +74,18 @@ spec:
       key: friendslist
       property: friends.1.first # Roger
 
+  # metadataPolicy to fetch all the tags in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch
+      key: database-credentials
+
+  # metadataPolicy to fetch a specific tag (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch
+      key: database-credentials
+      property: dev
 ```
 ### Parameter Versions
 

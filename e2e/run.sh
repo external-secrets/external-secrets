@@ -45,6 +45,7 @@ kubectl run --rm \
   --restart=Never \
   --pod-running-timeout=5m \
   --labels="app=eso-e2e" \
+  --env="ACK_GINKGO_DEPRECATIONS=2.9.5" \
   --env="GINKGO_LABELS=${GINKGO_LABELS:-.*}" \
   --env="GCP_SM_SA_JSON=${GCP_SM_SA_JSON:-}" \
   --env="GCP_PROJECT_ID=${GCP_PROJECT_ID:-}" \
@@ -73,6 +74,16 @@ kubectl run --rm \
   --env="ORACLE_REGION=${ORACLE_REGION:-}" \
   --env="ORACLE_FINGERPRINT=${ORACLE_FINGERPRINT:-}" \
   --env="ORACLE_KEY=${ORACLE_KEY:-}" \
+  --env="SCALEWAY_API_URL=${SCALEWAY_API_URL:-}" \
+  --env="SCALEWAY_REGION=${SCALEWAY_REGION:-}" \
+  --env="SCALEWAY_PROJECT_ID=${SCALEWAY_PROJECT_ID:-}" \
+  --env="SCALEWAY_ACCESS_KEY=${SCALEWAY_ACCESS_KEY:-}" \
+  --env="SCALEWAY_SECRET_KEY=${SCALEWAY_SECRET_KEY:-}" \
+  --env="DELINEA_TLD=${DELINEA_TLD:-}" \
+  --env="DELINEA_URL_TEMPLATE=${DELINEA_URL_TEMPLATE:-}" \
+  --env="DELINEA_TENANT=${DELINEA_TENANT:-}" \
+  --env="DELINEA_CLIENT_ID=${DELINEA_CLIENT_ID:-}" \
+  --env="DELINEA_CLIENT_SECRET=${DELINEA_CLIENT_SECRET:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \

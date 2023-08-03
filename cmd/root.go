@@ -36,9 +36,15 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 )
 
@@ -64,6 +70,7 @@ var (
 	enableClusterExternalSecretReconciler bool
 	enablePushSecretReconciler            bool
 	enableFloodGate                       bool
+	enableExtendedMetricLabels            bool
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
 	secretName, secretNamespace           string
@@ -123,6 +130,8 @@ var rootCmd = &cobra.Command{
 		}
 		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
+		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
+		esmetrics.SetUpMetrics()
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
@@ -139,17 +148,22 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
 		}
+
+		ssmetrics.SetUpMetrics()
 		if err = (&secretstore.StoreReconciler{
 			Client:          mgr.GetClient(),
 			Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 			Scheme:          mgr.GetScheme(),
 			ControllerClass: controllerClass,
 			RequeueInterval: storeRequeueInterval,
-		}).SetupWithManager(mgr); err != nil {
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "SecretStore")
 			os.Exit(1)
 		}
 		if enableClusterStoreReconciler {
+			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
@@ -177,6 +191,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if enablePushSecretReconciler {
+			psmetrics.SetUpMetrics()
 			if err = (&pushsecret.Reconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
@@ -189,6 +204,8 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		if enableClusterExternalSecretReconciler {
+			cesmetrics.SetUpMetrics()
+
 			if err = (&clusterexternalsecret.Reconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("ClusterExternalSecret"),
@@ -227,7 +244,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent ExternalSecret reconciles.")
+	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 0, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 0, "Maximum Burst allowed to be passed to rest.Client")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
@@ -240,6 +257,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable secrets caching for external-secrets pod.")
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
+	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)

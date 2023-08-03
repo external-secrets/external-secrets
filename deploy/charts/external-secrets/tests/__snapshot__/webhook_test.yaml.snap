@@ -1,0 +1,85 @@
+should match snapshot of default values:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets-webhook
+        app.kubernetes.io/version: v0.9.1
+        helm.sh/chart: external-secrets-0.9.1
+      name: RELEASE-NAME-external-secrets-webhook
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: external-secrets-webhook
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: external-secrets-webhook
+        spec:
+          automountServiceAccountToken: true
+          containers:
+            - args:
+                - webhook
+                - --port=10250
+                - --dns-name=RELEASE-NAME-external-secrets-webhook.NAMESPACE.svc
+                - --cert-dir=/tmp/certs
+                - --check-interval=5m
+                - --metrics-addr=:8080
+                - --healthz-addr=:8081
+              image: ghcr.io/external-secrets/external-secrets:v0.9.1
+              imagePullPolicy: IfNotPresent
+              name: webhook
+              ports:
+                - containerPort: 8080
+                  name: metrics
+                  protocol: TCP
+                - containerPort: 10250
+                  name: webhook
+                  protocol: TCP
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8081
+                initialDelaySeconds: 20
+                periodSeconds: 5
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - mountPath: /tmp/certs
+                  name: certs
+                  readOnly: true
+          hostNetwork: false
+          serviceAccountName: external-secrets-webhook
+          volumes:
+            - name: certs
+              secret:
+                secretName: RELEASE-NAME-external-secrets-webhook
+  2: |
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: external-secrets-webhook
+        app.kubernetes.io/version: v0.9.1
+        external-secrets.io/component: webhook
+        helm.sh/chart: external-secrets-0.9.1
+      name: RELEASE-NAME-external-secrets-webhook
+      namespace: NAMESPACE

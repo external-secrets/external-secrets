@@ -38,6 +38,7 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      hostNetwork: {{ .Values.certController.hostNetwork }}
       containers:
         - name: cert-controller
           {{- with .Values.certController.securityContext }}
@@ -53,6 +54,8 @@ spec:
           - --service-namespace={{ .Release.Namespace }}
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook
           - --secret-namespace={{ .Release.Namespace }}
+          - --metrics-addr=:{{ .Values.certController.prometheus.service.port }}
+          - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
           {{ if not .Values.crds.createClusterSecretStore -}}
           - --crd-names=externalsecrets.external-secrets.io
           - --crd-names=secretstores.external-secrets.io
@@ -100,6 +103,10 @@ spec:
       {{- end }}
       {{- with .Values.certController.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.certController.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.certController.priorityClassName }}

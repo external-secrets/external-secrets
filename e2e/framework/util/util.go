@@ -21,7 +21,6 @@ import (
 	"os"
 	"time"
 
-	argoapp "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta1"
 	fluxsrc "github.com/fluxcd/source-controller/api/v1beta2"
 
@@ -52,7 +51,6 @@ func init() {
 	_ = esv1beta1.AddToScheme(Scheme)
 	_ = esv1alpha1.AddToScheme(Scheme)
 	_ = genv1alpha1.AddToScheme(Scheme)
-	_ = argoapp.AddToScheme(Scheme)
 	_ = fluxhelm.AddToScheme(Scheme)
 	_ = fluxsrc.AddToScheme(Scheme)
 	_ = apiextensionsv1.AddToScheme(Scheme)

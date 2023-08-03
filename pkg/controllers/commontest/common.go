@@ -39,9 +39,8 @@ func CreateNamespaceWithLabels(baseName string, c client.Client, labels map[stri
 		},
 	}
 
-	var err error
-	err = wait.Poll(time.Second, 10*time.Second, func() (bool, error) {
-		err = c.Create(context.Background(), ns)
+	err := wait.PollUntilContextTimeout(context.Background(), time.Second, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
+		err = c.Create(ctx, ns)
 		if err != nil {
 			return false, nil
 		}

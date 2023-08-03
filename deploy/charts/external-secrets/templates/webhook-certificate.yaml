@@ -1,0 +1,30 @@
+{{- if and .Values.webhook.create .Values.webhook.certManager.enabled .Values.webhook.certManager.cert.create }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-webhook
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
+    external-secrets.io/component: webhook
+  {{- with .Values.webhook.certManager.cert.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  commonName: {{ include "external-secrets.fullname" . }}-webhook
+  dnsNames:
+    - {{ include "external-secrets.fullname" . }}-webhook
+    - {{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}
+    - {{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
+  issuerRef:
+    {{- toYaml .Values.webhook.certManager.cert.issuerRef | nindent 4 }}
+  {{- with .Values.webhook.certManager.cert.duration }}
+  duration: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.webhook.certManager.cert.renewBefore }}
+  renewBefore: {{ . | quote }}
+  {{- end }}
+  secretName: {{ include "external-secrets.fullname" . }}-webhook
+{{- end }}

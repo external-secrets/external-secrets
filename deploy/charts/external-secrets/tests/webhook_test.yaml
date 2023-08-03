@@ -1,0 +1,163 @@
+suite: test webhook deployment
+templates:
+  - webhook-deployment.yaml
+  - webhook-secret.yaml
+  - webhook-certificate.yaml
+  - validatingwebhook.yaml
+  - crds/externalsecret.yaml
+tests:
+  - it: should match snapshot of default values
+    asserts:
+      - matchSnapshot: {}
+    templates:
+      - webhook-deployment.yaml
+      - webhook-secret.yaml
+      # webhook-certificate.yaml is not rendered by default
+  - it: should set imagePullPolicy to Always
+    set:
+      webhook.image.pullPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+    template: webhook-deployment.yaml
+  - it: should imagePullPolicy to be default value IfNotPresent
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+    template: webhook-deployment.yaml
+  - it: should override securityContext
+    set:
+      webhook.podSecurityContext:
+        runAsUser: 2000
+      webhook.securityContext:
+        runAsUser: 3000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsUser: 2000
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 3000
+            seccompProfile:
+              type: RuntimeDefault
+    template: webhook-deployment.yaml
+  - it: should override hostNetwork
+    set:
+      webhook.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+    template: webhook-deployment.yaml
+  - it: should create a certificate CRD
+    set:
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.duration: "10d"
+      webhook.certManager.cert.renewBefore: "5d"
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - equal:
+          path: spec.secretName
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - equal:
+          path: spec.commonName
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - equal:
+          path: spec.dnsNames[0]
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - equal:
+          path: spec.issuerRef.group
+          value: "cert-manager.io"
+      - equal:
+          path: spec.issuerRef.kind
+          value: "Issuer"
+      - equal:
+          path: spec.issuerRef.name
+          value: "my-issuer"
+      - equal:
+          path: spec.duration
+          value: "10d"
+      - equal:
+          path: spec.renewBefore
+          value: "5d"
+      - hasDocuments:
+          count: 1
+    templates:
+      - webhook-certificate.yaml
+  - it: should not create the webhook secret
+    set:
+      webhook.certManager.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+    template: webhook-secret.yaml
+  - it: should not create the secret nor the certificate
+    set:
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+    templates:
+      - webhook-secret.yaml
+      - webhook-certificate.yaml
+  - it: should
+    set:
+      webhook.certManager.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-external-secrets-webhook"
+      - hasDocuments:
+          count: 1
+    template: webhook-certificate.yaml
+  - it: should allow using a cluster issuer
+    set:
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.issuerRef.kind: ClusterIssuer
+      webhook.certManager.cert.issuerRef.name: my-other-issuer
+    asserts:
+      - equal:
+          path: spec.issuerRef.kind
+          value: "ClusterIssuer"
+      - equal:
+          path: spec.issuerRef.name
+          value: "my-other-issuer"
+    templates:
+      - webhook-certificate.yaml
+  - it: should add annotations to the webhook
+    set:
+      webhook.create: true
+      webhook.certManager.enabled: true
+      webhook.certManager.addInjectorAnnotations: true
+    asserts:
+      - equal:
+          path: metadata.annotations["cert-manager.io/inject-ca-from"]
+          value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
+    templates:
+      - validatingwebhook.yaml
+      - crds/externalsecret.yaml
+  - it: should not add annotations to the webhook
+    set:
+      webhook.create: true
+      webhook.certManager.enabled: true
+      webhook.certManager.addInjectorAnnotations: false
+    asserts:
+      - isNull:
+          path: metadata.annotations["cert-manager.io/inject-ca-from"]
+          # value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
+    templates:
+      - validatingwebhook.yaml
+      - crds/externalsecret.yaml

@@ -38,6 +38,7 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      hostNetwork: {{ .Values.hostNetwork }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -64,9 +65,15 @@ spec:
             {{- if not .Values.processClusterExternalSecret }}
           - --enable-cluster-external-secret-reconciler=false
             {{- end }}
+            {{- if not .Values.processPushSecret }}
+          - --enable-push-secret-reconciler=false
+            {{- end }}
           {{- end }}
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}
+          {{- end }}
+          {{- if .Values.extendedMetricLabels }}
+          - --enable-extended-metric-labels={{ .Values.extendedMetricLabels }}
           {{- end }}
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}

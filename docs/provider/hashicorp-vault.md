@@ -2,9 +2,11 @@
 
 ## Hashicorp Vault
 
-External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret
-management. Vault itself implements lots of different secret engines, as of now we only support the
-[KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv).
+External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret management.
+
+The [KV Secrets Engine](https://www.vaultproject.io/docs/secrets/kv) is the only
+one supported by this provider. For other secrets engines, please refer to the
+[Vault Generator](../api/generator/vault.md).
 
 ### Example
 
@@ -70,8 +72,22 @@ spec:
   data:
   - secretKey: foobar
     remoteRef:
-      key: secret/foo
+      key: foo
       property: my-value
+
+  # metadataPolicy to fetch all the labels in JSON format
+  - secretKey: tags
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: foo
+
+  # metadataPolicy to fetch a specific label (dev) from the source secret
+  - secretKey: developer
+    remoteRef:
+      metadataPolicy: Fetch 
+      key: foo
+      property: dev
+
 ---
 # will create a secret with:
 kind: Secret
@@ -80,6 +96,8 @@ metadata:
 data:
   foobar: czNjcjN0
 ```
+
+Keep in mind that fetching the labels with `metadataPolicy: Fetch` only works with KV sercrets engine version v2.
 
 #### Fetching Raw Values
 
@@ -253,8 +271,10 @@ We support five different modes for authentication:
 [token-based](https://www.vaultproject.io/docs/auth/token),
 [appRole](https://www.vaultproject.io/docs/auth/approle),
 [kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
-[ldap](https://www.vaultproject.io/docs/auth/ldap) and
-[jwt/odic](https://www.vaultproject.io/docs/auth/jwt), each one comes with it's own
+[ldap](https://www.vaultproject.io/docs/auth/ldap),
+[userPass](https://www.vaultproject.io/docs/auth/userpass),
+[jwt/oidc](https://www.vaultproject.io/docs/auth/jwt) and
+[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
 #### Token-based authentication
@@ -303,6 +323,18 @@ in a `Kind=Secret` referenced by the `secretRef`.
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
+#### UserPass authentication
+
+[UserPass authentication](https://www.vaultproject.io/docs/auth/userpass) uses
+username/password pair to get an access token. Username is stored directly in
+a `Kind=SecretStore` or `Kind=ClusterSecretStore` resource, password is stored
+in a `Kind=Secret` referenced by the `secretRef`.
+
+```yaml
+{% include 'vault-userpass-store.yaml' %}
+```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
+
 #### JWT/OIDC authentication
 
 [JWT/OIDC](https://www.vaultproject.io/docs/auth/jwt) uses either a
@@ -315,10 +347,58 @@ or `Kind=ClusterSecretStore` resource.
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
+#### AWS IAM authentication
+
+[AWS IAM](https://developer.hashicorp.com/vault/docs/auth/aws) uses either a
+set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
+`secretRef` or by getting the authentication token from an [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) enabled service account
+
+### Access Key ID & Secret Access Key
+You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
+
+```yaml
+{% include 'vault-iam-store-static-creds.yaml' %}
+```
+
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef`, `secretAccessKeySecretRef` with the namespaces where the secrets reside.
+
+### EKS Service Account credentials
+
+This feature lets you use short-lived service account tokens to authenticate with AWS.
+You must have [Service Account Volume Projection](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection) enabled - it is by default on EKS. See [EKS guide](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts-technical-overview.html) on how to set up IAM roles for service accounts.
+
+The big advantage of this approach is that ESO runs without any credentials.
+
+```yaml
+{% include 'vault-iam-store-sa.yaml' %}
+```
+
+Reference the service account from above in the Secret Store:
+
+```yaml
+{% include 'vault-iam-store.yaml' %}
+```
+### Controller's Pod Identity
+
+This is basicially a zero-configuration authentication approach that inherits the credentials from the controller's pod identity
+
+This approach assumes that appropriate IRSA setup is done controller's pod (i.e. IRSA enabled IAM role is created appropriately and controller's service account is annotated appropriately with the annotation "eks.amazonaws.com/role-arn" to enable IRSA)
+
+```yaml
+{% include 'vault-iam-store-controller-pod-identity.yaml' %}
+```
+
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
+
+```yaml
+{% include 'vault-jwt-store.yaml' %}
+```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
+
 ### PushSecret
 Vault supports PushSecret features which allow you to sync a given kubernetes secret key into a hashicorp vault secret. In order to do so, it is expected that the secret key is a valid JSON object.
 
-In order to use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets to. Use it with care!
+In order to use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets to for both `data` and `metadata` of the secret. Use it with care!
 
 Here is an example on how to set it up:
 ```yaml
