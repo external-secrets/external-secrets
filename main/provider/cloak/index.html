@@ -9,17 +9,17 @@
       
       
       
-        <link rel="prev" href="../all-keys-one-secret/">
+        <link rel="prev" href="../keeper-security/">
       
       
-        <link rel="next" href="../datafrom-rewrite/">
+        <link rel="next" href="../scaleway/">
       
       <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.9">
     
     
       
-        <title>Find Secrets by Name or Metadata - External Secrets Operator</title>
+        <title>Cloak End 2 End Encrypted Secrets - External Secrets Operator</title>
       
     
     
@@ -73,7 +73,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#fetching-information-from-multiple-secrets" class="md-skip">
+        <a href="#cloak" class="md-skip">
           Skip to content
         </a>
       
@@ -122,7 +122,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Find Secrets by Name or Metadata
+              Cloak End 2 End Encrypted Secrets
             
           </span>
         </div>
@@ -226,15 +226,13 @@
         
   
   
-    
-  
 
 
   
   
   
     <li class="md-tabs__item">
-      <a href="../introduction/" class="md-tabs__link md-tabs__link--active">
+      <a href="../../guides/introduction/" class="md-tabs__link">
         Guides
       </a>
     </li>
@@ -244,13 +242,15 @@
         
   
   
+    
+  
 
 
   
   
   
     <li class="md-tabs__item">
-      <a href="../../provider/aws-secrets-manager/" class="md-tabs__link">
+      <a href="../aws-secrets-manager/" class="md-tabs__link md-tabs__link--active">
         Provider
       </a>
     </li>
@@ -888,16 +888,16 @@
 
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
       
       
         
@@ -916,7 +916,7 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
         <label class="md-nav__title" for="__nav_3">
           <span class="md-nav__icon md-icon"></span>
           Guides
@@ -929,7 +929,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../introduction/" class="md-nav__link">
+      <a href="../../guides/introduction/" class="md-nav__link">
         Introduction
       </a>
     </li>
@@ -941,16 +941,16 @@
               
   
   
-    
-  
   
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+      
+      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
       
       
         
@@ -977,7 +977,7 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+      <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
         <label class="md-nav__title" for="__nav_3_2">
           <span class="md-nav__icon md-icon"></span>
           External Secrets
@@ -990,7 +990,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../all-keys-one-secret/" class="md-nav__link">
+      <a href="../../guides/all-keys-one-secret/" class="md-nav__link">
         Extract structured data
       </a>
     </li>
@@ -1002,73 +1002,11 @@
               
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          Find Secrets by Name or Metadata
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../guides/getallsecrets/" class="md-nav__link">
         Find Secrets by Name or Metadata
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#fetching-secrets-matching-a-given-name-pattern" class="md-nav__link">
-    Fetching secrets matching a given name pattern
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fetching-secrets-matching-a-set-of-metadata-tags" class="md-nav__link">
-    Fetching secrets matching a set of metadata tags
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#searching-only-in-a-given-path" class="md-nav__link">
-    Searching only in a given path
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#avoiding-name-conflicts" class="md-nav__link">
-    Avoiding name conflicts
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1080,7 +1018,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../datafrom-rewrite/" class="md-nav__link">
+      <a href="../../guides/datafrom-rewrite/" class="md-nav__link">
         Rewriting Keys
       </a>
     </li>
@@ -1129,7 +1067,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../templating/" class="md-nav__link">
+      <a href="../../guides/templating/" class="md-nav__link">
         v2
       </a>
     </li>
@@ -1143,7 +1081,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../templating-v1/" class="md-nav__link">
+      <a href="../../guides/templating-v1/" class="md-nav__link">
         v1
       </a>
     </li>
@@ -1164,7 +1102,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../common-k8s-secret-types/" class="md-nav__link">
+      <a href="../../guides/common-k8s-secret-types/" class="md-nav__link">
         Kubernetes Secret Types
       </a>
     </li>
@@ -1178,7 +1116,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ownership-deletion-policy/" class="md-nav__link">
+      <a href="../../guides/ownership-deletion-policy/" class="md-nav__link">
         Lifecycle: ownership & deletion
       </a>
     </li>
@@ -1192,7 +1130,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../decoding-strategy/" class="md-nav__link">
+      <a href="../../guides/decoding-strategy/" class="md-nav__link">
         Decoding Strategies
       </a>
     </li>
@@ -1206,7 +1144,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../controller-class/" class="md-nav__link">
+      <a href="../../guides/controller-class/" class="md-nav__link">
         Controller Classes
       </a>
     </li>
@@ -1227,7 +1165,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../generator/" class="md-nav__link">
+      <a href="../../guides/generator/" class="md-nav__link">
         Generators
       </a>
     </li>
@@ -1284,7 +1222,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../multi-tenancy/" class="md-nav__link">
+      <a href="../../guides/multi-tenancy/" class="md-nav__link">
         Multi Tenancy
       </a>
     </li>
@@ -1298,7 +1236,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../security-best-practices/" class="md-nav__link">
+      <a href="../../guides/security-best-practices/" class="md-nav__link">
         Security Best Practices
       </a>
     </li>
@@ -1312,7 +1250,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../threat-model/" class="md-nav__link">
+      <a href="../../guides/threat-model/" class="md-nav__link">
         Threat Model
       </a>
     </li>
@@ -1326,7 +1264,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../v1beta1/" class="md-nav__link">
+      <a href="../../guides/v1beta1/" class="md-nav__link">
         Upgrading to v1beta1
       </a>
     </li>
@@ -1340,7 +1278,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../using-latest-image/" class="md-nav__link">
+      <a href="../../guides/using-latest-image/" class="md-nav__link">
         Using Latest Image
       </a>
     </li>
@@ -1354,7 +1292,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../disable-cluster-features/" class="md-nav__link">
+      <a href="../../guides/disable-cluster-features/" class="md-nav__link">
         Disable Cluster Features
       </a>
     </li>
@@ -1381,16 +1319,16 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
       
       
-        
-      
-      <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
       
       
         
@@ -1447,7 +1385,7 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
         <label class="md-nav__title" for="__nav_4">
           <span class="md-nav__icon md-icon"></span>
           Provider
@@ -1460,7 +1398,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-secrets-manager/" class="md-nav__link">
+      <a href="../aws-secrets-manager/" class="md-nav__link">
         AWS Secrets Manager
       </a>
     </li>
@@ -1474,7 +1412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-parameter-store/" class="md-nav__link">
+      <a href="../aws-parameter-store/" class="md-nav__link">
         AWS Parameter Store
       </a>
     </li>
@@ -1488,7 +1426,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/azure-key-vault/" class="md-nav__link">
+      <a href="../azure-key-vault/" class="md-nav__link">
         Azure Key Vault
       </a>
     </li>
@@ -1502,7 +1440,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/conjur/" class="md-nav__link">
+      <a href="../conjur/" class="md-nav__link">
         CyberArk Conjur
       </a>
     </li>
@@ -1516,7 +1454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/google-secrets-manager/" class="md-nav__link">
+      <a href="../google-secrets-manager/" class="md-nav__link">
         Google Cloud Secret Manager
       </a>
     </li>
@@ -1530,7 +1468,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/hashicorp-vault/" class="md-nav__link">
+      <a href="../hashicorp-vault/" class="md-nav__link">
         HashiCorp Vault
       </a>
     </li>
@@ -1544,7 +1482,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/kubernetes/" class="md-nav__link">
+      <a href="../kubernetes/" class="md-nav__link">
         Kubernetes
       </a>
     </li>
@@ -1558,7 +1496,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/ibm-secrets-manager/" class="md-nav__link">
+      <a href="../ibm-secrets-manager/" class="md-nav__link">
         IBM Secrets Manager
       </a>
     </li>
@@ -1572,7 +1510,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/akeyless/" class="md-nav__link">
+      <a href="../akeyless/" class="md-nav__link">
         Akeyless
       </a>
     </li>
@@ -1586,7 +1524,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/yandex-certificate-manager/" class="md-nav__link">
+      <a href="../yandex-certificate-manager/" class="md-nav__link">
         Yandex Certificate Manager
       </a>
     </li>
@@ -1600,7 +1538,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/yandex-lockbox/" class="md-nav__link">
+      <a href="../yandex-lockbox/" class="md-nav__link">
         Yandex Lockbox
       </a>
     </li>
@@ -1614,7 +1552,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/alibaba/" class="md-nav__link">
+      <a href="../alibaba/" class="md-nav__link">
         Alibaba Cloud
       </a>
     </li>
@@ -1628,7 +1566,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/gitlab-variables/" class="md-nav__link">
+      <a href="../gitlab-variables/" class="md-nav__link">
         GitLab Variables
       </a>
     </li>
@@ -1642,7 +1580,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/oracle-vault/" class="md-nav__link">
+      <a href="../oracle-vault/" class="md-nav__link">
         Oracle Vault
       </a>
     </li>
@@ -1656,7 +1594,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/1password-automation/" class="md-nav__link">
+      <a href="../1password-automation/" class="md-nav__link">
         1Password Secrets Automation
       </a>
     </li>
@@ -1670,7 +1608,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/webhook/" class="md-nav__link">
+      <a href="../webhook/" class="md-nav__link">
         Webhook
       </a>
     </li>
@@ -1684,7 +1622,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/fake/" class="md-nav__link">
+      <a href="../fake/" class="md-nav__link">
         Fake
       </a>
     </li>
@@ -1698,7 +1636,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/senhasegura-dsm/" class="md-nav__link">
+      <a href="../senhasegura-dsm/" class="md-nav__link">
         senhasegura DevOps Secrets Management (DSM)
       </a>
     </li>
@@ -1712,7 +1650,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/doppler/" class="md-nav__link">
+      <a href="../doppler/" class="md-nav__link">
         Doppler
       </a>
     </li>
@@ -1726,7 +1664,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/keeper-security/" class="md-nav__link">
+      <a href="../keeper-security/" class="md-nav__link">
         Keeper Security
       </a>
     </li>
@@ -1738,11 +1676,76 @@
               
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../../provider/cloak/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Cloak End 2 End Encrypted Secrets
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         Cloak End 2 End Encrypted Secrets
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#cloak" class="md-nav__link">
+    Cloak
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-setup" class="md-nav__link">
+    Key Setup
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-the-decryption-proxy" class="md-nav__link">
+    Deploy the decryption proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-a-secret-store" class="md-nav__link">
+    Create a secret store
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connect-a-secret-to-the-provider" class="md-nav__link">
+    Connect a secret to the provider
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1754,7 +1757,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/scaleway/" class="md-nav__link">
+      <a href="../scaleway/" class="md-nav__link">
         Scaleway
       </a>
     </li>
@@ -1768,7 +1771,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/delinea/" class="md-nav__link">
+      <a href="../delinea/" class="md-nav__link">
         Delinea
       </a>
     </li>
@@ -2149,8 +2152,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -2159,29 +2160,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#fetching-secrets-matching-a-given-name-pattern" class="md-nav__link">
-    Fetching secrets matching a given name pattern
+  <a href="#cloak" class="md-nav__link">
+    Cloak
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#fetching-secrets-matching-a-set-of-metadata-tags" class="md-nav__link">
-    Fetching secrets matching a set of metadata tags
+  <a href="#key-setup" class="md-nav__link">
+    Key Setup
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#searching-only-in-a-given-path" class="md-nav__link">
-    Searching only in a given path
+  <a href="#deploy-the-decryption-proxy" class="md-nav__link">
+    Deploy the decryption proxy
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#avoiding-name-conflicts" class="md-nav__link">
-    Avoiding name conflicts
+  <a href="#create-a-secret-store" class="md-nav__link">
+    Create a secret store
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connect-a-secret-to-the-provider" class="md-nav__link">
+    Connect a secret to the provider
   </a>
   
 </li>
@@ -2204,65 +2212,101 @@
   
 
 
-<h1 id="fetching-information-from-multiple-secrets">Fetching information from multiple secrets</h1>
-<p>In some use cases, it might be impractical to bundle all sensitive information into a single secret, or even it is not possible to fully know a given secret name. In such cases, it is possible that a user might need to sync multiple secrets from an external provider into a single Kubernetes Secret. This is possible to be done in external-secrets with the <code>dataFrom.find</code> option.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it possible to apply a decoding Strategy during a find operation, but only at the secret level (e.g. if a secret is a JSON with some B64 encoded data within, <code>decodingStrategy: Auto</code> would not decode it)</p>
-</div>
-<h3 id="fetching-secrets-matching-a-given-name-pattern">Fetching secrets matching a given name pattern</h3>
-<p>To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"> </span>
+  <h1>Cloak End 2 End Encrypted Secrets</h1>
+
+<p><img alt="Cloak End 2 End Encrypted Secrets" src="../../pictures/cloak-provider-header.png" /></p>
+<h2 id="cloak">Cloak</h2>
+<p>Sync secrets from the <a href="https://cloak.software">Cloak Encrypted Secrets Platform</a> to Kubernetes using the External Secrets Operator.</p>
+<p>Cloak uses the webhook provider built into the External Secrets Operator but also required a proxy service to handle decrypting secrets when they arrive into your cluster.</p>
+<h2 id="key-setup">Key Setup</h2>
+<p>From the Cloak user interface <a href="https://cloak.software/docs/getting-started/03-cli/">create a service account</a> and store the private key on your file system.</p>
+<p>Now create a kubernetes secret in the same namespace as the External Secrets Operator.</p>
+<div class="highlight"><pre><span></span><code><span class="nv">HISTIGNORE</span><span class="o">=</span><span class="s1">&#39;*kubectl*&#39;</span><span class="w"> </span>kubectl<span class="w"> </span>--namespace<span class="o">=</span>external-secrets<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>cloak-key<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--from-file<span class="o">=</span><span class="nv">ecdh_private_key</span><span class="o">=</span><span class="nv">$LOCATION_OF_YOUR_PEM_FILE</span>
+</code></pre></div>
+<h2 id="deploy-the-decryption-proxy">Deploy the decryption proxy</h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># The cloak external secrets proxy</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apps/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
+<span class="w">  </span><span class="nt">replicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
+<span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
+<span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">purtontech/cloak-external-secrets:latest</span>
+<span class="w">        </span><span class="nt">imagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IfNotPresent</span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECDH_PRIVATE_KEY</span><span class="w"> </span>
+<span class="w">            </span><span class="nt">valueFrom</span><span class="p">:</span><span class="w"> </span>
+<span class="w">              </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w"> </span>
+<span class="w">                </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-key</span><span class="w"> </span>
+<span class="w">                </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ecdh_private_key</span><span class="w"> </span>
+<span class="w">        </span><span class="nt">ports</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7105</span>
+</code></pre></div>
+<p>And a Kubernetes Service so External Secrets Operator can access the proxy.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Service</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets-service</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-external-secrets</span>
+<span class="w">  </span><span class="nt">ports</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TCP</span>
+<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7105</span>
+<span class="w">      </span><span class="nt">targetPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7105</span>
+</code></pre></div>
+<h2 id="create-a-secret-store">Create a secret store</h2>
+<p>You can now place the configuration in any Kubernetes Namespace.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># An External secrets webhookl</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-backend</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://cloak-external-secrets-service:7105/{{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">      </span><span class="nt">result</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.value&quot;</span>
+<span class="w">      </span><span class="nt">headers</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
+</code></pre></div>
+<h2 id="connect-a-secret-to-the-provider">Connect a secret to the provider</h2>
+<p>Each <code>secretKey</code> reference in the yaml should point to the name of the secret as it is stored in Cloak.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Access a secret</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">find-by-tags</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-example</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;15m&quot;</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-backend</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;key&quot;</span>
-</code></pre></div></p>
-<p>Suppose we contain secrets <code>/path/key1</code>, <code>key2/path</code>, and <code>path/to/keyring</code> with their respective values. The above YAML will produce the following kubernetes Secret:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">_path_key1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span>
-<span class="nt">key2_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span>
-<span class="nt">path_to_keyring</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Cg==</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">access-token</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PULUMI_ACCESS_TOKEN</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">do-access-token</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DIGITALOCEAN_ACCESS_TOKEN</span>
 </code></pre></div>
-<h3 id="fetching-secrets-matching-a-set-of-metadata-tags">Fetching secrets matching a set of metadata tags</h3>
-<p>To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span><span class="w"> </span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">find-by-tags</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
-<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">tags</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;prod&quot;</span>
-<span class="w">        </span><span class="nt">application</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;app-name&quot;</span>
-</code></pre></div>
-This will match any secrets containing all of the metadata labels in the <code>tags</code> parameter. At least one tag must be provided in order to allow finding secrets by metadata tags.</p>
-<h3 id="searching-only-in-a-given-path">Searching only in a given path</h3>
-<p>Some providers support filtering out a find operation only to a given path, instead of the root path. In order to use this feature, you can pass <code>find.path</code> to filter out these secrets into only this path, instead of the root path.</p>
-<h3 id="avoiding-name-conflicts">Avoiding name conflicts</h3>
-<p>By default, kubernetes Secrets accepts only a given range of characters. <code>Find</code> operations will automatically replace any not allowed character with a <code>_</code>. So if we have a given secret <code>a_c</code> and <code>a/c</code> would lead to a naming conflict.</p>
-<p>If you happen to have a case where a conflict is happening, you can use the <code>rewrite</code> block to apply a regexp on one of the find operations (for more information please refer to <a href="../datafrom-rewrite/">Rewriting Keys from DataFrom</a>).</p>
-<p>You can also set  <code>dataFrom.find.conversionStrategy: Unicode</code> to reduce the collistion probability. When using <code>Unicode</code>, any invalid character will be replaced by its unicode, in the form of <code>_UXXXX_</code>. In this case, the available kubernetes keys would be <code>a_c</code> and <code>a_U2215_c</code>, hence avoiding most of possible conflicts.</p>
-<div class="admonition note">
-<p class="admonition-title">PRs welcome</p>
-<p>Some providers might not have the implementation needed for fetching multiple secrets. If that's your case, please feel free to contribute!</p>
-</div>
 
 
   
