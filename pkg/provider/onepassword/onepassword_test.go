@@ -21,7 +21,7 @@ import (
 
 	"github.com/1Password/connect-sdk-go/onepassword"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -421,7 +421,7 @@ func TestValidateStore(t *testing.T) {
 								SecretRef: &esv1beta1.OnePasswordAuthSecretRef{
 									ConnectToken: esmeta.SecretKeySelector{
 										Name:      mySecret,
-										Namespace: pointer.String("my-namespace"),
+										Namespace: pointer.To("my-namespace"),
 										Key:       token,
 									},
 								},
@@ -478,7 +478,7 @@ func TestValidateStore(t *testing.T) {
 								SecretRef: &esv1beta1.OnePasswordAuthSecretRef{
 									ConnectToken: esmeta.SecretKeySelector{
 										Name:      mySecret,
-										Namespace: pointer.String("my-namespace"),
+										Namespace: pointer.To("my-namespace"),
 										Key:       token,
 									},
 								},
@@ -1022,7 +1022,7 @@ func TestGetAllSecrets(t *testing.T) {
 				{
 					checkNote: "find some with path only",
 					ref: esv1beta1.ExternalSecretFind{
-						Path: pointer.String(myItem),
+						Path: pointer.To(myItem),
 					},
 					expectedMap: map[string][]byte{
 						key1: []byte(value1),
@@ -1051,7 +1051,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1beta1.FindName{
 							RegExp: "key*",
 						},
-						Path: pointer.String(myOtherItem),
+						Path: pointer.To(myOtherItem),
 					},
 					expectedMap: map[string][]byte{
 						key3: []byte(value3),
@@ -1075,7 +1075,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1beta1.FindName{
 							RegExp: "key*",
 						},
-						Path: pointer.String("no-exist"),
+						Path: pointer.To("no-exist"),
 					},
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,
@@ -1185,7 +1185,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1beta1.FindName{
 							RegExp: "^my-*",
 						},
-						Path: pointer.String(myOtherItem),
+						Path: pointer.To(myOtherItem),
 					},
 					expectedMap: map[string][]byte{
 						myOtherFilePNG: []byte(myOtherContents),
@@ -1208,7 +1208,7 @@ func TestGetAllSecrets(t *testing.T) {
 						Name: &esv1beta1.FindName{
 							RegExp: "^my-*",
 						},
-						Path: pointer.String("no-exist"),
+						Path: pointer.To("no-exist"),
 					},
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,

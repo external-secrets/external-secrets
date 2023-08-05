@@ -193,6 +193,10 @@ func (ref pushRemoteRef) GetRemoteKey() string {
 	return string(ref)
 }
 
+func (ref pushRemoteRef) GetProperty() string {
+	return ""
+}
+
 func TestPushSecret(t *testing.T) {
 	t.Run("to new secret", func(t *testing.T) {
 		ctx := context.Background()

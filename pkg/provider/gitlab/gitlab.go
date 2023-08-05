@@ -29,8 +29,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -46,7 +47,7 @@ const (
 	errNameNotDefined                         = "'find.name' is mandatory"
 	errEnvironmentIsConstricted               = "'find.tags' is constrained by 'environment_scope' of the store"
 	errTagsOnlyEnvironmentSupported           = "'find.tags' only supports 'environment_scope'"
-	errPathNotImplemented                     = "'find.path' is not implemented in the Gitlab provider"
+	errPathNotImplemented                     = "'find.path' is not implemented in the GitLab provider"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
 )
 
@@ -158,7 +159,7 @@ func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecr
 		for groupPage := 1; ; groupPage++ {
 			gopts.Page = groupPage
 			groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
-			metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabGroupListVariables, err)
+			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
 			if err != nil {
 				return nil, err
 			}
@@ -179,7 +180,7 @@ func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecr
 	for projectPage := 1; ; projectPage++ {
 		popts.Page = projectPage
 		projectData, response, err := g.projectVariablesClient.ListVariables(g.store.ProjectID, popts)
-		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabProjectListVariables, err)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectListVariables, err)
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +221,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDa
 		return nil, fmt.Errorf(errUninitializedGitlabProvider)
 	}
 
-	// Need to replace hyphens with underscores to work with Gitlab API
+	// Need to replace hyphens with underscores to work with GitLab API
 	ref.Key = strings.ReplaceAll(ref.Key, "-", "_")
 	// Retrieves a gitlab variable in the form
 	// {
@@ -237,11 +238,11 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDa
 	}
 
 	data, resp, err := g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
-	metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabProjectVariableGet, err)
+	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
 	if !isEmptyOrWildcard(g.store.Environment) && resp.StatusCode == http.StatusNotFound {
 		vopts.Filter.EnvironmentScope = "*"
 		data, resp, err = g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
-		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabProjectVariableGet, err)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
 	}
 
 	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
@@ -265,7 +266,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDa
 		}
 
 		groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, nil)
-		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabGroupGetVariable, err)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
 		if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
 			return nil, err
 		}
@@ -349,7 +350,7 @@ func (g *gitlabBase) Close(_ context.Context) error {
 func (g *gitlabBase) ResolveGroupIds() error {
 	if g.store.InheritFromGroups {
 		projectGroups, resp, err := g.projectsClient.ListProjectsGroups(g.store.ProjectID, nil)
-		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabListProjectsGroups, err)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabListProjectsGroups, err)
 		if resp.StatusCode >= 400 && err != nil {
 			return err
 		}
@@ -367,7 +368,7 @@ func (g *gitlabBase) ResolveGroupIds() error {
 func (g *gitlabBase) Validate() (esv1beta1.ValidationResult, error) {
 	if g.store.ProjectID != "" {
 		_, resp, err := g.projectVariablesClient.ListVariables(g.store.ProjectID, nil)
-		metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabProjectListVariables, err)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectListVariables, err)
 		if err != nil {
 			return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
 		} else if resp == nil || resp.StatusCode != http.StatusOK {
@@ -384,7 +385,7 @@ func (g *gitlabBase) Validate() (esv1beta1.ValidationResult, error) {
 	if len(g.store.GroupIDs) > 0 {
 		for _, groupID := range g.store.GroupIDs {
 			_, resp, err := g.groupVariablesClient.ListVariables(groupID, nil)
-			metrics.ObserveAPICall(metrics.ProviderGitLab, metrics.CallGitLabGroupListVariables, err)
+			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
 			if err != nil {
 				return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
 			} else if resp == nil || resp.StatusCode != http.StatusOK {

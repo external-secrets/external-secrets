@@ -272,6 +272,7 @@ We support five different modes for authentication:
 [appRole](https://www.vaultproject.io/docs/auth/approle),
 [kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
 [ldap](https://www.vaultproject.io/docs/auth/ldap),
+[userPass](https://www.vaultproject.io/docs/auth/userpass),
 [jwt/oidc](https://www.vaultproject.io/docs/auth/jwt) and
 [awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
@@ -319,6 +320,18 @@ in a `Kind=Secret` referenced by the `secretRef`.
 
 ```yaml
 {% include 'vault-ldap-store.yaml' %}
+```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
+
+#### UserPass authentication
+
+[UserPass authentication](https://www.vaultproject.io/docs/auth/userpass) uses
+username/password pair to get an access token. Username is stored directly in
+a `Kind=SecretStore` or `Kind=ClusterSecretStore` resource, password is stored
+in a `Kind=Secret` referenced by the `secretRef`.
+
+```yaml
+{% include 'vault-userpass-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
@@ -385,7 +398,7 @@ This approach assumes that appropriate IRSA setup is done controller's pod (i.e.
 ### PushSecret
 Vault supports PushSecret features which allow you to sync a given kubernetes secret key into a hashicorp vault secret. In order to do so, it is expected that the secret key is a valid JSON object.
 
-In order to use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets to. Use it with care!
+In order to use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets to for both `data` and `metadata` of the secret. Use it with care!
 
 Here is an example on how to set it up:
 ```yaml

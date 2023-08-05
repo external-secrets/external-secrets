@@ -65,6 +65,9 @@ spec:
             {{- if not .Values.processClusterExternalSecret }}
           - --enable-cluster-external-secret-reconciler=false
             {{- end }}
+            {{- if not .Values.processPushSecret }}
+          - --enable-push-secret-reconciler=false
+            {{- end }}
           {{- end }}
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}

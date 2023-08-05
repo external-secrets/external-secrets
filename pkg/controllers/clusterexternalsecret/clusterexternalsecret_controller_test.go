@@ -16,29 +16,543 @@ package clusterexternalsecret
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
+
+func init() {
+	ctrlmetrics.SetUpLabelNames(false)
+	cesmetrics.SetUpMetrics()
+}
 
 var (
 	timeout  = time.Second * 10
 	interval = time.Millisecond * 250
 )
 
+type testCase struct {
+	namespaces                    []v1.Namespace
+	clusterExternalSecret         func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret
+	beforeCheck                   func(ctx context.Context, namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret)
+	expectedClusterExternalSecret func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret
+	expectedExternalSecrets       func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret
+}
+
+var _ = Describe("ClusterExternalSecret controller", func() {
+	defaultClusterExternalSecret := func() *esv1beta1.ClusterExternalSecret {
+		return &esv1beta1.ClusterExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf("test-ces-%s", randString(10)),
+			},
+			Spec: esv1beta1.ClusterExternalSecretSpec{
+				ExternalSecretSpec: esv1beta1.ExternalSecretSpec{
+					SecretStoreRef: esv1beta1.SecretStoreRef{
+						Name: "test-store",
+					},
+					Target: esv1beta1.ExternalSecretTarget{
+						Name: "test-secret",
+					},
+					Data: []esv1beta1.ExternalSecretData{
+						{
+							SecretKey: "test-secret-key",
+							RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+								Key: "test-remote-key",
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	DescribeTable("When reconciling a ClusterExternal Secret",
+		func(tc testCase) {
+			ctx := context.Background()
+			By("creating namespaces")
+			var namespaces []v1.Namespace
+			for _, ns := range tc.namespaces {
+				err := k8sClient.Create(ctx, &ns)
+				Expect(err).ShouldNot(HaveOccurred())
+				namespaces = append(namespaces, ns)
+			}
+
+			By("creating a cluster external secret")
+			ces := tc.clusterExternalSecret(tc.namespaces)
+			err := k8sClient.Create(ctx, &ces)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("running before check")
+			if tc.beforeCheck != nil {
+				tc.beforeCheck(ctx, namespaces, ces)
+			}
+
+			// the before check above may have updated the namespaces, so refresh them
+			for i, ns := range namespaces {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: ns.Name}, &ns)
+				Expect(err).ShouldNot(HaveOccurred())
+				namespaces[i] = ns
+			}
+
+			By("checking the cluster external secret")
+			expectedCES := tc.expectedClusterExternalSecret(namespaces, ces)
+
+			Eventually(func(g Gomega) {
+				key := types.NamespacedName{Name: expectedCES.Name}
+				var gotCes esv1beta1.ClusterExternalSecret
+				err = k8sClient.Get(ctx, key, &gotCes)
+				g.Expect(err).ShouldNot(HaveOccurred())
+
+				g.Expect(gotCes.Labels).To(Equal(expectedCES.Labels))
+				g.Expect(gotCes.Annotations).To(Equal(expectedCES.Annotations))
+				g.Expect(gotCes.Spec).To(Equal(expectedCES.Spec))
+				g.Expect(gotCes.Status).To(Equal(expectedCES.Status))
+			}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+			By("checking the external secrets")
+			expectedESs := tc.expectedExternalSecrets(namespaces, ces)
+
+			Eventually(func(g Gomega) {
+				var gotESs []esv1beta1.ExternalSecret
+				for _, ns := range namespaces {
+					var externalSecrets esv1beta1.ExternalSecretList
+					err := k8sClient.List(ctx, &externalSecrets, crclient.InNamespace(ns.Name))
+					g.Expect(err).ShouldNot(HaveOccurred())
+
+					gotESs = append(gotESs, externalSecrets.Items...)
+				}
+
+				g.Expect(len(gotESs)).Should(Equal(len(expectedESs)))
+				for _, gotES := range gotESs {
+					found := false
+					for _, expectedES := range expectedESs {
+						if gotES.Namespace == expectedES.Namespace && gotES.Name == expectedES.Name {
+							found = true
+							g.Expect(gotES.Labels).To(Equal(expectedES.Labels))
+							g.Expect(gotES.Annotations).To(Equal(expectedES.Annotations))
+							g.Expect(gotES.Spec).To(Equal(expectedES.Spec))
+						}
+					}
+					g.Expect(found).To(Equal(true))
+				}
+			}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+		},
+
+		Entry("Should use cluster external secret name if external secret name isn't defined", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
+				return *ces
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespaces[0].Name,
+							Name:      created.Name,
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}),
+		Entry("Should set external secret name and metadata if the fields are set", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
+				ces.Spec.ExternalSecretName = "test-es"
+				ces.Spec.ExternalSecretMetadata = esv1beta1.ExternalSecretMetadata{
+					Labels:      map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"},
+					Annotations: map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"},
+				}
+				return *ces
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace:   namespaces[0].Name,
+							Name:        "test-es",
+							Labels:      map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"},
+							Annotations: map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"},
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}),
+		Entry("Should update external secret if the fields change", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
+				return *ces
+			},
+			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) {
+				// Wait until the external secret is provisioned
+				var es esv1beta1.ExternalSecret
+				Eventually(func(g Gomega) {
+					key := types.NamespacedName{Namespace: namespaces[0].Name, Name: created.Name}
+					g.Expect(k8sClient.Get(ctx, key, &es)).ShouldNot(HaveOccurred())
+					g.Expect(len(es.Labels)).Should(Equal(0))
+					g.Expect(len(es.Annotations)).Should(Equal(0))
+					g.Expect(es.Spec).Should(Equal(created.Spec.ExternalSecretSpec))
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+				copied := created.DeepCopy()
+				copied.Spec.ExternalSecretMetadata = esv1beta1.ExternalSecretMetadata{
+					Labels:      map[string]string{"test-label-key": "test-label-value"},
+					Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+				}
+				copied.Spec.ExternalSecretSpec.SecretStoreRef.Name = "updated-test-store" //nolint:goconst
+				Expect(k8sClient.Patch(ctx, copied, crclient.MergeFrom(created.DeepCopy()))).ShouldNot(HaveOccurred())
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				updatedSpec := created.Spec.DeepCopy()
+				updatedSpec.ExternalSecretMetadata = esv1beta1.ExternalSecretMetadata{
+					Labels:      map[string]string{"test-label-key": "test-label-value"},
+					Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+				}
+				updatedSpec.ExternalSecretSpec.SecretStoreRef.Name = "updated-test-store"
+
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: *updatedSpec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				updatedSpec := created.Spec.ExternalSecretSpec.DeepCopy()
+				updatedSpec.SecretStoreRef.Name = "updated-test-store"
+
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace:   namespaces[0].Name,
+							Name:        created.Name,
+							Labels:      map[string]string{"test-label-key": "test-label-value"},
+							Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+						},
+						Spec: *updatedSpec,
+					},
+				}
+			},
+		}),
+		Entry("Should not overwrite existing external secrets and error out if one is present", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
+
+				es := &esv1beta1.ExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      ces.Name,
+						Namespace: namespaces[0].Name,
+					},
+				}
+				Expect(k8sClient.Create(context.Background(), es)).ShouldNot(HaveOccurred())
+
+				return *ces
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						FailedNamespaces: []esv1beta1.ClusterExternalSecretNamespaceFailure{
+							{
+								Namespace: namespaces[0].Name,
+								Reason:    "external secret already exists in namespace",
+							},
+						},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:    esv1beta1.ClusterExternalSecretNotReady,
+								Status:  v1.ConditionTrue,
+								Message: "one or more namespaces failed",
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespaces[0].Name,
+							Name:      created.Name,
+						},
+						Spec: esv1beta1.ExternalSecretSpec{
+							Target: esv1beta1.ExternalSecretTarget{
+								CreationPolicy: "Owner",
+								DeletionPolicy: "Retain",
+							},
+							RefreshInterval: &metav1.Duration{Duration: time.Hour},
+						},
+					},
+				}
+			},
+		}),
+		Entry("Should crate an external secret and if one with the same name has been deleted", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
+				return *ces
+			},
+			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) {
+				es := &esv1beta1.ExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      created.Name,
+						Namespace: namespaces[0].Name,
+					},
+				}
+				Expect(k8sClient.Create(ctx, es)).ShouldNot(HaveOccurred())
+
+				ces := esv1beta1.ClusterExternalSecret{}
+				Eventually(func(g Gomega) {
+					key := types.NamespacedName{Namespace: created.Namespace, Name: created.Name}
+					g.Expect(k8sClient.Get(ctx, key, &ces)).ShouldNot(HaveOccurred())
+					g.Expect(len(ces.Status.FailedNamespaces)).Should(Equal(1))
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+				Expect(k8sClient.Delete(ctx, es)).ShouldNot(HaveOccurred())
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:    esv1beta1.ClusterExternalSecretNotReady,
+								Status:  v1.ConditionTrue,
+								Message: "one or more namespaces failed",
+							},
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespaces[0].Name,
+							Name:      created.Name,
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}),
+		Entry("Should delete external secrets when namespaces no longer match", testCase{
+			namespaces: []v1.Namespace{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   randomNamespaceName(),
+						Labels: map[string]string{"no-longer-match-label-key": "no-longer-match-label-value"},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   randomNamespaceName(),
+						Labels: map[string]string{"no-longer-match-label-key": "no-longer-match-label-value"},
+					},
+				},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.RefreshInterval = &metav1.Duration{Duration: 100 * time.Millisecond}
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"no-longer-match-label-key": "no-longer-match-label-value"}
+				return *ces
+			},
+			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) {
+				// Wait until the target ESs have been created
+				Eventually(func(g Gomega) {
+					for _, ns := range namespaces {
+						key := types.NamespacedName{Namespace: ns.Name, Name: created.Name}
+						g.Expect(k8sClient.Get(ctx, key, &esv1beta1.ExternalSecret{})).ShouldNot(HaveOccurred())
+					}
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+				for _, ns := range namespaces {
+					ns.Labels = map[string]string{}
+					Expect(k8sClient.Update(ctx, &ns)).ShouldNot(HaveOccurred())
+				}
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{}
+			},
+		}),
+		Entry("Should sync with match expression", testCase{
+			namespaces: []v1.Namespace{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   randomNamespaceName(),
+						Labels: map[string]string{"prefix": "foo"},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   randomNamespaceName(),
+						Labels: map[string]string{"prefix": "bar"},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   randomNamespaceName(),
+						Labels: map[string]string{"prefix": "baz"},
+					},
+				},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.RefreshInterval = &metav1.Duration{Duration: 100 * time.Millisecond}
+				ces.Spec.NamespaceSelector.MatchExpressions = []metav1.LabelSelectorRequirement{
+					{
+						Key:      "prefix",
+						Operator: metav1.LabelSelectorOpIn,
+						Values:   []string{"foo", "bar"}, // "baz" is excluded
+					},
+				}
+				return *ces
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				provisionedNamespaces := []string{namespaces[0].Name, namespaces[1].Name}
+				sort.Strings(provisionedNamespaces)
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ProvisionedNamespaces: provisionedNamespaces,
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespaces[0].Name,
+							Name:      created.Name,
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespaces[1].Name,
+							Name:      created.Name,
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}))
+})
+
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
 
-func RandString(n int) string {
+func randString(n int) string {
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
@@ -46,336 +560,6 @@ func RandString(n int) string {
 	return string(b)
 }
 
-type testNamespace struct {
-	namespace  v1.Namespace
-	containsES bool
-	deletedES  bool
-}
-
-type testCase struct {
-	clusterExternalSecret *esv1beta1.ClusterExternalSecret
-
-	// These are the namespaces that are being tested
-	externalSecretNamespaces []testNamespace
-
-	// The labels to be used for the namespaces
-	namespaceLabels map[string]string
-
-	// This is a setup function called for each test much like BeforeEach but with knowledge of the test case
-	// This is used by default to create namespaces and random labels
-	setup func(*testCase)
-
-	// Is a method that's ran after everything has been created, but before the check methods are called
-	beforeCheck func(*testCase)
-
-	// A function to do any work needed before a test is ran
-	preTest func()
-
-	// checkCondition should return true if the externalSecret
-	// has the expected condition
-	checkCondition func(*esv1beta1.ClusterExternalSecret) bool
-
-	// checkExternalSecret is called after the condition has been verified
-	// use this to verify the externalSecret
-	checkClusterExternalSecret func(*esv1beta1.ClusterExternalSecret)
-
-	// checkExternalSecret is called after the condition has been verified
-	// use this to verify the externalSecret
-	checkExternalSecret func(*esv1beta1.ClusterExternalSecret, *esv1beta1.ExternalSecret)
-}
-
-type testTweaks func(*testCase)
-
-var _ = Describe("ClusterExternalSecret controller", func() {
-	const (
-		ClusterExternalSecretName      = "test-ces"
-		ExternalSecretName             = "test-es"
-		ExternalSecretStore            = "test-store"
-		ExternalSecretTargetSecretName = "test-secret"
-		ClusterSecretStoreNamespace    = "css-test-ns"
-		FakeManager                    = "fake.manager"
-		FooValue                       = "map-foo-value"
-		BarValue                       = "map-bar-value"
-	)
-
-	var ExternalSecretNamespaceTargets = []testNamespace{
-		{
-			namespace: v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-ns-1",
-				},
-			},
-			containsES: true,
-		},
-		{
-			namespace: v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-ns-2",
-				},
-			},
-			containsES: true,
-		},
-		{
-			namespace: v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-ns-5",
-				},
-			},
-			containsES: false,
-		},
-	}
-
-	const targetProp = "targetProperty"
-	const remoteKey = "barz"
-	const remoteProperty = "bang"
-
-	makeDefaultTestCase := func() *testCase {
-		return &testCase{
-			checkCondition: func(ces *esv1beta1.ClusterExternalSecret) bool {
-				cond := GetClusterExternalSecretCondition(ces.Status, esv1beta1.ClusterExternalSecretReady)
-				if cond == nil || cond.Status != v1.ConditionTrue {
-					return false
-				}
-				return true
-			},
-			checkClusterExternalSecret: func(es *esv1beta1.ClusterExternalSecret) {
-				// To be implemented by the tests
-			},
-			checkExternalSecret: func(*esv1beta1.ClusterExternalSecret, *esv1beta1.ExternalSecret) {
-				// To be implemented by the tests
-			},
-			clusterExternalSecret: &esv1beta1.ClusterExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: ClusterExternalSecretName,
-				},
-				Spec: esv1beta1.ClusterExternalSecretSpec{
-					NamespaceSelector:  metav1.LabelSelector{},
-					ExternalSecretName: ExternalSecretName,
-					ExternalSecretSpec: esv1beta1.ExternalSecretSpec{
-						SecretStoreRef: esv1beta1.SecretStoreRef{
-							Name: ExternalSecretStore,
-						},
-						Target: esv1beta1.ExternalSecretTarget{
-							Name: ExternalSecretTargetSecretName,
-						},
-						Data: []esv1beta1.ExternalSecretData{
-							{
-								SecretKey: targetProp,
-								RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
-									Key:      remoteKey,
-									Property: remoteProperty,
-								},
-							},
-						},
-					},
-				},
-			},
-			setup: func(tc *testCase) {
-				// Generate a random label since we don't want to match previous ones.
-				tc.namespaceLabels = map[string]string{
-					RandString(5): RandString(5),
-				}
-
-				namespaces := []testNamespace{}
-				for _, ns := range ExternalSecretNamespaceTargets {
-					name, err := ctest.CreateNamespaceWithLabels(ns.namespace.Name, k8sClient, tc.namespaceLabels)
-					Expect(err).ToNot(HaveOccurred())
-
-					newNs := ns
-					newNs.namespace.ObjectMeta.Name = name
-					namespaces = append(namespaces, newNs)
-				}
-
-				tc.externalSecretNamespaces = namespaces
-
-				tc.clusterExternalSecret.Spec.NamespaceSelector.MatchLabels = tc.namespaceLabels
-			},
-		}
-	}
-
-	// If the ES does noes not have a name specified then it should use the CES name
-	syncWithoutESName := func(tc *testCase) {
-		tc.clusterExternalSecret.Spec.ExternalSecretName = ""
-		tc.checkExternalSecret = func(ces *esv1beta1.ClusterExternalSecret, es *esv1beta1.ExternalSecret) {
-			Expect(es.ObjectMeta.Name).To(Equal(ces.ObjectMeta.Name))
-		}
-	}
-
-	doNotOverwriteExistingES := func(tc *testCase) {
-		tc.preTest = func() {
-			es := &esv1beta1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ExternalSecretName,
-					Namespace: tc.externalSecretNamespaces[0].namespace.Name,
-				},
-			}
-
-			err := k8sClient.Create(context.Background(), es, &client.CreateOptions{})
-			Expect(err).ShouldNot(HaveOccurred())
-		}
-		tc.checkCondition = func(ces *esv1beta1.ClusterExternalSecret) bool {
-			cond := GetClusterExternalSecretCondition(ces.Status, esv1beta1.ClusterExternalSecretPartiallyReady)
-			return cond != nil
-		}
-		tc.checkClusterExternalSecret = func(ces *esv1beta1.ClusterExternalSecret) {
-			Expect(len(ces.Status.FailedNamespaces)).Should(Equal(1))
-
-			failure := ces.Status.FailedNamespaces[0]
-
-			Expect(failure.Namespace).Should(Equal(tc.externalSecretNamespaces[0].namespace.Name))
-			Expect(failure.Reason).Should(Equal(errSecretAlreadyExists))
-		}
-	}
-
-	populatedProvisionedNamespaces := func(tc *testCase) {
-		tc.checkClusterExternalSecret = func(ces *esv1beta1.ClusterExternalSecret) {
-			for _, namespace := range tc.externalSecretNamespaces {
-				if !namespace.containsES {
-					continue
-				}
-
-				Expect(sliceContainsString(namespace.namespace.Name, ces.Status.ProvisionedNamespaces)).To(BeTrue())
-			}
-		}
-	}
-
-	deleteESInNonMatchingNS := func(tc *testCase) {
-		tc.beforeCheck = func(tc *testCase) {
-			ns := tc.externalSecretNamespaces[0]
-
-			// Remove the labels, but leave the should contain ES so we can still check it
-			ns.namespace.ObjectMeta.Labels = map[string]string{}
-			tc.externalSecretNamespaces[0].deletedES = true
-
-			err := k8sClient.Update(context.Background(), &ns.namespace, &client.UpdateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			time.Sleep(time.Second) // Sleep to make sure the controller gets it.
-		}
-	}
-
-	syncWithMatchExpressions := func(tc *testCase) {
-		tc.setup = func(tc *testCase) {
-			prefixes := []string{"foo", "bar", "baz"}
-			for _, prefix := range prefixes {
-				labels := map[string]string{
-					"e2e":    "with-label-selector",
-					"prefix": prefix,
-				}
-				ns, err := ctest.CreateNamespaceWithLabels(prefix, k8sClient, labels)
-				Expect(err).ToNot(HaveOccurred())
-				tc.externalSecretNamespaces = append(tc.externalSecretNamespaces, testNamespace{
-					namespace: v1.Namespace{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: ns,
-						},
-					},
-					containsES: true,
-				})
-			}
-			tc.clusterExternalSecret.Spec.NamespaceSelector.MatchExpressions = []metav1.LabelSelectorRequirement{
-				{
-					Key:      "prefix",
-					Operator: metav1.LabelSelectorOpIn,
-					Values:   prefixes,
-				},
-			}
-		}
-		tc.checkClusterExternalSecret = func(ces *esv1beta1.ClusterExternalSecret) {
-			for _, namespace := range tc.externalSecretNamespaces {
-				var es esv1beta1.ExternalSecret
-				err := k8sClient.Get(context.Background(), types.NamespacedName{
-					Namespace: namespace.namespace.Name,
-					Name:      ExternalSecretName,
-				}, &es)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(sliceContainsString(namespace.namespace.Name, ces.Status.ProvisionedNamespaces)).To(BeTrue())
-			}
-		}
-	}
-
-	DescribeTable("When reconciling a ClusterExternal Secret",
-		func(tweaks ...testTweaks) {
-			tc := makeDefaultTestCase()
-			for _, tweak := range tweaks {
-				tweak(tc)
-			}
-
-			// Run test setup
-			tc.setup(tc)
-
-			if tc.preTest != nil {
-				By("running pre-test")
-				tc.preTest()
-			}
-			ctx := context.Background()
-			By("creating namespaces and cluster external secret")
-			err := k8sClient.Create(ctx, tc.clusterExternalSecret)
-			Expect(err).ShouldNot(HaveOccurred())
-			cesKey := types.NamespacedName{Name: tc.clusterExternalSecret.Name}
-			createdCES := &esv1beta1.ClusterExternalSecret{}
-
-			By("checking the ces condition")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, cesKey, createdCES)
-				if err != nil {
-					return false
-				}
-				return tc.checkCondition(createdCES)
-			}, timeout, interval).Should(BeTrue())
-
-			// Run before check
-			if tc.beforeCheck != nil {
-				tc.beforeCheck(tc)
-			}
-
-			tc.checkClusterExternalSecret(createdCES)
-
-			if tc.checkExternalSecret != nil {
-				for _, ns := range tc.externalSecretNamespaces {
-
-					if !ns.containsES {
-						continue
-					}
-
-					es := &esv1beta1.ExternalSecret{}
-
-					esName := createdCES.Spec.ExternalSecretName
-					if esName == "" {
-						esName = createdCES.ObjectMeta.Name
-					}
-
-					esLookupKey := types.NamespacedName{
-						Name:      esName,
-						Namespace: ns.namespace.Name,
-					}
-
-					Eventually(func() bool {
-						err := k8sClient.Get(ctx, esLookupKey, es)
-
-						if ns.deletedES && apierrors.IsNotFound(err) {
-							return true
-						}
-
-						return err == nil
-					}, timeout, interval).Should(BeTrue())
-					tc.checkExternalSecret(createdCES, es)
-				}
-			}
-		},
-
-		Entry("Should use cluster external secret name if external secret name isn't defined", syncWithoutESName),
-		Entry("Should not overwrite existing external secrets and error out if one is present", doNotOverwriteExistingES),
-		Entry("Should have list of all provisioned namespaces", populatedProvisionedNamespaces),
-		Entry("Should delete external secrets when namespaces no longer match", deleteESInNonMatchingNS),
-		Entry("Should sync with label selector", syncWithMatchExpressions))
-})
-
-func sliceContainsString(toFind string, collection []string) bool {
-	for _, val := range collection {
-		if val == toFind {
-			return true
-		}
-	}
-
-	return false
+func randomNamespaceName() string {
+	return fmt.Sprintf("testns-%s", randString(10))
 }

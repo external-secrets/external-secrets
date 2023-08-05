@@ -1,10 +1,9 @@
-## Gitlab Variables
+## GitLab Variables
 
-External Secrets Operator integrates with Gitlab to sync [Gitlab Project Variables API](https://docs.gitlab.com/ee/api/project_level_variables.html) and/or [Gitlab Group Variables API](https://docs.gitlab.com/ee/api/group_level_variables.html) to secrets held on the Kubernetes cluster.
+External Secrets Operator integrates with GitLab to sync [GitLab Project Variables API](https://docs.gitlab.com/ee/api/project_level_variables.html) and/or [GitLab Group Variables API](https://docs.gitlab.com/ee/api/group_level_variables.html) to secrets held on the Kubernetes cluster.
 
-### Configuring Gitlab
-
-The Gitlab API requires an access token, project ID and/or groupIDs.
+### Configuring GitLab
+The GitLab API requires an access token, project ID and/or groupIDs.
 
 To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).
 
@@ -39,7 +38,7 @@ Your project ID can be found on your project's page.
 
 ### Creating external secret
 
-To sync a Gitlab variable to a secret on the Kubernetes cluster, a `Kind=ExternalSecret` is needed.
+To sync a GitLab variable to a secret on the Kubernetes cluster, a `Kind=ExternalSecret` is needed.
 
 ```yaml
 {% include 'gitlab-external-secret.yaml' %}

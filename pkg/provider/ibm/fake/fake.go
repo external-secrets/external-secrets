@@ -14,31 +14,54 @@ limitations under the License.
 package fake
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/IBM/go-sdk-core/v5/core"
-	sm "github.com/IBM/secrets-manager-go-sdk/secretsmanagerv1"
+	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 type IBMMockClient struct {
-	getSecret func(getSecretOptions *sm.GetSecretOptions) (result *sm.GetSecret, response *core.DetailedResponse, err error)
+	getSecretWithContext   func(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+	listSecretsWithContext func(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error)
 }
 
-func (mc *IBMMockClient) GetSecret(getSecretOptions *sm.GetSecretOptions) (result *sm.GetSecret, response *core.DetailedResponse, err error) {
-	return mc.getSecret(getSecretOptions)
+type IBMMockClientParams struct {
+	GetSecretOptions   *sm.GetSecretOptions
+	GetSecretOutput    sm.SecretIntf
+	GetSecretErr       error
+	ListSecretsOptions *sm.ListSecretsOptions
+	ListSecretsOutput  *sm.SecretMetadataPaginatedCollection
+	ListSecretsErr     error
 }
 
-func (mc *IBMMockClient) WithValue(input *sm.GetSecretOptions, output *sm.GetSecret, err error) {
+func (mc *IBMMockClient) GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
+	return mc.getSecretWithContext(ctx, getSecretOptions)
+}
+
+func (mc *IBMMockClient) ListSecretsWithContext(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error) {
+	return mc.listSecretsWithContext(ctx, listSecretsOptions)
+}
+
+func (mc *IBMMockClient) WithValue(params IBMMockClientParams) {
 	if mc != nil {
-		mc.getSecret = func(paramReq *sm.GetSecretOptions) (*sm.GetSecret, *core.DetailedResponse, error) {
+		mc.getSecretWithContext = func(ctx context.Context, paramReq *sm.GetSecretOptions) (sm.SecretIntf, *core.DetailedResponse, error) {
 			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
 			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
-			if !cmp.Equal(paramReq, input, cmpopts.IgnoreUnexported(sm.GetSecret{})) {
-				return nil, nil, fmt.Errorf("unexpected test argument")
+			if !cmp.Equal(paramReq, params.GetSecretOptions, cmpopts.IgnoreUnexported(sm.Secret{})) {
+				return nil, nil, fmt.Errorf("unexpected test argument for GetSecret: %s, %s", *paramReq.ID, *params.GetSecretOptions.ID)
 			}
-			return output, nil, err
+			return params.GetSecretOutput, nil, params.GetSecretErr
+		}
+		mc.listSecretsWithContext = func(ctx context.Context, paramReq *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error) {
+			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
+			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
+			if !cmp.Equal(paramReq, params.ListSecretsOptions, cmpopts.IgnoreUnexported(sm.SecretMetadataPaginatedCollection{})) {
+				return nil, nil, fmt.Errorf("unexpected test argument for ListSecrets: %s, %s", *paramReq.Search, *params.ListSecretsOptions.Search)
+			}
+			return params.ListSecretsOutput, nil, params.ListSecretsErr
 		}
 	}
 }

@@ -21,4 +21,5 @@ package v1beta1
 // This interface is to allow using v1alpha1 content in Provider registered in v1beta1.
 type PushRemoteRef interface {
 	GetRemoteKey() string
+	GetProperty() string
 }

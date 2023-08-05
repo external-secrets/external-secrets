@@ -34,8 +34,7 @@ func NewExternalSecretCondition(condType esv1beta1.ExternalSecretConditionType, 
 
 // GetExternalSecretCondition returns the condition with the provided type.
 func GetExternalSecretCondition(status esv1beta1.ExternalSecretStatus, condType esv1beta1.ExternalSecretConditionType) *esv1beta1.ExternalSecretStatusCondition {
-	for i := range status.Conditions {
-		c := status.Conditions[i]
+	for _, c := range status.Conditions {
 		if c.Type == condType {
 			return &c
 		}

@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	authv1 "k8s.io/api/authorization/v1"
-	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -35,8 +35,11 @@ var _ esv1beta1.SecretsClient = &Client{}
 var _ esv1beta1.Provider = &Provider{}
 
 type KClient interface {
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Secret, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*corev1.SecretList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Secret, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.SecretList, error)
+	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+	Create(ctx context.Context, secret *v1.Secret, opts metav1.CreateOptions) (*v1.Secret, error)
+	Update(ctx context.Context, secret *v1.Secret, opts metav1.UpdateOptions) (*v1.Secret, error)
 }
 
 type RClient interface {
@@ -84,7 +87,7 @@ func init() {
 }
 
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+	return esv1beta1.SecretStoreReadWrite
 }
 
 // NewClient constructs a Kubernetes Provider.

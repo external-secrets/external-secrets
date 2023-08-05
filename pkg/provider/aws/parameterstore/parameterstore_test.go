@@ -55,6 +55,10 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
+func (f fakeRef) GetProperty() string {
+	return ""
+}
+
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
 	return &parameterstoreTestCase{
 		fakeClient:     &fakeps.Client{},

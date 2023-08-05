@@ -29,9 +29,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	v1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	v1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
+	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
@@ -53,6 +54,7 @@ func init() {
 	v1beta1.ForceRegister(fakeProvider, &v1beta1.SecretStoreProvider{
 		Fake: &v1beta1.FakeProvider{},
 	})
+	psmetrics.SetUpMetrics()
 }
 
 func checkCondition(status v1alpha1.PushSecretStatus, cond v1alpha1.PushSecretStatusCondition) bool {

@@ -97,7 +97,7 @@ func TestValidateExternalSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateExternalSecret(tt.obj); (err != nil) != tt.wantErr {
+			if _, err := validateExternalSecret(tt.obj); (err != nil) != tt.wantErr {
 				t.Errorf("validateExternalSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

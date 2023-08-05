@@ -24,7 +24,7 @@ We have identified the following areas of work. This is subject to change while 
     * Troubleshooting Guides
     * ✓ FAQ
     * ✓ review multi tenancy docs
-    * security model for infosec teams
+    * ✓ security model for infosec teams
     * ✓ security best practices guide
     * ✓ provider specific guides
 * Observability

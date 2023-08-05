@@ -34,7 +34,8 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -281,7 +282,7 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1beta1.Webhoo
 	}
 
 	resp, err := w.http.Do(req)
-	metrics.ObserveAPICall(metrics.ProviderWebhook, metrics.CallWebhookHTTPReq, err)
+	metrics.ObserveAPICall(constants.ProviderWebhook, constants.CallWebhookHTTPReq, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
