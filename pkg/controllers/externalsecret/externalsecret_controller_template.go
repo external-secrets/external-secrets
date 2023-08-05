@@ -153,6 +153,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	if es.Spec.Target.Template == nil {
 		secret.Data = dataMap
 		secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
+		secret.Labels[esv1beta1.LabelOwner] = fmt.Sprintf("%v_%v", es.Namespace, es.Name)
 		return nil
 	}
 	// Merge Policy should merge secrets
@@ -199,6 +200,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 		secret.Data = dataMap
 	}
 	secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
+	secret.Labels[esv1beta1.LabelOwner] = fmt.Sprintf("%v_%v", es.Namespace, es.Name)
 
 	return nil
 }
