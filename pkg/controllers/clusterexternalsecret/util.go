@@ -22,17 +22,31 @@ import (
 )
 
 func NewClusterExternalSecretCondition(failedNamespaces map[string]error, namespaceList *v1.NamespaceList) *esv1beta1.ClusterExternalSecretStatusCondition {
-	conditionType := getConditionType(failedNamespaces, namespaceList)
-	condition := &esv1beta1.ClusterExternalSecretStatusCondition{
-		Type:   conditionType,
-		Status: v1.ConditionTrue,
+	switch {
+	case len(namespaceList.Items) == 0:
+		return &esv1beta1.ClusterExternalSecretStatusCondition{
+			Type:    esv1beta1.ClusterExternalSecretNotReady,
+			Status:  v1.ConditionTrue,
+			Message: errNamespaceNotFound,
+		}
+	case len(failedNamespaces) == 0:
+		return &esv1beta1.ClusterExternalSecretStatusCondition{
+			Type:   esv1beta1.ClusterExternalSecretReady,
+			Status: v1.ConditionTrue,
+		}
+	case len(failedNamespaces) < len(namespaceList.Items):
+		return &esv1beta1.ClusterExternalSecretStatusCondition{
+			Type:    esv1beta1.ClusterExternalSecretPartiallyReady,
+			Status:  v1.ConditionTrue,
+			Message: errNamespacesFailed,
+		}
 	}
 
-	if conditionType != esv1beta1.ClusterExternalSecretReady {
-		condition.Message = errNamespacesFailed
+	return &esv1beta1.ClusterExternalSecretStatusCondition{
+		Type:    esv1beta1.ClusterExternalSecretNotReady,
+		Status:  v1.ConditionTrue,
+		Message: errNamespacesFailed,
 	}
-
-	return condition
 }
 
 func SetClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, condition esv1beta1.ClusterExternalSecretStatusCondition) {
@@ -50,16 +64,4 @@ func filterOutCondition(conditions []esv1beta1.ClusterExternalSecretStatusCondit
 		newConditions = append(newConditions, c)
 	}
 	return newConditions
-}
-
-func getConditionType(failedNamespaces map[string]error, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
-	if len(failedNamespaces) == 0 {
-		return esv1beta1.ClusterExternalSecretReady
-	}
-
-	if len(failedNamespaces) < len(namespaceList.Items) {
-		return esv1beta1.ClusterExternalSecretPartiallyReady
-	}
-
-	return esv1beta1.ClusterExternalSecretNotReady
 }
