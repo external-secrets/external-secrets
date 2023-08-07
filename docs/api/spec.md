@@ -5890,7 +5890,7 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>jwt</code> or <code>cert</code>
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
 can be specified.</p>
 </p>
 <table>
@@ -6003,6 +6003,20 @@ VaultIamAuth
 <em>(Optional)</em>
 <p>Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials
 AWS IAM authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>userPass</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultUserPassAuth">
+VaultUserPassAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UserPass authenticates with Vault by passing username/password pair</p>
 </td>
 </tr>
 </tbody>
@@ -6746,6 +6760,65 @@ bool
 leader instead of simply retrying within a loop. This can increase performance if
 the option is enabled serverside.
 <a href="https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header">https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultUserPassAuth">VaultUserPassAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultUserPassAuth authenticates with Vault using UserPass authentication method,
+with the username and password stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the UserPassword authentication backend is mounted
+in Vault, e.g: &ldquo;user&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is a user name used to authenticate using the UserPass Vault
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef to a key in a Secret resource containing password for the
+user used to authenticate with Vault using the UserPass authentication
+method</p>
 </td>
 </tr>
 </tbody>

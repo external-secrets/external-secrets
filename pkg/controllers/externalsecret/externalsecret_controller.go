@@ -291,9 +291,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
-		err = createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
+		created, err := createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
 		if err == nil {
 			externalSecret.Status.Binding = v1.LocalObjectReference{Name: secret.Name}
+		}
+		// cleanup orphaned secrets
+		if created {
+			delErr := deleteOrphanedSecrets(ctx, r.Client, &externalSecret)
+			if delErr != nil {
+				msg := fmt.Sprintf("failed to clean up orphaned secrets: %v", delErr)
+				log.Error(err, msg)
+				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
+				SetExternalSecretCondition(&externalSecret, *conditionSynced)
+				syncCallsError.With(resourceLabels).Inc()
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
@@ -323,30 +336,63 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, nil
 }
 
-func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f func() error, fieldOwner string) error {
+func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret *esv1beta1.ExternalSecret) error {
+	secretList := v1.SecretList{}
+	label := fmt.Sprintf("%v_%v", externalSecret.ObjectMeta.Namespace, externalSecret.ObjectMeta.Name)
+	ls := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			esv1beta1.LabelOwner: label,
+		},
+	}
+	labelSelector, err := metav1.LabelSelectorAsSelector(ls)
+	if err != nil {
+		return err
+	}
+	err = cl.List(ctx, &secretList, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return err
+	}
+	for key, secret := range secretList.Items {
+		if secret.Name != externalSecret.Spec.Target.Name {
+			err = cl.Delete(ctx, &secretList.Items[key])
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f func() error, fieldOwner string) (bool, error) {
 	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	key := client.ObjectKeyFromObject(obj)
 	if err := c.Get(ctx, key, obj); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return err
+			return false, err
 		}
 		if err := f(); err != nil {
-			return err
+			return false, err
 		}
 		// Setting Field Owner even for CreationPolicy==Create
-		return c.Create(ctx, obj, client.FieldOwner(fqdn))
+		if err := c.Create(ctx, obj, client.FieldOwner(fqdn)); err != nil {
+			return false, err
+		}
+		return true, nil
 	}
 
 	existing := obj.DeepCopyObject()
 	if err := f(); err != nil {
-		return err
+		return false, err
 	}
 
 	if equality.Semantic.DeepEqual(existing, obj) {
-		return nil
+		return false, nil
 	}
 
-	return c.Update(ctx, obj, client.FieldOwner(fqdn))
+	if err := c.Update(ctx, obj, client.FieldOwner(fqdn)); err != nil {
+		return false, err
+	}
+	return false, nil
 }
 
 func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, secret *v1.Secret, mutationFunc func() error, fieldOwner string) error {

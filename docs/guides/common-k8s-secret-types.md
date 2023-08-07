@@ -32,7 +32,7 @@ This will generate a valid dockerconfigjson secret for you to use!
 You can get the final value with:
 
 ```bash
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data\.dockerconfigjson}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data\.dockerconfigjson}" | base64 -d
 ```
 
 ## TLS Cert example
@@ -56,8 +56,8 @@ And now you can create an ExternalSecret that gets it. You will end up with a k8
 You can get their values with:
 
 ```bash
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data.tls\.crt}" | base64 -d
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data.tls\.key}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.tls\.crt}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.tls\.key}" | base64 -d
 ```
 
 
@@ -76,7 +76,7 @@ And now you can create an ExternalSecret that gets it. You will end up with a k8
 You can get the privkey value with:
 
 ```bash
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data.ssh-privatekey}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.ssh-privatekey}" | base64 -d
 ```
 
 ## More examples

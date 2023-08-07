@@ -309,16 +309,16 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
 				ces := defaultClusterExternalSecret()
 				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
-				return *ces
-			},
-			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) {
+
 				es := &esv1beta1.ExternalSecret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      created.Name,
+						Name:      ces.Name,
 						Namespace: namespaces[0].Name,
 					},
 				}
-				Expect(k8sClient.Create(ctx, es)).ShouldNot(HaveOccurred())
+				Expect(k8sClient.Create(context.Background(), es)).ShouldNot(HaveOccurred())
+
+				return *ces
 			},
 			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
 				return esv1beta1.ClusterExternalSecret{

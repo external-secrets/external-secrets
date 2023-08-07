@@ -4,6 +4,11 @@ The external-secrets project is released on a as-needed basis. Feel free to open
 
 ## Release ESO
 
+When doing a release it's best to start with  with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.
+
+⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
+Otherwise the `latest` documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).
+
 1. Run `Create Release` Action to create a new release, pass in the desired version number to release.
     1. choose the right `branch` to execute the action: use `main` when creating a new release. Use `release-x.y` when you want to bump a LTS release.
     1. ⚠️ make sure that CI on the relevant branch has completed the docker build/push jobs. Otherwise an old image will be promoted.

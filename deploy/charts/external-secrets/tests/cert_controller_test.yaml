@@ -47,3 +47,17 @@ tests:
       - equal:
           path: spec.template.spec.hostNetwork
           value: true
+  - it: should override readinessProbe port
+    set:
+      certController.readinessProbe.port: 8082
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[7]
+          value: "--healthz-addr=:8082"
+  - it: should override metrics port
+    set:
+      certController.prometheus.service.port: 8888
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[6]
+          value: "--metrics-addr=:8888"
