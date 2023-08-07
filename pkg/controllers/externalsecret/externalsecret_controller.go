@@ -39,7 +39,6 @@ import (
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
-
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	// Loading registered providers.
@@ -596,7 +595,7 @@ func isSecretValid(existingSecret v1.Secret) bool {
 	return true
 }
 
-// computeDataHashAnnotation generate a hash of the secret data combining the old key with the new keys to add or override
+// computeDataHashAnnotation generate a hash of the secret data combining the old key with the new keys to add or override.
 func (r *Reconciler) computeDataHashAnnotation(existing, secret *v1.Secret) string {
 	data := make(map[string][]byte)
 	for k, v := range existing.Data {

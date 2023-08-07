@@ -209,10 +209,14 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		},
 	)
 
-	const secretVal = "some-value"
-	const targetProp = "targetProperty"
-	const remoteKey = "barz"
-	const remoteProperty = "bang"
+	const (
+		secretVal      = "some-value"
+		targetProp     = "targetProperty"
+		remoteKey      = "barz"
+		remoteProperty = "bang"
+		existingKey    = "pre-existing-key"
+		existingVal    = "pre-existing-value"
+	)
 
 	makeDefaultTestcase := func() *testCase {
 		return &testCase{
@@ -342,8 +346,6 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// metadata.managedFields with the correct owner should be added to the secret
 	mergeWithSecret := func(tc *testCase) {
 		const secretVal = "someValue"
-		const existingKey = "pre-existing-key"
-		existingVal := "pre-existing-value"
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
@@ -383,8 +385,6 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 	// should not update if no changes
 	mergeWithSecretNoChange := func(tc *testCase) {
-		const existingKey = "pre-existing-key"
-		existingVal := "someValue"
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
@@ -451,7 +451,6 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const secretVal = "someValue"
 		// this should confict
 		const existingKey = targetProp
-		existingVal := "pre-existing-value"
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
@@ -1250,8 +1249,6 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// if provider secret gets deleted only the managed field should get deleted
 	deleteSecretPolicyMerge := func(tc *testCase) {
 		const secretVal = "someValue"
-		const existingKey = "some-existing-key"
-		existingVal := "some-existing-value"
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 		tc.externalSecret.Spec.Target.DeletionPolicy = esv1beta1.DeletionPolicyMerge
@@ -1733,8 +1730,6 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// Checks that secret annotation has been written based on the all the data for merge keys
 	checkMergeSecretDataHashAnnotation := func(tc *testCase) {
 		const secretVal = "someValue"
-		const existingKey = "pre-existing-key"
-		existingVal := "pre-existing-value"
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
