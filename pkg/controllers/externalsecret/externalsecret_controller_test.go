@@ -1680,6 +1680,30 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 	}
 
+	// Checks that secret annotation has been written based on the all the data for merge keys
+	checkMergeSecretDataHashAnnotation := func(tc *testCase) {
+		const secretVal = "someValue"
+		const existingKey = "pre-existing-key"
+		existingVal := "pre-existing-value"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
+
+		// create secret beforehand
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner(FakeManager))).To(Succeed())
+
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Annotations[esv1beta1.AnnotationDataHash]).To(Equal("82a8288e398d5354ab110d2244b7c0b1"))
+		}
+	}
+
 	// When we amend the created kind=secret, refresh operation should be run again regardless of refresh interval
 	checkSecretDataHashAnnotationChange := func(tc *testCase) {
 		fakeData := map[string][]byte{
@@ -2010,6 +2034,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		},
 		Entry("should recreate deleted secret", checkDeletion),
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
+		Entry("should create proper hash annotation for the external secret with creationPolicy=Merge", checkMergeSecretDataHashAnnotation),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
 		Entry("should use external secret name if target secret name isn't defined", syncWithoutTargetName),
 		Entry("should expose the secret as a provisioned service binding secret", syncBindingSecret),
