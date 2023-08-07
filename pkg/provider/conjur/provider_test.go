@@ -38,7 +38,9 @@ type secretManagerTestCase struct {
 
 func TestConjurGetSecret(t *testing.T) {
 	p := Provider{}
-	p.ConjurClient = &fakeconjur.ConjurMockClient{}
+	p.ConjurClient = func(ctx context.Context) (Client, error) {
+		return &fakeconjur.ConjurMockClient{}, nil
+	}
 
 	testCases := []*secretManagerTestCase{
 		{
@@ -98,6 +100,36 @@ func TestValidateStore(t *testing.T) {
 			store: makeSecretStore(svcURL, svcUser, svcApikey, ""),
 			err:   fmt.Errorf("missing Auth.ApiKey.Account"),
 		},
+
+		{
+			store: makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "myconjuraccount"),
+			err:   nil,
+		},
+		{
+			store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-auth-service", "myconjuraccount"),
+			err:   nil,
+		},
+		{
+			store: makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", ""),
+			err:   fmt.Errorf("missing Auth.Jwt.Account"),
+		},
+		{
+			store: makeJWTSecretStore(svcURL, "conjur", "", "", "myconjuraccount"),
+			err:   fmt.Errorf("missing Auth.Jwt.ServiceId"),
+		},
+		{
+			store: makeJWTSecretStore("", "conjur", "", "jwt-auth-service", "myconjuraccount"),
+			err:   fmt.Errorf("conjur URL cannot be empty"),
+		},
+		{
+			store: makeJWTSecretStore(svcURL, "", "", "jwt-auth-service", "myconjuraccount"),
+			err:   fmt.Errorf("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef"),
+		},
+
+		{
+			store: makeNoAuthSecretStore(svcURL),
+			err:   fmt.Errorf("missing Auth.* configuration"),
+		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
@@ -139,6 +171,56 @@ func makeSecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.S
 							APIKeyRef: aref,
 						},
 					},
+				},
+			},
+		},
+	}
+	return store
+}
+
+func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceId, conjurAccount string) *esv1beta1.SecretStore {
+	serviceAccountRef := &esmeta.ServiceAccountSelector{
+		Name:      serviceAccountName,
+		Audiences: []string{"conjur"},
+	}
+	if serviceAccountName == "" {
+		serviceAccountRef = nil
+	}
+
+	secretRef := &esmeta.SecretKeySelector{
+		Name: secretName,
+		Key:  "token",
+	}
+	if secretName == "" {
+		secretRef = nil
+	}
+
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Conjur: &esv1beta1.ConjurProvider{
+					URL: svcURL,
+					Auth: esv1beta1.ConjurAuth{
+						Jwt: &esv1beta1.ConjurJWT{
+							Account:           conjurAccount,
+							ServiceId:         jwtServiceId,
+							ServiceAccountRef: serviceAccountRef,
+							SecretRef:         secretRef,
+						},
+					},
+				},
+			},
+		},
+	}
+	return store
+}
+
+func makeNoAuthSecretStore(svcURL string) *esv1beta1.SecretStore {
+	store := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Conjur: &esv1beta1.ConjurProvider{
+					URL: svcURL,
 				},
 			},
 		},
