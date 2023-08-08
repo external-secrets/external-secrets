@@ -6,14 +6,12 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/cyberark/conjur-api-go/conjurapi"
-	"github.com/cyberark/conjur-api-go/conjurapi/response"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/golang-jwt/jwt/v5"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -71,9 +69,7 @@ func (p *Provider) getJwtFromServiceAccountTokenRequest(ctx context.Context, ser
 }
 
 // newClientFromJwt creates a new Conjur client using the given JWT Auth Config.
-// see: https://github.com/cyberark/conjur-api-go/blob/b698692392a38e5d38b8440f32ab74206544848a/conjurapi/client.go#L130
-// cannot use the built-in function "conjurapi.NewClientFromJwt" because it requires environment variables
-func (p *Provider) newClientFromJwt(ctx context.Context, config conjurapi.Config, jwtAuth *esv1beta1.ConjurJWT) (*conjurapi.Client, error) {
+func (p *Provider) newClientFromJwt(ctx context.Context, config conjurapi.Config, jwtAuth *esv1beta1.ConjurJWT) (Client, error) {
 	jwtToken, getJWTError := p.getJWTToken(ctx, jwtAuth)
 	if getJWTError != nil {
 		return nil, getJWTError
@@ -86,45 +82,7 @@ func (p *Provider) newClientFromJwt(ctx context.Context, config conjurapi.Config
 		return nil, err
 	}
 
-	var jwtTokenString string
-	jwtTokenString = fmt.Sprintf("jwt=%s", jwtToken)
-
-	var httpClient *http.Client
-	if config.IsHttps() {
-		cert, err := config.ReadSSLCert()
-		if err != nil {
-			return nil, err
-		}
-		httpClient, err = newHTTPSClient(cert)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		httpClient = &http.Client{Timeout: time.Second * 10}
-	}
-
-	authnJwtUrl := strings.Join([]string{config.ApplianceURL, "authn-jwt", jwtAuth.ServiceId, config.Account, "authenticate"}, "/")
-
-	req, err := http.NewRequest("POST", authnJwtUrl, strings.NewReader(jwtTokenString))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	tokenBytes, err := response.DataResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := conjurapi.NewClientFromToken(config, string(tokenBytes))
-	if err != nil {
-		return nil, err
-	}
+	client, err := p.clientApi.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceId)
 
 	// Only update the renewClientAfter if we successfully create a new client
 	p.renewClientAfter = expirationTime.Add(time.Duration(-JwtRefreshBuffer) * time.Second)
@@ -138,8 +96,8 @@ func determineExpirationTime(jwtToken string) (*jwt.NumericDate, error) {
 		return nil, fmt.Errorf(errFailedToParseJWTToken, err)
 	}
 	expirationTime, err := parsedToken.Claims.GetExpirationTime()
-	if err != nil {
-		return nil, fmt.Errorf(errFailedToDetermineJWTTokenExpiration, err)
+	if expirationTime == nil || err != nil {
+		return nil, fmt.Errorf(errFailedToDetermineJWTTokenExpiration)
 	}
 	return expirationTime, nil
 }

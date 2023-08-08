@@ -16,12 +16,25 @@ package conjur
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/cyberark/conjur-api-go/conjurapi"
+	"github.com/cyberark/conjur-api-go/conjurapi/authn"
+	"github.com/external-secrets/external-secrets/pkg/provider/conjur/fake"
+	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/go-cmp/cmp"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"reflect"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
+	"time"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fakeconjur "github.com/external-secrets/external-secrets/pkg/provider/conjur/fake"
 )
 
 var (
@@ -30,41 +43,6 @@ var (
 	svcApikey  = "apikey"
 	svcAccount = "account1"
 )
-
-type secretManagerTestCase struct {
-	err    error
-	refKey string
-}
-
-func TestConjurGetSecret(t *testing.T) {
-	p := Provider{}
-	p.ConjurClient = func(ctx context.Context) (Client, error) {
-		return &fakeconjur.ConjurMockClient{}, nil
-	}
-
-	testCases := []*secretManagerTestCase{
-		{
-			err:    nil,
-			refKey: "secret",
-		},
-		{
-			err:    fmt.Errorf("error"),
-			refKey: "error",
-		},
-	}
-
-	for _, tc := range testCases {
-		ref := makeValidRef(tc.refKey)
-		_, err := p.GetSecret(context.Background(), *ref)
-		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
-			t.Errorf("test failed! want %v, got %v", tc.err, err)
-		} else if tc.err == nil && err != nil {
-			t.Errorf("want nil got err %v", err)
-		} else if tc.err != nil && err == nil {
-			t.Errorf("want err %v got nil", tc.err)
-		}
-	}
-}
 
 func makeValidRef(k string) *esv1beta1.ExternalSecretDataRemoteRef {
 	return &esv1beta1.ExternalSecretDataRemoteRef{
@@ -81,23 +59,23 @@ type ValidateStoreTestCase struct {
 func TestValidateStore(t *testing.T) {
 	testCases := []ValidateStoreTestCase{
 		{
-			store: makeSecretStore(svcURL, svcUser, svcApikey, svcAccount),
+			store: makeApiKeySecretStore(svcURL, svcUser, svcApikey, svcAccount),
 			err:   nil,
 		},
 		{
-			store: makeSecretStore("", svcUser, svcApikey, svcAccount),
+			store: makeApiKeySecretStore("", svcUser, svcApikey, svcAccount),
 			err:   fmt.Errorf("conjur URL cannot be empty"),
 		},
 		{
-			store: makeSecretStore(svcURL, "", svcApikey, svcAccount),
+			store: makeApiKeySecretStore(svcURL, "", svcApikey, svcAccount),
 			err:   fmt.Errorf("missing Auth.Apikey.UserRef"),
 		},
 		{
-			store: makeSecretStore(svcURL, svcUser, "", svcAccount),
+			store: makeApiKeySecretStore(svcURL, svcUser, "", svcAccount),
 			err:   fmt.Errorf("missing Auth.Apikey.ApiKeyRef"),
 		},
 		{
-			store: makeSecretStore(svcURL, svcUser, svcApikey, ""),
+			store: makeApiKeySecretStore(svcURL, svcUser, svcApikey, ""),
 			err:   fmt.Errorf("missing Auth.ApiKey.Account"),
 		},
 
@@ -131,9 +109,9 @@ func TestValidateStore(t *testing.T) {
 			err:   fmt.Errorf("missing Auth.* configuration"),
 		},
 	}
-	p := Provider{}
+	c := Connector{}
 	for _, tc := range testCases {
-		err := p.ValidateStore(tc.store)
+		err := c.ValidateStore(tc.store)
 		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
 			t.Errorf("test failed! want %v, got %v", tc.err, err)
 		} else if tc.err == nil && err != nil {
@@ -144,7 +122,238 @@ func TestValidateStore(t *testing.T) {
 	}
 }
 
-func makeSecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.SecretStore {
+func TestGetSecret(t *testing.T) {
+
+	type args struct {
+		store      esv1beta1.GenericStore
+		kube       kclient.Client
+		corev1     typedcorev1.CoreV1Interface
+		namespace  string
+		secretPath string
+	}
+
+	type want struct {
+		err   error
+		value string
+	}
+
+	type testCase struct {
+		reason string
+		args   args
+		want   want
+	}
+
+	cases := map[string]testCase{
+		"ApiKeyReadSecretSuccess": {
+			reason: "Should read a secret successfully using an ApiKey auth secret store.",
+			args: args{
+				store: makeApiKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeApiKeySecrets()...).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"ApiKeyReadSecretFailure": {
+			reason: "Should fail to read secret using ApiKey auth secret store.",
+			args: args{
+				store: makeApiKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeApiKeySecrets()...).Build(),
+				namespace:  "default",
+				secretPath: "error",
+			},
+			want: want{
+				err:   errors.New("error"),
+				value: "",
+			},
+		},
+		"JwtWithServiceAccountRefReadSecretSuccess": {
+			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account.",
+			args: args{
+				store: makeJWTSecretStore(svcURL, "my-service-account", "", "jwt-authenticator", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+				corev1:     utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"JwtWithSecretRefReadSecretSuccess": {
+			reason: "Should read a secret successfully using an JWT auth secret store that references a k8s secret.",
+			args: args{
+				store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-authenticator", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "jwt-secret",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"token": []byte(createFakeJwtToken(true)),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"JwtWithNonExpiringJwtFailure": {
+			reason: "Should fail to create a conjur client using a jwt token that does not expire.",
+			args: args{
+				store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-authenticator", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "jwt-secret",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"token": []byte(createFakeJwtToken(false)),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   errors.New("conjur only supports jwt tokens that expire and JWT token expiration check failed"),
+				value: "",
+			},
+		},
+		"JwtWithCABundleSuccess": {
+			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account.",
+			args: args{
+				store: makeJWTSecretStore(svcURL, "my-service-account", "", "jwt-authenticator", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+				corev1:     utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+	}
+
+	runTest := func(t *testing.T, _ string, tc testCase) {
+		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockApiClient{})
+		ref := makeValidRef(tc.args.secretPath)
+		secret, err := provider.GetSecret(context.Background(), *ref)
+		if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
+			t.Errorf("\n%s\nconjur.GetSecret(...): -want error, +got error:\n%s", tc.reason, diff)
+		}
+		secretString := string(secret)
+		if secretString != tc.want.value {
+			t.Errorf("\n%s\nconjur.GetSecret(...): want value %v got %v", tc.reason, tc.want.value, secretString)
+		}
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			runTest(t, name, tc)
+		})
+	}
+}
+
+func TestGetCA(t *testing.T) {
+
+	type args struct {
+		store     esv1beta1.GenericStore
+		kube      kclient.Client
+		corev1    typedcorev1.CoreV1Interface
+		namespace string
+	}
+
+	type want struct {
+		err  error
+		cert string
+	}
+
+	type testCase struct {
+		reason string
+		args   args
+		want   want
+	}
+
+	certData := "mycertdata"
+	certDataEncoded := "bXljZXJ0ZGF0YQo="
+
+	cases := map[string]testCase{
+		"UseCABundleSuccess": {
+			reason: "Should read a caBundle successfully.",
+			args: args{
+				store: makeStoreWithCA("cabundle", certDataEncoded),
+				kube: clientfake.NewClientBuilder().
+					WithObjects().Build(),
+				namespace: "default",
+				corev1:    utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+			},
+			want: want{
+				err:  nil,
+				cert: certDataEncoded,
+			},
+		},
+		"UseCAProviderConfigMapSuccess": {
+			reason: "Should read a ca from a ConfigMap successfully.",
+			args: args{
+				store: makeStoreWithCA("configmap", ""),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeCASource("configmap", certData)).Build(),
+				namespace: "default",
+				corev1:    utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+			},
+			want: want{
+				err:  nil,
+				cert: certDataEncoded,
+			},
+		},
+		"UseCAProviderSecretSuccess": {
+			reason: "Should read a ca from a Secret successfully.",
+			args: args{
+				store: makeStoreWithCA("secret", ""),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeCASource("secret", certData)).Build(),
+				namespace: "default",
+				corev1:    utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+			},
+			want: want{
+				err:  nil,
+				cert: certDataEncoded,
+			},
+		},
+	}
+
+	runTest := func(t *testing.T, _ string, tc testCase) {
+		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockApiClient{})
+		_, err := provider.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
+			Key: "path/to/secret",
+		})
+		if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
+			t.Errorf("\n%s\nconjur.GetCA(...): -want error, +got error:\n%s", tc.reason, diff)
+		}
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			runTest(t, name, tc)
+		})
+	}
+}
+
+func makeApiKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.SecretStore {
 	uref := &esmeta.SecretKeySelector{
 		Name: "user",
 		Key:  "conjur-hostid",
@@ -215,6 +424,26 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceId, co
 	return store
 }
 
+func makeStoreWithCA(caSource string, caData string) *esv1beta1.SecretStore {
+	store := makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "myconjuraccount")
+	if caSource == "secret" {
+		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
+			Type: esv1beta1.CAProviderTypeSecret,
+			Name: "conjur-cert",
+			Key:  "ca",
+		}
+	} else if caSource == "configmap" {
+		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
+			Type: esv1beta1.CAProviderTypeConfigMap,
+			Name: "conjur-cert",
+			Key:  "ca",
+		}
+	} else {
+		store.Spec.Provider.Conjur.CABundle = caData
+	}
+	return store
+}
+
 func makeNoAuthSecretStore(svcURL string) *esv1beta1.SecretStore {
 	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
@@ -226,4 +455,101 @@ func makeNoAuthSecretStore(svcURL string) *esv1beta1.SecretStore {
 		},
 	}
 	return store
+}
+
+func makeFakeApiKeySecrets() []kclient.Object {
+	return []kclient.Object{
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "user",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"conjur-hostid": []byte("myhostid"),
+			},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "apikey",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"conjur-apikey": []byte("apikey"),
+			},
+		},
+	}
+}
+
+func makeFakeCASource(kind string, caData string) kclient.Object {
+	if kind == "secret" {
+		return &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "conjur-cert",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"conjur-cert": []byte(caData),
+			},
+		}
+	} else {
+		return &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "conjur-cert",
+				Namespace: "default",
+			},
+			Data: map[string]string{
+				"ca": caData,
+			},
+		}
+	}
+}
+
+func createFakeJwtToken(expires bool) string {
+	signingKey := []byte("fakekey")
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+	if expires {
+		claims["exp"] = time.Now().Add(time.Minute * 30).Unix()
+	}
+	jwtTokenString, err := token.SignedString(signingKey)
+	if err != nil {
+		panic(err)
+	}
+	return jwtTokenString
+}
+
+// ConjurMockApiClient is a mock implementation of the ApiClient interface
+type ConjurMockApiClient struct {
+}
+
+func (c *ConjurMockApiClient) NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (Client, error) {
+	return &fake.ConjurMockClient{}, nil
+}
+
+func (c *ConjurMockApiClient) NewClientFromJWT(config conjurapi.Config, jwtToken string, jwtServiceId string) (Client, error) {
+	return &fake.ConjurMockClient{}, nil
+}
+
+// EquateErrors returns true if the supplied errors are of the same type and
+// produce identical strings. This mirrors the error comparison behavior of
+// https://github.com/go-test/deep, which most Crossplane tests targeted before
+// we switched to go-cmp.
+//
+// This differs from cmpopts.EquateErrors, which does not test for error strings
+// and instead returns whether one error 'is' (in the errors.Is sense) the
+// other.
+func EquateErrors() cmp.Option {
+	return cmp.Comparer(func(a, b error) bool {
+		if a == nil || b == nil {
+			return a == nil && b == nil
+		}
+
+		av := reflect.ValueOf(a)
+		bv := reflect.ValueOf(b)
+		if av.Type() != bv.Type() {
+			return false
+		}
+
+		return a.Error() == b.Error()
+	})
 }
