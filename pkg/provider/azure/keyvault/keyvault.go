@@ -43,7 +43,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
@@ -392,10 +392,10 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	secretParams := keyvault.SecretSetParameters{
 		Value: &val,
 		Tags: map[string]*string{
-			"managed-by": pointer.String(managerLabel),
+			"managed-by": pointer.To(managerLabel),
 		},
 		SecretAttributes: &keyvault.SecretAttributes{
-			Enabled: pointer.Bool(true),
+			Enabled: pointer.To(true),
 		},
 	}
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
@@ -428,7 +428,7 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 	params := keyvault.CertificateImportParameters{
 		Base64EncodedCertificate: &val,
 		Tags: map[string]*string{
-			"managed-by": pointer.String(managerLabel),
+			"managed-by": pointer.To(managerLabel),
 		},
 	}
 	_, err = a.baseClient.ImportCertificate(ctx, *a.provider.VaultURL, secretName, params)
@@ -484,7 +484,7 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 		Key:           &azkey,
 		KeyAttributes: &keyvault.KeyAttributes{},
 		Tags: map[string]*string{
-			"managed-by": pointer.String(managerLabel),
+			"managed-by": pointer.To(managerLabel),
 		},
 	}
 	_, err = a.baseClient.ImportKey(ctx, *a.provider.VaultURL, secretName, params)

@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	secrets "github.com/oracle/oci-go-sdk/v56/secrets"
-	utilpointer "k8s.io/utils/pointer"
+	utilpointer "k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -74,8 +74,8 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 
 func makeValidAPIInput() *secrets.GetSecretBundleByNameRequest {
 	return &secrets.GetSecretBundleByNameRequest{
-		SecretName: utilpointer.String("test-secret"),
-		VaultId:    utilpointer.String("test-vault"),
+		SecretName: utilpointer.To("test-secret"),
+		VaultId:    utilpointer.To("test-vault"),
 	}
 }
 
@@ -113,10 +113,10 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	setSecretString := func(smtc *vaultTestCase) {
 		smtc.apiOutput = &secrets.GetSecretBundleByNameResponse{
 			SecretBundle: secrets.SecretBundle{
-				SecretId:      utilpointer.String("test-id"),
-				VersionNumber: utilpointer.Int64(1),
+				SecretId:      utilpointer.To("test-id"),
+				VersionNumber: utilpointer.To(int64(1)),
 				SecretBundleContent: secrets.Base64SecretBundleContentDetails{
-					Content: utilpointer.String(base64.StdEncoding.EncodeToString([]byte(secretValue))),
+					Content: utilpointer.To(base64.StdEncoding.EncodeToString([]byte(secretValue))),
 				},
 			},
 		}
@@ -147,7 +147,7 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: utilpointer.String(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
+			Content: utilpointer.To(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
 		}
 		smtc.expectedData["foo"] = []byte("bar")
 	}
@@ -155,7 +155,7 @@ func TestGetSecretMap(t *testing.T) {
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: utilpointer.String(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
+			Content: utilpointer.To(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
 		}
 		smtc.expectError = "unable to unmarshal secret"
 	}

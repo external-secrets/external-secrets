@@ -19,8 +19,9 @@ We want to cover the following cases:
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 | ----------- | ------------------ | ------------ | -------------- |
+| 0.9.x       | 1.19 → 1.27        | Jun 22, 2023 | Release of 1.1 |
 | 0.8.x       | 1.19 → 1.26        | Mar 16, 2023 | Release of 1.0 |
-| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Release of 0.9 |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023   |
 | 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |
 | 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022   |
 | 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022    |
@@ -50,6 +51,8 @@ The following table describes the stability level of each provider and who's res
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |   alpha   |                                                                                         [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/) |
 | [Keeper Security](https://www.keepersecurity.com/)                                                         |   alpha   |                                                                                                                                              [@ppodevlab](https://github.com/ppodevlab) |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
+| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   alpha   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) |
+| [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
 
 ## Provider Feature Support
 
@@ -63,7 +66,7 @@ The following table show the support for features across different providers.
 | GCP Secret Manager        |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| IBM Cloud Secrets Manager |      x       |              |                      |                         |        x         |             |                             |
+| IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
@@ -75,6 +78,8 @@ The following table show the support for features across different providers.
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
+| Conjur                    |              |              |                      |                         |        x         |             |                             |
+| Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 

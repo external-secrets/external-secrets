@@ -272,6 +272,7 @@ We support five different modes for authentication:
 [appRole](https://www.vaultproject.io/docs/auth/approle),
 [kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
 [ldap](https://www.vaultproject.io/docs/auth/ldap),
+[userPass](https://www.vaultproject.io/docs/auth/userpass),
 [jwt/oidc](https://www.vaultproject.io/docs/auth/jwt) and
 [awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
@@ -319,6 +320,18 @@ in a `Kind=Secret` referenced by the `secretRef`.
 
 ```yaml
 {% include 'vault-ldap-store.yaml' %}
+```
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
+
+#### UserPass authentication
+
+[UserPass authentication](https://www.vaultproject.io/docs/auth/userpass) uses
+username/password pair to get an access token. Username is stored directly in
+a `Kind=SecretStore` or `Kind=ClusterSecretStore` resource, password is stored
+in a `Kind=Secret` referenced by the `secretRef`.
+
+```yaml
+{% include 'vault-userpass-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 

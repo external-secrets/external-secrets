@@ -28,7 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/tidwall/gjson"
-	utilpointer "k8s.io/utils/pointer"
+	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -276,7 +276,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 	filters := make([]*awssm.Filter, 0)
 	if ref.Path != nil {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.String(awssm.FilterNameStringTypeName),
+			Key: utilpointer.To(awssm.FilterNameStringTypeName),
 			Values: []*string{
 				ref.Path,
 			},
@@ -318,21 +318,21 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 	filters := make([]*awssm.Filter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.String(awssm.FilterNameStringTypeTagKey),
+			Key: utilpointer.To(awssm.FilterNameStringTypeTagKey),
 			Values: []*string{
-				utilpointer.String(k),
+				utilpointer.To(k),
 			},
 		}, &awssm.Filter{
-			Key: utilpointer.String(awssm.FilterNameStringTypeTagValue),
+			Key: utilpointer.To(awssm.FilterNameStringTypeTagValue),
 			Values: []*string{
-				utilpointer.String(v),
+				utilpointer.To(v),
 			},
 		})
 	}
 
 	if ref.Path != nil {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.String(awssm.FilterNameStringTypeName),
+			Key: utilpointer.To(awssm.FilterNameStringTypeName),
 			Values: []*string{
 				ref.Path,
 			},
@@ -460,7 +460,7 @@ func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
 	}
 	_, err := sm.sess.Config.Credentials.Get()
 	if err != nil {
-		return esv1beta1.ValidationResultError, err
+		return esv1beta1.ValidationResultError, util.SanitizeErr(err)
 	}
 	return esv1beta1.ValidationResultReady, nil
 }
