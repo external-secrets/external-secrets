@@ -129,7 +129,7 @@ func newHTTPSClient(cert []byte) (*http.Client, error) {
 		return nil, fmt.Errorf("can't append Conjur SSL cert")
 	}
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{RootCAs: pool},
+		TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
 	}
 	return &http.Client{Transport: tr, Timeout: time.Second * 10}, nil
 }
