@@ -1,18 +1,34 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package conjur
 
 import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/cyberark/conjur-api-go/conjurapi"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/golang-jwt/jwt/v5"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
-	"time"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const JwtLifespan = 600     // 10 minutes
@@ -75,34 +91,37 @@ func (p *Provider) newClientFromJwt(ctx context.Context, config conjurapi.Config
 		return nil, getJWTError
 	}
 
-	expirationTime, err := determineExpirationTime(jwtToken)
+	expirationTime, expirationTimeError := determineExpirationTime(jwtToken)
 
-	if err != nil {
+	if expirationTimeError != nil {
 		// Catch bad JWT token, or tokens that have no expiration time
-		return nil, err
+		return nil, expirationTimeError
 	}
 
-	client, err := p.clientApi.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceId)
+	client, clientError := p.clientAPI.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceID)
+	if clientError != nil {
+		return nil, clientError
+	}
 
-	// Only update the renewClientAfter if we successfully create a new client
+	// Only update the renewClientAfter if we successfully create a new client.
 	p.renewClientAfter = expirationTime.Add(time.Duration(-JwtRefreshBuffer) * time.Second)
 
 	return client, nil
 }
 
 func determineExpirationTime(jwtToken string) (*jwt.NumericDate, error) {
-	parsedToken, _, err := new(jwt.Parser).ParseUnverified(jwtToken, jwt.MapClaims{})
-	if err != nil {
-		return nil, fmt.Errorf(errFailedToParseJWTToken, err)
+	parsedToken, _, parseError := new(jwt.Parser).ParseUnverified(jwtToken, jwt.MapClaims{})
+	if parseError != nil {
+		return nil, fmt.Errorf(errFailedToParseJWTToken, parseError)
 	}
-	expirationTime, err := parsedToken.Claims.GetExpirationTime()
-	if expirationTime == nil || err != nil {
-		return nil, fmt.Errorf(errFailedToDetermineJWTTokenExpiration)
+	expirationTime, expirationTimeError := parsedToken.Claims.GetExpirationTime()
+	if expirationTime == nil || expirationTimeError != nil {
+		return nil, errors.New(errFailedToDetermineJWTTokenExpiration)
 	}
 	return expirationTime, nil
 }
 
-// newHTTPSClient creates a new HTTPS client with the given cert
+// newHTTPSClient creates a new HTTPS client with the given cert.
 func newHTTPSClient(cert []byte) (*http.Client, error) {
 	pool := x509.NewCertPool()
 	ok := pool.AppendCertsFromPEM(cert)

@@ -18,23 +18,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
-	"github.com/external-secrets/external-secrets/pkg/provider/conjur/fake"
-	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"reflect"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/conjur/fake"
+	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 )
 
 var (
@@ -59,23 +60,23 @@ type ValidateStoreTestCase struct {
 func TestValidateStore(t *testing.T) {
 	testCases := []ValidateStoreTestCase{
 		{
-			store: makeApiKeySecretStore(svcURL, svcUser, svcApikey, svcAccount),
+			store: makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount),
 			err:   nil,
 		},
 		{
-			store: makeApiKeySecretStore("", svcUser, svcApikey, svcAccount),
+			store: makeAPIKeySecretStore("", svcUser, svcApikey, svcAccount),
 			err:   fmt.Errorf("conjur URL cannot be empty"),
 		},
 		{
-			store: makeApiKeySecretStore(svcURL, "", svcApikey, svcAccount),
+			store: makeAPIKeySecretStore(svcURL, "", svcApikey, svcAccount),
 			err:   fmt.Errorf("missing Auth.Apikey.UserRef"),
 		},
 		{
-			store: makeApiKeySecretStore(svcURL, svcUser, "", svcAccount),
+			store: makeAPIKeySecretStore(svcURL, svcUser, "", svcAccount),
 			err:   fmt.Errorf("missing Auth.Apikey.ApiKeyRef"),
 		},
 		{
-			store: makeApiKeySecretStore(svcURL, svcUser, svcApikey, ""),
+			store: makeAPIKeySecretStore(svcURL, svcUser, svcApikey, ""),
 			err:   fmt.Errorf("missing Auth.ApiKey.Account"),
 		},
 
@@ -93,7 +94,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeJWTSecretStore(svcURL, "conjur", "", "", "myconjuraccount"),
-			err:   fmt.Errorf("missing Auth.Jwt.ServiceId"),
+			err:   fmt.Errorf("missing Auth.Jwt.ServiceID"),
 		},
 		{
 			store: makeJWTSecretStore("", "conjur", "", "jwt-auth-service", "myconjuraccount"),
@@ -123,7 +124,6 @@ func TestValidateStore(t *testing.T) {
 }
 
 func TestGetSecret(t *testing.T) {
-
 	type args struct {
 		store      esv1beta1.GenericStore
 		kube       kclient.Client
@@ -147,9 +147,9 @@ func TestGetSecret(t *testing.T) {
 		"ApiKeyReadSecretSuccess": {
 			reason: "Should read a secret successfully using an ApiKey auth secret store.",
 			args: args{
-				store: makeApiKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
-					WithObjects(makeFakeApiKeySecrets()...).Build(),
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
 				namespace:  "default",
 				secretPath: "path/to/secret",
 			},
@@ -161,9 +161,9 @@ func TestGetSecret(t *testing.T) {
 		"ApiKeyReadSecretFailure": {
 			reason: "Should fail to read secret using ApiKey auth secret store.",
 			args: args{
-				store: makeApiKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
-					WithObjects(makeFakeApiKeySecrets()...).Build(),
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
 				namespace:  "default",
 				secretPath: "error",
 			},
@@ -249,7 +249,7 @@ func TestGetSecret(t *testing.T) {
 	}
 
 	runTest := func(t *testing.T, _ string, tc testCase) {
-		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockApiClient{})
+		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockAPIClient{})
 		ref := makeValidRef(tc.args.secretPath)
 		secret, err := provider.GetSecret(context.Background(), *ref)
 		if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
@@ -269,7 +269,6 @@ func TestGetSecret(t *testing.T) {
 }
 
 func TestGetCA(t *testing.T) {
-
 	type args struct {
 		store     esv1beta1.GenericStore
 		kube      kclient.Client
@@ -337,7 +336,7 @@ func TestGetCA(t *testing.T) {
 	}
 
 	runTest := func(t *testing.T, _ string, tc testCase) {
-		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockApiClient{})
+		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockAPIClient{})
 		_, err := provider.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
 			Key: "path/to/secret",
 		})
@@ -353,7 +352,7 @@ func TestGetCA(t *testing.T) {
 	}
 }
 
-func makeApiKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.SecretStore {
+func makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.SecretStore {
 	uref := &esmeta.SecretKeySelector{
 		Name: "user",
 		Key:  "conjur-hostid",
@@ -387,7 +386,7 @@ func makeApiKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1b
 	return store
 }
 
-func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceId, conjurAccount string) *esv1beta1.SecretStore {
+func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, conjurAccount string) *esv1beta1.SecretStore {
 	serviceAccountRef := &esmeta.ServiceAccountSelector{
 		Name:      serviceAccountName,
 		Audiences: []string{"conjur"},
@@ -412,7 +411,7 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceId, co
 					Auth: esv1beta1.ConjurAuth{
 						Jwt: &esv1beta1.ConjurJWT{
 							Account:           conjurAccount,
-							ServiceId:         jwtServiceId,
+							ServiceID:         jwtServiceID,
 							ServiceAccountRef: serviceAccountRef,
 							SecretRef:         secretRef,
 						},
@@ -424,7 +423,7 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceId, co
 	return store
 }
 
-func makeStoreWithCA(caSource string, caData string) *esv1beta1.SecretStore {
+func makeStoreWithCA(caSource, caData string) *esv1beta1.SecretStore {
 	store := makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "myconjuraccount")
 	if caSource == "secret" {
 		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
@@ -457,7 +456,7 @@ func makeNoAuthSecretStore(svcURL string) *esv1beta1.SecretStore {
 	return store
 }
 
-func makeFakeApiKeySecrets() []kclient.Object {
+func makeFakeAPIKeySecrets() []kclient.Object {
 	return []kclient.Object{
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -480,7 +479,7 @@ func makeFakeApiKeySecrets() []kclient.Object {
 	}
 }
 
-func makeFakeCASource(kind string, caData string) kclient.Object {
+func makeFakeCASource(kind, caData string) kclient.Object {
 	if kind == "secret" {
 		return &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -491,16 +490,15 @@ func makeFakeCASource(kind string, caData string) kclient.Object {
 				"conjur-cert": []byte(caData),
 			},
 		}
-	} else {
-		return &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "conjur-cert",
-				Namespace: "default",
-			},
-			Data: map[string]string{
-				"ca": caData,
-			},
-		}
+	}
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "conjur-cert",
+			Namespace: "default",
+		},
+		Data: map[string]string{
+			"ca": caData,
+		},
 	}
 }
 
@@ -518,15 +516,15 @@ func createFakeJwtToken(expires bool) string {
 	return jwtTokenString
 }
 
-// ConjurMockApiClient is a mock implementation of the ApiClient interface
-type ConjurMockApiClient struct {
+// ConjurMockAPIClient is a mock implementation of the ApiClient interface.
+type ConjurMockAPIClient struct {
 }
 
-func (c *ConjurMockApiClient) NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (Client, error) {
+func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.LoginPair) (Client, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 
-func (c *ConjurMockApiClient) NewClientFromJWT(config conjurapi.Config, jwtToken string, jwtServiceId string) (Client, error) {
+func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _ string) (Client, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 

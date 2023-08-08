@@ -42,7 +42,7 @@ type ConjurJWT struct {
 	Account string `json:"account"`
 
 	// The conjur authn jwt webservice id
-	ServiceId string `json:"serviceId"`
+	ServiceID string `json:"serviceID"`
 
 	// Optional SecretRef that refers to a key in a Secret resource containing JWT token to
 	// authenticate with Conjur using the JWT authentication method.

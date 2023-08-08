@@ -2132,12 +2132,12 @@ spec:
                                   required:
                                     - name
                                   type: object
-                                serviceId:
+                                serviceID:
                                   description: The conjur authn jwt webservice id
                                   type: string
                               required:
                                 - account
-                                - serviceId
+                                - serviceID
                               type: object
                           type: object
                         caBundle:
@@ -5923,12 +5923,12 @@ spec:
                                   required:
                                     - name
                                   type: object
-                                serviceId:
+                                serviceID:
                                   description: The conjur authn jwt webservice id
                                   type: string
                               required:
                                 - account
-                                - serviceId
+                                - serviceID
                               type: object
                           type: object
                         caBundle:
