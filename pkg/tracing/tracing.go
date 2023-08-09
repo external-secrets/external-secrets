@@ -16,60 +16,132 @@ package tracing
 
 import (
 	"context"
-	"time"
+	"crypto/x509"
+	"os"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	otlpgrpc "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/credentials"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
-var (
-	setupLog    = ctrl.Log.WithName("tracing")
-	clientTrace otlptrace.Client
+
+const (
+	//DefaultProviderName is default name used for tracing.
+	DefaultProviderName = "external-secrets"
 )
-func TraceClient(provider string, collectorURL string)  (func(), error) {
+
+var (
+	tracer       trace.Tracer
+	otelProvider trace.TracerProvider
+	setupLog     = ctrl.Log.WithName("tracing")
+	clientTrace  otlptrace.Client
+	TracerName   = "external-secrets"
+)
+
+func init() {
+	// otelProvider is the definition for the OpenTelemetry Provider created for tracing.
+	// Provider is the definition for the providers used onto ExternalSecrets.
+	otelProvider = trace.NewNoopTracerProvider()
+	tracer = otelProvider.Tracer(TracerName)
+}
+
+func Tracer() trace.Tracer {
+	return tracer
+}
+
+// NewTracerProvider creates a new trace provider with the given options.
+func NewTraceProvider(provider, namespace, caCert, collectorURL string, sampleRate float64, fallbackToNoOpTracer bool) (err error) {
 	ctx := context.Background()
 
-	clientTrace = otlpgrpc.NewClient(
-		otlpgrpc.WithEndpoint(collectorURL),
-		otlpgrpc.WithInsecure(),
-	)
+	defer func(p trace.TracerProvider) {
+		if err != nil && !fallbackToNoOpTracer {
+			return
+		}
+		if err != nil && fallbackToNoOpTracer {
+			setupLog.Error(err, "Error enabling trace provider for OpenTelemetry")
+			err = nil
+			otelProvider = trace.NewNoopTracerProvider()
+		}
+		otel.SetTextMapPropagator(propagation.TraceContext{})
+		otel.SetTracerProvider(otelProvider)
+		otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+			setupLog.Error(err, "Error handling connection with OpenTelemetry Collector")
+		}))
+		tracer = otel.GetTracerProvider().Tracer(TracerName)
+	}(otelProvider)
+
+	var data []byte
+	if caCert != "" {
+		data, err = os.ReadFile(caCert)
+		if err != nil {
+			setupLog.Error(err, "Ran into an error during CA Certificate extraction")
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(data) {
+			setupLog.Error(err, "failed to create cert pool using the ca certificate provided.")
+			return err
+		}
+		setupLog.Info("Enabling gRPC trace channel in secure TLS mode.")
+		clientTrace = otlpgrpc.NewClient(
+			otlpgrpc.WithEndpoint(collectorURL),
+			otlpgrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(pool, "")),
+		)
+	} else {
+		clientTrace = otlpgrpc.NewClient(
+			otlpgrpc.WithEndpoint(collectorURL),
+			otlpgrpc.WithInsecure(),
+		)
+	}
+
 	newExporter, err := otlptrace.New(ctx, clientTrace)
 	if err != nil {
 		setupLog.Error(err, "OpenTelemetry Collector Exporter has not been created")
-		return nil, err	
+		return err
 	}
+	if provider == "" {
+		provider = DefaultProviderName
+	}
+
 	newResource, err := resource.New(
 		ctx,
 		resource.WithSchemaURL(semconv.SchemaURL),
 		resource.WithTelemetrySDK(),
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String(provider),
-		), 
+			semconv.ServiceNamespaceKey.String(namespace),
+		),
 		resource.WithFromEnv(),
+		resource.WithProcess(),
 	)
 	if err != nil {
 		setupLog.Error(err, "Tracing resource has not been created")
 	}
 
-	tp := trace.NewTracerProvider(
-		trace.WithBatcher(newExporter),
-		trace.WithResource(newResource),
+	spanProcessor := sdktrace.NewBatchSpanProcessor(newExporter)
+	otelProvider = sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(sampleRate))),
+		sdktrace.WithSpanProcessor(spanProcessor),
+		sdktrace.WithResource(newResource),
 	)
+	setupLog.Info("Trace Provider has been created")
+	return
+}
 
-	otel.SetTextMapPropagator(propagation.TraceContext{})
-	otel.SetTracerProvider(tp)
-
-	return func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
-		defer cancel()
-		if err := tp.Shutdown(ctx); err != nil {
-			otel.Handle(err)
-		}
-	}, nil
-
+func Shutdown(ctx context.Context) error {
+	tp, ok := otelProvider.(*sdktrace.TracerProvider)
+	if !ok {
+		return nil
+	}
+	if err := tp.Shutdown(ctx); err != nil {
+		otel.Handle(err)
+		setupLog.Error(err, "failed to shutdown the trace exporter")
+		return err
+	}
+	return nil
 }

@@ -71,7 +71,6 @@ var (
 	enablePushSecretReconciler            bool
 	enableFloodGate                       bool
 	enableExtendedMetricLabels            bool
-	enableTracing                         bool
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
 	secretName, secretNamespace           string
@@ -81,6 +80,7 @@ var (
 	certLookaheadInterval                 time.Duration
 	tlsCiphers                            string
 	tlsMinVersion                         string
+	opentelemetryCollectorURL             string
 )
 
 const (
@@ -259,7 +259,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
-	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-tracing", false, "Enable Tracing to an OpenTelemetry Collector Exporter")
+	rootCmd.Flags().StringVar(&opentelemetryCollectorURL, "opentelemetry-collector-url", "http://otel-collector:4317", "Enable Tracing to an OpenTelemetry Collector Exporter")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)
