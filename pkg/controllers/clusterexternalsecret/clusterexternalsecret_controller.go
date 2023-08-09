@@ -274,45 +274,28 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 }
 
 func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace client.Object) []reconcile.Request {
-	namespaceLabels := labels.Set(namespace.GetLabels())
+	var clusterExternalSecrets esv1beta1.ClusterExternalSecretList
+	if err := r.List(ctx, &clusterExternalSecrets); err != nil {
+		r.Log.Error(err, errGetCES)
+		return []reconcile.Request{}
+	}
 
-	// Avoid consuming too much memory
-	const limit = 100
 	var requests []reconcile.Request
-	options := &client.ListOptions{Limit: limit}
-
-	for {
-		var clusterExternalSecrets esv1beta1.ClusterExternalSecretList
-		if err := r.List(ctx, &clusterExternalSecrets, options); err != nil {
-			r.Log.Error(err, errGetCES)
+	for i := range clusterExternalSecrets.Items {
+		clusterExternalSecret := &clusterExternalSecrets.Items[i]
+		labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
+		if err != nil {
+			r.Log.Error(err, errConvertLabelSelector)
 			return []reconcile.Request{}
 		}
 
-		for i := range clusterExternalSecrets.Items {
-			clusterExternalSecret := &clusterExternalSecrets.Items[i]
-			labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
-			if err != nil {
-				r.Log.Error(err, errConvertLabelSelector)
-				return []reconcile.Request{}
-			}
-
-			if labelSelector.Matches(namespaceLabels) {
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      clusterExternalSecret.GetName(),
-						Namespace: clusterExternalSecret.GetNamespace(),
-					},
-				})
-			}
-		}
-
-		if clusterExternalSecrets.Continue == "" {
-			break
-		}
-
-		options = &client.ListOptions{
-			Limit:    limit,
-			Continue: clusterExternalSecrets.Continue,
+		if labelSelector.Matches(labels.Set(namespace.GetLabels())) {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      clusterExternalSecret.GetName(),
+					Namespace: clusterExternalSecret.GetNamespace(),
+				},
+			})
 		}
 	}
 
