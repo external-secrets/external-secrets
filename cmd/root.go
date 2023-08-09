@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"os"
 	"time"
 
@@ -46,6 +47,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/feature"
+	"github.com/external-secrets/external-secrets/pkg/tracing"
 )
 
 var (
@@ -81,6 +83,9 @@ var (
 	tlsCiphers                            string
 	tlsMinVersion                         string
 	opentelemetryCollectorURL             string
+	caCertPath                            string
+	traceSampleRate                       float64
+	fallbackToNoOpTracer                  bool
 )
 
 const (
@@ -129,10 +134,16 @@ var rootCmd = &cobra.Command{
 			Level:       lvl,
 			TimeEncoder: enc,
 		}
+		var ctx = context.Background()
 		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
+		err := tracing.NewTraceProvider(opentelemetryCollectorURL, caCertPath, "ExternalSecret", namespace, traceSampleRate, fallbackToNoOpTracer)
+		if err != nil {
+			setupLog.Error(err, "Failed to Start trace provider")
+		}
+		defer tracing.Shutdown(ctx)
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
@@ -151,6 +162,12 @@ var rootCmd = &cobra.Command{
 		}
 
 		ssmetrics.SetUpMetrics()
+		psmetrics.SetUpMetrics()
+		tracessErr := tracing.NewTraceProvider(opentelemetryCollectorURL, caCertPath, "SecretStore", namespace, traceSampleRate, fallbackToNoOpTracer)
+		if tracessErr != nil {
+			setupLog.Error(tracessErr, "Failed to Start trace provider")
+		}
+		defer tracing.Shutdown(ctx)
 		if err = (&secretstore.StoreReconciler{
 			Client:          mgr.GetClient(),
 			Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
@@ -165,6 +182,11 @@ var rootCmd = &cobra.Command{
 		}
 		if enableClusterStoreReconciler {
 			cssmetrics.SetUpMetrics()
+			traceErr := tracing.NewTraceProvider(opentelemetryCollectorURL, caCertPath, "ClusterSecretStore", namespace, traceSampleRate, fallbackToNoOpTracer)
+			if traceErr != nil {
+				setupLog.Error(err, "Failed to Start trace provider")
+			}
+		defer tracing.Shutdown(ctx)
 			if err = (&secretstore.ClusterStoreReconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
@@ -193,6 +215,11 @@ var rootCmd = &cobra.Command{
 		}
 		if enablePushSecretReconciler {
 			psmetrics.SetUpMetrics()
+			err := tracing.NewTraceProvider(opentelemetryCollectorURL, caCertPath, "PushSecret", namespace, traceSampleRate, fallbackToNoOpTracer)
+			if err != nil {
+				setupLog.Error(err, "Failed to Start trace provider")
+			}
+			defer tracing.Shutdown(ctx)
 			if err = (&pushsecret.Reconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
@@ -206,6 +233,11 @@ var rootCmd = &cobra.Command{
 		}
 		if enableClusterExternalSecretReconciler {
 			cesmetrics.SetUpMetrics()
+			err := tracing.NewTraceProvider(opentelemetryCollectorURL, caCertPath, "ClusterExternalSecret", namespace, traceSampleRate, fallbackToNoOpTracer)
+			if err != nil {
+				setupLog.Error(err, "Failed to Start trace provider")
+			}
+			defer tracing.Shutdown(ctx)
 
 			if err = (&clusterexternalsecret.Reconciler{
 				Client:          mgr.GetClient(),
@@ -260,6 +292,9 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
 	rootCmd.Flags().StringVar(&opentelemetryCollectorURL, "opentelemetry-collector-url", "http://otel-collector:4317", "Enable Tracing to an OpenTelemetry Collector Exporter")
+	rootCmd.Flags().StringVar(&caCertPath, "ca-cert-path", "", "Path to the certificate file for the OpenTelemetry collector")
+	rootCmd.Flags().Float64Var(&traceSampleRate, "trace-sample-rate", 1.0, "TraceSampleRate is used to configure the sample rate of the OTEL trace collection")
+	rootCmd.Flags().BoolVar(&fallbackToNoOpTracer, "fallback-noop-tracer", true, "FallbackToNoOpProviderOnError can be set in case if you want your trace provider to fallback to no op provider")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)

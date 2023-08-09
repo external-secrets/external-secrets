@@ -52,6 +52,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -613,6 +616,10 @@ func parseError(err error) error {
 // The Object Type is defined as a prefix in the ref.Name , if no prefix is defined , we assume a secret is required.
 func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	objectType, secretName := getObjType(ref)
+
+	var span trace.Span
+	ctx, span = tracing.Tracer().Start(ctx, "GetSecret", trace.WithAttributes(attribute.String("objectType", objectType), attribute.String("objectName", secretName)))
+	defer span.End()
 
 	switch objectType {
 	case defaultObjType:
