@@ -39,6 +39,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
@@ -76,6 +77,10 @@ type testCase struct {
 type testTweaks func(*testCase)
 
 var _ = Describe("Kind=secret existence logic", func() {
+	validData := map[string][]byte{
+		"foo": []byte("value1"),
+		"bar": []byte("value2"),
+	}
 	type testCase struct {
 		Name           string
 		Input          v1.Secret
@@ -125,13 +130,10 @@ var _ = Describe("Kind=secret existence logic", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "xxx",
 					Annotations: map[string]string{
-						esv1beta1.AnnotationDataHash: "caa0155759a6a9b3b6ada5a6883ee2bb",
+						esv1beta1.AnnotationDataHash: utils.ObjectHash(validData),
 					},
 				},
-				Data: map[string][]byte{
-					"foo": []byte("value1"),
-					"bar": []byte("value2"),
-				},
+				Data: validData,
 			},
 			ExpectedOutput: true,
 		},
@@ -1723,7 +1725,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const secretVal = "someValue"
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.Annotations[esv1beta1.AnnotationDataHash]).To(Equal("9d30b95ca81e156f9454b5ef3bfcc6ee"))
+			expectedHash := utils.ObjectHash(map[string][]byte{
+				targetProp: []byte(secretVal),
+			})
+			Expect(secret.Annotations[esv1beta1.AnnotationDataHash]).To(Equal(expectedHash))
 		}
 	}
 
@@ -1745,7 +1750,11 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.Annotations[esv1beta1.AnnotationDataHash]).To(Equal("82a8288e398d5354ab110d2244b7c0b1"))
+			expectedHash := utils.ObjectHash(map[string][]byte{
+				existingKey: []byte(existingVal),
+				targetProp:  []byte(secretVal),
+			})
+			Expect(secret.Annotations[esv1beta1.AnnotationDataHash]).To(Equal(expectedHash))
 		}
 	}
 
