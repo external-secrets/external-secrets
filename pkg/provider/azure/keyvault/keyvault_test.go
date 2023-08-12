@@ -757,7 +757,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
-		err := sm.PushSecret(context.Background(), v.setValue, v.pushRef)
+		err := sm.PushSecret(context.Background(), v.setValue, nil, v.pushRef)
 		if !utils.ErrorContains(err, v.expectError) {
 			if err == nil {
 				t.Errorf("[%d] unexpected error: <nil>, expected: '%s'", k, v.expectError)

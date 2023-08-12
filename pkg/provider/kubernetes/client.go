@@ -129,7 +129,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
-func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(ctx context.Context, value []byte, _ map[string]map[string]string, remoteRef esv1beta1.PushRemoteRef) error {
 	if remoteRef.GetProperty() == "" {
 		return fmt.Errorf("requires property in RemoteRef to push secret value")
 	}

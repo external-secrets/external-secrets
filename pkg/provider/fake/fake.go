@@ -106,7 +106,7 @@ func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) er
 	return nil
 }
 
-func (p *Provider) PushSecret(_ context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (p *Provider) PushSecret(_ context.Context, value []byte, _ map[string]map[string]string, remoteRef esv1beta1.PushRemoteRef) error {
 	currentData, ok := p.config[remoteRef.GetRemoteKey()]
 	if !ok {
 		p.config[remoteRef.GetRemoteKey()] = &Data{

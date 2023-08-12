@@ -586,7 +586,9 @@ func TestPushSecret(t *testing.T) {
 
 	type args struct {
 		mock                          *fakesm.MockSMClient
+		Metadata                      map[string]map[string]string
 		GetSecretMockReturn           fakesm.SecretMockReturn
+		UpdateSecretReturn            fakesm.SecretMockReturn
 		AccessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
 		AddSecretVersionMockReturn    fakesm.AddSecretVersionMockReturn
 		CreateSecretMockReturn        fakesm.SecretMockReturn
@@ -609,6 +611,54 @@ func TestPushSecret(t *testing.T) {
 				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
 			want: want{
 				err: nil,
+			},
+		},
+		"WithMetadata": {
+			reason: "successfully pushes a secret with metadata",
+			args: args{
+				mock: smtc.mockClient,
+				Metadata: map[string]map[string]string{
+					"annotations": {
+						"annotation-key1": "annotation-value1",
+					},
+					"labels": {
+						"label-key1": "label-value1",
+					},
+				},
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: &secret, Err: nil},
+				UpdateSecretReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
+					Name: "projects/default/secrets/baz",
+					Replication: &secretmanagerpb.Replication{
+						Replication: &secretmanagerpb.Replication_Automatic_{
+							Automatic: &secretmanagerpb.Replication_Automatic{},
+						},
+					},
+					Labels: map[string]string{
+						"managed-by": "external-secrets",
+						"label-key1": "label-value1",
+					},
+					Annotations: map[string]string{
+						"annotation-key1": "annotation-value1",
+					},
+				}, Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+			want: want{
+				err: nil,
+			},
+		},
+		"WithInvalidMetadata": {
+			reason: "failed to push a secret with invalid metadata type",
+			args: args{
+				mock: smtc.mockClient,
+				Metadata: map[string]map[string]string{
+					"tags": {
+						"tag-key1": "tag-value1",
+					},
+				},
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: &secret, Err: nil}},
+			want: want{
+				err: fmt.Errorf("invalid PushSecretMetadataType: tags"),
 			},
 		},
 		"AddSecretVersion": {
@@ -704,6 +754,7 @@ func TestPushSecret(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			tc.args.mock.NewGetSecretFn(tc.args.GetSecretMockReturn)
+			tc.args.mock.NewUpdateSecretFn(tc.args.UpdateSecretReturn)
 			tc.args.mock.NewCreateSecretFn(tc.args.CreateSecretMockReturn)
 			tc.args.mock.NewAccessSecretVersionFn(tc.args.AccessSecretVersionMockReturn)
 			tc.args.mock.NewAddSecretVersionFn(tc.args.AddSecretVersionMockReturn)
@@ -714,7 +765,7 @@ func TestPushSecret(t *testing.T) {
 					ProjectID: smtc.projectID,
 				},
 			}
-			err := c.PushSecret(context.Background(), []byte("fake-value"), ref)
+			err := c.PushSecret(context.Background(), []byte("fake-value"), tc.args.Metadata, ref)
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
 				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
@@ -906,7 +957,7 @@ func TestPushSecret_Property(t *testing.T) {
 				store:    &esv1beta1.GCPSMProvider{},
 			}
 
-			err := client.PushSecret(context.Background(), []byte(tc.payload), tc.ref)
+			err := client.PushSecret(context.Background(), []byte(tc.payload), nil, tc.ref)
 			if err != nil {
 				if tc.expectedErr == "" {
 					t.Fatalf("PushSecret returns unexpected error: %v", err)

@@ -130,7 +130,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return nil
 }
 
-func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, _ map[string]map[string]string, remoteRef esv1beta1.PushRemoteRef) error {
 	parameterType := "String"
 	overwrite := true
 

@@ -97,6 +97,9 @@ type PushSecretMatch struct {
 type PushSecretData struct {
 	// Match a given Secret Key to be pushed to the provider.
 	Match PushSecretMatch `json:"match"`
+	// Metadata is a map of metadata attached to the secret
+	// +optional
+	Metadata map[string]map[string]string `json:"metadata,omitempty"`
 }
 
 // PushSecretConditionType indicates the condition of the PushSecret.

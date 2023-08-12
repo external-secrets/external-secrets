@@ -619,7 +619,7 @@ func TestClientPushSecret(t *testing.T) {
 				ksmClient: tt.fields.ksmClient,
 				folderID:  tt.fields.folderID,
 			}
-			if err := c.PushSecret(tt.args.ctx, tt.args.value, tt.args.remoteRef); (err != nil) != tt.wantErr {
+			if err := c.PushSecret(tt.args.ctx, tt.args.value, nil, tt.args.remoteRef); (err != nil) != tt.wantErr {
 				t.Errorf("PushSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

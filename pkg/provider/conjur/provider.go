@@ -114,7 +114,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 }
 
 // PushSecret will write a single secret into the provider.
-func (p *Provider) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (p *Provider) PushSecret(_ context.Context, _ []byte, _ map[string]map[string]string, _ esv1beta1.PushRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
 }

@@ -35,7 +35,7 @@ func (p *PP) NewClient(_ context.Context, _ GenericStore, _ client.Client, _ str
 }
 
 // PushSecret writes a single secret into a provider.
-func (p *PP) PushSecret(_ context.Context, _ []byte, _ PushRemoteRef) error {
+func (p *PP) PushSecret(_ context.Context, _ []byte, _ map[string]map[string]string, _ PushRemoteRef) error {
 	return nil
 }
 

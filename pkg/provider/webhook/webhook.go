@@ -122,7 +122,7 @@ func (w *WebHook) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) err
 }
 
 // Not Implemented PushSecret.
-func (w *WebHook) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (w *WebHook) PushSecret(_ context.Context, _ []byte, _ map[string]map[string]string, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

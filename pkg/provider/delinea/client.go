@@ -70,7 +70,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return []byte(val.String()), nil
 }
 
-func (c *client) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (c *client) PushSecret(_ context.Context, _ []byte, _ map[string]map[string]string, _ esv1beta1.PushRemoteRef) error {
 	return errors.New("pushing secrets is not supported by Delinea DevOps Secrets Vault")
 }
 

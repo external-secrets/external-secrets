@@ -67,6 +67,9 @@ const (
 
 	managedByKey   = "managed-by"
 	managedByValue = "external-secrets"
+
+	annotationsMetadataType = "annotations"
+	labelsMetadataType      = "labels"
 )
 
 type Client struct {
@@ -127,7 +130,7 @@ func parseError(err error) error {
 }
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
-func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata map[string]map[string]string, remoteRef esv1beta1.PushRemoteRef) error {
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
@@ -158,24 +161,44 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 		}
 	}
 
-	manager, ok := gcpSecret.Labels[managedByKey]
-	if !ok || manager != managedByValue {
-		if remoteRef.GetProperty() == "" {
+	annotations := map[string]string{}
+	labels := map[string]string{}
+	if remoteRef.GetProperty() == "" {
+		if manager, ok := gcpSecret.Labels[managedByKey]; !ok || manager != managedByValue {
 			return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
 		}
 
-		labels := map[string]string{}
-		for k, v := range gcpSecret.Labels {
-			labels[k] = v
+		for metadataType, m := range metadata {
+			switch metadataType {
+			case annotationsMetadataType:
+				annotations = m
+			case labelsMetadataType:
+				labels = m
+			default:
+				return fmt.Errorf("invalid PushSecretMetadataType: %s", metadataType)
+			}
 		}
-		labels[managedByKey] = managedByValue
+	} else {
+		// If the property is set, we just take over the ownership
+		if gcpSecret.Labels != nil {
+			labels = gcpSecret.Labels
+		}
+		if gcpSecret.Annotations != nil {
+			annotations = gcpSecret.Annotations
+		}
+	}
+
+	labels[managedByKey] = managedByValue
+
+	if !metadataEqual(gcpSecret.Labels, labels) || !metadataEqual(gcpSecret.Annotations, annotations) {
 		_, err = c.smClient.UpdateSecret(ctx, &secretmanagerpb.UpdateSecretRequest{
 			Secret: &secretmanagerpb.Secret{
-				Name:   gcpSecret.Name,
-				Labels: labels,
+				Name:        gcpSecret.Name,
+				Labels:      labels,
+				Annotations: annotations,
 			},
 			UpdateMask: &field_mask.FieldMask{
-				Paths: []string{"labels"},
+				Paths: []string{"labels", "annotations"},
 			},
 		})
 		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMUpdateSecret, err)
@@ -538,4 +561,18 @@ func getDataByProperty(resp *secretmanagerpb.AccessSecretVersionResponse, proper
 		}
 	}
 	return gjson.Get(payload, property)
+}
+
+func metadataEqual(m1, m2 map[string]string) bool {
+	if len(m1) != len(m2) {
+		return false
+	}
+
+	for k1, v1 := range m1 {
+		if v2, ok := m2[k1]; !ok || v1 != v2 {
+			return false
+		}
+	}
+
+	return true
 }

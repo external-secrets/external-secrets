@@ -227,7 +227,7 @@ func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (a *Akeyless) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (a *Akeyless) PushSecret(_ context.Context, _ []byte, _ map[string]map[string]string, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

@@ -254,16 +254,21 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 		if err != nil {
 			return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
 		}
-		for _, ref := range ps.Spec.Data {
-			secretValue, ok := secret.Data[ref.Match.SecretKey]
+		for _, data := range ps.Spec.Data {
+			secretValue, ok := secret.Data[data.Match.SecretKey]
 			if !ok {
-				return out, fmt.Errorf("secret key %v does not exist", ref.Match.SecretKey)
+				return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
 			}
-			err := client.PushSecret(ctx, secretValue, ref.Match.RemoteRef)
+
+			if data.Metadata != nil && data.Match.RemoteRef.Property != "" {
+				return out, fmt.Errorf("cannot specify metadata and property at the same time")
+			}
+
+			err := client.PushSecret(ctx, secretValue, data.Metadata, data.Match.RemoteRef)
 			if err != nil {
-				return out, fmt.Errorf(errSetSecretFailed, ref.Match.SecretKey, store.GetName(), err)
+				return out, fmt.Errorf(errSetSecretFailed, data.Match.SecretKey, store.GetName(), err)
 			}
-			out[storeKey][statusRef(ref.Match.RemoteRef)] = ref
+			out[storeKey][statusRef(data.Match.RemoteRef)] = data
 		}
 	}
 	return out, nil

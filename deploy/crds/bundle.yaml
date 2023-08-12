@@ -4039,6 +4039,13 @@ spec:
                           - remoteRef
                           - secretKey
                         type: object
+                      metadata:
+                        additionalProperties:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        description: Metadata is a map of metadata attached to the secret
+                        type: object
                     required:
                       - match
                     type: object
@@ -4166,6 +4173,13 @@ spec:
                           required:
                             - remoteRef
                             - secretKey
+                          type: object
+                        metadata:
+                          additionalProperties:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          description: Metadata is a map of metadata attached to the secret
                           type: object
                       required:
                         - match
