@@ -20,26 +20,7 @@ This section contains the list of the pre-requirements before installing the Con
 When using a self-signed cert when setting up your Conjur server, it is strongly recommended to populate "caBundle" with self-signed cert in the secret-store definition. The certificate CA must be referenced on the secret-store definition using either a `caBundle` or `caProvider` as below:
 
 ```yaml
-....
-spec:
-  provider:
-    conjur:
-        # Service URL
-        url: https://myapi.conjur.org
-
-        # [OPTIONAL] base64 encoded string of certificate
-        caBundle: "<base64 encoded cabundle>"
-
-        # [OPTIONAL] caProvider:
-        # Instead of caBundle you can also specify a caProvider
-        # this will retrieve the cert from a Secret or ConfigMap
-        caProvider:
-          type: "Secret/ConfigMap" # Can be Secret or ConfigMap
-          name: "<name of secret or configmap>"
-          key: "<key inside secret>"
-          # namespace is mandatory for ClusterSecretStore and not relevant for SecretStore
-          namespace: "my-cert-secret-namespace"
-  ....
+{% include 'conjur-ca-bundle.yaml' %}
 ```
 
 ### External Secret Store Definition with ApiKey Authentication
