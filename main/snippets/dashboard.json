@@ -44,7 +44,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -94,7 +94,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "(sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"secretstore\", result=\"error\"}[15m])))\n/\n(sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"secretstore\"}[15m])))\n> 0",
@@ -109,7 +109,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -159,7 +159,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "(sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"clustersecretstore\", result=\"error\"}[15m])))\n/\n(sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"clustersecretstore\"}[15m])))\n> 0",
@@ -174,7 +174,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -224,7 +224,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "(sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"externalsecret\", result=\"error\"}[15m])))\n/\n(sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"externalsecret\"}[15m])))\n> 0",
@@ -239,7 +239,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -289,7 +289,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "(sum(irate(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"clusterexternalsecret\", result=\"error\"}[15m])))\n/\n(sum(irate(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"clusterexternalsecret\"}[15m])))\n> 0",
@@ -304,7 +304,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -354,7 +354,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "(sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"pushsecret\", result=\"error\"}[15m])))\n/\n(sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"pushsecret\"}[15m])))\n> 0",
@@ -369,7 +369,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -419,7 +419,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "sum(increase(externalsecret_provider_api_calls_count{service=~\".*external-secrets.*\", status=\"error\"}[15m]))\n/\nsum(increase(externalsecret_provider_api_calls_count{service=~\".*external-secrets.*\"}[15m]))\n> 0",
@@ -434,7 +434,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -484,7 +484,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "sum(\n  workqueue_depth{service=~\"external-secrets.*\"}\n) by (name)",
@@ -499,7 +499,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -549,7 +549,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "sum(increase(controller_runtime_webhook_requests_total{service=~\"external-secrets.*\",code=\"500\"}[15m]))\n/\nsum(increase(controller_runtime_webhook_requests_total{service=~\"external-secrets.*\"}[15m]))",
@@ -564,7 +564,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -614,7 +614,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.99,\n  sum(rate(controller_runtime_webhook_latency_seconds_bucket{service=~\"external-secrets.*\"}[5m])) by (le)\n)",
@@ -629,7 +629,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -679,7 +679,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "histogram_quantile(0.99,\n  sum(rate(controller_runtime_reconcile_time_seconds_bucket{service=~\"external-secrets.*\"}[5m])) by (le)\n)",
@@ -694,7 +694,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -744,7 +744,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "sum(increase(controller_runtime_reconcile_total{service=~\"external-secrets.*\",controller=~\"$controller\",result=\"error\"}[1m]))\n/\nsum(increase(controller_runtime_reconcile_total{service=~\"external-secrets.*\",controller=~\"$controller\"}[1m]))\n> 0",
@@ -759,7 +759,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -839,7 +839,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "increase(externalsecret_provider_api_calls_count{service=~\".*external-secrets.*\", status=\"error\"}[15m])",
@@ -854,7 +854,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -935,7 +935,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "exemplar": false,
@@ -954,7 +954,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "$datasource"
       },
       "fieldConfig": {
         "defaults": {
@@ -1031,7 +1031,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "$datasource"
           },
           "editorMode": "code",
           "expr": "sum(increase(externalsecret_sync_calls_error[15m])) by (name, namespace)",
