@@ -39,6 +39,7 @@ import (
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	// Loading registered providers.
@@ -350,7 +351,7 @@ func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret
 		return err
 	}
 	for key, secret := range secretList.Items {
-		if secret.Name != externalSecret.Spec.Target.Name {
+		if externalSecret.Spec.Target.Name != "" && secret.Name != externalSecret.Spec.Target.Name {
 			err = cl.Delete(ctx, &secretList.Items[key])
 			if err != nil {
 				return err
