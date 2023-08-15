@@ -7,8 +7,8 @@ should match snapshot of default values:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets-cert-controller
-        app.kubernetes.io/version: v0.9.2
-        helm.sh/chart: external-secrets-0.9.2
+        app.kubernetes.io/version: v0.9.3
+        helm.sh/chart: external-secrets-0.9.3
       name: RELEASE-NAME-external-secrets-cert-controller
       namespace: NAMESPACE
     spec:
@@ -35,7 +35,7 @@ should match snapshot of default values:
                 - --secret-namespace=NAMESPACE
                 - --metrics-addr=:8080
                 - --healthz-addr=:8081
-              image: ghcr.io/external-secrets/external-secrets:v0.9.2
+              image: ghcr.io/external-secrets/external-secrets:v0.9.3
               imagePullPolicy: IfNotPresent
               name: cert-controller
               ports:
