@@ -353,7 +353,7 @@ func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret
 		return err
 	}
 	for key, secret := range secretList.Items {
-		if secret.Name != externalSecret.Spec.Target.Name {
+		if externalSecret.Spec.Target.Name != "" && secret.Name != externalSecret.Spec.Target.Name {
 			err = cl.Delete(ctx, &secretList.Items[key])
 			if err != nil {
 				return err
