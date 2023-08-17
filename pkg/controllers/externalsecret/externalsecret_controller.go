@@ -274,6 +274,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			return fmt.Errorf(errApplyTemplate, err)
 		}
+		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
+			secret.Labels[esv1beta1.LabelOwner] = fmt.Sprintf("%v_%v", externalSecret.Namespace, externalSecret.Name)
+		}
 
 		secret.Annotations[esv1beta1.AnnotationDataHash] = r.computeDataHashAnnotation(&existingSecret, secret)
 
@@ -352,7 +355,7 @@ func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret
 		return err
 	}
 	for key, secret := range secretList.Items {
-		if secret.Name != externalSecret.Spec.Target.Name {
+		if externalSecret.Spec.Target.Name != "" && secret.Name != externalSecret.Spec.Target.Name {
 			err = cl.Delete(ctx, &secretList.Items[key])
 			if err != nil {
 				return err
