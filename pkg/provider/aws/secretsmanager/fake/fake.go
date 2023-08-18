@@ -15,6 +15,7 @@ limitations under the License.
 package fake
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -44,8 +45,14 @@ func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSec
 	return sm.CreateSecretWithContextFn(ctx, input, options...)
 }
 
-func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error) CreateSecretWithContextFn {
-	return func(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error, expectedSecretBinary ...[]byte) CreateSecretWithContextFn {
+	return func(ctx aws.Context, actualInput *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+		if len(expectedSecretBinary) == 1 {
+			if bytes.Equal(actualInput.SecretBinary, expectedSecretBinary[0]) {
+				return output, err
+			}
+			return nil, fmt.Errorf("expected secret to be '%s' but was '%s'", string(expectedSecretBinary[0]), string(actualInput.SecretBinary))
+		}
 		return output, err
 	}
 }
@@ -73,8 +80,14 @@ func (sm Client) PutSecretValueWithContext(ctx aws.Context, input *awssm.PutSecr
 	return sm.PutSecretValueWithContextFn(ctx, input, options...)
 }
 
-func NewPutSecretValueWithContextFn(output *awssm.PutSecretValueOutput, err error) PutSecretValueWithContextFn {
-	return func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error) {
+func NewPutSecretValueWithContextFn(output *awssm.PutSecretValueOutput, err error, expectedSecretBinary ...[]byte) PutSecretValueWithContextFn {
+	return func(actualContext aws.Context, actualInput *awssm.PutSecretValueInput, actualOptions ...request.Option) (*awssm.PutSecretValueOutput, error) {
+		if len(expectedSecretBinary) == 1 {
+			if bytes.Equal(actualInput.SecretBinary, expectedSecretBinary[0]) {
+				return output, err
+			}
+			return nil, fmt.Errorf("expected secret to be '%s' but was '%s'", string(expectedSecretBinary[0]), string(actualInput.SecretBinary))
+		}
 		return output, err
 	}
 }

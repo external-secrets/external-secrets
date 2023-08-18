@@ -366,7 +366,8 @@ func ErrorContains(out error, want string) bool {
 }
 
 type fakeRef struct {
-	key string
+	key      string
+	property string
 }
 
 func (f fakeRef) GetRemoteKey() string {
@@ -374,7 +375,7 @@ func (f fakeRef) GetRemoteKey() string {
 }
 
 func (f fakeRef) GetProperty() string {
-	return ""
+	return f.property
 }
 
 func TestSetSecret(t *testing.T) {
@@ -425,15 +426,30 @@ func TestSetSecret(t *testing.T) {
 		SecretBinary: secretValue,
 	}
 
+	type params struct {
+		s string
+		b []byte
+	}
+	secretValueOutputFrom := func(params params) *awssm.GetSecretValueOutput {
+		return &awssm.GetSecretValueOutput{
+			ARN:          &arn,
+			SecretString: &params.s,
+			SecretBinary: params.b,
+		}
+	}
 	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
 
 	putSecretOutput := &awssm.PutSecretValueOutput{
 		ARN: &arn,
 	}
 
+	remoteRefWithoutProperty := fakeRef{key: "fake-key", property: ""}
+	remoteRefWithProperty := fakeRef{key: "fake-key", property: "other-fake-property"}
+
 	type args struct {
-		store  *esv1beta1.AWSProvider
-		client fakesm.Client
+		store     *esv1beta1.AWSProvider
+		client    fakesm.Client
+		remoteRef fakeRef
 	}
 
 	type want struct {
@@ -454,6 +470,7 @@ func TestSetSecret(t *testing.T) {
 					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: nil,
@@ -467,9 +484,83 @@ func TestSetSecret(t *testing.T) {
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"SetSecretWithPropertySucceedsWithNewSecret": {
+			reason: "if a new secret is pushed to aws sm and a remoteRef property is specified, create a json secret with the remoteRef property as a key",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil, []byte(`{"other-fake-property":"fake-value"}`)),
+				},
+				remoteRef: remoteRefWithProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyBinary": {
+			reason: "when a remoteRef property is specified, this property will be added to the sm secret if it is currently absent (sm secret is binary)",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{b: []byte((`{"fake-property":"fake-value"}`))}), nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`)),
+				},
+				remoteRef: remoteRefWithProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyString": {
+			reason: "when a remoteRef property is specified, this property will be added to the sm secret if it is currently absent (sm secret is a string)",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{s: `{"fake-property":"fake-value"}`}), nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`)),
+				},
+				remoteRef: remoteRefWithProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyWithDot": {
+			reason: "when a remoteRef property is specified, this property will be added to the sm secret if it is currently absent (remoteRef property is a sub-object)",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{s: `{"fake-property":{"fake-property":"fake-value"}}`}), nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, []byte(`{"fake-property":{"fake-property":"fake-value","other-fake-property":"fake-value"}}`)),
+				},
+				remoteRef: fakeRef{key: "fake-key", property: "fake-property.other-fake-property"},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithPropertyFailsExistingNonJsonSecret": {
+			reason: "setting a remoteRef property is only supported for json secrets",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{s: `non-json-secret`}), nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				remoteRef: remoteRefWithProperty,
+			},
+			want: want{
+				err: errors.New("PushSecret for aws secrets manager with a remoteRef property requires a json secret"),
 			},
 		},
 		"SetSecretCreateSecretFails": {
@@ -480,6 +571,7 @@ func TestSetSecret(t *testing.T) {
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(nil, noPermission),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: noPermission,
@@ -492,6 +584,7 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, noPermission),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: noPermission,
@@ -505,6 +598,7 @@ func TestSetSecret(t *testing.T) {
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput2, nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: nil,
@@ -519,6 +613,7 @@ func TestSetSecret(t *testing.T) {
 					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(nil, noPermission),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: noPermission,
@@ -531,6 +626,7 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretWrongErr),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: &getSecretWrongErr,
@@ -544,6 +640,7 @@ func TestSetSecret(t *testing.T) {
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(nil, noPermission),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: noPermission,
@@ -557,6 +654,7 @@ func TestSetSecret(t *testing.T) {
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutputFaulty, nil),
 				},
+				remoteRef: remoteRefWithoutProperty,
 			},
 			want: want{
 				err: fmt.Errorf("secret not managed by external-secrets"),
@@ -566,11 +664,10 @@ func TestSetSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "fake-key"}
 			sm := SecretsManager{
 				client: &tc.args.client,
 			}
-			err := sm.PushSecret(context.Background(), []byte("fake-value"), ref)
+			err := sm.PushSecret(context.Background(), []byte("fake-value"), tc.args.remoteRef)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {

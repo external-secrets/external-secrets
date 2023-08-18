@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -197,11 +198,6 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 			Value: &externalSecrets,
 		},
 	}
-	secretRequest := awssm.CreateSecretInput{
-		Name:         &secretName,
-		SecretBinary: value,
-		Tags:         externalSecretsTag,
-	}
 
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
@@ -213,12 +209,26 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
+
+	if remoteRef.GetProperty() != "" {
+		currentSecret := sm.retrievePayload(awsSecret)
+		if currentSecret != "" && !gjson.Valid(currentSecret) {
+			return errors.New("PushSecret for aws secrets manager with a remoteRef property requires a json secret")
+		}
+		value, _ = sjson.SetBytes([]byte(currentSecret), remoteRef.GetProperty(), value)
+	}
+
 	var aerr awserr.Error
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+			secretRequest := awssm.CreateSecretInput{
+				Name:         &secretName,
+				SecretBinary: value,
+				Tags:         externalSecretsTag,
+			}
 			_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
 			metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
 			return err
@@ -400,6 +410,21 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		}
 		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
+	val := sm.mapSecretToGjson(secretOut, ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	}
+	return []byte(val.String()), nil
+}
+
+func (sm *SecretsManager) mapSecretToGjson(secretOut *awssm.GetSecretValueOutput, property string) gjson.Result {
+	payload := sm.retrievePayload(secretOut)
+	refProperty := sm.escapeDotsIfRequired(property, payload)
+	val := gjson.Get(payload, refProperty)
+	return val
+}
+
+func (sm *SecretsManager) retrievePayload(secretOut *awssm.GetSecretValueOutput) string {
 	var payload string
 	if secretOut.SecretString != nil {
 		payload = *secretOut.SecretString
@@ -407,20 +432,21 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	if secretOut.SecretBinary != nil {
 		payload = string(secretOut.SecretBinary)
 	}
+	return payload
+}
+
+func (sm *SecretsManager) escapeDotsIfRequired(currentRefProperty, payload string) string {
 	// We need to search if a given key with a . exists before using gjson operations.
-	idx := strings.Index(ref.Property, ".")
+	idx := strings.Index(currentRefProperty, ".")
+	refProperty := currentRefProperty
 	if idx > -1 {
-		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+		refProperty = strings.ReplaceAll(currentRefProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
-		if val.Exists() {
-			return []byte(val.String()), nil
+		if !val.Exists() {
+			refProperty = currentRefProperty
 		}
 	}
-	val := gjson.Get(payload, ref.Property)
-	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
-	}
-	return []byte(val.String()), nil
+	return refProperty
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
