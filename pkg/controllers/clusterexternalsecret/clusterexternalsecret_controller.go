@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -111,14 +110,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	provisionedNamespaces := []string{}
 	for _, namespace := range namespaceList.Items {
-		existingES, err := r.getExternalSecret(ctx, namespace.Name, esName)
+		var existingES esv1beta1.ExternalSecret
+		err = r.Get(ctx, types.NamespacedName{
+			Name:      esName,
+			Namespace: namespace.Name,
+		}, &existingES)
 		if err != nil && !apierrors.IsNotFound(err) {
 			log.Error(err, errGetExistingES)
 			failedNamespaces[namespace.Name] = err
 			continue
 		}
 
-		if err == nil && !isExternalSecretOwnedBy(existingES, clusterExternalSecret.Name) {
+		if err == nil && !isExternalSecretOwnedBy(&existingES, clusterExternalSecret.Name) {
 			failedNamespaces[namespace.Name] = fmt.Errorf("external secret already exists in namespace")
 			continue
 		}
@@ -170,7 +173,11 @@ func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterEx
 }
 
 func (r *Reconciler) deleteExternalSecret(ctx context.Context, esName, cesName, namespace string) error {
-	existingES, err := r.getExternalSecret(ctx, namespace, esName)
+	var existingES esv1beta1.ExternalSecret
+	err := r.Get(ctx, types.NamespacedName{
+		Name:      esName,
+		Namespace: namespace,
+	}, &existingES)
 	if err != nil {
 		// If we can't find it then just leave
 		if apierrors.IsNotFound(err) {
@@ -179,11 +186,11 @@ func (r *Reconciler) deleteExternalSecret(ctx context.Context, esName, cesName, 
 		return err
 	}
 
-	if !isExternalSecretOwnedBy(existingES, cesName) {
+	if !isExternalSecretOwnedBy(&existingES, cesName) {
 		return nil
 	}
 
-	err = r.Delete(ctx, existingES, &client.DeleteOptions{})
+	err = r.Delete(ctx, &existingES, &client.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("external secret in non matching namespace could not be deleted: %w", err)
 	}
@@ -211,19 +218,7 @@ func (r *Reconciler) deleteOutdatedExternalSecrets(ctx context.Context, namespac
 	return failedNamespaces
 }
 
-func (r *Reconciler) getExternalSecret(ctx context.Context, namespace, name string) (*metav1.PartialObjectMetadata, error) {
-	// Should not use esv1beta1.ExternalSecret since we specify builder.OnlyMetadata and cache only metadata
-	metadata := metav1.PartialObjectMetadata{}
-	metadata.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   esv1beta1.Group,
-		Version: esv1beta1.Version,
-		Kind:    esv1beta1.ExtSecretKind,
-	})
-	err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, &metadata)
-	return &metadata, err
-}
-
-func isExternalSecretOwnedBy(es *metav1.PartialObjectMetadata, cesName string) bool {
+func isExternalSecretOwnedBy(es *esv1beta1.ExternalSecret, cesName string) bool {
 	owner := metav1.GetControllerOf(es)
 	return owner != nil && owner.APIVersion == esv1beta1.SchemeGroupVersion.String() && owner.Kind == esv1beta1.ClusterExtSecretKind && owner.Name == cesName
 }
@@ -264,7 +259,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1beta1.ClusterExternalSecret{}).
-		Owns(&esv1beta1.ExternalSecret{}, builder.OnlyMetadata).
+		Owns(&esv1beta1.ExternalSecret{}).
 		Watches(
 			&v1.Namespace{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForNamespace),
