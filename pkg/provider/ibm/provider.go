@@ -48,6 +48,8 @@ const (
 	passwordConst     = "password"
 	apikeyConst       = "apikey"
 	arbitraryConst    = "arbitrary"
+	payloadConst      = "payload"
+	smAPIKeyConst     = "api_key"
 
 	errIBMClient                             = "cannot setup new ibm client: %w"
 	errIBMCredSecretName                     = "invalid IBM SecretStore resource: missing IBM APIKey"
@@ -221,20 +223,14 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	if err != nil {
 		return nil, err
 	}
-	secret, ok := response.(*sm.ImportedCertificate)
-	if !ok {
-		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_ImportedCert, "getImportCertSecret")
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
 	}
-	switch ref.Property {
-	case certificateConst:
-		return []byte(*secret.Certificate), nil
-	case intermediateConst:
-		return []byte(*secret.Intermediate), nil
-	case privateKeyConst:
-		return []byte(*secret.PrivateKey), nil
-	default:
-		return nil, fmt.Errorf("unknown property type %s", ref.Property)
+	if val, ok := secMap[ref.Property]; ok {
+		return []byte(val.(string)), nil
 	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
 func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -242,21 +238,14 @@ func getPublicCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	if err != nil {
 		return nil, err
 	}
-	secret, ok := response.(*sm.PublicCertificate)
-	if !ok {
-		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_PublicCert, "getPublicCertSecret")
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
 	}
-
-	switch ref.Property {
-	case certificateConst:
-		return []byte(*secret.Certificate), nil
-	case intermediateConst:
-		return []byte(*secret.Intermediate), nil
-	case privateKeyConst:
-		return []byte(*secret.PrivateKey), nil
-	default:
-		return nil, fmt.Errorf("unknown property type %s", ref.Property)
+	if val, ok := secMap[ref.Property]; ok {
+		return []byte(val.(string)), nil
 	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
 func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -264,18 +253,14 @@ func getPrivateCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ex
 	if err != nil {
 		return nil, err
 	}
-	secret, ok := response.(*sm.PrivateCertificate)
-	if !ok {
-		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_PrivateCert, "getPrivateCertSecret")
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
 	}
-	switch ref.Property {
-	case certificateConst:
-		return []byte(*secret.Certificate), nil
-	case privateKeyConst:
-		return []byte(*secret.PrivateKey), nil
-	default:
-		return nil, fmt.Errorf("unknown property type %s", ref.Property)
+	if val, ok := secMap[ref.Property]; ok {
+		return []byte(val.(string)), nil
 	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
 func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, error) {
@@ -295,18 +280,14 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1bet
 	if err != nil {
 		return nil, err
 	}
-	secret, ok := response.(*sm.UsernamePasswordSecret)
-	if !ok {
-		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_UsernamePassword, "getUsernamePasswordSecret")
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
 	}
-	switch ref.Property {
-	case "username":
-		return []byte(*secret.Username), nil
-	case "password":
-		return []byte(*secret.Password), nil
-	default:
-		return nil, fmt.Errorf("unknown property type %s", ref.Property)
+	if val, ok := secMap[ref.Property]; ok {
+		return []byte(val.(string)), nil
 	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
 
 // Returns a secret of type kv and supports json path.
@@ -441,70 +422,44 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	if err != nil {
 		return nil, err
 	}
+
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
+	}
 	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-		if err := populateSecretMap(secretMap, response); err != nil {
-			return nil, err
-		}
+		secretMap = populateSecretMap(secretMap, secMap)
 	}
 
 	switch secretType {
 	case sm.Secret_SecretType_Arbitrary:
-		secretData, ok := response.(*sm.ArbitrarySecret)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Arbitrary, "GetSecretMap")
-		}
-		secretMap[arbitraryConst] = []byte(*secretData.Payload)
+		secretMap[arbitraryConst] = []byte(fmt.Sprintf("%v", secMap[payloadConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_UsernamePassword:
-		secretData, ok := response.(*sm.UsernamePasswordSecret)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_UsernamePassword, "GetSecretMap")
-		}
-		secretMap[usernameConst] = []byte(*secretData.Username)
-		secretMap[passwordConst] = []byte(*secretData.Password)
-
+		secretMap[usernameConst] = []byte(fmt.Sprintf("%v", secMap[usernameConst]))
+		secretMap[passwordConst] = []byte(fmt.Sprintf("%v", secMap[passwordConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_IamCredentials:
-		secretData, ok := response.(*sm.IAMCredentialsSecret)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_IamCredentials, "GetSecretMap")
-		}
-		secretMap[apikeyConst] = []byte(*secretData.ApiKey)
-
+		secretMap[apikeyConst] = []byte(fmt.Sprintf("%v", secMap[smAPIKeyConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_ImportedCert:
-		secretData, ok := response.(*sm.ImportedCertificate)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_ImportedCert, "GetSecretMap")
-		}
-		secretMap[certificateConst] = []byte(*secretData.Certificate)
-		secretMap[intermediateConst] = []byte(*secretData.Intermediate)
-		secretMap[privateKeyConst] = []byte(*secretData.PrivateKey)
-
+		secretMap[certificateConst] = []byte(fmt.Sprintf("%v", secMap[certificateConst]))
+		secretMap[intermediateConst] = []byte(fmt.Sprintf("%v", secMap[intermediateConst]))
+		secretMap[privateKeyConst] = []byte(fmt.Sprintf("%v", secMap[privateKeyConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_PublicCert:
-		secretData, ok := response.(*sm.PublicCertificate)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_PublicCert, "GetSecretMap")
-		}
-		secretMap[certificateConst] = []byte(*secretData.Certificate)
-		secretMap[intermediateConst] = []byte(*secretData.Intermediate)
-		secretMap[privateKeyConst] = []byte(*secretData.PrivateKey)
-
+		secretMap[certificateConst] = []byte(fmt.Sprintf("%v", secMap[certificateConst]))
+		secretMap[intermediateConst] = []byte(fmt.Sprintf("%v", secMap[intermediateConst]))
+		secretMap[privateKeyConst] = []byte(fmt.Sprintf("%v", secMap[privateKeyConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_PrivateCert:
-		secretData, ok := response.(*sm.PrivateCertificate)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_PrivateCert, "GetSecretMap")
-		}
-		secretMap[certificateConst] = []byte(*secretData.Certificate)
-		secretMap[privateKeyConst] = []byte(*secretData.PrivateKey)
-
+		secretMap[certificateConst] = []byte(fmt.Sprintf("%v", secMap[certificateConst]))
+		secretMap[privateKeyConst] = []byte(fmt.Sprintf("%v", secMap[privateKeyConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_Kv:
@@ -704,17 +659,21 @@ func init() {
 }
 
 // populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider.
-func populateSecretMap(secretMap map[string][]byte, secretData interface{}) error {
-	secretDataMap := make(map[string]interface{})
-	data, err := json.Marshal(secretData)
-	if err != nil {
-		return fmt.Errorf(errJSONSecretMarshal, err)
-	}
-	if err := json.Unmarshal(data, &secretDataMap); err != nil {
-		return fmt.Errorf(errJSONSecretUnmarshal, err)
-	}
+func populateSecretMap(secretMap map[string][]byte, secretDataMap map[string]interface{}) map[string][]byte {
 	for key, value := range secretDataMap {
 		secretMap[key] = []byte(fmt.Sprintf("%v", value))
 	}
-	return nil
+	return secretMap
+}
+
+func formSecretMap(secretData interface{}) (map[string]interface{}, error) {
+	secretDataMap := make(map[string]interface{})
+	data, err := json.Marshal(secretData)
+	if err != nil {
+		return nil, fmt.Errorf(errJSONSecretMarshal, err)
+	}
+	if err := json.Unmarshal(data, &secretDataMap); err != nil {
+		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+	}
+	return secretDataMap, nil
 }

@@ -375,7 +375,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(ctest.HasFieldOwnership(
 				secret.ObjectMeta,
 				ExternalSecretFQDN,
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}},\"f:labels\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash, esv1beta1.LabelOwner)),
+				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
 			).To(BeTrue())
 			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
 		}
@@ -476,7 +476,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(ctest.HasFieldOwnership(
 				secret.ObjectMeta,
 				ExternalSecretFQDN,
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}},\"f:labels\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash, esv1beta1.LabelOwner)),
+				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
 			).To(BeTrue())
 		}
 	}
