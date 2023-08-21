@@ -2609,7 +2609,7 @@ Below example creates a kubernetes secret based on ID of the secret in Secrets M
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username_password/&lt;SECRET_ID&gt;</span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 </code></pre></div>
-<p>Alternatively, secret name can be specified instead of secret ID.</p>
+<p>Alternatively, secret name can be specified instead of secret ID. However, note that ESO makes an additional call to fetch the relevant secret ID for the specified secret name.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
