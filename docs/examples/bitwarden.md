@@ -87,6 +87,7 @@ Here the two ClusterSecretStore to deploy
 
 * If you need the `username` or the `password` of a secret, you have to use `bitwarden-login`
 * If you need a custom field of a secret, you have to use `bitwarden-fields`
+* If you need to use a Bitwarden Note for multiline strings (SSH keys, service account json files), you have to use `bitwarden-notes`
 * The `key` is the ID of a secret, which can be find in the URL with the `itemId` value:
   `https://myvault.com/#/vault?itemId=........-....-....-....-............`
 * The `property` is the name of the field:
