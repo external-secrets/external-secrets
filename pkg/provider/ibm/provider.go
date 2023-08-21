@@ -227,14 +227,8 @@ func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.Ext
 	if err != nil {
 		return nil, err
 	}
-	val, ok := secMap[ref.Property]
-	if ok {
+	if val, ok := secMap[ref.Property]; ok {
 		return []byte(val.(string)), nil
-	} else if ref.Property == privateKeyConst {
-		// we want to return an empty string in case the secret doesn't contain a private key
-		// this is to ensure that secret of type 'kubernetes.io/tls' gets created as expected, even with an empty private key
-		fmt.Printf("warn: %s is empty for secret %s\n", privateKeyConst, *secretName)
-		return []byte(""), nil
 	}
 	return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 }
@@ -424,7 +418,6 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	}
 
 	secretMap := make(map[string][]byte)
-	secMapBytes := make(map[string][]byte)
 	response, err := getSecretData(ibm, &secretName, secretType)
 	if err != nil {
 		return nil, err
@@ -437,42 +430,36 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 		secretMap = populateSecretMap(secretMap, secMap)
 	}
-	secMapBytes = populateSecretMap(secMapBytes, secMap)
 
 	switch secretType {
 	case sm.Secret_SecretType_Arbitrary:
-		secretMap[arbitraryConst] = secMapBytes[payloadConst]
+		secretMap[arbitraryConst] = []byte(fmt.Sprintf("%v", secMap[payloadConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_UsernamePassword:
-		secretMap[usernameConst] = secMapBytes[usernameConst]
-		secretMap[passwordConst] = secMapBytes[passwordConst]
+		secretMap[usernameConst] = []byte(fmt.Sprintf("%v", secMap[usernameConst]))
+		secretMap[passwordConst] = []byte(fmt.Sprintf("%v", secMap[passwordConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_IamCredentials:
-		secretMap[apikeyConst] = secMapBytes[smAPIKeyConst]
+		secretMap[apikeyConst] = []byte(fmt.Sprintf("%v", secMap[smAPIKeyConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_ImportedCert:
-		secretMap[certificateConst] = secMapBytes[certificateConst]
-		secretMap[intermediateConst] = secMapBytes[intermediateConst]
-		if v, ok := secMapBytes[privateKeyConst]; ok {
-			secretMap[privateKeyConst] = v
-		} else {
-			fmt.Printf("warn: %s is empty for secret %s\n", privateKeyConst, secretName)
-			secretMap[privateKeyConst] = []byte("")
-		}
+		secretMap[certificateConst] = []byte(fmt.Sprintf("%v", secMap[certificateConst]))
+		secretMap[intermediateConst] = []byte(fmt.Sprintf("%v", secMap[intermediateConst]))
+		secretMap[privateKeyConst] = []byte(fmt.Sprintf("%v", secMap[privateKeyConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_PublicCert:
-		secretMap[certificateConst] = secMapBytes[certificateConst]
-		secretMap[intermediateConst] = secMapBytes[intermediateConst]
-		secretMap[privateKeyConst] = secMapBytes[privateKeyConst]
+		secretMap[certificateConst] = []byte(fmt.Sprintf("%v", secMap[certificateConst]))
+		secretMap[intermediateConst] = []byte(fmt.Sprintf("%v", secMap[intermediateConst]))
+		secretMap[privateKeyConst] = []byte(fmt.Sprintf("%v", secMap[privateKeyConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_PrivateCert:
-		secretMap[certificateConst] = secMapBytes[certificateConst]
-		secretMap[privateKeyConst] = secMapBytes[privateKeyConst]
+		secretMap[certificateConst] = []byte(fmt.Sprintf("%v", secMap[certificateConst]))
+		secretMap[privateKeyConst] = []byte(fmt.Sprintf("%v", secMap[privateKeyConst]))
 		return secretMap, nil
 
 	case sm.Secret_SecretType_Kv:
