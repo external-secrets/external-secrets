@@ -237,6 +237,20 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = secretString
 	}
 
+	// bad case: arbitrary type secret which is destroyed
+	badArbitSecret := func(smtc *secretManagerTestCase) {
+		secret := &sm.UsernamePasswordSecret{
+			SecretType: utilpointer.To(sm.Secret_SecretType_UsernamePassword),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+		}
+		smtc.name = "bad case: username_password type without property"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretUUID
+		smtc.expectError = "key payload does not exist in secret " + secretUUID
+	}
+
 	// bad case: username_password type without property
 	secretUserPass := "username_password/" + secretUUID
 	badSecretUserPass := func(smtc *secretManagerTestCase) {
@@ -493,6 +507,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(setSecretString),
 		makeValidSecretManagerTestCaseCustom(setCustomKey),
+		makeValidSecretManagerTestCaseCustom(badArbitSecret),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(badSecretUserPass),
@@ -599,6 +614,20 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = iamCredentialsSecret + secretUUID
 		smtc.expectedData["apikey"] = []byte(secretAPIKey)
+	}
+
+	// bad case: iam_credentials of a destroyed secret
+	badSecretIam := func(smtc *secretManagerTestCase) {
+		secret := &sm.IAMCredentialsSecret{
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+		}
+		smtc.name = "good case: iam_credentials"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = iamCredentialsSecret + secretUUID
+		smtc.expectError = "key api_key does not exist in secret " + secretUUID
 	}
 
 	funcCertTest := func(secret sm.SecretIntf, name, certType string) func(*secretManagerTestCase) {
@@ -1020,6 +1049,7 @@ func TestGetSecretMap(t *testing.T) {
 	}
 
 	successCases := []*secretManagerTestCase{
+		makeValidSecretManagerTestCaseCustom(badSecretIam),
 		makeValidSecretManagerTestCaseCustom(setArbitrary),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
