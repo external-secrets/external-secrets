@@ -460,14 +460,21 @@
       
         <li class="md-nav__item">
   <a href="#can-i-manually-trigger-a-secret-refresh" class="md-nav__link">
-    Can i manually trigger a secret refresh?
+    Can I manually trigger a secret refresh?
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#how-do-i-know-when-my-secret-was-last-synced" class="md-nav__link">
-    How do i know when my secret was last synced?
+    How do I know when my secret was last synced?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-know-when-the-status-of-my-secret-changed-the-last-time" class="md-nav__link">
+    How do I know when the status of my secret changed the last time?
   </a>
   
 </li>
@@ -481,7 +488,7 @@
       
         <li class="md-nav__item">
   <a href="#how-do-i-debug-an-external-secret-that-doesnt-sync" class="md-nav__link">
-    How do i debug an external-secret that doesn't sync?
+    How do I debug an external-secret that doesn't sync?
   </a>
   
 </li>
@@ -2161,14 +2168,21 @@
       
         <li class="md-nav__item">
   <a href="#can-i-manually-trigger-a-secret-refresh" class="md-nav__link">
-    Can i manually trigger a secret refresh?
+    Can I manually trigger a secret refresh?
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#how-do-i-know-when-my-secret-was-last-synced" class="md-nav__link">
-    How do i know when my secret was last synced?
+    How do I know when my secret was last synced?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-know-when-the-status-of-my-secret-changed-the-last-time" class="md-nav__link">
+    How do I know when the status of my secret changed the last time?
   </a>
   
 </li>
@@ -2182,7 +2196,7 @@
       
         <li class="md-nav__item">
   <a href="#how-do-i-debug-an-external-secret-that-doesnt-sync" class="md-nav__link">
-    How do i debug an external-secret that doesn't sync?
+    How do I debug an external-secret that doesn't sync?
   </a>
   
 </li>
@@ -2214,13 +2228,19 @@
 
   <h1>FAQ</h1>
 
-<h2 id="can-i-manually-trigger-a-secret-refresh">Can i manually trigger a secret refresh?</h2>
+<h2 id="can-i-manually-trigger-a-secret-refresh">Can I manually trigger a secret refresh?</h2>
 <p>You can trigger a secret refresh by using kubectl or any other kubernetes api client.
 You just need to change an annotation, label or the spec of the resource:</p>
 <div class="highlight"><pre><span></span><code>kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 </code></pre></div>
-<h2 id="how-do-i-know-when-my-secret-was-last-synced">How do i know when my secret was last synced?</h2>
-<p>Every ExternalSecret resource contains a status condition that indicates the time when the secret was last synced:</p>
+<h2 id="how-do-i-know-when-my-secret-was-last-synced">How do I know when my secret was last synced?</h2>
+<p>The last synchronization timestamp of an ExternalSecret can be retrieved from the field <code>refreshTime</code>. </p>
+<div class="highlight"><pre><span></span><code>kubectl get es my-external-secret -o yaml | grep refreshTime
+  refreshTime: &quot;2022-05-21T23:02:47Z&quot;
+</code></pre></div>
+<p>The interval can be changed by the <code>spec.refreshInterval</code> in the ExternalSecret.</p>
+<h2 id="how-do-i-know-when-the-status-of-my-secret-changed-the-last-time">How do I know when the status of my secret changed the last time?</h2>
+<p>Every ExternalSecret resource contains a status condition that indicates whether a secret was successfully synchronized, along with the timestamp of the last status change of the ExternalSecret (e.g. from SecretSyncedError to SecretSynced). This can be obtained from the field <code>lastTransitionTime</code>:</p>
 <div class="highlight"><pre><span></span><code>kubectl get es my-external-secret -o yaml | grep condition -A 5
   conditions:
   - lastTransitionTime: &quot;2022-05-21T21:02:47Z&quot;
@@ -2231,7 +2251,7 @@ You just need to change an annotation, label or the spec of the resource:</p>
 </code></pre></div>
 <h2 id="differences-to-csi-secret-store">Differences to csi-secret-store</h2>
 <p>Please take a look at this <a href="https://github.com/external-secrets/external-secrets/issues/478#issuecomment-964413129">issue comment here</a>.</p>
-<h2 id="how-do-i-debug-an-external-secret-that-doesnt-sync">How do i debug an external-secret that doesn't sync?</h2>
+<h2 id="how-do-i-debug-an-external-secret-that-doesnt-sync">How do I debug an external-secret that doesn't sync?</h2>
 <p>First, check the status of the ExternalSecret resource using <code>kubectl describe</code>. That displays the status conditions as well as recent events.
 You should expect a status condition with <code>Type=Ready</code>, <code>Status=True</code>. Further you shouldn't see any events with <code>Type=Warning</code>. Read carefully if they exist.</p>
 <div class="highlight"><pre><span></span><code>kubectl describe es my-external-secret
