@@ -210,12 +210,14 @@ func getArbitrarySecret(ibm *providerIBM, secretName *string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	secret, ok := response.(*sm.ArbitrarySecret)
-	if !ok {
-		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_Arbitrary, "getArbitrarySecret")
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
 	}
-
-	return []byte(*secret.Payload), nil
+	if val, ok := secMap[payloadConst]; ok {
+		return []byte(val.(string)), nil
+	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", payloadConst, *secretName)
 }
 
 func getImportCertSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -274,11 +276,14 @@ func getIamCredentialsSecret(ibm *providerIBM, secretName *string) ([]byte, erro
 	if err != nil {
 		return nil, err
 	}
-	secret, ok := response.(*sm.IAMCredentialsSecret)
-	if !ok {
-		return nil, fmt.Errorf(errExtractingSecret, *secretName, sm.Secret_SecretType_IamCredentials, "getIamCredentialsSecret")
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
 	}
-	return []byte(*secret.ApiKey), nil
+	if val, ok := secMap[smAPIKeyConst]; ok {
+		return []byte(val.(string)), nil
+	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", smAPIKeyConst, *secretName)
 }
 
 func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -439,21 +444,42 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	}
 	secMapBytes = populateSecretMap(secMapBytes, secMap)
 
+	checkNilFn := func(propertyList []string) error {
+		for _, prop := range propertyList {
+			if _, ok := secMap[prop]; !ok {
+				return fmt.Errorf("key %s does not exist in secret %s", prop, secretName)
+			}
+		}
+		return nil
+	}
+
 	switch secretType {
 	case sm.Secret_SecretType_Arbitrary:
+		if err := checkNilFn([]string{payloadConst}); err != nil {
+			return nil, err
+		}
 		secretMap[arbitraryConst] = secMapBytes[payloadConst]
 		return secretMap, nil
 
 	case sm.Secret_SecretType_UsernamePassword:
+		if err := checkNilFn([]string{usernameConst, passwordConst}); err != nil {
+			return nil, err
+		}
 		secretMap[usernameConst] = secMapBytes[usernameConst]
 		secretMap[passwordConst] = secMapBytes[passwordConst]
 		return secretMap, nil
 
 	case sm.Secret_SecretType_IamCredentials:
+		if err := checkNilFn([]string{smAPIKeyConst}); err != nil {
+			return nil, err
+		}
 		secretMap[apikeyConst] = secMapBytes[smAPIKeyConst]
 		return secretMap, nil
 
 	case sm.Secret_SecretType_ImportedCert:
+		if err := checkNilFn([]string{certificateConst, intermediateConst}); err != nil {
+			return nil, err
+		}
 		secretMap[certificateConst] = secMapBytes[certificateConst]
 		secretMap[intermediateConst] = secMapBytes[intermediateConst]
 		if v, ok := secMapBytes[privateKeyConst]; ok {
@@ -465,12 +491,18 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		return secretMap, nil
 
 	case sm.Secret_SecretType_PublicCert:
+		if err := checkNilFn([]string{certificateConst, intermediateConst, privateKeyConst}); err != nil {
+			return nil, err
+		}
 		secretMap[certificateConst] = secMapBytes[certificateConst]
 		secretMap[intermediateConst] = secMapBytes[intermediateConst]
 		secretMap[privateKeyConst] = secMapBytes[privateKeyConst]
 		return secretMap, nil
 
 	case sm.Secret_SecretType_PrivateCert:
+		if err := checkNilFn([]string{certificateConst, privateKeyConst}); err != nil {
+			return nil, err
+		}
 		secretMap[certificateConst] = secMapBytes[certificateConst]
 		secretMap[privateKeyConst] = secMapBytes[privateKeyConst]
 		return secretMap, nil
