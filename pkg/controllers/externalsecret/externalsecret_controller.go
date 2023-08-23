@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -275,7 +276,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return fmt.Errorf(errApplyTemplate, err)
 		}
 		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
-			secret.Labels[esv1beta1.LabelOwner] = fmt.Sprintf("%v_%v", externalSecret.Namespace, externalSecret.Name)
+			lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
+			secret.Labels[esv1beta1.LabelOwner] = lblValue
 		}
 
 		return nil
@@ -338,10 +340,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret *esv1beta1.ExternalSecret) error {
 	secretList := v1.SecretList{}
-	label := fmt.Sprintf("%v_%v", externalSecret.ObjectMeta.Namespace, externalSecret.ObjectMeta.Name)
+	lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
 	ls := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			esv1beta1.LabelOwner: label,
+			esv1beta1.LabelOwner: lblValue,
 		},
 	}
 	labelSelector, err := metav1.LabelSelectorAsSelector(ls)
@@ -603,6 +605,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1beta1.ExternalSecret{}).
-		Owns(&v1.Secret{}).
+		Owns(&v1.Secret{}, builder.OnlyMetadata).
 		Complete(r)
 }
