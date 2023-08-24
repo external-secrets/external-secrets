@@ -127,7 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, errGetES)
 		syncCallsError.With(resourceLabels).Inc()
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	// if extended metrics is enabled, refine the time series vector
@@ -164,6 +164,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, &existingSecret)
 	if err != nil && !apierrors.IsNotFound(err) {
 		log.Error(err, errGetExistingSecret)
+		return ctrl.Result{}, err
 	}
 
 	// refresh should be skipped if
