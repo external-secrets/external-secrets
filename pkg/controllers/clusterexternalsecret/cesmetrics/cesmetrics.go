@@ -110,3 +110,15 @@ func UpdateClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, 
 			}))
 	}
 }
+
+// RemoveMetrics deletes all metrics published by the resource.
+func RemoveMetrics(namespace, name string) {
+	for _, gaugeVecMetric := range gaugeVecMetrics {
+		gaugeVecMetric.DeletePartialMatch(
+			map[string]string{
+				"namespace": namespace,
+				"name":      name,
+			},
+		)
+	}
+}
