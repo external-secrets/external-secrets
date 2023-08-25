@@ -166,6 +166,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 					Spec: created.Spec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName:    created.Name,
 						ProvisionedNamespaces: []string{namespaces[0].Name},
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
@@ -209,6 +210,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 					Spec: created.Spec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName:    "test-es",
 						ProvisionedNamespaces: []string{namespaces[0].Name},
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
@@ -227,6 +229,61 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 							Name:        "test-es",
 							Labels:      map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"},
 							Annotations: map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"},
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}),
+		Entry("Should delete old external secrets if name has changed", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelector.MatchLabels = map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name}
+				ces.Spec.ExternalSecretName = "old-es-name"
+				return *ces
+			},
+			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) {
+				// Wait until the external secret is provisioned
+				var es esv1beta1.ExternalSecret
+				Eventually(func(g Gomega) {
+					key := types.NamespacedName{Namespace: namespaces[0].Name, Name: "old-es-name"}
+					g.Expect(k8sClient.Get(ctx, key, &es)).ShouldNot(HaveOccurred())
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+				copied := created.DeepCopy()
+				copied.Spec.ExternalSecretName = "new-es-name"
+				Expect(k8sClient.Patch(ctx, copied, crclient.MergeFrom(created.DeepCopy()))).ShouldNot(HaveOccurred())
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				updatedSpec := created.Spec.DeepCopy()
+				updatedSpec.ExternalSecretName = "new-es-name"
+
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: *updatedSpec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName:    "new-es-name",
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespaces[0].Name,
+							Name:      "new-es-name",
 						},
 						Spec: created.Spec.ExternalSecretSpec,
 					},
@@ -275,6 +332,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 					Spec: *updatedSpec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName:    created.Name,
 						ProvisionedNamespaces: []string{namespaces[0].Name},
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
@@ -327,6 +385,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 					Spec: created.Spec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName: created.Name,
 						FailedNamespaces: []esv1beta1.ClusterExternalSecretNamespaceFailure{
 							{
 								Namespace: namespaces[0].Name,
@@ -401,6 +460,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 					Spec: created.Spec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName:    created.Name,
 						ProvisionedNamespaces: []string{namespaces[0].Name},
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
@@ -470,6 +530,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 					Spec: created.Spec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName: created.Name,
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
 								Type:   esv1beta1.ClusterExternalSecretReady,
@@ -525,6 +586,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 					Spec: created.Spec,
 					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName:    created.Name,
 						ProvisionedNamespaces: provisionedNamespaces,
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{

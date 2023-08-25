@@ -107,6 +107,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
 
+	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != esName {
+		// ExternalSecretName has changed, so remove the old ones
+		for _, ns := range clusterExternalSecret.Status.ProvisionedNamespaces {
+			if err := r.deleteExternalSecret(ctx, prevName, clusterExternalSecret.Name, ns); err != nil {
+				log.Error(err, "could not delete ExternalSecret")
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	clusterExternalSecret.Status.ExternalSecretName = esName
+
 	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, namespaceList, esName, clusterExternalSecret.Name, clusterExternalSecret.Status.ProvisionedNamespaces)
 
 	provisionedNamespaces := []string{}
