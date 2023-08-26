@@ -394,8 +394,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 						},
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
-								Type:    esv1beta1.ClusterExternalSecretNotReady,
-								Status:  v1.ConditionTrue,
+								Type:    esv1beta1.ClusterExternalSecretReady,
+								Status:  v1.ConditionFalse,
 								Message: "one or more namespaces failed",
 							},
 						},
@@ -463,11 +463,6 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 						ExternalSecretName:    created.Name,
 						ProvisionedNamespaces: []string{namespaces[0].Name},
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
-							{
-								Type:    esv1beta1.ClusterExternalSecretNotReady,
-								Status:  v1.ConditionTrue,
-								Message: "one or more namespaces failed",
-							},
 							{
 								Type:   esv1beta1.ClusterExternalSecretReady,
 								Status: v1.ConditionTrue,
@@ -646,8 +641,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 						ExternalSecretName: created.Name,
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
-								Type:    esv1beta1.ClusterExternalSecretNotReady,
-								Status:  v1.ConditionTrue,
+								Type:    esv1beta1.ClusterExternalSecretReady,
+								Status:  v1.ConditionFalse,
 								Message: errNamespaceNotFound,
 							},
 						},

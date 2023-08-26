@@ -50,11 +50,7 @@ type ExternalSecretMetadata struct {
 
 type ClusterExternalSecretConditionType string
 
-const (
-	ClusterExternalSecretReady          ClusterExternalSecretConditionType = "Ready"
-	ClusterExternalSecretPartiallyReady ClusterExternalSecretConditionType = "PartiallyReady"
-	ClusterExternalSecretNotReady       ClusterExternalSecretConditionType = "NotReady"
-)
+const ClusterExternalSecretReady ClusterExternalSecretConditionType = "Ready"
 
 type ClusterExternalSecretStatusCondition struct {
 	Type   ClusterExternalSecretConditionType `json:"type"`

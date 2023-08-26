@@ -22,31 +22,23 @@ import (
 )
 
 func NewClusterExternalSecretCondition(failedNamespaces map[string]error, namespaceList *v1.NamespaceList) *esv1beta1.ClusterExternalSecretStatusCondition {
-	switch {
-	case len(namespaceList.Items) == 0:
-		return &esv1beta1.ClusterExternalSecretStatusCondition{
-			Type:    esv1beta1.ClusterExternalSecretNotReady,
-			Status:  v1.ConditionTrue,
-			Message: errNamespaceNotFound,
-		}
-	case len(failedNamespaces) == 0:
+	if len(namespaceList.Items) > 0 && len(failedNamespaces) == 0 {
 		return &esv1beta1.ClusterExternalSecretStatusCondition{
 			Type:   esv1beta1.ClusterExternalSecretReady,
 			Status: v1.ConditionTrue,
 		}
-	case len(failedNamespaces) < len(namespaceList.Items):
-		return &esv1beta1.ClusterExternalSecretStatusCondition{
-			Type:    esv1beta1.ClusterExternalSecretPartiallyReady,
-			Status:  v1.ConditionTrue,
-			Message: errNamespacesFailed,
-		}
 	}
 
-	return &esv1beta1.ClusterExternalSecretStatusCondition{
-		Type:    esv1beta1.ClusterExternalSecretNotReady,
-		Status:  v1.ConditionTrue,
+	condition := &esv1beta1.ClusterExternalSecretStatusCondition{
+		Type:    esv1beta1.ClusterExternalSecretReady,
+		Status:  v1.ConditionFalse,
 		Message: errNamespacesFailed,
 	}
+	if len(failedNamespaces) == 0 {
+		condition.Message = errNamespaceNotFound
+	}
+
+	return condition
 }
 
 func SetClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, condition esv1beta1.ClusterExternalSecretStatusCondition) {
