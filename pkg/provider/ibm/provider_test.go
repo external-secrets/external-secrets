@@ -237,6 +237,20 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = secretString
 	}
 
+	// bad case: arbitrary type secret which is destroyed
+	badArbitSecret := func(smtc *secretManagerTestCase) {
+		secret := &sm.UsernamePasswordSecret{
+			SecretType: utilpointer.To(sm.Secret_SecretType_UsernamePassword),
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+		}
+		smtc.name = "bad case: username_password type without property"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretUUID
+		smtc.expectError = "key payload does not exist in secret " + secretUUID
+	}
+
 	// bad case: username_password type without property
 	secretUserPass := "username_password/" + secretUUID
 	badSecretUserPass := func(smtc *secretManagerTestCase) {
@@ -339,6 +353,22 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		PrivateKey:   utilpointer.To("private_key"),
 	}
 	setSecretCert := funcSetCertSecretTest(importedCert, "good case: imported_cert type with property", sm.Secret_SecretType_ImportedCert, true)
+
+	// good case: imported_cert type without a private_key
+	importedCertNoPvtKey := func(smtc *secretManagerTestCase) {
+		secret := &sm.ImportedCertificate{
+			SecretType:  utilpointer.To(sm.Secret_SecretType_ImportedCert),
+			Name:        utilpointer.To("testyname"),
+			ID:          utilpointer.To(secretUUID),
+			Certificate: utilpointer.To(secretCertificate),
+		}
+		smtc.name = "good case: imported cert without private key"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = "imported_cert/" + secretUUID
+		smtc.ref.Property = "private_key"
+		smtc.expectedSecret = ""
+	}
 
 	// bad case: imported_cert type without property
 	badSecretCert := funcSetCertSecretTest(importedCert, "bad case: imported_cert type without property", sm.Secret_SecretType_ImportedCert, false)
@@ -477,6 +507,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(setSecretString),
 		makeValidSecretManagerTestCaseCustom(setCustomKey),
+		makeValidSecretManagerTestCaseCustom(badArbitSecret),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(badSecretUserPass),
@@ -493,6 +524,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretKVWithOutKey),
 		makeValidSecretManagerTestCaseCustom(badSecretKV),
 		makeValidSecretManagerTestCaseCustom(badSecretCert),
+		makeValidSecretManagerTestCaseCustom(importedCertNoPvtKey),
 		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
 		makeValidSecretManagerTestCaseCustom(badSecretPublicCert),
 		makeValidSecretManagerTestCaseCustom(setSecretPrivateCert),
@@ -500,16 +532,16 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	}
 
 	sm := providerIBM{}
-	for k, v := range successCases {
+	for _, v := range successCases {
 		t.Run(v.name, func(t *testing.T) {
 			sm.IBMClient = v.mockClient
 			sm.cache = NewCache(10, 1*time.Minute)
 			out, err := sm.GetSecret(context.Background(), *v.ref)
 			if !ErrorContains(err, v.expectError) {
-				t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+				t.Errorf("unexpected error:\n%s, expected:\n'%s'", err.Error(), v.expectError)
 			}
 			if string(out) != v.expectedSecret {
-				t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
+				t.Errorf("unexpected secret: expected:\n%s\ngot:\n%s", v.expectedSecret, string(out))
 			}
 		})
 	}
@@ -582,6 +614,20 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = iamCredentialsSecret + secretUUID
 		smtc.expectedData["apikey"] = []byte(secretAPIKey)
+	}
+
+	// bad case: iam_credentials of a destroyed secret
+	badSecretIam := func(smtc *secretManagerTestCase) {
+		secret := &sm.IAMCredentialsSecret{
+			Name:       utilpointer.To("testyname"),
+			ID:         utilpointer.To(secretUUID),
+			SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+		}
+		smtc.name = "good case: iam_credentials"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = iamCredentialsSecret + secretUUID
+		smtc.expectError = "key api_key does not exist in secret " + secretUUID
 	}
 
 	funcCertTest := func(secret sm.SecretIntf, name, certType string) func(*secretManagerTestCase) {
@@ -776,6 +822,29 @@ func TestGetSecretMap(t *testing.T) {
 			"updated_at":            []byte(nilValue),
 			"validity":              []byte(nilValue),
 			"versions_total":        []byte(nilValue),
+		}
+	}
+
+	// good case: imported_cert without a private_key
+	setimportedCertWithNoPvtKey := func(smtc *secretManagerTestCase) {
+		secret := &sm.ImportedCertificate{
+			CreatedBy:    utilpointer.To("testCreatedBy"),
+			CreatedAt:    &strfmt.DateTime{},
+			Downloaded:   utilpointer.To(false),
+			Labels:       []string{"abc", "def", "xyz"},
+			LocksTotal:   utilpointer.To(int64(20)),
+			Certificate:  utilpointer.To(secretCertificate),
+			Intermediate: utilpointer.To(secretIntermediate),
+		}
+		smtc.name = "good case: imported_cert without private key"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = "imported_cert/" + secretUUID
+
+		smtc.expectedData = map[string][]byte{
+			"certificate":  []byte(secretCertificate),
+			"intermediate": []byte(secretIntermediate),
+			"private_key":  []byte(""),
 		}
 	}
 
@@ -980,6 +1049,7 @@ func TestGetSecretMap(t *testing.T) {
 	}
 
 	successCases := []*secretManagerTestCase{
+		makeValidSecretManagerTestCaseCustom(badSecretIam),
 		makeValidSecretManagerTestCaseCustom(setArbitrary),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
@@ -992,6 +1062,7 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badSecretKVWithUnknownProperty),
 		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
 		makeValidSecretManagerTestCaseCustom(setSecretPrivateCert),
+		makeValidSecretManagerTestCaseCustom(setimportedCertWithNoPvtKey),
 		makeValidSecretManagerTestCaseCustom(setSecretIamWithMetadata),
 		makeValidSecretManagerTestCaseCustom(setArbitraryWithMetadata),
 		makeValidSecretManagerTestCaseCustom(setSecretUserPassWithMetadata),
@@ -1003,15 +1074,15 @@ func TestGetSecretMap(t *testing.T) {
 	}
 
 	sm := providerIBM{}
-	for k, v := range successCases {
+	for _, v := range successCases {
 		t.Run(v.name, func(t *testing.T) {
 			sm.IBMClient = v.mockClient
 			out, err := sm.GetSecretMap(context.Background(), *v.ref)
 			if !ErrorContains(err, v.expectError) {
-				t.Errorf(" unexpected error: %s, expected: '%s'", err.Error(), v.expectError)
+				t.Errorf("unexpected error: %s, expected: '%s'", err.Error(), v.expectError)
 			}
 			if err == nil && !reflect.DeepEqual(out, v.expectedData) {
-				t.Errorf("[%d] unexpected secret data: expected %+v, got %v", k, v.expectedData, out)
+				t.Errorf("unexpected secret data: expected:\n%+v\ngot:\n%+v", v.expectedData, out)
 			}
 		})
 	}
