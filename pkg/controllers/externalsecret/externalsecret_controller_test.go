@@ -58,8 +58,9 @@ var (
 )
 
 type testCase struct {
-	secretStore    esv1beta1.GenericStore
-	externalSecret *esv1beta1.ExternalSecret
+	secretStore      esv1beta1.GenericStore
+	externalSecret   *esv1beta1.ExternalSecret
+	targetSecretName string
 
 	// checkCondition should return true if the externalSecret
 	// has the expected condition
@@ -217,6 +218,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	makeDefaultTestcase := func() *testCase {
 		return &testCase{
 			// default condition: es should be ready
+			targetSecretName: ExternalSecretTargetSecretName,
 			checkCondition: func(es *esv1beta1.ExternalSecret) bool {
 				cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
 				if cond == nil || cond.Status != v1.ConditionTrue {
@@ -277,7 +279,15 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(es.Status.Binding.Name).To(Equal(secret.ObjectMeta.Name))
 		}
 	}
-
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	syncBigNames := func(tc *testCase) {
+		tc.targetSecretName = "this-is-a-very-big-secret-name-that-wouldnt-be-generated-due-to-label-limits"
+		tc.externalSecret.Spec.Target.Name = "this-is-a-very-big-secret-name-that-wouldnt-be-generated-due-to-label-limits"
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check binding secret on external secret
+			Expect(es.Status.Binding.Name).To(Equal(tc.externalSecret.Spec.Target.Name))
+		}
+	}
 	// the secret name is reflected on the external secret's status as the binding secret
 	syncBindingSecret := func(tc *testCase) {
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
@@ -375,7 +385,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(ctest.HasFieldOwnership(
 				secret.ObjectMeta,
 				ExternalSecretFQDN,
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}},\"f:labels\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash, esv1beta1.LabelOwner)),
+				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
 			).To(BeTrue())
 			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
 		}
@@ -476,7 +486,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(ctest.HasFieldOwnership(
 				secret.ObjectMeta,
 				ExternalSecretFQDN,
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}},\"f:labels\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash, esv1beta1.LabelOwner)),
+				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
 			).To(BeTrue())
 		}
 	}
@@ -2041,7 +2051,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			if tc.checkSecret != nil {
 				syncedSecret := &v1.Secret{}
 				secretLookupKey := types.NamespacedName{
-					Name:      ExternalSecretTargetSecretName,
+					Name:      tc.targetSecretName,
 					Namespace: ExternalSecretNamespace,
 				}
 				if createdES.Spec.Target.Name == "" {
@@ -2062,6 +2072,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("es deletes orphaned secrets", deleteOrphanedSecrets),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
 		Entry("should use external secret name if target secret name isn't defined", syncWithoutTargetName),
+		Entry("should sync to target secrets with naming bigger than 63 characters", syncBigNames),
 		Entry("should expose the secret as a provisioned service binding secret", syncBindingSecret),
 		Entry("should not expose a provisioned service when no secret is synced", skipBindingSecret),
 		Entry("should set the condition eventually", syncLabelsAnnotations),

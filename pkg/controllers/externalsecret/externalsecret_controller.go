@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -126,7 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, errGetES)
 		syncCallsError.With(resourceLabels).Inc()
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	// if extended metrics is enabled, refine the time series vector
@@ -163,6 +164,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, &existingSecret)
 	if err != nil && !apierrors.IsNotFound(err) {
 		log.Error(err, errGetExistingSecret)
+		return ctrl.Result{}, err
 	}
 
 	// refresh should be skipped if
@@ -274,6 +276,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			return fmt.Errorf(errApplyTemplate, err)
 		}
+		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
+			lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
+			secret.Labels[esv1beta1.LabelOwner] = lblValue
+		}
 
 		return nil
 	}
@@ -335,10 +341,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret *esv1beta1.ExternalSecret) error {
 	secretList := v1.SecretList{}
-	label := fmt.Sprintf("%v_%v", externalSecret.ObjectMeta.Namespace, externalSecret.ObjectMeta.Name)
+	lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
 	ls := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			esv1beta1.LabelOwner: label,
+			esv1beta1.LabelOwner: lblValue,
 		},
 	}
 	labelSelector, err := metav1.LabelSelectorAsSelector(ls)
@@ -350,7 +356,7 @@ func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret
 		return err
 	}
 	for key, secret := range secretList.Items {
-		if secret.Name != externalSecret.Spec.Target.Name {
+		if externalSecret.Spec.Target.Name != "" && secret.Name != externalSecret.Spec.Target.Name {
 			err = cl.Delete(ctx, &secretList.Items[key])
 			if err != nil {
 				return err
@@ -600,6 +606,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1beta1.ExternalSecret{}).
-		Owns(&v1.Secret{}).
+		Owns(&v1.Secret{}, builder.OnlyMetadata).
 		Complete(r)
 }

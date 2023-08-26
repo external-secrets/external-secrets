@@ -55,6 +55,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	var ss esapi.SecretStore
 	err := r.Get(ctx, req.NamespacedName, &ss)
 	if apierrors.IsNotFound(err) {
+		ssmetrics.RemoveMetrics(req.Namespace, req.Name)
 		return ctrl.Result{}, nil
 	} else if err != nil {
 		log.Error(err, "unable to get SecretStore")

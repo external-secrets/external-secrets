@@ -1,4 +1,4 @@
-## Can i manually trigger a secret refresh?
+## Can I manually trigger a secret refresh?
 
 You can trigger a secret refresh by using kubectl or any other kubernetes api client.
 You just need to change an annotation, label or the spec of the resource:
@@ -7,9 +7,21 @@ You just need to change an annotation, label or the spec of the resource:
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ```
 
-## How do i know when my secret was last synced?
+## How do I know when my secret was last synced?
 
-Every ExternalSecret resource contains a status condition that indicates the time when the secret was last synced:
+
+The last synchronization timestamp of an ExternalSecret can be retrieved from the field `refreshTime`. 
+
+```
+kubectl get es my-external-secret -o yaml | grep refreshTime
+  refreshTime: "2022-05-21T23:02:47Z"
+```
+
+The interval can be changed by the `spec.refreshInterval` in the ExternalSecret.
+
+## How do I know when the status of my secret changed the last time?
+
+Every ExternalSecret resource contains a status condition that indicates whether a secret was successfully synchronized, along with the timestamp of the last status change of the ExternalSecret (e.g. from SecretSyncedError to SecretSynced). This can be obtained from the field `lastTransitionTime`:
 
 ```
 kubectl get es my-external-secret -o yaml | grep condition -A 5
@@ -24,7 +36,7 @@ kubectl get es my-external-secret -o yaml | grep condition -A 5
 ## Differences to csi-secret-store
 Please take a look at this [issue comment here](https://github.com/external-secrets/external-secrets/issues/478#issuecomment-964413129).
 
-## How do i debug an external-secret that doesn't sync?
+## How do I debug an external-secret that doesn't sync?
 
 First, check the status of the ExternalSecret resource using `kubectl describe`. That displays the status conditions as well as recent events.
 You should expect a status condition with `Type=Ready`, `Status=True`. Further you shouldn't see any events with `Type=Warning`. Read carefully if they exist.
