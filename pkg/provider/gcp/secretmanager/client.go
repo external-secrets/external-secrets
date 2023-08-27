@@ -14,7 +14,6 @@ limitations under the License.
 package secretmanager
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -27,11 +26,11 @@ import (
 	"github.com/googleapis/gax-go/v2"
 	"github.com/googleapis/gax-go/v2/apierror"
 	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 	"google.golang.org/api/iterator"
 	"google.golang.org/genproto/protobuf/field_mask"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -67,9 +66,6 @@ const (
 
 	managedByKey   = "managed-by"
 	managedByValue = "external-secrets"
-
-	annotationsMetadataType = "annotations"
-	labelsMetadataType      = "labels"
 )
 
 type Client struct {
@@ -130,7 +126,7 @@ func parseError(err error) error {
 }
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
-func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata map[string]map[string]string, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
@@ -161,36 +157,17 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata map[st
 		}
 	}
 
-	annotations := map[string]string{}
-	labels := map[string]string{}
-	if remoteRef.GetProperty() == "" {
-		if manager, ok := gcpSecret.Labels[managedByKey]; !ok || manager != managedByValue {
-			return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
-		}
-
-		for metadataType, m := range metadata {
-			switch metadataType {
-			case annotationsMetadataType:
-				annotations = m
-			case labelsMetadataType:
-				labels = m
-			default:
-				return fmt.Errorf("invalid PushSecretMetadataType: %s", metadataType)
-			}
-		}
-	} else {
-		// If the property is set, we just take over the ownership
-		if gcpSecret.Labels != nil {
-			labels = gcpSecret.Labels
-		}
-		if gcpSecret.Annotations != nil {
-			annotations = gcpSecret.Annotations
-		}
+	builder, err := newPushSecretBuilder(payload, metadata, remoteRef)
+	if err != nil {
+		return err
 	}
 
-	labels[managedByKey] = managedByValue
+	annotations, labels, err := builder.buildMetadata(gcpSecret.Annotations, gcpSecret.Labels)
+	if err != nil {
+		return err
+	}
 
-	if !metadataEqual(gcpSecret.Labels, labels) || !metadataEqual(gcpSecret.Annotations, annotations) {
+	if !mapEqual(gcpSecret.Annotations, annotations) || !mapEqual(gcpSecret.Labels, labels) {
 		_, err = c.smClient.UpdateSecret(ctx, &secretmanagerpb.UpdateSecretRequest{
 			Secret: &secretmanagerpb.Secret{
 				Name:        gcpSecret.Name,
@@ -216,30 +193,18 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata map[st
 		return err
 	}
 
-	if gcpVersion != nil && gcpVersion.Payload != nil {
-		if remoteRef.GetProperty() == "" && bytes.Equal(payload, gcpVersion.Payload.Data) {
-			return nil
-		}
-
-		if remoteRef.GetProperty() != "" {
-			val := getDataByProperty(gcpVersion, remoteRef.GetProperty())
-			if val.Exists() && val.String() == string(payload) {
-				return nil
-			}
-		}
+	if gcpVersion != nil && gcpVersion.Payload != nil && !builder.needUpdate(gcpVersion.Payload.Data) {
+		return nil
 	}
 
-	data := payload
-	if remoteRef.GetProperty() != "" {
-		var base []byte
-		if gcpVersion != nil && gcpVersion.Payload != nil {
-			base = gcpVersion.Payload.Data
-		}
+	var original []byte
+	if gcpVersion != nil && gcpVersion.Payload != nil {
+		original = gcpVersion.Payload.Data
+	}
 
-		data, err = sjson.SetBytes(base, remoteRef.GetProperty(), payload)
-		if err != nil {
-			return err
-		}
+	data, err := builder.buildData(original)
+	if err != nil {
+		return err
 	}
 
 	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
@@ -412,7 +377,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
-	val := getDataByProperty(result, ref.Property)
+	val := getDataByProperty(result.Payload.Data, ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
@@ -546,10 +511,10 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func getDataByProperty(resp *secretmanagerpb.AccessSecretVersionResponse, property string) gjson.Result {
+func getDataByProperty(data []byte, property string) gjson.Result {
 	var payload string
-	if resp.Payload.Data != nil {
-		payload = string(resp.Payload.Data)
+	if data != nil {
+		payload = string(data)
 	}
 	idx := strings.Index(property, ".")
 	refProperty := property
@@ -563,7 +528,7 @@ func getDataByProperty(resp *secretmanagerpb.AccessSecretVersionResponse, proper
 	return gjson.Get(payload, property)
 }
 
-func metadataEqual(m1, m2 map[string]string) bool {
+func mapEqual(m1, m2 map[string]string) bool {
 	if len(m1) != len(m2) {
 		return false
 	}

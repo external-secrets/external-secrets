@@ -25,6 +25,7 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/xanzy/go-gitlab"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -112,7 +113,7 @@ func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) 
 	return fmt.Errorf("not implemented")
 }
 
-func (g *gitlabBase) PushSecret(_ context.Context, _ []byte, _ map[string]map[string]string, _ esv1beta1.PushRemoteRef) error {
+func (g *gitlabBase) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

@@ -25,6 +25,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v56/secrets"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -74,7 +75,7 @@ type KmsVCInterface interface {
 }
 
 // Not Implemented PushSecret.
-func (vms *VaultManagementService) PushSecret(_ context.Context, _ []byte, _ map[string]map[string]string, _ esv1beta1.PushRemoteRef) error {
+func (vms *VaultManagementService) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

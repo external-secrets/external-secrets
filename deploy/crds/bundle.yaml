@@ -4043,12 +4043,8 @@ spec:
                           - secretKey
                         type: object
                       metadata:
-                        additionalProperties:
-                          additionalProperties:
-                            type: string
-                          type: object
-                        description: Metadata is a map of metadata attached to the secret
-                        type: object
+                        description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+                        x-kubernetes-preserve-unknown-fields: true
                     required:
                       - match
                     type: object
@@ -4178,12 +4174,8 @@ spec:
                             - secretKey
                           type: object
                         metadata:
-                          additionalProperties:
-                            additionalProperties:
-                              type: string
-                            type: object
-                          description: Metadata is a map of metadata attached to the secret
-                          type: object
+                          description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+                          x-kubernetes-preserve-unknown-fields: true
                       required:
                         - match
                       type: object

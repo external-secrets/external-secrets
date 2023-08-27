@@ -21,6 +21,7 @@ package v1alpha1
 
 import (
 	metav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -1058,20 +1059,8 @@ func (in *PushSecretData) DeepCopyInto(out *PushSecretData) {
 	out.Match = in.Match
 	if in.Metadata != nil {
 		in, out := &in.Metadata, &out.Metadata
-		*out = make(map[string]map[string]string, len(*in))
-		for key, val := range *in {
-			var outVal map[string]string
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				in, out := &val, &outVal
-				*out = make(map[string]string, len(*in))
-				for key, val := range *in {
-					(*out)[key] = val
-				}
-			}
-			(*out)[key] = outVal
-		}
+		*out = new(apiextensionsv1.JSON)
+		(*in).DeepCopyInto(*out)
 	}
 }
 

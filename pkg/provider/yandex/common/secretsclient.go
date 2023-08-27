@@ -17,6 +17,8 @@ import (
 	"context"
 	"fmt"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
@@ -38,7 +40,7 @@ func (c *yandexCloudSecretsClient) DeleteSecret(_ context.Context, _ esv1beta1.P
 	return fmt.Errorf("not implemented")
 }
 
-func (c *yandexCloudSecretsClient) PushSecret(_ context.Context, _ []byte, _ map[string]map[string]string, _ esv1beta1.PushRemoteRef) error {
+func (c *yandexCloudSecretsClient) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

@@ -260,10 +260,6 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 				return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
 			}
 
-			if data.Metadata != nil && data.Match.RemoteRef.Property != "" {
-				return out, fmt.Errorf("cannot specify metadata and property at the same time")
-			}
-
 			err := client.PushSecret(ctx, secretValue, data.Metadata, data.Match.RemoteRef)
 			if err != nil {
 				return out, fmt.Errorf(errSetSecretFailed, data.Match.SecretKey, store.GetName(), err)
