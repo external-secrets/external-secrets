@@ -35,7 +35,7 @@ const JwtLifespan = 600     // 10 minutes
 const JwtRefreshBuffer = 30 // 30 seconds
 
 // getJWTToken retrieves a JWT token either using the TokenRequest API for a specified service account, or from a jwt stored in a k8s secret.
-func (p *Provider) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.ConjurJWT) (string, error) {
+func (p *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.ConjurJWT) (string, error) {
 	if conjurJWTConfig.ServiceAccountRef != nil {
 		// Should work for Kubernetes >=v1.22: fetch token via TokenRequest API
 		jwtToken, err := p.getJwtFromServiceAccountTokenRequest(ctx, *conjurJWTConfig.ServiceAccountRef, nil, JwtLifespan)
@@ -59,7 +59,7 @@ func (p *Provider) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.C
 }
 
 // getJwtFromServiceAccountTokenRequest uses the TokenRequest API to get a JWT token for the given service account.
-func (p *Provider) getJwtFromServiceAccountTokenRequest(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
+func (p *Client) getJwtFromServiceAccountTokenRequest(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
 	audiences := serviceAccountRef.Audiences
 	if len(additionalAud) > 0 {
 		audiences = append(audiences, additionalAud...)
@@ -85,7 +85,7 @@ func (p *Provider) getJwtFromServiceAccountTokenRequest(ctx context.Context, ser
 }
 
 // newClientFromJwt creates a new Conjur client using the given JWT Auth Config.
-func (p *Provider) newClientFromJwt(ctx context.Context, config conjurapi.Config, jwtAuth *esv1beta1.ConjurJWT) (Client, error) {
+func (p *Client) newClientFromJwt(ctx context.Context, config conjurapi.Config, jwtAuth *esv1beta1.ConjurJWT) (ConjurClient, error) {
 	jwtToken, getJWTError := p.getJWTToken(ctx, jwtAuth)
 	if getJWTError != nil {
 		return nil, getJWTError

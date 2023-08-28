@@ -110,7 +110,7 @@ func TestValidateStore(t *testing.T) {
 			err:   fmt.Errorf("missing Auth.* configuration"),
 		},
 	}
-	c := Connector{}
+	c := Provider{}
 	for _, tc := range testCases {
 		err := c.ValidateStore(tc.store)
 		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
@@ -520,11 +520,11 @@ func createFakeJwtToken(expires bool) string {
 type ConjurMockAPIClient struct {
 }
 
-func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.LoginPair) (Client, error) {
+func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.LoginPair) (ConjurClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 
-func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _ string) (Client, error) {
+func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _ string) (ConjurClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 

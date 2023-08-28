@@ -50,25 +50,25 @@ var (
 	errFailedToDetermineJWTTokenExpiration = "conjur only supports jwt tokens that expire and JWT token expiration check failed"
 )
 
-// Provider is a provider for Conjur.
-type Provider struct {
+// Client is a provider for Conjur.
+type Client struct {
 	StoreKind        string
 	kube             client.Client
 	store            esv1beta1.GenericStore
 	namespace        string
 	corev1           typedcorev1.CoreV1Interface
-	clientAPI        ClientAPI
-	client           Client
+	clientAPI        ConjurClientAPI
+	client           ConjurClient
 	clientExpires    bool
 	renewClientAfter time.Time
 }
 
-type Connector struct {
-	NewConjurProvider func(context context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientApi ClientAPI) (esv1beta1.SecretsClient, error)
+type Provider struct {
+	NewConjurProvider func(context context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientApi ConjurClientAPI) (esv1beta1.SecretsClient, error)
 }
 
 // NewClient creates a new Conjur client.
-func (c *Connector) NewClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (c *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to create a TokenRequest
 	restCfg, err := ctrlcfg.GetConfig()
@@ -80,23 +80,21 @@ func (c *Connector) NewClient(_ context.Context, store esv1beta1.GenericStore, k
 		return nil, err
 	}
 
-	return c.NewConjurProvider(context.Background(), store, kube, namespace, clientset.CoreV1(), &ClientAPIImpl{})
+	return c.NewConjurProvider(ctx, store, kube, namespace, clientset.CoreV1(), &ClientAPIImpl{})
 }
 
-func newConjurProvider(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientAPI ClientAPI) (esv1beta1.SecretsClient, error) {
-	conjurProvider := &Provider{
+func newConjurProvider(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientAPI ConjurClientAPI) (esv1beta1.SecretsClient, error) {
+	return &Client{
 		StoreKind: store.GetObjectKind().GroupVersionKind().Kind,
 		store:     store,
 		kube:      kube,
 		namespace: namespace,
 		corev1:    corev1,
 		clientAPI: clientAPI,
-	}
-
-	return conjurProvider, nil
+	}, nil
 }
 
-func (p *Provider) GetConjurClient(ctx context.Context) (Client, error) {
+func (p *Client) GetConjurClient(ctx context.Context) (ConjurClient, error) {
 	// if we already have a client, and it hasn't expired, return it
 	if p.client != nil && (!p.clientExpires || time.Now().Before(p.renewClientAfter)) {
 		return p.client, nil
@@ -165,13 +163,13 @@ func (p *Provider) GetConjurClient(ctx context.Context) (Client, error) {
 
 // GetAllSecrets returns all secrets from the provider.
 // NOT IMPLEMENTED.
-func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Client) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	conjurClient, err := p.GetConjurClient(ctx)
 	if err != nil {
 		return nil, err
@@ -185,18 +183,18 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 }
 
 // PushSecret will write a single secret into the provider.
-func (p *Provider) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (p *Client) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
 }
 
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (p *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	// Gets a secret as normal, expecting secret value to be a json object
 	data, err := p.GetSecret(ctx, ref)
 	if err != nil {
@@ -219,17 +217,17 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 }
 
 // Close closes the provider.
-func (p *Provider) Close(_ context.Context) error {
+func (p *Client) Close(_ context.Context) error {
 	return nil
 }
 
 // Validate validates the provider.
-func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+func (p *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
 // ValidateStore validates the store.
-func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
+func (c *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	prov, err := util.GetConjurProvider(store)
 	if err != nil {
 		return err
@@ -287,11 +285,11 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 // Capabilities returns the provider Capabilities (Read, Write, ReadWrite).
-func (c *Connector) Capabilities() esv1beta1.SecretStoreCapabilities {
+func (c *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-func (p *Provider) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
+func (p *Client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
 	secret := &corev1.Secret{}
 	ref := client.ObjectKey{
 		Namespace: p.namespace,
@@ -317,7 +315,7 @@ func (p *Provider) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKey
 }
 
 // configMapKeyRef returns the value of a key in a configmap.
-func (p *Provider) configMapKeyRef(ctx context.Context, cmRef *esmeta.SecretKeySelector) (string, error) {
+func (p *Client) configMapKeyRef(ctx context.Context, cmRef *esmeta.SecretKeySelector) (string, error) {
 	configMap := &corev1.ConfigMap{}
 	ref := client.ObjectKey{
 		Namespace: p.namespace,
@@ -342,7 +340,7 @@ func (p *Provider) configMapKeyRef(ctx context.Context, cmRef *esmeta.SecretKeyS
 }
 
 // getCA try retrieve the CA bundle from the provider CABundle or from the CAProvider.
-func (p *Provider) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider) (string, error) {
+func (p *Client) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider) (string, error) {
 	if provider.CAProvider != nil {
 		var ca string
 		var err error
@@ -378,7 +376,7 @@ func (p *Provider) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider
 }
 
 func init() {
-	esv1beta1.Register(&Connector{
+	esv1beta1.Register(&Provider{
 		NewConjurProvider: newConjurProvider,
 	}, &esv1beta1.SecretStoreProvider{
 		Conjur: &esv1beta1.ConjurProvider{},
