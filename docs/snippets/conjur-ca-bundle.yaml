@@ -12,9 +12,9 @@ spec:
       # Instead of caBundle you can also specify a caProvider
       # this will retrieve the cert from a Secret or ConfigMap
       caProvider:
-        type: "Secret/ConfigMap" # Can be Secret or ConfigMap
+        type: "Secret" # Can be Secret or ConfigMap
         name: "<name of secret or configmap>"
-        key: "<key inside secret>"
+        key: "<key inside secret or configmap>"
         # namespace is mandatory for ClusterSecretStore and not relevant for SecretStore
         namespace: "my-cert-secret-namespace"
   ....
