@@ -26,6 +26,7 @@ import (
 	"github.com/googleapis/gax-go/v2/apierror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	pointer "k8s.io/utils/ptr"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -586,7 +587,9 @@ func TestPushSecret(t *testing.T) {
 
 	type args struct {
 		mock                          *fakesm.MockSMClient
+		Metadata                      *apiextensionsv1.JSON
 		GetSecretMockReturn           fakesm.SecretMockReturn
+		UpdateSecretReturn            fakesm.SecretMockReturn
 		AccessSecretVersionMockReturn fakesm.AccessSecretVersionMockReturn
 		AddSecretVersionMockReturn    fakesm.AddSecretVersionMockReturn
 		CreateSecretMockReturn        fakesm.SecretMockReturn
@@ -595,13 +598,13 @@ func TestPushSecret(t *testing.T) {
 	type want struct {
 		err error
 	}
-	tests := map[string]struct {
-		reason string
-		args   args
-		want   want
+	tests := []struct {
+		desc string
+		args args
+		want want
 	}{
-		"SetSecret": {
-			reason: "SetSecret successfully pushes a secret",
+		{
+			desc: "SetSecret successfully pushes a secret",
 			args: args{
 				mock:                          smtc.mockClient,
 				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: &secret, Err: nil},
@@ -611,8 +614,49 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"AddSecretVersion": {
-			reason: "secret not pushed if AddSecretVersion errors",
+		{
+			desc: "successfully pushes a secret with metadata",
+			args: args{
+				mock: smtc.mockClient,
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"annotations":{"annotation-key1":"annotation-value1"},"labels":{"label-key1":"label-value1"}}`),
+				},
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: &secret, Err: nil},
+				UpdateSecretReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
+					Name: "projects/default/secrets/baz",
+					Replication: &secretmanagerpb.Replication{
+						Replication: &secretmanagerpb.Replication_Automatic_{
+							Automatic: &secretmanagerpb.Replication_Automatic{},
+						},
+					},
+					Labels: map[string]string{
+						"managed-by": "external-secrets",
+						"label-key1": "label-value1",
+					},
+					Annotations: map[string]string{
+						"annotation-key1": "annotation-value1",
+					},
+				}, Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+			want: want{
+				err: nil,
+			},
+		},
+		{
+			desc: "failed to push a secret with invalid metadata type",
+			args: args{
+				mock: smtc.mockClient,
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"tags":{"tag-key1":"tag-value1"}}`),
+				},
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: &secret, Err: nil}},
+			want: want{
+				err: fmt.Errorf("failed to decode PushSecret metadata"),
+			},
+		},
+		{
+			desc: "secret not pushed if AddSecretVersion errors",
 			args: args{
 				mock:                          smtc.mockClient,
 				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: &secret, Err: nil},
@@ -623,8 +667,8 @@ func TestPushSecret(t *testing.T) {
 				err: APIerror,
 			},
 		},
-		"AccessSecretVersion": {
-			reason: "secret not pushed if AccessSecretVersion errors",
+		{
+			desc: "secret not pushed if AccessSecretVersion errors",
 			args: args{
 				mock:                          smtc.mockClient,
 				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: &secret, Err: nil},
@@ -634,8 +678,8 @@ func TestPushSecret(t *testing.T) {
 				err: APIerror,
 			},
 		},
-		"NotManagedByESO": {
-			reason: "secret not pushed if not managed-by external-secrets",
+		{
+			desc: "secret not pushed if not managed-by external-secrets",
 			args: args{
 				mock:                smtc.mockClient,
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: &wrongLabelSecret, Err: nil},
@@ -644,8 +688,8 @@ func TestPushSecret(t *testing.T) {
 				err: labelError,
 			},
 		},
-		"SecretAlreadyExists": {
-			reason: "don't push a secret with the same key and value",
+		{
+			desc: "don't push a secret with the same key and value",
 			args: args{
 				mock:                          smtc.mockClient,
 				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res2, Err: nil},
@@ -655,8 +699,8 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"GetSecretNotFound": {
-			reason: "secret is created if one doesn't already exist",
+		{
+			desc: "secret is created if one doesn't already exist",
 			args: args{
 				mock:                          smtc.mockClient,
 				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
@@ -668,8 +712,8 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"CreateSecretReturnsNotFoundError": {
-			reason: "secret not created if CreateSecret returns not found error",
+		{
+			desc: "secret not created if CreateSecret returns not found error",
 			args: args{
 				mock:                   smtc.mockClient,
 				GetSecretMockReturn:    fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
@@ -679,8 +723,8 @@ func TestPushSecret(t *testing.T) {
 				err: notFoundError,
 			},
 		},
-		"CreateSecretReturnsError": {
-			reason: "secret not created if CreateSecret returns error",
+		{
+			desc: "secret not created if CreateSecret returns error",
 			args: args{
 				mock:                smtc.mockClient,
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: canceledError},
@@ -689,8 +733,8 @@ func TestPushSecret(t *testing.T) {
 				err: canceledError,
 			},
 		},
-		"AccessSecretVersionReturnsError": {
-			reason: "access secret version for an existing secret returns error",
+		{
+			desc: "access secret version for an existing secret returns error",
 			args: args{
 				mock:                          smtc.mockClient,
 				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: &secret, Err: nil},
@@ -701,9 +745,10 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 	}
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
 			tc.args.mock.NewGetSecretFn(tc.args.GetSecretMockReturn)
+			tc.args.mock.NewUpdateSecretFn(tc.args.UpdateSecretReturn)
 			tc.args.mock.NewCreateSecretFn(tc.args.CreateSecretMockReturn)
 			tc.args.mock.NewAccessSecretVersionFn(tc.args.AccessSecretVersionMockReturn)
 			tc.args.mock.NewAddSecretVersionFn(tc.args.AddSecretVersionMockReturn)
@@ -714,17 +759,20 @@ func TestPushSecret(t *testing.T) {
 					ProjectID: smtc.projectID,
 				},
 			}
-			err := c.PushSecret(context.Background(), []byte("fake-value"), ref)
-			// Error nil XOR tc.want.err nil
-			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
-				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+			err := c.PushSecret(context.Background(), []byte("fake-value"), tc.args.Metadata, ref)
+			if err != nil {
+				if tc.want.err == nil {
+					t.Errorf("received an unexpected error: %v", err)
+				}
+
+				if got, expected := err.Error(), tc.want.err.Error(); !strings.Contains(got, expected) {
+					t.Errorf("received an unexpected error: %q should have contained %s", got, expected)
+				}
+				return
 			}
 
-			// if errors are the same type but their contents do not match
-			if err != nil && tc.want.err != nil {
-				if !strings.Contains(err.Error(), tc.want.err.Error()) {
-					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
-				}
+			if tc.want.err != nil {
+				t.Errorf("expected to receive an error but got nil")
 			}
 		})
 	}
@@ -906,7 +954,7 @@ func TestPushSecret_Property(t *testing.T) {
 				store:    &esv1beta1.GCPSMProvider{},
 			}
 
-			err := client.PushSecret(context.Background(), []byte(tc.payload), tc.ref)
+			err := client.PushSecret(context.Background(), []byte(tc.payload), nil, tc.ref)
 			if err != nil {
 				if tc.expectedErr == "" {
 					t.Fatalf("PushSecret returns unexpected error: %v", err)

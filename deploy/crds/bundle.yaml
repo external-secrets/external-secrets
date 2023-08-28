@@ -4042,6 +4042,9 @@ spec:
                           - remoteRef
                           - secretKey
                         type: object
+                      metadata:
+                        description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+                        x-kubernetes-preserve-unknown-fields: true
                     required:
                       - match
                     type: object
@@ -4170,6 +4173,9 @@ spec:
                             - remoteRef
                             - secretKey
                           type: object
+                        metadata:
+                          description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+                          x-kubernetes-preserve-unknown-fields: true
                       required:
                         - match
                       type: object

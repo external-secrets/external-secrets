@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,7 +36,7 @@ func (p *PP) NewClient(_ context.Context, _ GenericStore, _ client.Client, _ str
 }
 
 // PushSecret writes a single secret into a provider.
-func (p *PP) PushSecret(_ context.Context, _ []byte, _ PushRemoteRef) error {
+func (p *PP) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ PushRemoteRef) error {
 	return nil
 }
 
