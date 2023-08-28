@@ -2249,7 +2249,7 @@ kind<span class="w"> </span>create<span class="w"> </span>cluster<span class="w"
 make<span class="w"> </span>docker.build
 
 <span class="c1"># Load docker image into local kind cluster</span>
-kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span><span class="nv">$IMAGE</span>:<span class="nv">$TAG</span><span class="w"> </span>-n<span class="w"> </span>external-secrets
+kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span><span class="nv">$IMAGE</span>:<span class="nv">$TAG</span><span class="w"> </span>--name<span class="w"> </span>external-secrets
 
 <span class="c1"># (Optional) Pull the image from GitHub Repo to copy into kind</span>
 <span class="c1"># docker pull ghcr.io/external-secrets/external-secrets:v0.8.2</span>
