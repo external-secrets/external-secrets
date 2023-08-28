@@ -17,7 +17,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/aws/aws-sdk-go v1.44.330
+	github.com/aws/aws-sdk-go v1.44.332
 	github.com/go-logr/logr v1.2.4
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
@@ -38,7 +38,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.16.0
 	github.com/xanzy/go-gitlab v0.90.0
-	github.com/yandex-cloud/go-genproto v0.0.0-20230814123017-8364357930d5
+	github.com/yandex-cloud/go-genproto v0.0.0-20230828085742-c924b3bfee75
 	github.com/yandex-cloud/go-sdk v0.0.0-20230815084109-7fc8b4a12ae2
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.25.0
@@ -228,7 +228,7 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/component-base v0.28.1 // indirect
-	k8s.io/gengo v0.0.0-20230824073034-3ffd65d6144e // indirect
+	k8s.io/gengo v0.0.0-20230825065918-3239622df7ae // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
