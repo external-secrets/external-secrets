@@ -7,6 +7,7 @@
 - [DaangnPay](https://www.daangnpay.com/)
 - [Epidemic Sound](https://www.epidemicsound.com/)
 - [Form3](https://www.form3.tech/)
+- [GoTo](https://www.goto.com/)
 - [Heureka Group](https://heureka.group)
 - [K8S Website Infra](https://k8s.io/)
 - [Mercedes-Benz Tech Innovation](https://www.mercedes-benz-techinnovation.com/)

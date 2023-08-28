@@ -281,6 +281,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			secret.Labels[esv1beta1.LabelOwner] = lblValue
 		}
 
+		secret.Annotations[esv1beta1.AnnotationDataHash] = r.computeDataHashAnnotation(&existingSecret, secret)
+
 		return nil
 	}
 
@@ -597,6 +599,18 @@ func isSecretValid(existingSecret v1.Secret) bool {
 		return false
 	}
 	return true
+}
+
+// computeDataHashAnnotation generate a hash of the secret data combining the old key with the new keys to add or override.
+func (r *Reconciler) computeDataHashAnnotation(existing, secret *v1.Secret) string {
+	data := make(map[string][]byte)
+	for k, v := range existing.Data {
+		data[k] = v
+	}
+	for k, v := range secret.Data {
+		data[k] = v
+	}
+	return utils.ObjectHash(data)
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
