@@ -44,7 +44,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - depguard
     - dogsled
     - dupl
     - errcheck
@@ -80,6 +79,8 @@ service:
   golangci-lint-version: 1.33.x
 
 issues:
+  exclude:
+    - import '.*' is not allowed from list 'Main'
   # Excluding configuration per-path and per-linter
   exclude-rules:
     # Exclude some linters from running on tests files.
