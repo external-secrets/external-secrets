@@ -18,20 +18,21 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type ExternalSecretValidator struct{}
 
-func (esv *ExternalSecretValidator) ValidateCreate(_ context.Context, obj runtime.Object) error {
-	return validateExternalSecret(obj)
+func (esv *ExternalSecretValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	return nil, validateExternalSecret(obj)
 }
 
-func (esv *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) error {
-	return validateExternalSecret(newObj)
+func (esv *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	return nil, validateExternalSecret(newObj)
 }
 
-func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ runtime.Object) error {
-	return nil
+func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
 
 func validateExternalSecret(obj runtime.Object) error {
