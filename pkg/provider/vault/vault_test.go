@@ -250,6 +250,38 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: errors.New(errVaultStore),
 			},
 		},
+		"InvalidRetrySettings": {
+			reason: "Should return error if given an invalid Retry Interval.",
+			args: args{
+				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
+					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
+						MaxRetries:    pointer.To(int32(3)),
+						RetryInterval: pointer.To("not-an-interval"),
+					}
+				}),
+			},
+			want: want{
+				err: errors.New("time: invalid duration \"not-an-interval\""),
+			},
+		},
+		"ValidRetrySettings": {
+			reason: "Should return a Vault provider with custom retry settings",
+			args: args{
+				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
+					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
+						MaxRetries:    pointer.To(int32(3)),
+						RetryInterval: pointer.To("10m"),
+					}
+				}),
+				ns:            "default",
+				kube:          clientfake.NewClientBuilder().Build(),
+				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				newClientFunc: fake.ClientWithLoginMock,
+			},
+			want: want{
+				err: nil,
+			},
+		},
 		"AddVaultStoreCertsError": {
 			reason: "Should return error if given an invalid CA certificate.",
 			args: args{
