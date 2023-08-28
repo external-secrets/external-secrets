@@ -57,14 +57,14 @@ type Client struct {
 	store            esv1beta1.GenericStore
 	namespace        string
 	corev1           typedcorev1.CoreV1Interface
-	clientAPI        ConjurClientAPI
-	client           ConjurClient
+	clientAPI        SecretsClientFactory
+	client           SecretsClient
 	clientExpires    bool
 	renewClientAfter time.Time
 }
 
 type Provider struct {
-	NewConjurProvider func(context context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientApi ConjurClientAPI) (esv1beta1.SecretsClient, error)
+	NewConjurProvider func(context context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientApi SecretsClientFactory) (esv1beta1.SecretsClient, error)
 }
 
 // NewClient creates a new Conjur client.
@@ -83,7 +83,7 @@ func (c *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return c.NewConjurProvider(ctx, store, kube, namespace, clientset.CoreV1(), &ClientAPIImpl{})
 }
 
-func newConjurProvider(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientAPI ConjurClientAPI) (esv1beta1.SecretsClient, error) {
+func newConjurProvider(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientAPI SecretsClientFactory) (esv1beta1.SecretsClient, error) {
 	return &Client{
 		StoreKind: store.GetObjectKind().GroupVersionKind().Kind,
 		store:     store,
@@ -94,7 +94,7 @@ func newConjurProvider(_ context.Context, store esv1beta1.GenericStore, kube cli
 	}, nil
 }
 
-func (p *Client) GetConjurClient(ctx context.Context) (ConjurClient, error) {
+func (p *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	// if we already have a client, and it hasn't expired, return it
 	if p.client != nil && (!p.clientExpires || time.Now().Before(p.renewClientAfter)) {
 		return p.client, nil

@@ -24,28 +24,28 @@ import (
 	"github.com/cyberark/conjur-api-go/conjurapi/response"
 )
 
-// ConjurClient is an interface for the Conjur client.
-type ConjurClient interface {
+// SecretsClient is an interface for the Conjur client.
+type SecretsClient interface {
 	RetrieveSecret(secret string) (result []byte, err error)
 }
 
-// ConjurClientAPI is an interface for creating a Conjur client.
-type ConjurClientAPI interface {
-	NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (ConjurClient, error)
-	NewClientFromJWT(config conjurapi.Config, jwtToken string, jwtServiceID string) (ConjurClient, error)
+// SecretsClientFactory is an interface for creating a Conjur client.
+type SecretsClientFactory interface {
+	NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (SecretsClient, error)
+	NewClientFromJWT(config conjurapi.Config, jwtToken string, jwtServiceID string) (SecretsClient, error)
 }
 
 // ClientAPIImpl is an implementation of the ClientAPI interface.
 type ClientAPIImpl struct{}
 
-func (c *ClientAPIImpl) NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (ConjurClient, error) {
+func (c *ClientAPIImpl) NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (SecretsClient, error) {
 	return conjurapi.NewClientFromKey(config, loginPair)
 }
 
 // NewClientFromJWT creates a new Conjur client from a JWT token.
 // cannot use the built-in function "conjurapi.NewClientFromJwt" because it requires environment variables
 // see: https://github.com/cyberark/conjur-api-go/blob/b698692392a38e5d38b8440f32ab74206544848a/conjurapi/client.go#L130
-func (c *ClientAPIImpl) NewClientFromJWT(config conjurapi.Config, jwtToken, jwtServiceID string) (ConjurClient, error) {
+func (c *ClientAPIImpl) NewClientFromJWT(config conjurapi.Config, jwtToken, jwtServiceID string) (SecretsClient, error) {
 	jwtTokenString := fmt.Sprintf("jwt=%s", jwtToken)
 
 	var httpClient *http.Client

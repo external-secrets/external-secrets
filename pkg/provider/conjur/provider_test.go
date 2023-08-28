@@ -520,11 +520,11 @@ func createFakeJwtToken(expires bool) string {
 type ConjurMockAPIClient struct {
 }
 
-func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.LoginPair) (ConjurClient, error) {
+func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.LoginPair) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 
-func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _ string) (ConjurClient, error) {
+func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _ string) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 

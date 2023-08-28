@@ -85,7 +85,7 @@ func (p *Client) getJwtFromServiceAccountTokenRequest(ctx context.Context, servi
 }
 
 // newClientFromJwt creates a new Conjur client using the given JWT Auth Config.
-func (p *Client) newClientFromJwt(ctx context.Context, config conjurapi.Config, jwtAuth *esv1beta1.ConjurJWT) (ConjurClient, error) {
+func (p *Client) newClientFromJwt(ctx context.Context, config conjurapi.Config, jwtAuth *esv1beta1.ConjurJWT) (SecretsClient, error) {
 	jwtToken, getJWTError := p.getJWTToken(ctx, jwtAuth)
 	if getJWTError != nil {
 		return nil, getJWTError
