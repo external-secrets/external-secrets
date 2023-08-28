@@ -58,6 +58,7 @@ const (
 	errNamespaces           = "could not get namespaces from selector"
 	errGetExistingES        = "could not get existing ExternalSecret"
 	errNamespacesFailed     = "one or more namespaces failed"
+	errNamespaceNotFound    = "no namespace matches"
 )
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -92,14 +93,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
 	if err != nil {
 		log.Error(err, errConvertLabelSelector)
-		return ctrl.Result{RequeueAfter: refreshInt}, err
+		return ctrl.Result{}, err
 	}
 
 	namespaceList := v1.NamespaceList{}
 	err = r.List(ctx, &namespaceList, &client.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		log.Error(err, errNamespaces)
-		return ctrl.Result{RequeueAfter: refreshInt}, err
+		return ctrl.Result{}, err
 	}
 
 	esName := clusterExternalSecret.Spec.ExternalSecretName
