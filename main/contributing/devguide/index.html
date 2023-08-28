@@ -2215,7 +2215,7 @@ then clone the repo:</p>
 static code analysis.</p>
 <p>Building the operator binary and docker image:</p>
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>build
-make<span class="w"> </span>docker.build<span class="w"> </span><span class="nv">IMG</span><span class="o">=</span>external-secrets:latest
+make<span class="w"> </span>docker.build<span class="w"> </span><span class="nv">IMAGE_NAME</span><span class="o">=</span>external-secrets<span class="w"> </span><span class="nv">IMAGE_TAG</span><span class="o">=</span>latest
 </code></pre></div>
 <p>Run tests and lint the code:
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span><span class="nb">test</span>
