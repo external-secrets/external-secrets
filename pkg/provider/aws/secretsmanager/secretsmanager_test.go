@@ -570,7 +570,7 @@ func TestSetSecret(t *testing.T) {
 			sm := SecretsManager{
 				client: &tc.args.client,
 			}
-			err := sm.PushSecret(context.Background(), []byte("fake-value"), ref)
+			err := sm.PushSecret(context.Background(), []byte("fake-value"), nil, ref)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
