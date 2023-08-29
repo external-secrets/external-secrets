@@ -18,9 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +26,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"strings"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -46,22 +44,17 @@ var (
 
 	errUnableToFetchCAProviderCM     = "unable to fetch Server.CAProvider ConfigMap: %w"
 	errUnableToFetchCAProviderSecret = "unable to fetch Server.CAProvider Secret: %w"
-
-	errFailedToParseJWTToken               = "failed to parse JWT token: %w"
-	errFailedToDetermineJWTTokenExpiration = "conjur only supports jwt tokens that expire and JWT token expiration check failed"
 )
 
 // Client is a provider for Conjur.
 type Client struct {
-	StoreKind        string
-	kube             client.Client
-	store            esv1beta1.GenericStore
-	namespace        string
-	corev1           typedcorev1.CoreV1Interface
-	clientAPI        SecretsClientFactory
-	client           SecretsClient
-	clientExpires    bool
-	renewClientAfter time.Time
+	StoreKind string
+	kube      client.Client
+	store     esv1beta1.GenericStore
+	namespace string
+	corev1    typedcorev1.CoreV1Interface
+	clientAPI SecretsClientFactory
+	client    SecretsClient
 }
 
 type Provider struct {
@@ -96,19 +89,16 @@ func newConjurProvider(_ context.Context, store esv1beta1.GenericStore, kube cli
 }
 
 func (p *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
-	// if we already have a client, and it hasn't expired, return it
-	if p.client != nil && (!p.clientExpires || time.Now().Before(p.renewClientAfter)) {
+	// if the client is initialised already, return it
+	if p.client != nil {
 		return p.client, nil
 	}
 
 	prov, err := util.GetConjurProvider(p.store)
-
 	if err != nil {
 		return nil, err
 	}
 
-	// maybe in future need a way refresh at some specified interval or on cert verification errors
-	// if using a CAProvider to handle updated certs in cases where client does not refresh (apikey example)
 	cert, getCertErr := p.getCA(ctx, prov)
 	if getCertErr != nil {
 		return nil, getCertErr
@@ -130,31 +120,28 @@ func (p *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 			return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
 		}
 
-		conjur, err := p.clientAPI.NewClientFromKey(config,
+		conjur, newClientFromKeyError := p.clientAPI.NewClientFromKey(config,
 			authn.LoginPair{
 				Login:  conjUser,
 				APIKey: conjAPIKey,
 			},
 		)
 
-		if err != nil {
-			return nil, fmt.Errorf(errConjurClient, err)
+		if newClientFromKeyError != nil {
+			return nil, fmt.Errorf(errConjurClient, newClientFromKeyError)
 		}
-		// apikey is static, so no need to refresh
 		p.client = conjur
-		p.clientExpires = false
 		return conjur, nil
 	} else if prov.Auth.Jwt != nil {
 		config.Account = prov.Auth.Jwt.Account
 
 		conjur, clientFromJwtError := p.newClientFromJwt(ctx, config, prov.Auth.Jwt)
 		if clientFromJwtError != nil {
-			return nil, clientFromJwtError
+			return nil, fmt.Errorf(errConjurClient, clientFromJwtError)
 		}
+
 		p.client = conjur
-		// jwt tokens expire, so we need to refresh the client before the token expires
-		// expiration is set by the newClientFromJwt function
-		p.clientExpires = true
+
 		return conjur, nil
 	} else {
 		// Should not happen because validate func should catch this
@@ -171,9 +158,9 @@ func (p *Client) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind
 
 // GetSecret returns a single secret from the provider.
 func (p *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	conjurClient, err := p.GetConjurClient(ctx)
-	if err != nil {
-		return nil, err
+	conjurClient, getConjurClientError := p.GetConjurClient(ctx)
+	if getConjurClientError != nil {
+		return nil, getConjurClientError
 	}
 	secretValue, err := conjurClient.RetrieveSecret(ref.Key)
 	if err != nil {

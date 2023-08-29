@@ -209,28 +209,6 @@ func TestGetSecret(t *testing.T) {
 				value: "secret",
 			},
 		},
-		"JwtWithNonExpiringJwtFailure": {
-			reason: "Should fail to create a conjur client using a jwt token that does not expire.",
-			args: args{
-				store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-authenticator", "myconjuraccount"),
-				kube: clientfake.NewClientBuilder().
-					WithObjects(&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "jwt-secret",
-							Namespace: "default",
-						},
-						Data: map[string][]byte{
-							"token": []byte(createFakeJwtToken(false)),
-						},
-					}).Build(),
-				namespace:  "default",
-				secretPath: "path/to/secret",
-			},
-			want: want{
-				err:   errors.New("conjur only supports jwt tokens that expire and JWT token expiration check failed"),
-				value: "",
-			},
-		},
 		"JwtWithCABundleSuccess": {
 			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account.",
 			args: args{

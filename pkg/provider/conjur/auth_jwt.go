@@ -17,13 +17,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
-	"github.com/golang-jwt/jwt/v5"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -31,8 +29,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-const JwtLifespan = 600     // 10 minutes
-const JwtRefreshBuffer = 30 // 30 seconds
+const JwtLifespan = 600 // 10 minutes
 
 // getJWTToken retrieves a JWT token either using the TokenRequest API for a specified service account, or from a jwt stored in a k8s secret.
 func (p *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.ConjurJWT) (string, error) {
@@ -91,34 +88,12 @@ func (p *Client) newClientFromJwt(ctx context.Context, config conjurapi.Config, 
 		return nil, getJWTError
 	}
 
-	expirationTime, expirationTimeError := determineExpirationTime(jwtToken)
-
-	if expirationTimeError != nil {
-		// Catch bad JWT token, or tokens that have no expiration time
-		return nil, expirationTimeError
-	}
-
 	client, clientError := p.clientAPI.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceID)
 	if clientError != nil {
 		return nil, clientError
 	}
 
-	// Only update the renewClientAfter if we successfully create a new client.
-	p.renewClientAfter = expirationTime.Add(time.Duration(-JwtRefreshBuffer) * time.Second)
-
 	return client, nil
-}
-
-func determineExpirationTime(jwtToken string) (*jwt.NumericDate, error) {
-	parsedToken, _, parseError := new(jwt.Parser).ParseUnverified(jwtToken, jwt.MapClaims{})
-	if parseError != nil {
-		return nil, fmt.Errorf(errFailedToParseJWTToken, parseError)
-	}
-	expirationTime, expirationTimeError := parsedToken.Claims.GetExpirationTime()
-	if expirationTime == nil || expirationTimeError != nil {
-		return nil, errors.New(errFailedToDetermineJWTTokenExpiration)
-	}
-	return expirationTime, nil
 }
 
 // newHTTPSClient creates a new HTTPS client with the given cert.
