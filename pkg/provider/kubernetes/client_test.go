@@ -850,7 +850,7 @@ func TestPushSecret(t *testing.T) {
 				userSecretClient: tt.fields.Client,
 				store:            &esv1beta1.KubernetesProvider{},
 			}
-			err := p.PushSecret(context.Background(), []byte(tt.fields.PushValue), tt.ref)
+			err := p.PushSecret(context.Background(), []byte(tt.fields.PushValue), nil, tt.ref)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return

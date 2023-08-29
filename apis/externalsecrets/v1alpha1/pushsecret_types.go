@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -97,6 +98,10 @@ type PushSecretMatch struct {
 type PushSecretData struct {
 	// Match a given Secret Key to be pushed to the provider.
 	Match PushSecretMatch `json:"match"`
+	// Metadata is metadata attached to the secret.
+	// The structure of metadata is provider specific, please look it up in the provider documentation.
+	// +optional
+	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
 }
 
 // PushSecretConditionType indicates the condition of the PushSecret.

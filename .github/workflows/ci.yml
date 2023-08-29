@@ -10,7 +10,7 @@ on:
 env:
   # Common versions
   GOLANGCI_VERSION: 'v1.52.2'
-  KUBERNETES_VERSION: '1.24.x'
+  KUBERNETES_VERSION: '1.28.x'
 
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
