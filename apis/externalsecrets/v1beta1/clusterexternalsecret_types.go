@@ -50,11 +50,7 @@ type ExternalSecretMetadata struct {
 
 type ClusterExternalSecretConditionType string
 
-const (
-	ClusterExternalSecretReady          ClusterExternalSecretConditionType = "Ready"
-	ClusterExternalSecretPartiallyReady ClusterExternalSecretConditionType = "PartiallyReady"
-	ClusterExternalSecretNotReady       ClusterExternalSecretConditionType = "NotReady"
-)
+const ClusterExternalSecretReady ClusterExternalSecretConditionType = "Ready"
 
 type ClusterExternalSecretStatusCondition struct {
 	Type   ClusterExternalSecretConditionType `json:"type"`
@@ -77,6 +73,9 @@ type ClusterExternalSecretNamespaceFailure struct {
 
 // ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.
 type ClusterExternalSecretStatus struct {
+	// ExternalSecretName is the name of the ExternalSecrets created by the ClusterExternalSecret
+	ExternalSecretName string `json:"externalSecretName,omitempty"`
+
 	// Failed namespaces are the namespaces that failed to apply an ExternalSecret
 	// +optional
 	FailedNamespaces []ClusterExternalSecretNamespaceFailure `json:"failedNamespaces,omitempty"`

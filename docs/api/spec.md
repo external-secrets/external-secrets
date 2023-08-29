@@ -1231,11 +1231,7 @@ ClusterExternalSecretStatus
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;NotReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;PartiallyReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Ready&#34;</p></td>
+<tbody><tr><td><p>&#34;Ready&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -1382,6 +1378,17 @@ Kubernetes meta/v1.Duration
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>externalSecretName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ExternalSecretName is the name of the ExternalSecrets created by the ClusterExternalSecret</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>failedNamespaces</code></br>
