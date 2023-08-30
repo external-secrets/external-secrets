@@ -260,26 +260,41 @@ func (f *fakeSecretAPI) DisableSecretVersion(request *smapi.DisableSecretVersion
 }
 
 func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest) bool {
-	for _, requiredTag := range filter.Tags {
-		found := false
+	var matchTag, matchName, found bool
 
-		for _, secretTag := range secret.tags {
-			if requiredTag == secretTag {
-				found = true
-				break
+	if filter.Tags != nil {
+		matchTag = true
+		for _, requiredTag := range filter.Tags {
+
+			for _, secretTag := range secret.tags {
+				if requiredTag == secretTag {
+					found = true
+					break
+				}
 			}
-		}
-
-		if !found {
-			return false
 		}
 	}
 
-	if filter.Name == &secret.name {
+	if filter.Name != nil {
+		matchName = true
+		if *filter.Name == secret.name {
+			found = true
+		}
+	}
+
+	if matchTag && found {
 		return true
 	}
 
-	return true
+	if matchName && found {
+		return true
+	}
+
+	if !matchName && !matchTag {
+		return true
+	}
+
+	return false
 }
 
 func (f *fakeSecretAPI) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.RequestOption) (*smapi.ListSecretsResponse, error) {
