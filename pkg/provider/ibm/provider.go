@@ -69,8 +69,10 @@ const (
 var contextTimeout = time.Minute * 2
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &providerIBM{}
-var _ esv1beta1.Provider = &providerIBM{}
+var (
+	_ esv1beta1.SecretsClient = &providerIBM{}
+	_ esv1beta1.Provider      = &providerIBM{}
+)
 
 type SecretManagerClient interface {
 	GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
@@ -582,24 +584,18 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 	containerRef := ibmSpec.Auth.ContainerAuth
 	secretRef := ibmSpec.Auth.SecretRef
 
-	if utils.IsNil(containerRef) || (containerRef.Profile == "") {
-		if utils.IsNil(secretRef) {
+	missingContainerRef := utils.IsNil(containerRef)
+	missingSecretRef := utils.IsNil(secretRef)
+
+	if missingContainerRef == missingSecretRef {
+		// since both are equal, if one is missing assume both are missing
+		if missingContainerRef {
 			return fmt.Errorf("missing auth method")
 		}
-		secretKeyRef := secretRef.SecretAPIKey
+		return fmt.Errorf("too many auth methods defined")
+	}
 
-		// proceed with API Key Auth validation
-		err := utils.ValidateSecretSelector(store, secretKeyRef)
-		if err != nil {
-			return err
-		}
-		if secretKeyRef.Name == "" {
-			return fmt.Errorf("secretAPIKey.name cannot be empty")
-		}
-		if secretKeyRef.Key == "" {
-			return fmt.Errorf("secretAPIKey.key cannot be empty")
-		}
-	} else {
+	if !missingContainerRef && containerRef.Profile != "" {
 		// proceed with container auth
 		if containerRef.TokenLocation == "" {
 			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
@@ -607,7 +603,22 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 		if _, err := os.Open(containerRef.TokenLocation); err != nil {
 			return fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
 		}
+		return nil
 	}
+
+	// proceed with API Key Auth validation
+	secretKeyRef := secretRef.SecretAPIKey
+	err := utils.ValidateSecretSelector(store, secretKeyRef)
+	if err != nil {
+		return err
+	}
+	if secretKeyRef.Name == "" {
+		return fmt.Errorf("secretAPIKey.name cannot be empty")
+	}
+	if secretKeyRef.Key == "" {
+		return fmt.Errorf("secretAPIKey.key cannot be empty")
+	}
+
 	return nil
 }
 
