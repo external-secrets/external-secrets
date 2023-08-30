@@ -83,6 +83,8 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		//nolint:errorlint
 		if _, isNotFoundErr := err.(*scw.ResourceNotFoundError); isNotFoundErr {
 			return nil, esv1beta1.NoSecretError{}
+		} else if errors.Is(err, errNoSecretForName) {
+			return nil, esv1beta1.NoSecretError{}
 		}
 		return nil, err
 	}
@@ -105,14 +107,16 @@ func (c *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv
 		return err
 	}
 
-	var listSecretReq *smapi.ListSecretsRequest
+	listSecretReq := &smapi.ListSecretsRequest{
+		ProjectID: &c.projectID,
+		Page:      scw.Int32Ptr(1),
+		PageSize:  scw.Uint32Ptr(1),
+	}
 	var secretName string
 
 	switch scwRef.RefType {
 	case refTypeName:
-		listSecretReq = &smapi.ListSecretsRequest{
-			Name: &scwRef.Value,
-		}
+		listSecretReq.Name = &scwRef.Value
 		secretName = scwRef.Value
 	default:
 		return fmt.Errorf("secrets can only be pushed by name")
@@ -201,13 +205,15 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 		return err
 	}
 
-	var listSecretReq *smapi.ListSecretsRequest
+	listSecretReq := &smapi.ListSecretsRequest{
+		ProjectID: &c.projectID,
+		Page:      scw.Int32Ptr(1),
+		PageSize:  scw.Uint32Ptr(1),
+	}
 
 	switch scwRef.RefType {
 	case refTypeName:
-		listSecretReq = &smapi.ListSecretsRequest{
-			Name: &scwRef.Value,
-		}
+		listSecretReq.Name = &scwRef.Value
 	default:
 		return fmt.Errorf("secrets can only be pushed by name")
 	}
@@ -237,12 +243,10 @@ func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	page := int32(1)
-	pageSize := uint32(0)
 	_, err := c.api.ListSecrets(&smapi.ListSecretsRequest{
 		ProjectID: &c.projectID,
-		Page:      &page,
-		PageSize:  &pageSize,
+		Page:      scw.Int32Ptr(1),
+		PageSize:  scw.Uint32Ptr(0),
 	}, scw.WithContext(ctx))
 	if err != nil {
 		return esv1beta1.ValidationResultError, nil
@@ -277,11 +281,9 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	request := smapi.ListSecretsRequest{
 		ProjectID: &c.projectID,
-		Page:      new(int32),
-		PageSize:  new(uint32),
+		Page:      scw.Int32Ptr(1),
+		PageSize:  scw.Uint32Ptr(50),
 	}
-	*request.Page = 1
-	*request.PageSize = 50
 
 	if ref.Path != nil {
 		return nil, fmt.Errorf("searching by path is not supported")
@@ -372,7 +374,10 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 		secretRevision = response.Revision
 	case refTypeName:
 		request := &smapi.ListSecretsRequest{
-			Name: &secretRef.Value,
+			ProjectID: &c.projectID,
+			Page:      scw.Int32Ptr(1),
+			PageSize:  scw.Uint32Ptr(1),
+			Name:      &secretRef.Value,
 		}
 
 		response, err := c.api.ListSecrets(request, scw.WithContext(ctx))
@@ -381,7 +386,7 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 		}
 
 		if len(response.Secrets) == 0 {
-			return nil, fmt.Errorf("no secret found for reference %q", secretRef.Value)
+			return nil, errNoSecretForName
 		}
 
 		secretID = response.Secrets[0].ID
