@@ -38,6 +38,8 @@ type fakeSecret struct {
 	status   string
 }
 
+var _ secretAPI = (*fakeSecretAPI)(nil)
+
 type fakeSecretAPI struct {
 	secrets        []*fakeSecret
 	_secretsByID   map[string]*fakeSecret
@@ -180,56 +182,12 @@ func (f *fakeSecretAPI) GetSecret(request *smapi.GetSecretRequest, _ ...scw.Requ
 	}, nil
 }
 
-func (f *fakeSecretAPI) GetSecretByName(request *smapi.GetSecretByNameRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
-	if request.Region != "" {
-		panic("explicit region in request is not supported")
-	}
-
-	secret, err := f.getSecretByName(request.SecretName)
-	if err != nil {
-		return nil, err
-	}
-
-	return &smapi.Secret{
-		ID:           secret.id,
-		Name:         secret.name,
-		Status:       smapi.SecretStatus(secret.status),
-		Tags:         secret.tags,
-		VersionCount: uint32(len(secret.versions)),
-	}, nil
-}
-
 func (f *fakeSecretAPI) GetSecretVersion(request *smapi.GetSecretVersionRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
 	}
 
 	secret, err := f.getSecretByID(request.SecretID)
-	if err != nil {
-		return nil, err
-	}
-
-	version, ok := secret.getVersion(request.Revision)
-	if !ok {
-		return nil, &scw.ResourceNotFoundError{
-			Resource:   "secret_version",
-			ResourceID: request.Revision,
-		}
-	}
-
-	return &smapi.SecretVersion{
-		SecretID: secret.id,
-		Revision: uint32(version.revision),
-		Status:   smapi.SecretVersionStatus(secret.status),
-	}, nil
-}
-
-func (f *fakeSecretAPI) GetSecretVersionByName(request *smapi.GetSecretVersionByNameRequest, _ ...scw.RequestOption) (*smapi.SecretVersion, error) {
-	if request.Region != "" {
-		panic("explicit region in request is not supported")
-	}
-
-	secret, err := f.getSecretByName(request.SecretName)
 	if err != nil {
 		return nil, err
 	}
@@ -315,6 +273,10 @@ func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest)
 		if !found {
 			return false
 		}
+	}
+
+	if filter.Name == &secret.name {
+		return true
 	}
 
 	return true
