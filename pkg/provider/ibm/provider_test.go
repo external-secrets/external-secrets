@@ -170,13 +170,17 @@ func TestValidateStore(t *testing.T) {
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
-	} else if err.Error() != "secretAPIKey.name cannot be empty" {
-		t.Errorf("KeySelector test failed: expected secret name is required, got %v", err)
+	} else if err.Error() != "missing auth method" {
+		t.Errorf("KeySelector test failed: expected missing auth method, got %v", err)
 	}
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Name = "foo"
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Key = "bar"
 	ns := "ns-one"
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Namespace = &ns
+	store.Spec.Provider.IBM.Auth.SecretRef = &esv1beta1.IBMAuthSecretRef{
+		SecretAPIKey: v1.SecretKeySelector{
+			Name:      "foo",
+			Key:       "bar",
+			Namespace: &ns,
+		},
+	}
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
@@ -185,10 +189,21 @@ func TestValidateStore(t *testing.T) {
 	}
 
 	// add container auth test
-	store.Spec.Provider.IBM = &esv1beta1.IBMProvider{}
-	store.Spec.Provider.IBM.ServiceURL = &url
-	store.Spec.Provider.IBM.Auth.ContainerAuth.Profile = "Trusted IAM Profile"
-	store.Spec.Provider.IBM.Auth.ContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
+	store = &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				IBM: &esv1beta1.IBMProvider{
+					ServiceURL: &url,
+					Auth: esv1beta1.IBMAuth{
+						ContainerAuth: &esv1beta1.IBMAuthContainerAuth{
+							Profile:       "Trusted IAM Profile",
+							TokenLocation: "/a/path/to/nowhere/that/should/exist",
+						},
+					},
+				},
+			},
+		},
+	}
 	err = p.ValidateStore(store)
 	expected := "cannot read container auth token"
 	if !ErrorContains(err, expected) {

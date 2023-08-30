@@ -580,8 +580,14 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 	}
 
 	containerRef := ibmSpec.Auth.ContainerAuth
-	secretKeyRef := ibmSpec.Auth.SecretRef.SecretAPIKey
-	if utils.IsNil(containerRef.Profile) || (containerRef.Profile == "") {
+	secretRef := ibmSpec.Auth.SecretRef
+
+	if utils.IsNil(containerRef) || (containerRef.Profile == "") {
+		if utils.IsNil(secretRef) {
+			return fmt.Errorf("missing auth method")
+		}
+		secretKeyRef := secretRef.SecretAPIKey
+
 		// proceed with API Key Auth validation
 		err := utils.ValidateSecretSelector(store, secretKeyRef)
 		if err != nil {
@@ -623,9 +629,10 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericSt
 
 	var err error
 	var secretsManager *sm.SecretsManagerV2
-	containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
-	if containerAuthProfile != "" {
+	containerAuth := iStore.store.Auth.ContainerAuth
+	if !utils.IsNil(containerAuth) && containerAuth.Profile != "" {
 		// container-based auth
+		containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
 		containerAuthToken := iStore.store.Auth.ContainerAuth.TokenLocation
 		containerAuthEndpoint := iStore.store.Auth.ContainerAuth.IAMEndpoint
 
