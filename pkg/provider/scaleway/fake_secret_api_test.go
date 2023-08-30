@@ -150,19 +150,6 @@ func (f *fakeSecretAPI) getSecretByID(secretID string) (*fakeSecret, error) {
 	return secret, nil
 }
 
-func (f *fakeSecretAPI) getSecretByName(secretName string) (*fakeSecret, error) {
-	secret, foundSecret := f._secretsByName[secretName]
-
-	if !foundSecret {
-		return nil, &scw.ResourceNotFoundError{
-			Resource:   "secret",
-			ResourceID: secretName,
-		}
-	}
-
-	return secret, nil
-}
-
 func (f *fakeSecretAPI) GetSecret(request *smapi.GetSecretRequest, _ ...scw.RequestOption) (*smapi.Secret, error) {
 	if request.Region != "" {
 		panic("explicit region in request is not supported")
@@ -265,7 +252,6 @@ func matchListSecretFilter(secret *fakeSecret, filter *smapi.ListSecretsRequest)
 	if filter.Tags != nil {
 		matchTag = true
 		for _, requiredTag := range filter.Tags {
-
 			for _, secretTag := range secret.tags {
 				if requiredTag == secretTag {
 					found = true
