@@ -167,8 +167,6 @@ func TestValidateStore(t *testing.T) {
 	}
 	url := "my-url"
 	store.Spec.Provider.IBM.ServiceURL = &url
-	var nilProfile esv1beta1.IBMAuthContainerAuth
-	store.Spec.Provider.IBM.Auth.ContainerAuth = nilProfile
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
@@ -697,7 +695,8 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretUUID
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
-		smtc.expectedData = map[string][]byte{"arbitrary": []byte(payload),
+		smtc.expectedData = map[string][]byte{
+			"arbitrary":       []byte(payload),
 			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
 			"crn":             []byte(nilValue),
@@ -728,7 +727,8 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = iamCredentialsSecret + secretUUID
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
-		smtc.expectedData = map[string][]byte{"api_key": []byte(secretAPIKey),
+		smtc.expectedData = map[string][]byte{
+			"api_key":         []byte(secretAPIKey),
 			"apikey":          []byte(secretAPIKey),
 			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
@@ -1099,7 +1099,7 @@ func TestValidRetryInput(t *testing.T) {
 			Provider: &esv1beta1.SecretStoreProvider{
 				IBM: &esv1beta1.IBMProvider{
 					Auth: esv1beta1.IBMAuth{
-						SecretRef: esv1beta1.IBMAuthSecretRef{
+						SecretRef: &esv1beta1.IBMAuthSecretRef{
 							SecretAPIKey: v1.SecretKeySelector{
 								Name: "fake-secret",
 								Key:  "fake-key",

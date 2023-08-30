@@ -31,8 +31,8 @@ type IBMProvider struct {
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type IBMAuth struct {
-	SecretRef     IBMAuthSecretRef     `json:"secretRef,omitempty"`
-	ContainerAuth IBMAuthContainerAuth `json:"containerAuth,omitempty"`
+	SecretRef     *IBMAuthSecretRef     `json:"secretRef,omitempty"`
+	ContainerAuth *IBMAuthContainerAuth `json:"containerAuth,omitempty"`
 }
 
 type IBMAuthSecretRef struct {
