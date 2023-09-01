@@ -23,7 +23,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "external-secrets-webhook.selectorLabels" . | nindent 8 }}
+        {{- include "external-secrets-webhook.labels" . | nindent 8 }}
         {{- with .Values.webhook.podLabels }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
