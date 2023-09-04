@@ -9,7 +9,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.29
 	github.com/Azure/go-autorest/autorest/adal v0.9.23
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.1.1
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.0
 	github.com/IBM/go-sdk-core/v5 v5.14.1
 	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.0
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -17,7 +17,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/aws/aws-sdk-go v1.44.332
+	github.com/aws/aws-sdk-go v1.45.2
 	github.com/go-logr/logr v1.2.4
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
@@ -37,9 +37,9 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.16.0
-	github.com/xanzy/go-gitlab v0.90.0
-	github.com/yandex-cloud/go-genproto v0.0.0-20230828085742-c924b3bfee75
-	github.com/yandex-cloud/go-sdk v0.0.0-20230815084109-7fc8b4a12ae2
+	github.com/xanzy/go-gitlab v0.91.1
+	github.com/yandex-cloud/go-genproto v0.0.0-20230904091001-eb19f2895318
+	github.com/yandex-cloud/go-sdk v0.0.0-20230831120744-c3a3ae28d8ae
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.25.0
 	golang.org/x/crypto v0.12.0
@@ -53,7 +53,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.28.1
 	k8s.io/apimachinery v0.28.1
 	k8s.io/client-go v0.28.1
-	sigs.k8s.io/controller-runtime v0.16.0
+	sigs.k8s.io/controller-runtime v0.16.1
 	sigs.k8s.io/controller-tools v0.13.0
 )
 
@@ -127,7 +127,7 @@ require (
 	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.15.1 // indirect
+	github.com/go-playground/validator/v10 v10.15.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gobuffalo/flect v1.0.2 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
@@ -137,8 +137,8 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20230821062121-407c9e7a662f // indirect
-	github.com/google/s2a-go v0.1.5 // indirect
+	github.com/google/pprof v0.0.0-20230901174712-0191c66da455 // indirect
+	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -148,7 +148,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.2.3 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
-	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
+	github.com/hashicorp/go-sockaddr v1.0.4 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
@@ -198,9 +198,9 @@ require (
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/term v0.11.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/term v0.12.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
@@ -212,10 +212,10 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/component-base v0.28.1 // indirect
-	k8s.io/gengo v0.0.0-20230825065918-3239622df7ae // indirect
+	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20230816210353-14e408962443 // indirect
+	k8s.io/kube-openapi v0.0.0-20230901164831-6c774f458599 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.3.0 // indirect
 )
