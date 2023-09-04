@@ -595,7 +595,12 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 		return fmt.Errorf("too many auth methods defined")
 	}
 
-	if !missingContainerRef && containerRef.Profile != "" {
+	if !missingContainerRef {
+		// catch undefined container auth profile
+		if containerRef.Profile == "" {
+			return fmt.Errorf("container auth profile cannot be empty")
+		}
+
 		// proceed with container auth
 		if containerRef.TokenLocation == "" {
 			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
