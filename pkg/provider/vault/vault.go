@@ -27,6 +27,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -43,6 +44,7 @@ import (
 	"github.com/tidwall/gjson"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -233,7 +235,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 	}
 	vaultSpec := storeSpec.Provider.Vault
 
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind)
+	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, storeSpec.RetrySettings, namespace, store.GetObjectKind().GroupVersionKind().Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +249,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 }
 
 func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, "Generator")
+	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, nil, namespace, "Generator")
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +267,7 @@ func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client,
 	return client, nil
 }
 
-func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace, storeKind string) (*client, *vault.Config, error) {
+func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
 	vStore := &client{
 		kube:      kube,
 		corev1:    corev1,
@@ -279,6 +281,26 @@ func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Setup retry options if present
+	if retrySettings != nil {
+		if retrySettings.MaxRetries != nil {
+			cfg.MaxRetries = int(*retrySettings.MaxRetries)
+		} else {
+			// By default we rely only on the reconciliation process for retrying
+			cfg.MaxRetries = 0
+		}
+
+		if retrySettings.RetryInterval != nil {
+			retryWait, err := time.ParseDuration(*retrySettings.RetryInterval)
+			if err != nil {
+				return nil, nil, err
+			}
+			cfg.MinRetryWait = retryWait
+			cfg.MaxRetryWait = retryWait
+		}
+	}
+
 	return vStore, cfg, nil
 }
 
@@ -461,7 +483,7 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return nil
 }
 
-func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	label := map[string]interface{}{
 		"custom_metadata": map[string]string{
 			"managed-by": "external-secrets",
@@ -998,8 +1020,6 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 func (v *client) newConfig() (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
-	// In a controller-runtime context, we rely on the reconciliation process for retrying
-	cfg.MaxRetries = 0
 
 	if len(v.store.CABundle) == 0 && v.store.CAProvider == nil {
 		return cfg, nil

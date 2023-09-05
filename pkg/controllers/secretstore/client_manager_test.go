@@ -340,7 +340,7 @@ type MockFakeClient struct {
 	closeCalled bool
 }
 
-func (c *MockFakeClient) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (c *MockFakeClient) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return nil
 }
 

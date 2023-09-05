@@ -167,18 +167,20 @@ func TestValidateStore(t *testing.T) {
 	}
 	url := "my-url"
 	store.Spec.Provider.IBM.ServiceURL = &url
-	var nilProfile esv1beta1.IBMAuthContainerAuth
-	store.Spec.Provider.IBM.Auth.ContainerAuth = nilProfile
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
-	} else if err.Error() != "secretAPIKey.name cannot be empty" {
-		t.Errorf("KeySelector test failed: expected secret name is required, got %v", err)
+	} else if err.Error() != "missing auth method" {
+		t.Errorf("KeySelector test failed: expected missing auth method, got %v", err)
 	}
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Name = "foo"
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Key = "bar"
 	ns := "ns-one"
-	store.Spec.Provider.IBM.Auth.SecretRef.SecretAPIKey.Namespace = &ns
+	store.Spec.Provider.IBM.Auth.SecretRef = &esv1beta1.IBMAuthSecretRef{
+		SecretAPIKey: v1.SecretKeySelector{
+			Name:      "foo",
+			Key:       "bar",
+			Namespace: &ns,
+		},
+	}
 	err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
@@ -187,10 +189,21 @@ func TestValidateStore(t *testing.T) {
 	}
 
 	// add container auth test
-	store.Spec.Provider.IBM = &esv1beta1.IBMProvider{}
-	store.Spec.Provider.IBM.ServiceURL = &url
-	store.Spec.Provider.IBM.Auth.ContainerAuth.Profile = "Trusted IAM Profile"
-	store.Spec.Provider.IBM.Auth.ContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
+	store = &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				IBM: &esv1beta1.IBMProvider{
+					ServiceURL: &url,
+					Auth: esv1beta1.IBMAuth{
+						ContainerAuth: &esv1beta1.IBMAuthContainerAuth{
+							Profile:       "Trusted IAM Profile",
+							TokenLocation: "/a/path/to/nowhere/that/should/exist",
+						},
+					},
+				},
+			},
+		},
+	}
 	err = p.ValidateStore(store)
 	expected := "cannot read container auth token"
 	if !ErrorContains(err, expected) {
@@ -697,7 +710,8 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretUUID
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
-		smtc.expectedData = map[string][]byte{"arbitrary": []byte(payload),
+		smtc.expectedData = map[string][]byte{
+			"arbitrary":       []byte(payload),
 			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
 			"crn":             []byte(nilValue),
@@ -728,7 +742,8 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = iamCredentialsSecret + secretUUID
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
-		smtc.expectedData = map[string][]byte{"api_key": []byte(secretAPIKey),
+		smtc.expectedData = map[string][]byte{
+			"api_key":         []byte(secretAPIKey),
 			"apikey":          []byte(secretAPIKey),
 			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
@@ -1099,7 +1114,7 @@ func TestValidRetryInput(t *testing.T) {
 			Provider: &esv1beta1.SecretStoreProvider{
 				IBM: &esv1beta1.IBMProvider{
 					Auth: esv1beta1.IBMAuth{
-						SecretRef: esv1beta1.IBMAuthSecretRef{
+						SecretRef: &esv1beta1.IBMAuthSecretRef{
 							SecretAPIKey: v1.SecretKeySelector{
 								Name: "fake-secret",
 								Key:  "fake-key",

@@ -22,18 +22,19 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/IBM/go-sdk-core/v5/core"
+	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
 	"github.com/google/uuid"
-	gjson "github.com/tidwall/gjson"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	types "k8s.io/apimachinery/pkg/types"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	utils "github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -68,8 +69,10 @@ const (
 var contextTimeout = time.Minute * 2
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &providerIBM{}
-var _ esv1beta1.Provider = &providerIBM{}
+var (
+	_ esv1beta1.SecretsClient = &providerIBM{}
+	_ esv1beta1.Provider      = &providerIBM{}
+)
 
 type SecretManagerClient interface {
 	GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
@@ -125,7 +128,7 @@ func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRe
 }
 
 // Not Implemented PushSecret.
-func (ibm *providerIBM) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (ibm *providerIBM) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -579,20 +582,25 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 	}
 
 	containerRef := ibmSpec.Auth.ContainerAuth
-	secretKeyRef := ibmSpec.Auth.SecretRef.SecretAPIKey
-	if utils.IsNil(containerRef.Profile) || (containerRef.Profile == "") {
-		// proceed with API Key Auth validation
-		err := utils.ValidateSecretSelector(store, secretKeyRef)
-		if err != nil {
-			return err
+	secretRef := ibmSpec.Auth.SecretRef
+
+	missingContainerRef := utils.IsNil(containerRef)
+	missingSecretRef := utils.IsNil(secretRef)
+
+	if missingContainerRef == missingSecretRef {
+		// since both are equal, if one is missing assume both are missing
+		if missingContainerRef {
+			return fmt.Errorf("missing auth method")
 		}
-		if secretKeyRef.Name == "" {
-			return fmt.Errorf("secretAPIKey.name cannot be empty")
+		return fmt.Errorf("too many auth methods defined")
+	}
+
+	if !missingContainerRef {
+		// catch undefined container auth profile
+		if containerRef.Profile == "" {
+			return fmt.Errorf("container auth profile cannot be empty")
 		}
-		if secretKeyRef.Key == "" {
-			return fmt.Errorf("secretAPIKey.key cannot be empty")
-		}
-	} else {
+
 		// proceed with container auth
 		if containerRef.TokenLocation == "" {
 			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
@@ -600,7 +608,22 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 		if _, err := os.Open(containerRef.TokenLocation); err != nil {
 			return fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
 		}
+		return nil
 	}
+
+	// proceed with API Key Auth validation
+	secretKeyRef := secretRef.SecretAPIKey
+	err := utils.ValidateSecretSelector(store, secretKeyRef)
+	if err != nil {
+		return err
+	}
+	if secretKeyRef.Name == "" {
+		return fmt.Errorf("secretAPIKey.name cannot be empty")
+	}
+	if secretKeyRef.Key == "" {
+		return fmt.Errorf("secretAPIKey.key cannot be empty")
+	}
+
 	return nil
 }
 
@@ -622,9 +645,10 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericSt
 
 	var err error
 	var secretsManager *sm.SecretsManagerV2
-	containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
-	if containerAuthProfile != "" {
+	containerAuth := iStore.store.Auth.ContainerAuth
+	if !utils.IsNil(containerAuth) && containerAuth.Profile != "" {
 		// container-based auth
+		containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
 		containerAuthToken := iStore.store.Auth.ContainerAuth.TokenLocation
 		containerAuthEndpoint := iStore.store.Auth.ContainerAuth.IAMEndpoint
 

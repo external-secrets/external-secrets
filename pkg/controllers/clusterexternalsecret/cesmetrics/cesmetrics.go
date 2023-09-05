@@ -72,41 +72,31 @@ func UpdateClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, 
 	conditionLabels := ctrlmetrics.RefineConditionMetricLabels(cesInfo)
 	clusterExternalSecretCondition := GetGaugeVec(ClusterExternalSecretStatusConditionKey)
 
-	targetConditionType := condition.Type
-	var theOtherConditionTypes []esv1beta1.ClusterExternalSecretConditionType
-	for _, ct := range []esv1beta1.ClusterExternalSecretConditionType{
-		esv1beta1.ClusterExternalSecretReady,
-		esv1beta1.ClusterExternalSecretPartiallyReady,
-		esv1beta1.ClusterExternalSecretNotReady,
-	} {
-		if ct != targetConditionType {
-			theOtherConditionTypes = append(theOtherConditionTypes, ct)
-		}
+	theOtherStatus := v1.ConditionFalse
+	if condition.Status == v1.ConditionFalse {
+		theOtherStatus = v1.ConditionTrue
 	}
 
-	// Set the target condition metric
 	clusterExternalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 		map[string]string{
-			"condition": string(targetConditionType),
-			"status":    string(v1.ConditionTrue),
+			"condition": string(condition.Type),
+			"status":    string(condition.Status),
 		})).Set(1)
 	clusterExternalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 		map[string]string{
-			"condition": string(targetConditionType),
-			"status":    string(v1.ConditionFalse),
+			"condition": string(condition.Type),
+			"status":    string(theOtherStatus),
 		})).Set(0)
+}
 
-	// Remove the other condition metrics
-	for _, ct := range theOtherConditionTypes {
-		clusterExternalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
+// RemoveMetrics deletes all metrics published by the resource.
+func RemoveMetrics(namespace, name string) {
+	for _, gaugeVecMetric := range gaugeVecMetrics {
+		gaugeVecMetric.DeletePartialMatch(
 			map[string]string{
-				"condition": string(ct),
-				"status":    string(v1.ConditionFalse),
-			}))
-		clusterExternalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
-			map[string]string{
-				"condition": string(ct),
-				"status":    string(v1.ConditionTrue),
-			}))
+				"namespace": namespace,
+				"name":      name,
+			},
+		)
 	}
 }

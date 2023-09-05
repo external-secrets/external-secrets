@@ -14,7 +14,6 @@ limitations under the License.
 package secretmanager
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -27,11 +26,11 @@ import (
 	"github.com/googleapis/gax-go/v2"
 	"github.com/googleapis/gax-go/v2/apierror"
 	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 	"google.golang.org/api/iterator"
 	"google.golang.org/genproto/protobuf/field_mask"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -127,7 +126,7 @@ func parseError(err error) error {
 }
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
-func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
 	})
@@ -158,24 +157,25 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 		}
 	}
 
-	manager, ok := gcpSecret.Labels[managedByKey]
-	if !ok || manager != managedByValue {
-		if remoteRef.GetProperty() == "" {
-			return fmt.Errorf("secret %v is not managed by external secrets", remoteRef.GetRemoteKey())
-		}
+	builder, err := newPushSecretBuilder(payload, metadata, remoteRef)
+	if err != nil {
+		return err
+	}
 
-		labels := map[string]string{}
-		for k, v := range gcpSecret.Labels {
-			labels[k] = v
-		}
-		labels[managedByKey] = managedByValue
+	annotations, labels, err := builder.buildMetadata(gcpSecret.Annotations, gcpSecret.Labels)
+	if err != nil {
+		return err
+	}
+
+	if !mapEqual(gcpSecret.Annotations, annotations) || !mapEqual(gcpSecret.Labels, labels) {
 		_, err = c.smClient.UpdateSecret(ctx, &secretmanagerpb.UpdateSecretRequest{
 			Secret: &secretmanagerpb.Secret{
-				Name:   gcpSecret.Name,
-				Labels: labels,
+				Name:        gcpSecret.Name,
+				Labels:      labels,
+				Annotations: annotations,
 			},
 			UpdateMask: &field_mask.FieldMask{
-				Paths: []string{"labels"},
+				Paths: []string{"labels", "annotations"},
 			},
 		})
 		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMUpdateSecret, err)
@@ -193,30 +193,18 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1b
 		return err
 	}
 
-	if gcpVersion != nil && gcpVersion.Payload != nil {
-		if remoteRef.GetProperty() == "" && bytes.Equal(payload, gcpVersion.Payload.Data) {
-			return nil
-		}
-
-		if remoteRef.GetProperty() != "" {
-			val := getDataByProperty(gcpVersion, remoteRef.GetProperty())
-			if val.Exists() && val.String() == string(payload) {
-				return nil
-			}
-		}
+	if gcpVersion != nil && gcpVersion.Payload != nil && !builder.needUpdate(gcpVersion.Payload.Data) {
+		return nil
 	}
 
-	data := payload
-	if remoteRef.GetProperty() != "" {
-		var base []byte
-		if gcpVersion != nil && gcpVersion.Payload != nil {
-			base = gcpVersion.Payload.Data
-		}
+	var original []byte
+	if gcpVersion != nil && gcpVersion.Payload != nil {
+		original = gcpVersion.Payload.Data
+	}
 
-		data, err = sjson.SetBytes(base, remoteRef.GetProperty(), payload)
-		if err != nil {
-			return err
-		}
+	data, err := builder.buildData(original)
+	if err != nil {
+		return err
 	}
 
 	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
@@ -389,7 +377,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
 	}
 
-	val := getDataByProperty(result, ref.Property)
+	val := getDataByProperty(result.Payload.Data, ref.Property)
 	if !val.Exists() {
 		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
 	}
@@ -523,10 +511,10 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func getDataByProperty(resp *secretmanagerpb.AccessSecretVersionResponse, property string) gjson.Result {
+func getDataByProperty(data []byte, property string) gjson.Result {
 	var payload string
-	if resp.Payload.Data != nil {
-		payload = string(resp.Payload.Data)
+	if data != nil {
+		payload = string(data)
 	}
 	idx := strings.Index(property, ".")
 	refProperty := property
@@ -538,4 +526,18 @@ func getDataByProperty(resp *secretmanagerpb.AccessSecretVersionResponse, proper
 		}
 	}
 	return gjson.Get(payload, property)
+}
+
+func mapEqual(m1, m2 map[string]string) bool {
+	if len(m1) != len(m2) {
+		return false
+	}
+
+	for k1, v1 := range m1 {
+		if v2, ok := m2[k1]; !ok || v1 != v2 {
+			return false
+		}
+	}
+
+	return true
 }
