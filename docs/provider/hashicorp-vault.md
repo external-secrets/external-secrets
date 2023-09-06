@@ -396,14 +396,17 @@ This approach assumes that appropriate IRSA setup is done controller's pod (i.e.
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 ### PushSecret
-Vault supports PushSecret features which allow you to sync a given kubernetes secret key into a hashicorp vault secret. In order to do so, it is expected that the secret key is a valid JSON object.
 
-In order to use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets to for both `data` and `metadata` of the secret. Use it with care!
+Vault supports PushSecret features which allow you to sync a given Kubernetes secret key into a Hashicorp vault secret. To do so, it is expected that the secret key is a valid JSON object or that the `property` attribute has been specified under the `remoteRef`.
+To use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets for both `data` and `metadata` of the secret. Use it with care!
 
-Here is an example on how to set it up:
+Here is an example of how to set up `PushSecret`:
+
 ```yaml
 {% include 'vault-pushsecret.yaml' %}
 ```
+
+Note that in this example, we are generating two secrets in the target vault with the same structure but using different input formats.
 
 ### Vault Enterprise
 
