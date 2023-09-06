@@ -33,6 +33,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 )
 
 type secretManagerTestCase struct {
@@ -758,6 +759,7 @@ func TestPushSecret(t *testing.T) {
 				store: &esv1beta1.GCPSMProvider{
 					ProjectID: smtc.projectID,
 				},
+				secretLocks: locks.SecretLocks{},
 			}
 			err := c.PushSecret(context.Background(), []byte("fake-value"), tc.args.Metadata, ref)
 			if err != nil {
@@ -950,8 +952,9 @@ func TestPushSecret_Property(t *testing.T) {
 			smClient.NewAccessSecretVersionFn(tc.accessSecretVersionMockReturn)
 
 			client := Client{
-				smClient: smClient,
-				store:    &esv1beta1.GCPSMProvider{},
+				smClient:    smClient,
+				store:       &esv1beta1.GCPSMProvider{},
+				secretLocks: locks.SecretLocks{},
 			}
 
 			err := client.PushSecret(context.Background(), []byte(tc.payload), nil, tc.ref)
