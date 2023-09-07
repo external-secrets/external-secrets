@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -225,10 +226,12 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ *apiex
 			return err
 		}
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+			secretVersion := fmt.Sprintf("%032d", 1)
 			secretRequest := awssm.CreateSecretInput{
-				Name:         &secretName,
-				SecretBinary: value,
-				Tags:         externalSecretsTag,
+				Name:               &secretName,
+				SecretBinary:       value,
+				Tags:               externalSecretsTag,
+				ClientRequestToken: &secretVersion,
 			}
 			_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
 			metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
@@ -247,13 +250,29 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ *apiex
 	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
 		return nil
 	}
+
 	input := &awssm.PutSecretValueInput{
-		SecretId:     awsSecret.ARN,
-		SecretBinary: value,
+		SecretId:           awsSecret.ARN,
+		SecretBinary:       value,
+		ClientRequestToken: bumpVersionNumber(awsSecret.VersionId),
 	}
 	_, err = sm.client.PutSecretValueWithContext(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
 	return err
+}
+
+func bumpVersionNumber(id *string) *string {
+	if id == nil {
+		output := fmt.Sprintf("%032d", 1)
+		return &output
+	}
+	oldVersion, err := strconv.ParseInt(*id, 10, 64)
+	if err != nil {
+		output := fmt.Sprintf("%032d", 1)
+		return &output
+	}
+	output := fmt.Sprintf("%032d", oldVersion+1)
+	return &output
 }
 
 func isManagedByESO(data *awssm.DescribeSecretOutput) bool {

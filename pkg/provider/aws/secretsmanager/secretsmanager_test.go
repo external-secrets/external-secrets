@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -417,30 +418,51 @@ func TestSetSecret(t *testing.T) {
 		Tags: externalSecretsTagFaulty,
 	}
 
+	initialVersion := "00000000000000000000000000000001"
+	defaultVersion := "00000000000000000000000000000002"
+	defaultUpdatedVersion := "00000000000000000000000000000003"
+
 	secretValueOutput := &awssm.GetSecretValueOutput{
-		ARN: &arn,
+		ARN:       &arn,
+		VersionId: &defaultVersion,
 	}
 
 	secretValueOutput2 := &awssm.GetSecretValueOutput{
 		ARN:          &arn,
 		SecretBinary: secretValue,
+		VersionId:    &defaultVersion,
 	}
 
 	type params struct {
-		s string
-		b []byte
+		s       string
+		b       []byte
+		version *string
 	}
 	secretValueOutputFrom := func(params params) *awssm.GetSecretValueOutput {
+		var version *string
+		if params.version == nil {
+			version = &defaultVersion
+		} else {
+			version = params.version
+		}
+
 		return &awssm.GetSecretValueOutput{
 			ARN:          &arn,
 			SecretString: &params.s,
 			SecretBinary: params.b,
+			VersionId:    version,
 		}
 	}
 	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
 
 	putSecretOutput := &awssm.PutSecretValueOutput{
 		ARN: &arn,
+	}
+
+	randomUUID := func() *string {
+		random, _ := uuid.NewRandom()
+		s := random.String()
+		return &s
 	}
 
 	remoteRefWithoutProperty := fakeRef{key: "fake-key", property: ""}
@@ -511,7 +533,52 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{b: []byte((`{"fake-property":"fake-value"}`))}), nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`)),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
+						Version:      &defaultUpdatedVersion,
+					}),
+				},
+				remoteRef: remoteRefWithProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithPropertySucceedsWithExistingSecretAndVersionThatCantBeParsed": {
+			reason: "When a secret version is not specified, the client sets a random uuid by default. We should treat a version that can't be parsed to an int as not having a version",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{
+						b:       []byte((`{"fake-property":"fake-value"}`)),
+						version: randomUUID(),
+					}), nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
+						Version:      &initialVersion,
+					}),
+				},
+				remoteRef: remoteRefWithProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithPropertySucceedsWithExistingSecretAndAbsentVersion": {
+			reason: "When a secret version is not specified, set it to 1",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(&awssm.GetSecretValueOutput{
+						ARN:          &arn,
+						SecretBinary: []byte((`{"fake-property":"fake-value"}`)),
+					}, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
+						Version:      &initialVersion,
+					}),
 				},
 				remoteRef: remoteRefWithProperty,
 			},
@@ -526,7 +593,10 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{s: `{"fake-property":"fake-value"}`}), nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`)),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
+						Version:      &defaultUpdatedVersion,
+					}),
 				},
 				remoteRef: remoteRefWithProperty,
 			},
@@ -541,7 +611,10 @@ func TestSetSecret(t *testing.T) {
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{s: `{"fake-property":{"fake-property":"fake-value"}}`}), nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, []byte(`{"fake-property":{"fake-property":"fake-value","other-fake-property":"fake-value"}}`)),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+						SecretBinary: []byte(`{"fake-property":{"fake-property":"fake-value","other-fake-property":"fake-value"}}`),
+						Version:      &defaultUpdatedVersion,
+					}),
 				},
 				remoteRef: fakeRef{key: "fake-key", property: "fake-property.other-fake-property"},
 			},
