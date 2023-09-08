@@ -16,7 +16,6 @@ package fake
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -91,9 +90,15 @@ type ExpectedPutSecretValueInput struct {
 
 func (e ExpectedPutSecretValueInput) assertEquals(actualInput *awssm.PutSecretValueInput) error {
 	errSecretBinary := e.assertSecretBinary(actualInput)
+	if errSecretBinary != nil {
+		return errSecretBinary
+	}
 	errSecretVersion := e.assertVersion(actualInput)
+	if errSecretVersion != nil {
+		return errSecretVersion
+	}
 
-	return errors.Join(errSecretVersion, errSecretBinary)
+	return nil
 }
 
 func (e ExpectedPutSecretValueInput) assertSecretBinary(actualInput *awssm.PutSecretValueInput) error {
