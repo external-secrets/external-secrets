@@ -13,55 +13,77 @@ limitations under the License.
 */
 package locks
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-func TestSecretLocks_TryLock(t *testing.T) {
+func TestTryLock(t *testing.T) {
 	t.Parallel()
 
+	providerName := "test-provider"
 	secretName := "test-secret"
 
 	tests := []struct {
 		desc       string
-		preprocess func(locks *SecretLocks) chan bool
-		expected   bool
+		preprocess func() chan error
+		expected   string
 	}{
 		{
 			desc: "No conflict occurs and hold lock successfully",
-			preprocess: func(locks *SecretLocks) chan bool {
-				ch := make(chan bool)
+			preprocess: func() chan error {
+				ch := make(chan error)
 				go func() {
-					ch <- true
+					ch <- nil
 				}()
 				return ch
 			},
-			expected: true,
+			expected: "",
 		},
 		{
 			desc: "Conflict occurs and cannot hold lock",
-			preprocess: func(locks *SecretLocks) chan bool {
-				ch := make(chan bool)
+			preprocess: func() chan error {
+				ch := make(chan error)
 				go func() {
-					_, ok := locks.TryLock(secretName)
-					ch <- ok
+					_, err := TryLock(providerName, secretName)
+					ch <- err
 				}()
 				return ch
 			},
-			expected: false,
+			expected: "failed to acquire lock: provider: test-provider, secret: test-secret: unable to access secret since it is locked",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
-			locks := SecretLocks{}
-			ch := tc.preprocess(&locks)
+			// Evacuate the sharedLocks temporarily
+			tmp := sharedLocks
+			sharedLocks = &secretLocks{}
+			defer func() {
+				sharedLocks = tmp
+			}()
 
-			success := <-ch
-			if !success {
-				t.Fatal("preprocessing failed")
+			ch := tc.preprocess()
+
+			err := <-ch
+			if err != nil {
+				t.Fatalf("preprocessing failed: %v", err)
 			}
 
-			if _, got := locks.TryLock(secretName); got != tc.expected {
-				t.Fatalf("received an unepceted result: got: %v, expected: %v", got, tc.expected)
+			_, got := TryLock(providerName, secretName)
+			if got != nil {
+				if tc.expected == "" {
+					t.Fatalf("received an unexpected error: %v", got)
+				}
+
+				if !strings.Contains(got.Error(), tc.expected) {
+					t.Fatalf("error %q is supposed to contain %q", got, tc.expected)
+				}
+				return
+			}
+
+			if tc.expected != "" {
+				t.Fatal("expected to receive an error but got nil")
 			}
 		})
 	}

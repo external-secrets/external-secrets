@@ -67,6 +67,8 @@ const (
 
 	managedByKey   = "managed-by"
 	managedByValue = "external-secrets"
+
+	providerName = "GCPSecretManager"
 )
 
 type Client struct {
@@ -78,7 +80,6 @@ type Client struct {
 	// namespace of the external secret
 	namespace        string
 	workloadIdentity *workloadIdentity
-	secretLocks      locks.SecretLocks
 }
 
 type GoogleSecretManagerClient interface {
@@ -189,9 +190,9 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata *apiex
 		}
 	}
 
-	unlock, ok := c.secretLocks.TryLock(secretName)
-	if !ok {
-		return fmt.Errorf("cannot hold a lock for the secret %s", secretName)
+	unlock, err := locks.TryLock(providerName, secretName)
+	if err != nil {
+		return err
 	}
 	defer unlock()
 

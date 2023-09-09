@@ -24,7 +24,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -66,11 +65,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	useMu.Lock()
 
 	client := &Client{
-		kube:        kube,
-		store:       gcpStore,
-		storeKind:   store.GetKind(),
-		namespace:   namespace,
-		secretLocks: locks.SecretLocks{},
+		kube:      kube,
+		store:     gcpStore,
+		storeKind: store.GetKind(),
+		namespace: namespace,
 	}
 	defer func() {
 		if client.smClient == nil {

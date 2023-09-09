@@ -13,16 +13,41 @@ limitations under the License.
 */
 package locks
 
-import "sync"
+import (
+	"errors"
+	"fmt"
+	"sync"
+)
 
-// SecretLocks is a collection of locks for secrets to prevent lost update.
-type SecretLocks struct {
+var (
+	ErrConflict = errors.New("unable to access secret since it is locked")
+
+	sharedLocks = &secretLocks{}
+)
+
+func TryLock(providerName, secretName string) (func(), error) {
+	key := fmt.Sprintf("%s#%s", providerName, secretName)
+	unlockFunc, ok := sharedLocks.tryLock(key)
+	if !ok {
+		return nil, fmt.Errorf(
+			"failed to acquire lock: provider: %s, secret: %s: %w",
+			providerName,
+			secretName,
+			ErrConflict,
+		)
+	}
+
+	return unlockFunc, nil
+}
+
+// secretLocks is a collection of locks for secrets to prevent lost update.
+type secretLocks struct {
 	locks sync.Map
 }
 
-// TryLock tries to hold lock for a given secret and returns true if succeeded.
-func (s *SecretLocks) TryLock(name string) (func(), bool) {
-	lock, _ := s.locks.LoadOrStore(name, &sync.Mutex{})
+// tryLock tries to hold lock for a given secret and returns true if succeeded.
+func (s *secretLocks) tryLock(key string) (func(), bool) {
+	lock, _ := s.locks.LoadOrStore(key, &sync.Mutex{})
 	mu, _ := lock.(*sync.Mutex)
 	return mu.Unlock, mu.TryLock()
 }
