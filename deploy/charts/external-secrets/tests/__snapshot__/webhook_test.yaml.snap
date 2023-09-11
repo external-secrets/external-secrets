@@ -22,7 +22,10 @@ should match snapshot of default values:
         metadata:
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/managed-by: Helm
             app.kubernetes.io/name: external-secrets-webhook
+            app.kubernetes.io/version: v0.9.4
+            helm.sh/chart: external-secrets-0.9.4
         spec:
           automountServiceAccountToken: true
           containers:

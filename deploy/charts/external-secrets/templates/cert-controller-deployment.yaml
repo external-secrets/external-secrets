@@ -23,7 +23,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 8 }}
+        {{- include "external-secrets-cert-controller.labels" . | nindent 8 }}
         {{- with .Values.certController.podLabels }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
