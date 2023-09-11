@@ -50,7 +50,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
 
@@ -154,7 +154,7 @@ jobs:
     needs: build-publish
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Sign image
         if: env.IS_FORK == 'false'
         uses: ./.github/actions/sign
