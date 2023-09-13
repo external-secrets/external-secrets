@@ -17,16 +17,16 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/aws/aws-sdk-go v1.45.2
+	github.com/aws/aws-sdk-go v1.45.6
 	github.com/go-logr/logr v1.2.4
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.1
 	github.com/googleapis/gax-go/v2 v2.12.0
-	github.com/hashicorp/vault/api v1.9.2
-	github.com/hashicorp/vault/api/auth/approle v0.4.1
-	github.com/hashicorp/vault/api/auth/kubernetes v0.4.1
-	github.com/hashicorp/vault/api/auth/ldap v0.4.1
+	github.com/hashicorp/vault/api v1.10.0
+	github.com/hashicorp/vault/api/auth/approle v0.5.0
+	github.com/hashicorp/vault/api/auth/kubernetes v0.5.0
+	github.com/hashicorp/vault/api/auth/ldap v0.5.0
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/lestrrat-go/jwx v1.2.26
 	github.com/onsi/ginkgo/v2 v2.12.0
@@ -42,11 +42,11 @@ require (
 	github.com/yandex-cloud/go-sdk v0.0.0-20230831120744-c3a3ae28d8ae
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.25.0
-	golang.org/x/crypto v0.12.0
-	golang.org/x/oauth2 v0.11.0
-	google.golang.org/api v0.138.0
+	golang.org/x/crypto v0.13.0
+	golang.org/x/oauth2 v0.12.0
+	google.golang.org/api v0.139.0
 	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d // indirect
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.58.0
 	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
 	k8s.io/api v0.28.1
@@ -60,11 +60,11 @@ require (
 require github.com/1Password/connect-sdk-go v1.5.3
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.1
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.2
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.1
-	github.com/akeylesslabs/akeyless-go/v3 v3.3.16
+	github.com/akeylesslabs/akeyless-go/v3 v3.3.18
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.4
-	github.com/alibabacloud-go/kms-20160120/v3 v3.0.2
+	github.com/alibabacloud-go/kms-20160120/v3 v3.1.0
 	github.com/alibabacloud-go/openapi-util v0.1.0
 	github.com/alibabacloud-go/tea v1.2.1
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.4
@@ -74,13 +74,13 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/hashicorp/go-retryablehttp v0.7.4
 	github.com/hashicorp/golang-lru v1.0.2
-	github.com/hashicorp/vault/api/auth/aws v0.4.1
+	github.com/hashicorp/vault/api/auth/aws v0.5.0
 	github.com/keeper-security/secrets-manager-go/core v1.6.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.20
 	github.com/sethvargo/go-password v0.2.0
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -137,7 +137,7 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20230901174712-0191c66da455 // indirect
+	github.com/google/pprof v0.0.0-20230907193218-d3ddc7976beb // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -148,7 +148,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.2.3 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
-	github.com/hashicorp/go-sockaddr v1.0.4 // indirect
+	github.com/hashicorp/go-sockaddr v1.0.5 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
@@ -196,15 +196,15 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/net v0.15.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/term v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
+	golang.org/x/tools v0.13.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
@@ -215,7 +215,7 @@ require (
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20230901164831-6c774f458599 // indirect
+	k8s.io/kube-openapi v0.0.0-20230905202853-d090da108d2f // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.3.0 // indirect
 )
