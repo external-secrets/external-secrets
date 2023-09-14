@@ -143,18 +143,17 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 		return nil, fmt.Errorf(errGetSecret, ref.Key, err)
 	}
 
-	// (1): return raw json if no property is defined
-	if ref.Property == "" {
-		return []byte(secret.Value), nil
+	value := secret.Value
+
+	if len(ref.Property) > 0 {
+		jsonRes := gjson.Get(secret.Value, ref.Property)
+		if !jsonRes.Exists() {
+			return nil, fmt.Errorf(errSecretKeyFmt, ref.Property, ref.Key)
+		}
+		value = jsonRes.Raw
 	}
 
-	// (2): extract key from secret using gjson
-	val := gjson.Get(secret.Value, ref.Property)
-	if !val.Exists() {
-		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property, ref.Key)
-	}
-
-	return []byte(secret.Value), nil
+	return []byte(value), nil
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
