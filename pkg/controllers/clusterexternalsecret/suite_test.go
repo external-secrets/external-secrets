@@ -24,13 +24,13 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -38,7 +38,6 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 var cancel context.CancelFunc
@@ -62,7 +61,7 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 
 	var err error
-	cfg, err = testEnv.Start()
+	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
@@ -70,8 +69,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0", // Avoid port collision
+		Scheme: scheme.Scheme,
+		Metrics: server.Options{
+			BindAddress: "0",
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 

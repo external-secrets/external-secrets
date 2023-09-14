@@ -23,6 +23,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -115,11 +116,11 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

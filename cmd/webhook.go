@@ -31,6 +31,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -98,7 +99,9 @@ var webhookCmd = &cobra.Command{
 					setupLog.Info("validating certs")
 					err = crds.CheckCerts(c, dnsName, time.Now().Add(certLookaheadInterval))
 					if err != nil {
+						setupLog.Error(err, "certs are not valid at now + lookahead, triggering shutdown", "certLookahead", certLookaheadInterval.String())
 						cancel()
+						return
 					}
 					setupLog.Info("certs are valid")
 				}
@@ -114,17 +117,21 @@ var webhookCmd = &cobra.Command{
 			cfg.CipherSuites = cipherList
 		}
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:                 scheme,
-			MetricsBindAddress:     metricsAddr,
+			Scheme: scheme,
+			Metrics: server.Options{
+				BindAddress: metricsAddr,
+			},
 			HealthProbeBindAddress: healthzAddr,
-			WebhookServer: &webhook.Server{
-				CertDir:       certDir,
-				Port:          port,
-				TLSMinVersion: tlsMinVersion,
+			WebhookServer: webhook.NewServer(webhook.Options{
+				CertDir: certDir,
+				Port:    port,
 				TLSOpts: []func(*tls.Config){
 					mgrTLSOptions,
+					func(c *tls.Config) {
+						c.MinVersion = tlsVersion(tlsMinVersion)
+					},
 				},
-			},
+			}),
 		})
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
@@ -169,6 +176,25 @@ var webhookCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+}
+
+// tlsVersion converts from human-readable TLS version (for example "1.1")
+// to the values accepted by tls.Config (for example 0x301).
+func tlsVersion(version string) uint16 {
+	switch version {
+	case "":
+		return tls.VersionTLS10
+	case "1.0":
+		return tls.VersionTLS10
+	case "1.1":
+		return tls.VersionTLS11
+	case "1.2":
+		return tls.VersionTLS12
+	case "1.3":
+		return tls.VersionTLS13
+	default:
+		return tls.VersionTLS13
+	}
 }
 
 // waitForCerts waits until the certificates become ready.

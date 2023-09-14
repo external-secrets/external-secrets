@@ -100,7 +100,7 @@ func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1beta
 	return nil
 }
 
-func (p *Parser) MergeLiteral(ctx context.Context, tpl esv1beta1.TemplateFrom) error {
+func (p *Parser) MergeLiteral(_ context.Context, tpl esv1beta1.TemplateFrom) error {
 	if tpl.Literal == nil {
 		return nil
 	}
@@ -152,7 +152,6 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	// no template: copy data and return
 	if es.Spec.Target.Template == nil {
 		secret.Data = dataMap
-		secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
 		return nil
 	}
 	// Merge Policy should merge secrets
@@ -198,8 +197,6 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	if len(es.Spec.Target.Template.Data) == 0 && len(es.Spec.Target.Template.TemplateFrom) == 0 {
 		secret.Data = dataMap
 	}
-	secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
-
 	return nil
 }
 

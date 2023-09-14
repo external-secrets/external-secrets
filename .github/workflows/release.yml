@@ -7,6 +7,10 @@ on:
         description: 'version to release, e.g. v1.5.13'
         required: true
         default: 'v0.1.0'
+      source_ref:
+        description: 'source ref to publish from. E.g.: main or release-x.y'
+        required: true
+        default: 'main'
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
@@ -18,39 +22,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.inputs.source_ref }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.inputs.version }}
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Build Changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v3
-        with:
-          configuration: "changelog.json"
-          toTag: ${{ github.event.inputs.version }}
-          commitMode: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: create changelog file
-        run: |
-          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}\`" >> .changelog
-          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi\`" >> .changelog
-          echo "Image: \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl\`" >> .changelog
-          echo "${{ steps.build_changelog.outputs.changelog }}" >> .changelog
-
-      - name: Update Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.event.inputs.version }}
-          body_path: .changelog
+          target_commitish: ${{ github.event.inputs.source_ref }}
+          generate_release_notes: true
+          body: |
+            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
+            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
+            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -65,6 +51,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Update Docs
+        if: github.ref == 'refs/heads/main'
         run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
@@ -84,12 +71,12 @@ jobs:
       contents: write
 
     env:
-      SOURCE_TAG: main${{ matrix.tag_suffix }}
+      SOURCE_TAG: ${{ github.event.inputs.source_ref }}${{ matrix.tag_suffix }}
       RELEASE_TAG: ${{ github.event.inputs.version }}${{ matrix.tag_suffix }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -127,7 +114,11 @@ jobs:
         run: make docker.promote
 
       - name: Build release manifests
-        run: make manifests
+        run: |
+          # temporarily patch the version so we generate manifests with the new version
+          yq e -i '.version = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i '.appVersion = "${{ github.event.inputs.version }}"' ./deploy/charts/external-secrets/Chart.yaml
+          make manifests
 
       - name: Sign promoted image
         id: sign

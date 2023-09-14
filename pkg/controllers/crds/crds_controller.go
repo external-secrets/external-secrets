@@ -200,10 +200,7 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 			return err
 		}
 	}
-	if err := r.Update(ctx, &updatedResource); err != nil {
-		return err
-	}
-	return nil
+	return r.Update(ctx, &updatedResource)
 }
 
 func injectService(crd *apiext.CustomResourceDefinition, svc types.NamespacedName) error {
@@ -344,10 +341,7 @@ func (r *Reconciler) refreshCerts(refreshCA bool, secret *corev1.Secret) error {
 	if err != nil {
 		return err
 	}
-	if err := r.writeSecret(cert, key, caArtifacts, secret); err != nil {
-		return err
-	}
-	return nil
+	return r.writeSecret(cert, key, caArtifacts, secret)
 }
 
 func buildArtifactsFromSecret(secret *corev1.Secret) (*KeyPairArtifacts, error) {

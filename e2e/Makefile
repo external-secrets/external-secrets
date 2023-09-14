@@ -41,12 +41,12 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 e2e-bin:
 	CGO_ENABLED=0 go run github.com/onsi/ginkgo/v2/ginkgo build ./suites/...
 
-e2e-image: e2e-bin
+e2e-image:
 	-rm -rf ./k8s/deploy
 	mkdir -p k8s
 	$(MAKE) -C ../ helm.generate
 	cp -r ../deploy ./k8s
-	docker build $(DOCKER_BUILD_ARGS) -t $(E2E_IMAGE_NAME):$(VERSION) .
+	docker build $(DOCKER_BUILD_ARGS) -t $(E2E_IMAGE_NAME):$(VERSION) -f Dockerfile ..
 
 stop-kind: ## Stop kind cluster
 	kind delete cluster \

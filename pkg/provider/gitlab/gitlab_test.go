@@ -432,13 +432,14 @@ func TestGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 	}
 
-	sm := Gitlab{}
+	sm := gitlabBase{}
+	sm.store = &esv1beta1.GitlabProvider{}
 	for k, v := range successCases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
-		sm.projectID = v.projectID
-		sm.groupIDs = v.groupIDs
-		sm.environment = v.apiInputEnv
+		sm.store.ProjectID = v.projectID
+		sm.store.GroupIDs = v.groupIDs
+		sm.store.Environment = v.apiInputEnv
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
@@ -451,16 +452,17 @@ func TestGetSecret(t *testing.T) {
 
 func TestResolveGroupIds(t *testing.T) {
 	v := makeValidSecretManagerTestCaseCustom()
-	sm := Gitlab{}
+	sm := gitlabBase{}
+	sm.store = &esv1beta1.GitlabProvider{}
 	sm.projectsClient = v.mockProjectsClient
-	sm.projectID = v.projectID
-	sm.inheritFromGroups = true
+	sm.store.ProjectID = v.projectID
+	sm.store.InheritFromGroups = true
 	err := sm.ResolveGroupIds()
 	if err != nil {
 		t.Errorf(defaultErrorMessage, 0, err.Error(), "")
 	}
-	if !reflect.DeepEqual(sm.groupIDs, []string{"1", "10", "100"}) {
-		t.Errorf("unexpected groupIds: %s, expected %s", sm.groupIDs, []string{"1", "10", "100"})
+	if !reflect.DeepEqual(sm.store.GroupIDs, []string{"1", "10", "100"}) {
+		t.Errorf("unexpected groupIds: %s, expected %s", sm.store.GroupIDs, []string{"1", "10", "100"})
 	}
 }
 
@@ -475,7 +477,7 @@ func TestGetAllSecrets(t *testing.T) {
 	setUnsupportedFindPath := func(smtc *secretManagerTestCase) {
 		path := "path"
 		smtc.refFind.Path = &path
-		smtc.expectError = "'find.path' is not implemented in the Gitlab provider"
+		smtc.expectError = "'find.path' is not implemented in the GitLab provider"
 	}
 	setUnsupportedFindTag := func(smtc *secretManagerTestCase) {
 		smtc.expectError = "'find.tags' only supports 'environment_scope"
@@ -642,12 +644,13 @@ func TestGetAllSecrets(t *testing.T) {
 		makeValidSecretManagerGetAllTestCaseCustom(setNilMockClient),
 	}
 
-	sm := Gitlab{}
+	sm := gitlabBase{}
+	sm.store = &esv1beta1.GitlabProvider{}
 	for k, v := range cases {
-		sm.environment = v.apiInputEnv
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
-		sm.groupIDs = v.groupIDs
+		sm.store.Environment = v.apiInputEnv
+		sm.store.GroupIDs = v.groupIDs
 		if v.expectedSecret != "" {
 			v.expectedData = map[string][]byte{testKey: []byte(v.expectedSecret)}
 		}
@@ -701,13 +704,14 @@ func TestGetAllSecretsWithGroups(t *testing.T) {
 		makeValidSecretManagerGetAllTestCaseCustom(groupAndProjectWithDifferentEnvSecrets),
 	}
 
-	sm := Gitlab{}
-	sm.environment = environment
+	sm := gitlabBase{}
+	sm.store = &esv1beta1.GitlabProvider{}
+	sm.store.Environment = environment
 	for k, v := range cases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
-		sm.projectID = v.projectID
-		sm.groupIDs = v.groupIDs
+		sm.store.ProjectID = v.projectID
+		sm.store.GroupIDs = v.groupIDs
 		out, err := sm.GetAllSecrets(context.Background(), *v.refFind)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf(defaultErrorMessage, k, err.Error(), v.expectError)
@@ -735,14 +739,15 @@ func TestValidate(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setGroupListAPIRespNil),
 		makeValidSecretManagerTestCaseCustom(setGroupListAPIRespBadCode),
 	}
-	sm := Gitlab{}
+	sm := gitlabBase{}
+	sm.store = &esv1beta1.GitlabProvider{}
 	for k, v := range successCases {
 		sm.projectsClient = v.mockProjectsClient
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
-		sm.projectID = v.projectID
-		sm.groupIDs = v.groupIDs
-		sm.inheritFromGroups = v.inheritFromGroups
+		sm.store.ProjectID = v.projectID
+		sm.store.GroupIDs = v.groupIDs
+		sm.store.InheritFromGroups = v.inheritFromGroups
 		t.Logf("%+v", v)
 		validationResult, err := sm.Validate()
 		if !ErrorContains(err, v.expectError) {
@@ -751,8 +756,8 @@ func TestValidate(t *testing.T) {
 		if validationResult != v.expectedValidationResult {
 			t.Errorf("[%d], unexpected validationResult: [%s], expected: [%s]", k, validationResult, v.expectedValidationResult)
 		}
-		if sm.inheritFromGroups && sm.groupIDs[0] != "1" {
-			t.Errorf("[%d], unexpected groupID: [%s], expected [1]", k, sm.groupIDs[0])
+		if sm.store.InheritFromGroups && sm.store.GroupIDs[0] != "1" {
+			t.Errorf("[%d], unexpected groupID: [%s], expected [1]", k, sm.store.GroupIDs[0])
 		}
 	}
 }
@@ -777,7 +782,8 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 	}
 
-	sm := Gitlab{}
+	sm := gitlabBase{}
+	sm.store = &esv1beta1.GitlabProvider{}
 	for k, v := range successCases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
@@ -790,18 +796,6 @@ func TestGetSecretMap(t *testing.T) {
 		}
 	}
 }
-
-func ErrorContains(out error, want string) bool {
-	if out == nil {
-		return want == ""
-	}
-	if want == "" {
-		return false
-	}
-	return strings.Contains(out.Error(), want)
-}
-
-type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
 
 func makeSecretStore(projectID, environment string, fn ...storeModifier) *esv1beta1.SecretStore {
 	store := &esv1beta1.SecretStore{
@@ -877,7 +871,7 @@ func TestValidateStore(t *testing.T) {
 			err:   nil,
 		},
 	}
-	p := Gitlab{}
+	p := Provider{}
 	for _, tc := range testCases {
 		err := p.ValidateStore(tc.store)
 		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
@@ -889,3 +883,15 @@ func TestValidateStore(t *testing.T) {
 		}
 	}
 }
+
+func ErrorContains(out error, want string) bool {
+	if out == nil {
+		return want == ""
+	}
+	if want == "" {
+		return false
+	}
+	return strings.Contains(out.Error(), want)
+}
+
+type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore

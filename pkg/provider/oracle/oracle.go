@@ -25,6 +25,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v56/secrets"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -74,16 +75,16 @@ type KmsVCInterface interface {
 }
 
 // Not Implemented PushSecret.
-func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (vms *VaultManagementService) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (vms *VaultManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
-func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (vms *VaultManagementService) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
@@ -249,7 +250,7 @@ func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, 
 	return common.NewRawConfigurationProvider(store.Auth.Tenancy, store.Auth.User, region, fingerprint, privateKey, nil), nil
 }
 
-func (vms *VaultManagementService) Close(ctx context.Context) error {
+func (vms *VaultManagementService) Close(_ context.Context) error {
 	return nil
 }
 

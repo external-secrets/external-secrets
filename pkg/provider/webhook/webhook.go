@@ -30,11 +30,13 @@ import (
 	"github.com/PaesslerAG/jsonpath"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/metrics"
+	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -66,7 +68,7 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	whClient := &WebHook{
 		kube:      kube,
 		store:     store,
@@ -86,7 +88,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return whClient, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) error {
 	return nil
 }
 
@@ -116,17 +118,17 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 	return secret, nil
 }
 
-func (w *WebHook) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (w *WebHook) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (w *WebHook) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (w *WebHook) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Empty GetAllSecrets.
-func (w *WebHook) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
@@ -281,7 +283,7 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1beta1.Webhoo
 	}
 
 	resp, err := w.http.Do(req)
-	metrics.ObserveAPICall(metrics.ProviderWebhook, metrics.CallWebhookHTTPReq, err)
+	metrics.ObserveAPICall(constants.ProviderWebhook, constants.CallWebhookHTTPReq, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
@@ -423,7 +425,7 @@ func (w *WebHook) getCertFromConfigMap(provider *esv1beta1.WebhookProvider) ([]b
 	return []byte(val), nil
 }
 
-func (w *WebHook) Close(ctx context.Context) error {
+func (w *WebHook) Close(_ context.Context) error {
 	return nil
 }
 

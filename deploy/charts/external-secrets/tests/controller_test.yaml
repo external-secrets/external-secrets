@@ -40,3 +40,10 @@ tests:
             runAsUser: 3000
             seccompProfile:
               type: RuntimeDefault
+  - it: should override hostNetwork
+    set:
+      hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true

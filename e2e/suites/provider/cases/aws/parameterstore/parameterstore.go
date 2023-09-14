@@ -61,6 +61,7 @@ var _ = Describe("[aws] ", Label("aws", "parameterstore"), func() {
 		framework.Compose(withStaticAuth, f, FindByNameWithPath, useStaticAuth),
 		framework.Compose(withStaticAuth, f, FindByTag, useStaticAuth),
 		framework.Compose(withStaticAuth, f, FindByTagWithPath, useStaticAuth),
+		framework.Compose(withStaticAuth, f, VersionedParameter(prov), useStaticAuth),
 	)
 })
 

@@ -1,0 +1,34 @@
+suite: test service monitor
+templates: 
+  - servicemonitor.yaml
+tests:
+  - it: should render service monitor when APIVersions is present and serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1"
+    asserts:
+      - hasDocuments:
+          count: 6
+  - it: should not render service monitor when APIVersions is not present but serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service monitor when APIVersions is present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1"
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service monitor when APIVersions is not present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

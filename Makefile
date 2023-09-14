@@ -91,9 +91,9 @@ update-deps:
 # Golang
 
 .PHONY: test
-test: generate ## Run tests
+test: generate envtest ## Run tests
 	@$(INFO) go test unit-tests
-	go test -race -v $(shell go list ./... | grep -v e2e) -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test -race -v $(shell go list ./... | grep -v e2e) -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: test.e2e
@@ -118,30 +118,18 @@ build-%: generate ## Build binary for the specified arch
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-lint.check: ## Check install of golanci-lint
-	@if ! golangci-lint --version > /dev/null 2>&1; then \
-		echo -e "\033[0;33mgolangci-lint is not installed: run \`\033[0;32mmake lint.install\033[0m\033[0;33m\` or install it from https://golangci-lint.run\033[0m"; \
-		exit 1; \
-	fi
-
-lint.install: ## Install golangci-lint to the go bin dir
-	@if ! golangci-lint --version > /dev/null 2>&1; then \
-		echo "Installing golangci-lint"; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.49.0; \
-	fi
-
-lint: lint.check ## Run golangci-lint
-	@if ! golangci-lint run; then \
+lint: golangci-lint ## Run golangci-lint
+	@if ! $(GOLANGCI_LINT) run; then \
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
 		exit 1; \
 	fi
 	@$(OK) Finished linting
 
-fmt: lint.check ## Ensure consistent code style
+fmt: golangci-lint ## Ensure consistent code style
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@go fmt ./...
-	@golangci-lint run --fix > /dev/null 2>&1 || true
+	@$(GOLANGCI_LINT) run --fix
 	@$(OK) Ensured consistent code style
 
 generate: ## Generate code and crds
@@ -218,19 +206,29 @@ docs.serve: ## Serve docs
 # ====================================================================================
 # Build Artifacts
 
+.PHONY: build.all
 build.all: docker.build helm.build ## Build all artifacts (docker image, helm chart)
 
-docker.image:
+.PHONY: docker.image
+docker.image:  ## Emit IMAGE_NAME:IMAGE_TAG
 	@echo $(IMAGE_NAME):$(IMAGE_TAG)
 
-docker.tag:
+.PHONY: docker.imagename
+docker.imagename:  ## Emit IMAGE_NAME
+	@echo $(IMAGE_NAME)
+
+.PHONY: docker.tag
+docker.tag:  ## Emit IMAGE_TAG
 	@echo $(IMAGE_TAG)
 
+.PHONY: docker.build
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	@docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	echo docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	DOCKER_BUILDKIT=1 docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
+.PHONY: docker.push
 docker.push: ## Push the docker image to the registry
 	@$(INFO) docker push
 	@docker push $(IMAGE_NAME):$(IMAGE_TAG)
@@ -241,6 +239,7 @@ docker.push: ## Push the docker image to the registry
 RELEASE_TAG ?= $(IMAGE_TAG)
 SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 
+.PHONY: docker.promote
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
 	docker manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
@@ -279,6 +278,42 @@ tf.show.%: ## Runs terrform show for a provider and outputs to a file
 # ====================================================================================
 # Help
 
+.PHONY: help
 # only comments after make target name are shown as help text
 help: ## Displays this help message
-	@echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sed -e 's/:.*##\s*/:/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s : | sort)"
+	@echo -e "$$(grep -hE '^\S+:.*##' $(MAKEFILE_LIST) | sed -e 's/:.*##\s*/|/' -e 's/^\(.\+\):\(.*\)/\\x1b[36m\1\\x1b[m:\2/' | column -c2 -t -s'|' | sort)"
+
+
+.PHONY: clean
+clean:  ## Clean bins
+	@$(INFO) clean
+	@rm -f $(OUTPUT_DIR)/external-secrets-linux-*
+	@$(OK) go build $*
+
+# ====================================================================================
+# Build Dependencies
+
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+## Tool Binaries
+ENVTEST ?= $(LOCALBIN)/setup-envtest
+GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
+
+## Tool Versions
+GOLANGCI_VERSION := 1.52.2
+KUBERNETES_VERSION := 1.28.x
+
+.PHONY: envtest
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: golangci-lint
+.PHONY: $(GOLANGCI_LINT)
+golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
+$(GOLANGCI_LINT): $(LOCALBIN)
+	test -s $(LOCALBIN)/golangci-lint && $(LOCALBIN)/golangci-lint version --format short | grep -q $(GOLANGCI_VERSION) || \
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(LOCALBIN) v$(GOLANGCI_VERSION)

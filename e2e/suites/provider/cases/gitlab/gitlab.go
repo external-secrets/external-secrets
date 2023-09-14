@@ -12,7 +12,7 @@ limitations under the License.
 */
 package gitlab
 
-// TODO - Gitlab only accepts variable names with alphanumeric and '_'
+// TODO - GitLab only accepts variable names with alphanumeric and '_'
 // whereas ESO only accepts names with alphanumeric and '-'.
 // Current workaround is to remove all hyphens and underscores set in e2e/framework/util/util.go
 // and in e2e/suite/common/common.go, but this breaks Azure provider.

@@ -24,6 +24,8 @@ import (
 	"net/http"
 	"net/url"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
 )
@@ -90,19 +92,19 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 	}, nil
 }
 
-func (dsm *DSM) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (dsm *DSM) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (dsm *DSM) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (dsm *DSM) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 /*
 GetSecret implements ESO interface and get a single secret from senhasegura provider with DSM service.
 */
-func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (resp []byte, err error) {
+func (dsm *DSM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (resp []byte, err error) {
 	appSecrets, err := dsm.FetchSecrets()
 	if err != nil {
 		return []byte(""), err
@@ -137,7 +139,7 @@ func (dsm *DSM) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataR
 /*
 GetSecretMap implements ESO interface and returns miltiple k/v pairs from senhasegura provider with DSM service.
 */
-func (dsm *DSM) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (secretData map[string][]byte, err error) {
+func (dsm *DSM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (secretData map[string][]byte, err error) {
 	secretData = make(map[string][]byte)
 	appSecrets, err := dsm.FetchSecrets()
 	if err != nil {
@@ -162,7 +164,7 @@ GetAllSecrets implements ESO interface and returns multiple secrets from senhase
 TODO: GetAllSecrets functionality is to get secrets from either regexp-matching against the names or via metadata label matching.
 https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107
 */
-func (dsm *DSM) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (secretData map[string][]byte, err error) {
+func (dsm *DSM) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (secretData map[string][]byte, err error) {
 	return nil, fmt.Errorf("GetAllSecrets not implemented yet")
 }
 
@@ -219,7 +221,7 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 /*
 Close implements ESO interface and do nothing in senhasegura.
 */
-func (dsm *DSM) Close(ctx context.Context) error {
+func (dsm *DSM) Close(_ context.Context) error {
 	return nil
 }
 

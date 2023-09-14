@@ -16,6 +16,7 @@ package externalsecret
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -228,4 +229,14 @@ func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *e
 		return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
 	}
 	return secretMap, err
+}
+
+func shouldSkipGenerator(r *Reconciler, generatorDef *apiextensions.JSON) (bool, error) {
+	var genControllerClass genv1alpha1.ControllerClassResource
+	err := json.Unmarshal(generatorDef.Raw, &genControllerClass)
+	if err != nil {
+		return false, err
+	}
+	var controllerClass = genControllerClass.Spec.ControllerClass
+	return controllerClass != "" && controllerClass != r.ControllerClass, nil
 }

@@ -5,18 +5,27 @@ hide:
 
 This page lists the status, timeline and policy for currently supported ESO releases and its providers. Please also see our [deprecation policy](deprecation-policy.md) that describes API versioning, deprecation and API surface.
 
-## External Secrets Operator
+## Supported Versions
 
-We are currently in beta and support **only the latest release** for the time being.
+We want to provide security patches and critical bug fixes in a timely manner to our users.
+To do so, we offer long-term support for our latest two (N, N-1) software releases.
+We aim for a 2-3 month minor release cycle, i.e. a given release is supported for about 4-6 months.
 
-| ESO Version | Kubernetes Version |
-| ----------- | ------------------ |
-| 0.8.x       | 1.19 → 1.26        |
-| 0.7.x       | 1.19 → 1.26        |
-| 0.6.x       | 1.19 → 1.24        |
-| 0.5.x       | 1.19 → 1.24        |
-| 0.4.x       | 1.16 → 1.24        |
-| 0.3.x       | 1.16 → 1.24        |
+We want to cover the following cases:
+
+- regular image rebuilds to update OS dependencies
+- regular go dependency updates
+- backport bug fixes on demand
+
+| ESO Version | Kubernetes Version | Release Date | End of Life    |
+| ----------- | ------------------ | ------------ | -------------- |
+| 0.9.x       | 1.19 → 1.28        | Jun 22, 2023 | Release of 1.1 |
+| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Release of 1.0 |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023   |
+| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |
+| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022   |
+| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022    |
+| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021 | Apr 6, 2022    |
 
 ## Provider Stability and Support Level
 
@@ -32,7 +41,7 @@ The following table describes the stability level of each provider and who's res
 | [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)              |  stable   | [@knelasevero](https://github.com/knelasevero) [@sebagomez](https://github.com/sebagomez) [@ricardoptcosta](https://github.com/ricardoptcosta) [@IdanAdar](https://github.com/IdanAdar) |
 | [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |   beta    |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
 | [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              |   alpha   |                                                                                     [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
-| [Gitlab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          |   alpha   |                                                                                                                                                  [@Jabray5](https://github.com/Jabray5) |
+| [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          |   alpha   |                                                                                                                                                  [@Jabray5](https://github.com/Jabray5) |
 | Alibaba Cloud KMS                                                                                          |   alpha   |                                                                                                                                          [@ElsaChelala](https://github.com/ElsaChelala) |
 | [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   |   alpha   |                                                                                                 [@KianTigger](https://github.com/KianTigger) [@EladGabay](https://github.com/EladGabay) |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           |   alpha   |                                                                                                                                    [@renanaAkeyless](https://github.com/renanaAkeyless) |
@@ -42,6 +51,8 @@ The following table describes the stability level of each provider and who's res
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |   alpha   |                                                                                         [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/) |
 | [Keeper Security](https://www.keepersecurity.com/)                                                         |   alpha   |                                                                                                                                              [@ppodevlab](https://github.com/ppodevlab) |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
+| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   alpha   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) |
+| [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
 
 ## Provider Feature Support
 
@@ -52,12 +63,12 @@ The following table show the support for features across different providers.
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| GCP Secret Manager        |      x       |      x       |                      |            x            |        x         |      x      |              x              |
+| GCP Secret Manager        |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| Kubernetes                |      x       |      x       |          x           |            x            |        x         |             |              x              |
-| IBM Cloud Secrets Manager |              |              |                      |                         |        x         |             |                             |
+| Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
-| Gitlab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
+| GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |      x       |      x       |                      |                         |        x         |             |                             |
@@ -67,6 +78,8 @@ The following table show the support for features across different providers.
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
+| Conjur                    |              |              |                      |                         |        x         |             |                             |
+| Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 

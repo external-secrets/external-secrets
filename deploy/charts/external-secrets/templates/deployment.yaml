@@ -23,7 +23,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "external-secrets.selectorLabels" . | nindent 8 }}
+        {{- include "external-secrets.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -38,6 +38,7 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      hostNetwork: {{ .Values.hostNetwork }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -63,6 +64,9 @@ spec:
             {{- end }}
             {{- if not .Values.processClusterExternalSecret }}
           - --enable-cluster-external-secret-reconciler=false
+            {{- end }}
+            {{- if not .Values.processPushSecret }}
+          - --enable-push-secret-reconciler=false
             {{- end }}
           {{- end }}
           {{- if .Values.controllerClass }}
