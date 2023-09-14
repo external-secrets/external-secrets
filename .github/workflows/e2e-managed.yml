@@ -59,7 +59,7 @@ jobs:
     steps:
 
     - name: Branch based PR checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Fetch History
       run: git fetch --prune --unshallow
@@ -77,7 +77,7 @@ jobs:
 
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: 'refs/pull/${{ env.GITHUB_PR_NUMBER }}/merge'
 
