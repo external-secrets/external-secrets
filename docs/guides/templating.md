@@ -8,7 +8,7 @@ With External Secrets Operator you can transform the data from the external secr
 When installing ExternalSecrets via `helm`, the template must be escaped so that `helm` will not try to render it. The most straightforward way to accomplish this would be to use backticks ([raw string constants](https://pkg.go.dev/text/template#hdr-Examples)):
 
 ```yaml
-{% include helm-template-v2-escape-sequence.yaml %}
+{% include 'helm-template-v2-escape-sequence.yaml' %}
 ```
 
 ## Examples
