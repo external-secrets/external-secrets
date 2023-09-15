@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/tidwall/gjson"
 	v1 "k8s.io/api/core/v1"
@@ -45,64 +46,72 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if err != nil {
 		return nil, err
 	}
-	var values map[string][]byte
-	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-		values, err = getSecretMetadata(secret)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		values = secret.Data
-	}
-
-	byteArr, err := getSecretValues(values, ref.MetadataPolicy)
+	serializedSecret, err := serializeSecret(secret, ref)
 	if err != nil {
 		return nil, err
 	}
-	if ref.Property != "" {
-		jsonStr := string(byteArr)
-		// We need to search if a given key with a . exists before using gjson operations.
-		idx := strings.Index(ref.Property, ".")
-		if idx > -1 {
-			refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
-			val := gjson.Get(jsonStr, refProperty)
-			if val.Exists() {
-				return []byte(val.String()), nil
-			}
-		}
-		val := gjson.Get(jsonStr, ref.Property)
-		if !val.Exists() {
-			return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
-		}
 
-		return []byte(val.String()), nil
+	// if property is not defined, we will return the json-serialized secret
+	if ref.Property == "" {
+		return serializedSecret, nil
 	}
 
-	return byteArr, nil
+	jsonStr := string(serializedSecret)
+	// We need to search if a given key with a . exists before using gjson operations.
+	idx := strings.Index(ref.Property, ".")
+	if idx > -1 {
+		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+		val := gjson.Get(jsonStr, refProperty)
+		if val.Exists() {
+			return []byte(val.Str), nil
+		}
+	}
+	val := gjson.Get(jsonStr, ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf("property %s does not exist in key %s", ref.Property, ref.Key)
+	}
+	return []byte(val.String()), nil
 }
 
-func getSecretValues(secretMap map[string][]byte, policy esv1beta1.ExternalSecretMetadataPolicy) ([]byte, error) {
-	var byteArr []byte
-	var err error
-	if policy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-		data := make(map[string]json.RawMessage, len(secretMap))
-		for k, v := range secretMap {
-			data[k] = v
+// serializeSecret serializes a secret map[string][]byte into a flat []byte.
+func serializeSecret(secret *v1.Secret, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	// metadata is treated differently, because it
+	// contains nested maps which can be queried with `ref.Property`
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		values, err := getSecretMetadata(secret)
+		if err != nil {
+			return nil, err
 		}
-		byteArr, err = json.Marshal(data)
-	} else {
-		strMap := make(map[string]string)
-		for k, v := range secretMap {
-			strMap[k] = string(v)
+		data := make(map[string]json.RawMessage, len(values))
+		for k, v := range values {
+			data[k] = encodeBinaryData(v)
 		}
-		byteArr, err = json.Marshal(strMap)
+		return jsonMarshal(data)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("unabled to marshal json: %w", err)
+	strMap := make(map[string]string)
+	for k, v := range secret.Data {
+		strMap[k] = string(encodeBinaryData(v))
 	}
+	return jsonMarshal(strMap)
+}
 
-	return byteArr, nil
+// encode binary data encodes non UTF-8 data
+// as base64. This is needed to support proper json serialization.
+// if binary data would not be encoded, it would be utf-8 escaped: `\uffed`.
+func encodeBinaryData(input []byte) []byte {
+	if utf8.Valid(input) {
+		return input
+	}
+	return []byte(base64.StdEncoding.EncodeToString(input))
+}
+
+func jsonMarshal(t interface{}) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(t)
+	return bytes.TrimRight(buffer.Bytes(), "\n"), err
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
@@ -183,7 +192,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 func getPropertyMap(key, property string, tmpMap map[string][]byte) (map[string][]byte, error) {
-	byteArr, err := json.Marshal(tmpMap)
+	byteArr, err := jsonMarshal(tmpMap)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +234,7 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 			return nil, err
 		}
 		for k, v := range tmpMap {
-			b, err := json.Marshal(v)
+			b, err := jsonMarshal(v)
 			if err != nil {
 				return nil, err
 			}
@@ -239,11 +248,11 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 func getSecretMetadata(secret *v1.Secret) (map[string][]byte, error) {
 	var err error
 	tmpMap := make(map[string][]byte)
-	tmpMap[metaLabels], err = json.Marshal(secret.ObjectMeta.Labels)
+	tmpMap[metaLabels], err = jsonMarshal(secret.ObjectMeta.Labels)
 	if err != nil {
 		return nil, err
 	}
-	tmpMap[metaAnnotations], err = json.Marshal(secret.ObjectMeta.Annotations)
+	tmpMap[metaAnnotations], err = jsonMarshal(secret.ObjectMeta.Annotations)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +283,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	}
 	data := make(map[string][]byte)
 	for _, secret := range secrets.Items {
-		jsonStr, err := json.Marshal(convertMap(secret.Data))
+		jsonStr, err := jsonMarshal(convertMap(secret.Data))
 		if err != nil {
 			return nil, err
 		}
@@ -298,7 +307,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFin
 		if !matcher.MatchName(secret.Name) {
 			continue
 		}
-		jsonStr, err := json.Marshal(convertMap(secret.Data))
+		jsonStr, err := jsonMarshal(convertMap(secret.Data))
 		if err != nil {
 			return nil, err
 		}

@@ -15,6 +15,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"reflect"
 	"testing"
@@ -97,6 +98,8 @@ func (fk *fakeClient) Update(_ context.Context, secret *v1.Secret, _ metav1.Upda
 	s.Data = secret.Data
 	return s, nil
 }
+
+var binaryTestData = []byte{0x00, 0xff, 0x00, 0xff, 0xac, 0xab, 0x28, 0x21}
 
 func TestGetSecret(t *testing.T) {
 	type fields struct {
@@ -190,6 +193,69 @@ func TestGetSecret(t *testing.T) {
 				Property: "token",
 			},
 			want: []byte(`foobar`),
+		},
+		{
+			name: "successful case with html chars",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"html": []byte(`<foobar>`),
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "mysec",
+			},
+			want: []byte(`{"html":"<foobar>"}`),
+		},
+		{
+			name: "successful case metadata with html special chars and without property",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							ObjectMeta: metav1.ObjectMeta{
+								Annotations: map[string]string{"date": "today"},
+								Labels:      map[string]string{"dev": "<seb>"},
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+				Key:            "mysec",
+			},
+			want: []byte(`{"annotations":{"date":"today"},"labels":{"dev":"<seb>"}}`),
+		},
+		{
+			name: "successful case with binary data",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"bindata": binaryTestData,
+							},
+						},
+					},
+				},
+				Namespace: "default",
+			},
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "mysec",
+				Property: "bindata",
+			},
+			want: []byte(base64.StdEncoding.EncodeToString(binaryTestData)),
 		},
 		{
 			name: "successful case without property",
@@ -316,7 +382,7 @@ func TestGetSecret(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ProviderKubernetes.GetSecret() = %v, want %v", got, tt.want)
+				t.Errorf("ProviderKubernetes.GetSecret() = %s, want %s", got, tt.want)
 			}
 		})
 	}
