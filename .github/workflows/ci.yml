@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - main
+      - release-*
   pull_request: {}
 
 env:
   # Common versions
-  GOLANGCI_VERSION: 'v1.49.0'
-  KUBERNETES_VERSION: '1.24.x'
+  GOLANGCI_VERSION: 'v1.52.2'
+  KUBERNETES_VERSION: '1.28.x'
 
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -36,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v4
@@ -75,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure Git
         run: |
@@ -105,11 +106,8 @@ jobs:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
-      # Check DIff also runs Reviewable which needs golangci-lint installed
       - name: Check Diff
         run: |
-          wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s ${{ env.GOLANGCI_VERSION }}
-          export PATH=$PATH:./bin
           make check-diff
 
   unit-tests:
@@ -119,7 +117,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Fetch History
         run: git fetch --prune --unshallow
@@ -147,21 +145,14 @@ jobs:
           path: ${{ steps.go.outputs.mod-cache }}
           key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
-      - name: Add setup-envtest
-        run: |
-          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-          setup-envtest use ${{env.KUBERNETES_VERSION}} -p env --os $(go env GOOS) --arch $(go env GOARCH)
-
       - name: Cache envtest binaries
         uses: actions/cache@v3
         with:
-          path: /home/runner/.local/share/kubebuilder-envtest/
-          key: ${{ runner.os }}-kubebuilder-${{env.KUBERNETES_VERSION}}
+          path: bin/k8s
+          key: ${{ runner.os }}-envtest-${{env.KUBERNETES_VERSION}}
 
       - name: Run Unit Tests
         run: |
-          export KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=true
-          source <(setup-envtest use ${{env.KUBERNETES_VERSION}} -p env --os $(go env GOOS) --arch $(go env GOARCH))
           make test
 
   publish-artifacts:
@@ -176,8 +167,8 @@ jobs:
         include:
         - dockerfile: "Dockerfile"
           build-args: "CGO_ENABLED=0"
-          build-arch: "amd64 arm64"
-          build-platform: "linux/amd64,linux/arm64"
+          build-arch: "amd64 arm64 s390x"
+          build-platform: "linux/amd64,linux/arm64,linux/s390x"
           tag-suffix: "" # distroless
         - dockerfile: "Dockerfile.ubi"
           build-args: "CGO_ENABLED=0"

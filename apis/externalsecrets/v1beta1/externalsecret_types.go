@@ -411,6 +411,9 @@ type ExternalSecretStatus struct {
 
 	// +optional
 	Conditions []ExternalSecretStatusCondition `json:"conditions,omitempty"`
+
+	// Binding represents a servicebinding.io Provisioned Service reference to the secret
+	Binding corev1.LocalObjectReference `json:"binding,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -433,6 +436,9 @@ type ExternalSecret struct {
 const (
 	// AnnotationDataHash is used to ensure consistency.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
+	// LabelOwner points to the owning ExternalSecret resource
+	//  and is used to manage the lifecycle of a Secret
+	LabelOwner = "reconcile.external-secrets.io/created-by"
 )
 
 // +kubebuilder:object:root=true

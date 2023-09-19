@@ -21,7 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -151,7 +151,7 @@ func TestSetAuth(t *testing.T) {
 						Token: &esv1beta1.TokenAuth{
 							BearerToken: v1.SecretKeySelector{
 								Name:      "foobar",
-								Namespace: pointer.String("shouldnotberelevant"),
+								Namespace: pointer.To("shouldnotberelevant"),
 								Key:       "token",
 							},
 						},
@@ -221,7 +221,7 @@ func TestSetAuth(t *testing.T) {
 					Auth: esv1beta1.KubernetesAuth{
 						ServiceAccount: &v1.ServiceAccountSelector{
 							Name:      "my-sa",
-							Namespace: pointer.String("shouldnotberelevant"),
+							Namespace: pointer.To("shouldnotberelevant"),
 						},
 					},
 				},

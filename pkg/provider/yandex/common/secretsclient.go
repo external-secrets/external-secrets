@@ -17,6 +17,8 @@ import (
 	"context"
 	"fmt"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
@@ -34,11 +36,11 @@ func (c *yandexCloudSecretsClient) GetSecret(ctx context.Context, ref esv1beta1.
 	return c.secretGetter.GetSecret(ctx, c.iamToken, ref.Key, ref.Version, ref.Property)
 }
 
-func (c *yandexCloudSecretsClient) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *yandexCloudSecretsClient) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (c *yandexCloudSecretsClient) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *yandexCloudSecretsClient) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -50,11 +52,11 @@ func (c *yandexCloudSecretsClient) GetSecretMap(ctx context.Context, ref esv1bet
 	return c.secretGetter.GetSecretMap(ctx, c.iamToken, ref.Key, ref.Version)
 }
 
-func (c *yandexCloudSecretsClient) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *yandexCloudSecretsClient) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not supported")
 }
 
-func (c *yandexCloudSecretsClient) Close(ctx context.Context) error {
+func (c *yandexCloudSecretsClient) Close(_ context.Context) error {
 	return nil
 }

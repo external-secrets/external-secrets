@@ -27,7 +27,7 @@ func (mc *OracleMockClient) GetSecretBundleByName(ctx context.Context, request s
 	return mc.getSecret(ctx, request)
 }
 
-func (mc *OracleMockClient) WithValue(input secrets.GetSecretBundleByNameRequest, output secrets.GetSecretBundleByNameResponse, err error) {
+func (mc *OracleMockClient) WithValue(_ secrets.GetSecretBundleByNameRequest, output secrets.GetSecretBundleByNameResponse, err error) {
 	if mc != nil {
 		mc.getSecret = func(ctx context.Context, paramReq secrets.GetSecretBundleByNameRequest) (secrets.GetSecretBundleByNameResponse, error) {
 			return output, err

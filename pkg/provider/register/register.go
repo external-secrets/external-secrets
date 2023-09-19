@@ -22,6 +22,8 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/alibaba"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/conjur"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/delinea"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/doppler"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"

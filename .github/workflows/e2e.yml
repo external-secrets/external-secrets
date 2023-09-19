@@ -41,7 +41,11 @@ env:
   SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
   SCALEWAY_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
   SCALEWAY_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-
+  DELINEA_TLD: ${{ secrets.DELINEA_TLD }}
+  DELINEA_URL_TEMPLATE: ${{ secrets.DELINEA_URL_TEMPLATE }}
+  DELINEA_TENANT: ${{ secrets.DELINEA_TENANT }}
+  DELINEA_CLIENT_ID: ${{ secrets.DELINEA_CLIENT_ID }}
+  DELINEA_CLIENT_SECRET: ${{ secrets.DELINEA_CLIENT_SECRET }}
 jobs:
 
   integration-trusted:
@@ -50,7 +54,7 @@ jobs:
     steps:
 
     - name: Branch based PR checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Fetch History
       run: git fetch --prune --unshallow
@@ -65,7 +69,7 @@ jobs:
 
     # Check out merge commit
     - name: Fork based /ok-to-test checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 

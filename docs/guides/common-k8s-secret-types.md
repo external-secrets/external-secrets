@@ -32,7 +32,38 @@ This will generate a valid dockerconfigjson secret for you to use!
 You can get the final value with:
 
 ```bash
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data\.dockerconfigjson}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data\.dockerconfigjson}" | base64 -d
+```
+
+Alternately, if you only have the container registry name and password value, you can take advantage of the advanced ExternalSecret templating functions to create the secret:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: dk-cfg-example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: example
+    kind: SecretStore
+  target:
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: '{"auths":{"{{ .registryName | lower }}.{{ .registryHost }}":{"username":"{{ .registryName }}","password":"{{ .password }}", "auth":"{{ printf "%s:%s" .registryName .password | b64enc }}"}}}'
+  data:
+  - secretKey: registryName
+    remoteRef:
+      key: secret/docker-registry-name # "myRegistry"
+  - secretKey: registryHost
+    remoteRef:
+      key: secret/docker-registry-host # "docker.io"
+  - secretKey: password
+    remoteRef:
+      key: secret/docker-registry-password
+{% endraw %}
 ```
 
 ## TLS Cert example
@@ -56,8 +87,8 @@ And now you can create an ExternalSecret that gets it. You will end up with a k8
 You can get their values with:
 
 ```bash
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data.tls\.crt}" | base64 -d
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data.tls\.key}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.tls\.crt}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.tls\.key}" | base64 -d
 ```
 
 
@@ -76,7 +107,7 @@ And now you can create an ExternalSecret that gets it. You will end up with a k8
 You can get the privkey value with:
 
 ```bash
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath="{.data.ssh-privatekey}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.ssh-privatekey}" | base64 -d
 ```
 
 ## More examples

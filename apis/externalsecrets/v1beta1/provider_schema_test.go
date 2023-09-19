@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -30,37 +31,37 @@ func (p *PP) Capabilities() SecretStoreCapabilities {
 }
 
 // New constructs a SecretsManager Provider.
-func (p *PP) NewClient(ctx context.Context, store GenericStore, kube client.Client, namespace string) (SecretsClient, error) {
+func (p *PP) NewClient(_ context.Context, _ GenericStore, _ client.Client, _ string) (SecretsClient, error) {
 	return p, nil
 }
 
 // PushSecret writes a single secret into a provider.
-func (p *PP) PushSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error {
+func (p *PP) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ PushRemoteRef) error {
 	return nil
 }
 
 // DeleteSecret deletes a single secret from a provider.
-func (p *PP) DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error {
+func (p *PP) DeleteSecret(_ context.Context, _ PushRemoteRef) error {
 	return nil
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *PP) GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *PP) GetSecret(_ context.Context, _ ExternalSecretDataRemoteRef) ([]byte, error) {
 	return []byte("NOOP"), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *PP) GetSecretMap(ctx context.Context, ref ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *PP) GetSecretMap(_ context.Context, _ ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return map[string][]byte{}, nil
 }
 
 // Empty GetAllSecrets.
-func (p *PP) GetAllSecrets(ctx context.Context, ref ExternalSecretFind) (map[string][]byte, error) {
+func (p *PP) GetAllSecrets(_ context.Context, _ ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return map[string][]byte{}, nil
 }
 
-func (p *PP) Close(ctx context.Context) error {
+func (p *PP) Close(_ context.Context) error {
 	return nil
 }
 
@@ -68,7 +69,7 @@ func (p *PP) Validate() (ValidationResult, error) {
 	return ValidationResultReady, nil
 }
 
-func (p *PP) ValidateStore(store GenericStore) error {
+func (p *PP) ValidateStore(_ GenericStore) error {
 	return nil
 }
 

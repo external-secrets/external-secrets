@@ -25,11 +25,16 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 )
 
 var cfg *rest.Config
@@ -63,8 +68,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0", // avoid port collision when testing
+		Scheme: scheme.Scheme,
+		Metrics: server.Options{
+			BindAddress: "0", // avoid port collision when testing
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -77,7 +84,7 @@ var _ = BeforeSuite(func() {
 		Scheme:          k8sManager.GetScheme(),
 		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 		ControllerClass: defaultControllerClass,
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, controller.Options{})
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ClusterStoreReconciler{
@@ -100,3 +107,9 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+func init() {
+	ctrlmetrics.SetUpLabelNames(false)
+	cssmetrics.SetUpMetrics()
+	ssmetrics.SetUpMetrics()
+}

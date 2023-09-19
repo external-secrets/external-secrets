@@ -30,7 +30,7 @@ func (f *AssumeRoler) AssumeRole(input *sts.AssumeRoleInput) (*sts.AssumeRoleOut
 	return f.AssumeRoleFunc(input)
 }
 
-func (f *AssumeRoler) AssumeRoleWithContext(ctx aws.Context, input *sts.AssumeRoleInput, opts ...request.Option) (*sts.AssumeRoleOutput, error) {
+func (f *AssumeRoler) AssumeRoleWithContext(_ aws.Context, input *sts.AssumeRoleInput, _ ...request.Option) (*sts.AssumeRoleOutput, error) {
 	return f.AssumeRoleFunc(input)
 }
 

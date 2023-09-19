@@ -37,7 +37,7 @@ func NewFakeCertificateManagerClient(fakeCertificateManagerServer *FakeCertifica
 	return &fakeCertificateManagerClient{fakeCertificateManagerServer}
 }
 
-func (c *fakeCertificateManagerClient) GetCertificateContent(ctx context.Context, iamToken, certificateID, versionID string) (*api.GetCertificateContentResponse, error) {
+func (c *fakeCertificateManagerClient) GetCertificateContent(_ context.Context, iamToken, certificateID, versionID string) (*api.GetCertificateContentResponse, error) {
 	return c.fakeCertificateManagerServer.getCertificateContent(iamToken, certificateID, versionID)
 }
 

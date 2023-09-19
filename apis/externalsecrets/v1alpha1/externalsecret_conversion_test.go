@@ -44,6 +44,9 @@ func newExternalSecretV1Alpha1() *ExternalSecret {
 					Message: "...why wouldn't it be?",
 				},
 			},
+			Binding: corev1.LocalObjectReference{
+				Name: "test-target",
+			},
 		},
 		Spec: ExternalSecretSpec{
 			SecretStoreRef: SecretStoreRef{
@@ -125,6 +128,9 @@ func newExternalSecretV1Beta1() *esv1beta1.ExternalSecret {
 					Reason:  "it's a mock, it's always ready",
 					Message: "...why wouldn't it be?",
 				},
+			},
+			Binding: corev1.LocalObjectReference{
+				Name: "test-target",
 			},
 		},
 		Spec: esv1beta1.ExternalSecretSpec{

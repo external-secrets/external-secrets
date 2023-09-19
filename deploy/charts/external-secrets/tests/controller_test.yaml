@@ -31,4 +31,19 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].securityContext
           value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
             runAsUser: 3000
+            seccompProfile:
+              type: RuntimeDefault
+  - it: should override hostNetwork
+    set:
+      hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true

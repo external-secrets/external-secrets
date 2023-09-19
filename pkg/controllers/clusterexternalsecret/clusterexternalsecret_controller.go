@@ -16,6 +16,8 @@ package clusterexternalsecret
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"sort"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,8 +33,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
 // ClusterExternalSecretReconciler reconciles a ClusterExternalSecret object.
@@ -48,24 +57,29 @@ const (
 	errConvertLabelSelector = "unable to convert labelselector"
 	errNamespaces           = "could not get namespaces from selector"
 	errGetExistingES        = "could not get existing ExternalSecret"
-	errCreatingOrUpdating   = "could not create or update ExternalSecret"
-	errSetCtrlReference     = "could not set the controller owner reference"
-	errSecretAlreadyExists  = "external secret already exists in namespace"
 	errNamespacesFailed     = "one or more namespaces failed"
-	errFailedToDelete       = "external secret in non matching namespace could not be deleted"
+	errNamespaceNotFound    = "no namespace matches"
 )
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterExternalSecret", req.NamespacedName)
 
-	var clusterExternalSecret esv1beta1.ClusterExternalSecret
+	resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
+	start := time.Now()
 
+	externalSecretReconcileDuration := cesmetrics.GetGaugeVec(cesmetrics.ClusterExternalSecretReconcileDurationKey)
+	defer func() { externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start))) }()
+
+	var clusterExternalSecret esv1beta1.ClusterExternalSecret
 	err := r.Get(ctx, req.NamespacedName, &clusterExternalSecret)
-	if apierrors.IsNotFound(err) {
-		return ctrl.Result{}, nil
-	} else if err != nil {
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			cesmetrics.RemoveMetrics(req.Namespace, req.Name)
+			return ctrl.Result{}, nil
+		}
+
 		log.Error(err, errGetCES)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	p := client.MergeFrom(clusterExternalSecret.DeepCopy())
@@ -79,14 +93,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
 	if err != nil {
 		log.Error(err, errConvertLabelSelector)
-		return ctrl.Result{RequeueAfter: refreshInt}, err
+		return ctrl.Result{}, err
 	}
 
 	namespaceList := v1.NamespaceList{}
 	err = r.List(ctx, &namespaceList, &client.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		log.Error(err, errNamespaces)
-		return ctrl.Result{RequeueAfter: refreshInt}, err
+		return ctrl.Result{}, err
 	}
 
 	esName := clusterExternalSecret.Spec.ExternalSecretName
@@ -94,104 +108,108 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
 
-	failedNamespaces := r.removeOldNamespaces(ctx, namespaceList, esName, clusterExternalSecret.Status.ProvisionedNamespaces)
-	provisionedNamespaces := []string{}
+	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != esName {
+		// ExternalSecretName has changed, so remove the old ones
+		for _, ns := range clusterExternalSecret.Status.ProvisionedNamespaces {
+			if err := r.deleteExternalSecret(ctx, prevName, clusterExternalSecret.Name, ns); err != nil {
+				log.Error(err, "could not delete ExternalSecret")
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
+	clusterExternalSecret.Status.ExternalSecretName = esName
+
+	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, namespaceList, esName, clusterExternalSecret.Name, clusterExternalSecret.Status.ProvisionedNamespaces)
+
+	provisionedNamespaces := []string{}
 	for _, namespace := range namespaceList.Items {
 		var existingES esv1beta1.ExternalSecret
 		err = r.Get(ctx, types.NamespacedName{
 			Name:      esName,
 			Namespace: namespace.Name,
 		}, &existingES)
-
-		if result := checkForError(err, &existingES); result != "" {
-			log.Error(err, result)
-			failedNamespaces[namespace.Name] = result
+		if err != nil && !apierrors.IsNotFound(err) {
+			log.Error(err, errGetExistingES)
+			failedNamespaces[namespace.Name] = err
 			continue
 		}
 
-		if result, err := r.resolveExternalSecret(ctx, &clusterExternalSecret, &existingES, namespace, esName); err != nil {
-			log.Error(err, result)
-			failedNamespaces[namespace.Name] = result
+		if err == nil && !isExternalSecretOwnedBy(&existingES, clusterExternalSecret.Name) {
+			failedNamespaces[namespace.Name] = fmt.Errorf("external secret already exists in namespace")
 			continue
 		}
 
-		provisionedNamespaces = append(provisionedNamespaces, namespace.ObjectMeta.Name)
+		if err := r.createOrUpdateExternalSecret(ctx, &clusterExternalSecret, namespace, esName, clusterExternalSecret.Spec.ExternalSecretMetadata); err != nil {
+			log.Error(err, "failed to create or update external secret")
+			failedNamespaces[namespace.Name] = err
+			continue
+		}
+
+		provisionedNamespaces = append(provisionedNamespaces, namespace.Name)
 	}
 
-	conditionType := getCondition(failedNamespaces, &namespaceList)
-
-	condition := NewClusterExternalSecretCondition(conditionType, v1.ConditionTrue)
-
-	if conditionType != esv1beta1.ClusterExternalSecretReady {
-		condition.Message = errNamespacesFailed
-	}
-
+	condition := NewClusterExternalSecretCondition(failedNamespaces, &namespaceList)
 	SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
-	setFailedNamespaces(&clusterExternalSecret, failedNamespaces)
 
-	if len(provisionedNamespaces) > 0 {
-		sort.Strings(provisionedNamespaces)
-		clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
-	}
+	clusterExternalSecret.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
+	sort.Strings(provisionedNamespaces)
+	clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) resolveExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, existingES *esv1beta1.ExternalSecret, namespace v1.Namespace, esName string) (string, error) {
-	// this means the existing ES does not belong to us
-	if err := controllerutil.SetControllerReference(clusterExternalSecret, existingES, r.Scheme); err != nil {
-		return errSetCtrlReference, err
-	}
-
-	externalSecret := esv1beta1.ExternalSecret{
+func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1beta1.ExternalSecretMetadata) error {
+	externalSecret := &esv1beta1.ExternalSecret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      esName,
 			Namespace: namespace.Name,
+			Name:      esName,
 		},
-		Spec: clusterExternalSecret.Spec.ExternalSecretSpec,
-	}
-
-	if err := controllerutil.SetControllerReference(clusterExternalSecret, &externalSecret, r.Scheme); err != nil {
-		return errSetCtrlReference, err
 	}
 
 	mutateFunc := func() error {
+		externalSecret.Labels = esMetadata.Labels
+		externalSecret.Annotations = esMetadata.Annotations
 		externalSecret.Spec = clusterExternalSecret.Spec.ExternalSecretSpec
+
+		if err := controllerutil.SetControllerReference(clusterExternalSecret, externalSecret, r.Scheme); err != nil {
+			return fmt.Errorf("could not set the controller owner reference %w", err)
+		}
+
 		return nil
 	}
 
-	// An empty mutate func as nothing needs to happen currently
-	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, &externalSecret, mutateFunc); err != nil {
-		return errCreatingOrUpdating, err
+	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, externalSecret, mutateFunc); err != nil {
+		return fmt.Errorf("could not create or update ExternalSecret: %w", err)
 	}
 
-	return "", nil
+	return nil
 }
 
-func (r *Reconciler) removeExternalSecret(ctx context.Context, esName, namespace string) (string, error) {
+func (r *Reconciler) deleteExternalSecret(ctx context.Context, esName, cesName, namespace string) error {
 	var existingES esv1beta1.ExternalSecret
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      esName,
 		Namespace: namespace,
 	}, &existingES)
-
-	// If we can't find it then just leave
-	if err != nil && apierrors.IsNotFound(err) {
-		return "", nil
+	if err != nil {
+		// If we can't find it then just leave
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
-	if result := checkForError(err, &existingES); result != "" {
-		return result, err
+	if !isExternalSecretOwnedBy(&existingES, cesName) {
+		return nil
 	}
 
 	err = r.Delete(ctx, &existingES, &client.DeleteOptions{})
-
 	if err != nil {
-		return errFailedToDelete, err
+		return fmt.Errorf("external secret in non matching namespace could not be deleted: %w", err)
 	}
 
-	return "", nil
+	return nil
 }
 
 func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1beta1.ClusterExternalSecret, p client.Patch) {
@@ -200,72 +218,54 @@ func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExt
 	}
 }
 
-func (r *Reconciler) removeOldNamespaces(ctx context.Context, namespaceList v1.NamespaceList, esName string, provisionedNamespaces []string) map[string]string {
-	failedNamespaces := map[string]string{}
+func (r *Reconciler) deleteOutdatedExternalSecrets(ctx context.Context, namespaceList v1.NamespaceList, esName, cesName string, provisionedNamespaces []string) map[string]error {
+	failedNamespaces := map[string]error{}
 	// Loop through existing namespaces first to make sure they still have our labels
 	for _, namespace := range getRemovedNamespaces(namespaceList, provisionedNamespaces) {
-		result, err := r.removeExternalSecret(ctx, esName, namespace)
+		err := r.deleteExternalSecret(ctx, esName, cesName, namespace)
 		if err != nil {
-			r.Log.Error(err, "unable to delete external-secret")
-		}
-		if result != "" {
-			failedNamespaces[namespace] = result
+			r.Log.Error(err, "unable to delete external secret")
+			failedNamespaces[namespace] = err
 		}
 	}
 
 	return failedNamespaces
 }
 
-func checkForError(getError error, existingES *esv1beta1.ExternalSecret) string {
-	if getError != nil && !apierrors.IsNotFound(getError) {
-		return errGetExistingES
-	}
-
-	// No one owns this resource so error out
-	if !apierrors.IsNotFound(getError) && len(existingES.ObjectMeta.OwnerReferences) == 0 {
-		return errSecretAlreadyExists
-	}
-
-	return ""
+func isExternalSecretOwnedBy(es *esv1beta1.ExternalSecret, cesName string) bool {
+	owner := metav1.GetControllerOf(es)
+	return owner != nil && owner.APIVersion == esv1beta1.SchemeGroupVersion.String() && owner.Kind == esv1beta1.ClusterExtSecretKind && owner.Name == cesName
 }
 
-func getCondition(namespaces map[string]string, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
-	if len(namespaces) == 0 {
-		return esv1beta1.ClusterExternalSecretReady
+func getRemovedNamespaces(currentNSs v1.NamespaceList, provisionedNSs []string) []string {
+	currentNSSet := map[string]struct{}{}
+	for i := range currentNSs.Items {
+		currentNSSet[currentNSs.Items[i].Name] = struct{}{}
 	}
 
-	if len(namespaces) < len(namespaceList.Items) {
-		return esv1beta1.ClusterExternalSecretPartiallyReady
-	}
-
-	return esv1beta1.ClusterExternalSecretNotReady
-}
-
-func getRemovedNamespaces(nsList v1.NamespaceList, provisionedNs []string) []string {
-	result := []string{}
-
-	for _, ns := range provisionedNs {
-		if !ContainsNamespace(nsList, ns) {
-			result = append(result, ns)
+	var removedNSs []string
+	for _, ns := range provisionedNSs {
+		if _, ok := currentNSSet[ns]; !ok {
+			removedNSs = append(removedNSs, ns)
 		}
 	}
 
-	return result
+	return removedNSs
 }
 
-func setFailedNamespaces(ces *esv1beta1.ClusterExternalSecret, failedNamespaces map[string]string) {
-	if len(failedNamespaces) == 0 {
-		return
-	}
+func toNamespaceFailures(failedNamespaces map[string]error) []esv1beta1.ClusterExternalSecretNamespaceFailure {
+	namespaceFailures := make([]esv1beta1.ClusterExternalSecretNamespaceFailure, len(failedNamespaces))
 
-	ces.Status.FailedNamespaces = []esv1beta1.ClusterExternalSecretNamespaceFailure{}
-
-	for namespace, message := range failedNamespaces {
-		ces.Status.FailedNamespaces = append(ces.Status.FailedNamespaces, esv1beta1.ClusterExternalSecretNamespaceFailure{
+	i := 0
+	for namespace, err := range failedNamespaces {
+		namespaceFailures[i] = esv1beta1.ClusterExternalSecretNamespaceFailure{
 			Namespace: namespace,
-			Reason:    message,
-		})
+			Reason:    err.Error(),
+		}
+		i++
 	}
+	sort.Slice(namespaceFailures, func(i, j int) bool { return namespaceFailures[i].Namespace < namespaceFailures[j].Namespace })
+	return namespaceFailures
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -273,6 +273,57 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1beta1.ClusterExternalSecret{}).
-		Owns(&esv1beta1.ExternalSecret{}, builder.OnlyMetadata).
+		Owns(&esv1beta1.ExternalSecret{}).
+		Watches(
+			&v1.Namespace{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForNamespace),
+			builder.WithPredicates(namespacePredicate()),
+		).
 		Complete(r)
+}
+
+func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace client.Object) []reconcile.Request {
+	var clusterExternalSecrets esv1beta1.ClusterExternalSecretList
+	if err := r.List(ctx, &clusterExternalSecrets); err != nil {
+		r.Log.Error(err, errGetCES)
+		return []reconcile.Request{}
+	}
+
+	var requests []reconcile.Request
+	for i := range clusterExternalSecrets.Items {
+		clusterExternalSecret := &clusterExternalSecrets.Items[i]
+		labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
+		if err != nil {
+			r.Log.Error(err, errConvertLabelSelector)
+			return []reconcile.Request{}
+		}
+
+		if labelSelector.Matches(labels.Set(namespace.GetLabels())) {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      clusterExternalSecret.GetName(),
+					Namespace: clusterExternalSecret.GetNamespace(),
+				},
+			})
+		}
+	}
+
+	return requests
+}
+
+func namespacePredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectOld == nil || e.ObjectNew == nil {
+				return false
+			}
+			return !reflect.DeepEqual(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels())
+		},
+		DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
+			return true
+		},
+	}
 }

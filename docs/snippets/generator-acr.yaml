@@ -1,5 +1,7 @@
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: ACRAccessToken
+metadata:
+  name: my-azurecr
 spec:
   tenantId: 11111111-2222-3333-4444-111111111111
   registry: example.azurecr.io

@@ -43,7 +43,7 @@ func (m *MockK8sV1) WithError(err error) *MockK8sV1 {
 	return m
 }
 
-func (m *MockK8sV1) ServiceAccounts(namespace string) k8sv1.ServiceAccountInterface {
+func (m *MockK8sV1) ServiceAccounts(_ string) k8sv1.ServiceAccountInterface {
 	return &MockK8sV1SA{v1mock: m}
 }
 
@@ -54,10 +54,10 @@ type MockK8sV1SA struct {
 }
 
 func (ma *MockK8sV1SA) CreateToken(
-	ctx context.Context,
-	serviceAccountName string,
-	tokenRequest *authv1.TokenRequest,
-	opts metav1.CreateOptions,
+	_ context.Context,
+	_ string,
+	_ *authv1.TokenRequest,
+	_ metav1.CreateOptions,
 ) (*authv1.TokenRequest, error) {
 	if ma.v1mock.err != nil {
 		return nil, ma.v1mock.err

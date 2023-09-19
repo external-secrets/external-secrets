@@ -55,6 +55,10 @@ func (f fakeRef) GetRemoteKey() string {
 	return f.key
 }
 
+func (f fakeRef) GetProperty() string {
+	return ""
+}
+
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
 	return &parameterstoreTestCase{
 		fakeClient:     &fakeps.Client{},
@@ -431,7 +435,7 @@ func TestPushSecret(t *testing.T) {
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
-			err := ps.PushSecret(context.TODO(), []byte(fakeValue), ref)
+			err := ps.PushSecret(context.TODO(), []byte(fakeValue), nil, ref)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {

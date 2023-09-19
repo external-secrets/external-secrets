@@ -2,8 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: clusterexternalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -19,14 +18,11 @@ spec:
   scope: Cluster
   versions:
     - additionalPrinterColumns:
-        - jsonPath: .spec.secretStoreRef.name
+        - jsonPath: .spec.externalSecretSpec.secretStoreRef.name
           name: Store
           type: string
-        - jsonPath: .spec.refreshInterval
+        - jsonPath: .spec.refreshTime
           name: Refresh Interval
-          type: string
-        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
-          name: Status
           type: string
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
@@ -47,6 +43,18 @@ spec:
             spec:
               description: ClusterExternalSecretSpec defines the desired state of ClusterExternalSecret.
               properties:
+                externalSecretMetadata:
+                  description: The metadata of the external secrets to be created
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
                 externalSecretName:
                   description: The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
                   type: string
@@ -418,6 +426,9 @@ spec:
                       - type
                     type: object
                   type: array
+                externalSecretName:
+                  description: ExternalSecretName is the name of the ExternalSecrets created by the ClusterExternalSecret
+                  type: string
                 failedNamespaces:
                   description: Failed namespaces are the namespaces that failed to apply an ExternalSecret
                   items:
@@ -459,8 +470,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -500,7 +510,7 @@ spec:
               description: SecretStoreSpec defines the desired state of SecretStore.
               properties:
                 controller:
-                  description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
+                  description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property'
                   type: string
                 provider:
                   description: Used to configure the provider. Only one provider may be set
@@ -639,6 +649,23 @@ spec:
                         auth:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
+                            rrsa:
+                              description: Authenticate against Alibaba using RRSA.
+                              properties:
+                                oidcProviderArn:
+                                  type: string
+                                oidcTokenFilePath:
+                                  type: string
+                                roleArn:
+                                  type: string
+                                sessionName:
+                                  type: string
+                              required:
+                                - oidcProviderArn
+                                - oidcTokenFilePath
+                                - roleArn
+                                - sessionName
+                              type: object
                             secretRef:
                               description: AlibabaAuthSecretRef holds secret references for Alibaba credentials.
                               properties:
@@ -672,11 +699,7 @@ spec:
                                 - accessKeyIDSecretRef
                                 - accessKeySecretSecretRef
                               type: object
-                          required:
-                            - secretRef
                           type: object
-                        endpoint:
-                          type: string
                         regionID:
                           description: Alibaba Region to be used for the provider
                           type: string
@@ -909,7 +932,7 @@ spec:
                           type: string
                       type: object
                     gitlab:
-                      description: Gitlab configures this store to sync secrets using Gitlab Variables provider
+                      description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -1649,7 +1672,7 @@ spec:
                     type: object
                   type: array
                 controller:
-                  description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
+                  description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property'
                   type: string
                 provider:
                   description: Used to configure the provider. Only one provider may be set
@@ -1788,6 +1811,23 @@ spec:
                         auth:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
+                            rrsa:
+                              description: Authenticate against Alibaba using RRSA.
+                              properties:
+                                oidcProviderArn:
+                                  type: string
+                                oidcTokenFilePath:
+                                  type: string
+                                roleArn:
+                                  type: string
+                                sessionName:
+                                  type: string
+                              required:
+                                - oidcProviderArn
+                                - oidcTokenFilePath
+                                - roleArn
+                                - sessionName
+                              type: object
                             secretRef:
                               description: AlibabaAuthSecretRef holds secret references for Alibaba credentials.
                               properties:
@@ -1821,11 +1861,7 @@ spec:
                                 - accessKeyIDSecretRef
                                 - accessKeySecretSecretRef
                               type: object
-                          required:
-                            - secretRef
                           type: object
-                        endpoint:
-                          type: string
                         regionID:
                           description: Alibaba Region to be used for the provider
                           type: string
@@ -1909,6 +1945,9 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        externalID:
+                          description: AWS External ID set on assumed IAM roles
+                          type: string
                         region:
                           description: AWS Region to be used for the provider
                           type: string
@@ -1921,6 +1960,24 @@ spec:
                             - SecretsManager
                             - ParameterStore
                           type: string
+                        sessionTags:
+                          description: AWS STS assume role session tags
+                          items:
+                            properties:
+                              key:
+                                type: string
+                              value:
+                                type: string
+                            required:
+                              - key
+                              - value
+                            type: object
+                          type: array
+                        transitiveTagKeys:
+                          description: AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+                          items:
+                            type: string
+                          type: array
                       required:
                         - region
                         - service
@@ -2004,6 +2061,114 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    conjur:
+                      description: Conjur configures this store to sync secrets using conjur provider
+                      properties:
+                        auth:
+                          properties:
+                            apikey:
+                              properties:
+                                account:
+                                  type: string
+                                apiKeyRef:
+                                  description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                userRef:
+                                  description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - account
+                                - apiKeyRef
+                                - userRef
+                              type: object
+                          required:
+                            - apikey
+                          type: object
+                        caBundle:
+                          type: string
+                        url:
+                          type: string
+                      required:
+                        - auth
+                        - url
+                      type: object
+                    delinea:
+                      description: Delinea DevOps Secrets Vault https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+                      properties:
+                        clientId:
+                          description: ClientID is the non-secret part of the credential.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        clientSecret:
+                          description: ClientSecret is the secret part of the credential.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        tenant:
+                          description: Tenant is the chosen hostname / site name.
+                          type: string
+                        tld:
+                          description: TLD is based on the server location that was chosen during provisioning. If unset, defaults to "com".
+                          type: string
+                        urlTemplate:
+                          description: URLTemplate If unset, defaults to "https://%s.secretsvaultcloud.%s/v1/%s%s".
+                          type: string
+                      required:
+                        - clientId
+                        - clientSecret
+                        - tenant
+                      type: object
                     doppler:
                       description: Doppler configures this store to sync secrets using the Doppler provider
                       properties:
@@ -2051,6 +2216,7 @@ spec:
                             - lower-snake
                             - tf-var
                             - dotnet-env
+                            - lower-kebab
                           type: string
                         project:
                           description: Doppler project (required if not using a Service Token)
@@ -2139,7 +2305,7 @@ spec:
                           type: string
                       type: object
                     gitlab:
-                      description: Gitlab configures this store to sync secrets using Gitlab Variables provider
+                      description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -2579,6 +2745,19 @@ spec:
                                 roleId:
                                   description: RoleID configured in the App Role authentication backend when setting up the authentication backend in Vault.
                                   type: string
+                                roleRef:
+                                  description: Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
                                 secretRef:
                                   description: Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
                                   properties:
@@ -2594,7 +2773,6 @@ spec:
                                   type: object
                               required:
                                 - path
-                                - roleId
                                 - secretRef
                               type: object
                             cert:
@@ -2626,6 +2804,94 @@ spec:
                                       description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                       type: string
                                   type: object
+                              type: object
+                            iam:
+                              description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+                              properties:
+                                externalID:
+                                  description: AWS External ID set on assumed IAM roles
+                                  type: string
+                                jwt:
+                                  description: Specify a service account with IRSA enabled
+                                  properties:
+                                    serviceAccountRef:
+                                      description: A reference to a ServiceAccount resource.
+                                      properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  type: object
+                                path:
+                                  description: 'Path where the AWS auth method is enabled in Vault, e.g: "aws"'
+                                  type: string
+                                region:
+                                  description: AWS region
+                                  type: string
+                                role:
+                                  description: This is the AWS role to be assumed before talking to vault
+                                  type: string
+                                secretRef:
+                                  description: Specify credentials in a Secret object
+                                  properties:
+                                    accessKeyIDSecretRef:
+                                      description: The AccessKeyID is used for authentication
+                                      properties:
+                                        key:
+                                          description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                    secretAccessKeySecretRef:
+                                      description: The SecretAccessKey is used for authentication
+                                      properties:
+                                        key:
+                                          description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                    sessionTokenSecretRef:
+                                      description: 'The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html'
+                                      properties:
+                                        key:
+                                          description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  type: object
+                                vaultAwsIamServerID:
+                                  description: 'X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws'
+                                  type: string
+                                vaultRole:
+                                  description: Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+                                  type: string
+                              required:
+                                - vaultRole
                               type: object
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
@@ -2768,6 +3034,33 @@ spec:
                                 namespace:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
+                              type: object
+                            userPass:
+                              description: UserPass authenticates with Vault by passing username/password pair
+                              properties:
+                                path:
+                                  default: user
+                                  description: 'Path where the UserPassword authentication backend is mounted in Vault, e.g: "user"'
+                                  type: string
+                                secretRef:
+                                  description: SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                username:
+                                  description: Username is a user name used to authenticate using the UserPass Vault authentication method
+                                  type: string
+                              required:
+                                - path
+                                - username
                               type: object
                           type: object
                         caBundle:
@@ -3052,8 +3345,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: externalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -3251,6 +3543,14 @@ spec:
               type: object
             status:
               properties:
+                binding:
+                  description: Binding represents a servicebinding.io Provisioned Service reference to the secret
+                  properties:
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                      type: string
+                  type: object
+                  x-kubernetes-map-type: atomic
                 conditions:
                   items:
                     properties:
@@ -3625,6 +3925,14 @@ spec:
               type: object
             status:
               properties:
+                binding:
+                  description: Binding represents a servicebinding.io Provisioned Service reference to the secret
+                  properties:
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                      type: string
+                  type: object
+                  x-kubernetes-map-type: atomic
                 conditions:
                   items:
                     properties:
@@ -3673,8 +3981,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: pushsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -3719,6 +4026,9 @@ spec:
                           remoteRef:
                             description: Remote Refs to push to providers.
                             properties:
+                              property:
+                                description: Name of the property in the resulting secret
+                                type: string
                               remoteKey:
                                 description: Name of the resulting provider secret.
                                 type: string
@@ -3732,6 +4042,9 @@ spec:
                           - remoteRef
                           - secretKey
                         type: object
+                      metadata:
+                        description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+                        x-kubernetes-preserve-unknown-fields: true
                     required:
                       - match
                     type: object
@@ -3844,6 +4157,9 @@ spec:
                             remoteRef:
                               description: Remote Refs to push to providers.
                               properties:
+                                property:
+                                  description: Name of the property in the resulting secret
+                                  type: string
                                 remoteKey:
                                   description: Name of the resulting provider secret.
                                   type: string
@@ -3857,6 +4173,9 @@ spec:
                             - remoteRef
                             - secretKey
                           type: object
+                        metadata:
+                          description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+                          x-kubernetes-preserve-unknown-fields: true
                       required:
                         - match
                       type: object
@@ -3887,8 +4206,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: secretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -3928,7 +4246,7 @@ spec:
               description: SecretStoreSpec defines the desired state of SecretStore.
               properties:
                 controller:
-                  description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
+                  description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property'
                   type: string
                 provider:
                   description: Used to configure the provider. Only one provider may be set
@@ -4067,6 +4385,23 @@ spec:
                         auth:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
+                            rrsa:
+                              description: Authenticate against Alibaba using RRSA.
+                              properties:
+                                oidcProviderArn:
+                                  type: string
+                                oidcTokenFilePath:
+                                  type: string
+                                roleArn:
+                                  type: string
+                                sessionName:
+                                  type: string
+                              required:
+                                - oidcProviderArn
+                                - oidcTokenFilePath
+                                - roleArn
+                                - sessionName
+                              type: object
                             secretRef:
                               description: AlibabaAuthSecretRef holds secret references for Alibaba credentials.
                               properties:
@@ -4100,11 +4435,7 @@ spec:
                                 - accessKeyIDSecretRef
                                 - accessKeySecretSecretRef
                               type: object
-                          required:
-                            - secretRef
                           type: object
-                        endpoint:
-                          type: string
                         regionID:
                           description: Alibaba Region to be used for the provider
                           type: string
@@ -4337,7 +4668,7 @@ spec:
                           type: string
                       type: object
                     gitlab:
-                      description: Gitlab configures this store to sync secrets using Gitlab Variables provider
+                      description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -5077,7 +5408,7 @@ spec:
                     type: object
                   type: array
                 controller:
-                  description: 'Used to select the correct KES controller (think: ingress.ingressClassName) The KES controller is instantiated with a specific controller name and filters ES based on this property'
+                  description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters ES based on this property'
                   type: string
                 provider:
                   description: Used to configure the provider. Only one provider may be set
@@ -5216,6 +5547,23 @@ spec:
                         auth:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
+                            rrsa:
+                              description: Authenticate against Alibaba using RRSA.
+                              properties:
+                                oidcProviderArn:
+                                  type: string
+                                oidcTokenFilePath:
+                                  type: string
+                                roleArn:
+                                  type: string
+                                sessionName:
+                                  type: string
+                              required:
+                                - oidcProviderArn
+                                - oidcTokenFilePath
+                                - roleArn
+                                - sessionName
+                              type: object
                             secretRef:
                               description: AlibabaAuthSecretRef holds secret references for Alibaba credentials.
                               properties:
@@ -5249,11 +5597,7 @@ spec:
                                 - accessKeyIDSecretRef
                                 - accessKeySecretSecretRef
                               type: object
-                          required:
-                            - secretRef
                           type: object
-                        endpoint:
-                          type: string
                         regionID:
                           description: Alibaba Region to be used for the provider
                           type: string
@@ -5337,6 +5681,9 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        externalID:
+                          description: AWS External ID set on assumed IAM roles
+                          type: string
                         region:
                           description: AWS Region to be used for the provider
                           type: string
@@ -5349,6 +5696,24 @@ spec:
                             - SecretsManager
                             - ParameterStore
                           type: string
+                        sessionTags:
+                          description: AWS STS assume role session tags
+                          items:
+                            properties:
+                              key:
+                                type: string
+                              value:
+                                type: string
+                            required:
+                              - key
+                              - value
+                            type: object
+                          type: array
+                        transitiveTagKeys:
+                          description: AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+                          items:
+                            type: string
+                          type: array
                       required:
                         - region
                         - service
@@ -5432,6 +5797,114 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    conjur:
+                      description: Conjur configures this store to sync secrets using conjur provider
+                      properties:
+                        auth:
+                          properties:
+                            apikey:
+                              properties:
+                                account:
+                                  type: string
+                                apiKeyRef:
+                                  description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                userRef:
+                                  description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - account
+                                - apiKeyRef
+                                - userRef
+                              type: object
+                          required:
+                            - apikey
+                          type: object
+                        caBundle:
+                          type: string
+                        url:
+                          type: string
+                      required:
+                        - auth
+                        - url
+                      type: object
+                    delinea:
+                      description: Delinea DevOps Secrets Vault https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+                      properties:
+                        clientId:
+                          description: ClientID is the non-secret part of the credential.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        clientSecret:
+                          description: ClientSecret is the secret part of the credential.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        tenant:
+                          description: Tenant is the chosen hostname / site name.
+                          type: string
+                        tld:
+                          description: TLD is based on the server location that was chosen during provisioning. If unset, defaults to "com".
+                          type: string
+                        urlTemplate:
+                          description: URLTemplate If unset, defaults to "https://%s.secretsvaultcloud.%s/v1/%s%s".
+                          type: string
+                      required:
+                        - clientId
+                        - clientSecret
+                        - tenant
+                      type: object
                     doppler:
                       description: Doppler configures this store to sync secrets using the Doppler provider
                       properties:
@@ -5479,6 +5952,7 @@ spec:
                             - lower-snake
                             - tf-var
                             - dotnet-env
+                            - lower-kebab
                           type: string
                         project:
                           description: Doppler project (required if not using a Service Token)
@@ -5567,7 +6041,7 @@ spec:
                           type: string
                       type: object
                     gitlab:
-                      description: Gitlab configures this store to sync secrets using Gitlab Variables provider
+                      description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
@@ -6007,6 +6481,19 @@ spec:
                                 roleId:
                                   description: RoleID configured in the App Role authentication backend when setting up the authentication backend in Vault.
                                   type: string
+                                roleRef:
+                                  description: Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
                                 secretRef:
                                   description: Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
                                   properties:
@@ -6022,7 +6509,6 @@ spec:
                                   type: object
                               required:
                                 - path
-                                - roleId
                                 - secretRef
                               type: object
                             cert:
@@ -6054,6 +6540,94 @@ spec:
                                       description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                       type: string
                                   type: object
+                              type: object
+                            iam:
+                              description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+                              properties:
+                                externalID:
+                                  description: AWS External ID set on assumed IAM roles
+                                  type: string
+                                jwt:
+                                  description: Specify a service account with IRSA enabled
+                                  properties:
+                                    serviceAccountRef:
+                                      description: A reference to a ServiceAccount resource.
+                                      properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  type: object
+                                path:
+                                  description: 'Path where the AWS auth method is enabled in Vault, e.g: "aws"'
+                                  type: string
+                                region:
+                                  description: AWS region
+                                  type: string
+                                role:
+                                  description: This is the AWS role to be assumed before talking to vault
+                                  type: string
+                                secretRef:
+                                  description: Specify credentials in a Secret object
+                                  properties:
+                                    accessKeyIDSecretRef:
+                                      description: The AccessKeyID is used for authentication
+                                      properties:
+                                        key:
+                                          description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                    secretAccessKeySecretRef:
+                                      description: The SecretAccessKey is used for authentication
+                                      properties:
+                                        key:
+                                          description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                    sessionTokenSecretRef:
+                                      description: 'The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html'
+                                      properties:
+                                        key:
+                                          description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  type: object
+                                vaultAwsIamServerID:
+                                  description: 'X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws'
+                                  type: string
+                                vaultRole:
+                                  description: Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+                                  type: string
+                              required:
+                                - vaultRole
                               type: object
                             jwt:
                               description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
@@ -6196,6 +6770,33 @@ spec:
                                 namespace:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
+                              type: object
+                            userPass:
+                              description: UserPass authenticates with Vault by passing username/password pair
+                              properties:
+                                path:
+                                  default: user
+                                  description: 'Path where the UserPassword authentication backend is mounted in Vault, e.g: "user"'
+                                  type: string
+                                secretRef:
+                                  description: SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                username:
+                                  description: Username is a user name used to authenticate using the UserPass Vault authentication method
+                                  type: string
+                              required:
+                                - path
+                                - username
                               type: object
                           type: object
                         caBundle:
@@ -6480,8 +7081,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -6621,8 +7221,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -6749,8 +7348,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: fakes.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -6781,6 +7379,9 @@ spec:
             spec:
               description: FakeSpec contains the static data.
               properties:
+                controller:
+                  description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters VDS based on this property'
+                  type: string
                 data:
                   additionalProperties:
                     type: string
@@ -6807,8 +7408,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: gcraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -6915,8 +7515,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: passwords.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -6993,8 +7592,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: vaultdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7023,6 +7621,9 @@ spec:
               type: object
             spec:
               properties:
+                controller:
+                  description: 'Used to select the correct ESO controller (think: ingress.ingressClassName) The ESO controller is instantiated with a specific controller name and filters VDS based on this property'
+                  type: string
                 method:
                   description: Vault API method to use (GET/POST/other)
                   type: string
@@ -7048,6 +7649,19 @@ spec:
                             roleId:
                               description: RoleID configured in the App Role authentication backend when setting up the authentication backend in Vault.
                               type: string
+                            roleRef:
+                              description: Reference to a key in a Secret that contains the App Role ID used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role id.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
                             secretRef:
                               description: Reference to a key in a Secret that contains the App Role secret used to authenticate with Vault. The `key` field must be specified and denotes which entry within the Secret resource is used as the app role secret.
                               properties:
@@ -7063,7 +7677,6 @@ spec:
                               type: object
                           required:
                             - path
-                            - roleId
                             - secretRef
                           type: object
                         cert:
@@ -7095,6 +7708,94 @@ spec:
                                   description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                                   type: string
                               type: object
+                          type: object
+                        iam:
+                          description: Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials AWS IAM authentication method
+                          properties:
+                            externalID:
+                              description: AWS External ID set on assumed IAM roles
+                              type: string
+                            jwt:
+                              description: Specify a service account with IRSA enabled
+                              properties:
+                                serviceAccountRef:
+                                  description: A reference to a ServiceAccount resource.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              type: object
+                            path:
+                              description: 'Path where the AWS auth method is enabled in Vault, e.g: "aws"'
+                              type: string
+                            region:
+                              description: AWS region
+                              type: string
+                            role:
+                              description: This is the AWS role to be assumed before talking to vault
+                              type: string
+                            secretRef:
+                              description: Specify credentials in a Secret object
+                              properties:
+                                accessKeyIDSecretRef:
+                                  description: The AccessKeyID is used for authentication
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                secretAccessKeySecretRef:
+                                  description: The SecretAccessKey is used for authentication
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                sessionTokenSecretRef:
+                                  description: 'The SessionToken used for authentication This must be defined if AccessKeyID and SecretAccessKey are temporary credentials see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html'
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                            vaultAwsIamServerID:
+                              description: 'X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws'
+                              type: string
+                            vaultRole:
+                              description: Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+                              type: string
+                          required:
+                            - vaultRole
                           type: object
                         jwt:
                           description: Jwt authenticates with Vault by passing role and JWT token using the JWT/OIDC authentication method
@@ -7238,6 +7939,33 @@ spec:
                               description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
                               type: string
                           type: object
+                        userPass:
+                          description: UserPass authenticates with Vault by passing username/password pair
+                          properties:
+                            path:
+                              default: user
+                              description: 'Path where the UserPassword authentication backend is mounted in Vault, e.g: "user"'
+                              type: string
+                            secretRef:
+                              description: SecretRef to a key in a Secret resource containing password for the user used to authenticate with Vault using the UserPass authentication method
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                            username:
+                              description: Username is a user name used to authenticate using the UserPass Vault authentication method
+                              type: string
+                          required:
+                            - path
+                            - username
+                          type: object
                       type: object
                     caBundle:
                       description: PEM encoded CA bundle used to validate Vault server certificate. Only used if the Server URL is using HTTPS protocol. This parameter is ignored for plain HTTP protocol connection. If not set the system root certificates are used to validate the TLS connection.
@@ -7291,6 +8019,10 @@ spec:
                     - auth
                     - server
                   type: object
+                resultType:
+                  default: Data
+                  description: Result type defines which data is returned from the generator. By default it is the "data" section of the Vault API response. When using e.g. /auth/token/create the "data" section is empty but the "auth" section contains the generated token. Please refer to the vault docs regarding the result data structure.
+                  type: string
               required:
                 - path
                 - provider

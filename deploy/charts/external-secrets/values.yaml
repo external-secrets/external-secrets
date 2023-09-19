@@ -30,6 +30,9 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# -- Additional labels added to all helm chart resources.
+commonLabels: {}
+
 # -- If true, external-secrets will perform leader election between instances to ensure no more
 # than one instance of external-secrets operates at a time.
 leaderElect: false
@@ -37,6 +40,10 @@ leaderElect: false
 # -- If set external secrets will filter matching
 # Secret Stores with the appropriate controller values.
 controllerClass: ""
+
+# -- If true external secrets will use recommended kubernetes
+# annotations as prometheus metric labels.
+extendedMetricLabels: false
 
 # -- If set external secrets are only reconciled in the
 # provided namespace
@@ -51,6 +58,9 @@ processClusterExternalSecret: true
 
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
+
+# -- if true, the operator will process push secret. Else, it will ignore them.
+processPushSecret: true
 
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
@@ -75,6 +85,10 @@ serviceAccount:
 rbac:
   # -- Specifies whether role and rolebinding resources should be created.
   create: true
+
+  servicebindings:
+    # -- Specifies whether a clusterrole to give servicebindings read access should be created.
+    create: true
 
 ## -- Extra environment variables to add to container.
 extraEnv: []
@@ -102,13 +116,16 @@ podLabels: {}
 podSecurityContext: {}
   # fsGroup: 2000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
 
 resources: {}
   # requests:
@@ -125,6 +142,9 @@ prometheus:
 serviceMonitor:
   # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
   enabled: false
+
+  # -- namespace where you want to install ServiceMonitors
+  namespace: ""
 
   # -- Additional labels
   additionalLabels: {}
@@ -184,6 +204,9 @@ podDisruptionBudget:
   minAvailable: 1
   # maxUnavailable: 1
 
+# -- Run the controller on the host network
+hostNetwork: false
+
 webhook:
   # -- Specifies whether a webhook deployment be created.
   create: true
@@ -228,7 +251,43 @@ webhook:
     name: ""
   nodeSelector: {}
 
+  certManager:
+    # -- Enabling cert-manager support will disable the built in secret and
+    # switch to using cert-manager (installed separately) to automatically issue
+    # and renew the webhook certificate. This chart does not install
+    # cert-manager for you, See https://cert-manager.io/docs/
+    enabled: false
+    # -- Automatically add the cert-manager.io/inject-ca-from annotation to the
+    # webhooks and CRDs. As long as you have the cert-manager CA Injector
+    # enabled, this will automatically setup your webhook's CA to the one used
+    # by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector
+    addInjectorAnnotations: true
+    cert:
+      # -- Create a certificate resource within this chart. See
+      # https://cert-manager.io/docs/usage/certificate/
+      create: true
+      # -- For the Certificate created by this chart, setup the issuer. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
+      issuerRef:
+        group: cert-manager.io
+        kind: "Issuer"
+        name: "my-issuer"
+      # -- Set the requested duration (i.e. lifetime) of the Certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      duration: ""
+      # -- How long before the currently issued certificate’s expiry
+      # cert-manager should renew the certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      # Note that renewBefore should be greater than .webhook.lookaheadInterval
+      # since the webhook will check this far in advance that the certificate is
+      # valid.
+      renewBefore: ""
+      # -- Add extra annotations to the Certificate resource.
+      annotations: {}
+
   tolerations: []
+
+  topologySpreadConstraints: []
 
   affinity: {}
 
@@ -246,19 +305,6 @@ webhook:
     service:
       # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
       port: 8080
-
-  serviceMonitor:
-    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
-    enabled: false
-
-    # -- Additional labels
-    additionalLabels: {}
-
-    # --  Interval to scrape metrics
-    interval: 30s
-
-    # -- Timeout if metrics can't be retrieved in given time interval
-    scrapeTimeout: 25s
 
   metrics:
     service:
@@ -305,13 +351,16 @@ webhook:
   podSecurityContext: {}
       # fsGroup: 2000
 
-  securityContext: {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
 
   resources: {}
       # requests:
@@ -353,7 +402,12 @@ certController:
 
   tolerations: []
 
+  topologySpreadConstraints: []
+
   affinity: {}
+
+  # -- Run the certController on the host network
+  hostNetwork: false
 
     # -- Pod priority class name.
   priorityClassName: ""
@@ -371,19 +425,6 @@ certController:
       # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
       port: 8080
 
-  serviceMonitor:
-    # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
-    enabled: false
-
-    # -- Additional labels
-    additionalLabels: {}
-
-    # --  Interval to scrape metrics
-    interval: 30s
-
-    # -- Timeout if metrics can't be retrieved in given time interval
-    scrapeTimeout: 25s
-
   metrics:
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
@@ -394,6 +435,12 @@ certController:
 
       # -- Additional service annotations
       annotations: {}
+
+  readinessProbe:
+    # -- Address for readiness probe
+    address: ""
+    # -- ReadinessProbe port for kubelet
+    port: 8081
 
     ## -- Extra environment variables to add to container.
   extraEnv: []
@@ -419,13 +466,16 @@ certController:
   podSecurityContext: {}
       # fsGroup: 2000
 
-  securityContext: {}
-      # capabilities:
-      #   drop:
-      #   - ALL
-      # readOnlyRootFilesystem: true
-      # runAsNonRoot: true
-      # runAsUser: 1000
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
 
   resources: {}
       # requests:

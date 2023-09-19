@@ -230,6 +230,43 @@ string
 <p>AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTags</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.Tag
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role session tags</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transitiveTagKeys</code></br>
+<em>
+[]*string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AWSServiceType">AWSServiceType
@@ -536,6 +573,20 @@ AlibabaAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>rrsa</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.AlibabaRRSAAuth">
+AlibabaRRSAAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -616,17 +667,6 @@ AlibabaAuth
 </tr>
 <tr>
 <td>
-<code>endpoint</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-</td>
-</tr>
-<tr>
-<td>
 <code>regionID</code></br>
 <em>
 string
@@ -634,6 +674,65 @@ string
 </td>
 <td>
 <p>Alibaba Region to be used for the provider</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.AlibabaRRSAAuth">AlibabaRRSAAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AlibabaAuth">AlibabaAuth</a>)
+</p>
+<p>
+<p>Authenticate against Alibaba using RRSA.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>oidcProviderArn</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcTokenFilePath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleArn</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -1061,6 +1160,20 @@ string
 </tr>
 <tr>
 <td>
+<code>externalSecretMetadata</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretMetadata">
+ExternalSecretMetadata
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The metadata of the external secrets to be created</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>namespaceSelector</code></br>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
@@ -1117,11 +1230,7 @@ ClusterExternalSecretStatus
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;NotReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;PartiallyReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Ready&#34;</p></td>
+<tbody><tr><td><p>&#34;Ready&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -1211,6 +1320,20 @@ string
 </tr>
 <tr>
 <td>
+<code>externalSecretMetadata</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretMetadata">
+ExternalSecretMetadata
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The metadata of the external secrets to be created</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>namespaceSelector</code></br>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta">
@@ -1254,6 +1377,17 @@ Kubernetes meta/v1.Duration
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>externalSecretName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ExternalSecretName is the name of the ExternalSecrets created by the ClusterExternalSecret</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>failedNamespaces</code></br>
@@ -1397,8 +1531,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
@@ -1512,6 +1646,264 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <p>Choose namespaces by name</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ConjurApikey">ConjurApikey
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>userRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiKeyRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ConjurAuth">ConjurAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apikey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ConjurApikey">
+ConjurApikey
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ConjurProvider">ConjurProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ConjurAuth">
+ConjurAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DelineaProvider">DelineaProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>See <a href="https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go">https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go</a>.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DelineaProviderSecretRef">
+DelineaProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>ClientID is the non-secret part of the credential.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DelineaProviderSecretRef">
+DelineaProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>ClientSecret is the secret part of the credential.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenant</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Tenant is the chosen hostname / site name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>urlTemplate</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>URLTemplate
+If unset, defaults to &ldquo;https://%s.secretsvaultcloud.%s/v1/%s%s&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tld</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TLD is based on the server location that was chosen during provisioning.
+If unset, defaults to &ldquo;com&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.DelineaProviderSecretRef">DelineaProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.DelineaProvider">DelineaProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
 </td>
 </tr>
 </tbody>
@@ -2243,6 +2635,47 @@ ExternalSecretDecodingStrategy
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretMetadata">ExternalSecretMetadata
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>)
+</p>
+<p>
+<p>ExternalSecretMetadata defines metadata fields for the ExternalSecret generated by the ClusterExternalSecret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>annotations</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretMetadataPolicy">ExternalSecretMetadataPolicy
 (<code>string</code> alias)</p></h3>
 <p>
@@ -2479,6 +2912,19 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>binding</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>Binding represents a servicebinding.io Provisioned Service reference to the secret</p>
 </td>
 </tr>
 </tbody>
@@ -4138,8 +4584,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
@@ -4409,7 +4855,7 @@ GitlabProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Gitlab configures this store to sync secrets using Gitlab Variables provider</p>
+<p>GitLab configures this store to sync secrets using GitLab Variables provider</p>
 </td>
 </tr>
 <tr>
@@ -4538,6 +4984,35 @@ KeeperSecurityProvider
 <p>KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conjur</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ConjurProvider">
+ConjurProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conjur configures this store to sync secrets using conjur provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>delinea</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.DelineaProvider">
+DelineaProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Delinea DevOps Secrets Vault
+<a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">https://docs.delinea.com/online-help/products/devops-secrets-vault/current</a></p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreRef">SecretStoreRef
@@ -4649,8 +5124,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to select the correct KES controller (think: ingress.ingressClassName)
-The KES controller is instantiated with a specific controller name and filters ES based on this property</p>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
 </td>
 </tr>
 <tr>
@@ -5016,6 +5491,40 @@ GeneratorRef
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.Tag">Tag
+</h3>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.TemplateEngineVersion">TemplateEngineVersion
 (<code>string</code> alias)</p></h3>
 <p>
@@ -5340,8 +5849,26 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>RoleID configured in the App Role authentication backend when setting
 up the authentication backend in Vault.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Reference to a key in a Secret that contains the App Role ID used
+to authenticate with Vault.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role id.</p>
 </td>
 </tr>
 <tr>
@@ -5370,7 +5897,7 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>jwt</code> or <code>cert</code>
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
 can be specified.</p>
 </p>
 <table>
@@ -5470,6 +5997,172 @@ VaultCertAuth
 Cert authentication method</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>iam</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">
+VaultIamAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials
+AWS IAM authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>userPass</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultUserPassAuth">
+VaultUserPassAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UserPass authenticates with Vault by passing username/password pair</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth
+</h3>
+<p>
+<p>VaultAwsAuth tells the controller how to do authentication with aws.
+Only one of secretRef or jwt can be specified.
+if none is specified the controller will try to load credentials from its own service account assuming it is IRSA enabled.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultAwsAuthSecretRef">
+VaultAwsAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultAwsJWTAuth">
+VaultAwsJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultAwsAuthSecretRef">VaultAwsAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
+</p>
+<p>
+<p>VaultAWSAuthSecretRef holds secret references for AWS credentials
+both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessKeyIDSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The AccessKeyID is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretAccessKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The SecretAccessKey is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The SessionToken used for authentication
+This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultAwsJWTAuth">VaultAwsJWTAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
+</p>
+<p>
+<p>Authenticate against AWS using service account tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.VaultCertAuth">VaultCertAuth
@@ -5517,6 +6210,119 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <p>SecretRef to a key in a Secret resource containing client private key to
 authenticate with Vault using the Cert authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultIamAuth authenticates with Vault using the Vault&rsquo;s AWS IAM authentication method. Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/aws">https://developer.hashicorp.com/vault/docs/auth/aws</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the AWS auth method is enabled in Vault, e.g: &ldquo;aws&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS region</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>This is the AWS role to be assumed before talking to vault</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultRole</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AWS External ID set on assumed IAM roles</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultAwsIamServerID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: <a href="https://developer.hashicorp.com/vault/docs/auth/aws">https://developer.hashicorp.com/vault/docs/auth/aws</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultAwsAuthSecretRef">
+VaultAwsAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify credentials in a Secret object</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultAwsJWTAuth">
+VaultAwsJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify a service account with IRSA enabled</p>
 </td>
 </tr>
 </tbody>
@@ -5961,6 +6767,65 @@ bool
 leader instead of simply retrying within a loop. This can increase performance if
 the option is enabled serverside.
 <a href="https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header">https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultUserPassAuth">VaultUserPassAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultUserPassAuth authenticates with Vault using UserPass authentication method,
+with the username and password stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the UserPassword authentication backend is mounted
+in Vault, e.g: &ldquo;user&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is a user name used to authenticate using the UserPass Vault
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef to a key in a Secret resource containing password for the
+user used to authenticate with Vault using the UserPass authentication
+method</p>
 </td>
 </tr>
 </tbody>

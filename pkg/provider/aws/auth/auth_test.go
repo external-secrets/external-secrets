@@ -405,6 +405,45 @@ func TestNewSession(t *testing.T) {
 			expectedKeyID:     "3333",
 			expectedSecretKey: "4444",
 		},
+		{
+			name: "configure aws using environment variables + assume role + check external id",
+			stsProvider: func(*awssess.Session) stsiface.STSAPI {
+				return &fakesess.AssumeRoler{
+					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
+						assert.Equal(t, *input.ExternalId, "12345678")
+						return &sts.AssumeRoleOutput{
+							AssumedRoleUser: &sts.AssumedRoleUser{
+								Arn:           aws.String("1123132"),
+								AssumedRoleId: aws.String("xxxxx"),
+							},
+							Credentials: &sts.Credentials{
+								AccessKeyId:     aws.String("3333"),
+								SecretAccessKey: aws.String("4444"),
+								Expiration:      aws.Time(time.Now().Add(time.Hour)),
+								SessionToken:    aws.String("6666"),
+							},
+						}, nil
+					},
+				}
+			},
+			store: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						AWS: &esv1beta1.AWSProvider{
+							Role:       "foo-bar-baz",
+							ExternalID: "12345678",
+						},
+					},
+				},
+			},
+			env: map[string]string{
+				"AWS_ACCESS_KEY_ID":     "1111",
+				"AWS_SECRET_ACCESS_KEY": "2222",
+			},
+			expectProvider:    true,
+			expectedKeyID:     "3333",
+			expectedSecretKey: "4444",
+		},
 	}
 	for i := range rows {
 		row := rows[i]

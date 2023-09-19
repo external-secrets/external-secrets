@@ -21,8 +21,8 @@ import (
 
 // SecretStoreSpec defines the desired state of SecretStore.
 type SecretStoreSpec struct {
-	// Used to select the correct KES controller (think: ingress.ingressClassName)
-	// The KES controller is instantiated with a specific controller name and filters ES based on this property
+	// Used to select the correct ESO controller (think: ingress.ingressClassName)
+	// The ESO controller is instantiated with a specific controller name and filters ES based on this property
 	// +optional
 	Controller string `json:"controller"`
 
@@ -93,7 +93,7 @@ type SecretStoreProvider struct {
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
 
-	// Gitlab configures this store to sync secrets using Gitlab Variables provider
+	// GitLab configures this store to sync secrets using GitLab Variables provider
 	// +optional
 	Gitlab *GitlabProvider `json:"gitlab,omitempty"`
 
@@ -132,6 +132,15 @@ type SecretStoreProvider struct {
 	// KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider
 	// +optional
 	KeeperSecurity *KeeperSecurityProvider `json:"keepersecurity,omitempty"`
+
+	// Conjur configures this store to sync secrets using conjur provider
+	// +optional
+	Conjur *ConjurProvider `json:"conjur,omitempty"`
+
+	// Delinea DevOps Secrets Vault
+	// https://docs.delinea.com/online-help/products/devops-secrets-vault/current
+	// +optional
+	Delinea *DelineaProvider `json:"delinea,omitempty"`
 }
 
 type CAProviderType string

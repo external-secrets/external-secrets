@@ -1,0 +1,63 @@
+suite: test cert controller deployment
+templates:
+  - cert-controller-deployment.yaml
+tests:
+  - it: should match snapshot of default values
+    asserts:
+      - matchSnapshot: {}
+  - it: should set imagePullPolicy to Always
+    set:
+      certController.image.pullPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+  - it: should imagePullPolicy to be default value IfNotPresent
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+  - it: should override securityContext
+    set:
+      certController.podSecurityContext:
+        runAsUser: 2000
+      certController.securityContext:
+        runAsUser: 3000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsUser: 2000
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 3000
+            seccompProfile:
+              type: RuntimeDefault
+  - it: should override hostNetwork
+    set:
+      certController.hostNetwork: true
+    asserts:
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+  - it: should override readinessProbe port
+    set:
+      certController.readinessProbe.port: 8082
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[7]
+          value: "--healthz-addr=:8082"
+  - it: should override metrics port
+    set:
+      certController.prometheus.service.port: 8888
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[6]
+          value: "--metrics-addr=:8888"

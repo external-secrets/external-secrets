@@ -23,7 +23,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "external-secrets-webhook.selectorLabels" . | nindent 8 }}
+        {{- include "external-secrets-webhook.labels" . | nindent 8 }}
         {{- with .Values.webhook.podLabels }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -110,6 +110,10 @@ spec:
       {{- end }}
       {{- with .Values.webhook.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- if .Values.webhook.priorityClassName }}

@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	// Metrics.
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	// Loading registered providers.
@@ -95,27 +97,41 @@ type Reconciler struct {
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ExternalSecret", req.NamespacedName)
 
-	resourceLabels := prometheus.Labels{"name": req.Name, "namespace": req.Namespace}
+	resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(map[string]string{"name": req.Name, "namespace": req.Namespace})
 	start := time.Now()
-	defer externalSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
-	defer syncCallsTotal.With(resourceLabels).Inc()
+
+	syncCallsError := esmetrics.GetCounterVec(esmetrics.SyncCallsErrorKey)
+
+	// use closures to dynamically update resourceLabels
+	defer func() {
+		esmetrics.GetGaugeVec(esmetrics.ExternalSecretReconcileDurationKey).With(resourceLabels).Set(float64(time.Since(start)))
+		esmetrics.GetCounterVec(esmetrics.SyncCallsKey).With(resourceLabels).Inc()
+	}()
 
 	var externalSecret esv1beta1.ExternalSecret
 	err := r.Get(ctx, req.NamespacedName, &externalSecret)
-	if apierrors.IsNotFound(err) {
-		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretDeleted, v1.ConditionFalse, esv1beta1.ConditionReasonSecretDeleted, "Secret was deleted")
-		SetExternalSecretCondition(&esv1beta1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      req.Name,
-				Namespace: req.Namespace,
-			},
-		}, *conditionSynced)
-		return ctrl.Result{}, nil
-	} else if err != nil {
+
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretDeleted, v1.ConditionFalse, esv1beta1.ConditionReasonSecretDeleted, "Secret was deleted")
+			SetExternalSecretCondition(&esv1beta1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      req.Name,
+					Namespace: req.Namespace,
+				},
+			}, *conditionSynced)
+
+			return ctrl.Result{}, nil
+		}
+
 		log.Error(err, errGetES)
 		syncCallsError.With(resourceLabels).Inc()
-		return ctrl.Result{}, nil
+
+		return ctrl.Result{}, err
 	}
+
+	// if extended metrics is enabled, refine the time series vector
+	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 
 	if shouldSkipClusterSecretStore(r, externalSecret) {
 		log.Info("skipping cluster secret store as it is disabled")
@@ -148,6 +164,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, &existingSecret)
 	if err != nil && !apierrors.IsNotFound(err) {
 		log.Error(err, errGetExistingSecret)
+		return ctrl.Result{}, err
 	}
 
 	// refresh should be skipped if
@@ -259,19 +276,44 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err != nil {
 			return fmt.Errorf(errApplyTemplate, err)
 		}
+		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
+			lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
+			secret.Labels[esv1beta1.LabelOwner] = lblValue
+		}
+
+		secret.Annotations[esv1beta1.AnnotationDataHash] = r.computeDataHashAnnotation(&existingSecret, secret)
 
 		return nil
 	}
 
-	//nolint
-	switch externalSecret.Spec.Target.CreationPolicy {
+	switch externalSecret.Spec.Target.CreationPolicy { //nolint
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
+		if err == nil {
+			externalSecret.Status.Binding = v1.LocalObjectReference{Name: secret.Name}
+		}
 	case esv1beta1.CreatePolicyNone:
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
-		err = createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
+		var created bool
+		created, err = createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
+		if err == nil {
+			externalSecret.Status.Binding = v1.LocalObjectReference{Name: secret.Name}
+		}
+		// cleanup orphaned secrets
+		if created {
+			delErr := deleteOrphanedSecrets(ctx, r.Client, &externalSecret)
+			if delErr != nil {
+				msg := fmt.Sprintf("failed to clean up orphaned secrets: %v", delErr)
+				log.Error(delErr, msg)
+				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, delErr.Error())
+				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
+				SetExternalSecretCondition(&externalSecret, *conditionSynced)
+				syncCallsError.With(resourceLabels).Inc()
+				return ctrl.Result{}, delErr
+			}
+		}
 	}
 
 	if err != nil {
@@ -300,36 +342,63 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}, nil
 }
 
-func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f func() error, fieldOwner string) error {
+func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret *esv1beta1.ExternalSecret) error {
+	secretList := v1.SecretList{}
+	lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
+	ls := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			esv1beta1.LabelOwner: lblValue,
+		},
+	}
+	labelSelector, err := metav1.LabelSelectorAsSelector(ls)
+	if err != nil {
+		return err
+	}
+	err = cl.List(ctx, &secretList, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return err
+	}
+	for key, secret := range secretList.Items {
+		if externalSecret.Spec.Target.Name != "" && secret.Name != externalSecret.Spec.Target.Name {
+			err = cl.Delete(ctx, &secretList.Items[key])
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func createOrUpdate(ctx context.Context, c client.Client, obj client.Object, f func() error, fieldOwner string) (bool, error) {
 	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	key := client.ObjectKeyFromObject(obj)
 	if err := c.Get(ctx, key, obj); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return err
+			return false, err
 		}
 		if err := f(); err != nil {
-			return err
+			return false, err
 		}
 		// Setting Field Owner even for CreationPolicy==Create
 		if err := c.Create(ctx, obj, client.FieldOwner(fqdn)); err != nil {
-			return err
+			return false, err
 		}
-		return nil
+		return true, nil
 	}
 
 	existing := obj.DeepCopyObject()
 	if err := f(); err != nil {
-		return err
+		return false, err
 	}
 
 	if equality.Semantic.DeepEqual(existing, obj) {
-		return nil
+		return false, nil
 	}
 
 	if err := c.Update(ctx, obj, client.FieldOwner(fqdn)); err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	return false, nil
 }
 
 func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, secret *v1.Secret, mutationFunc func() error, fieldOwner string) error {
@@ -444,6 +513,21 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 		if ref.SourceRef != nil && ref.SourceRef.SecretStoreRef != nil {
 			storeList = append(storeList, *ref.SourceRef.SecretStoreRef)
 		}
+
+		// verify that generator's controllerClass matches
+		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
+			genDef, err := r.getGeneratorDefinition(ctx, namespace, ref.SourceRef)
+			if err != nil {
+				return false, err
+			}
+			skipGenerator, err := shouldSkipGenerator(r, genDef)
+			if err != nil {
+				return false, err
+			}
+			if skipGenerator {
+				return true, nil
+			}
+		}
 	}
 
 	for _, ref := range storeList {
@@ -516,6 +600,18 @@ func isSecretValid(existingSecret v1.Secret) bool {
 		return false
 	}
 	return true
+}
+
+// computeDataHashAnnotation generate a hash of the secret data combining the old key with the new keys to add or override.
+func (r *Reconciler) computeDataHashAnnotation(existing, secret *v1.Secret) string {
+	data := make(map[string][]byte)
+	for k, v := range existing.Data {
+		data[k] = v
+	}
+	for k, v := range secret.Data {
+		data[k] = v
+	}
+	return utils.ObjectHash(data)
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

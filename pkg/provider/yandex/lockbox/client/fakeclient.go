@@ -37,7 +37,7 @@ func NewFakeLockboxClient(fakeLockboxServer *FakeLockboxServer) LockboxClient {
 	return &fakeLockboxClient{fakeLockboxServer}
 }
 
-func (c *fakeLockboxClient) GetPayloadEntries(ctx context.Context, iamToken, secretID, versionID string) ([]*api.Payload_Entry, error) {
+func (c *fakeLockboxClient) GetPayloadEntries(_ context.Context, iamToken, secretID, versionID string) ([]*api.Payload_Entry, error) {
 	return c.fakeLockboxServer.getEntries(iamToken, secretID, versionID)
 }
 
