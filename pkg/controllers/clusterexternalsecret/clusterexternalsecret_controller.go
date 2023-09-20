@@ -82,6 +82,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	// skip reconciliation if deletion timestamp is set on cluster external secret
+	if clusterExternalSecret.DeletionTimestamp != nil {
+		log.Info("skipping as it is in deletion")
+		return ctrl.Result{}, nil
+	}
+
 	p := client.MergeFrom(clusterExternalSecret.DeepCopy())
 	defer r.deferPatch(ctx, log, &clusterExternalSecret, p)
 
