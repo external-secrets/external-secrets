@@ -10,8 +10,8 @@ spec:
       engineVersion: v2
       data:
         name: admin
-        password: "{{ .mysecret }}"                   # If you are using plain manifests or gitops tools
-        # password: "{{ `{{ .mysecret }}` }}"         # If you are using templated tools like helm
+        # password: "{{ .mysecret }}"               # If you are using plain manifests or gitops tools
+        password: "{{ `{{ .mysecret }}` }}"         # If you are using helm
   data:
   - secretKey: mysecret
     remoteRef:

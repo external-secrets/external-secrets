@@ -2,6 +2,15 @@
 
 With External Secrets Operator you can transform the data from the external secret provider before it is stored as `Kind=Secret`. You can do this with the `Spec.Target.Template`. Each data value is interpreted as a [golang template](https://golang.org/pkg/text/template/).
 
+
+## Helm
+
+When installing ExternalSecrets via `helm`, the template must be escaped so that `helm` will not try to render it. The most straightforward way to accomplish this would be to use backticks ([raw string constants](https://pkg.go.dev/text/template#hdr-Examples)):
+
+```yaml
+{% include 'helm-template-v2-escape-sequence.yaml' %}
+```
+
 ## Examples
 
 You can use templates to inject your secrets into a configuration file that you mount into your pod:
