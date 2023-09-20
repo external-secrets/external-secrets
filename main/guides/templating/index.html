@@ -1101,6 +1101,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#helm" class="md-nav__link">
+    Helm
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#examples" class="md-nav__link">
     Examples
   </a>
@@ -2206,6 +2213,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#helm" class="md-nav__link">
+    Helm
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#examples" class="md-nav__link">
     Examples
   </a>
@@ -2300,6 +2314,26 @@
 
 <h1 id="advanced-templating-v2">Advanced Templating v2</h1>
 <p>With External Secrets Operator you can transform the data from the external secret provider before it is stored as <code>Kind=Secret</code>. You can do this with the <code>Spec.Target.Template</code>. Each data value is interpreted as a <a href="https://golang.org/pkg/text/template/">golang template</a>.</p>
+<h2 id="helm">Helm</h2>
+<p>When installing ExternalSecrets via <code>helm</code>, the template must be escaped so that <code>helm</code> will not try to render it. The most straightforward way to accomplish this would be to use backticks (<a href="https://pkg.go.dev/text/template#hdr-Examples">raw string constants</a>):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">template</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">admin</span>
+<span class="w">        </span><span class="c1"># password: &quot;{{ .mysecret }}&quot;               # If you are using plain manifests or gitops tools</span>
+<span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">`{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">}}`</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w">         </span><span class="c1"># If you are using helm</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysecret</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/credentials</span>
+</code></pre></div>
 <h2 id="examples">Examples</h2>
 <p>You can use templates to inject your secrets into a configuration file that you mount into your pod:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
@@ -2350,7 +2384,7 @@
 <span class="w">      </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">admin</span>
 <span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w">                   </span><span class="c1"># If you are using plain manifests or gitops tools</span>
-<span class="w">        </span><span class="c1"># password: &#39;{{ printf &quot;{{ .mysecret }}&quot; }}&#39;  # If you are using templated tools like helm</span>
+<span class="w">        </span><span class="c1"># password: &quot;{{ `{{ .mysecret }}` }}&quot;         # If you are using templated tools like helm</span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysecret</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
