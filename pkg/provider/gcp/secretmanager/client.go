@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -66,6 +67,8 @@ const (
 
 	managedByKey   = "managed-by"
 	managedByValue = "external-secrets"
+
+	providerName = "GCPSecretManager"
 )
 
 type Client struct {
@@ -111,6 +114,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 
 	deleteSecretVersionReq := &secretmanagerpb.DeleteSecretRequest{
 		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
+		Etag: gcpSecret.Etag,
 	}
 	err = c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMDeleteSecret, err)
@@ -127,8 +131,9 @@ func parseError(err error) error {
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
 func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+	secretName := fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
-		Name: fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey()),
+		Name: secretName,
 	})
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGetSecret, err)
 
@@ -171,6 +176,7 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata *apiex
 		_, err = c.smClient.UpdateSecret(ctx, &secretmanagerpb.UpdateSecretRequest{
 			Secret: &secretmanagerpb.Secret{
 				Name:        gcpSecret.Name,
+				Etag:        gcpSecret.Etag,
 				Labels:      labels,
 				Annotations: annotations,
 			},
@@ -184,8 +190,14 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, metadata *apiex
 		}
 	}
 
+	unlock, err := locks.TryLock(providerName, secretName)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
 	gcpVersion, err := c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", c.store.ProjectID, remoteRef.GetRemoteKey()),
+		Name: fmt.Sprintf("%s/versions/latest", secretName),
 	})
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
 
