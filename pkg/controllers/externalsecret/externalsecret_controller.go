@@ -130,6 +130,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	// skip reconciliation if deletion timestamp is set on external secret
+	if externalSecret.DeletionTimestamp != nil {
+		log.Info("skipping as it is in deletion")
+		return ctrl.Result{}, nil
+	}
+
 	// if extended metrics is enabled, refine the time series vector
 	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 

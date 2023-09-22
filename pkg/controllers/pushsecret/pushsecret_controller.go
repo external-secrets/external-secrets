@@ -16,6 +16,7 @@ package pushsecret
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -36,6 +37,7 @@ import (
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 )
 
 const (
@@ -146,6 +148,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
 	if err != nil {
+		if errors.Is(err, locks.ErrConflict) {
+			log.Info("retry to acquire lock to update the secret later", "error", err)
+			return ctrl.Result{Requeue: true}, nil
+		}
+
 		msg := fmt.Sprintf(errFailedSetSecret, err)
 		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 		ps = SetPushSecretCondition(ps, *cond)

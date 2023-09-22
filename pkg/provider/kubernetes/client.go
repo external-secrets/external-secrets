@@ -363,6 +363,9 @@ func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remot
 }
 
 func (c *Client) updateProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushRemoteRef, value []byte) error {
+	if extSecret.Data == nil {
+		extSecret.Data = make(map[string][]byte)
+	}
 	// otherwise update remote secret
 	extSecret.Data[remoteRef.GetProperty()] = value
 	_, uErr := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
