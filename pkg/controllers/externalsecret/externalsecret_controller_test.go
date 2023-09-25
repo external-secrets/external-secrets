@@ -359,12 +359,24 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	mergeWithSecret := func(tc *testCase) {
 		const secretVal = "someValue"
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
+		tc.externalSecret.Labels = map[string]string{
+			"es-label-key": "es-label-value",
+		}
+		tc.externalSecret.Annotations = map[string]string{
+			"es-annotation-key": "es-annotation-value",
+		}
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
+				Labels: map[string]string{
+					"existing-label-key": "existing-label-value",
+				},
+				Annotations: map[string]string{
+					"existing-annotation-key": "existing-annotation-value",
+				},
 			},
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
@@ -377,21 +389,23 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 
-			// check labels & annotations
-			for k, v := range es.ObjectMeta.Labels {
-				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
-			}
-			for k, v := range es.ObjectMeta.Annotations {
-				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
-			}
+			Expect(secret.ObjectMeta.Labels).To(HaveLen(2))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("existing-label-key", "existing-label-value"))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("es-label-key", "es-label-value"))
+
+			Expect(secret.ObjectMeta.Annotations).To(HaveLen(3))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("existing-annotation-key", "existing-annotation-value"))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("es-annotation-key", "es-annotation-value"))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKey(esv1beta1.AnnotationDataHash))
+
 			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
 			Expect(ctest.HasFieldOwnership(
 				secret.ObjectMeta,
 				ExternalSecretFQDN,
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
-			).To(BeTrue())
-			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
+				fmt.Sprintf(`{"f:data":{"f:targetProperty":{}},"f:immutable":{},"f:metadata":{"f:annotations":{"f:es-annotation-key":{},"f:%s":{}},"f:labels":{"f:es-label-key":{}}}}`, esv1beta1.AnnotationDataHash)),
+			).To(BeEmpty())
+			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, `{"f:data":{".":{},"f:pre-existing-key":{}},"f:metadata":{"f:annotations":{".":{},"f:existing-annotation-key":{}},"f:labels":{".":{},"f:existing-label-key":{}}},"f:type":{}}`)).To(BeEmpty())
 		}
 	}
 
@@ -488,7 +502,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				secret.ObjectMeta,
 				ExternalSecretFQDN,
 				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
-			).To(BeTrue())
+			).To(BeEmpty())
 		}
 	}
 
