@@ -292,7 +292,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	}
 
-	switch externalSecret.Spec.Target.CreationPolicy { //nolint
+	switch externalSecret.Spec.Target.CreationPolicy { //nolint:exhaustive
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 		if err == nil {
