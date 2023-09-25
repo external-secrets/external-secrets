@@ -1485,6 +1485,21 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#certificate-for-conjur-server" class="md-nav__link">
+    Certificate for Conjur server
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-secret-store-definition-with-apikey-authentication" class="md-nav__link">
+    External Secret Store Definition with ApiKey Authentication
+  </a>
+  
+    <nav class="md-nav" aria-label="External Secret Store Definition with ApiKey Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#create-external-secret-store-definition" class="md-nav__link">
     Create External Secret Store Definition
   </a>
@@ -1492,15 +1507,40 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#create-external-secret-definition" class="md-nav__link">
-    Create External Secret Definition
+  <a href="#create-kubernetes-secrets" class="md-nav__link">
+    Create Kubernetes Secrets
   </a>
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+        
           <li class="md-nav__item">
-  <a href="#create-kubernetes-secrets" class="md-nav__link">
-    Create Kubernetes Secrets
+  <a href="#external-secret-store-with-jwt-authentication" class="md-nav__link">
+    External Secret Store with JWT Authentication
+  </a>
+  
+    <nav class="md-nav" aria-label="External Secret Store with JWT Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create-external-secret-store-definition_1" class="md-nav__link">
+    Create External Secret Store Definition
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-external-secret-definition" class="md-nav__link">
+    Create External Secret Definition
   </a>
   
 </li>
@@ -2209,6 +2249,21 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#certificate-for-conjur-server" class="md-nav__link">
+    Certificate for Conjur server
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-secret-store-definition-with-apikey-authentication" class="md-nav__link">
+    External Secret Store Definition with ApiKey Authentication
+  </a>
+  
+    <nav class="md-nav" aria-label="External Secret Store Definition with ApiKey Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#create-external-secret-store-definition" class="md-nav__link">
     Create External Secret Store Definition
   </a>
@@ -2216,15 +2271,40 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#create-external-secret-definition" class="md-nav__link">
-    Create External Secret Definition
+  <a href="#create-kubernetes-secrets" class="md-nav__link">
+    Create Kubernetes Secrets
   </a>
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+        
           <li class="md-nav__item">
-  <a href="#create-kubernetes-secrets" class="md-nav__link">
-    Create Kubernetes Secrets
+  <a href="#external-secret-store-with-jwt-authentication" class="md-nav__link">
+    External Secret Store with JWT Authentication
+  </a>
+  
+    <nav class="md-nav" aria-label="External Secret Store with JWT Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create-external-secret-store-definition_1" class="md-nav__link">
+    Create External Secret Store Definition
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create-external-secret-definition" class="md-nav__link">
+    Create External Secret Definition
   </a>
   
 </li>
@@ -2290,7 +2370,8 @@
 <li>Running Conjur Server<ul>
 <li>These items will be needed in order to configure the secret-store<ul>
 <li>Conjur endpoint - include the scheme but no trailing '/', ex: https://myapi.example.com</li>
-<li>Conjur credentials (hostid, apikey)</li>
+<li>Conjur authentication info (hostid, apikey, jwt service id, etc)</li>
+<li>Conjur must be configured to support your authentication method (<code>apikey</code> is supported by default, <code>jwt</code> requires additional configuration)</li>
 <li>Certificate for Conjur server is OPTIONAL -- But, <strong>when using a self-signed cert when setting up your Conjur server, it is strongly recommended to populate "caBundle" with self-signed cert in the secret-store definition</strong></li>
 </ul>
 </li>
@@ -2301,7 +2382,32 @@
 </ul>
 </li>
 </ul>
-<h3 id="create-external-secret-store-definition">Create External Secret Store Definition</h3>
+<h3 id="certificate-for-conjur-server">Certificate for Conjur server</h3>
+<p>When using a self-signed cert when setting up your Conjur server, it is strongly recommended to populate "caBundle" with self-signed cert in the secret-store definition. The certificate CA must be referenced on the secret-store definition using either a <code>caBundle</code> or <code>caProvider</code> as below:</p>
+<div class="highlight"><pre><span></span><code><span class="l l-Scalar l-Scalar-Plain">....</span>
+<span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">conjur</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># Service URL</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://myapi.conjur.org</span>
+
+<span class="w">      </span><span class="c1"># [OPTIONAL] base64 encoded string of certificate</span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;base64</span><span class="nv"> </span><span class="s">encoded</span><span class="nv"> </span><span class="s">cabundle&gt;&quot;</span>
+
+<span class="w">      </span><span class="c1"># [OPTIONAL] caProvider:</span>
+<span class="w">      </span><span class="c1"># Instead of caBundle you can also specify a caProvider</span>
+<span class="w">      </span><span class="c1"># this will retrieve the cert from a Secret or ConfigMap</span>
+<span class="w">      </span><span class="nt">caProvider</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Secret&quot;</span><span class="w"> </span><span class="c1"># Can be Secret or ConfigMap</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;name</span><span class="nv"> </span><span class="s">of</span><span class="nv"> </span><span class="s">secret</span><span class="nv"> </span><span class="s">or</span><span class="nv"> </span><span class="s">configmap&gt;&quot;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;key</span><span class="nv"> </span><span class="s">inside</span><span class="nv"> </span><span class="s">secret</span><span class="nv"> </span><span class="s">or</span><span class="nv"> </span><span class="s">configmap&gt;&quot;</span>
+<span class="w">        </span><span class="c1"># namespace is mandatory for ClusterSecretStore and not relevant for SecretStore</span>
+<span class="w">        </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-cert-secret-namespace&quot;</span>
+<span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">....</span>
+</code></pre></div>
+<h3 id="external-secret-store-definition-with-apikey-authentication">External Secret Store Definition with ApiKey Authentication</h3>
+<p>This method uses a combination of the Conjur <code>hostid</code> and <code>apikey</code> to authenticate to Conjur. This method is the simplest to setup and use as your Conjur instance requires no special setup.</p>
+<h4 id="create-external-secret-store-definition">Create External Secret Store Definition</h4>
 <p>Recommend to save as filename: <code>conjur-secret-store.yaml</code></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -2325,6 +2431,76 @@
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur-creds</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apikey</span>
 </code></pre></div>
+<h4 id="create-kubernetes-secrets">Create Kubernetes Secrets</h4>
+<p>In order for the ESO <strong>Conjur</strong> provider to connect to the Conjur server using the <code>apikey</code> creds, these creds should be stored as k8s secrets.  Please refer to <a href="https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret">https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret</a> for various methods to create secrets.  Here is one way to do it using <code>kubectl</code></p>
+<p><strong><em>NOTE</em></strong>: "conjur-creds" is the "name" used in "userRef" and "apikeyRef" in the conjur-secret-store definition</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># This is all one line</span>
+kubectl<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>conjur-creds<span class="w"> </span>--from-literal<span class="o">=</span><span class="nv">hostid</span><span class="o">=</span>MYCONJURHOSTID<span class="w"> </span>--from-literal<span class="o">=</span><span class="nv">apikey</span><span class="o">=</span>MYAPIKEY
+
+<span class="c1"># Example:</span>
+<span class="c1"># kubectl -n external-secrets create secret generic conjur-creds --from-literal=hostid=host/data/app1/host001 --from-literal=apikey=321blahblah</span>
+</code></pre></div>
+<h3 id="external-secret-store-with-jwt-authentication">External Secret Store with JWT Authentication</h3>
+<p>This method uses JWT tokens to authenticate with Conjur. The following methods for retrieving the JWT token for authentication are supported:</p>
+<ul>
+<li>JWT token from a referenced Kubernetes Service Account</li>
+<li>JWT token stored in a Kubernetes secret</li>
+</ul>
+<h4 id="create-external-secret-store-definition_1">Create External Secret Store Definition</h4>
+<p>When using JWT authentication the following must be specified in the <code>SecretStore</code>:</p>
+<ul>
+<li><code>account</code> -  The name of the Conjur account</li>
+<li><code>serviceId</code> - The ID of the JWT Authenticator <code>WebService</code> configured in Conjur that will be used to authenticate the JWT token</li>
+</ul>
+<p>You can then choose to either retrieve the JWT token using a Service Account reference or from a Kubernetes Secret.</p>
+<p>To use a JWT token from a referenced Kubernetes Service Account, the following secret store definition can be used:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">conjur</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># Service URL</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://myapi.conjur.org</span>
+<span class="w">      </span><span class="c1"># [OPTIONAL] base64 encoded string of certificate</span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPTIONALxFIELDxxxBase64xCertxString==</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">jwt</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># conjur account</span>
+<span class="w">          </span><span class="nt">account</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="w">          </span><span class="nt">serviceID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-jwt-auth-service</span><span class="w"> </span><span class="c1"># The authn-jwt service ID</span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span><span class="w"> </span><span class="c1"># Service account to retrieve JWT token for</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-service-account</span>
+<span class="w">            </span><span class="nt">audiences</span><span class="p">:</span><span class="w">  </span><span class="c1"># [OPTIONAL] audiences to include in JWT token</span>
+<span class="w">              </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://conjur.company.com</span>
+</code></pre></div>
+<p>This is only supported in Kubernetes 1.22 and above as it uses the <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/">TokenRequest API</a> to get the JWT token from the referenced service account. Audiences can be set as required by the <a href="https://docs.conjur.org/Latest/en/Content/Integrations/k8s-ocp/k8s-jwt-authn.htm">Conjur JWT authenticator</a>.</p>
+<p>Alternatively, a secret containing a valid JWT token can be referenced as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">conjur</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># Service URL</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://myapi.conjur.org</span>
+<span class="w">      </span><span class="c1"># [OPTIONAL] base64 encoded string of certificate</span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPTIONALxFIELDxxxBase64xCertxString==</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">jwt</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># conjur account</span>
+<span class="w">          </span><span class="nt">account</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="w">          </span><span class="nt">serviceID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-jwt-auth-service</span><span class="w"> </span><span class="c1"># The authn-jwt service ID</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span><span class="w"> </span><span class="c1"># Secret containing a valid JWT token</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-jwt-secret</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+</code></pre></div>
+<p>This secret must contain a JWT token that identifies your Conjur host. The secret must contain a JWT token consumable by a configured Conjur JWT authenticator and must satisfy all <a href="https://docs.conjur.org/Latest/en/Content/Operations/Services/cjr-authn-jwt-guidelines.htm#Best">Conjur JWT guidelines</a>. This can be a JWT created by an external JWT issuer or the Kubernetes api server itself. Such a with Kubernetes Service Account token can be created using the below command:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>token<span class="w"> </span>my-service-account<span class="w"> </span>--audience<span class="o">=</span><span class="s1">&#39;https://conjur.company.com&#39;</span><span class="w"> </span>--duration<span class="o">=</span>3600s
+</code></pre></div>
+<p>Save the <code>SecretStore</code> definition as filename <code>conjur-secret-store.yaml</code> as referenced in later steps.</p>
 <h3 id="create-external-secret-definition">Create External Secret Definition</h3>
 <p>Important note: <strong>Creds must live in the same namespace as a SecretStore  - the secret store may only reference secrets from the same namespace.</strong>  When using a ClusterSecretStore this limitation is lifted and the creds can live in any namespace.</p>
 <p>Recommend to save as filename: <code>conjur-external-secret.yaml</code></p>
@@ -2342,15 +2518,6 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret00</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/app1/secret00</span>
-</code></pre></div>
-<h3 id="create-kubernetes-secrets">Create Kubernetes Secrets</h3>
-<p>In order for the ESO <strong>Conjur</strong> provider to connect to the Conjur server, the creds should be stored as k8s secrets.  Please refer to <a href="https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret">https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret</a> for various methods to create secrets.  Here is one way to do it using <code>kubectl</code></p>
-<p><strong><em>NOTE</em></strong>: "conjur-creds" is the "name" used in "userRef" and "apikeyRef" in the conjur-secret-store definition</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># This is all one line</span>
-kubectl<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>conjur-creds<span class="w"> </span>--from-literal<span class="o">=</span><span class="nv">hostid</span><span class="o">=</span>MYCONJURHOSTID<span class="w"> </span>--from-literal<span class="o">=</span><span class="nv">apikey</span><span class="o">=</span>MYAPIKEY
-
-<span class="c1"># Example:</span>
-<span class="c1"># kubectl -n external-secrets create secret generic conjur-creds --from-literal=hostid=host/data/app1/host001 --from-literal=apikey=321blahblah</span>
 </code></pre></div>
 <h3 id="create-the-external-secrets-store">Create the External Secrets Store</h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># WARNING: this will create the store configuration in the &quot;external-secrets&quot; namespace, adjust this to your own situation</span>
