@@ -130,6 +130,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	// skip reconciliation if deletion timestamp is set on external secret
+	if externalSecret.DeletionTimestamp != nil {
+		log.Info("skipping as it is in deletion")
+		return ctrl.Result{}, nil
+	}
+
 	// if extended metrics is enabled, refine the time series vector
 	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 
@@ -286,7 +292,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return nil
 	}
 
-	switch externalSecret.Spec.Target.CreationPolicy { //nolint
+	switch externalSecret.Spec.Target.CreationPolicy { //nolint:exhaustive
 	case esv1beta1.CreatePolicyMerge:
 		err = patchSecret(ctx, r.Client, r.Scheme, secret, mutationFunc, externalSecret.Name)
 		if err == nil {
@@ -296,7 +302,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.V(1).Info("secret creation skipped due to creationPolicy=None")
 		err = nil
 	default:
-		created, err := createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
+		var created bool
+		created, err = createOrUpdate(ctx, r.Client, secret, mutationFunc, externalSecret.Name)
 		if err == nil {
 			externalSecret.Status.Binding = v1.LocalObjectReference{Name: secret.Name}
 		}
@@ -305,12 +312,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			delErr := deleteOrphanedSecrets(ctx, r.Client, &externalSecret)
 			if delErr != nil {
 				msg := fmt.Sprintf("failed to clean up orphaned secrets: %v", delErr)
-				log.Error(err, msg)
-				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+				log.Error(delErr, msg)
+				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, delErr.Error())
 				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
 				SetExternalSecretCondition(&externalSecret, *conditionSynced)
 				syncCallsError.With(resourceLabels).Inc()
-				return ctrl.Result{}, err
+				return ctrl.Result{}, delErr
 			}
 		}
 	}

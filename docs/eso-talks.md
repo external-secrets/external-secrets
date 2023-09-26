@@ -24,4 +24,16 @@ A list of talks given by people at conferences and events. Feel free to let us k
 
 ## FOSDEM '23 (Containers devroom)
 
-[![FOSDEM '23 (Containers devroom)](https://slides.sagikazarmark.hu/2023-02-04-automating-secret-rotation-in-kubernetes/preview.png)](https://fosdem.org/2023/schedule/event/container_kubernetes_secret_rotation/)
+[FOSDEM '23 (Containers devroom)](https://fosdem.org/2023/schedule/event/container_kubernetes_secret_rotation/)
+
+## Form3 .tech Podcast - Building and maintaining External Secrets Operator
+
+[Podcast and Blog](https://www.form3.tech/engineering/content/podcast-ext-secrets)
+
+## ⚡️ Enlightning - Exploring External Secrets Operator
+
+[![](https://img.youtube.com/vi/7uY_qW6TWf8/0.jpg)](https://www.youtube.com/watch?v=7uY_qW6TWf8&ab_channel=VMwareTanzu)
+
+## KubeCon EU '23 - Protecting Your Crown Jewels with External Secrets Operator
+
+[![Protecting Your Crown Jewels with External Secrets Operator](https://img.youtube.com/vi/upwIlUHkDf8/0.jpg)](https://www.youtube.com/watch?v=upwIlUHkDf8&ab_channel=CNCF%5BCloudNativeComputingFoundation%5D)

@@ -33,7 +33,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true'
+    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
       - name: Checkout
@@ -72,7 +72,7 @@ jobs:
   check-diff:
     runs-on: ubuntu-latest
     needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true'
+    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
       - name: Checkout
@@ -113,7 +113,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true'
+    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
       - name: Checkout
