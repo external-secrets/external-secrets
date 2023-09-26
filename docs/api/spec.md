@@ -2454,8 +2454,8 @@ which secret (version/property/..) to fetch.</p>
 <td>
 <code>sourceRef</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SourceRef">
-SourceRef
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">
+StoreSourceRef
 </a>
 </em>
 </td>
@@ -2531,8 +2531,8 @@ Multiple Rewrite operations can be provided. They are applied in a layered order
 <td>
 <code>sourceRef</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SourceRef">
-SourceRef
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">
+StoreGeneratorSourceRef
 </a>
 </em>
 </td>
@@ -3710,7 +3710,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
 <p>GeneratorRef points to a generator custom resource.</p>
@@ -5249,7 +5250,8 @@ DelineaProvider
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
-<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
 <p>SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.</p>
@@ -5671,15 +5673,14 @@ bool
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.SourceRef">SourceRef
+<h3 id="external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
-<p>SourceRef allows you to override the source
+<p>StoreGeneratorSourceRef allows you to override the source
 from which the secret will be pulled from.
 You can define at maximum one property.</p>
 </p>
@@ -5715,7 +5716,56 @@ GeneratorRef
 </td>
 <td>
 <em>(Optional)</em>
-<p>GeneratorRef points to a generator custom resource in</p>
+<p>GeneratorRef points to a generator custom resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>)
+</p>
+<p>
+<p>StoreSourceRef allows you to override the SecretStore source
+from which the secret will be pulled from.
+You can define at maximum one property.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreRef">
+SecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>generatorRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorRef">
+GeneratorRef
+</a>
+</em>
+</td>
+<td>
+<p>GeneratorRef points to a generator custom resource.</p>
+<p>Deprecated: The generatorRef is not implemented in .data[].
+this will be removed with v1.</p>
 </td>
 </tr>
 </tbody>

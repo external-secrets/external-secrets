@@ -112,7 +112,7 @@ spec:
                             maxProperties: 1
                             properties:
                               generatorRef:
-                                description: GeneratorRef points to a generator custom resource in
+                                description: "GeneratorRef points to a generator custom resource. \n Deprecated: The generatorRef is not implemented in .data[]. this will be removed with v1."
                                 properties:
                                   apiVersion:
                                     default: generators.external-secrets.io/v1alpha1
@@ -256,7 +256,7 @@ spec:
                             maxProperties: 1
                             properties:
                               generatorRef:
-                                description: GeneratorRef points to a generator custom resource in
+                                description: GeneratorRef points to a generator custom resource.
                                 properties:
                                   apiVersion:
                                     default: generators.external-secrets.io/v1alpha1
@@ -3840,7 +3840,7 @@ spec:
                         maxProperties: 1
                         properties:
                           generatorRef:
-                            description: GeneratorRef points to a generator custom resource in
+                            description: "GeneratorRef points to a generator custom resource. \n Deprecated: The generatorRef is not implemented in .data[]. this will be removed with v1."
                             properties:
                               apiVersion:
                                 default: generators.external-secrets.io/v1alpha1
@@ -3984,7 +3984,7 @@ spec:
                         maxProperties: 1
                         properties:
                           generatorRef:
-                            description: GeneratorRef points to a generator custom resource in
+                            description: GeneratorRef points to a generator custom resource.
                             properties:
                               apiVersion:
                                 default: generators.external-secrets.io/v1alpha1
