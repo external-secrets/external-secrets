@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
+	"math/big"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -68,6 +69,7 @@ const (
 	errUnexpectedFindOperator = "unexpected find operator"
 	managedBy                 = "managed-by"
 	externalSecrets           = "external-secrets"
+	initialVersion            = "00000000-0000-0000-0000-000000000001"
 )
 
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
@@ -226,7 +228,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ *apiex
 			return err
 		}
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
-			secretVersion := fmt.Sprintf("%032d", 1)
+			secretVersion := initialVersion
 			secretRequest := awssm.CreateSecretInput{
 				Name:               &secretName,
 				SecretBinary:       value,
@@ -251,28 +253,53 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ *apiex
 		return nil
 	}
 
+	newVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
+	if err != nil {
+		return err
+	}
 	input := &awssm.PutSecretValueInput{
 		SecretId:           awsSecret.ARN,
 		SecretBinary:       value,
-		ClientRequestToken: bumpVersionNumber(awsSecret.VersionId),
+		ClientRequestToken: newVersionNumber,
 	}
 	_, err = sm.client.PutSecretValueWithContext(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
 	return err
 }
 
-func bumpVersionNumber(id *string) *string {
+func padOrTrim(b []byte) []byte {
+	l := len(b)
+	size := 16
+	if l == size {
+		return b
+	}
+	if l > size {
+		return b[l-size:]
+	}
+	tmp := make([]byte, size)
+	copy(tmp[size-l:], b)
+	return tmp
+}
+
+func bumpVersionNumber(id *string) (*string, error) {
 	if id == nil {
-		output := fmt.Sprintf("%032d", 1)
-		return &output
+		output := initialVersion
+		return &output, nil
 	}
-	oldVersion, err := strconv.ParseInt(*id, 10, 64)
+	n := new(big.Int)
+	oldVersion, ok := n.SetString(strings.ReplaceAll(*id, "-", ""), 16)
+	if !ok {
+		return nil, fmt.Errorf("expected secret version in AWS SSM to be a UUID but got '%s'", *id)
+	}
+	newVersionRaw := oldVersion.Add(oldVersion, big.NewInt(1)).Bytes()
+
+	newVersion, err := uuid.FromBytes(padOrTrim(newVersionRaw))
 	if err != nil {
-		output := fmt.Sprintf("%032d", 1)
-		return &output
+		return nil, err
 	}
-	output := fmt.Sprintf("%032d", oldVersion+1)
-	return &output
+
+	s := newVersion.String()
+	return &s, nil
 }
 
 func isManagedByESO(data *awssm.DescribeSecretOutput) bool {

@@ -47,7 +47,7 @@ func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSec
 
 func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error, expectedSecretBinary ...[]byte) CreateSecretWithContextFn {
 	return func(ctx aws.Context, actualInput *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
-		if *actualInput.ClientRequestToken != "00000000000000000000000000000001" {
+		if *actualInput.ClientRequestToken != "00000000-0000-0000-0000-000000000001" {
 			return nil, fmt.Errorf("expected the version to be 1 at creation")
 		}
 		if len(expectedSecretBinary) == 1 {

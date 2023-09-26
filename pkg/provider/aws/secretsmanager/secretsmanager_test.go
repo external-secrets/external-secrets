@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -418,9 +417,12 @@ func TestSetSecret(t *testing.T) {
 		Tags: externalSecretsTagFaulty,
 	}
 
-	initialVersion := "00000000000000000000000000000001"
-	defaultVersion := "00000000000000000000000000000002"
-	defaultUpdatedVersion := "00000000000000000000000000000003"
+	initialVersion := "00000000-0000-0000-0000-000000000001"
+	defaultVersion := "00000000-0000-0000-0000-000000000002"
+	defaultUpdatedVersion := "00000000-0000-0000-0000-000000000003"
+	randomUUIDVersion := "c2812e8d-84ce-4858-abec-7163d8ab312b"
+	randomUUIDVersionIncremented := "c2812e8d-84ce-4858-abec-7163d8ab312c"
+	unparsableVersion := "IAM UNPARSABLE"
 
 	secretValueOutput := &awssm.GetSecretValueOutput{
 		ARN:       &arn,
@@ -457,12 +459,6 @@ func TestSetSecret(t *testing.T) {
 
 	putSecretOutput := &awssm.PutSecretValueOutput{
 		ARN: &arn,
-	}
-
-	randomUUID := func() *string {
-		random, _ := uuid.NewRandom()
-		s := random.String()
-		return &s
 	}
 
 	remoteRefWithoutProperty := fakeRef{key: "fake-key", property: ""}
@@ -544,14 +540,35 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"SetSecretWithPropertySucceedsWithExistingSecretAndVersionThatCantBeParsed": {
+		"SetSecretWithPropertySucceedsWithExistingSecretAndRandomUUIDVersion": {
 			reason: "When a secret version is not specified, the client sets a random uuid by default. We should treat a version that can't be parsed to an int as not having a version",
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{
 						b:       []byte((`{"fake-property":"fake-value"}`)),
-						version: randomUUID(),
+						version: &randomUUIDVersion,
+					}), nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
+						Version:      &randomUUIDVersionIncremented,
+					}),
+				},
+				remoteRef: remoteRefWithProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithPropertySucceedsWithExistingSecretAndVersionThatCantBeParsed": {
+			reason: "A manually set secret version doesn't have to be a UUID, we only support UUID secret versions though",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{
+						b:       []byte((`{"fake-property":"fake-value"}`)),
+						version: &unparsableVersion,
 					}), nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
@@ -562,7 +579,7 @@ func TestSetSecret(t *testing.T) {
 				remoteRef: remoteRefWithProperty,
 			},
 			want: want{
-				err: nil,
+				err: fmt.Errorf("expected secret version in AWS SSM to be a UUID but got '%s'", unparsableVersion),
 			},
 		},
 		"SetSecretWithPropertySucceedsWithExistingSecretAndAbsentVersion": {
