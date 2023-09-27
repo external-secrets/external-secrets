@@ -113,13 +113,23 @@ func (c *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv
 		PageSize:  scw.Uint32Ptr(1),
 	}
 	var secretName string
+	secretPath := "/"
 
 	switch scwRef.RefType {
 	case refTypeName:
 		listSecretReq.Name = &scwRef.Value
 		secretName = scwRef.Value
+	case refTypePath:
+		name, path, ok := splitNameAndPath(scwRef.Value)
+		if !ok {
+			return fmt.Errorf("ref is not a path")
+		}
+		listSecretReq.Name = &name
+		listSecretReq.Path = &path
+		secretName = name
+		secretPath = path
 	default:
-		return fmt.Errorf("secrets can only be pushed by name")
+		return fmt.Errorf("secrets can only be pushed by name or path")
 	}
 
 	var secretID string
@@ -164,6 +174,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv
 		secret, err := c.api.CreateSecret(&smapi.CreateSecretRequest{
 			ProjectID: c.projectID,
 			Name:      secretName,
+			Path:      &secretPath,
 		}, scw.WithContext(ctx))
 		if err != nil {
 			return err
@@ -214,8 +225,16 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	switch scwRef.RefType {
 	case refTypeName:
 		listSecretReq.Name = &scwRef.Value
+	case refTypePath:
+		name, path, ok := splitNameAndPath(scwRef.Value)
+		if !ok {
+			return fmt.Errorf("ref is not a path")
+		}
+		listSecretReq.Name = &name
+		listSecretReq.Path = &path
+
 	default:
-		return fmt.Errorf("secrets can only be pushed by name")
+		return fmt.Errorf("secrets can only be deleted by name or path")
 	}
 
 	listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
@@ -286,7 +305,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	}
 
 	if ref.Path != nil {
-		return nil, fmt.Errorf("searching by path is not supported")
+		request.Path = ref.Path
 	}
 
 	var nameMatcher *find.Matcher
@@ -356,9 +375,11 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 	}
 
 	// otherwise, we do a GetSecret() first to avoid transferring the secret value if it is cached
-
-	var secretID string
-	var secretRevision uint32
+	request := &smapi.ListSecretsRequest{
+		ProjectID: &c.projectID,
+		Page:      scw.Int32Ptr(1),
+		PageSize:  scw.Uint32Ptr(1),
+	}
 
 	switch secretRef.RefType {
 	case refTypeID:
@@ -370,41 +391,42 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 		if err != nil {
 			return nil, err
 		}
-		secretID = response.SecretID
-		secretRevision = response.Revision
+		return c.accessSpecificSecretVersion(ctx, response.SecretID, response.Revision)
 	case refTypeName:
-		request := &smapi.ListSecretsRequest{
-			ProjectID: &c.projectID,
-			Page:      scw.Int32Ptr(1),
-			PageSize:  scw.Uint32Ptr(1),
-			Name:      &secretRef.Value,
+		request.Name = &secretRef.Value
+
+	case refTypePath:
+		name, path, ok := splitNameAndPath(secretRef.Value)
+		if !ok {
+			return nil, fmt.Errorf("ref is not a path")
 		}
 
-		response, err := c.api.ListSecrets(request, scw.WithContext(ctx))
-		if err != nil {
-			return nil, err
-		}
-
-		if len(response.Secrets) == 0 {
-			return nil, errNoSecretForName
-		}
-
-		secretID = response.Secrets[0].ID
-
-		secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
-			SecretID: secretID,
-			Revision: versionSpec,
-		}, scw.WithContext(ctx))
-		if err != nil {
-			return nil, err
-		}
-
-		secretRevision = secretVersion.Revision
+		request.Name = &name
+		request.Path = &path
 	default:
 		return nil, fmt.Errorf("invalid secret reference: %q", secretRef.Value)
 	}
 
-	return c.accessSpecificSecretVersion(ctx, secretID, secretRevision)
+	response, err := c.api.ListSecrets(request, scw.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response.Secrets) == 0 {
+		return nil, errNoSecretForName
+	}
+
+	secretID := response.Secrets[0].ID
+
+	secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
+		SecretID: secretID,
+		Revision: versionSpec,
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
 }
 
 func (c *client) accessSpecificSecretVersion(ctx context.Context, secretID string, revision uint32) ([]byte, error) {
@@ -444,4 +466,20 @@ func extractJSONProperty(secretData []byte, property string) ([]byte, error) {
 	}
 
 	return jsonToSecretData(json.RawMessage(result.Raw)), nil
+}
+
+func splitNameAndPath(ref string) (name string, path string, ok bool) {
+	if !strings.HasPrefix(ref, "/") {
+		return
+	}
+
+	s := strings.Split(ref, "/")
+	name = s[len(s)-1]
+	if len(s) == 2 {
+		path = "/"
+	} else {
+		path = strings.Join(s[:len(s)-1], "/")
+	}
+	ok = true
+	return
 }
