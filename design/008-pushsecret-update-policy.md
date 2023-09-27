@@ -93,7 +93,7 @@ For the future we can consider adding more policies like `Merge` of needed.
 * implementation for all core providers (+issues tracking progress)
     * return `not implemented` error if specified but not implemented
     * ensure there is a fallback for an empty updatePolicy (for migration purposes)
-* observability: TBD: how can users know that `IfNotExists` doesn't update the secret?
+* observability: a Status `SecretAlreadyExists` (as a pair of `SecretSynced`, `SecretDeleted` ) to indicate it.
 * tests: controller tests for this new field should be sufficient
 * the API changes need to be documented
     * API/CRD spec inline documentation
