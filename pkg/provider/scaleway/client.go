@@ -468,7 +468,7 @@ func extractJSONProperty(secretData []byte, property string) ([]byte, error) {
 	return jsonToSecretData(json.RawMessage(result.Raw)), nil
 }
 
-func splitNameAndPath(ref string) (name string, path string, ok bool) {
+func splitNameAndPath(ref string) (name, path string, ok bool) {
 	if !strings.HasPrefix(ref, "/") {
 		return
 	}
