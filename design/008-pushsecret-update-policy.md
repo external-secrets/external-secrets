@@ -99,4 +99,5 @@ For the future we can consider adding more policies like `Merge` of needed.
     * API/CRD spec inline documentation
     * PushSecret API documentation
     * Guides section for PushSecret + `updatePolicy`
+       * We need to be verbose on specifying that the use of `updatePolicy` breaks idempotency contracts, and that it should be used with care by the user.
 
