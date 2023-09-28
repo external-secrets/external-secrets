@@ -2334,6 +2334,7 @@
 <span class="w">    </span><span class="nt">iam.gke.io/gcp-service-account</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-team-a@my-project.iam.gserviceaccount.com</span>
 </code></pre></div>
 <p>You can reference this particular ServiceAccount in a <code>SecretStore</code> or <code>ClusterSecretStore</code>. It's important that you also set the <code>projectID</code>, <code>clusterLocation</code> and <code>clusterName</code>. The Namespace on the <code>serviceAccountRef</code> is ignored when using a <code>SecretStore</code> resource. This is needed to isolate the namespaces properly.</p>
+<p><em>When filling <code>clusterLocation</code> parameter keep in mind if it is Regional or Zonal cluster.</em></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -2344,7 +2345,7 @@
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alphabet-123</span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">workloadIdentity</span><span class="p">:</span>
-<span class="w">          </span><span class="c1"># name of the cluster region</span>
+<span class="w">          </span><span class="c1"># name of the cluster Location, region or zone</span>
 <span class="w">          </span><span class="nt">clusterLocation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">europe-central2</span>
 <span class="w">          </span><span class="c1"># name of the GKE cluster</span>
 <span class="w">          </span><span class="nt">clusterName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alpha-cluster-42</span>
