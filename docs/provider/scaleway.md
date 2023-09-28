@@ -28,7 +28,7 @@ spec:
 
 ### Referencing Secrets
 
-Secrets can be referenced by name or by id, using the prefixes `"name:"` and `"id:"` respectively.
+Secrets can be referenced by name, id or path, using the prefixes `"name:"`, `"id:"` and `"path:"` respectively.
 
 A PushSecret resource can only use a name reference.
 
