@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/oracle/oci-go-sdk/v56/common"
 	"github.com/oracle/oci-go-sdk/v56/common/auth"
@@ -54,6 +55,7 @@ const (
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
 	errMissingKey                            = "missing Key in secret: %s"
 	errUnexpectedContent                     = "unexpected secret bundle content"
+	errRetryInterval                         = "cannot parse retryInterval: %s"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -165,6 +167,7 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		err                   error
 		configurationProvider common.ConfigurationProvider
 	)
+
 	if oracleSpec.Auth == nil {
 		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
 	} else {
@@ -187,6 +190,41 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	}
 
 	kmsVaultClient.SetRegion(oracleSpec.Region)
+
+	// Setup retry options, if present in storeSpec
+	if storeSpec.RetrySettings != nil {
+		var retryAmount uint
+		var retryDuration time.Duration
+
+		if storeSpec.RetrySettings.MaxRetries != nil {
+			retryAmount = uint(*storeSpec.RetrySettings.MaxRetries)
+		} else {
+			retryAmount = 3
+		}
+
+		if storeSpec.RetrySettings.RetryInterval != nil {
+			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+			if err != nil {
+				return nil, fmt.Errorf(errRetryInterval, *storeSpec.RetrySettings.RetryInterval)
+			}
+		} else {
+			retryDuration = 5 * time.Second
+		}
+
+		customRetryPolicy := common.NewRetryPolicyWithOptions(
+			common.WithMaximumNumberAttempts(retryAmount),
+			common.WithFixedBackoff(retryDuration),
+			common.WithShouldRetryOperation(common.DefaultShouldRetryOperation),
+		)
+
+		secretManagementService.SetCustomClientConfiguration(common.CustomClientConfiguration{
+			RetryPolicy: &customRetryPolicy,
+		})
+
+		kmsVaultClient.SetCustomClientConfiguration(common.CustomClientConfiguration{
+			RetryPolicy: &customRetryPolicy,
+		})
+	}
 
 	return &VaultManagementService{
 		Client:         secretManagementService,
