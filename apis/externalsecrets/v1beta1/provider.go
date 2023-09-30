@@ -92,11 +92,9 @@ var NoSecretErr = NoSecretError{}
 
 // NoSecretError shall be returned when a GetSecret can not find the
 // desired secret. This is used for deletionPolicy.
-type NoSecretError struct {
-	Key string
-}
+type NoSecretError struct{}
 
 func (NoSecretError) Error() string {
-	errstr := "Secret does not exist: " + NoSecretErr.Key
+	errstr := "Secret does not exist"
 	return errstr
 }

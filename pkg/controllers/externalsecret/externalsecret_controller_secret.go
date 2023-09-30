@@ -76,8 +76,13 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 
 	for i, secretRef := range externalSecret.Spec.Data {
 		err := r.handleSecretData(ctx, i, *externalSecret, secretRef, providerData, mgr)
-		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
-			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .data[%d] key=%s", i, secretRef.RemoteRef.Key))
+
+		if !errors.Is(err, esv1beta1.NoSecretErr) {
+			if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
+				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .data[%d] key=%s", i, secretRef.RemoteRef.Key))
+				continue
+			}
+			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider with key: %s", secretRef.RemoteRef.Key))
 			continue
 		}
 		if err != nil {
