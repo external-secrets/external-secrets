@@ -151,6 +151,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.affinity | object | `{}` |  |
 | webhook.certCheckInterval | string | `"5m"` | Specifices the time to check if the cert is valid |
 | webhook.certSecretNameOverride | string | `""` | If its value is different from the default one, it overrides the name of the secret resource where the webhook certificates are stored. |
+| webhook.createWebhookSecret | bool | `true` | Whether to create the webhook secret resource (doesn't interfere with `webhook.certManager.cert.create`). |
 | webhook.certDir | string | `"/tmp/certs"` |  |
 | webhook.certManager.addInjectorAnnotations | bool | `true` | Automatically add the cert-manager.io/inject-ca-from annotation to the webhooks and CRDs. As long as you have the cert-manager CA Injector enabled, this will automatically setup your webhook's CA to the one used by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector |
 | webhook.certManager.cert.annotations | object | `{}` | Add extra annotations to the Certificate resource. |

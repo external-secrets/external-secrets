@@ -113,6 +113,16 @@ tests:
     templates:
       - webhook-secret.yaml
       - webhook-certificate.yaml
+  - it: also should not create the secret nor the certificate
+    set:
+      webhook.certManager.enabled: false
+      webhook.createWebhookSecret: false
+    asserts:
+      - hasDocuments:
+          count: 0
+    templates:
+      - webhook-secret.yaml
+      - webhook-certificate.yaml
   - it: should
     set:
       webhook.certManager.enabled: true

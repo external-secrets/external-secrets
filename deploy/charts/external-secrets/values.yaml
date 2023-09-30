@@ -223,6 +223,10 @@ webhook:
   # stored.
   certSecretNameOverride: ""
 
+  # -- Whether to create the webhook secret resource (doesn't interfere with
+  # webhook.certManager.cert.create).
+  createWebhookSecret: true
+
   certDir: /tmp/certs
   # -- Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
   failurePolicy: Fail
