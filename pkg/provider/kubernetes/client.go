@@ -335,6 +335,7 @@ func (c *Client) createSecret(ctx context.Context, value []byte, remoteRef esv1b
 			Namespace: c.store.RemoteNamespace,
 		},
 		Data: map[string][]byte{remoteRef.GetProperty(): value},
+		//todo: remove hardcoding
 		Type: "Opaque",
 	}
 	_, err := c.userSecretClient.Create(ctx, &s, metav1.CreateOptions{})
