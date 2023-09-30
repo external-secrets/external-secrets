@@ -219,6 +219,10 @@ webhook:
   # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
   revisionHistoryLimit: 10
 
+  # -- If not empty, overrides the name of the secret resource where the webhook certificates are
+  # stored.
+  certSecretNameOverride: ""
+
   certDir: /tmp/certs
   # -- Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
   failurePolicy: Fail

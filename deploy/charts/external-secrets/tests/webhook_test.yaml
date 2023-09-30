@@ -161,3 +161,20 @@ tests:
     templates:
       - validatingwebhook.yaml
       - crds/externalsecret.yaml
+  - it: should override the name of the certificates Secret
+    set:
+      webhook.certSecretNameOverride: custom-secret-name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-secret-name
+    template: webhook-secret.yaml
+  - it: should override the name of the certificates Secret created by cert-manager
+    set:
+      webhook.certManager.enabled: true
+      webhook.certSecretNameOverride: custom-secret-name
+    asserts:
+      - equal:
+          path: spec.secretName
+          value: custom-secret-name
+    template: webhook-certificate.yaml

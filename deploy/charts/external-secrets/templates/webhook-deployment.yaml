@@ -96,7 +96,7 @@ spec:
       volumes:
         - name: certs
           secret:
-            secretName: {{ include "external-secrets.fullname" . }}-webhook
+            secretName: {{ template "external-secrets-webhook.certSecretName" . }}
       {{- if .Values.webhook.extraVolumes }}
       {{- toYaml .Values.webhook.extraVolumes | nindent 8 }}
       {{- end }}

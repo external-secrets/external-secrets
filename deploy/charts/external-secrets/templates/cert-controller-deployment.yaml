@@ -52,7 +52,7 @@ spec:
           - --crd-requeue-interval={{ .Values.certController.requeueInterval }}
           - --service-name={{ include "external-secrets.fullname" . }}-webhook
           - --service-namespace={{ .Release.Namespace }}
-          - --secret-name={{ include "external-secrets.fullname" . }}-webhook
+          - --secret-name={{ template "external-secrets-webhook.certSecretName" . }}
           - --secret-namespace={{ .Release.Namespace }}
           - --metrics-addr=:{{ .Values.certController.prometheus.service.port }}
           - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
