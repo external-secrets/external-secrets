@@ -220,12 +220,21 @@ webhook:
   revisionHistoryLimit: 10
 
   # -- If not empty, overrides the name of the secret resource where the webhook certificates are
-  # stored.
+  # stored. If the secret resource you want to use already exists, also check the following values:
+  # `certController.create`; `webhook.certManager.enabled`; `webhook.createWebhookSecret`;
+  # `webhook.addCustomCertSecretInjectorAnnotations`.
   certSecretNameOverride: ""
 
   # -- Whether to create the webhook secret resource (doesn't interfere with
   # webhook.certManager.cert.create).
   createWebhookSecret: true
+
+  # -- Although webhook.certManager may be disabled, cert-manager still needs to be installed
+  # (and this chart does not install it for you). "cert-manager" is used to inject the caBundle
+  # into Kind=CustomResourceDefinition for conversion webhooks and Kind=ValidatingWebhookConfiguration
+  # for validating admission webhook. The Secret resource MUST have an
+  # `cert-manager.io/allow-direct-injection: "true"` annotation.
+  addCustomCertSecretInjectorAnnotations: false
 
   certDir: /tmp/certs
   # -- Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore

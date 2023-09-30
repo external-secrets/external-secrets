@@ -8,7 +8,10 @@ metadata:
     {{- with .Values.commonLabels }}
     {{ toYaml . | nindent 4 }}
     {{- end }}
-  {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
+  {{- if .Values.webhook.addCustomCertSecretInjectorAnnotations }}
+  annotations:
+    cert-manager.io/inject-ca-from-secret: {{ .Release.Namespace }}/{{ template "external-secrets-webhook.certSecretName" . }}
+  {{- else if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
   annotations:
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook
   {{- end }}
@@ -54,7 +57,10 @@ metadata:
     {{- with .Values.commonLabels }}
     {{ toYaml . | nindent 4 }}
     {{- end }}
-  {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
+  {{- if .Values.webhook.addCustomCertSecretInjectorAnnotations }}
+  annotations:
+    cert-manager.io/inject-ca-from-secret: {{ .Release.Namespace }}/{{ template "external-secrets-webhook.certSecretName" . }}
+  {{- else if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
   annotations:
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook
   {{- end }}

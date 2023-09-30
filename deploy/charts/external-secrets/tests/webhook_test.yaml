@@ -171,6 +171,30 @@ tests:
     templates:
       - validatingwebhook.yaml
       - crds/externalsecret.yaml
+  - it: should add annotations, necessary when using a custom secret, to the webhook
+    set:
+      certController.create: false
+      webhook.create: true
+      webhook.certManager.enabled: false
+      webhook.addCustomCertSecretInjectorAnnotations: true
+    asserts:
+      - equal:
+          path: metadata.annotations["cert-manager.io/inject-ca-from-secret"]
+          value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
+    templates:
+      - validatingwebhook.yaml
+      - crds/externalsecret.yaml
+  - it: should not add injector annotations for the *custom secret*
+    set:
+      webhook.addCustomCertSecretInjectorAnnotations: false
+      # just to avoid future conflicts with other annotations
+      webhook.certManager.addInjectorAnnotations: false
+    asserts:
+      - isNull:
+          path: metadata.annotations["cert-manager.io/inject-ca-from-secret"]
+    templates:
+      - validatingwebhook.yaml
+      - crds/externalsecret.yaml
   - it: should override the name of the certificates Secret
     set:
       webhook.certSecretNameOverride: custom-secret-name
