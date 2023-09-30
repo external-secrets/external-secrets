@@ -95,6 +95,5 @@ var NoSecretErr = NoSecretError{}
 type NoSecretError struct{}
 
 func (NoSecretError) Error() string {
-	errstr := "Secret does not exist"
-	return errstr
+	return "Secret does not exist"
 }
