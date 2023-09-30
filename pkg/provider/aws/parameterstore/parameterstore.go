@@ -394,9 +394,7 @@ func (pm *ParameterStore) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	nsf := esv1beta1.NoSecretError{}
 	var nf *ssm.ParameterNotFound
 	if errors.As(err, &nf) || errors.As(err, &nsf) {
-		nse := &esv1beta1.NoSecretErr
-		nse.Key = ref.Key
-		return nil, *nse
+		return nil, esv1beta1.NoSecretErr
 	}
 	if err != nil {
 		return nil, util.SanitizeErr(err)
