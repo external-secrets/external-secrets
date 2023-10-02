@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var db = buildDB(&fakeSecretAPI{
@@ -77,6 +78,16 @@ var db = buildDB(&fakeSecretAPI{
 				{revision: 1, data: []byte(
 					`{"root":{"intermediate":{"leaf":9}}}`,
 				)},
+			},
+		},
+		{
+			name: "nested-secret",
+			path: "/subpath",
+			versions: []*fakeSecretVersion{
+				{
+					revision: 1,
+					data:     []byte("secret data"),
+				},
 			},
 		},
 	},
@@ -142,6 +153,13 @@ func TestGetSecret(t *testing.T) {
 				Version:  "latest",
 			},
 			response: []byte("9"),
+		},
+		"secret in path": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "path:/subpath/nested-secret",
+				Version: "latest",
+			},
+			response: []byte("secret data"),
 		},
 		"non existing secret id should yield NoSecretErr": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
@@ -236,6 +254,20 @@ func TestPushSecret(t *testing.T) {
 		assert.NoError(t, pushErr)
 		assert.Len(t, db.secret(secretName).versions, 1)
 		assert.Equal(t, data, db.secret(secretName).versions[0].data)
+	})
+
+	t.Run("secret created in path", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		data := []byte("some secret data in path")
+		secretPath := "/folder"
+		secretName := "secret-in-path"
+
+		pushErr := c.PushSecret(ctx, data, nil, pushRemoteRef("path:"+secretPath+"/"+secretName))
+		assert.NoError(t, pushErr)
+		assert.Len(t, db.secret(secretName).versions, 1)
+		assert.Equal(t, data, db.secret(secretName).versions[0].data)
+		assert.Equal(t, secretPath, db.secret(secretName).path)
 	})
 
 	t.Run("by invalid secret ref is an error", func(t *testing.T) {
@@ -339,6 +371,14 @@ func TestGetAllSecrets(t *testing.T) {
 				db.secrets[1].name: db.secrets[1].mustGetVersion("latest").data,
 			},
 		},
+		"find secrets by path": {
+			ref: esv1beta1.ExternalSecretFind{
+				Path: utils.Ptr("/subpath"),
+			},
+			response: map[string][]byte{
+				db.secret("nested-secret").name: db.secret("nested-secret").mustGetVersion("latest_enabled").data,
+			},
+		},
 	}
 
 	for tcName, tc := range testCases {
@@ -361,6 +401,7 @@ func TestDeleteSecret(t *testing.T) {
 	c := newTestClient()
 
 	secret := db.secrets[0]
+	byPath := db.secret("nested-secret")
 
 	testCases := map[string]struct {
 		ref esv1beta1.PushRemoteRef
@@ -368,6 +409,10 @@ func TestDeleteSecret(t *testing.T) {
 	}{
 		"Delete Successfully": {
 			ref: pushRemoteRef("name:" + secret.name),
+			err: nil,
+		},
+		"Delete by path": {
+			ref: pushRemoteRef("path:" + byPath.path + "/" + byPath.name),
 			err: nil,
 		},
 		"Secret Not Found": {
@@ -384,6 +429,46 @@ func TestDeleteSecret(t *testing.T) {
 			} else {
 				assert.ErrorIs(t, err, tc.err)
 				assert.Equal(t, tc.err, err)
+			}
+		})
+	}
+}
+
+func TestSplitNameAndPath(t *testing.T) {
+	type test struct {
+		in   string
+		name string
+		path string
+		ok   bool
+	}
+
+	tests := []test{
+		{
+			in:   "/foo",
+			name: "foo",
+			path: "/",
+			ok:   true,
+		},
+		{
+			in:   "",
+			name: "",
+			path: "",
+		},
+		{
+			in:   "/foo/bar",
+			name: "bar",
+			path: "/foo",
+			ok:   true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.in, func(t *testing.T) {
+			name, path, ok := splitNameAndPath(tc.in)
+			assert.Equal(t, tc.ok, ok, "bad ref")
+			if tc.ok {
+				assert.Equal(t, tc.name, name, "wrong name")
+				assert.Equal(t, tc.path, path, "wrong path")
 			}
 		})
 	}

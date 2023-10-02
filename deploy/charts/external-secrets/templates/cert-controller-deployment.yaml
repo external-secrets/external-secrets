@@ -73,7 +73,7 @@ spec:
               name: metrics
           readinessProbe:
             httpGet:
-              port: 8081
+              port: {{ .Values.certController.readinessProbe.port }}
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5

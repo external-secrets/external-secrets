@@ -38,6 +38,8 @@ metadata:
 
 You can reference this particular ServiceAccount in a `SecretStore` or `ClusterSecretStore`. It's important that you also set the `projectID`, `clusterLocation` and `clusterName`. The Namespace on the `serviceAccountRef` is ignored when using a `SecretStore` resource. This is needed to isolate the namespaces properly.
 
+*When filling `clusterLocation` parameter keep in mind if it is Regional or Zonal cluster.*
+
 ```yaml
 {% include 'gcpsm-wi-secret-store.yaml' %}
 ```
