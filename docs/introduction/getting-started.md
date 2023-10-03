@@ -52,7 +52,7 @@ kubectl create secret generic awssm-secret --from-file=./access-key --from-file=
 Create a file 'basic-secret-store.yaml' using `nano` or your preferred editor by running the following command. 
 
 ```
-nano basic-secret-store.yaml
+echo > basic-secret-store.yaml
 ```
 
 Add the following lines to the file.
@@ -73,7 +73,7 @@ kubectl apply -f "basic-secret-store.yaml"
 Create a file 'basic-external-secret.yaml' using `nano` or your preferred editor by running the following command. 
 
 ```
-nano basic-external-secret.yaml
+echo > basic-external-secret.yaml
 ```
 
 Add the following lines to the file.
