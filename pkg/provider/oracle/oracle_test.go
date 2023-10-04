@@ -23,6 +23,7 @@ import (
 
 	secrets "github.com/oracle/oci-go-sdk/v56/secrets"
 	utilpointer "k8s.io/utils/ptr"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -302,5 +303,40 @@ func TestValidateStore(t *testing.T) {
 		} else if tc.err != nil && err == nil {
 			t.Errorf("want err %v got nil", tc.err)
 		}
+	}
+}
+
+func TestValidRetryInput(t *testing.T) {
+	invalid := "Invalid"
+
+	spec := &esv1beta1.SecretStore{
+		Spec: esv1beta1.SecretStoreSpec{
+			Provider: &esv1beta1.SecretStoreProvider{
+				Oracle: &esv1beta1.OracleProvider{
+					Vault:  vaultOCID,
+					Region: region,
+				},
+			},
+			RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+				RetryInterval: &invalid,
+			},
+		},
+	}
+
+	expected := fmt.Sprintf("cannot setup new oracle client: time: invalid duration %q", invalid)
+
+	ctx := context.TODO()
+	kube := clientfake.NewClientBuilder().Build()
+
+	provider := &VaultManagementService{
+		Client:         &fakeoracle.OracleMockClient{},
+		KmsVaultClient: nil,
+		vault:          vaultOCID,
+	}
+	// Use a mock Oracle client for testing.
+	_, err := provider.NewClient(ctx, spec, kube, "default")
+
+	if !ErrorContains(err, expected) {
+		t.Errorf("CheckValidRetryInput unexpected error: %s, expected: '%s'", err.Error(), expected)
 	}
 }

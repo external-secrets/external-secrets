@@ -55,7 +55,6 @@ const (
 	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
 	errMissingKey                            = "missing Key in secret: %s"
 	errUnexpectedContent                     = "unexpected secret bundle content"
-	errRetryInterval                         = "cannot parse retryInterval: %s"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -205,7 +204,7 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		if storeSpec.RetrySettings.RetryInterval != nil {
 			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
 			if err != nil {
-				return nil, fmt.Errorf(errRetryInterval, *storeSpec.RetrySettings.RetryInterval)
+				return nil, fmt.Errorf(errOracleClient, err)
 			}
 		} else {
 			retryDuration = 5 * time.Second
