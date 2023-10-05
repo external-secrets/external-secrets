@@ -101,3 +101,36 @@ Uninstall the helm release using the delete command.
 ```bash
 helm delete external-secrets --namespace external-secrets
 ```
+## Alternative way to debug or build local changes faster
+There is an alternative for running the project in case of quick tests or to debug faster. In this case, there will be no need to install Helm to install all project configurations. 
+### Environment set-up
+First, you should raise a non-specific cluster, using kind or k3s. In this tutorial, it is used kind.
+Be sure that your kubectl is pointing to this kind. For this, you should have your kubeconfig configured correctly.A tip is to verify if the command:
+
+```bash
+kubectl get nodes
+```
+ returns the nodes.
+
+
+Then, install crds with:
+```bash
+kubectl apply -f deploy/crds/bundle.yaml
+```
+### Inserting SecretStore and ExternalSecret
+Apply any valid SecretStore and ExternalSecret. It recommended a valid SecretStore and ExternalSecret to avoid errors.
+### Debugging 
+To see how the project works with modifications, we recommend making your changes at: 
+```bash
+external-secrets/pkg/controllers/external secret/externalsecret_controller.go
+```
+and put log.info() or fmt.Println() to see the controller acting.
+Then run 
+```bash
+make run
+```
+or 
+```bash
+go run
+```
+
