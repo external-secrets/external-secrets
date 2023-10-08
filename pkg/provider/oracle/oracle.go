@@ -37,10 +37,6 @@ import (
 )
 
 const (
-	VaultEndpointEnv = "ORACLE_VAULT_ENDPOINT"
-	STSEndpointEnv   = "ORACLE_STS_ENDPOINT"
-	SVMEndpointEnv   = "ORACLE_SVM_ENDPOINT"
-
 	errOracleClient                          = "cannot setup new oracle client: %w"
 	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
 	errUninitalizedOracleProvider            = "provider oracle is not initialized"
@@ -190,31 +186,22 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 
 	kmsVaultClient.SetRegion(oracleSpec.Region)
 
-	// Setup retry options, if present in storeSpec
 	if storeSpec.RetrySettings != nil {
-		var retryAmount uint
-		var retryDuration time.Duration
+		opts := []common.RetryPolicyOption{common.WithShouldRetryOperation(common.DefaultShouldRetryOperation)}
 
-		if storeSpec.RetrySettings.MaxRetries != nil {
-			retryAmount = uint(*storeSpec.RetrySettings.MaxRetries)
-		} else {
-			retryAmount = 3
+		if mr := storeSpec.RetrySettings.MaxRetries; mr != nil {
+			opts = append(opts, common.WithMaximumNumberAttempts(uint(*mr)))
 		}
 
-		if storeSpec.RetrySettings.RetryInterval != nil {
-			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+		if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
+			i, err := time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
 			if err != nil {
 				return nil, fmt.Errorf(errOracleClient, err)
 			}
-		} else {
-			retryDuration = 5 * time.Second
+			opts = append(opts, common.WithFixedBackoff(i))
 		}
 
-		customRetryPolicy := common.NewRetryPolicyWithOptions(
-			common.WithMaximumNumberAttempts(retryAmount),
-			common.WithFixedBackoff(retryDuration),
-			common.WithShouldRetryOperation(common.DefaultShouldRetryOperation),
-		)
+		customRetryPolicy := common.NewRetryPolicyWithOptions(opts...)
 
 		secretManagementService.SetCustomClientConfiguration(common.CustomClientConfiguration{
 			RetryPolicy: &customRetryPolicy,
