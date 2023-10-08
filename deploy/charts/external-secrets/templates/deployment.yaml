@@ -34,16 +34,29 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "external-secrets.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
-      {{- with .Values.podSecurityContext }}
+      {{- if .Values.openshift.install }}
+        {{- with .Values.openshift.podSecurityContext }}
       securityContext:
-        {{- toYaml . | nindent 8 }}
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+      {{- else }}
+        {{- with .Values.podSecurityContext }}
+      securityContext:
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
       hostNetwork: {{ .Values.hostNetwork }}
       containers:
         - name: {{ .Chart.Name }}
-          {{- with .Values.securityContext }}
           securityContext:
-            {{- toYaml . | nindent 12 }}
+          {{- if .Values.openshift.install }}
+            {{- with .Values.openshift.securityContext }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- else }}
+            {{- with .Values.securityContext }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
