@@ -15,7 +15,7 @@
 - [OpenClassrooms](https://openclassrooms.com)
 - [Pento](https://www.pento.io/)
 - [Petco Health and Wellness Company, Inc](https://www.petco.com/)
-- [Pets at Home Group plc](https://petsathome.com)
+- [Pets at Home Group](https://petsathome.com)
 - [Pier Insurance](https://www.pier.digital/)
 - [PITS Global Data Recovery Services](https://www.pitsdatarecovery.net/)
 - [PHOENIX MEDIA](https://www.phoenix-media.eu/)
