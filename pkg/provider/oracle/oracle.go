@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/oracle/oci-go-sdk/v56/common"
 	"github.com/oracle/oci-go-sdk/v56/common/auth"
@@ -36,10 +37,6 @@ import (
 )
 
 const (
-	VaultEndpointEnv = "ORACLE_VAULT_ENDPOINT"
-	STSEndpointEnv   = "ORACLE_STS_ENDPOINT"
-	SVMEndpointEnv   = "ORACLE_SVM_ENDPOINT"
-
 	errOracleClient                          = "cannot setup new oracle client: %w"
 	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
 	errUninitalizedOracleProvider            = "provider oracle is not initialized"
@@ -165,6 +162,7 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		err                   error
 		configurationProvider common.ConfigurationProvider
 	)
+
 	if oracleSpec.Auth == nil {
 		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
 	} else {
@@ -187,6 +185,32 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	}
 
 	kmsVaultClient.SetRegion(oracleSpec.Region)
+
+	if storeSpec.RetrySettings != nil {
+		opts := []common.RetryPolicyOption{common.WithShouldRetryOperation(common.DefaultShouldRetryOperation)}
+
+		if mr := storeSpec.RetrySettings.MaxRetries; mr != nil {
+			opts = append(opts, common.WithMaximumNumberAttempts(uint(*mr)))
+		}
+
+		if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
+			i, err := time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+			if err != nil {
+				return nil, fmt.Errorf(errOracleClient, err)
+			}
+			opts = append(opts, common.WithFixedBackoff(i))
+		}
+
+		customRetryPolicy := common.NewRetryPolicyWithOptions(opts...)
+
+		secretManagementService.SetCustomClientConfiguration(common.CustomClientConfiguration{
+			RetryPolicy: &customRetryPolicy,
+		})
+
+		kmsVaultClient.SetCustomClientConfiguration(common.CustomClientConfiguration{
+			RetryPolicy: &customRetryPolicy,
+		})
+	}
 
 	return &VaultManagementService{
 		Client:         secretManagementService,
