@@ -203,7 +203,7 @@ Alternatively, the secret name along with its secret group name can be specified
 {% include 'ibm-external-secret-by-name.yaml' %}
 ```
 
-Please note that the below mechanism to get the secret by name is supported, but will soon be deprecated. This mechanism involves an additional call to fetch the relevant secret ID for the specified secret name.
+Please note that the below mechanism to get the secret by name is deprecated and not supported.
 
 ```yaml
 {% include 'ibm-external-secret-by-name-deprecated.yaml' %}

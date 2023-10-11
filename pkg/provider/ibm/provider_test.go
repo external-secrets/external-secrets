@@ -120,9 +120,7 @@ func makeValidAPIOutput() sm.SecretIntf {
 }
 
 func makeValidGetByNameInput() *sm.GetSecretByNameTypeOptions {
-	return &sm.GetSecretByNameTypeOptions{
-		// Name: utilpointer.To("testyname"),
-	}
+	return &sm.GetSecretByNameTypeOptions{}
 }
 
 func makeValidGetByNameOutput() sm.SecretIntf {
