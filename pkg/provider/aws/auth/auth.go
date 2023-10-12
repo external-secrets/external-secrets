@@ -373,9 +373,8 @@ func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, 
 	handlers := defaults.Handlers()
 	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
 	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            *config,
-		Handlers:          handlers,
-		SharedConfigState: session.SharedConfigDisable,
+		Config:   *config,
+		Handlers: handlers,
 	})
 	if err != nil {
 		return nil, err
