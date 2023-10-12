@@ -18,12 +18,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
-	"github.com/oracle/oci-go-sdk/v56/common"
-	"github.com/oracle/oci-go-sdk/v56/common/auth"
-	"github.com/oracle/oci-go-sdk/v56/keymanagement"
-	"github.com/oracle/oci-go-sdk/v56/secrets"
+	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/common/auth"
+	"github.com/oracle/oci-go-sdk/v65/keymanagement"
+	"github.com/oracle/oci-go-sdk/v65/secrets"
+	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -163,7 +165,16 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		configurationProvider common.ConfigurationProvider
 	)
 
-	if oracleSpec.Auth == nil {
+	if oracleSpec.PrincipalType == esv1beta1.WorkloadPrincipal {
+		// OCI SDK requires specific environment variables for workload identity.
+		if err := os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
+			return nil, errors.Wrapf(err, "unable to set OCI SDK environment variable: %s", auth.ResourcePrincipalVersionEnvVar)
+		}
+		if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, oracleSpec.Region); err != nil {
+			return nil, errors.Wrapf(err, "unable to set OCI SDK environment variable: %s", auth.ResourcePrincipalRegionEnvVar)
+		}
+		configurationProvider, err = auth.OkeWorkloadIdentityConfigurationProvider()
+	} else if oracleSpec.PrincipalType == esv1beta1.InstancePrincipal || oracleSpec.Auth == nil {
 		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
 	} else {
 		configurationProvider, err = getUserAuthConfigurationProvider(ctx, kube, oracleSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind, oracleSpec.Region)

@@ -21,8 +21,8 @@ import (
 
 	// nolint
 	. "github.com/onsi/gomega"
-	"github.com/oracle/oci-go-sdk/v56/common"
-	vault "github.com/oracle/oci-go-sdk/v56/vault"
+	"github.com/oracle/oci-go-sdk/v65/common"
+	vault "github.com/oracle/oci-go-sdk/v65/vault"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"

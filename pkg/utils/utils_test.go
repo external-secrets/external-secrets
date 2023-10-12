@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	vault "github.com/oracle/oci-go-sdk/v56/vault"
+	vault "github.com/oracle/oci-go-sdk/v65/vault"
 	v1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
