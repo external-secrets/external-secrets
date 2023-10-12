@@ -56,3 +56,12 @@ The operator will fetch the project variable and inject it as a `Kind=Secret`.
 ```
 kubectl get secret oracle-secret-to-create -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
+
+### Creating structured external secret
+
+Follow [this guide](https://external-secrets.io/latest/guides/all-keys-one-secret/) to create a structured oracle vault secret.
+Then create the `Kind=ExternalSecret`resource, but use the dataFrom field, instead of data field.
+
+```yaml
+{% include 'oracle-external-secret-structured.yaml' %}
+```
