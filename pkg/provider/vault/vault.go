@@ -27,7 +27,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -292,12 +291,9 @@ func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1
 		}
 
 		if retrySettings.RetryInterval != nil {
-			retryWait, err := time.ParseDuration(*retrySettings.RetryInterval)
-			if err != nil {
-				return nil, nil, err
-			}
-			cfg.MinRetryWait = retryWait
-			cfg.MaxRetryWait = retryWait
+			retryWait := *retrySettings.RetryInterval
+			cfg.MinRetryWait = retryWait.Duration
+			cfg.MaxRetryWait = retryWait.Duration
 		}
 	}
 

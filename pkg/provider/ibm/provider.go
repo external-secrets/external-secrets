@@ -733,7 +733,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1beta1.GenericSt
 		}
 
 		if storeSpec.RetrySettings.RetryInterval != nil {
-			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+			retryDuration = storeSpec.RetrySettings.RetryInterval.Duration
 		} else {
 			retryDuration = 5 * time.Second
 		}

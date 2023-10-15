@@ -25,15 +25,11 @@ import (
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
-	"github.com/go-openapi/strfmt"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/ptr"
-	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/ibm/fake"
+	"github.com/go-openapi/strfmt"
+	utilpointer "k8s.io/utils/ptr"
 )
 
 const (
@@ -1167,52 +1163,6 @@ func TestGetSecretMap(t *testing.T) {
 				t.Errorf("unexpected secret data: expected:\n%+v\ngot:\n%+v", v.expectedData, out)
 			}
 		})
-	}
-}
-
-func TestValidRetryInput(t *testing.T) {
-	sm := providerIBM{}
-
-	invalid := "Invalid"
-	serviceURL := "http://fake-service-url.cool"
-
-	spec := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				IBM: &esv1beta1.IBMProvider{
-					Auth: esv1beta1.IBMAuth{
-						SecretRef: &esv1beta1.IBMAuthSecretRef{
-							SecretAPIKey: v1.SecretKeySelector{
-								Name: "fake-secret",
-								Key:  "fake-key",
-							},
-						},
-					},
-					ServiceURL: &serviceURL,
-				},
-			},
-			RetrySettings: &esv1beta1.SecretStoreRetrySettings{
-				RetryInterval: &invalid,
-			},
-		},
-	}
-
-	expected := fmt.Sprintf("cannot setup new ibm client: time: invalid duration %q", invalid)
-	ctx := context.TODO()
-	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fake-secret",
-			Namespace: "default",
-		},
-		Data: map[string][]byte{
-			"fake-key": []byte("ImAFakeApiKey"),
-		},
-	}).Build()
-
-	_, err := sm.NewClient(ctx, spec, kube, "default")
-
-	if !ErrorContains(err, expected) {
-		t.Errorf("CheckValidRetryInput unexpected error: %s, expected: '%s'", err.Error(), expected)
 	}
 }
 

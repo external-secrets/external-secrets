@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/oracle/oci-go-sdk/v56/secrets"
 	corev1 "k8s.io/api/core/v1"
@@ -365,7 +366,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
-						RetryInterval: ptr.To("1s"),
+						RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 						MaxRetries:    ptr.To(int32(5)),
 					},
 				},
@@ -383,7 +384,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
-						RetryInterval: ptr.To("1s"),
+						RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 					},
 				},
 			},
@@ -430,29 +431,11 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 						},
 					},
 					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
-						RetryInterval: ptr.To("invalid"),
+						RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 					},
 				},
 			},
 			expectedErr: `could not fetch SecretAccessKey secret: secrets "non-existing-secret"`,
-		},
-		{
-			desc: "invalid retry interval",
-			secretStore: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Oracle: &esv1beta1.OracleProvider{
-							Vault:  vaultOCID,
-							Region: region,
-							Auth:   auth,
-						},
-					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
-						RetryInterval: ptr.To("invalid"),
-					},
-				},
-			},
-			expectedErr: "cannot setup new oracle client: time: invalid duration",
 		},
 	}
 

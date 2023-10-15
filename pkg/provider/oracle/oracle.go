@@ -18,8 +18,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"github.com/oracle/oci-go-sdk/v56/common"
 	"github.com/oracle/oci-go-sdk/v56/common/auth"
 	"github.com/oracle/oci-go-sdk/v56/keymanagement"
@@ -194,10 +192,7 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		}
 
 		if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
-			i, err := time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
-			if err != nil {
-				return nil, fmt.Errorf(errOracleClient, err)
-			}
+			i := storeSpec.RetrySettings.RetryInterval.Duration
 			opts = append(opts, common.WithFixedBackoff(i))
 		}
 

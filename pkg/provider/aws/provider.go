@@ -152,11 +152,9 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		}
 
 		if storeSpec.RetrySettings.RetryInterval != nil {
-			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+			retryDuration = storeSpec.RetrySettings.RetryInterval.Duration
 		}
-		if err != nil {
-			return nil, fmt.Errorf(errInitAWSProvider, err)
-		}
+
 		awsRetryer := awsclient.DefaultRetryer{
 			NumMaxRetries:    retryAmount,
 			MinRetryDelay:    retryDuration,

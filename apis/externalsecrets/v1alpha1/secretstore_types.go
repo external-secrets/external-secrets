@@ -92,8 +92,8 @@ type SecretStoreProvider struct {
 }
 
 type SecretStoreRetrySettings struct {
-	MaxRetries    *int32  `json:"maxRetries,omitempty"`
-	RetryInterval *string `json:"retryInterval,omitempty"`
+	MaxRetries    *int32           `json:"maxRetries,omitempty"`
+	RetryInterval *metav1.Duration `json:"retryInterval,omitempty"`
 }
 
 type SecretStoreConditionType string

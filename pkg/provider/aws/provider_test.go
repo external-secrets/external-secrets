@@ -16,15 +16,10 @@ package aws
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pointer "k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -344,64 +339,4 @@ func TestValidateStore(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestValidRetryInput(t *testing.T) {
-	invalid := "Invalid"
-	spec := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				AWS: &esv1beta1.AWSProvider{
-					Service: "ParameterStore",
-					Region:  validRegion,
-					Auth: esv1beta1.AWSAuth{
-						SecretRef: &esv1beta1.AWSAuthSecretRef{
-							SecretAccessKey: esmeta.SecretKeySelector{
-								Name: "creds",
-								Key:  "sak",
-							},
-							AccessKeyID: esmeta.SecretKeySelector{
-								Name: "creds",
-								Key:  "ak",
-							},
-						},
-					},
-				},
-			},
-			RetrySettings: &esv1beta1.SecretStoreRetrySettings{
-				RetryInterval: &invalid,
-			},
-		},
-	}
-
-	expected := fmt.Sprintf("unable to initialize aws provider: time: invalid duration %q", invalid)
-	ctx := context.TODO()
-
-	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "creds",
-			Namespace: "default",
-		},
-		Data: map[string][]byte{
-			"sak": []byte("OK"),
-			"ak":  []byte("OK"),
-		},
-	}).Build()
-	provider := func(*session.Session) stsiface.STSAPI { return nil }
-
-	_, err := newClient(ctx, spec, kube, "default", provider)
-
-	if !ErrorContains(err, expected) {
-		t.Errorf("CheckValidRetryInput unexpected error: %s, expected: '%s'", err.Error(), expected)
-	}
-}
-
-func ErrorContains(out error, want string) bool {
-	if out == nil {
-		return want == ""
-	}
-	if want == "" {
-		return false
-	}
-	return strings.Contains(out.Error(), want)
 }

@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
@@ -250,27 +251,13 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: errors.New(errVaultStore),
 			},
 		},
-		"InvalidRetrySettings": {
-			reason: "Should return error if given an invalid Retry Interval.",
-			args: args{
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
-						MaxRetries:    pointer.To(int32(3)),
-						RetryInterval: pointer.To("not-an-interval"),
-					}
-				}),
-			},
-			want: want{
-				err: errors.New("time: invalid duration \"not-an-interval\""),
-			},
-		},
 		"ValidRetrySettings": {
 			reason: "Should return a Vault provider with custom retry settings",
 			args: args{
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
 					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
 						MaxRetries:    pointer.To(int32(3)),
-						RetryInterval: pointer.To("10m"),
+						RetryInterval: &metav1.Duration{Duration: 10 * time.Minute},
 					}
 				}),
 				ns:            "default",
