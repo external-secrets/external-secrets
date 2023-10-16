@@ -77,7 +77,7 @@ func GetProvider(s GenericStore) (Provider, error) {
 	}
 	storeName, err := getProviderName(spec.Provider)
 	if err != nil {
-		return nil, fmt.Errorf("store error for %s: %w", s.GetName(), err)
+		return nil, fmt.Errorf("store error for %s: %w %+v", s.GetName(), err, spec)
 	}
 
 	buildlock.RLock()
@@ -85,7 +85,7 @@ func GetProvider(s GenericStore) (Provider, error) {
 	buildlock.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("failed to find registered store backend for type: %s, name: %s", storeName, s.GetName())
+		return nil, fmt.Errorf("failed to find registered store backend for type: %s, name: %s builder: %+v", storeName, s.GetName(), builder)
 	}
 
 	return f, nil

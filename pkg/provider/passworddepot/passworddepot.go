@@ -48,7 +48,6 @@ type PasswordDepot struct {
 	database string
 }
 
-/*
 func (p *PasswordDepot) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
@@ -56,7 +55,7 @@ func (p *PasswordDepot) ValidateStore(store esv1beta1.GenericStore) error {
 func (a *PasswordDepot) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
-*/
+
 // Client for interacting with kubernetes cluster...?
 type passwordDepotClient struct {
 	kube      kclient.Client
@@ -64,6 +63,7 @@ type passwordDepotClient struct {
 	namespace string
 	storeKind string
 }
+type Provider struct{}
 
 // Set gClient credentials to Access Token.
 func (c *passwordDepotClient) getAuth(ctx context.Context) (string, string, error) {
@@ -145,7 +145,6 @@ func (g *PasswordDepot) PushSecret(_ context.Context, _ []byte, _ *apiextensions
 }
 
 func (g *PasswordDepot) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
@@ -182,4 +181,10 @@ func (g *PasswordDepot) GetSecretMap(ctx context.Context, ref esv1beta1.External
 
 func (g *PasswordDepot) Close(ctx context.Context) error {
 	return nil
+}
+
+func init() {
+	esv1beta1.Register(&PasswordDepot{}, &esv1beta1.SecretStoreProvider{
+		PasswordDepot: &esv1beta1.PasswordDepotProvider{},
+	})
 }

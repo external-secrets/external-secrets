@@ -89,6 +89,8 @@ type SecretStoreProvider struct {
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`
+
+	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
 }
 
 type SecretStoreRetrySettings struct {
