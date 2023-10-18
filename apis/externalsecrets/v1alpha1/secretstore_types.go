@@ -86,19 +86,16 @@ type SecretStoreProvider struct {
 	// +optional
 	Kubernetes *KubernetesProvider `json:"kubernetes,omitempty"`
 
+	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
+
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`
-
-	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
 }
 
 type SecretStoreRetrySettings struct {
 	MaxRetries    *int32  `json:"maxRetries,omitempty"`
 	RetryInterval *string `json:"retryInterval,omitempty"`
-	// PasswordDepot configures this store to sync secrets using PasswordDepot provider
-	// +optional
-	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
 }
 
 type SecretStoreConditionType string
