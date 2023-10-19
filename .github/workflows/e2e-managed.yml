@@ -9,7 +9,7 @@ permissions:
 
 env:
   # Common versions
-  GO_VERSION: '1.19'
+  GO_VERSION: '1.21'
   GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
 
