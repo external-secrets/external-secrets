@@ -2040,7 +2040,7 @@ func TestSetSecret(t *testing.T) {
 			if val == nil {
 				val = []byte(`{"fake-key":"fake-value"}`)
 			}
-			err := client.PushSecret(context.Background(), val, nil, ref)
+			err := client.PushSecret(context.Background(), val, "", nil, ref)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {

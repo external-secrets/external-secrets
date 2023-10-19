@@ -72,7 +72,7 @@ type KmsVCInterface interface {
 }
 
 // Not Implemented PushSecret.
-func (vms *VaultManagementService) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
+func (vms *VaultManagementService) PushSecret(_ context.Context, _ []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

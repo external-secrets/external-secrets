@@ -17,6 +17,7 @@ package fake
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -80,7 +81,7 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 }
 
 // Not Implemented PushSecret.
-func (v *Client) PushSecret(_ context.Context, value []byte, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *Client) PushSecret(_ context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	v.SetSecretArgs[remoteRef.GetRemoteKey()] = SetSecretCallArgs{
 		Value:     value,
 		RemoteRef: remoteRef,

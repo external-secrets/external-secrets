@@ -107,7 +107,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
-func (c *Client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(ctx context.Context, value []byte, typed v1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	if remoteRef.GetProperty() == "" {
 		return fmt.Errorf("requires property in RemoteRef to push secret value")
 	}
@@ -116,7 +116,11 @@ func (c *Client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv
 	if getErr != nil {
 		// create if it not exists
 		if apierrors.IsNotFound(getErr) {
-			return c.createSecret(ctx, value, remoteRef)
+			newType := v1.SecretTypeOpaque
+			if typed != "" {
+				newType = typed
+			}
+			return c.createSecret(ctx, value, newType, remoteRef)
 		}
 		return getErr
 	}
@@ -296,14 +300,14 @@ func convertMap(in map[string][]byte) map[string]string {
 	return out
 }
 
-func (c *Client) createSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) createSecret(ctx context.Context, value []byte, typed v1.SecretType, remoteRef esv1beta1.PushRemoteRef) error {
 	s := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      remoteRef.GetRemoteKey(),
 			Namespace: c.store.RemoteNamespace,
 		},
 		Data: map[string][]byte{remoteRef.GetProperty(): value},
-		Type: "Opaque",
+		Type: typed,
 	}
 	_, err := c.userSecretClient.Create(ctx, &s, metav1.CreateOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesCreateSecret, err)
