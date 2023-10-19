@@ -15,7 +15,7 @@ Uncomment the relevant line in the next steps to disable the automatic install o
 
 ### Option 1: Install from chart repository
 
-``` bash
+```bash
 helm repo add external-secrets https://charts.external-secrets.io
 
 helm install external-secrets \
@@ -29,7 +29,7 @@ helm install external-secrets \
 
 Build and install the Helm chart locally after cloning the repository.
 
-``` bash
+```bash
 make helm.build
 
 helm install external-secrets \
@@ -49,19 +49,13 @@ kubectl create secret generic awssm-secret --from-file=./access-key --from-file=
 
 ### Create your first SecretStore
 
-Create a file 'basic-secret-store.yaml' using `nano` or your preferred editor by running the following command. 
+Create a file 'basic-secret-store.yaml' with the following content.
 
-```
-echo > basic-secret-store.yaml
-```
-
-Add the following lines to the file.
-
-``` yaml
+```yaml
 {% include 'basic-secret-store.yaml' %}
 ```
 
-Apply the new file to a resource by filename.
+Apply it to create a SecretStore resource.
 
 ```
 kubectl apply -f "basic-secret-store.yaml"
@@ -69,27 +63,19 @@ kubectl apply -f "basic-secret-store.yaml"
 
 ### Create your first ExternalSecret
 
+Create a file 'basic-external-secret.yaml' with the following content.
 
-Create a file 'basic-external-secret.yaml' using `nano` or your preferred editor by running the following command. 
-
-```
-echo > basic-external-secret.yaml
-```
-
-Add the following lines to the file.
-
-``` yaml
+```yaml
 {% include 'basic-external-secret.yaml' %}
 ```
 
-Apply the new file to a resource by filename.
-
+Apply it to create an External Secret resource.
 
 ```
 kubectl apply -f "basic-external-secret.yaml"
 ```
 
-``` bash
+```bash
 kubectl describe externalsecret example
 # [...]
 Name:  example
