@@ -1,8 +1,8 @@
-ARG GO_VERSION=1.19
-FROM golang:$GO_VERSION-buster as builder
+ARG GO_VERSION=1.21
+FROM golang:$GO_VERSION-bookworm as builder
 
-ENV KUBECTL_VERSION="v1.24.3"
-ENV HELM_VERSION="v3.7.1"
+ENV KUBECTL_VERSION="v1.28.3"
+ENV HELM_VERSION="v3.13.1"
 
 RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.6
 RUN wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
