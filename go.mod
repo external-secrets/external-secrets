@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.19
+go 1.21
 
 require (
 	cloud.google.com/go/iam v1.1.3
@@ -17,7 +17,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/aws/aws-sdk-go v1.45.25
+	github.com/aws/aws-sdk-go v1.45.28
 	github.com/go-logr/logr v1.2.4
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.6.0
@@ -38,23 +38,23 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.17.0
 	github.com/xanzy/go-gitlab v0.93.1
-	github.com/yandex-cloud/go-genproto v0.0.0-20231009081144-b948e2f03d1e
+	github.com/yandex-cloud/go-genproto v0.0.0-20231016102259-4ef84354aa38
 	github.com/yandex-cloud/go-sdk v0.0.0-20231009081448-02cddfe74c51
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.14.0
 	golang.org/x/oauth2 v0.13.0
-	google.golang.org/api v0.147.0
-	google.golang.org/genproto v0.0.0-20231012201019-e917dd12ba7a
-	google.golang.org/grpc v1.58.3
+	google.golang.org/api v0.148.0
+	google.golang.org/genproto v0.0.0-20231016165738-49dd2c1f3d0b
+	google.golang.org/grpc v1.59.0
 	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
-	k8s.io/api v0.28.2
-	k8s.io/apiextensions-apiserver v0.28.2
-	k8s.io/apimachinery v0.28.2
-	k8s.io/client-go v0.28.2
+	k8s.io/api v0.28.3
+	k8s.io/apiextensions-apiserver v0.28.3
+	k8s.io/apimachinery v0.28.3
+	k8s.io/client-go v0.28.3
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
-	sigs.k8s.io/controller-runtime v0.16.2
+	sigs.k8s.io/controller-runtime v0.16.3
 	sigs.k8s.io/controller-tools v0.13.0
 )
 
@@ -106,19 +106,20 @@ require (
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.2.3 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
+	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/zalando/go-keyring v0.2.3 // indirect
 	golang.org/x/sync v0.4.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20231012201019-e917dd12ba7a // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231012201019-e917dd12ba7a // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.3.0 // indirect
 )
 
 require (
 	cloud.google.com/go/compute v1.23.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.4.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.6 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
@@ -183,8 +184,7 @@ require (
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
@@ -198,7 +198,7 @@ require (
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/common v0.44.0 // indirect
+	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
@@ -227,7 +227,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/component-base v0.28.2 // indirect
+	k8s.io/component-base v0.28.3 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
