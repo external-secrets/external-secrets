@@ -1,0 +1,13 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: external-secrets-crds
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./deploy/crds
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: external-secrets
