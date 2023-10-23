@@ -520,28 +520,31 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 	checkName := ref.Name != nil && len(ref.Name.RegExp) > 0
 
 	secretListIter, err := basicClient.GetSecretsComplete(ctx, *a.provider.VaultURL, nil)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecrets, err)
 	err = parseError(err)
 	if err != nil {
 		return nil, err
 	}
 
 	for secretListIter.NotDone() {
-		secretList := secretListIter.Response().Value
-		for _, secret := range *secretList {
-			ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
-			if !ok {
-				continue
-			}
-
-			secretResp, err := basicClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
-			err = parseError(err)
+		secret := secretListIter.Value()
+		ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
+		if !ok {
+			err = secretListIter.Next()
 			if err != nil {
 				return nil, err
 			}
-
-			secretValue := *secretResp.Value
-			secretsMap[secretName] = []byte(secretValue)
+			continue
 		}
+		secretResp, err := basicClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		err = parseError(err)
+		if err != nil {
+			return nil, err
+		}
+
+		secretValue := *secretResp.Value
+		secretsMap[secretName] = []byte(secretValue)
 
 		err = secretListIter.Next()
 		if err != nil {
