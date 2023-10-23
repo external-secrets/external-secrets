@@ -167,10 +167,10 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	if oracleSpec.PrincipalType == esv1beta1.WorkloadPrincipal {
 		// OCI SDK requires specific environment variables for workload identity.
 		if err := os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
-			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %v", auth.ResourcePrincipalVersionEnvVar, err)
+			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
 		}
 		if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, oracleSpec.Region); err != nil {
-			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %v", auth.ResourcePrincipalRegionEnvVar, err)
+			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
 		}
 		configurationProvider, err = auth.OkeWorkloadIdentityConfigurationProvider()
 	} else if oracleSpec.PrincipalType == esv1beta1.InstancePrincipal || oracleSpec.Auth == nil {
