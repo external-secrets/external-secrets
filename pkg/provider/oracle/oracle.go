@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
@@ -59,9 +60,10 @@ var _ esv1beta1.SecretsClient = &VaultManagementService{}
 var _ esv1beta1.Provider = &VaultManagementService{}
 
 type VaultManagementService struct {
-	Client         VMInterface
-	KmsVaultClient KmsVCInterface
-	vault          string
+	Client                VMInterface
+	KmsVaultClient        KmsVCInterface
+	vault                 string
+	workloadIdentityMutex sync.Mutex
 }
 
 type VMInterface interface {
@@ -165,6 +167,8 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	)
 
 	if oracleSpec.PrincipalType == esv1beta1.WorkloadPrincipal {
+		defer vms.workloadIdentityMutex.Unlock()
+		vms.workloadIdentityMutex.Lock()
 		// OCI SDK requires specific environment variables for workload identity.
 		if err := os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
 			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
@@ -173,6 +177,15 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
 		}
 		configurationProvider, err = auth.OkeWorkloadIdentityConfigurationProvider()
+		if err := os.Unsetenv(auth.ResourcePrincipalVersionEnvVar); err != nil {
+			return nil, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
+		}
+		if err := os.Unsetenv(auth.ResourcePrincipalRegionEnvVar); err != nil {
+			return nil, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
+		}
+		if err != nil {
+			return nil, err
+		}
 	} else if oracleSpec.PrincipalType == esv1beta1.InstancePrincipal || oracleSpec.Auth == nil {
 		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
 	} else {
