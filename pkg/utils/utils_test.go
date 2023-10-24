@@ -336,7 +336,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestRewriteRegexp(t *testing.T) {
+func TestRewrite(t *testing.T) {
 	type args struct {
 		operations []esv1beta1.ExternalSecretRewrite
 		in         map[string][]byte
@@ -477,6 +477,52 @@ func TestRewriteRegexp(t *testing.T) {
 			want: map[string][]byte{
 				"app_key":      []byte("bar"),
 				"app_p***word": []byte("barr"),
+			},
+		},
+		{
+			name: "using transform rewrite operation to create env var format keys",
+			args: args{
+				operations: []esv1beta1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+							Source: "my/(.*?)/bar/(.*)",
+							Target: "$1-$2",
+						},
+					},
+					{
+						Transform: &esv1beta1.ExtermalSecretRewriteTransform{
+							Template: `{{ .value | upper | replace "-" "_" }}`,
+						},
+					},
+				},
+				in: map[string][]byte{
+					"my/app/bar/api-key":      []byte("bar"),
+					"my/app/bar/api-password": []byte("barr"),
+				},
+			},
+			want: map[string][]byte{
+				"APP_API_KEY":      []byte("bar"),
+				"APP_API_PASSWORD": []byte("barr"),
+			},
+		},
+		{
+			name: "using transform rewrite operation to lower case",
+			args: args{
+				operations: []esv1beta1.ExternalSecretRewrite{
+					{
+						Transform: &esv1beta1.ExtermalSecretRewriteTransform{
+							Template: `{{ .value | lower }}`,
+						},
+					},
+				},
+				in: map[string][]byte{
+					"API_FOO": []byte("bar"),
+					"KEY_FOO": []byte("barr"),
+				},
+			},
+			want: map[string][]byte{
+				"api_foo": []byte("bar"),
+				"key_foo": []byte("barr"),
 			},
 		},
 	}
