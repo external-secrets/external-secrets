@@ -54,7 +54,7 @@ require (
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.27.10
-	github.com/oracle/oci-go-sdk/v56 v56.1.0
+	github.com/oracle/oci-go-sdk/v65 v65.49.3
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.21
 	github.com/xanzy/go-gitlab v0.93.1
 	golang.org/x/oauth2 v0.13.0
@@ -98,6 +98,7 @@ require (
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
+	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect

@@ -31,7 +31,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.26
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.27.10
-	github.com/oracle/oci-go-sdk/v56 v56.1.0
+	github.com/oracle/oci-go-sdk/v65 v65.49.3
 	github.com/prometheus/client_golang v1.17.0
 	github.com/prometheus/client_model v0.5.0
 	github.com/spf13/cobra v1.7.0
@@ -102,6 +102,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-playground/validator/v10 v10.15.5 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.2.3 // indirect
