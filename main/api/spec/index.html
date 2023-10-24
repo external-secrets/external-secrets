@@ -6511,6 +6511,32 @@ OracleSecretRef
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.OraclePrincipalType">OraclePrincipalType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.OracleProvider">OracleProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;InstancePrincipal&#34;</p></td>
+<td><p>InstancePrincipal represents a instance principal.</p>
+</td>
+</tr><tr><td><p>&#34;UserPrincipal&#34;</p></td>
+<td><p>UserPrincipal represents a user principal.</p>
+</td>
+</tr><tr><td><p>&#34;Workload&#34;</p></td>
+<td><p>WorkloadPrincipal represents a workload principal.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.OracleProvider">OracleProvider
 </h3>
 <p>
@@ -6549,6 +6575,22 @@ string
 </td>
 <td>
 <p>Vault is the vault&rsquo;s OCID of the specific vault where secret is located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>principalType</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OraclePrincipalType">
+OraclePrincipalType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The type of principal to use for authentication. If left blank, the Auth struct will
+determine the principal type. This optional field must be specified if using
+workload identity.</p>
 </td>
 </tr>
 <tr>
