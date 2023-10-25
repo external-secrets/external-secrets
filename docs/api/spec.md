@@ -1183,7 +1183,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1196,7 +1209,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
-<p>The time in which the controller should reconcile it&rsquo;s objects and recheck namespaces for labels.</p>
+<p>The time in which the controller should reconcile its objects and recheck namespaces for labels.</p>
 </td>
 </tr>
 </table>
@@ -1343,7 +1356,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1356,7 +1382,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
-<p>The time in which the controller should reconcile it&rsquo;s objects and recheck namespaces for labels.</p>
+<p>The time in which the controller should reconcile its objects and recheck namespaces for labels.</p>
 </td>
 </tr>
 </tbody>
@@ -2150,6 +2176,36 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">ExtermalSecretRewriteTransform
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Used to define the template to apply on the secret name.
+<code>.value</code> will specify the secret name in the template.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecret">ExternalSecret
 </h3>
 <p>
@@ -2824,6 +2880,21 @@ ExternalSecretRewriteRegexp
 <em>(Optional)</em>
 <p>Used to rewrite with regular expressions.
 The resulting key will be the output of a regexp.ReplaceAll operation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transform</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">
+ExtermalSecretRewriteTransform
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to apply string transformation on the secrets.
+The resulting key will be the output of the template applied by the operation.</p>
 </td>
 </tr>
 </tbody>
@@ -4400,6 +4471,32 @@ OracleSecretRef
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.OraclePrincipalType">OraclePrincipalType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.OracleProvider">OracleProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;InstancePrincipal&#34;</p></td>
+<td><p>InstancePrincipal represents a instance principal.</p>
+</td>
+</tr><tr><td><p>&#34;UserPrincipal&#34;</p></td>
+<td><p>UserPrincipal represents a user principal.</p>
+</td>
+</tr><tr><td><p>&#34;Workload&#34;</p></td>
+<td><p>WorkloadPrincipal represents a workload principal.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.OracleProvider">OracleProvider
 </h3>
 <p>
@@ -4438,6 +4535,22 @@ string
 </td>
 <td>
 <p>Vault is the vault&rsquo;s OCID of the specific vault where secret is located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>principalType</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OraclePrincipalType">
+OraclePrincipalType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The type of principal to use for authentication. If left blank, the Auth struct will
+determine the principal type. This optional field must be specified if using
+workload identity.</p>
 </td>
 </tr>
 <tr>

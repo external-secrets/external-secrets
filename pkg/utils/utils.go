@@ -15,6 +15,7 @@ limitations under the License.
 package utils
 
 import (
+	"bytes"
 	"crypto/md5" //nolint:gosec
 	"encoding/base64"
 	"encoding/json"
@@ -25,11 +26,18 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	tpl "text/template"
 	"time"
 	"unicode"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	template "github.com/external-secrets/external-secrets/pkg/template/v2"
+)
+
+const (
+	errParse   = "unable to parse transform template: %s"
+	errExecute = "unable to execute transform template: %s"
 )
 
 // MergeByteMap merges map of byte slices.
@@ -47,7 +55,13 @@ func RewriteMap(operations []esv1beta1.ExternalSecretRewrite, in map[string][]by
 		if op.Regexp != nil {
 			out, err = RewriteRegexp(*op.Regexp, out)
 			if err != nil {
-				return nil, fmt.Errorf("failed rewriting operation[%v]: %w", i, err)
+				return nil, fmt.Errorf("failed rewriting regexp operation[%v]: %w", i, err)
+			}
+		}
+		if op.Transform != nil {
+			out, err = RewriteTransform(*op.Transform, out)
+			if err != nil {
+				return nil, fmt.Errorf("failed rewriting transform operation[%v]: %w", i, err)
 			}
 		}
 	}
@@ -66,6 +80,45 @@ func RewriteRegexp(operation esv1beta1.ExternalSecretRewriteRegexp, in map[strin
 		out[newKey] = value
 	}
 	return out, nil
+}
+
+// RewriteTransform applies string transformation on each secret key name to rewrite.
+func RewriteTransform(operation esv1beta1.ExtermalSecretRewriteTransform, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	for key, value := range in {
+		data := map[string][]byte{
+			"value": []byte(key),
+		}
+
+		result, err := transform(operation.Template, data)
+		if err != nil {
+			return nil, err
+		}
+
+		newKey := string(result)
+		out[newKey] = value
+	}
+	return out, nil
+}
+
+func transform(val string, data map[string][]byte) ([]byte, error) {
+	strValData := make(map[string]string, len(data))
+	for k := range data {
+		strValData[k] = string(data[k])
+	}
+
+	t, err := tpl.New("transform").
+		Funcs(template.FuncMap()).
+		Parse(val)
+	if err != nil {
+		return nil, fmt.Errorf(errParse, err)
+	}
+	buf := bytes.NewBuffer(nil)
+	err = t.Execute(buf, strValData)
+	if err != nil {
+		return nil, fmt.Errorf(errExecute, err)
+	}
+	return buf.Bytes(), nil
 }
 
 // DecodeValues decodes values from a secretMap.
