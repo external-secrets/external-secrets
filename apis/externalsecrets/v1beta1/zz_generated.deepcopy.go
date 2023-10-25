@@ -492,7 +492,16 @@ func (in *ClusterExternalSecretSpec) DeepCopyInto(out *ClusterExternalSecretSpec
 	*out = *in
 	in.ExternalSecretSpec.DeepCopyInto(&out.ExternalSecretSpec)
 	in.ExternalSecretMetadata.DeepCopyInto(&out.ExternalSecretMetadata)
-	in.NamespaceSelector.DeepCopyInto(&out.NamespaceSelector)
+	if in.NamespaceSelector != nil {
+		in, out := &in.NamespaceSelector, &out.NamespaceSelector
+		*out = new(v1.LabelSelector)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.RefreshInterval != nil {
 		in, out := &in.RefreshInterval, &out.RefreshInterval
 		*out = new(v1.Duration)

@@ -1183,7 +1183,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1196,7 +1209,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
-<p>The time in which the controller should reconcile it&rsquo;s objects and recheck namespaces for labels.</p>
+<p>The time in which the controller should reconcile its objects and recheck namespaces for labels.</p>
 </td>
 </tr>
 </table>
@@ -1343,7 +1356,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1356,7 +1382,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
-<p>The time in which the controller should reconcile it&rsquo;s objects and recheck namespaces for labels.</p>
+<p>The time in which the controller should reconcile its objects and recheck namespaces for labels.</p>
 </td>
 </tr>
 </tbody>
