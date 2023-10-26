@@ -30,7 +30,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -167,25 +169,7 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	)
 
 	if oracleSpec.PrincipalType == esv1beta1.WorkloadPrincipal {
-		defer vms.workloadIdentityMutex.Unlock()
-		vms.workloadIdentityMutex.Lock()
-		// OCI SDK requires specific environment variables for workload identity.
-		if err := os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
-			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
-		}
-		if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, oracleSpec.Region); err != nil {
-			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
-		}
-		configurationProvider, err = auth.OkeWorkloadIdentityConfigurationProvider()
-		if err := os.Unsetenv(auth.ResourcePrincipalVersionEnvVar); err != nil {
-			return nil, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
-		}
-		if err := os.Unsetenv(auth.ResourcePrincipalRegionEnvVar); err != nil {
-			return nil, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
-		}
-		if err != nil {
-			return nil, err
-		}
+		configurationProvider, err = vms.getWorkloadIdentityProvider(oracleSpec.ServiceAccountRef, oracleSpec.Region, namespace)
 	} else if oracleSpec.PrincipalType == esv1beta1.InstancePrincipal || oracleSpec.Auth == nil {
 		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
 	} else {
@@ -394,7 +378,43 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) e
 		return err
 	}
 
+	if oracleSpec.ServiceAccountRef != nil {
+		if err := utils.ValidateReferentServiceAccountSelector(store, *oracleSpec.ServiceAccountRef); err != nil {
+			return fmt.Errorf("invalid ServiceAccountRef: %w", err)
+		}
+	}
+
 	return nil
+}
+
+func (vms *VaultManagementService) getWorkloadIdentityProvider(serviceAcccountRef *esmeta.ServiceAccountSelector, region, namespace string) (common.ConfigurationProvider, error) {
+	defer func() {
+		_ = os.Unsetenv(auth.ResourcePrincipalVersionEnvVar)
+		_ = os.Unsetenv(auth.ResourcePrincipalRegionEnvVar)
+		vms.workloadIdentityMutex.Unlock()
+	}()
+	vms.workloadIdentityMutex.Lock()
+	// OCI SDK requires specific environment variables for workload identity.
+	if err := os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
+		return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
+	}
+	if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, region); err != nil {
+		return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
+	}
+	// If no service account is specified, use the pod service account to create the Workload Identity provider.
+	if serviceAcccountRef == nil {
+		return auth.OkeWorkloadIdentityConfigurationProvider()
+	}
+	cfg, err := ctrlcfg.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
+	return auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
 }
 
 func init() {
