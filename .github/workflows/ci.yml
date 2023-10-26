@@ -9,7 +9,7 @@ on:
 
 env:
   # Common versions
-  GOLANGCI_VERSION: 'v1.52.2'
+  GOLANGCI_VERSION: 'v1.54.2'
   KUBERNETES_VERSION: '1.28.x'
 
   # Sonar
@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Detect No-op Changes
         id: noop
-        uses: fkirc/skip-duplicate-actions@v5.3.0
+        uses: fkirc/skip-duplicate-actions@v5.3.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["**.md", "**.png", "**.jpg"]'

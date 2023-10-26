@@ -97,9 +97,18 @@ func validateRegion(prov *esv1beta1.AWSProvider) error {
 	partitions := resolver.(endpoints.EnumPartitions).Partitions()
 	found := false
 	for _, p := range partitions {
-		for id := range p.Regions() {
-			if id == prov.Region {
-				found = true
+		var serviceskey string
+		if prov.Service == esv1beta1.AWSServiceSecretsManager {
+			serviceskey = "secretsmanager"
+		} else if prov.Service == esv1beta1.AWSServiceParameterStore {
+			serviceskey = "ssm"
+		}
+		service, ok := p.Services()[serviceskey]
+		if ok {
+			for region := range service.Endpoints() {
+				if region == prov.Region {
+					found = true
+				}
 			}
 		}
 	}

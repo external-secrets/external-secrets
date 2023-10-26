@@ -208,6 +208,15 @@ spec:
                                     - source
                                     - target
                                   type: object
+                                transform:
+                                  description: Used to apply string transformation on the secrets. The resulting key will be the output of the template applied by the operation.
+                                  properties:
+                                    template:
+                                      description: Used to define the template to apply on the secret name. `.value ` will specify the secret name in the template.
+                                      type: string
+                                  required:
+                                    - template
+                                  type: object
                               type: object
                             type: array
                           sourceRef:
@@ -402,12 +411,16 @@ spec:
                       type: object
                   type: object
                   x-kubernetes-map-type: atomic
+                namespaces:
+                  description: Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
+                  items:
+                    type: string
+                  type: array
                 refreshTime:
-                  description: The time in which the controller should reconcile it's objects and recheck namespaces for labels.
+                  description: The time in which the controller should reconcile its objects and recheck namespaces for labels.
                   type: string
               required:
                 - externalSecretSpec
-                - namespaceSelector
               type: object
             status:
               description: ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.
@@ -1118,7 +1131,7 @@ spec:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
                         auth:
-                          description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+                          description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
                           properties:
                             secretRef:
                               description: SecretRef to pass through sensitive information.
@@ -1164,6 +1177,9 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        principalType:
+                          description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          type: string
                         region:
                           description: Region is the region where vault is located.
                           type: string
@@ -2682,6 +2698,9 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        principalType:
+                          description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          type: string
                         region:
                           description: Region is the region where vault is located.
                           type: string
@@ -3821,6 +3840,15 @@ spec:
                                 - source
                                 - target
                               type: object
+                            transform:
+                              description: Used to apply string transformation on the secrets. The resulting key will be the output of the template applied by the operation.
+                              properties:
+                                template:
+                                  description: Used to define the template to apply on the secret name. `.value ` will specify the secret name in the template.
+                                  type: string
+                              required:
+                                - template
+                              type: object
                           type: object
                         type: array
                       sourceRef:
@@ -4915,7 +4943,7 @@ spec:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
                         auth:
-                          description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+                          description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
                           properties:
                             secretRef:
                               description: SecretRef to pass through sensitive information.
@@ -4961,6 +4989,9 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        principalType:
+                          description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          type: string
                         region:
                           description: Region is the region where vault is located.
                           type: string
@@ -6479,6 +6510,9 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        principalType:
+                          description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          type: string
                         region:
                           description: Region is the region where vault is located.
                           type: string

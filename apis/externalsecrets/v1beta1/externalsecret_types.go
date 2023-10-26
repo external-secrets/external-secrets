@@ -277,6 +277,11 @@ type ExternalSecretRewrite struct {
 	// The resulting key will be the output of a regexp.ReplaceAll operation.
 	// +optional
 	Regexp *ExternalSecretRewriteRegexp `json:"regexp,omitempty"`
+
+	// Used to apply string transformation on the secrets.
+	// The resulting key will be the output of the template applied by the operation.
+	// +optional
+	Transform *ExtermalSecretRewriteTransform `json:"transform,omitempty"`
 }
 
 type ExternalSecretRewriteRegexp struct {
@@ -285,6 +290,13 @@ type ExternalSecretRewriteRegexp struct {
 	// Used to define the target pattern of a ReplaceAll operation.
 	Target string `json:"target"`
 }
+
+type ExtermalSecretRewriteTransform struct {
+	// Used to define the template to apply on the secret name.
+	// `.value ` will specify the secret name in the template.
+	Template string `json:"template"`
+}
+
 type ExternalSecretFind struct {
 	// A root path to start the find operations.
 	// +optional

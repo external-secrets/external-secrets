@@ -16,7 +16,7 @@ package fake
 import (
 	"context"
 
-	secrets "github.com/oracle/oci-go-sdk/v56/secrets"
+	secrets "github.com/oracle/oci-go-sdk/v65/secrets"
 )
 
 type OracleMockClient struct {
