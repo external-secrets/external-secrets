@@ -23,7 +23,6 @@ spec:
   {{- if .Values.webhook.metrics.service.enabled }}
   - port: {{ .Values.webhook.metrics.service.port }}
     targetPort: {{ .Values.webhook.metrics.service.port }}
-  {{- end }}
     protocol: TCP
     name: metrics
   {{- end }}
