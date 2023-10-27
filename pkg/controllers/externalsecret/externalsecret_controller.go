@@ -575,7 +575,7 @@ func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	if es.Status.RefreshTime.IsZero() {
 		return true
 	}
-	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
+	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now().Add(-20 * time.Second))
 }
 
 func shouldReconcile(es esv1beta1.ExternalSecret) bool {
