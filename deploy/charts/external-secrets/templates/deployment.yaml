@@ -87,7 +87,7 @@ spec:
           {{- end }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.prometheus.service.port }}
+            - containerPort: {{ .Values.serviceMonitor.port }}
               protocol: TCP
               name: metrics
           {{- with .Values.extraEnv }}
