@@ -178,6 +178,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// 2. refresh interval is 0
 	// 3. if we're still within refresh-interval
 	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
+		timeSinceLastRefresh := time.Since(externalSecret.Status.RefreshTime.Time)
+		refreshInt = (externalSecret.Spec.RefreshInterval.Duration - timeSinceLastRefresh) + 5*time.Second
 		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
@@ -575,7 +577,7 @@ func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	if es.Status.RefreshTime.IsZero() {
 		return true
 	}
-	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now().Add(-20 * time.Second))
+	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
 func shouldReconcile(es esv1beta1.ExternalSecret) bool {
