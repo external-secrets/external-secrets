@@ -87,7 +87,7 @@ spec:
           {{- end }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.serviceMonitor.port }}
+            - containerPort: 8080
               protocol: TCP
               name: metrics
           {{- with .Values.extraEnv }}
