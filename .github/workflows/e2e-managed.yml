@@ -1,5 +1,4 @@
 on:
-  pull_request:
   repository_dispatch:
     types: [ok-to-test-managed-command]
 
@@ -47,8 +46,8 @@ env:
   TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL}}
 
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
-  CLOUD_PROVIDER: azure
+  GITHUB_PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
+  CLOUD_PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
   INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
   GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
