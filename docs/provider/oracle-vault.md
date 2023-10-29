@@ -4,9 +4,10 @@ External Secrets Operator integrates with [OCI API](https://github.com/oracle/oc
 
 ### Authentication
 
-If `auth` is not specified, the operator uses the instance principal.
+Specify the authenticating principal with `principalType`, using `UserPrincipal`, `InstancePrincipal`, or `Workload` as values.
+If `principalType` or `auth` are not set, the operator defaults to instance principal for authentication.
 
-For using a specific user credentials, userOCID, tenancyOCID, fingerprint and private key are required.
+For user principal, userOCID, tenancyOCID, fingerprint and private key are required.
 The fingerprint and key file should be supplied in the secret with the rest being provided in the secret store.
 
 See url for what region you you are accessing.

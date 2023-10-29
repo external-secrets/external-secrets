@@ -306,6 +306,8 @@ options of obtaining credentials for vault:
 3.  by using transient credentials from the mounted service account token within the
     external-secrets operator
 
+Vault validates the service account token by using the TokenReview API. ⚠️ You have to bind the `system:auth-delegator` ClusterRole to the service account that is used for authentication. Please follow the [Vault documentation](https://developer.hashicorp.com/vault/docs/auth/kubernetes#configuring-kubernetes).
+
 ```yaml
 {% include 'vault-kubernetes-store.yaml' %}
 ```

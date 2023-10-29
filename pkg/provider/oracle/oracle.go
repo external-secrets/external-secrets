@@ -18,11 +18,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
+	"sync"
+	"time"
 
-	"github.com/oracle/oci-go-sdk/v56/common"
-	"github.com/oracle/oci-go-sdk/v56/common/auth"
-	"github.com/oracle/oci-go-sdk/v56/keymanagement"
-	"github.com/oracle/oci-go-sdk/v56/secrets"
+	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/common/auth"
+	"github.com/oracle/oci-go-sdk/v65/keymanagement"
+	"github.com/oracle/oci-go-sdk/v65/secrets"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -36,10 +39,6 @@ import (
 )
 
 const (
-	VaultEndpointEnv = "ORACLE_VAULT_ENDPOINT"
-	STSEndpointEnv   = "ORACLE_STS_ENDPOINT"
-	SVMEndpointEnv   = "ORACLE_SVM_ENDPOINT"
-
 	errOracleClient                          = "cannot setup new oracle client: %w"
 	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
 	errUninitalizedOracleProvider            = "provider oracle is not initialized"
@@ -61,9 +60,10 @@ var _ esv1beta1.SecretsClient = &VaultManagementService{}
 var _ esv1beta1.Provider = &VaultManagementService{}
 
 type VaultManagementService struct {
-	Client         VMInterface
-	KmsVaultClient KmsVCInterface
-	vault          string
+	Client                VMInterface
+	KmsVaultClient        KmsVCInterface
+	vault                 string
+	workloadIdentityMutex sync.Mutex
 }
 
 type VMInterface interface {
@@ -165,7 +165,28 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		err                   error
 		configurationProvider common.ConfigurationProvider
 	)
-	if oracleSpec.Auth == nil {
+
+	if oracleSpec.PrincipalType == esv1beta1.WorkloadPrincipal {
+		defer vms.workloadIdentityMutex.Unlock()
+		vms.workloadIdentityMutex.Lock()
+		// OCI SDK requires specific environment variables for workload identity.
+		if err := os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
+			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
+		}
+		if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, oracleSpec.Region); err != nil {
+			return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
+		}
+		configurationProvider, err = auth.OkeWorkloadIdentityConfigurationProvider()
+		if err := os.Unsetenv(auth.ResourcePrincipalVersionEnvVar); err != nil {
+			return nil, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
+		}
+		if err := os.Unsetenv(auth.ResourcePrincipalRegionEnvVar); err != nil {
+			return nil, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
+		}
+		if err != nil {
+			return nil, err
+		}
+	} else if oracleSpec.PrincipalType == esv1beta1.InstancePrincipal || oracleSpec.Auth == nil {
 		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
 	} else {
 		configurationProvider, err = getUserAuthConfigurationProvider(ctx, kube, oracleSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind, oracleSpec.Region)
@@ -187,6 +208,32 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	}
 
 	kmsVaultClient.SetRegion(oracleSpec.Region)
+
+	if storeSpec.RetrySettings != nil {
+		opts := []common.RetryPolicyOption{common.WithShouldRetryOperation(common.DefaultShouldRetryOperation)}
+
+		if mr := storeSpec.RetrySettings.MaxRetries; mr != nil {
+			opts = append(opts, common.WithMaximumNumberAttempts(uint(*mr)))
+		}
+
+		if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
+			i, err := time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+			if err != nil {
+				return nil, fmt.Errorf(errOracleClient, err)
+			}
+			opts = append(opts, common.WithFixedBackoff(i))
+		}
+
+		customRetryPolicy := common.NewRetryPolicyWithOptions(opts...)
+
+		secretManagementService.SetCustomClientConfiguration(common.CustomClientConfiguration{
+			RetryPolicy: &customRetryPolicy,
+		})
+
+		kmsVaultClient.SetCustomClientConfiguration(common.CustomClientConfiguration{
+			RetryPolicy: &customRetryPolicy,
+		})
+	}
 
 	return &VaultManagementService{
 		Client:         secretManagementService,

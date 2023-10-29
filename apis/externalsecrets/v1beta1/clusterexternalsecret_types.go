@@ -33,9 +33,14 @@ type ClusterExternalSecretSpec struct {
 	ExternalSecretMetadata ExternalSecretMetadata `json:"externalSecretMetadata"`
 
 	// The labels to select by to find the Namespaces to create the ExternalSecrets in.
-	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector"`
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
-	// The time in which the controller should reconcile it's objects and recheck namespaces for labels.
+	// Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
+	// +optional
+	Namespaces []string `json:"namespaces,omitempty"`
+
+	// The time in which the controller should reconcile its objects and recheck namespaces for labels.
 	RefreshInterval *metav1.Duration `json:"refreshTime,omitempty"`
 }
 

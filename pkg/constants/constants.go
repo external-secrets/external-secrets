@@ -35,6 +35,7 @@ const (
 	CallAzureKVDeleteKey         = "DeleteKey"
 	CallAzureKVImportKey         = "ImportKey"
 	CallAzureKVGetSecret         = "GetSecret"
+	CallAzureKVGetSecrets        = "GetSecrets"
 	CallAzureKVDeleteSecret      = "DeleteSecret"
 	CallAzureKVGetCertificate    = "GetCertificate"
 	CallAzureKVDeleteCertificate = "DeleteCertificate"
@@ -69,9 +70,10 @@ const (
 	CallKubernetesUpdateSecret                 = "UpdateSecret"
 	CallKubernetesCreateSelfSubjectRulesReview = "CreateSelfSubjectRulesReview"
 
-	ProviderIBMSM        = "IBM/SecretsManager"
-	CallIBMSMGetSecret   = "GetSecret"
-	CallIBMSMListSecrets = "ListSecrets"
+	ProviderIBMSM                = "IBM/SecretsManager"
+	CallIBMSMGetSecret           = "GetSecret"
+	CallIBMSMListSecrets         = "ListSecrets"
+	CallIBMSMGetSecretByNameType = "GetSecretByNameType"
 
 	ProviderWebhook    = "Webhook"
 	CallWebhookHTTPReq = "HTTPRequest"

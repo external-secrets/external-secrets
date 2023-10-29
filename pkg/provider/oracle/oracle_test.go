@@ -15,17 +15,25 @@ package oracle
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
-	secrets "github.com/oracle/oci-go-sdk/v56/secrets"
-	utilpointer "k8s.io/utils/ptr"
+	"github.com/oracle/oci-go-sdk/v65/secrets"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
 )
 
@@ -74,8 +82,8 @@ func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 
 func makeValidAPIInput() *secrets.GetSecretBundleByNameRequest {
 	return &secrets.GetSecretBundleByNameRequest{
-		SecretName: utilpointer.To("test-secret"),
-		VaultId:    utilpointer.To("test-vault"),
+		SecretName: ptr.To("test-secret"),
+		VaultId:    ptr.To("test-vault"),
 	}
 }
 
@@ -113,10 +121,10 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	setSecretString := func(smtc *vaultTestCase) {
 		smtc.apiOutput = &secrets.GetSecretBundleByNameResponse{
 			SecretBundle: secrets.SecretBundle{
-				SecretId:      utilpointer.To("test-id"),
-				VersionNumber: utilpointer.To(int64(1)),
+				SecretId:      ptr.To("test-id"),
+				VersionNumber: ptr.To(int64(1)),
 				SecretBundleContent: secrets.Base64SecretBundleContentDetails{
-					Content: utilpointer.To(base64.StdEncoding.EncodeToString([]byte(secretValue))),
+					Content: ptr.To(base64.StdEncoding.EncodeToString([]byte(secretValue))),
 				},
 			},
 		}
@@ -147,7 +155,7 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: utilpointer.To(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
+			Content: ptr.To(base64.StdEncoding.EncodeToString([]byte(`{"foo":"bar"}`))),
 		}
 		smtc.expectedData["foo"] = []byte("bar")
 	}
@@ -155,7 +163,7 @@ func TestGetSecretMap(t *testing.T) {
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *vaultTestCase) {
 		smtc.apiOutput.SecretBundleContent = secrets.Base64SecretBundleContentDetails{
-			Content: utilpointer.To(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
+			Content: ptr.To(base64.StdEncoding.EncodeToString([]byte(`-----------------`))),
 		}
 		smtc.expectError = "unable to unmarshal secret"
 	}
@@ -220,7 +228,7 @@ func withSecretAuth(user, tenancy string) storeModifier {
 }
 func withPrivateKey(name, key string, namespace *string) storeModifier {
 	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
-		store.Spec.Provider.Oracle.Auth.SecretRef.PrivateKey = v1.SecretKeySelector{
+		store.Spec.Provider.Oracle.Auth.SecretRef.PrivateKey = esmeta.SecretKeySelector{
 			Name:      name,
 			Key:       key,
 			Namespace: namespace,
@@ -230,7 +238,7 @@ func withPrivateKey(name, key string, namespace *string) storeModifier {
 }
 func withFingerprint(name, key string, namespace *string) storeModifier {
 	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
-		store.Spec.Provider.Oracle.Auth.SecretRef.Fingerprint = v1.SecretKeySelector{
+		store.Spec.Provider.Oracle.Auth.SecretRef.Fingerprint = esmeta.SecretKeySelector{
 			Name:      name,
 			Key:       key,
 			Namespace: namespace,
@@ -302,5 +310,197 @@ func TestValidateStore(t *testing.T) {
 		} else if tc.err != nil && err == nil {
 			t.Errorf("want err %v got nil", tc.err)
 		}
+	}
+}
+
+func TestVaultManagementService_NewClient(t *testing.T) {
+	t.Parallel()
+
+	namespace := "default"
+	authSecretName := "oracle-auth"
+
+	auth := &esv1beta1.OracleAuth{
+		User:    "user",
+		Tenancy: "tenancy",
+		SecretRef: esv1beta1.OracleSecretRef{
+			PrivateKey: esmeta.SecretKeySelector{
+				Name: authSecretName,
+				Key:  "privateKey",
+			},
+			Fingerprint: esmeta.SecretKeySelector{
+				Name: authSecretName,
+				Key:  "fingerprint",
+			},
+		},
+	}
+
+	tests := []struct {
+		desc        string
+		secretStore *esv1beta1.SecretStore
+		expectedErr string
+	}{
+		{
+			desc: "no retry settings",
+			secretStore: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Oracle: &esv1beta1.OracleProvider{
+							Vault:  vaultOCID,
+							Region: region,
+							Auth:   auth,
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "fill all the retry settings",
+			secretStore: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Oracle: &esv1beta1.OracleProvider{
+							Vault:  vaultOCID,
+							Region: region,
+							Auth:   auth,
+						},
+					},
+					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+						RetryInterval: ptr.To("1s"),
+						MaxRetries:    ptr.To(int32(5)),
+					},
+				},
+			},
+		},
+		{
+			desc: "partially configure the retry settings - retry interval",
+			secretStore: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Oracle: &esv1beta1.OracleProvider{
+							Vault:  vaultOCID,
+							Region: region,
+							Auth:   auth,
+						},
+					},
+					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+						RetryInterval: ptr.To("1s"),
+					},
+				},
+			},
+		},
+		{
+			desc: "partially configure the retry settings - max retries",
+			secretStore: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Oracle: &esv1beta1.OracleProvider{
+							Vault:  vaultOCID,
+							Region: region,
+							Auth:   auth,
+						},
+					},
+					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+						MaxRetries: ptr.To(int32(5)),
+					},
+				},
+			},
+		},
+		{
+			desc: "auth secret does not exist",
+			secretStore: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Oracle: &esv1beta1.OracleProvider{
+							Vault:  vaultOCID,
+							Region: region,
+							Auth: &esv1beta1.OracleAuth{
+								User:    "user",
+								Tenancy: "tenancy",
+								SecretRef: esv1beta1.OracleSecretRef{
+									PrivateKey: esmeta.SecretKeySelector{
+										Name: "non-existing-secret",
+										Key:  "privateKey",
+									},
+									Fingerprint: esmeta.SecretKeySelector{
+										Name: "non-existing-secret",
+										Key:  "fingerprint",
+									},
+								},
+							},
+						},
+					},
+					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+						RetryInterval: ptr.To("invalid"),
+					},
+				},
+			},
+			expectedErr: `could not fetch SecretAccessKey secret: secrets "non-existing-secret"`,
+		},
+		{
+			desc: "invalid retry interval",
+			secretStore: &esv1beta1.SecretStore{
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Oracle: &esv1beta1.OracleProvider{
+							Vault:  vaultOCID,
+							Region: region,
+							Auth:   auth,
+						},
+					},
+					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+						RetryInterval: ptr.To("invalid"),
+					},
+				},
+			},
+			expectedErr: "cannot setup new oracle client: time: invalid duration",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			provider := &VaultManagementService{
+				Client:         &fakeoracle.OracleMockClient{},
+				KmsVaultClient: nil,
+				vault:          vaultOCID,
+			}
+
+			pk, err := rsa.GenerateKey(rand.Reader, 2048)
+			if err != nil {
+				t.Fatalf("failed to create a private key: %v", err)
+			}
+			schema := runtime.NewScheme()
+			if err := corev1.AddToScheme(schema); err != nil {
+				t.Fatalf("failed to add to schema: %v", err)
+			}
+			builder := clientfake.NewClientBuilder().WithRuntimeObjects(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      authSecretName,
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					"privateKey": pem.EncodeToMemory(&pem.Block{
+						Type:  "RSA PRIVATE KEY",
+						Bytes: x509.MarshalPKCS1PrivateKey(pk),
+					}),
+					"fingerprint": []byte("fingerprint"),
+				},
+			})
+
+			_, err = provider.NewClient(context.Background(), tc.secretStore, builder.Build(), namespace)
+			if err != nil {
+				if tc.expectedErr == "" {
+					t.Fatalf("failed to call NewClient: %v", err)
+				}
+
+				if !strings.Contains(err.Error(), tc.expectedErr) {
+					t.Fatalf("received an unexpected error: %q should have contained %q", err.Error(), tc.expectedErr)
+				}
+				return
+			}
+
+			if tc.expectedErr != "" {
+				t.Fatalf("expeceted to receive an error but got nil")
+			}
+		})
 	}
 }
