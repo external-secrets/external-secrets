@@ -2334,6 +2334,7 @@ helm<span class="w"> </span>install<span class="w"> </span>external-secrets<span
 kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>awssm-secret<span class="w"> </span>--from-file<span class="o">=</span>./access-key<span class="w"> </span>--from-file<span class="o">=</span>./secret-access-key
 </code></pre></div>
 <h3 id="create-your-first-secretstore">Create your first SecretStore</h3>
+<p>Create a file 'basic-secret-store.yaml' with the following content.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -2352,7 +2353,11 @@ kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
 </code></pre></div>
+<p>Apply it to create a SecretStore resource.</p>
+<div class="highlight"><pre><span></span><code>kubectl apply -f &quot;basic-secret-store.yaml&quot;
+</code></pre></div>
 <h3 id="create-your-first-externalsecret">Create your first ExternalSecret</h3>
+<p>Create a file 'basic-external-secret.yaml' with the following content.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -2374,6 +2379,9 @@ kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remote-key-in-the-provider</span>
+</code></pre></div>
+<p>Apply it to create an External Secret resource.</p>
+<div class="highlight"><pre><span></span><code>kubectl apply -f &quot;basic-external-secret.yaml&quot;
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>describe<span class="w"> </span>externalsecret<span class="w"> </span>example
 <span class="c1"># [...]</span>
