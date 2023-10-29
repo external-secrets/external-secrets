@@ -2378,8 +2378,10 @@ a maintainer when a particular provider or authentication mechanism was changed:
 <div class="highlight"><pre><span></span><code>/ok-to-test-managed sha=xxxxxx provider=aws
 # or
 /ok-to-test-managed sha=xxxxxx provider=gcp
+# or
+/ok-to-test-managed sha=xxxxxx provider=azure
 </code></pre></div>
-<p>Both tests can run in parallel. Once started they add a dynamic GitHub check <code>integration-managed-(gcp|aws)</code> to the PR that triggered the test.</p>
+<p>Both tests can run in parallel. Once started they add a dynamic GitHub check <code>integration-managed-(gcp|aws|azure)</code> to the PR that triggered the test.</p>
 <h3 id="executing-managed-kubernetes-e2e-tests-locally">Executing Managed Kubernetes e2e tests locally</h3>
 <p>You have to prepare your shell environment with the necessary variables so the e2e
 test runner knows what credentials to use. See <code>.github/workflows/e2e-managed.yml</code>
