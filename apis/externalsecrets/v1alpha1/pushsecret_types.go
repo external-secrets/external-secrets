@@ -39,6 +39,7 @@ type PushSecretStoreRef struct {
 	Kind string `json:"kind,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Delete;None
 type PushSecretDeletionPolicy string
 
 const (
