@@ -91,7 +91,6 @@ type ExternalSecretTemplate struct {
 	// that should be used to compile/execute the
 	// template specified in .data and .templateFrom[].
 	// +kubebuilder:default="v2"
-
 	EngineVersion TemplateEngineVersion `json:"engineVersion,omitempty"`
 	// +optional
 	Metadata ExternalSecretTemplateMetadata `json:"metadata,omitempty"`
@@ -103,6 +102,7 @@ type ExternalSecretTemplate struct {
 	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Replace;Merge
 type TemplateMergePolicy string
 
 const (
@@ -110,6 +110,7 @@ const (
 	MergePolicyMerge   TemplateMergePolicy = "Merge"
 )
 
+// +kubebuilder:validation:Enum=v1;v2
 type TemplateEngineVersion string
 
 const (
@@ -128,6 +129,7 @@ type TemplateFrom struct {
 	Literal *string `json:"literal,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Values;KeysAndValues
 type TemplateScope string
 
 const (
@@ -135,6 +137,7 @@ const (
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
+// +kubebuilder:validation:Enum=Data;Annotations;Labels
 type TemplateTarget string
 
 const (
@@ -204,6 +207,7 @@ type ExternalSecretDataRemoteRef struct {
 
 	// +optional
 	// Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+	// +kubebuilder:default="None"
 	MetadataPolicy ExternalSecretMetadataPolicy `json:"metadataPolicy,omitempty"`
 
 	// +optional
@@ -225,6 +229,7 @@ type ExternalSecretDataRemoteRef struct {
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=None;Fetch
 type ExternalSecretMetadataPolicy string
 
 const (
@@ -232,6 +237,7 @@ const (
 	ExternalSecretMetadataPolicyFetch ExternalSecretMetadataPolicy = "Fetch"
 )
 
+// +kubebuilder:validation:Enum=Default;Unicode
 type ExternalSecretConversionStrategy string
 
 const (
@@ -239,6 +245,7 @@ const (
 	ExternalSecretConversionUnicode ExternalSecretConversionStrategy = "Unicode"
 )
 
+// +kubebuilder:validation:Enum=Auto;Base64;Base64URL;None
 type ExternalSecretDecodingStrategy string
 
 const (

@@ -3306,6 +3306,9 @@ TemplateEngineVersion
 </em>
 </td>
 <td>
+<p>EngineVersion specifies the template engine version
+that should be used to compile/execute the
+template specified in .data and .templateFrom[].</p>
 </td>
 </tr>
 <tr>
