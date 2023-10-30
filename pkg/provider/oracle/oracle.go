@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -387,10 +388,14 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) e
 	return nil
 }
 
-func (vms *VaultManagementService) getWorkloadIdentityProvider(serviceAcccountRef *esmeta.ServiceAccountSelector, region, namespace string) (common.ConfigurationProvider, error) {
+func (vms *VaultManagementService) getWorkloadIdentityProvider(serviceAcccountRef *esmeta.ServiceAccountSelector, region, namespace string) (configurationProvider common.ConfigurationProvider, err error) {
 	defer func() {
-		_ = os.Unsetenv(auth.ResourcePrincipalVersionEnvVar)
-		_ = os.Unsetenv(auth.ResourcePrincipalRegionEnvVar)
+		if uerr := os.Unsetenv(auth.ResourcePrincipalVersionEnvVar); uerr != nil {
+			err = errors.Join(err, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, uerr))
+		}
+		if uerr := os.Unsetenv(auth.ResourcePrincipalRegionEnvVar); uerr != nil {
+			err = errors.Join(err, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, uerr))
+		}
 		vms.workloadIdentityMutex.Unlock()
 	}()
 	vms.workloadIdentityMutex.Lock()
