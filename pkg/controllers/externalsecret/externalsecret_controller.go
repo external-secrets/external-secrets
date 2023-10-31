@@ -130,6 +130,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	timeSinceLastRefresh := 0 * time.Second
+	if !externalSecret.Status.RefreshTime.IsZero() {
+		timeSinceLastRefresh = time.Since(externalSecret.Status.RefreshTime.Time)
+	}
+
 	// skip reconciliation if deletion timestamp is set on external secret
 	if externalSecret.DeletionTimestamp != nil {
 		log.Info("skipping as it is in deletion")
@@ -178,7 +183,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// 2. refresh interval is 0
 	// 3. if we're still within refresh-interval
 	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
-		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret))
+		refreshInt = (externalSecret.Spec.RefreshInterval.Duration - timeSinceLastRefresh) + 5*time.Second
+		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret), "nr", refreshInt.Seconds())
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 	if !shouldReconcile(externalSecret) {
@@ -335,7 +341,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretSynced, "Secret was synced")
 	currCond := GetExternalSecretCondition(externalSecret.Status, esv1beta1.ExternalSecretReady)
 	SetExternalSecretCondition(&externalSecret, *conditionSynced)
-	externalSecret.Status.RefreshTime = metav1.NewTime(time.Now())
+	externalSecret.Status.RefreshTime = metav1.NewTime(start)
 	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
 	if currCond == nil || currCond.Status != conditionSynced.Status {
 		log.Info("reconciled secret") // Log once if on success in any verbosity

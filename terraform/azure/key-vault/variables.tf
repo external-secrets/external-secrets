@@ -22,3 +22,8 @@ variable "eso_sp_object_id" {
   type        = string
   description = "The object ID of the ESO service account"
 }
+
+variable "eso_e2e_sp_object_id" {
+  type        = string
+  description = "The object ID of the ESO e2e service account"
+}
