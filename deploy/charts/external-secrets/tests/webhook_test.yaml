@@ -175,8 +175,10 @@ tests:
     set:
       certController.create: false
       webhook.create: true
-      webhook.certManager.enabled: false
-      webhook.addCustomCertSecretInjectorAnnotations: true
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.create: false
+      webhook.certManager.addInjectorAnnotationsFromSecret: true
+      webhook.certManager.addInjectorAnnotations: false
     asserts:
       - equal:
           path: metadata.annotations["cert-manager.io/inject-ca-from-secret"]
@@ -186,8 +188,7 @@ tests:
       - crds/externalsecret.yaml
   - it: should not add injector annotations for the *custom secret*
     set:
-      webhook.addCustomCertSecretInjectorAnnotations: false
-      # just to avoid future conflicts with other annotations
+      webhook.certManager.addInjectorAnnotationsFromSecret: false
       webhook.certManager.addInjectorAnnotations: false
     asserts:
       - isNull:

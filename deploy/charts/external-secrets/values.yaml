@@ -222,19 +222,12 @@ webhook:
   # -- If not empty, overrides the name of the secret resource where the webhook certificates are
   # stored. If the secret resource you want to use already exists, also check the following values:
   # `certController.create`; `webhook.certManager.enabled`; `webhook.createWebhookSecret`;
-  # `webhook.addCustomCertSecretInjectorAnnotations`.
+  # `webhook.certManager.addInjectorAnnotationsFromSecret`.
   certSecretNameOverride: ""
 
   # -- Whether to create the webhook secret resource (doesn't interfere with
   # webhook.certManager.cert.create).
   createWebhookSecret: true
-
-  # -- Although webhook.certManager may be disabled, cert-manager still needs to be installed
-  # (and this chart does not install it for you). "cert-manager" is used to inject the caBundle
-  # into Kind=CustomResourceDefinition for conversion webhooks and Kind=ValidatingWebhookConfiguration
-  # for validating admission webhook. The Secret resource MUST have an
-  # `cert-manager.io/allow-direct-injection: "true"` annotation.
-  addCustomCertSecretInjectorAnnotations: false
 
   certDir: /tmp/certs
   # -- Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
@@ -274,11 +267,20 @@ webhook:
     # and renew the webhook certificate. This chart does not install
     # cert-manager for you, See https://cert-manager.io/docs/
     enabled: false
-    # -- Automatically add the cert-manager.io/inject-ca-from annotation to the
-    # webhooks and CRDs. As long as you have the cert-manager CA Injector
-    # enabled, this will automatically setup your webhook's CA to the one used
-    # by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector
+
+    # -- Automatically add the cert-manager.io/inject-ca-from from (from a Certificate
+    #  resource) annotation to the webhooks and CRDs. As long as you have the 
+    # cert-manager CA Injector enabled, this will automatically setup your webhook's CA
+    # to the one used by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector
     addInjectorAnnotations: true
+
+    # -- Automatically add the cert-manager.io/inject-ca-from-secret (from a Secret
+    # resource) annotation to the webhooks and CRDs. For it to work, the cert-manager
+    # CA Injector needs be enabled. Also, the Secret resource MUST have an
+    # `cert-manager.io/allow-direct-injection: "true"`` annotation. See
+    # https://cert-manager.io/docs/concepts/ca-injector
+    addInjectorAnnotationsFromSecret: false
+
     cert:
       # -- Create a certificate resource within this chart. See
       # https://cert-manager.io/docs/usage/certificate/

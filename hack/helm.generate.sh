@@ -31,7 +31,7 @@ for i in "${HELM_DIR}"/templates/crds/*.yml; do
   rm "$i.bkp"
   $SEDPRG -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$i"
   $SEDPRG -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$i"
-  $SEDPRG -i '0,/annotations/!b;//a\    {{- with .Values.crds.annotations }}\n    {{- toYaml . | nindent 4}}\n    {{- end }}\n    {{- if .Values.webhook.addCustomCertSecretInjectorAnnotations }}\n    cert-manager.io/inject-ca-from-secret: {{ .Release.Namespace }}/{{ template "external-secrets-webhook.certSecretName" . }}\n    {{- else if and .Values.crds.conversion.enabled .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}\n    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook\n    {{- end }}' "$i"
+  $SEDPRG -i '0,/annotations/!b;//a\    {{- with .Values.crds.annotations }}\n    {{- toYaml . | nindent 4}}\n    {{- end }}\n    {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotationsFromSecret }}\n    cert-manager.io/inject-ca-from-secret: {{ .Release.Namespace }}/{{ template "external-secrets-webhook.certSecretName" . }}\n    {{- else if and .Values.crds.conversion.enabled .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}\n    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook\n    {{- end }}' "$i"
 
   $SEDPRG -i '/  conversion:/i{{- if .Values.crds.conversion.enabled }}' "$i"
   echo "{{- end }}" >> "$i"

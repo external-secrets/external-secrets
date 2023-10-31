@@ -8,7 +8,7 @@ metadata:
     {{- with .Values.commonLabels }}
     {{ toYaml . | nindent 4 }}
     {{- end }}
-  {{- if .Values.webhook.addCustomCertSecretInjectorAnnotations }}
+  {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotationsFromSecret }}
   annotations:
     cert-manager.io/inject-ca-from-secret: {{ .Release.Namespace }}/{{ template "external-secrets-webhook.certSecretName" . }}
   {{- else if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
@@ -57,7 +57,7 @@ metadata:
     {{- with .Values.commonLabels }}
     {{ toYaml . | nindent 4 }}
     {{- end }}
-  {{- if .Values.webhook.addCustomCertSecretInjectorAnnotations }}
+  {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotationsFromSecret }}
   annotations:
     cert-manager.io/inject-ca-from-secret: {{ .Release.Namespace }}/{{ template "external-secrets-webhook.certSecretName" . }}
   {{- else if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
