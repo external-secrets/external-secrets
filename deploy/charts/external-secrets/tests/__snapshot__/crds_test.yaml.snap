@@ -662,7 +662,7 @@ should match snapshot of default values:
                           description: Oracle configures this store to sync secrets using Oracle Vault provider
                           properties:
                             auth:
-                              description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+                              description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
                               properties:
                                 secretRef:
                                   description: SecretRef to pass through sensitive information.
@@ -708,6 +708,9 @@ should match snapshot of default values:
                                 - tenancy
                                 - user
                               type: object
+                            principalType:
+                              description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                              type: string
                             region:
                               description: Region is the region where vault is located.
                               type: string
@@ -2226,6 +2229,9 @@ should match snapshot of default values:
                                 - tenancy
                                 - user
                               type: object
+                            principalType:
+                              description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                              type: string
                             region:
                               description: Region is the region where vault is located.
                               type: string
