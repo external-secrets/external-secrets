@@ -57,3 +57,14 @@ The operator will fetch the project variable and inject it as a `Kind=Secret`.
 ```
 kubectl get secret oracle-secret-to-create -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
+
+### PushSecrets and retrieving multiple secrets.
+When using [PushSecrets](https://external-secrets.io/latest/guides/pushsecrets/), the compartment OCID and encryption key OCID must be specified in the
+Oracle SecretStore. You can find your compartment and encrpytion key OCIDs in the OCI console.
+
+If [retrieving multiple secrets](https://external-secrets.io/latest/guides/getallsecrets/) by tag or regex, only the compartment OCID must be specified.
+
+```yaml
+{% include 'oracle-secret-store-pushsecret.yaml' %}
+```
+

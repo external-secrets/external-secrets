@@ -4542,6 +4542,32 @@ string
 </tr>
 <tr>
 <td>
+<code>compartment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Compartment is the vault compartment OCID.
+Required for PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>encryptionKey</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EncryptionKey is the OCID of the encrpytion key within the vault.
+Required for PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>principalType</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.OraclePrincipalType">
