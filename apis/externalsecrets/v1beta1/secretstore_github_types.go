@@ -23,14 +23,17 @@ type GithubProvider struct {
 	// URL configures the Github instance URL. Defaults to https://github.com/.
 	URL string `json:"url,omitempty"`
 
-	// Auth configures how secret-manager authenticates with a Github instance.
+	// auth configures how secret-manager authenticates with a Github instance.
 	Auth GithubAppAuth `json:"appAuth"`
 
-	// AppID specifies the Github APP that will be used to authenticate the client
+	// appID specifies the Github APP that will be used to authenticate the client
 	AppID int64 `json:"appID"`
 
-	// AppID specifies the Github APP that will be used to authenticate the client
+	// installationID specifies the Github APP installation that will be used to authenticate the client
 	InstallationID int64 `json:"installationID"`
+
+	// organisationName will be used to fetch secrets from the Github organisation
+	OrganisationName string `json:"organisationName"`
 }
 
 type GithubAppAuth struct {
