@@ -222,7 +222,7 @@ func TestPushSecret(t *testing.T) {
 		data := []byte("some secret data 6a8ff33b-c69a-4e42-b162-b7b595ee7f5f")
 		secretName := "secret-creation-test"
 
-		pushErr := c.PushSecret(ctx, data, nil, pushRemoteRef("name:"+secretName))
+		pushErr := c.PushSecret(ctx, data, "", nil, pushRemoteRef("name:"+secretName))
 
 		assert.NoError(t, pushErr)
 		assert.Len(t, db.secret(secretName).versions, 1)
@@ -234,9 +234,9 @@ func TestPushSecret(t *testing.T) {
 		c := newTestClient()
 		data := []byte("some secret data a11d416b-9169-4f4a-8c27-d2959b22e189")
 		secretName := "secret-update-test"
-		assert.NoError(t, c.PushSecret(ctx, []byte("original data"), nil, pushRemoteRef("name:"+secretName)))
+		assert.NoError(t, c.PushSecret(ctx, []byte("original data"), "", nil, pushRemoteRef("name:"+secretName)))
 
-		pushErr := c.PushSecret(ctx, data, nil, pushRemoteRef("name:"+secretName))
+		pushErr := c.PushSecret(ctx, data, "", nil, pushRemoteRef("name:"+secretName))
 
 		assert.NoError(t, pushErr)
 		assert.Len(t, db.secret(secretName).versions, 2)
@@ -249,7 +249,7 @@ func TestPushSecret(t *testing.T) {
 		data := []byte("some secret data a11d416b-9169-4f4a-8c27-d2959b22e189")
 		secretName := "push-me"
 
-		pushErr := c.PushSecret(ctx, data, nil, pushRemoteRef("name:"+secretName))
+		pushErr := c.PushSecret(ctx, data, "", nil, pushRemoteRef("name:"+secretName))
 
 		assert.NoError(t, pushErr)
 		assert.Len(t, db.secret(secretName).versions, 1)
@@ -263,7 +263,7 @@ func TestPushSecret(t *testing.T) {
 		secretPath := "/folder"
 		secretName := "secret-in-path"
 
-		pushErr := c.PushSecret(ctx, data, nil, pushRemoteRef("path:"+secretPath+"/"+secretName))
+		pushErr := c.PushSecret(ctx, data, "", nil, pushRemoteRef("path:"+secretPath+"/"+secretName))
 		assert.NoError(t, pushErr)
 		assert.Len(t, db.secret(secretName).versions, 1)
 		assert.Equal(t, data, db.secret(secretName).versions[0].data)
@@ -274,7 +274,7 @@ func TestPushSecret(t *testing.T) {
 		ctx := context.Background()
 		c := newTestClient()
 
-		pushErr := c.PushSecret(ctx, []byte("some data"), nil, pushRemoteRef("invalid:abcd"))
+		pushErr := c.PushSecret(ctx, []byte("some data"), "", nil, pushRemoteRef("invalid:abcd"))
 
 		assert.Error(t, pushErr)
 	})
@@ -283,7 +283,7 @@ func TestPushSecret(t *testing.T) {
 		ctx := context.Background()
 		c := newTestClient()
 
-		pushErr := c.PushSecret(ctx, []byte("some data"), nil, pushRemoteRef("id:"+db.secret("cant-push").id))
+		pushErr := c.PushSecret(ctx, []byte("some data"), "", nil, pushRemoteRef("id:"+db.secret("cant-push").id))
 
 		assert.Error(t, pushErr)
 	})
@@ -293,7 +293,7 @@ func TestPushSecret(t *testing.T) {
 		c := newTestClient()
 		secret := db.secret("not-changed")
 
-		pushErr := c.PushSecret(ctx, secret.versions[0].data, nil, pushRemoteRef("name:"+secret.name))
+		pushErr := c.PushSecret(ctx, secret.versions[0].data, "", nil, pushRemoteRef("name:"+secret.name))
 
 		assert.NoError(t, pushErr)
 		assert.Equal(t, 1, len(secret.versions))
@@ -304,7 +304,7 @@ func TestPushSecret(t *testing.T) {
 		c := newTestClient()
 		secret := db.secret("disabling-old-versions")
 
-		pushErr := c.PushSecret(ctx, []byte("some new data"), nil, pushRemoteRef("name:"+secret.name))
+		pushErr := c.PushSecret(ctx, []byte("some new data"), "", nil, pushRemoteRef("name:"+secret.name))
 
 		assert.NoError(t, pushErr)
 		assert.Equal(t, 2, len(secret.versions))

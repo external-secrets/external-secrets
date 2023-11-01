@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -69,7 +70,7 @@ type SecretsClient interface {
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// PushSecret will write a single secret into the provider
-	PushSecret(ctx context.Context, value []byte, metadata *apiextensionsv1.JSON, remoteRef PushRemoteRef) error
+	PushSecret(ctx context.Context, value []byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef PushRemoteRef) error
 
 	// DeleteSecret will delete the secret from a provider
 	DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error

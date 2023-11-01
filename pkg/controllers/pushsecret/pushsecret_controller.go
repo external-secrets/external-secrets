@@ -267,7 +267,7 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 				return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
 			}
 
-			err := client.PushSecret(ctx, secretValue, data.Metadata, data.Match.RemoteRef)
+			err := client.PushSecret(ctx, secretValue, secret.Type, data.Metadata, data.Match.RemoteRef)
 			if err != nil {
 				return out, fmt.Errorf(errSetSecretFailed, data.Match.SecretKey, store.GetName(), err)
 			}
