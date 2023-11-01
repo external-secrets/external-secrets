@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1alpha1
 
 import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
