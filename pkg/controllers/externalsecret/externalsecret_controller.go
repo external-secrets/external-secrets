@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -189,10 +190,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	if !shouldReconcile(externalSecret) {
 		log.V(1).Info("stopping reconciling", "rv", getResourceVersion(externalSecret))
-		return ctrl.Result{
-			RequeueAfter: 0,
-			Requeue:      false,
-		}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// patch status when done processing
@@ -215,11 +213,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	dataMap, err := r.getProviderSecretData(ctx, &externalSecret)
 	if err != nil {
-		log.Error(err, errGetSecretData)
-		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
-		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errGetSecretData)
-		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		syncCallsError.With(resourceLabels).Inc()
+		r.markAsFailed(log, errGetSecretData, err, &externalSecret, syncCallsError.With(resourceLabels))
 		return ctrl.Result{}, err
 	}
 
@@ -232,20 +226,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			// this is also implemented in the es validation webhook
 			if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner {
 				err := fmt.Errorf(errInvalidCreatePolicy, externalSecret.Spec.Target.CreationPolicy)
-				log.Error(err, errDeleteSecret)
-				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
-				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errDeleteSecret)
-				SetExternalSecretCondition(&externalSecret, *conditionSynced)
-				syncCallsError.With(resourceLabels).Inc()
+				r.markAsFailed(log, errDeleteSecret, err, &externalSecret, syncCallsError.With(resourceLabels))
 				return ctrl.Result{}, err
 			}
+
 			err = r.Delete(ctx, secret)
 			if err != nil && !apierrors.IsNotFound(err) {
-				log.Error(err, errDeleteSecret)
-				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
-				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errDeleteSecret)
-				SetExternalSecretCondition(&externalSecret, *conditionSynced)
-				syncCallsError.With(resourceLabels).Inc()
+				r.markAsFailed(log, errDeleteSecret, err, &externalSecret, syncCallsError.With(resourceLabels))
 			}
 
 			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretDeleted, "secret deleted due to DeletionPolicy")
@@ -318,40 +305,44 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			delErr := deleteOrphanedSecrets(ctx, r.Client, &externalSecret)
 			if delErr != nil {
 				msg := fmt.Sprintf("failed to clean up orphaned secrets: %v", delErr)
-				log.Error(delErr, msg)
-				r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, delErr.Error())
-				conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
-				SetExternalSecretCondition(&externalSecret, *conditionSynced)
-				syncCallsError.With(resourceLabels).Inc()
+				r.markAsFailed(log, msg, delErr, &externalSecret, syncCallsError.With(resourceLabels))
 				return ctrl.Result{}, delErr
 			}
 		}
 	}
 
 	if err != nil {
-		log.Error(err, errUpdateSecret)
-		r.recorder.Event(&externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
-		conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, errUpdateSecret)
-		SetExternalSecretCondition(&externalSecret, *conditionSynced)
-		syncCallsError.With(resourceLabels).Inc()
+		r.markAsFailed(log, errUpdateSecret, err, &externalSecret, syncCallsError.With(resourceLabels))
 		return ctrl.Result{}, err
 	}
 
-	r.recorder.Event(&externalSecret, v1.EventTypeNormal, esv1beta1.ReasonUpdated, "Updated Secret")
+	r.markAsDone(&externalSecret, start, log)
+
+	return ctrl.Result{
+		RequeueAfter: refreshInt,
+	}, nil
+}
+
+func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start time.Time, log logr.Logger) {
+	r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonUpdated, "Updated Secret")
 	conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretSynced, "Secret was synced")
 	currCond := GetExternalSecretCondition(externalSecret.Status, esv1beta1.ExternalSecretReady)
-	SetExternalSecretCondition(&externalSecret, *conditionSynced)
+	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(start)
-	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
+	externalSecret.Status.SyncedResourceVersion = getResourceVersion(*externalSecret)
 	if currCond == nil || currCond.Status != conditionSynced.Status {
 		log.Info("reconciled secret") // Log once if on success in any verbosity
 	} else {
 		log.V(1).Info("reconciled secret") // Log all reconciliation cycles if higher verbosity applied
 	}
+}
 
-	return ctrl.Result{
-		RequeueAfter: refreshInt,
-	}, nil
+func (r *Reconciler) markAsFailed(log logr.Logger, msg string, err error, externalSecret *esv1beta1.ExternalSecret, counter prometheus.Counter) {
+	log.Error(err, msg)
+	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+	conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
+	SetExternalSecretCondition(externalSecret, *conditionSynced)
+	counter.Inc()
 }
 
 func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret *esv1beta1.ExternalSecret) error {
