@@ -170,7 +170,7 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	)
 
 	if oracleSpec.PrincipalType == esv1beta1.WorkloadPrincipal {
-		configurationProvider, err = vms.getWorkloadIdentityProvider(oracleSpec.ServiceAccountRef, oracleSpec.Region, namespace)
+		configurationProvider, err = vms.getWorkloadIdentityProvider(store, oracleSpec.ServiceAccountRef, oracleSpec.Region, namespace)
 	} else if oracleSpec.PrincipalType == esv1beta1.InstancePrincipal || oracleSpec.Auth == nil {
 		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
 	} else {
@@ -388,7 +388,7 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) e
 	return nil
 }
 
-func (vms *VaultManagementService) getWorkloadIdentityProvider(serviceAcccountRef *esmeta.ServiceAccountSelector, region, namespace string) (configurationProvider common.ConfigurationProvider, err error) {
+func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1beta1.GenericStore, serviceAcccountRef *esmeta.ServiceAccountSelector, region, namespace string) (configurationProvider common.ConfigurationProvider, err error) {
 	defer func() {
 		if uerr := os.Unsetenv(auth.ResourcePrincipalVersionEnvVar); uerr != nil {
 			err = errors.Join(err, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, uerr))
@@ -409,6 +409,10 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(serviceAcccountRe
 	// If no service account is specified, use the pod service account to create the Workload Identity provider.
 	if serviceAcccountRef == nil {
 		return auth.OkeWorkloadIdentityConfigurationProvider()
+	}
+	// Ensure the service account ref is being used appropriately, so arbitrary tokens are not minted by the provider.
+	if err = utils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
+		return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
 	}
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
