@@ -81,7 +81,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error retrieving secret at .data[%d], key: %s, err: %w", i, secretRef.RemoteRef.Key, err)
 		}
 	}
 
